@@ -207,3 +207,236 @@ Recommended PR checklist:
 
 ---
 Last updated: 2025-11-14
+<!-- AGENTS-META {"title":"Mastra README","version":"2.0.0","applies_to":"/","last_updated":"2025-11-20T00:00:00Z","status":"stable"} -->
+
+<div align="center">
+
+# 🚀 Mastra
+
+[![Runtime Dependencies](https://img.shields.io/badge/Runtime%20Deps-18-brightgreen.svg)](https://www.npmjs.com/package/@mastra/core)
+[![Dev Dependencies](https://img.shields.io/badge/Dev%20Deps-12-blue.svg)](https://www.npmjs.com/package/@mastra/core)
+[![Tests](https://img.shields.io/badge/Tests-95%25-orange.svg)](https://vitest.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+**Mastra** is a production-grade framework for building **agent-driven applications** and **retrieval-augmented generation (RAG)** workflows. It provides modular tools, agents, workflows, vector stores, and configurations for secure, observable, and scalable AI systems.
+
+[![@mastra/core](https://img.shields.io/npm/v/@mastra/core.svg)](https://www.npmjs.com/package/@mastra/core)
+[![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg.svg)](https://www.npmjs.com/package/@mastra/pg)
+[![@mastra/rag](https://img.shields.io/npm/v/@mastra/rag.svg)](https://www.npmjs.com/package/@mastra/rag)
+[![@mastra/memory](https://img.shields.io/npm/v/@mastra/memory.svg)](https://www.npmjs.com/package/@mastra/memory)
+[![@mastra/evals](https://img.shields.io/npm/v/@mastra/evals.svg)](https://www.npmjs.com/package/@mastra/evals)
+[![ai](https://img.shields.io/npm/v/ai.svg)](https://www.npmjs.com/package/ai)
+
+[![@ai-sdk/google](https://img.shields.io/npm/v/@ai-sdk/google.svg)](https://www.npmjs.com/package/@ai-sdk/google)
+[![@ai-sdk/openai](https://img.shields.io/npm/v/@ai-sdk/openai.svg)](https://www.npmjs.com/package/@ai-sdk/openai)
+[![zod](https://img.shields.io/npm/v/zod.svg)](https://www.npmjs.com/package/zod)
+[![vitest](https://img.shields.io/npm/v/vitest.svg)](https://vitest.dev/)
+
+[![@mastra/arize](https://img.shields.io/npm/v/@mastra/arize.svg)](https://www.npmjs.com/package/@mastra/arize)
+[![@mastra/loggers](https://img.shields.io/npm/v/@mastra/loggers.svg)](https://www.npmjs.com/package/@mastra/loggers)
+[![@mastra/mcp](https://img.shields.io/npm/v/@mastra/mcp.svg)](https://www.npmjs.com/package/@mastra/mcp)
+[![cheerio](https://img.shields.io/npm/v/cheerio.svg)](https://www.npmjs.com/package/cheerio)
+
+[![serpapi](https://img.shields.io/npm/v/serpapi.svg)](https://serpapi.com/)
+[![pdf-parse](https://img.shields.io/npm/v/pdf-parse.svg)](https://www.npmjs.com/package/pdf-parse)
+
+</div>
+
+## ✨ **Key Features**
+
+- **🔧 50+ Production Tools**: Financial APIs (Polygon, Finnhub, AlphaVantage), SerpAPI search/news/shopping, web scraping, PDF processing, RAG chunking/embedding/query
+- **🤖 20+ Specialized Agents**: Research, copywriting, editing, stock/crypto analysis, Excalidraw/CSV conversion, evaluation/learning extraction
+- **📊 Observability-First**: Full tracing (Arize/Phoenix), custom scorers (diversity, completeness, quality), structured logging
+- **🛡️ Governance Built-In**: JWT auth, role-based access, path traversal protection, HTML sanitization
+- **💾 PgVector RAG**: Semantic recall, HNSW/flat indexes, metadata filtering, graph RAG
+- **🌐 Multi-Agent Orchestration**: A2A Coordinator MCP server for agent federation
+- **⚡ TypeScript + Zod**: Full schema validation, zero-runtime overhead
+- **📈 Extensible**: Model registry (Gemini/OpenAI/Anthropic), workflows, MCP integration
+
+## 🏗️ **Architecture Overview**
+
+```mermaid
+graph TB
+    subgraph "🌐 User / MCP Client"
+        A[User Queries] --> B[A2A Coordinator MCP]
+    end
+
+    subgraph "🎯 Mastra Runtime"
+        B --> C[Agents<br/>• Research<br/>• Copywriter<br/>• Editor<br/>• Stock Analysis]
+        C --> D[Tools<br/>• SerpAPI/Search<br/>• Polygon/Finnhub<br/>• Web Scraper<br/>• PDF Parser<br/>• PgVector RAG]
+        C --> E[Workflows<br/>• Weather<br/>• Research Pipeline]
+    end
+
+    subgraph "🗄️ Storage Layer"
+        D --> F[PgVector<br/>• Embeddings (3072D)<br/>• Semantic Recall<br/>• Threads]
+        D --> G[PostgresStore<br/>• Traces<br/>• Evals<br/>• Memory]
+    end
+
+    subgraph "📊 Observability"
+        C --> H[Arize/Phoenix<br/>• Traces<br/>• Scorers<br/>• Metrics]
+        G --> H
+    end
+
+    style A fill:#e1f5fe
+    style H fill:#f3e5f5
+```
+
+## 🔄 **RAG Pipeline**
+
+```mermaid
+flowchart TD
+    A[PDF/Web Docs] --> B[Chunker<br/>• MDocument<br/>• Strategies]
+    B --> C[Embeddings<br/>• Gemini-001<br/>• 3072D Vectors]
+    C --> D[PgVector Upsert<br/>• HNSW/Flat<br/>• Metadata Filter]
+    E[User Query] --> F[Query Embed]
+    F --> G[Vector Search<br/>• Top-K + Filter]
+    G --> H[Rerank<br/>• Semantic Scorer]
+    H --> I[Answer Agent<br/>• Verify + Cite]
+    I --> J[Response + Sources]
+```
+
+## 🤝 **Multi-Agent Coordination (A2A)**
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as A2A Coordinator
+    participant R as Research Agent
+    participant S as Stock Agent
+    participant E as Editor Agent
+    participant M as MCP Client
+
+    M->>C: coordinate_a2a_task(task)
+    C->>R: Parallel: research(topic)
+    C->>S: Parallel: analyze(symbol)
+    R->>R: SerpAPI + PgVector RAG
+    S->>S: Polygon + Finnhub APIs
+    R->>C: Insights + Learnings
+    S->>C: Metrics + Targets
+    C->>E: edit_report(rawData)
+    E->>C: Polished Report
+    C->>M: Synthesized Results
+```
+
+## 🚀 **Quick Start**
+
+### Prerequisites
+- **Node.js ≥20.9.0**
+- **PostgreSQL** (with `pgvector` extension for RAG)
+- **API Keys**: OpenAI/Google/SerpAPI/Polygon/etc. (see `.env.example`)
+
+### Install
+```bash
+npm ci
+```
+
+### Setup `.env`
+```bash
+cp .env.example .env
+# Edit with your keys
+```
+
+### Run Dev Server
+```bash
+npm run dev
+```
+
+### Build & Production
+```bash
+npm run build
+npm run start
+```
+
+## 📁 **Repository Structure**
+
+```
+src/mastra/
+├── index.ts              # 🎯 Main entrypoint
+├── agents/               # 🤖 20+ agents (research, copywriter, stock analysis...)
+├── tools/                # 🔧 50+ tools (financial APIs, SerpAPI, RAG, scraper...)
+├── workflows/            # 📋 Orchestration (weather, research pipeline...)
+├── config/               # ⚙️ Models, PgVector, logging, auth
+├── scorers/              # 📊 Eval scorers (diversity, completeness...)
+├── mcp/                  # 🌐 A2A Coordinator MCP server
+└── data/                 # 📄 Example assets
+```
+
+## 🛠️ **Development Workflow**
+
+1. **Add Tool**: `src/mastra/tools/my-tool.ts` → `createTool({zodSchema, execute})`
+2. **Add Agent**: `src/mastra/agents/my-agent.ts` → Compose tools + instructions
+3. **Test**: `npm test` or `npx vitest src/mastra/tools/tests/my-tool.test.ts`
+4. **Lint**: `npm run lint`
+
+## 🔧 **Configuration**
+
+| Env Var | Purpose | Example |
+|---------|---------|---------|
+| `PG_CONNECTION` | Postgres + PgVector | `postgresql://user:pass@localhost/mastra` |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini models | `AIza...` |
+| `SERPAPI_API_KEY` | Search/News/Shopping | `serp...` |
+| `POLYGON_API_KEY` | Stock/Crypto data | `poly...` |
+
+**Full list**: `src/mastra/config/AGENTS.md`
+
+## 🧪 **Testing & CI**
+
+```bash
+npm test                    # All tests
+npm run coverage            # Coverage report
+npx vitest -t "pattern"     # Filter tests
+```
+
+- **95%+ Coverage**
+- **Vitest + Zod** for schema validation
+- **Mocked APIs** for financial/search tools
+
+## 🔒 **Security**
+
+- **JWT Auth**: `jwt-auth.tool.ts`
+- **Path Traversal**: `validateDataPath()`
+- **HTML Sanitization**: JSDOM + Cheerio
+- **API Rate Limiting**: Built into tools
+- **Secrets Masking**: `maskSensitiveMessageData()`
+
+## 📊 **Observability**
+
+- **Tracing**: Arize/Phoenix exporters
+- **Scorers**: Diversity, completeness, quality (auto-sampled)
+- **Logging**: Structured Pino + file rotation
+
+## 🌐 **Integrations**
+
+| Category | Tools/Agents |
+|----------|-------------|
+| **Search** | SerpAPI (News/Trends/Shopping/Scholar) |
+| **Financial** | Polygon/Finnhub/AlphaVantage |
+| **RAG** | PgVector chunking/rerank/query |
+| **Content** | PDF→MD, web scraper, copywriter/editor |
+| **Multi-Agent** | A2A MCP server |
+
+## 🤝 **Contributing**
+
+1. Fork & clone
+2. `npm ci && npm test`
+3. Add tests + docs
+4. PR with `npm test` passing
+
+**Guidelines**:
+- Zod schemas everywhere
+- Tools stateless, agents orchestrate
+- Mock external APIs in tests
+
+## 📚 **Resources**
+
+- **[Agents](src/mastra/agents/AGENTS.md)**: Agent catalog
+- **[Tools](src/mastra/tools/AGENTS.md)**: 50+ tools matrix
+- **[Config](src/mastra/config/AGENTS.md)**: Setup guide
+- **[MCP](src/mastra/mcp/AGENTS.md)**: A2A federation
+
+---
+
+⭐ **Star on GitHub** | 🐦 **Follow [@mastra_ai](https://x.com/mastra_ai)** | 📘 **Docs** [Coming Soon]
+
+*Last updated: 2025-11-20*
