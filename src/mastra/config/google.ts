@@ -11,6 +11,10 @@ export const google = createGoogleGenerativeAI({
     * When to use: This model is suitable for a wide range of tasks including text generation, reasoning, and vision-related applications. It offers a good balance between performance and cost, making it ideal for most standard use cases.
     * Why use: Choose this model when you need reliable performance for diverse applications without the higher costs associated with premium models.
  */
+// Note: The google() factory expects only the model id. Per-model provider options
+// such as `structuredOutputs` should be configured at the provider level (when
+// creating the Google AI instance) if supported by the SDK. Remove the second
+// argument to match the current function signature.
 export const googleAI = google('gemini-2.5-flash-preview-09-2025')
 // Gemini 2.5 Pro model for higher-performance applications
 /*

@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Tools","version":"1.4.0","last_updated":"2025-10-18T00:00:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"],"status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Tools","version":"2.0.0","last_updated":"2025-11-16T01:55:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"]} -->
 
 # Tools Directory (`/src/mastra/tools`)
 
@@ -11,98 +11,159 @@
 
 Encapsulate atomic operational capabilities (security checks, vector queries, content fetch, UI state mutation hooks) in auditable, schema-validated units invoked by agents.
 
-## Key Files
+## Tool Categories
 
-| File                                                | Responsibility                    | Notes                                         |
-| --------------------------------------------------- | --------------------------------- | --------------------------------------------- |
-| `jwt-auth.tool.ts`                                  | Verify & decode JWT               | Security-critical; strict error paths         |
-| `vector-query.tool.ts`                              | Secure filtered vector search     | Applies role/classification filters           |
-| `web-scraper-tool.ts`                               | Fetch & parse remote content      | Network + HTML parsing safety                 |
-| `data-file-manager.ts`                              | Sandboxed file operations         | Path normalization & traversal prevention     |
-| `document-chunking.tool.ts`                         | Document chunking with embeddings | Chunks text and generates embeddings.         |
-| `graph-rag-query.tool.ts`                           | Graph-based RAG queries           | Traverses relationships for context.          |
-| `copywriter-agent-tool.ts` / `editor-agent-tool.ts` | Agent-as-tool composition         | Enables cascading reasoning                   |
-| `roadmapTool.ts`                                    | Cedar OS roadmap interactions     | UI state bridging                             |
-| `weather-tool.ts`                                   | Example external API call         | Demonstrative pattern                         |
-| `evaluateResultTool.ts` / `extractLearningsTool.ts` | Research support tools            | Evaluate search results and extract insights. |
-| `alpha-vantage.tool.ts`                           | Alpha Vantage financial data API | Crypto & stock market data, exchange rates, technical indicators |
-| `arxiv.tool.ts`                                   | ArXiv academic paper search       | Academic papers, PDF parsing, research content extraction |
-| `finnhub-tools.ts`                                | Finnhub financial data API       | Real-time stock quotes, company data, financials, analysis |
-| `polygon-tools.ts`                                | Polygon.io market data API       | Real-time quotes, aggregates, fundamentals, crypto data |
+### 1. Web Scraping & Content Extraction
 
-## Financial Data API Tools
+| Tool File | Export | Purpose | Dependencies |
+|-----------|--------|---------|--------------|
+| `web-scraper-tool.ts` | `webScraperTool`, `batchWebScraperTool` | Fetch and parse web content | `playwright`, `cheerio` |
+| `siteMapExtractor.ts` | `siteMapExtractorTool` | Extract URLs from sitemaps | `fast-xml-parser` |
+| `linkExtractor.ts` | `linkExtractorTool` | Extract links from HTML content | `cheerio` |
+| `htmlToMarkdownTool.ts` | `htmlToMarkdownTool` | Convert HTML to clean Markdown | `turndown` |
+| `contentCleanerTool.ts` | `contentCleanerTool` | Clean and normalize extracted content | - |
 
-**Overview:** Suite of financial market data tools providing comprehensive access to stocks, cryptocurrencies, and market analysis.
+### 2. Document Processing
 
-**Configuration:** Requires respective API keys (ALPHA_VANTAGE_API_KEY, FINNHUB_API_KEY, POLYGON_API_KEY).
+| Tool File | Export | Purpose | Dependencies |
+|-----------|--------|---------|--------------|
+| `document-chunking.tool.ts` | `mdocumentChunker` | Split documents into chunks with metadata | `langchain/text-splitter` |
+| `pdf-data-conversion.tool.ts` | `pdfToMarkdownTool` | Convert PDFs to Markdown | `pdf-parse` |
+| `data-file-manager.ts` | `dataFileManager` | Manage data files with versioning | `fs-extra` |
 
-| File | Tools | Responsibility |
-|------|-------|----------------|
-| `starter-agent-tool.ts`                           | Dynamic agent invocation          | Runtime agent selection and execution based on task requirements |
+### 3. Financial Data APIs
 
-## Financial Data API Tools
+#### Alpha Vantage
 
-**Overview:** Suite of financial market data tools providing comprehensive access to stocks, cryptocurrencies, and market analysis.
+- **File**: `alpha-vantage.tool.ts`
+- **Tools**:
+  - `alphaVantageStockTool`: Stock market data
+  - `alphaVantageCryptoTool`: Cryptocurrency data
+  - `alphaVantageForexTool`: Foreign exchange rates
+- **Requirements**: `ALPHA_VANTAGE_API_KEY`
 
-**Configuration:** Requires respective API keys (ALPHA_VANTAGE_API_KEY, FINNHUB_API_KEY, POLYGON_API_KEY).
+#### Finnhub
 
-| File | Tools | Responsibility |
-|------|-------|----------------|
-| `alpha-vantage.tool.ts` | `alphaVantageCryptoTool`, `alphaVantageStockTool`, `alphaVantageTool` | Crypto prices, stock data, exchange rates, technical indicators |
-| `finnhub-tools.ts` | `finnhubQuotesTool`, `finnhubCompanyTool`, `finnhubFinancialsTool`, `finnhubAnalysisTool`, `finnhubTechnicalTool`, `finnhubEconomicTool` | Real-time quotes, company data, financial statements, analysis, technical indicators, economic data |
-| `polygon-tools.ts` | `polygonStockQuotesTool`, `polygonStockAggregatesTool`, `polygonStockFundamentalsTool`, `polygonCryptoQuotesTool`, `polygonCryptoAggregatesTool`, `polygonCryptoSnapshotsTool` | Real-time stock/crypto quotes, historical aggregates, fundamentals, market snapshots |
+- **File**: `finnhub-tools.ts`
+- **Tools**:
+  - `finnhubQuotesTool`: Real-time quotes
+  - `finnhubCompanyTool`: Company profiles
+  - `finnhubFinancialsTool`: Financial statements
+  - `finnhubAnalysisTool`: Market analysis
+- **Requirements**: `FINNHUB_API_KEY`
 
-## Academic & Research API Tools
+#### Polygon.io
 
-| File | Tools | Responsibility |
-|------|-------|----------------|
-| `arxiv.tool.ts` | `arxivTool`, `arxivPdfParserTool`, `arxivPaperDownloaderTool` | Academic paper search, PDF parsing, paper downloads |
+- **File**: `polygon-tools.ts`
+- **Tools**:
+  - `polygonStockQuotesTool`: Stock quotes
+  - `polygonCryptoQuotesTool`: Crypto quotes
+  - `polygonStockAggregatesTool`: Historical aggregates
+- **Requirements**: `POLYGON_API_KEY`
 
-## SerpAPI Integration Tools
+### 4. Research & Academic
 
-**Overview:** Suite of tools providing web search, news, trends, shopping, academic research, finance, and local business search capabilities via SerpAPI.
+| Tool File | Export | Purpose | Dependencies |
+|-----------|--------|---------|--------------|
+| `arxiv.tool.ts` | `arxivTool` | Search academic papers | `arxiv-api` |
+| `evaluateResultTool.ts` | `evaluateResultTool` | Evaluate search results | - |
+| `extractLearningsTool.ts` | `extractLearningsTool` | Extract insights from content | - |
 
-**Configuration:** Requires `SERPAPI_API_KEY` environment variable (get from https://serpapi.com/manage-api-key).
+### 5. Data Conversion & Validation
 
-**Rate Limits:** Subject to SerpAPI plan limits. Consider rate limiting in agent workflows.
+| Tool File | Export | Purpose | Dependencies |
+|-----------|--------|---------|--------------|
+| `csv-to-json.tool.ts` | `csvToJsonTool` | Convert CSV to JSON | `csv-parse` |
+| `json-to-csv.tool.ts` | `jsonToCsvTool` | Convert JSON to CSV | `json2csv` |
+| `data-validator.tool.ts` | `dataValidatorTool` | Validate data against schema | `zod` |
 
-| File                              | Responsibility                                           | Notes                                                      |
-| --------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
-| `serpapi-config.ts`               | Shared SerpAPI configuration & validation                | API key management, timeout settings, common types         |
-| `serpapi-search.tool.ts`          | Google Search & AI Overview tools                        | Web search with organic results, knowledge graph, AI overviews |
-| `serpapi-news-trends.tool.ts`     | News, Trends, & Autocomplete tools                       | Current news, trend analysis, search suggestions           |
-| `serpapi-shopping.tool.ts`        | E-commerce platform search tools                         | Amazon, Walmart, eBay, Home Depot product searches         |
-| `serpapi-academic-local.tool.ts`  | Scholar, Finance, & Yelp tools                           | Academic papers, stock quotes, local business search       |
+## Tool Development
 
-**Available Tools:**
+### Creating a New Tool
 
-- **Search:** `googleSearchTool`, `googleAiOverviewTool`
-- **News:** `googleNewsTool`, `googleNewsLiteTool`
-- **Trends:** `googleTrendsTool`, `googleAutocompleteTool`
-- **Shopping:** `amazonSearchTool`, `walmartSearchTool`, `ebaySearchTool`, `homeDepotSearchTool`
-- **Academic/Local:** `googleScholarTool`, `googleFinanceTool`, `yelpSearchTool`
+1. **Define the Tool**
 
-## Tool Definition Pattern
+   ```typescript
+   // src/mastra/tools/your-tool.ts
+   import { createTool } from '@mastra/core/tools'
+   import { z } from 'zod'
 
-```ts
-export const sampleTool = createTool({
-    id: 'sample:normalizeText',
-    description: 'Normalizes input text by trimming and collapsing whitespace.',
-    inputSchema: z.object({ text: z.string().min(1) }),
-    outputSchema: z.object({ normalized: z.string() }),
-    execute: async ({ input, tracingContext }) => {
-        const start = Date.now()
-        const normalized = input.text.replace(/\s+/g, ' ').trim()
-        tracingContext?.span?.setAttribute('norm.ms', Date.now() - start)
-        return { normalized }
-    },
-})
+   export const yourTool = createTool({
+     id: 'namespace:yourTool',
+     description: 'Brief description of what this tool does',
+     inputSchema: z.object({
+       // Define your input schema using zod
+       param1: z.string().describe('Description of parameter 1'),
+       param2: z.number().optional()
+     }),
+     outputSchema: z.object({
+       // Define your output schema
+       result: z.any()
+     }),
+     execute: async ({ input, context }) => {
+       // Your implementation here
+       return { result: 'your result' }
+     }
+   })
+   ```
+
+2. **Add Tests**
+   Create a test file in `src/mastra/tools/__tests__/your-tool.test.ts`
+
+3. **Documentation**
+   - Add your tool to the appropriate section in this file
+   - Include example usage and any requirements
+
+## Best Practices
+
+1. **Error Handling**
+   - Always validate inputs using the schema
+   - Provide clear error messages
+   - Handle rate limiting and API errors gracefully
+
+2. **Performance**
+   - Cache responses when appropriate
+   - Implement timeouts for external API calls
+   - Use streaming for large data processing
+
+3. **Security**
+   - Never expose API keys or sensitive data
+   - Sanitize all inputs and outputs
+   - Implement proper access controls
+
+## Testing Tools
+
+Run tool tests:
+
+```bash
+# Run all tool tests
+npm test src/mastra/tools/__tests__
+
+# Run a specific tool's tests
+npm test src/mastra/tools/__tests__/your-tool.test.ts
 ```
+
+## Dependencies
+
+- `@mastra/core`: Core tooling utilities
+- `zod`: Schema validation
+- `axios`: HTTP client
+- Various API SDKs for specific services
+
+---
+Last updated: 2025-11-16
+
+## Related Documentation
+
+- [Agents Documentation](../agents/AGENTS.md)
+- [Configuration Guide](../config/README.md)
+- [Mastra Core Documentation](https://docs.mastra.ai/core/tools)
 
 ## Change Log
 
-| Version | Date (UTC) | Change                                                  |
-| ------- | ---------- | ------------------------------------------------------- |
+| Version | Date (UTC) | Changes |
+|---------|------------|---------|
+| 2.0.0   | 2025-11-16 | Complete reorganization of tools documentation. Added detailed sections for Web Scraping, Document Processing, Financial Data APIs, and Research tools. |
 | 1.4.0   | 2025-10-18 | Added alpha-vantage, arxiv, finnhub, polygon, and starter-agent tools |
 | 1.3.0   | 2025-10-18 | Added pdf-data-conversion.tool.ts for PDF processing |
 | 1.2.0   | 2025-10-17 | Added SerpAPI integration tools for web search, news, shopping, academic, and local business queries |

@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Agents","version":"1.0.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-15T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Agents","version":"1.1.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-16T01:50:00Z","status":"stable"} -->
 
 # Agents (`/src/mastra/agents`)
 
@@ -10,40 +10,94 @@ Agent Developer — objective: Implement higher-level behaviors by composing too
 
 This directory contains agent definitions that map use-case intents to sequences of tool invocations, policies, and memory usage.
 
-## Key Files
+## Current Agents
 
-| File | Export | Agent ID | Responsibility |
-| ---- | ------ | -------- | -------------- |
-| `a2aCoordinatorAgent.ts` | export: `a2aCoordinatorAgent` | id: `a2aCoordinator` | A2A Coordinator — orchestrates and routes tasks across multiple specialized agents in parallel |
-| `weather-agent.ts` | export: `weatherAgent` | id: (none) | `Weather Agent` — fetches weather data, suggests activities, uses `weatherTool` and web scraping for sources |
-| `stockAnalysisAgent.ts` | export: `stockAnalysisAgent` | id: `stock-analysis` | `Stock Analysis Agent` — market analysis using Polygon/Finnhub/AlphaVantage data and dashboards |
-| `csv_to_excalidraw.ts` | export: `csvToExcalidrawAgent` | id: `csvToExcalidrawAgent` | `CSV to Excalidraw` — convert CSV tabular data into Excalidraw JSON diagrams |
-| `image_to_csv.ts` | export: `imageToCsvAgent` | id: `imageToCsvAgent` | `Image to CSV` — extract structured CSV-friendly data out of images and diagrams |
-| `excalidraw_validator.ts` | export: `excalidrawValidatorAgent` | id: `excalidrawValidatorAgent` | `Excalidraw Validator` — validate and fix Excalidraw JSON diagrams to match schema |
+| File | Export | Agent ID | Purpose | Dependencies |
+|------|--------|----------|----------|--------------|
+| `a2aCoordinatorAgent.ts` | `a2aCoordinatorAgent` | `a2aCoordinator` | Orchestrates and routes tasks across multiple specialized agents | Core Mastra, Agent Registry |
+| `weather-agent.ts` | `weatherAgent` | - | Fetches weather data and suggests activities | `weatherTool`, Web Scraping Tools |
+| `csv_to_excalidraw.ts` | `csvToExcalidrawAgent` | `csvToExcalidrawAgent` | Converts CSV data to Excalidraw diagrams | Data Processing Tools |
+| `image_to_csv.ts` | `imageToCsvAgent` | `imageToCsvAgent` | Extracts tabular data from images | Image Processing, OCR Tools |
+| `excalidraw_validator.ts` | `excalidrawValidatorAgent` | `excalidrawValidatorAgent` | Validates and fixes Excalidraw diagrams | Data Validation Tools |
+| `reportAgent.ts` | `reportAgent` | - | Generates reports from processed data | Data Processing, Templating |
+| `learningExtractionAgent.ts` | `learningExtractionAgent` | - | Extracts and processes learning data | NLP, Text Processing |
+| `evaluationAgent.ts` | `evaluationAgent` | - | Evaluates and scores agent performance | Evaluation Metrics |
+| `researchAgent.ts` | `researchAgent` | `research` | Conducts research using web search and analysis tools | Web Scraping, Search APIs |
+| `editorAgent.ts` | `editorAgent` | - | Manages document editing workflows | Content Processing |
+| `copywriterAgent.ts` | `copywriterAgent` | - | Handles content writing and generation | NLP, Content Generation |
 
-## How to add an agent
+## Agent Development
 
-1. Create a new `X-agent.ts` file defining an Agent with a descriptive name.
-2. Implement the agent using tools from `src/mastra/tools` and stateful memory accessors.
-3. Define unit tests for the agent behaviour and add them to `src/mastra/tools/tests` or a new `agents/tests` folder.
+### How to Add a New Agent
+
+1. **Create Agent File**
+   - Create `src/mastra/agents/your-agent-name.ts`
+   - Follow the pattern from existing agents
+
+   ```typescript
+   import { Agent } from '@mastra/core/agent'
+
+   export const yourAgent = new Agent({
+     id: 'your-agent-id',
+     name: 'Your Agent Name',
+     description: 'Brief description of what this agent does',
+     // ... other configurations
+   })
+   ```
+
+2. **Register the Agent**
+   - Add your agent to `src/mastra/index.ts` in the agents object
+
+   ```typescript
+   export const mastra = new Mastra({
+     agents: {
+       // ... other agents
+       yourAgent
+     },
+     // ... rest of config
+   })
+   ```
+
+3. **Add Tests**
+   - Create tests in `src/mastra/__tests__/agents/your-agent.test.ts`
+   - Test both success and error cases
+
+## Best Practices
+
+- **Single Responsibility**: Each agent should have one clear purpose
+- **Tool Usage**: Use existing tools from `src/mastra/tools` when possible
+- **Error Handling**: Implement proper error handling and validation
+- **Logging**: Use the provided logger for consistent logging
+- **Testing**: Write unit tests for all agent functionality
+- **Documentation**: Document your agent's purpose, inputs, and outputs
 
 ## Execution & Testing
 
-- Agents are not directly invoked from the CLI; they are used by workflows or run programmatically via the Mastra runtime (`npm run dev`).
-- Use existing tools' test patterns to mock runtime contexts & provider clients.
+Run tests:
 
-## Best practices
+```bash
+# Run all agent tests
+npm test src/mastra/__tests__/agents/
 
-- Keep side effects restricted to tools; agents should orchestrate and apply policies.
-- Use `RuntimeContext` to enforce auth and filter data at tool boundaries.
-- Add explicit tests covering success, error, and policy-permission denial cases.
+# Run a specific agent's tests
+npm test src/mastra/__tests__/agents/your-agent.test.ts
+```
 
----
-Last updated: 2025-11-15
+## Dependencies
 
-## Where to look for more info
+- `@mastra/core`: Core agent framework
+- Various tools from `src/mastra/tools`
+- Configuration from `src/mastra/config`
 
-- `src/mastra/AGENTS.md`: top-level Mastra repository guidance and cross-cutting patterns
-- `src/mastra/tools/AGENTS.md`: tools and their patterns
-- `src/mastra/config/AGENTS.md`: configuration and storage guidance
-- `src/mastra/config/vector/AGENTS.md`: vector store choices and configuration
+## Related Documentation
+
+- [Tools Documentation](../tools/AGENTS.md)
+- [Configuration Guide](../config/README.md)
+- [Mastra Core Documentation](https://docs.mastra.ai/core/agents)
+
+## Change Log
+
+| Version | Date (UTC) | Changes |
+|---------|------------|---------|
+| 1.1.0   | 2025-11-16 | Complete reorganization of agents documentation. Added detailed sections for each agent, development guidelines, and best practices. |
+| 1.0.0   | 2025-11-15 | Initial version with core agents for web scraping, data processing, and API integrations. |

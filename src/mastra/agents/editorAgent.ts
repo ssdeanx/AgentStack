@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
 import { responseQualityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
-
+import { google } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 // Define runtime context for this agent
 export interface EditorAgentContext {
     userId?: string
@@ -103,6 +103,7 @@ You must respond with a JSON object in the following format:
     },
     model: googleAI,
     memory: pgMemory,
+    tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({})},
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,
@@ -116,3 +117,14 @@ You must respond with a JSON object in the following format:
     workflows: {},
 })
 
+// Attempt to resolve provider metadata from available SDK objects
+// Some SDKs expose provider metadata on the model instance (googleAI) or on the provider (google)
+// Define a lightweight type for provider metadata to avoid using `any`.
+type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
+
+const providerMetadata: ProviderMetadataMap | undefined =
+    ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
+    ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
+
+const metadata = providerMetadata?.google;
+const groundingMetadata = metadata?.groundingMetadata;
