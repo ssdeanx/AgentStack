@@ -1,0 +1,104 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+output.txt
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local env files
+.env
+.env*.local
+.env.development
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Logslogs/
+.log
+*.logs
+
+# IDE
+.vscode/
+.idea/
+.codersinflow
+
+# Mastra
+.mastra
+
+# Database
+*.db
+*.db-*
+
+*.specstory/
+*.specstory/**/*.md
+
+# Docker volumes
+qdrant_storage/
+redis_data/
+
+# Coders in Flow
+.vscode
+node_modules
+.venv
+.codex
+out
+dist
+*.vsix
+.claude
+CLAUDE.md
+.codacy/cli.sh
+.codacy/
+*.codacy/
+*./codacy/**/*.md
+
+/src/cedar/**/**/**/*.tsx
+/src/cedar/**/**/**/*.ts
+/src/cedar/**/**/*.css
+.gemini/
+gha-creds-*.json
+
+*.specstory/
+.specstory/**/*.md
+*.specify/
+.specify/**/*.md
+*.specify
+*.specify/**/*.sh
+.codeviz/Visuals/Unnamed-CodeViz-Diagram.md
+*.codeviz/
+*.codeviz/**/*.md
+
+
+.github/prompts/
+.github/chatmodes/
+.github/prompts/*.md
+.github/chatmodes/*.md
+# Gemini-Flow
+.gemini-flow/cache/
+.gemini-flow/logs/
+.gemini-flow/temp/
+*.log
+.aider*
