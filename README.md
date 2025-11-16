@@ -67,7 +67,7 @@ graph TB
 
     subgraph "🎯 AgentStack Runtime"
         Coord --> Agents[25+ Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
-        Agents --> Tools[50+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI (10+)<br/>• PgVector RAG<br/>• PDF→MD]
+        Agents --> Tools[50+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
         Agents --> Workflows[Research→Report<br/>Weather→Activities]
     end
 
