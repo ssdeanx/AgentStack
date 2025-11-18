@@ -27,6 +27,7 @@ import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubQuotesTool, finnhubTechnicalTool } from '../tools/finnhub-tools'
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
+import { CompositeVoice } from '@mastra/core/voice'
 
 
 export interface ResearchAgentContext {
@@ -214,6 +215,11 @@ export const researchAgent = new Agent({
       scorer: summaryQualityScorer,
       sampling: { type: "ratio", rate: 0.6 }
     },
-  }
+  },
+  voice: new CompositeVoice({
+//    input: {
+//      listeningModel: 'googleAIFlashLite',
+//      speechModel: 'googleAIFlashLite'
+    })
 })
 
