@@ -5,6 +5,7 @@ import { googleAI } from '../config/google'
 import { responseQualityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
 import { google } from '@ai-sdk/google'
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { InternalSpans } from '@mastra/core/ai-tracing'
 // Define runtime context for this agent
 export interface EditorAgentContext {
     userId?: string
@@ -103,6 +104,7 @@ You must respond with a JSON object in the following format:
     },
     model: googleAI,
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({})},
     scorers: {
         responseQuality: {

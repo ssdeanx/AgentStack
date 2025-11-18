@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
+import { InternalSpans } from "@mastra/core/ai-tracing";
 
 
 export const csvToExcalidrawAgent = new Agent({
@@ -136,7 +137,7 @@ Structure:
 {
     "filename": "filename.excalidraw",
     "contents": {...excalidraw schema...},
-    "object": { 
+    "object": {
       "type": "setState",
       "stateKey": "diagrams",
       "setterKey": "addDiagram",
@@ -155,6 +156,7 @@ Structure:
   },
   model: googleAI,
   memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.ALL } },
   tools: {},
   scorers: {},
   workflows: {},

@@ -24,10 +24,11 @@ import { evaluationAgent } from './agents/evaluationAgent';
 import { researchAgent } from './agents/researchAgent';
 import { editorAgent } from './agents/editorAgent';
 import { copywriterAgent } from './agents/copywriterAgent';
+import { agentNetwork } from './networks';
 
 export const mastra = new Mastra({
   workflows: { weatherWorkflow },
-  agents: { weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, copywriterAgent, editorAgent,excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent },
+  agents: { weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, copywriterAgent, editorAgent,excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, agentNetwork },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer },
   storage: new LibSQLStore({

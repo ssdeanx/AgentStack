@@ -28,8 +28,8 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.34",
-    "@ai-sdk/google-vertex": "^3.0.66",
+    "@ai-sdk/google": "^2.0.36",
+    "@ai-sdk/google-vertex": "^3.0.68",
     "@ai-sdk/openai": "^2.0.68",
     "@dotenvx/dotenvx": "^1.51.1",
     "@mastra/arize": "^0.1.1",

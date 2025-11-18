@@ -3,6 +3,7 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAIFlashLite } from '../config/google'
 import { responseQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
+import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
 export interface EvaluationAgentContext {
@@ -120,6 +121,7 @@ CRITICAL: You must always respond with a valid JSON object in the following form
     },
     model: googleAIFlashLite,
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,

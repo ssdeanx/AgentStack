@@ -1,11 +1,11 @@
 import { Agent } from '@mastra/core/agent';
-import { Memory } from '@mastra/memory';
-import { LibSQLStore } from '@mastra/libsql';
 import { weatherTool } from '../tools/weather-tool';
 import { scorers } from '../scorers/weather-scorer';
 import { googleAIFlashLite } from '../config/google';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
+import { pgMemory } from '../config/pg-storage';
+import { InternalSpans } from '@mastra/core/ai-tracing';
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
@@ -50,9 +50,6 @@ export const weatherAgent = new Agent({
       },
     },
   },
-  memory: new Memory({
-    storage: new LibSQLStore({
-      url: 'file:../mastra.db', // path is relative to the .mastra/output directory
-    }),
-  }),
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.ALL } },
 });

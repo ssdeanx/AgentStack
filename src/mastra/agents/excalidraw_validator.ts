@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
+import { InternalSpans } from "@mastra/core/ai-tracing";
 
 export const excalidrawValidatorAgent = new Agent({
   id: "excalidrawValidatorAgent",
@@ -76,6 +77,7 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
 `,
   model: googleAI,
   memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.ALL } },
   tools: {},
   scorers: {},
   workflows: {},

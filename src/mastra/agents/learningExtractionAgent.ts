@@ -3,6 +3,7 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
 import { researchCompletenessScorer, summaryQualityScorer } from '../scorers/custom-scorers'
+import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
 export interface LearningExtractionAgentContext {
@@ -48,6 +49,7 @@ export const learningExtractionAgent = new Agent({
     },
     model: googleAI,
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     scorers: {
         researchCompleteness: {
             scorer: researchCompletenessScorer,

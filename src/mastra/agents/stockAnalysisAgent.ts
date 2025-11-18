@@ -21,6 +21,7 @@ import {
     finnhubTechnicalTool,
 } from '../tools/finnhub-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
+import { InternalSpans } from '@mastra/core/ai-tracing'
 
 export interface StockAnalysisAgentContext {
     userId?: string
@@ -230,6 +231,7 @@ export const stockAnalysisAgent = new Agent({
         googleFinanceTool,
     },
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,

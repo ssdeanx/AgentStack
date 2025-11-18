@@ -26,6 +26,7 @@ import { arxivTool } from '../tools/arxiv.tool'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubQuotesTool, finnhubTechnicalTool } from '../tools/finnhub-tools'
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
+import { InternalSpans } from '@mastra/core/ai-tracing'
 
 
 export interface ResearchAgentContext {
@@ -191,6 +192,7 @@ export const researchAgent = new Agent({
         finnhubTechnicalTool
     },
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),

@@ -11,6 +11,7 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
 import { creativityScorer, responseQualityScorer } from '../scorers/custom-scorers'
+import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -104,6 +105,7 @@ For each content type, adapt your approach:
     },
     model: googleAI,
     memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
     tools: {
         webScraperTool,
         //    batchWebScraperTool,
