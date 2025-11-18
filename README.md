@@ -10,6 +10,7 @@
 [![Tests](https://img.shields.io/badge/Tests-97%25-brightgreen.svg)](https://vitest.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ss/AgentStack)](https://gitmcp.io/ss/AgentStack)
 
 **AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **50+ enterprise tools**, **25+ specialized agents**, and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, and **secure governance**.
 

@@ -12,7 +12,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI, googleAIFlashLite } from '../config/google'
+import { googleAI, googleAI3, googleAIFlashLite } from '../config/google'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -157,7 +157,7 @@ export const researchAgent = new Agent({
         </output_format>
         `
     },
-    model: googleAI,
+    model: googleAI3,
     tools: {
         webScraperTool,
         siteMapExtractorTool,

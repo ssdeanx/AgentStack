@@ -44,6 +44,8 @@ export const googleAIEmbedding = google.textEmbedding('gemini-embedding-001')
     * Why use: Choose this model when the quality and reliability of the generated content are crucial to your application's success, even if it comes with increased computational costs.
  */
 export const googleAIComputerUse = google('gemini-2.5-computer-use-preview-10-2025')
+export const googleAI3 = google('gemini-3-pro-preview')
+
 // Gemini Nano Banana model for low-cost image generation
 /*
  * googleAINanoBanana: Gemini Nano Banana model for low-cost image generation

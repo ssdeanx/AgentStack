@@ -3,6 +3,7 @@
 - 🚦 Use the Kiro-Lite workflow: PRD → Design → Tasks → Code.
 - 🔒 Follow security & style rules in `copilot-rules.md`.
 - 📝 On "/update memory bank", refresh activeContext.md & progress.md.
+- ✅ Confirm memory bank loaded with `[Memory Bank: Active]` or warn with `[Memory Bank: Missing]`.
 
 [byterover-mcp]
 
