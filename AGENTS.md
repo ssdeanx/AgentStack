@@ -1,6 +1,5 @@
-# AGENTS
-
 <!-- AGENTS-META {"title":"Mastra Root","version":"1.0.0","applies_to":"/","last_updated":"2025-11-14T00:00:00Z","status":"stable"} -->
+# AGENTS
 
 ## Project Overview
 

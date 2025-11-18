@@ -1,0 +1,1 @@
+{"mcpServers":{"qdrant":{"command":"uvx","args":["mcp-server-qdrant"],"env":{"QDRANT_URL":"https://bb11608c-a892-49d2-9921-ea27550798e3.us-east-1-1.aws.cloud.qdrant.io","QDRANT_API_KEY":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.svLZH8slZBKAsEgV8E37pzsAUkyZk9fC3Sr7u3Mb4cY","COLLECTION_NAME":"main","EMBEDDING_MODEL":""},"disabled":true,"alwaysAllow":[]}}}
