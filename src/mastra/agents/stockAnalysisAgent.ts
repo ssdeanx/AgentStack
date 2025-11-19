@@ -246,5 +246,6 @@ export const stockAnalysisAgent = new Agent({
             sampling: { type: 'ratio', rate: 0.3 },
         },
     },
+    maxRetries: 5
 })
 

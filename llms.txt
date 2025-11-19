@@ -1,0 +1,84 @@
+# AgentStack
+
+> A production-grade multi-agent framework built on Mastra, delivering enterprise tools, specialized agents, and A2A/MCP orchestration for scalable AI systems.
+
+## Documentation
+
+- [Main README](README.md): Primary project documentation, architecture overview, and getting started guide
+- [Agents Documentation](src/mastra/agents/AGENTS.md): Detailed documentation for the agent framework, including development workflows and best practices
+- [Tools Documentation](src/mastra/tools/AGENTS.md): Comprehensive guide to available tools, including financial, search, and document processing capabilities
+- [Product Context](memory-bank/productContext.md): Detailed product goals, user problems, and core capabilities
+- [Technical Context](memory-bank/techContext.md): Technical constraints, dependencies, and development environment setup
+- [System Patterns](memory-bank/systemPatterns.md): Architecture patterns, key technical decisions, and design principles
+
+## Agents
+
+- [A2A Coordinator Agent](src/mastra/agents/a2aCoordinatorAgent.ts): Orchestrates and routes tasks across multiple specialized agents
+- [Research Agent](src/mastra/agents/researchAgent.ts): Conducts research using web search and analysis tools
+- [Stock Analysis Agent](src/mastra/agents/stockAnalysisAgent.ts): Analyzes stock market data
+- [Copywriter Agent](src/mastra/agents/copywriterAgent.ts): Handles content writing and generation
+- [Editor Agent](src/mastra/agents/editorAgent.ts): Manages document editing workflows
+- [Report Agent](src/mastra/agents/reportAgent.ts): Generates reports from processed data
+- [Weather Agent](src/mastra/agents/weather-agent.ts): Fetches weather data and suggests activities
+- [Evaluation Agent](src/mastra/agents/evaluationAgent.ts): Evaluates and scores agent performance
+- [Learning Extraction Agent](src/mastra/agents/learningExtractionAgent.ts): Extracts and processes learning data
+- [CSV to Excalidraw Agent](src/mastra/agents/csv_to_excalidraw.ts): Converts CSV data to Excalidraw diagrams
+- [Image to CSV Agent](src/mastra/agents/image_to_csv.ts): Extracts tabular data from images
+- [Excalidraw Validator Agent](src/mastra/agents/excalidraw_validator.ts): Validates and fixes Excalidraw diagrams
+
+## Tools
+
+### Financial Tools
+- [Alpha Vantage Tools](src/mastra/tools/alpha-vantage.tool.ts): Stock, crypto, and forex data
+- [Finnhub Tools](src/mastra/tools/finnhub-tools.ts): Real-time quotes, company profiles, and financials
+- [Polygon Tools](src/mastra/tools/polygon-tools.ts): Stock and crypto quotes and aggregates
+
+### Search & Research Tools
+- [SerpAPI Search](src/mastra/tools/serpapi-search.tool.ts): Web search capabilities
+- [SerpAPI News & Trends](src/mastra/tools/serpapi-news-trends.tool.ts): News and trends search
+- [SerpAPI Shopping](src/mastra/tools/serpapi-shopping.tool.ts): Shopping search
+- [SerpAPI Academic](src/mastra/tools/serpapi-academic-local.tool.ts): Academic paper search
+- [ArXiv Tool](src/mastra/tools/arxiv.tool.ts): Search academic papers on ArXiv
+
+### Content & Document Tools
+- [Web Scraper Tool](src/mastra/tools/web-scraper-tool.ts): Fetch and parse web content
+- [Document Chunking Tool](src/mastra/tools/document-chunking.tool.ts): Split documents into chunks with metadata
+- [PDF Conversion Tool](src/mastra/tools/pdf-data-conversion.tool.ts): Convert PDFs to Markdown
+- [Data File Manager](src/mastra/tools/data-file-manager.ts): Manage data files with versioning
+
+### Utility Tools
+- [Weather Tool](src/mastra/tools/weather-tool.ts): Fetch weather information
+- [JWT Auth Tool](src/mastra/tools/jwt-auth.tool.ts): JWT authentication utilities
+- [Evaluate Result Tool](src/mastra/tools/evaluateResultTool.ts): Evaluate search results
+- [Extract Learnings Tool](src/mastra/tools/extractLearningsTool.ts): Extract insights from content
+
+## Configuration
+
+- [Configuration Guide](src/mastra/config/AGENTS.md): Guidelines for configuration, storage, and environment variables
+- [Config README](src/mastra/config/README.md): Model registry system and provider configuration overview
+- [Config Index](src/mastra/config/index.ts): Central export for project configuration
+- [OpenAI Config](src/mastra/config/openai.ts): OpenAI model provider client setup
+- [Google Config](src/mastra/config/google.ts): Google AI model provider client setup
+- [Anthropic Config](src/mastra/config/anthropic.ts): Anthropic model provider client setup
+- [OpenRouter Config](src/mastra/config/openrouter.ts): OpenRouter model provider client setup
+- [Vertex Config](src/mastra/config/vertex.ts): Google Vertex AI model provider setup
+- [Gemini CLI Config](src/mastra/config/gemini-cli.ts): Gemini CLI provider setup
+- [Postgres Storage](src/mastra/config/pg-storage.ts): PostgreSQL storage & vector client config with PgVector
+- [Logger Config](src/mastra/config/logger.ts): Structured logging (Pino) configuration
+- [Role Hierarchy](src/mastra/config/role-hierarchy.ts): RBAC inheritance model
+- [Upstash Memory](src/mastra/config/upstashMemory.ts): Upstash memory configuration
+- [Processors](src/mastra/config/processors.ts): Data processors configuration
+- [Vector Stores](src/mastra/config/vector/AGENTS.md): Vector store choices and configuration guide
+
+## Workflows & MCP
+
+- [Workflows Documentation](src/mastra/workflows/AGENTS.md): Guide to creating and managing multi-step workflows
+- [Weather Workflow](src/mastra/workflows/weather-workflow.ts): Example workflow implementation
+- [MCP Documentation](src/mastra/mcp/AGENTS.md): Documentation for the Model Context Protocol (MCP)
+- [MCP Client](src/mastra/mcp/mcp-client.ts): Client implementation for MCP
+- [MCP Index](src/mastra/mcp/index.ts): MCP server entry point
+
+## Networks & Data
+
+- [Networks Documentation](src/mastra/networks/AGENTS.md): Documentation for agent networks
+- [Data Directory](src/mastra/data/AGENTS.md): Documentation for data files and examples

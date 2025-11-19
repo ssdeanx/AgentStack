@@ -133,4 +133,5 @@ CRITICAL: You must always respond with a valid JSON object in the following form
         },
     },
     workflows: {},
+    maxRetries: 5
 })

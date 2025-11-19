@@ -26,9 +26,28 @@ import { editorAgent } from './agents/editorAgent';
 import { copywriterAgent } from './agents/copywriterAgent';
 import { agentNetwork } from './networks';
 
+import { contentStrategistAgent } from './agents/contentStrategistAgent';
+import { scriptWriterAgent } from './agents/scriptWriterAgent';
+import { contentStudioWorkflow } from './workflows/content-studio-workflow';
+
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
-  agents: { weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, copywriterAgent, editorAgent,excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, agentNetwork },
+  workflows: { weatherWorkflow, contentStudioWorkflow },
+  agents: {
+    weatherAgent,
+    a2aCoordinatorAgent,
+    csvToExcalidrawAgent,
+    imageToCsvAgent,
+    copywriterAgent,
+    editorAgent,
+    excalidrawValidatorAgent,
+    reportAgent,
+    learningExtractionAgent,
+    evaluationAgent,
+    researchAgent,
+    agentNetwork,
+    contentStrategistAgent,
+    scriptWriterAgent
+  },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer },
   storage: new LibSQLStore({

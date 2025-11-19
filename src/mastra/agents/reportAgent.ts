@@ -103,6 +103,7 @@ export const reportAgent = new Agent({
     },
     tools: {},
     workflows: {},
+    maxRetries: 5
 })
 
 // --- IGNORE ---

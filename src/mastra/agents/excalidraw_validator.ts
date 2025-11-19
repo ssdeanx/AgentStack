@@ -81,4 +81,5 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
   tools: {},
   scorers: {},
   workflows: {},
+  maxRetries: 5
 });

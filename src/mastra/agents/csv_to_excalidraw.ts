@@ -160,4 +160,5 @@ Structure:
   tools: {},
   scorers: {},
   workflows: {},
+  maxRetries: 5
 });

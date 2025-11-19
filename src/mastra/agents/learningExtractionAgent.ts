@@ -61,5 +61,6 @@ export const learningExtractionAgent = new Agent({
         },
     },
     workflows: {},
+    maxRetries: 5
 })
 

@@ -108,4 +108,5 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
    tools: {},
    scorers: {},
    workflows: {},
+   maxRetries: 5
 });

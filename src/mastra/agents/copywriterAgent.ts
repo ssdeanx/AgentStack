@@ -125,5 +125,6 @@ For each content type, adapt your approach:
         },
     },
     workflows: {},
+    maxRetries: 5
 })
 

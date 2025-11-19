@@ -216,6 +216,7 @@ export const researchAgent = new Agent({
       sampling: { type: "ratio", rate: 0.6 }
     },
   },
+  maxRetries: 5,
   voice: new CompositeVoice({
 //    input: {
 //      listeningModel: 'googleAIFlashLite',

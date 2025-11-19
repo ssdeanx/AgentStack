@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Agents","version":"1.1.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-16T01:50:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Agents","version":"1.2.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-19T10:57:00Z","status":"stable"} -->
 
 # Agents (`/src/mastra/agents`)
 
@@ -12,19 +12,22 @@ This directory contains agent definitions that map use-case intents to sequences
 
 ## Current Agents
 
-| File | Export | Agent ID | Purpose | Dependencies |
-|------|--------|----------|----------|--------------|
-| `a2aCoordinatorAgent.ts` | `a2aCoordinatorAgent` | `a2aCoordinator` | Orchestrates and routes tasks across multiple specialized agents | Core Mastra, Agent Registry |
-| `weather-agent.ts` | `weatherAgent` | - | Fetches weather data and suggests activities | `weatherTool`, Web Scraping Tools |
-| `csv_to_excalidraw.ts` | `csvToExcalidrawAgent` | `csvToExcalidrawAgent` | Converts CSV data to Excalidraw diagrams | Data Processing Tools |
-| `image_to_csv.ts` | `imageToCsvAgent` | `imageToCsvAgent` | Extracts tabular data from images | Image Processing, OCR Tools |
-| `excalidraw_validator.ts` | `excalidrawValidatorAgent` | `excalidrawValidatorAgent` | Validates and fixes Excalidraw diagrams | Data Validation Tools |
-| `reportAgent.ts` | `reportAgent` | - | Generates reports from processed data | Data Processing, Templating |
-| `learningExtractionAgent.ts` | `learningExtractionAgent` | - | Extracts and processes learning data | NLP, Text Processing |
-| `evaluationAgent.ts` | `evaluationAgent` | - | Evaluates and scores agent performance | Evaluation Metrics |
-| `researchAgent.ts` | `researchAgent` | `research` | Conducts research using web search and analysis tools | Web Scraping, Search APIs |
-| `editorAgent.ts` | `editorAgent` | - | Manages document editing workflows | Content Processing |
-| `copywriterAgent.ts` | `copywriterAgent` | - | Handles content writing and generation | NLP, Content Generation |
+| File                         | Export                     | Agent ID                   | Purpose                                                          | Dependencies                      |
+| ---------------------------- | -------------------------- | -------------------------- | ---------------------------------------------------------------- | --------------------------------- |
+| `a2aCoordinatorAgent.ts`     | `a2aCoordinatorAgent`      | `a2aCoordinator`           | Orchestrates and routes tasks across multiple specialized agents | Core Mastra, Agent Registry       |
+| `weather-agent.ts`           | `weatherAgent`             | -                          | Fetches weather data and suggests activities                     | `weatherTool`, Web Scraping Tools |
+| `csv_to_excalidraw.ts`       | `csvToExcalidrawAgent`     | `csvToExcalidrawAgent`     | Converts CSV data to Excalidraw diagrams                         | Data Processing Tools             |
+| `image_to_csv.ts`            | `imageToCsvAgent`          | `imageToCsvAgent`          | Extracts tabular data from images                                | Image Processing, OCR Tools       |
+| `excalidraw_validator.ts`    | `excalidrawValidatorAgent` | `excalidrawValidatorAgent` | Validates and fixes Excalidraw diagrams                          | Data Validation Tools             |
+| `reportAgent.ts`             | `reportAgent`              | -                          | Generates reports from processed data                            | Data Processing, Templating       |
+| `learningExtractionAgent.ts` | `learningExtractionAgent`  | -                          | Extracts and processes learning data                             | NLP, Text Processing              |
+| `evaluationAgent.ts`         | `evaluationAgent`          | -                          | Evaluates and scores agent performance                           | Evaluation Metrics                |
+| `researchAgent.ts`           | `researchAgent`            | `research`                 | Conducts research using web search and analysis tools            | Web Scraping, Search APIs         |
+| `editorAgent.ts`             | `editorAgent`              | -                          | Manages document editing workflows                               | Content Processing                |
+| `copywriterAgent.ts`         | `copywriterAgent`          | -                          | Handles content writing and generation                           | NLP, Content Generation           |
+| `contentStrategistAgent.ts`  | `contentStrategistAgent`   | -                          | Develops content strategies and plans                            | Research Tools                    |
+| `scriptWriterAgent.ts`       | `scriptWriterAgent`        | -                          | Writes scripts for video and audio content                       | NLP, Script Formatting            |
+| `stockAnalysisAgent.ts`      | `stockAnalysisAgent`       | -                          | Analyzes stock market data                                       | Financial Data Tools              |
 
 ## Agent Development
 
@@ -97,7 +100,8 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 ## Change Log
 
-| Version | Date (UTC) | Changes |
-|---------|------------|---------|
+| Version | Date (UTC) | Changes                                                                                                                              |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | 1.1.0   | 2025-11-16 | Complete reorganization of agents documentation. Added detailed sections for each agent, development guidelines, and best practices. |
-| 1.0.0   | 2025-11-15 | Initial version with core agents for web scraping, data processing, and API integrations. |
+| 1.0.0   | 2025-11-15 | Initial version with core agents for web scraping, data processing, and API integrations.                                            |
+| 1.2.0   | 2025-11-19 | Added content creation and stock analysis agents.                                                                                    |

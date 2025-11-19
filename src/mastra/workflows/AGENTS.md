@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Workflows","version":"1.0.0","applies_to":"/src/mastra/workflows","last_updated":"2025-11-14T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Workflows","version":"1.1.0","applies_to":"/src/mastra/workflows","last_updated":"2025-11-19T10:57:00Z","status":"stable"} -->
 
 # Workflows (`/src/mastra/workflows`)
 
@@ -12,9 +12,10 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 
 ## Key Files
 
-| File | Responsibility |
-| ---- | -------------- |
-| `weather-workflow.ts` | Example workflow demonstrating a multi-step, orchestrated task using the weather agent and tools |
+| File                         | Responsibility                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `weather-workflow.ts`        | Example workflow demonstrating a multi-step, orchestrated task using the weather agent and tools |
+| `content-studio-workflow.ts` | Orchestrates content creation using research, strategy, and scripting agents                     |
 
 ## How to add a workflow
 
@@ -34,5 +35,9 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 - Add logs and robust error handling.
 
 ---
-Last updated: 2025-11-14
+## Change Log
 
+| Version | Date (UTC) | Changes                        |
+| ------- | ---------- | ------------------------------ |
+| 1.1.0   | 2025-11-19 | Added Content Studio workflow. |
+| 1.0.0   | 2025-11-14 | Initial version.               |

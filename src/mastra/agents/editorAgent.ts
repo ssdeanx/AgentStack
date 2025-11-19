@@ -117,6 +117,7 @@ You must respond with a JSON object in the following format:
         },
     },
     workflows: {},
+    maxRetries: 5
 })
 
 // Attempt to resolve provider metadata from available SDK objects

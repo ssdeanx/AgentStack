@@ -63,6 +63,8 @@ Use Promise.all() pattern for parallel execution.
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
     agents: { researchAgent, editorAgent, copywriterAgent },
     workflows: {},
+    maxRetries: 5,
+    tools: {},
     scorers: {
         relevancy: {
             scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
