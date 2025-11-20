@@ -29,7 +29,8 @@
         "testsSetup.ts",
         "eslint.config.cjs",
         "prettier.config.js",
-        "eslint-config-next.d.ts"
+        "eslint-config-next.d.ts",
+        "read_pdf_parse.js"
     ],
     "exclude": [
         "node_modules",

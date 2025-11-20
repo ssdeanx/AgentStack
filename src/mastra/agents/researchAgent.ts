@@ -12,7 +12,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI, googleAI3, googleAIFlashLite } from '../config/google'
+import { googleAI3, googleAIFlashLite } from '../config/google'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -28,7 +28,7 @@ import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhub
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { CompositeVoice } from '@mastra/core/voice'
-
+import { PGVECTOR_PROMPT } from "@mastra/pg";
 
 export interface ResearchAgentContext {
     userId?: string
@@ -157,6 +157,7 @@ export const researchAgent = new Agent({
             ]
         }
         </output_format>
+        ${PGVECTOR_PROMPT}
         `
     },
     model: googleAI3,

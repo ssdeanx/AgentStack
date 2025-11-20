@@ -10,6 +10,7 @@
 - [Product Context](memory-bank/productContext.md): Detailed product goals, user problems, and core capabilities
 - [Technical Context](memory-bank/techContext.md): Technical constraints, dependencies, and development environment setup
 - [System Patterns](memory-bank/systemPatterns.md): Architecture patterns, key technical decisions, and design principles
+- [ADR: PgVector and Gemini Embeddings](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): Architecture decision record for vector storage and embedding model choices
 
 ## Agents
 
@@ -74,6 +75,7 @@
 
 - [Workflows Documentation](src/mastra/workflows/AGENTS.md): Guide to creating and managing multi-step workflows
 - [Weather Workflow](src/mastra/workflows/weather-workflow.ts): Example workflow implementation
+- [Content Studio Workflow](src/mastra/workflows/content-studio-workflow.ts): Multi-agent workflow for content creation and studio operations
 - [MCP Documentation](src/mastra/mcp/AGENTS.md): Documentation for the Model Context Protocol (MCP)
 - [MCP Client](src/mastra/mcp/mcp-client.ts): Client implementation for MCP
 - [MCP Index](src/mastra/mcp/index.ts): MCP server entry point

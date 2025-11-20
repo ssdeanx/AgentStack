@@ -155,7 +155,7 @@ export const googleFinanceTool = createTool({
                 params.exchange = context.exchange
             }
             const response = await getJson(params)
-            const summary = response.summary
+            const {summary} = response
             const news = response.news?.map(
                 (article: { title: string; link: string; source: string; date: string }) => ({
                     title: article.title,

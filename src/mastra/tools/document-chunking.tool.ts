@@ -13,7 +13,8 @@ import {
     logToolExecution,
     log,
 } from '../config/logger'
-import { embedMany,  embed } from 'ai'
+import { embedMany,  embed, EmbedManyResult } from 'ai'
+
 import type { ExtractParams } from '@mastra/rag'
 import { google } from '@ai-sdk/google'
 import { googleAI } from '../config/google'
