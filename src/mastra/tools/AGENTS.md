@@ -100,10 +100,11 @@ Encapsulate atomic operational capabilities (security checks, vector queries, co
        // Define your output schema
        result: z.any()
      }),
-     execute: async ({ input, context }) => {
-       // Your implementation here
-       return { result: 'your result' }
-     }
+       execute: async ({ context }) => {
+         const { param1, param2 } = context
+         // Your implementation here
+         return { result: 'your result' }
+       }
    })
    ```
 
