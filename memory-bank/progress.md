@@ -9,6 +9,7 @@
 - Scorers for weather and richer evaluation registered via `src/mastra/scorers` and attached to agents like `weatherAgent` and `researchAgent`.
 - Observability is wired using Mastra tracing exporters (`CloudExporter`, `ArizeExporter`, `DefaultExporter`) with sampling configured in the Mastra instance.
 - `/memory-bank` has been audited against the actual codebase (agents, tools, config, MCP, scorers) so that descriptions no longer rely on README marketing claims or guessed coverage numbers.
+- Implemented and verified `csv-to-json`, `json-to-csv`, and `data-validator` tools with `RuntimeContext` integration and comprehensive tests.
 
 ## What’s Next
 
