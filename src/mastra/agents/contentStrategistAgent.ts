@@ -3,6 +3,7 @@ import { google } from '@ai-sdk/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { InternalSpans } from '@mastra/core/ai-tracing';
+import { structureScorer, creativityScorer } from '../scorers';
 
 export const contentStrategistAgent = new Agent({
   id: 'content-strategist',
@@ -45,6 +46,16 @@ export const contentStrategistAgent = new Agent({
   memory: pgMemory,
   tools: {
     webScraperTool,
+  },
+  scorers: {
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+    creativity: {
+      scorer: creativityScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
   },
   options: { tracingPolicy: { internal: InternalSpans.ALL } },
 });

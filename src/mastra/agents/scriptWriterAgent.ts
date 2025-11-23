@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { google } from '@ai-sdk/google';
 import { pgMemory } from '../config/pg-storage';
 import { InternalSpans } from '@mastra/core/ai-tracing';
+import { scriptFormatScorer, pacingScorer, creativityScorer } from '../scorers';
 
 export const scriptWriterAgent = new Agent({
   id: 'script-writer',
@@ -41,4 +42,18 @@ export const scriptWriterAgent = new Agent({
   model: google('gemini-2.5-flash-preview-09-2025'),
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.ALL } },
+  scorers: {
+    scriptFormat: {
+      scorer: scriptFormatScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+    pacing: {
+      scorer: pacingScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+    creativity: {
+      scorer: creativityScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
+    },
+  },
 });

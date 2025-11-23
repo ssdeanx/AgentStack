@@ -10,7 +10,7 @@ import {
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
-import { creativityScorer, responseQualityScorer } from '../scorers/custom-scorers'
+import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
@@ -122,6 +122,14 @@ For each content type, adapt your approach:
         responseQuality: {
             scorer: responseQualityScorer,
             sampling: { type: 'ratio', rate: 0.6 },
+        },
+        toneConsistency: {
+            scorer: toneConsistencyScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+        structure: {
+            scorer: structureScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
         },
     },
     workflows: {},

@@ -3,7 +3,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
-import { researchCompletenessScorer, summaryQualityScorer } from '../scorers/custom-scorers'
+import { researchCompletenessScorer, summaryQualityScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
@@ -99,6 +99,10 @@ export const reportAgent = new Agent({
         summaryQuality: {
             scorer: summaryQualityScorer,
             sampling: { type: 'ratio', rate: 0.6 },
+        },
+        structure: {
+            scorer: structureScorer,
+            sampling: { type: 'ratio', rate: 1.0 },
         },
     },
     tools: {},

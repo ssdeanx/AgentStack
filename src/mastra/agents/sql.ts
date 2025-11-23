@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import * as tools from "../tools/population-info";
 import { googleAIFlashLite, pgMemory } from "../config";
+import { sqlValidityScorer } from "../scorers";
 
 
 export const sqlAgent = new Agent({
@@ -62,5 +63,11 @@ export const sqlAgent = new Agent({
   memory: pgMemory,
   tools: {
     populationInfo: tools.populationInfo,
+  },
+  scorers: {
+    sqlValidity: {
+      scorer: sqlValidityScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
   },
 });

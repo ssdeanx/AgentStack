@@ -16,7 +16,7 @@
 
 ## What’s Next
 
-- Add or update tests to cover new tools/agents and improve Vitest coverage (see `src/mastra/tools/tests` and `src/mastra/config/tests`), using `tests/test-results/test-results.json` as a baseline for tracking.
+- Add or update tests to cover new tools/agents and improve Vitest coverage (see **`srce`** and `src/mastra/config/tests`), using `tests/test-results/test-results.json` as a baseline for tracking.
 - Tighten alignment between AGENTS docs and actual code (ensure every documented agent/tool exists and vice versa).
 - Expand evaluation and observability dashboards (Arize/Phoenix) using the existing exporters and scorer outputs.
 - Flesh out the A2A coordinator’s orchestration story so that the MCP metadata and prompts reflect real, wired workflows rather than placeholders.

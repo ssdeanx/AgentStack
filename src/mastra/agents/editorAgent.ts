@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI } from '../config/google'
-import { responseQualityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
+import { responseQualityScorer, summaryQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { google } from '@ai-sdk/google'
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { InternalSpans } from '@mastra/core/ai-tracing'
@@ -114,6 +114,14 @@ You must respond with a JSON object in the following format:
         summaryQuality: {
             scorer: summaryQualityScorer,
             sampling: { type: 'ratio', rate: 0.6 },
+        },
+        toneConsistency: {
+            scorer: toneConsistencyScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+        structure: {
+            scorer: structureScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
         },
     },
     workflows: {},

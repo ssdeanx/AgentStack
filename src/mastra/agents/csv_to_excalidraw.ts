@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
 import { InternalSpans } from "@mastra/core/ai-tracing";
+import { structureScorer } from "../scorers";
 
 
 export const csvToExcalidrawAgent = new Agent({
@@ -158,7 +159,12 @@ Structure:
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.ALL } },
   tools: {},
-  scorers: {},
+  scorers: {
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+  },
   workflows: {},
   maxRetries: 5
 });

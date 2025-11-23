@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
 import { InternalSpans } from "@mastra/core/ai-tracing";
+import { csvValidityScorer } from "../scorers";
 
 export const imageToCsvAgent = new Agent({
    id: "imageToCsvAgent",
@@ -106,7 +107,12 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
    memory: pgMemory,
    options: { tracingPolicy: { internal: InternalSpans.ALL } },
    tools: {},
-   scorers: {},
+   scorers: {
+      csvValidity: {
+         scorer: csvValidityScorer,
+         sampling: { type: 'ratio', rate: 1.0 },
+      },
+   },
    workflows: {},
    maxRetries: 5
 });

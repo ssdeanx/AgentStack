@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAIFlashLite } from '../config/google'
-import { responseQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
+import { responseQualityScorer, taskCompletionScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this agent
@@ -130,6 +130,10 @@ CRITICAL: You must always respond with a valid JSON object in the following form
         taskCompletion: {
             scorer: taskCompletionScorer,
             sampling: { type: 'ratio', rate: 0.7 },
+        },
+        structure: {
+            scorer: structureScorer,
+            sampling: { type: 'ratio', rate: 1.0 },
         },
     },
     workflows: {},

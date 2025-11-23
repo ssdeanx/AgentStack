@@ -6,7 +6,8 @@ import {
     responseQualityScorer,
     taskCompletionScorer,
     sourceDiversityScorer,
-} from '../scorers/custom-scorers'
+    financialDataScorer,
+} from '../scorers'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
     polygonStockQuotesTool,
@@ -244,6 +245,10 @@ export const stockAnalysisAgent = new Agent({
         sourceDiversity: {
             scorer: sourceDiversityScorer,
             sampling: { type: 'ratio', rate: 0.3 },
+        },
+        financialData: {
+            scorer: financialDataScorer,
+            sampling: { type: 'ratio', rate: 1.0 },
         },
     },
     maxRetries: 5

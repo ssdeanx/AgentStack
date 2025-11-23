@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { pnpmChangesetStatus, pnpmBuild, pnpmChangesetPublish, activeDistTag } from '../tools/pnpm-tool';
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
+import { taskCompletionScorer } from '../scorers';
 
 const packages_llm_text = `
   # PACKAGE LOCATION RULES - FOLLOW THESE EXACTLY:
@@ -165,5 +166,11 @@ export const danePackagePublisher = new Agent({
     pnpmBuild,
     pnpmChangesetPublish,
     activeDistTag,
+  },
+  scorers: {
+    taskCompletion: {
+      scorer: taskCompletionScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
   },
 });
