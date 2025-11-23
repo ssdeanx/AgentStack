@@ -40,17 +40,17 @@ const fetchWeather = createStep({
   }),
   outputSchema: forecastSchema,
   execute: async ({ inputData }) => {
-    if (!inputData) {
-      throw new Error('Input data not found');
+    if (!inputData?.city) {
+      throw new Error('City not provided in input data');
     }
 
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputData.city)}&count=1`;
     const geocodingResponse = await fetch(geocodingUrl);
     const geocodingData = (await geocodingResponse.json()) as {
-      results: { latitude: number; longitude: number; name: string }[];
+      results: Array<{ latitude: number; longitude: number; name: string }>;
     };
 
-    if (!geocodingData.results?.[0]) {
+    if (geocodingData.results === undefined || geocodingData.results === null || geocodingData.results.length === 0) {
       throw new Error(`Location '${inputData.city}' not found`);
     }
 
@@ -96,12 +96,12 @@ const planActivities = createStep({
   execute: async ({ inputData, mastra }) => {
     const forecast = inputData;
 
-    if (!forecast) {
+    if (!forecast?.date) {
       throw new Error('Forecast data not found');
     }
 
     const agent = mastra?.getAgent('weatherAgent');
-    if (!agent) {
+    if (agent === undefined || agent === null) {
       throw new Error('Weather agent not found');
     }
 

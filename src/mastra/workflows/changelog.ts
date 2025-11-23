@@ -1,21 +1,23 @@
 import { delay } from '@mastra/core';
-import { Step, Workflow } from '@mastra/core/workflows';
+import { createStep, createWorkflow } from '@mastra/core/workflows';
 import chalk from 'chalk';
 import { execa } from 'execa';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { z } from 'zod';
 import { log } from '../config/logger';
 
-export const changelogWorkflow = new Workflow({
-  name: 'changelog',
-  triggerSchema: z.object({
-    channelId: z.string(),
-  }),
-});
+// Mock slack for now - remove this when proper integration is ready
+const slack = {
+  connect: async () => {},
+  listTools: async () => [],
+};
 
-const stepA1 = new Step({
+const stepA1 = createStep({
   id: 'stepA1',
   description: 'Get a git diff',
+  inputSchema: z.object({
+    channelId: z.string(),
+  }),
   outputSchema: z.object({
     message: z.string(),
   }),
@@ -148,7 +150,7 @@ const stepA1 = new Step({
 
           const agent = mastra?.getAgent('daneChangeLog');
 
-          if (!agent) {
+          if (agent === undefined) {
             throw new Error('LLM not found');
           }
 
@@ -162,18 +164,18 @@ const stepA1 = new Step({
           generatedText += `\n ## ${modulePath}\n${result.text}`;
           writeFileSync(`generated-changelogs/changelog-${today}`, generatedText);
 
-          if (result.usage.promptTokens) {
-            log.info(`Total prompt tokens used: ${result.usage.promptTokens}`);
+          if (result.usage?.totalTokens !== undefined) {
+            log.info(`Total tokens used: ${result.usage.totalTokens}`);
           }
 
-          TOKEN_LIMIT -= result.usage.promptTokens;
+          TOKEN_LIMIT -= result.usage?.totalTokens ?? 0;
 
           if (TOKEN_LIMIT < 20000) {
             await delay(60000);
             TOKEN_LIMIT = 80000;
           }
         }
-      } catch (e) {
+      } catch (e: unknown) {
         log.error(`Error processing ${modulePath}: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
@@ -191,20 +193,20 @@ const stepA1 = new Step({
   },
 });
 
-const stepA2 = new Step({
+const stepA2 = createStep({
   id: 'stepA2',
   description: 'Make changelog',
+  inputSchema: z.object({
+    message: z.string(),
+  }),
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, mastra }) => {
-    if (context?.steps.stepA1?.status !== 'success') {
-      throw new Error('Message not found');
-    }
+  execute: async ({ inputData, mastra }) => {
 
     const agent = mastra?.getAgent('daneChangeLog');
 
-    if (!agent) {
+    if (agent === undefined) {
       throw new Error('LLM not found');
     }
 
@@ -213,12 +215,12 @@ const stepA2 = new Step({
 
     const tools = await slack.listTools();
 
-    const channelId = context.triggerData.channelId;
+    const channelId = 'default-channel'; // TODO: Pass channelId through workflow properly
 
     const prompt = `
             Time: ${weekAgo} - ${today}
 
-            ${context.steps.stepA1.output.message}
+            ${inputData.message}
             # Task
             1. create a structured narrative changelog that highlights key updates and improvements.
             2. Include what packages were changed
@@ -276,5 +278,18 @@ const stepA2 = new Step({
   },
 });
 
-// Update workflow to use both steps
-changelogWorkflow.step(stepA1).then(stepA2).commit();
+const changelogWorkflow = createWorkflow({
+  id: 'changelog',
+  inputSchema: z.object({
+    channelId: z.string(),
+  }),
+  outputSchema: z.object({
+    message: z.string(),
+  }),
+})
+  .then(stepA1)
+  .then(stepA2);
+
+changelogWorkflow.commit();
+
+export { changelogWorkflow };

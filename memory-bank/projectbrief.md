@@ -4,6 +4,6 @@ AgentStack is a multi-agent toolkit built on top of Mastra. In this repo it defi
 
 **Vision:** Provide transparent, observable reasoning and tool execution so teams can rely on automated workflows without sacrificing explainability, compliance, or performance.
 
-**Scope:** Deliver an extensible toolkit with financial APIs (Polygon, Finnhub, AlphaVantage), search/knowledge tools (SerpAPI, web scrapers, Excalidraw converters), path-safe data/file utilities, PgVector search, and observability via Mastra's CloudExporter + Arize/Phoenix integration. JWT auth and RBAC live as scaffolding (for example `jwt-auth.tool.ts` and `policy/acl.yaml`) and are not yet fully enforced across every workflow. Testing currently focuses on tool- and config-level behaviour using Vitest; coverage is improving but not yet a formal target.
+**Scope:** Extensible toolkit w/ 17 agents (`src/mastra/agents`), 30+ tools (`src/mastra/tools`: polygon-tools/10+, finnhub/6+, serpapi-*, csv-to-json etc.), 5 workflows, PgVector RAG (`pg-storage.ts`), observability (Arize/Phoenix). JWT/RBAC scaffolding (`jwt-auth.tool.ts`, `acl.yaml`); Vitest tests →97% goal.
 
 The project prioritizes schema-driven tooling, self-documenting agents, and production readiness (Node >=20.9, TypeScript strict mode, comprehensive Zod validation). It stays tuned to new models via the central model registry (Gemini/OpenAI/Anthropic/OpenRouter/Vertex) while expanding enterprise readiness (Docker/Kubernetes, richer evaluation dashboards).

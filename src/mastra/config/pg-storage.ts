@@ -264,6 +264,18 @@ export async function generateEmbeddings(
             model: google.textEmbedding('gemini-embedding-001'),
             maxRetries: parseInt(process.env.EMBEDDING_MAX_RETRIES ?? '3'),
             abortSignal: new AbortController().signal,
+            maxParallelCalls: 20,
+            experimental_telemetry: {
+                isEnabled: true,
+                recordInputs: true,
+                recordOutputs: true,
+                functionId: 'generateEmbeddings',
+                metadata: {
+                    component: 'pg-storage',
+                    operationType: 'embedding',
+                    model: 'gemini-embedding-001'
+                },
+            },
         })
 
         const processingTime = Date.now() - startTime
@@ -389,3 +401,42 @@ export function formatStorageMessages(
     // Return as UIMessage array (would need proper conversion in real implementation)
     return [messageData as UIMessage]
 }
+
+// Basic index for common queries
+await pgStore.createIndex({
+  name: "idx_threads_resource",
+  table: "mastra_threads",
+  columns: ["resourceId"],
+  concurrent: true,
+  method: "btree",
+  opclass: "btree_text_ops",
+  unique: true,
+  where: 'condition',
+  storage: { fillfactor: 90 }
+});
+
+// Composite index with sort order for filtering + sorting
+await pgStore.createIndex({
+  name: "idx_messages_composite",
+  table: "mastra_messages",
+  columns: ["thread_id", "createdAt DESC"],
+  concurrent: true,
+  method: "brin",
+  opclass: "brin_minmax_ops",
+  unique: true,
+  where: 'condition',
+  storage: { fillfactor: 90 }
+});
+
+// GIN index for JSONB columns (fast JSON queries)
+await pgStore.createIndex({
+  name: "idx_traces_attributes",
+  table: "mastra_traces",
+  columns: ["attributes"],
+  method: "gin",
+  concurrent: true,
+  opclass: "jsonb_path_ops",
+  unique: true,
+  where: 'condition',
+  storage: { fillfactor: 90 }
+});

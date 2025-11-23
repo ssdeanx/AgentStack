@@ -7,7 +7,7 @@
 
 ## Approach
 
-- Provide a Mastra-powered platform where the current set of agents (weather, research, stock analysis, csv/excalidraw, image→CSV, validator, learning extraction, evaluation, report, editor, copywriter) are exposed via Mastra and an MCP server. Most orchestration still happens inside individual agents today, while the A2A coordinator and MCP metadata are evolving toward richer cross-agent flows.
+- Mastra platform w/ 17 agents (`a2aCoordinatorAgent.ts`, `researchAgent.ts`, `stockAnalysisAgent.ts`, `copywriterAgent.ts` etc., 14 doc'd in AGENTS.md) exposed via MCP (`mcp/index.ts`); orchestration evolving (`a2aCoordinatorMcpServer`).
 - Integrate the existing tool suite (financial APIs like Polygon/Finnhub/AlphaVantage, SerpAPI-based research tools, document chunking, PDF conversion, Excalidraw helpers) so every agent can access the data it needs, with room to grow toward the larger roadmap described in the README.
 - Bake in observability (CloudExporter + Arize/Phoenix traces) and a rich set of scorers (tool-call accuracy, completeness, translation quality, relevancy, safety, source diversity, research completeness, summary quality, task completion, response quality, creativity) plus governance primitives (JWT auth scaffolding, RBAC policy file, HTML sanitization, path traversal protection). JWT verification in `jwt-auth.tool.ts` is currently stubbed and not yet wired into all flows.
 

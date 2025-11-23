@@ -29,7 +29,7 @@ import { agentNetwork } from './networks';
 import { contentStrategistAgent } from './agents/contentStrategistAgent';
 import { scriptWriterAgent } from './agents/scriptWriterAgent';
 import { contentStudioWorkflow } from './workflows/content-studio-workflow';
-
+import { chatRoute, workflowRoute, networkRoute } from "@mastra/ai-sdk";
 export const mastra = new Mastra({
   workflows: { weatherWorkflow, contentStudioWorkflow },
   agents: {
@@ -76,6 +76,22 @@ export const mastra = new Mastra({
           )],
       },
     },
+  },
+  server: {
+    apiRoutes: [
+      chatRoute({
+        path: "/chat",
+        agent: "weatherAgent",
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "weatherWorkflow",
+      }),
+      networkRoute({
+        path: "/network",
+        agent: "weatherAgent",
+      }),
+    ]
   },
 });
 

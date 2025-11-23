@@ -8,7 +8,7 @@
 
 ## Tooling & Quality
 
-- **Testing**: Vitest test suites exist (for example under `src/mastra/tools/tests` and `src/mastra/config/tests`), but coverage is still evolving and not yet at a fixed target.
+- **Testing**: Vitest (`vitest.config.ts`); suites in `tools/tests`, `config/tests`; 97% goal per README/package.json.
 - **Linting/Formatting**: ESLint per `eslint.config.cjs` and Prettier (`prettier.config.js`).
 - **Type Safety**: Runtime context types, Zod validation, and strict compiler settings catch issues before runtime.
 

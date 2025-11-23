@@ -2,9 +2,40 @@
 
 ## Current Focus (Nov 2025)
 
-- Keep the `/memory-bank` fully in sync with the actual AgentStack codebase so future sessions can trust it as the single source of truth.
-- Maintain and gradually harden AgentStack’s Mastra-based multi-agent runtime (see `src/mastra/index.ts`), including the A2A coordinator agent and MCP server.
-- Grow and stabilize Vitest test coverage for tools, config, and future workflows (tests exist but coverage is not yet a fixed target).
+- **[Synced Nov 22, 2025]** `/memory-bank` fully aligned with codebase: 17 agents (a2aCoordinator, researchAgent, stockAnalysisAgent, copywriterAgent, editorAgent, reportAgent, scriptWriterAgent, etc.); 30+ tools (polygon-tools, finnhub-tools, serpapi-*, csv-to-json, jwt-auth, etc.); 5 workflows (weather-workflow, content-studio-workflow, etc.); config/pg-storage active.
+- Maintain `/memory-bank` sync for session continuity.
+- Harden Mastra runtime (`src/mastra/index.ts`): A2A/MCP, Vitest coverage toward 97% per README.
+
+```mermaid
+graph TB
+    subgraph Agents["Agents (17 files)"]
+        A2A[a2aCoordinatorAgent.ts]
+        Research[researchAgent.ts]
+        Stock[stockAnalysisAgent.ts]
+        Copy[copywriterAgent.ts]
+        Edit[editorAgent.ts]
+        Report[reportAgent.ts]
+        Script[scriptWriterAgent.ts]
+    end
+    subgraph Tools["Tools (30+ files)"]
+        Poly[polygon-tools.ts]
+        Fin[finnhub-tools.ts]
+        Serp[serpapi-*.tool.ts]
+        CSV[csv-to-json.tool.ts]
+        JWT[jwt-auth.tool.ts]
+    end
+    subgraph Workflows["Workflows (5 files)"]
+        Weather[weather-workflow.ts]
+        Content[content-studio-workflow.ts]
+    end
+    subgraph Config["Config"]
+        PG[pg-storage.ts]
+        Models[google.ts/openai.ts/etc.]
+    end
+    Agents --> Tools
+    Tools --> Config
+    Workflows --> Agents
+```
 
 ## Key Decisions
 

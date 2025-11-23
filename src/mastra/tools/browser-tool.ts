@@ -14,7 +14,7 @@ export const browserTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async (input, context) => {
+  execute: async ({ context }) => {
     try {
       const browser = await chromium.launch({
         headless: true,
@@ -22,7 +22,7 @@ export const browserTool = createTool({
 
       const page = await browser.newPage();
 
-      await page.goto(context.input.url);
+      await page.goto(context.url);
 
       const docs = MDocument.fromHTML(await page.content());
 
@@ -67,7 +67,7 @@ export const googleSearch = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async (input, context) => {
+  execute: async ({ context }) => {
     let browser;
     try {
       browser = await chromium.launch({
@@ -83,7 +83,7 @@ export const googleSearch = createTool({
 
     try {
       const page = await browser.newPage();
-      await page.goto(`https://www.google.com/search?q=${encodeURIComponent(context.input.query)}`);
+      await page.goto(`https://www.google.com/search?q=${encodeURIComponent(context.query)}`);
 
       log.info(`\n`);
       log.info(chalk.blue('Waiting for search results...'));
@@ -102,7 +102,7 @@ export const googleSearch = createTool({
 
         searchResults.forEach(link => {
           const href = link.getAttribute('href');
-          if (href?.startsWith('http')) {
+          if (href?.startsWith('http') === true) {
             links.push(href);
           }
         });

@@ -3,7 +3,7 @@
 ## Architecture & Orchestration
 
 - **A2A / MCP coordinator**: `src/mastra/mcp/index.ts` exposes the `a2aCoordinatorAgent` as an MCP server so external clients can orchestrate multiple agents. Many of the resource URIs and metadata entries are placeholders today; the core orchestration logic still lives primarily inside individual agents.
-- **Tool-first agents**: Each agent wires together Mastra tools (`createTool`) with explicit Zod input/output validation. Agents remain orchestrators while tools stay side-effect-light and focused.
+- **Tool-first agents**: 17 agents wire 30+ tools (`polygon-tools.ts`, `serpapi-search.tool.ts`, `csv-to-json.tool.ts` etc.) w/ Zod (`createTool`).
 - **RAG pipeline**: Document ingestion uses the document chunker tool (`document-chunking.tool.ts`), Gemini embeddings via `google.textEmbedding('gemini-embedding-001')`, and PgVector-backed indexes (index name `governed_rag`) exposed through `graphQueryTool` and `pgQueryTool` in `src/mastra/config/pg-storage.ts`.
 
 ## Patterns & Practices

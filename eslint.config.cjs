@@ -90,6 +90,13 @@ module.exports = [
         },
     },
     {
+        includes: [
+            'src/mastra/**/*.ts',
+            'C:/Users/ssdsk/mastra/tsconfig.json',
+            `tsconfig.json`,
+        ],
+    },
+    {
         ignores: [
             'dist/**',
             'node_modules/**',
@@ -123,5 +130,5 @@ module.exports = [
             'README.md',
             'CONTRIBUTING.md',
         ],
-    }
-];
+    },
+]

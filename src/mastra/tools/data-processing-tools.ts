@@ -21,8 +21,8 @@ interface SvgJsonNode {
 // svgjson does not ship with types; require it and cast to a local interface
 // to avoid TypeScript errors when the @types package is not installed. The
 // ambient declaration above provides minimal typing when available.
-const svgjson = require('svgjson') as (input: string) => SvgJsonNode
-import { DOMParser, XMLSerializer } from 'xmldom'
+const svgjson = require('svgjson') as (input: string) => SvgJsonNode // eslint-disable-line no-unused-vars
+import { DOMParser } from 'xmldom'
 
 // Define runtime context for these tools
 export interface DataProcessingContext {

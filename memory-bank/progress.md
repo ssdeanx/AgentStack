@@ -1,15 +1,18 @@
 # Progress
 
-## What’s Done
+## What’s Done **[Synced Nov 22 from dirs/AGENTS.md]**
 
-- Mastra bootstrap (`src/mastra/index.ts`) wires up the weather workflow, agents, tools, vectors, storage, and observability.
-- Core agents implemented and registered: weather, research, stock analysis, csv↔Excalidraw, image→CSV, Excalidraw validator, learning extraction, evaluation, report, editor, copywriter, and the A2A coordinator.
-- Tooling suite under `src/mastra/tools` provides financial APIs (AlphaVantage, Finnhub, Polygon), SerpAPI-based research tools, document chunking, PDF conversion, JWT auth scaffolding, and web scraping.
-- A2A/MCP coordinator server implemented under `src/mastra/mcp` and registered in `index.ts` as `mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer }`.
-- Scorers for weather and richer evaluation registered via `src/mastra/scorers` and attached to agents like `weatherAgent` and `researchAgent`.
-- Observability is wired using Mastra tracing exporters (`CloudExporter`, `ArizeExporter`, `DefaultExporter`) with sampling configured in the Mastra instance.
-- `/memory-bank` has been audited against the actual codebase (agents, tools, config, MCP, scorers) so that descriptions no longer rely on README marketing claims or guessed coverage numbers.
-- Implemented and verified `csv-to-json`, `json-to-csv`, and `data-validator` tools with `RuntimeContext` integration and comprehensive tests.
+| Category | Status | Key Files/Details |
+|----------|--------|-------------------|
+| Bootstrap | ✅ | `index.ts`: agents/tools/workflows/MCP/pg-storage/observability. |
+| Agents | 17 files | a2aCoordinatorAgent.ts, researchAgent.ts, stockAnalysisAgent.ts, copywriterAgent.ts, editorAgent.ts, reportAgent.ts, scriptWriterAgent.ts, contentStrategistAgent.ts, learningExtractionAgent.ts, evaluationAgent.ts, weather-agent.ts, excalidraw_validator.ts, csv_to_excalidraw.ts, image_to_csv.ts (+ dane.ts/sql.ts/package-publisher.ts). |
+| Tools | 30+ | Financial: polygon-tools.ts(10+), finnhub-tools.ts(6+), alpha-vantage.tool.ts; Research: serpapi-*.tool.ts(5+), arxiv.tool.ts; Data: csv-to-json.tool.ts, json-to-csv.tool.ts, data-validator.tool.ts, document-chunking.tool.ts, pdf-data-conversion.tool.ts; Web: browser-tool.ts, web-scraper-tool.ts; Other: jwt-auth.tool.ts, execa-tool.ts, github.ts, fs.ts. |
+| Workflows | 5 | weather-workflow.ts, content-studio-workflow.ts, changelog.ts, new-contributor.ts, telephone-game.ts. |
+| MCP | ✅ | `mcp/index.ts`: a2aCoordinatorMcpServer; tools: coordinate_a2a_task etc. |
+| Scorers | ✅ | weather-scorer.ts, custom-scorers.ts. |
+| Observability | ✅ | Arize/Phoenix exporters; always-on sampling. |
+| Config | ✅ | pg-storage.ts (PgVector/Postgres); models (google/openai/anthropic/openrouter/vertex/gemini-cli). |
+| Tests | Progress | Vitest data tools verified; target 97%. |
 
 ## What’s Next
 
