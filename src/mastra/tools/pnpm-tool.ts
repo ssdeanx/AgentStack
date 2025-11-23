@@ -16,8 +16,9 @@ export const pnpmBuild = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
         const { name, packagePath } = context
+        await writer?.write({ type: 'progress', data: { message: `🔨 Building ${name} at ${packagePath}` } });
         try {
             log.info(chalk.green(`\n Building: ${name} at ${packagePath}`))
             const p = execa(`pnpm`, ['build'], {
@@ -27,6 +28,7 @@ export const pnpmBuild = createTool({
             })
             log.info(`\n`)
             await p
+            await writer?.write({ type: 'progress', data: { message: `✅ Build complete for ${name}` } });
             return { message: 'Done' }
         } catch (e) {
             log.error(e instanceof Error ? e.message : String(e))
@@ -45,7 +47,8 @@ export const pnpmChangesetStatus = createTool({
     outputSchema: z.object({
         message: z.array(z.string()),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🔍 Checking changeset status...' } });
         try {
             log.info(
                 chalk.green(
@@ -67,6 +70,7 @@ export const pnpmChangesetStatus = createTool({
                 line.trim().substring(2).split('@').slice(0, -1).join('@')
             )
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Found ${packages.length} packages to publish` } });
             return { message: packages }
         } catch (e) {
             log.error(e instanceof Error ? e.message : String(e))
@@ -82,7 +86,9 @@ export const pnpmChangesetPublish = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        const { } = context
+        await writer?.write({ type: 'progress', data: { message: '🚀 Publishing changesets...' } });
         try {
             log.info(chalk.green(`Publishing...`))
             const p = execa(`pnpm`, ['changeset', 'publish'], {
@@ -91,6 +97,7 @@ export const pnpmChangesetPublish = createTool({
             })
             log.info(`\n`)
             await p
+            await writer?.write({ type: 'progress', data: { message: '✅ Publish complete' } });
             return { message: 'Done' }
         } catch (e) {
             log.error(e instanceof Error ? e.message : String(e))
@@ -111,8 +118,9 @@ export const activeDistTag = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
         const { packagePath } = context
+        await writer?.write({ type: 'progress', data: { message: `🏷️ Setting active dist tag for ${packagePath}` } });
         try {
             const pkgJson = JSON.parse(
                 readFileSync(path.join(packagePath, 'package.json'), 'utf-8')
@@ -133,6 +141,7 @@ export const activeDistTag = createTool({
             )
             log.info(`\n`)
             await p
+            await writer?.write({ type: 'progress', data: { message: `✅ Dist tag set to latest for ${pkgJson.name}@${version}` } });
             return { message: 'Done' }
         } catch (e) {
             log.error(e instanceof Error ? e.message : String(e))

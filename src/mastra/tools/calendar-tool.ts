@@ -116,7 +116,8 @@ export const listEvents = createTool({
   outputSchema: z.object({
     content: z.string(),
   }),
-  execute: async () => {
+  execute: async ({ writer }) => {
+    await writer?.write({ type: 'progress', data: { message: '📅 Reading local calendar events...' } });
     try {
       const events = await reader.getEvents();
       const table = new Table({
@@ -144,6 +145,7 @@ export const listEvents = createTool({
 
     log.info(chalk.blue(table.toString()));
 
+      await writer?.write({ type: 'progress', data: { message: '✅ Found ' + events.length + ' events' } });
       return {
         content: JSON.stringify(events, null, 2),
       };

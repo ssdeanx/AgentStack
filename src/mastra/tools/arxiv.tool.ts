@@ -169,7 +169,8 @@ export const arxivTool = createTool({
     max_results: z.number(),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: `📚 Searching arXiv for "${context.query || context.id || 'papers'}"` } });
     toolCallCounters.set('arxiv', (toolCallCounters.get('arxiv') ?? 0) + 1);
     try {
       const params = new URLSearchParams();
@@ -199,6 +200,7 @@ export const arxivTool = createTool({
       } else if (searchTerms.length > 0) {
         params.append("search_query", searchTerms.join(" AND "));
       } else {
+        await writer?.write({ type: 'progress', data: { message: '❌ No search terms provided' } });
         return {
           papers: [],
           total_results: 0,
@@ -223,6 +225,7 @@ export const arxivTool = createTool({
 
       const url = `http://export.arxiv.org/api/query?${params.toString()}`;
 
+      await writer?.write({ type: 'progress', data: { message: '📡 Fetching from arXiv API...' } });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -295,18 +298,22 @@ export const arxivPdfParserTool = createTool({
     }),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv PDF parser for ' + context.arxivId } });
     toolCallCounters.set('arxiv-pdf-parser', (toolCallCounters.get('arxiv-pdf-parser') ?? 0) + 1);
     const startTime = Date.now();
 
     try {
+      await writer?.write({ type: 'progress', data: { message: '📥 Downloading PDF from arXiv...' } });
       // Construct PDF URL
       const pdfUrl = `https://arxiv.org/pdf/${context.arxivId}`;
 
       // Download PDF
+      await writer?.write({ type: 'progress', data: { message: '🔄 Extracting text from PDF...' } });
       const response = await fetch(pdfUrl);
 
       if (!response.ok) {
+        await writer?.write({ type: 'progress', data: { message: '❌ PDF download failed' } });
         if (response.status === 404) {
           return {
             success: false,
@@ -377,6 +384,7 @@ export const arxivPdfParserTool = createTool({
         markdown = frontmatter + markdown;
       }
 
+      await writer?.write({ type: 'progress', data: { message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages' } });
       const processingTime = Date.now() - startTime;
 
       return {
@@ -453,9 +461,11 @@ export const arxivPaperDownloaderTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv paper downloader for ' + context.arxivId } });
     toolCallCounters.set('arxiv-paper-downloader', (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1);
     try {
+      await writer?.write({ type: 'progress', data: { message: '📡 Fetching paper metadata from arXiv API...' } });
       // Get metadata from arXiv API
       const apiUrl = `http://export.arxiv.org/api/query?id_list=${context.arxivId}&max_results=1`;
       const apiResponse = await fetch(apiUrl);
@@ -480,8 +490,10 @@ export const arxivPaperDownloaderTool = createTool({
 
       let pdfContent: { markdown: string; pageCount: number; textLength: number } | undefined;
 
+      await writer?.write({ type: 'progress', data: { message: '🔄 Processing paper data...' } });
       // Download and parse PDF if requested
       if (context.includePdfContent) {
+        await writer?.write({ type: 'progress', data: { message: '📥 Downloading PDF content...' } });
         try {
           const pdfResponse = await fetch(paperMetadata.pdf_url);
 

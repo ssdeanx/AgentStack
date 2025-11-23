@@ -14,7 +14,8 @@ export const browserTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: `🌐 Launching browser for ${context.url}` } });
     try {
       const browser = await chromium.launch({
         headless: true,
@@ -44,9 +45,11 @@ export const browserTool = createTool({
       await browser.close();
 
       if (!docs.getText().length) {
+        await writer?.write({ type: 'progress', data: { message: '⚠️ No content found' } });
         return { message: 'No content' };
       }
 
+      await writer?.write({ type: 'progress', data: { message: '✅ Content extracted successfully' } });
       return { message: docs.getText().join('\n') };
     } catch (e) {
       if (e instanceof Error) {
@@ -67,7 +70,8 @@ export const googleSearch = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: '🔍 Starting Google search for "' + context.query + '"' } });
     let browser;
     try {
       browser = await chromium.launch({
@@ -85,6 +89,7 @@ export const googleSearch = createTool({
       const page = await browser.newPage();
       await page.goto(`https://www.google.com/search?q=${encodeURIComponent(context.query)}`);
 
+      await writer?.write({ type: 'progress', data: { message: '⏳ Waiting for search results...' } });
       log.info(`\n`);
       log.info(chalk.blue('Waiting for search results...'));
 
@@ -114,9 +119,11 @@ export const googleSearch = createTool({
       await browser.close();
 
       if (!text.length) {
+        await writer?.write({ type: 'progress', data: { message: '⚠️ No results found' } });
         return { message: 'No results' };
       }
 
+      await writer?.write({ type: 'progress', data: { message: '✅ Found ' + text.length + ' results' } });
       return { message: text.join('\n') };
     } catch (e) {
       if (e instanceof Error) {

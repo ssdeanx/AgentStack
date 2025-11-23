@@ -54,10 +54,12 @@ export const alphaVantageCryptoTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${context.symbol}/${context.market}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
+      await writer?.write({ type: 'progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -85,6 +87,7 @@ export const alphaVantageCryptoTool = createTool({
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
+      await writer?.write({ type: 'progress', data: { message: '📡 Querying Alpha Vantage API...' } });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -141,23 +144,26 @@ export const alphaVantageCryptoTool = createTool({
         return null;
       };
 
-      return {
-        data,
-        metadata: {
-          function: getMetadataValue("1. Information") ?? context.function,
-          symbol: getMetadataValue("2. Symbol") ?? context.symbol,
-          market: getMetadataValue("3. Market") ?? context.market,
-          last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
-          interval: getMetadataValue("5. Interval") ?? undefined,
-          output_size: getMetadataValue("6. Output Size") ?? undefined,
-          time_zone: getMetadataValue("7. Time Zone") ?? undefined
-        }
-      };
+      await writer?.write({ type: 'progress', data: { message: `✅ Crypto data ready for ${context.symbol}` } });
+        return {
+          data,
+          metadata: {
+            function: getMetadataValue("1. Information") ?? context.function,
+            symbol: getMetadataValue("2. Symbol") ?? context.symbol,
+            market: getMetadataValue("3. Market") ?? context.market,
+            last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
+            interval: getMetadataValue("5. Interval") ?? undefined,
+            output_size: getMetadataValue("6. Output Size") ?? undefined,
+            time_zone: getMetadataValue("7. Time Zone") ?? undefined
+          }
+        };
 
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
+      await writer?.write({ type: 'progress', data: { message: `❌ Crypto fetch error: ${errMsg}` } });
       return {
         data: null,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        error: errMsg
       };
     }
   }
@@ -218,10 +224,12 @@ export const alphaVantageStockTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${context.symbol || 'symbol'}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
+      await writer?.write({ type: 'progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -401,10 +409,12 @@ export const alphaVantageTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context }) => {
+  execute: async ({ context, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
+      await writer?.write({ type: 'progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -450,6 +460,8 @@ export const alphaVantageTool = createTool({
         params.append("function", context.economic_indicator);
       }
 
+      await writer?.write({ type: 'progress', data: { message: '📡 Querying Alpha Vantage API...' } });
+
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
       const response = await fetch(url);
@@ -483,6 +495,8 @@ export const alphaVantageTool = createTool({
                       {};
 
       const metadataObj = metadata as unknown;
+
+      await writer?.write({ type: 'progress', data: { message: `✅ General data ready for ${context.function}` } });
 
       return {
         data,

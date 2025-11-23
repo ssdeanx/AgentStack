@@ -112,7 +112,8 @@ export const dataValidatorTool = createTool({
     errors: z.array(z.string()).optional(),
     cleanedData: z.any().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext }) => {
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    await writer?.write({ type: 'progress', data: { message: '🔍 Starting data validation' } });
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: "data-validator",
@@ -126,6 +127,7 @@ export const dataValidatorTool = createTool({
       const result = zodSchema.safeParse(context.data);
 
       if (result.success) {
+        await writer?.write({ type: 'progress', data: { message: `✅ Validation passed` } });
         rootSpan?.end({ output: { valid: true } });
         return {
           valid: true,
@@ -135,7 +137,7 @@ export const dataValidatorTool = createTool({
         const config = runtimeContext?.get("validatorContext");
         const { maxErrors } = config !== undefined ? validatorContextSchema.parse(config) : { maxErrors: undefined };
 
-        let errors = result.error.issues.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`);
+        let errors = result.error.issues.map((e: z.core.$ZodIssue) => `${e.path.join(".")}: ${e.message}`);
 
         if (maxErrors !== undefined && errors.length > maxErrors) {
             errors = errors.slice(0, maxErrors);

@@ -21,7 +21,8 @@ export const evaluateResultTool = createTool({
             .describe('URLs that have already been processed')
             .optional(),
     }),
-    execute: async ({ context, mastra, tracingContext }) => {
+    execute: async ({ context, mastra, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🤔 Evaluating relevance of result: ' + context.result.title } });
         const evalSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'evaluate_result',
@@ -109,6 +110,7 @@ export const evaluateResultTool = createTool({
                     reason: parsed.data.reason,
                 },
             })
+            await writer?.write({ type: 'progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
             return parsed.data
         } catch (error) {
             log.error('Error evaluating result:', {

@@ -44,7 +44,8 @@ export const amazonSearchTool = createTool({
         'Search Amazon for products. Filter by price range, sort by relevance/price/rating, and show only Prime eligible items. Returns product title, ASIN, price, rating, review count, and Prime status.',
     inputSchema: amazonSearchInputSchema,
     outputSchema: amazonSearchOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: '🛒 Starting Amazon search for "' + context.query + '"' } });
         validateSerpApiKey()
 
         const amazonSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -53,6 +54,7 @@ export const amazonSearchTool = createTool({
             input: { query: context.query, sortBy: context.sortBy },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Amazon search', { query: context.query })
 
         try {
@@ -111,6 +113,7 @@ export const amazonSearchTool = createTool({
 
             const result = { products }
 
+            await writer?.write({ type: 'progress', data: { message: '✅ Amazon search complete: ' + products.length + ' products' } });
             amazonSpan?.end({ output: { productCount: products.length } })
             log.info('Amazon search completed', { query: context.query, productCount: products.length })
 
@@ -152,7 +155,8 @@ export const walmartSearchTool = createTool({
         'Search Walmart for products. Filter by price range and sort by relevance, price, or rating. Returns product information including title, price, rating, and links.',
     inputSchema: walmartSearchInputSchema,
     outputSchema: walmartSearchOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🛒 Starting Walmart search for "' + context.query + '"' } });
         validateSerpApiKey()
 
         const walmartSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -161,6 +165,7 @@ export const walmartSearchTool = createTool({
             input: { query: context.query },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Walmart search', { query: context.query })
 
         try {
@@ -203,6 +208,7 @@ export const walmartSearchTool = createTool({
 
             const result = { products }
 
+            await writer?.write({ type: 'progress', data: { message: '✅ Walmart search complete: ' + products.length + ' products' } });
             walmartSpan?.end({ output: { productCount: products.length } })
             log.info('Walmart search completed', { query: context.query, productCount: products.length })
 
@@ -246,13 +252,15 @@ export const ebaySearchTool = createTool({
         'Search eBay for products and listings. Filter by condition (new/used/refurbished), show only Buy It Now items, and sort by relevance or price. Returns item details including price, bids, time left, and condition.',
     inputSchema: ebaySearchInputSchema,
     outputSchema: ebaySearchOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🛒 Starting eBay search for "' + context.query + '"' } });
         validateSerpApiKey()
         const ebaySpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'ebay-search-tool',
             input: { query: context.query, condition: context.condition },
         })
+        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing eBay search', { query: context.query })
         try {
             const params: Record<string, string | number | boolean> = {
@@ -293,6 +301,7 @@ export const ebaySearchTool = createTool({
                     })
                 ) ?? []
             const result = { products }
+            await writer?.write({ type: 'progress', data: { message: '✅ eBay search complete: ' + products.length + ' products' } });
             ebaySpan?.end({ output: { productCount: products.length } })
             log.info('eBay search completed', { query: context.query, productCount: products.length })
             return result
@@ -333,13 +342,15 @@ export const homeDepotSearchTool = createTool({
         'Search Home Depot for home improvement products. Filter by in-stock availability and sort by relevance, price, or rating. Returns product details including price, rating, availability, and links.',
     inputSchema: homeDepotSearchInputSchema,
     outputSchema: homeDepotSearchOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🛒 Starting Home Depot search for "' + context.query + '"' } });
         validateSerpApiKey()
         const homeDepotSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'home-depot-search-tool',
             input: { query: context.query },
         })
+        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Home Depot search', { query: context.query })
         try {
             const params: Record<string, string | number | boolean> = {
@@ -375,6 +386,7 @@ export const homeDepotSearchTool = createTool({
                     })
                 ) ?? []
             const result = { products }
+            await writer?.write({ type: 'progress', data: { message: '✅ Home Depot search complete: ' + products.length + ' products' } });
             homeDepotSpan?.end({ output: { productCount: products.length } })
             log.info('Home Depot search completed', { query: context.query, productCount: products.length })
             return result

@@ -35,7 +35,8 @@ export const populationInfo = createTool({
       .describe("SQL query to execute against the cities database"),
   }),
   description: `Executes a SQL query against the cities database and returns the results`,
-  execute: async ({ context: { query } }) => {
+  execute: async ({ context: { query }, writer }) => {
+    await writer?.write({ type: 'progress', data: { message: 'Executing SQL query' } });
     try {
       const trimmedQuery = query.trim().toLowerCase();
       if (!trimmedQuery.startsWith("select")) {

@@ -26,8 +26,9 @@ export const execaTool = createTool({
         message: z.string(),
     }),
 
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
         const { command, args } = context
+        await writer?.write({ type: 'progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
         try {
             log.info(
                 chalk.green(`Running command: ${command} ${args.join(' ')}`)
@@ -37,6 +38,7 @@ export const execaTool = createTool({
                 stdio: 'pipe',
             })
             const output = result.all ?? ''
+            await writer?.write({ type: 'progress', data: { message: '✅ Command executed successfully' } });
             return { message: chalk.green(output) }
         } catch (e) {
             log.error(e instanceof Error ? e.message : String(e))

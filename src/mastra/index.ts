@@ -81,15 +81,21 @@ export const mastra = new Mastra({
     apiRoutes: [
       chatRoute({
         path: "/chat",
-        agent: "weatherAgent",
+        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent",
+        defaultOptions: {},
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
       }),
       workflowRoute({
         path: "/workflow",
-        workflow: "weatherWorkflow",
+        workflow: "weatherWorkflow, contentStudioWorkflow",
       }),
       networkRoute({
         path: "/network",
-        agent: "weatherAgent",
+        agent: "agentNetwork",
+        defaultOptions: {},
       }),
     ]
   },

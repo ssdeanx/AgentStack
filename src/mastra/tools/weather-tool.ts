@@ -47,7 +47,9 @@ export const weatherTool = createTool({
         location: z.string(),
         unit: z.string(), // Add unit to output schema
     }),
-    execute: async ({ context, runtimeContext, tracingContext }) => {
+    execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
+
         const { temperatureUnit } = weatherToolContextSchema.parse(
             runtimeContext.get('weatherToolContext')
         )
@@ -63,16 +65,21 @@ export const weatherTool = createTool({
         })
 
         try {
+            await writer?.write({ type: 'progress', data: { message: '📍 Geocoding location...' } });
             const result = await getWeather(context.location, temperatureUnit)
+            await writer?.write({ type: 'progress', data: { message: '🌤️ Processing weather data...' } });
             weatherSpan?.end({ output: result })
             log.info(`Weather fetched successfully for ${context.location}`)
-            return {
+            const finalResult = {
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
-            }
+            };
+            await writer?.write({ type: 'progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
+            return finalResult;
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            await writer?.write({ type: 'progress', data: { message: `❌ Weather error: ${errorMessage}` } });
             weatherSpan?.end({ metadata: { error: errorMessage } })
             log.error(
                 `Failed to fetch weather for ${context.location}: ${errorMessage}`

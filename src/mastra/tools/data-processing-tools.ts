@@ -145,7 +145,8 @@ export const readCSVDataTool = createTool({
         rows: z.array(CSVRowSchema),
         rawCSV: z.string(),
     }),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '📖 Reading CSV file: ' + context.fileName } });
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'read_csv_data',
@@ -193,6 +194,7 @@ export const readCSVDataTool = createTool({
             }
 
             span?.end({ output: { rowCount: rows.length, headerCount: headers.length } })
+            await writer?.write({ type: 'progress', data: { message: `✅ Read ${rows.length} rows from CSV` } });
             return { headers, rows, rawCSV: content }
         } catch (error) {
             span?.end({ metadata: { error: String(error) } })
@@ -224,7 +226,8 @@ export const csvToExcalidrawTool = createTool({
             elementSpacing: z.number(),
         }),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });
         const { csvData, layoutType = 'table', title, hasHeaders = true, delimiter = ',' } = context
 
         const lines = csvData.trim().split('\n')
@@ -429,6 +432,7 @@ export const csvToExcalidrawTool = createTool({
 
         const filename = `csv-diagram-${Date.now()}.excalidraw`
 
+        await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
         return {
             filename,
             contents: excalidrawData,
@@ -469,7 +473,8 @@ export const imageToCSVTool = createTool({
         elementCount: z.number(),
         columns: z.array(z.string()),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🖼️ Converting image analysis to CSV' } });
         const { elements, filename } = context
 
         const columns = [
@@ -493,6 +498,7 @@ export const imageToCSVTool = createTool({
 
         const outputFilename = filename ?? `image-analysis-${Date.now()}.csv`
 
+        await writer?.write({ type: 'progress', data: { message: `✅ Converted ${elements.length} elements to CSV` } });
         return {
             csvContent,
             filename: outputFilename,
@@ -519,7 +525,8 @@ export const validateExcalidrawTool = createTool({
         warnings: z.array(z.string()),
         elementCount: z.number(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🔍 Validating Excalidraw data' } });
         const { excalidrawData, autoFix = true } = context
         const errors: string[] = []
         const warnings: string[] = []
@@ -608,6 +615,7 @@ export const validateExcalidrawTool = createTool({
                 }
             }
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${errors.length === 0}` } });
             return {
                 isValid: errors.length === 0,
                 fixedData: errors.length === 0 ? undefined : fixedData,
@@ -650,7 +658,8 @@ export const processSVGTool = createTool({
         }),
         elementCount: z.number(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🖼️ Processing SVG content' } });
         const { svgContent, extractPaths = true, extractText = true, extractStyles = true } = context
 
         try {
@@ -726,6 +735,7 @@ export const processSVGTool = createTool({
 
             result.elementCount = svgJson.children ? svgJson.children.length : 0
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Processed SVG with ${result.elementCount} elements` } });
             return result
         } catch (error) {
             throw new Error(`SVG processing failed: ${String(error)}`)
@@ -755,7 +765,8 @@ export const processXMLTool = createTool({
         extractedData: z.any(),
         rootElement: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '📄 Processing XML content' } });
         const { xmlContent, extractElements = [], extractAttributes = [] } = context
 
         try {
@@ -829,6 +840,7 @@ export const processXMLTool = createTool({
                 })
             }
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Processed XML with ${elements.length} elements` } });
             return {
                 document: xmlDoc,
                 elements,
@@ -862,7 +874,8 @@ export const convertDataFormatTool = createTool({
             conversionType: z.string(),
         }),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${context.inputFormat} to ${context.outputFormat}` } });
         const { inputData, inputFormat, outputFormat, options = {} } = context
 
         let convertedData: string | Record<string, unknown> | Array<Record<string, unknown>> | undefined
@@ -957,6 +970,7 @@ export const convertDataFormatTool = createTool({
                     metadata.conversionType = 'no-conversion'
             }
 
+            await writer?.write({ type: 'progress', data: { message: '✅ Data conversion successful' } });
             return {
                 convertedData,
                 format: outputFormat,
@@ -985,7 +999,8 @@ export const validateDataTool = createTool({
         warnings: z.array(z.string()),
         validatedData: z.any().optional(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: `✅ Validating ${context.schemaType} data` } });
         const { data, schemaType, strict = true } = context
         const errors: string[] = []
         const warnings: string[] = []
@@ -1089,6 +1104,7 @@ export const validateDataTool = createTool({
                     break
             }
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${isValid}` } });
             return {
                 isValid,
                 errors,

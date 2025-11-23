@@ -58,7 +58,8 @@ export const readDataFileTool = createTool({
             ),
     }),
     outputSchema: z.string().describe('The content of the file as a string.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '📖 Reading file: ' + context.fileName } });
         const readSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'read_data_file',
@@ -78,6 +79,7 @@ export const readDataFileTool = createTool({
             const content = await fs.readFile(realFullPath, 'utf-8')
             log.info(`Read file: ${fileName}`)
             readSpan?.end({ output: { fileSize: content.length } })
+            await writer?.write({ type: 'progress', data: { message: '✅ File read successfully' } });
             return content
         } catch (error) {
             const errorMessage =
@@ -103,7 +105,8 @@ export const writeDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '💾 Writing to file: ' + context.fileName } });
         const writeSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'write_data_file',
@@ -134,6 +137,7 @@ export const writeDataFileTool = createTool({
             await fs.writeFile(realFullPath, content, 'utf-8')
             log.info(`Written to file: ${fileName}`)
             writeSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ File written successfully' } });
             return `File ${fileName} written successfully.`
         } catch (error) {
             const errorMessage =
@@ -157,7 +161,8 @@ export const deleteDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🗑️ Deleting file: ' + context.fileName } });
         const deleteSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'delete_data_file',
@@ -176,6 +181,7 @@ export const deleteDataFileTool = createTool({
             await fs.unlink(fullPath)
             log.info(`Deleted file: ${fileName}`)
             deleteSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ File deleted successfully' } });
             return `File ${fileName} deleted successfully.`
         } catch (error) {
             const errorMessage =
@@ -201,7 +207,8 @@ export const listDataDirTool = createTool({
     outputSchema: z
         .array(z.string())
         .describe('An array of file and directory names.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '📂 Listing directory: ' + (context.dirPath ?? 'docs/data') } });
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'list_data_directory',
@@ -220,6 +227,7 @@ export const listDataDirTool = createTool({
             const contents = await fs.readdir(fullPath)
             log.info(`Listed directory: ${dirPath}`)
             listSpan?.end({ output: { count: contents.length } })
+            await writer?.write({ type: 'progress', data: { message: '✅ Directory listed successfully' } });
             return contents
         } catch (error) {
             const errorMessage =
@@ -247,7 +255,8 @@ export const copyDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `📋 Copying file: ${context.sourceFile} to ${context.destFile}` } });
         const copySpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'copy_data_file',
@@ -275,6 +284,7 @@ export const copyDataFileTool = createTool({
             await fs.copyFile(sourcePath, destPath)
             log.info(`Copied file: ${sourceFile} to ${destFile}`)
             copySpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ File copied successfully' } });
             return `File ${sourceFile} copied to ${destFile} successfully.`
         } catch (error) {
             const errorMessage =
@@ -303,7 +313,8 @@ export const moveDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `🚚 Moving file: ${context.sourceFile} to ${context.destFile}` } });
         const moveSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'move_data_file',
@@ -331,6 +342,7 @@ export const moveDataFileTool = createTool({
             await fs.rename(sourcePath, destPath)
             log.info(`Moved file: ${sourceFile} to ${destFile}`)
             moveSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ File moved successfully' } });
             return `File ${sourceFile} moved to ${destFile} successfully.`
         } catch (error) {
             const errorMessage =
@@ -365,7 +377,8 @@ export const searchDataFilesTool = createTool({
     outputSchema: z
         .array(z.string())
         .describe('An array of matching file paths.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `🔍 Searching for pattern: "${context.pattern}"` } });
         const searchSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'search_data_files',
@@ -432,6 +445,7 @@ export const searchDataFilesTool = createTool({
             await searchDir(searchPath)
             log.info(`Searched for pattern: ${pattern} in ${dirPath}`)
             searchSpan?.end({ output: { resultCount: results.length } })
+            await writer?.write({ type: 'progress', data: { message: `✅ Found ${results.length} matches` } });
             return results
         } catch (error) {
             const errorMessage =
@@ -462,7 +476,8 @@ export const getDataFileInfoTool = createTool({
             isDirectory: z.boolean(),
         })
         .describe('File metadata information.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: 'ℹ️ Getting info for file: ' + context.fileName } });
         const infoSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'get_data_file_info',
@@ -491,6 +506,7 @@ export const getDataFileInfoTool = createTool({
             infoSpan?.end({
                 output: { fileSize: stats.size, isFile: stats.isFile() },
             })
+            await writer?.write({ type: 'progress', data: { message: '✅ File info retrieved' } });
             return result
         } catch (error) {
             const errorMessage =
@@ -514,7 +530,8 @@ export const createDataDirTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '📁 Creating directory: ' + context.dirPath } });
         const createDirSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'create_data_directory',
@@ -532,6 +549,7 @@ export const createDataDirTool = createTool({
             await fs.mkdir(fullPath, { recursive: true })
             log.info(`Created directory: ${dirPath}`)
             createDirSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ Directory created successfully' } });
             return `Directory ${dirPath} created successfully.`
         } catch (error) {
             const errorMessage =
@@ -555,7 +573,8 @@ export const removeDataDirTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🗑️ Removing directory: ' + context.dirPath } });
         const removeDirSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'remove_data_directory',
@@ -578,6 +597,7 @@ export const removeDataDirTool = createTool({
             await fs.rmdir(fullPath)
             log.info(`Removed directory: ${dirPath}`)
             removeDirSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ Directory removed successfully' } });
             return `Directory ${dirPath} removed successfully.`
         } catch (error) {
             const errorMessage =
@@ -607,7 +627,8 @@ export const archiveDataTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `📦 Archiving: ${context.sourcePath} to ${context.archiveName}.gz` } });
         const archiveSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'archive_data',
@@ -640,6 +661,7 @@ export const archiveDataTool = createTool({
             await pipeline(sourceStream, gzip, archiveStream)
             log.info(`Archived: ${sourcePath} to ${archiveName}.gz`)
             archiveSpan?.end({ output: { success: true } })
+            await writer?.write({ type: 'progress', data: { message: '✅ Archive created successfully' } });
             return `File ${sourcePath} archived to ${archiveName}.gz successfully.`
         } catch (error) {
             const errorMessage =
@@ -670,7 +692,8 @@ export const backupDataTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success with backup path.'),
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: `💾 Creating backup for: ${context.sourcePath}` } });
         const backupSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'backup_data',
@@ -705,6 +728,7 @@ export const backupDataTool = createTool({
             const relativeBackupPath = path.relative(DATA_DIR, backupFullPath)
             log.info(`Backed up: ${sourcePath} to ${relativeBackupPath}`)
             backupSpan?.end({ output: { backupPath: relativeBackupPath } })
+            await writer?.write({ type: 'progress', data: { message: '✅ Backup created successfully' } });
             return `Backup created: ${sourcePath} → ${relativeBackupPath}`
         } catch (error) {
             const errorMessage =

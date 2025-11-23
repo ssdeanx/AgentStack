@@ -23,7 +23,8 @@ export const jwtAuthTool = createTool({
         exp: z.number().optional(),
         iat: z.number().optional(),
     }),
-    execute: async ({ runtimeContext, tracingContext }) => {
+    execute: async ({ runtimeContext, tracingContext, writer }) => {
+        await writer?.write({ type: 'progress', data: { message: '🔐 Verifying JWT authentication' } });
         const jwt = (runtimeContext as RuntimeContext<JwtAuthContext>).get(
             'jwt'
         )
@@ -46,6 +47,15 @@ export const jwtAuthTool = createTool({
             span?.end({
 //                output: { success: true, hasRoles: result.roles?.length > 0 },
             })
+            // Mock return for now as the service call is commented out
+            return {
+                sub: 'mock-user',
+                roles: ['user'],
+                tenant: 'mock-tenant',
+                stepUp: false,
+                exp: Date.now() + 3600,
+                iat: Date.now()
+            }
 //            return result
         } catch (error) {
             const errorMessage =

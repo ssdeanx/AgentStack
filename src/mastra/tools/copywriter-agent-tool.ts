@@ -70,7 +70,7 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Approximate word count of the content'),
     }),
-    execute: async ({ context, mastra, tracingContext }) => {
+    execute: async ({ context, mastra, writer, tracingContext }) => {
         const {
             topic,
             contentType = 'blog',
@@ -79,6 +79,8 @@ export const copywriterTool = createTool({
             length = 'medium',
             specificRequirements,
         } = context
+
+        await writer?.write({ type: 'progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` } });
 
         // Create a span for tracing
         const span = tracingContext?.currentSpan?.createChildSpan({
@@ -146,6 +148,7 @@ export const copywriterTool = createTool({
                 }
             }
 
+            await writer?.write({ type: 'progress', data: { message: '🤖 Generating content...' } });
             const result = await agent.generate(prompt)
 
             // Parse and structure the response
@@ -173,6 +176,8 @@ export const copywriterTool = createTool({
                     contentLength: content.length,
                 },
             })
+
+            await writer?.write({ type: 'progress', data: { message: `✅ Content generated: ${wordCount} words` } });
 
             return {
                 content,

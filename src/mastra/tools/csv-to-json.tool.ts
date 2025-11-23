@@ -34,7 +34,8 @@ export const csvToJsonTool = createTool({
     data: z.array(z.any()).describe("Parsed JSON data"),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext }) => {
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    await writer?.write({ type: 'progress', data: { message: '📊 Starting CSV to JSON conversion' } });
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: "csv-to-json",
@@ -70,6 +71,7 @@ export const csvToJsonTool = createTool({
         throw new Error(`Record count (${records.length}) exceeds maximum allowed (${maxRows})`);
       }
 
+      await writer?.write({ type: 'progress', data: { message: `✅ Converted ${records.length} records` } });
       rootSpan?.end({ output: { recordCount: records.length } });
       return { data: records };
     } catch (error) {

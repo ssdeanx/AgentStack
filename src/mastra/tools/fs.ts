@@ -14,8 +14,9 @@ export const fsTool = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
         const { action, file, data } = context
+        await writer?.write({ type: 'progress', data: { message: `💾 FS ${action} on ${file}` } });
         try {
             switch (action) {
                 case 'write':
@@ -29,14 +30,16 @@ export const fsTool = createTool({
                 default:
                     return { message: 'Invalid action' }
             }
+            await writer?.write({ type: 'progress', data: { message: '✅ FS operation complete' } });
             return { message: 'Success' }
         } catch (e) {
+            await writer?.write({ type: 'progress', data: { message: `❌ FS error: ${e instanceof Error ? e.message : String(e)}` } });
             log.error(
                 `FS operation failed: ${e instanceof Error ? e.message : String(e)}`
-            )
+            );
             return {
                 message: `Error: ${e instanceof Error ? e.message : String(e)}`,
-            }
+            };
         }
     },
 })

@@ -499,9 +499,16 @@ Perfect for RAG indexing, documentation conversion, and content processing.
   `,
 	inputSchema: PdfToMarkdownInputSchema,
 	outputSchema: PdfToMarkdownOutputSchema,
-	execute: async ({ context, tracingContext }) => {
+	execute: async ({ context, tracingContext, writer }) => {
 		const startTime = Date.now()
 		logToolExecution('pdf-to-markdown', { input: context })
+
+        await writer?.write({
+            type: 'progress',
+            data: {
+                message: `📄 Converting PDF to Markdown: ${context.pdfPath}`
+            }
+        });
 
 		// Create root tracing span
 		const rootSpan = tracingContext?.currentSpan?.createChildSpan({

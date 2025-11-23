@@ -17,8 +17,9 @@ export const readPDF = createTool({
     outputSchema: z.object({
         content: z.string(),
     }),
-    execute: async ({ context }) => {
+    execute: async ({ context, writer }) => {
         const { pdfPath } = context
+        await writer?.write({ type: 'progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
         try {
             // Check if file exists
             if (!existsSync(pdfPath)) {

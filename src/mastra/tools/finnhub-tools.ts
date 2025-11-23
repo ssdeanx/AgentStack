@@ -29,11 +29,18 @@ export const finnhubQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-quotes',
       input: { symbol: context.symbol }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching quote for ${context.symbol}`
+      }
     });
 
     logToolExecution('finnhubQuotesTool', { input: context });
@@ -173,11 +180,18 @@ export const finnhubCompanyTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-company',
       input: { function: context.function, symbol: context.symbol, from: context.from, to: context.to }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching company data (${context.function}) for ${context.symbol}`
+      }
     });
 
     logToolExecution('finnhubCompanyTool', { input: context });
@@ -350,11 +364,18 @@ export const finnhubFinancialsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-financials',
       input: { function: context.function, symbol: context.symbol }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching financials (${context.function}) for ${context.symbol}`
+      }
     });
 
     logToolExecution('finnhubFinancialsTool', { input: context });
@@ -523,11 +544,18 @@ export const finnhubAnalysisTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-analysis',
       input: { function: context.function, symbol: context.symbol }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching analysis (${context.function}) for ${context.symbol}`
+      }
     });
 
     logToolExecution('finnhubAnalysisTool', { input: context });
@@ -700,11 +728,18 @@ export const finnhubTechnicalTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-technical',
       input: { function: context.function, symbol: context.symbol, resolution: context.resolution, indicator: context.indicator, timeperiod: context.timeperiod, series_type: context.series_type }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching technical data (${context.function}) for ${context.symbol}`
+      }
     });
 
     logToolExecution('finnhubTechnicalTool', { input: context });
@@ -889,11 +924,18 @@ export const finnhubEconomicTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-economic',
       input: { economic_code: context.economic_code }
+    });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching economic data for ${context.economic_code}`
+      }
     });
 
     logToolExecution('finnhubEconomicTool', { input: context });

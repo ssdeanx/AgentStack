@@ -327,7 +327,6 @@ export class ValidationUtils {
 const webScraperInputSchema = z
     .object({
         url: z
-            .string()
             .url()
             .refine(
                 (v) => ValidationUtils.validateUrl(v),
@@ -363,7 +362,7 @@ const webScraperInputSchema = z
 // Output Schema
 const webScraperOutputSchema = z
     .object({
-        url: z.string().url().describe('The URL that was scraped.'),
+        url: z.url().describe('The URL that was scraped.'),
         extractedData: z
             .array(z.record(z.string(), z.string()))
             .describe(
@@ -409,7 +408,8 @@ export const webScraperTool = createTool({
         'Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.',
     inputSchema: webScraperInputSchema,
     outputSchema: webScraperOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: `🌐 Starting web scrape for ${context.url}` } });
         toolCallCounters.set('web-scraper', (toolCallCounters.get('web-scraper') ?? 0) + 1)
         const scrapeSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -422,6 +422,7 @@ export const webScraperTool = createTool({
             },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '🐛 Initializing crawler...' } });
         log.info('Starting enhanced web scraping with JSDOM', {
             url: context.url,
             selector: context.selector,
@@ -541,6 +542,7 @@ export const webScraperTool = createTool({
                 },
             })
 
+            await writer?.write({ type: 'progress', data: { message: '📥 Fetching and parsing page...' } });
             await crawler.run([new Request({ url: context.url })])
 
             // Enhanced HTML to markdown conversion using JSDOM
@@ -577,6 +579,7 @@ export const webScraperTool = createTool({
                     }
                 }
 
+            await writer?.write({ type: 'progress', data: { message: '✂️ Converting to markdown...' } });
                 if (
                     context.saveMarkdown === true &&
                     typeof markdownContent === 'string' &&
@@ -630,6 +633,7 @@ export const webScraperTool = createTool({
                 }
             }
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Scraping complete: ${extractedData.length} elements${savedFilePath ? ', saved to ' + savedFilePath : ''}` } });
             scrapeSpan?.end({
                 output: {
                     status,
@@ -681,7 +685,7 @@ export const webScraperTool = createTool({
 
 const batchWebScraperInputSchema = z.object({
     urls: z
-        .array(z.string().url())
+        .array(z.url())
         .describe('Array of URLs to scrape.')
         .max(10, 'Maximum 10 URLs allowed for batch scraping'),
     selector: z
@@ -735,7 +739,8 @@ export const batchWebScraperTool = createTool({
         'Scrape multiple web pages concurrently with enhanced JSDOM processing and rate limiting.',
     inputSchema: batchWebScraperInputSchema,
     outputSchema: batchWebScraperOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: `🌐 Batch scraping ${context.urls.length} URLs` } });
         toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
         const batchSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -748,6 +753,7 @@ export const batchWebScraperTool = createTool({
             },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '🐛 Initializing batch crawlers...' } });
         log.info('Starting enhanced batch web scraping with JSDOM', {
             urlCount: context.urls.length,
             maxConcurrent: context.maxConcurrent ?? 3,
@@ -905,6 +911,7 @@ export const batchWebScraperTool = createTool({
 
             const successful = results.filter((r) => r.success).length
             const failed = results.length - successful
+            await writer?.write({ type: 'progress', data: { message: `✅ Batch complete: ${successful}/${results.length} successful` } });
 
             batchSpan?.end({
                 output: {
@@ -988,7 +995,8 @@ export const siteMapExtractorTool = createTool({
         'Extract a comprehensive site map by crawling internal links with enhanced JSDOM processing and rate limiting.',
     inputSchema: siteMapExtractorInputSchema,
     outputSchema: siteMapExtractorOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: `🗺️ Starting site map extraction for ${context.url}` } });
         toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
         const mapSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -1001,6 +1009,7 @@ export const siteMapExtractorTool = createTool({
             },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '🔍 Crawling internal links...' } });
         log.info('Starting enhanced site map extraction with JSDOM', {
             url: context.url,
             maxDepth: context.maxDepth ?? 2,
@@ -1169,6 +1178,7 @@ export const siteMapExtractorTool = createTool({
                 }
             }
 
+            await writer?.write({ type: 'progress', data: { message: `✅ Site map complete: ${pages.length} pages discovered` } });
             mapSpan?.end({
                 output: {
                     totalPages: pages.length,
@@ -1242,7 +1252,8 @@ export const linkExtractorTool = createTool({
         'Extract and analyze all links from a web page with enhanced JSDOM processing and filtering.',
     inputSchema: linkExtractorInputSchema,
     outputSchema: linkExtractorOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: `🔗 Extracting links from ${context.url}` } });
         toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
         const linkSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -1470,7 +1481,8 @@ export const htmlToMarkdownTool = createTool({
         'Convert HTML content to well-formatted markdown with enhanced JSDOM parsing and security.',
     inputSchema: htmlToMarkdownInputSchema,
     outputSchema: htmlToMarkdownOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: '🔄 Converting HTML to markdown...' } });
         toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
         const convertSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -1482,6 +1494,7 @@ export const htmlToMarkdownTool = createTool({
             },
         })
 
+        await writer?.write({ type: 'progress', data: { message: '🧹 Sanitizing HTML...' } });
         log.info('Converting HTML to markdown with enhanced JSDOM processing', {
             htmlLength: context.html.length,
             saveToFile: context.saveToFile,
@@ -1597,7 +1610,8 @@ export const listScrapedContentTool = createTool({
         'List all scraped content files stored in the data directory with enhanced security.',
     inputSchema: listScrapedContentInputSchema,
     outputSchema: listScrapedContentOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: '📂 Listing scraped content files...' } });
         toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -1784,7 +1798,8 @@ export const contentCleanerTool = createTool({
         'Clean HTML content by removing unwanted elements with enhanced JSDOM processing and security.',
     inputSchema: contentCleanerInputSchema,
     outputSchema: contentCleanerOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+      await writer?.write({ type: 'progress', data: { message: '🧹 Starting content cleaning...' } });
         toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
         const cleanSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,

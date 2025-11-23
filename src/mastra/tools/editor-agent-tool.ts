@@ -32,7 +32,8 @@ export const editorTool = createTool({
             .optional()
             .describe('Additional suggestions for improvement'),
     }),
-    execute: async ({ context, mastra, tracingContext }) => {
+    execute: async ({ context, mastra, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '📝 Starting editor agent' } });
         const { content, contentType = 'general', instructions, tone } = context
 
         // Create a span for tracing
@@ -65,6 +66,7 @@ export const editorTool = createTool({
             }
             prompt += `:\n\n${content}`
 
+            await writer?.write({ type: 'progress', data: { message: '🤖 Generating edited content' } });
             const result = await agent.generate(prompt)
 
             // Parse the structured response from the editor agent
@@ -90,6 +92,7 @@ export const editorTool = createTool({
                 },
             })
 
+            await writer?.write({ type: 'progress', data: { message: '✅ Editing complete' } });
             return {
                 editedContent:
                     parsedResult.editedContent ??

@@ -75,8 +75,15 @@ export const polygonStockQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const startTime = Date.now();
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching stock quotes (${context.function}) for ${context.symbol}`
+      }
+    });
 
   const apiKey = process.env.POLYGON_API_KEY;
 
@@ -340,9 +347,16 @@ export const polygonStockAggregatesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const startTime = Date.now();
     logToolExecution('polygon-stock-aggregates', { input: context });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching stock aggregates for ${context.symbol}`
+      }
+    });
 
     // Create root tracing span
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -581,9 +595,16 @@ export const polygonStockFundamentalsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const startTime = Date.now();
     logToolExecution('polygon-stock-fundamentals', { input: context });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching stock fundamentals (${context.function})`
+      }
+    });
 
     // Create root tracing span
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -858,9 +879,16 @@ export const polygonCryptoQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const startTime = Date.now();
     logToolExecution('polygon-crypto-quotes', { input: context });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching crypto quotes (${context.function}) for ${context.symbol}`
+      }
+    });
 
     // Create root tracing span
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1099,7 +1127,7 @@ export const polygonCryptoAggregatesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'polygon-crypto-aggregates',
@@ -1107,6 +1135,13 @@ export const polygonCryptoAggregatesTool = createTool({
     });
 
   logToolExecution('polygon-crypto-aggregates', { input: context });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching crypto aggregates for ${context.symbol}`
+      }
+    });
 
   const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks
@@ -1285,7 +1320,7 @@ export const polygonCryptoSnapshotsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'polygon-crypto-snapshots',
@@ -1293,6 +1328,13 @@ export const polygonCryptoSnapshotsTool = createTool({
     });
 
   logToolExecution('polygon-crypto-snapshots', { input: context });
+
+    await writer?.write({
+      type: 'progress',
+      data: {
+        message: `Fetching crypto snapshots`
+      }
+    });
 
   const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks

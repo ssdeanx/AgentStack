@@ -6,7 +6,7 @@
 |----------|--------|-------------------|
 | Bootstrap | ✅ | `index.ts`: agents/tools/workflows/MCP/pg-storage/observability. |
 | Agents | 17 files | a2aCoordinatorAgent.ts, researchAgent.ts, stockAnalysisAgent.ts, copywriterAgent.ts, editorAgent.ts, reportAgent.ts, scriptWriterAgent.ts, contentStrategistAgent.ts, learningExtractionAgent.ts, evaluationAgent.ts, weather-agent.ts, excalidraw_validator.ts, csv_to_excalidraw.ts, image_to_csv.ts (+ dane.ts/sql.ts/package-publisher.ts). |
-| Tools | 30+ | Financial: polygon-tools.ts(10+), finnhub-tools.ts(6+), alpha-vantage.tool.ts; Research: serpapi-*.tool.ts(5+), arxiv.tool.ts; Data: csv-to-json.tool.ts, json-to-csv.tool.ts, data-validator.tool.ts, document-chunking.tool.ts, pdf-data-conversion.tool.ts; Web: browser-tool.ts, web-scraper-tool.ts; Other: jwt-auth.tool.ts, execa-tool.ts, github.ts, fs.ts. |
+| Tools | 30+ | Financial: polygon-tools.ts(10+), finnhub-tools.ts(6+), alpha-vantage.tool.ts; Research: serpapi-*.tool.ts(5+), arxiv.tool.ts; Data: csv-to-json.tool.ts, json-to-csv.tool.ts, data-validator.tool.ts, document-chunking.tool.ts, pdf-data-conversion.tool.ts; Web: browser-tool.ts, web-scraper-tool.ts; Other: jwt-auth.tool.ts, execa-tool.ts, github.ts, fs.ts. **All tools now implement streaming `writer` interface.** |
 | Workflows | 5 | weather-workflow.ts, content-studio-workflow.ts, changelog.ts, new-contributor.ts, telephone-game.ts. |
 | MCP | ✅ | `mcp/index.ts`: a2aCoordinatorMcpServer; tools: coordinate_a2a_task etc. |
 | Scorers | ✅ | weather-scorer.ts, custom-scorers.ts. |

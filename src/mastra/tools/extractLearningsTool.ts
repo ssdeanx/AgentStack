@@ -17,7 +17,8 @@ export const extractLearningsTool = createTool({
             })
             .describe('The search result to process'),
     }),
-    execute: async ({ context, mastra, tracingContext }) => {
+    execute: async ({ context, mastra, writer, tracingContext }) => {
+        await writer?.write({ type: 'progress', data: { message: '🧠 Extracting learnings from search result' } });
         const extractSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'extract_learnings',
@@ -49,6 +50,7 @@ export const extractLearningsTool = createTool({
                 title: result.title,
                 url: result.url,
             })
+            await writer?.write({ type: 'progress', data: { message: '🤖 Generating insights with learning agent' } });
             const response = await learningExtractionAgent.generate([
                 {
                     role: 'user',
@@ -109,6 +111,7 @@ export const extractLearningsTool = createTool({
                     },
                     metadata: { invalidResponse: true },
                 })
+                await writer?.write({ type: 'progress', data: { message: '⚠️ Invalid response format from agent' } });
                 return {
                     learning:
                         'Invalid response format from learning extraction agent',
@@ -123,6 +126,7 @@ export const extractLearningsTool = createTool({
                         parsed.data.followUpQuestions.length,
                 },
             })
+            await writer?.write({ type: 'progress', data: { message: '✅ Learnings extracted successfully' } });
             return parsed.data
         } catch (error) {
             log.error('Error extracting learnings', {

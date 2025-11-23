@@ -46,7 +46,7 @@ export const googleScholarTool = createTool({
         'Search Google Scholar for academic papers and citations. Filter by year range, include/exclude patents, and sort by relevance or date. Returns paper title, authors, publication, year, citation count, and PDF links when available. Useful for research and finding academic sources.',
     inputSchema: googleScholarInputSchema,
     outputSchema: googleScholarOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, tracingContext, writer }) => {
         validateSerpApiKey()
         const scholarSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -54,6 +54,12 @@ export const googleScholarTool = createTool({
             input: { query: context.query, yearRange: `${context.yearStart}-${context.yearEnd}` },
         })
         log.info('Executing Google Scholar search', { query: context.query })
+        await writer?.write({
+            type: 'progress',
+            data: {
+                message: `Searching Google Scholar for: ${context.query}`
+            }
+        });
         try {
             const params: Record<string, string | number> = {
                 engine: 'google_scholar',
@@ -138,7 +144,7 @@ export const googleFinanceTool = createTool({
         'Get stock quotes and financial data from Google Finance. Returns current price, change, market cap, volume, high/low, and recent financial news. Use for real-time stock information and market data.',
     inputSchema: googleFinanceInputSchema,
     outputSchema: googleFinanceOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, tracingContext, writer }) => {
         validateSerpApiKey()
         const financeSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -146,6 +152,12 @@ export const googleFinanceTool = createTool({
             input: { query: context.query },
         })
         log.info('Executing Google Finance search', { query: context.query })
+        await writer?.write({
+            type: 'progress',
+            data: {
+                message: `Searching Google Finance for: ${context.query}`
+            }
+        });
         try {
             const params: Record<string, string> = {
                 engine: 'google_finance',
@@ -222,7 +234,7 @@ export const yelpSearchTool = createTool({
         'Search Yelp for local businesses and reviews. Requires location parameter. Filter by price range, open now status, and sort by recommended, rating, or review count. Returns business name, rating, reviews, address, phone, hours, and photos. Best for finding local services and restaurants.',
     inputSchema: yelpSearchInputSchema,
     outputSchema: yelpSearchOutputSchema,
-    execute: async ({ context, tracingContext }) => {
+    execute: async ({ context, tracingContext, writer }) => {
         validateSerpApiKey()
         const yelpSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -230,6 +242,12 @@ export const yelpSearchTool = createTool({
             input: { query: context.query, location: context.location },
         })
         log.info('Executing Yelp search', { query: context.query, location: context.location })
+        await writer?.write({
+            type: 'progress',
+            data: {
+                message: `Searching Yelp for: ${context.query} in ${context.location}`
+            }
+        });
         try {
             const params: Record<string, string | number | boolean> = {
                 engine: 'yelp',

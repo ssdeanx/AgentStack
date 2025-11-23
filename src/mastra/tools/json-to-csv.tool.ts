@@ -26,7 +26,8 @@ export const jsonToCsvTool = createTool({
     csv: z.string().describe("Generated CSV string"),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext }) => {
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    await writer?.write({ type: 'progress', data: { message: `📊 Converting ${context.data.length} JSON records to CSV` } });
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: "json-to-csv",
