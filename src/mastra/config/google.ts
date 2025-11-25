@@ -1,7 +1,39 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { logError } from './logger'
 import { GoogleAICacheManager } from '@google/generative-ai/server';
+import { GoogleVoice } from "@mastra/voice-google";
+import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import { experimental_generateImage as generateImage } from 'ai';
 
+// Initialize with custom configuration
+export const gvoice = new GoogleVoice({
+  speechModel: {
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
+  },
+  listeningModel: {
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
+  },
+  speaker: "en-US-Casual-K",
+});
+
+// Text-to-Speech
+const audioStream = await gvoice.speak("Hello, world!", {
+  languageCode: "en-US",
+  audioConfig: {
+    audioEncoding: "LINEAR16",
+  },
+});
+
+// Speech-to-Text
+export const transcript = await gvoice.listen(audioStream, {
+  config: {
+    encoding: "LINEAR16",
+    languageCode: "en-US",
+  },
+});
+
+// Get available voices for a specific language
+export const voices = await gvoice.getSpeakers({ languageCode: "en-US" });
 
 export const cacheManager = new GoogleAICacheManager(
   process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '',
@@ -23,11 +55,11 @@ export const google = createGoogleGenerativeAI({
 export const googleAI = google('gemini-2.5-flash-preview-09-2025')
 // Gemini 2.5 Pro model for higher-performance applications
 /*
- * googleAIPro: Gemini 2.5 Pro model for higher-performance applications
+ * googleAIPro: Gemini 3 Pro model for higher-performance applications
     * When to use: This model is designed for applications that require enhanced reasoning capabilities, more complex text generation, and advanced vision tasks. It is ideal for scenarios where quality and depth of response are critical.
     * Why use: Opt for this model when your application demands superior performance and can benefit from the advanced features it offers, despite the higher associated costs.
  */
-export const googleAIPro = google('gemini-2.5-pro')
+export const googleAIPro = google('gemini-3-pro-preview')
 // Gemini 2.5 Flash Lite model for free-tier applications
 /*
  * googleAIFlashLite: Gemini 2.5 Flash Lite model for free-tier applications
@@ -58,6 +90,7 @@ export const googleAI3 = google('gemini-3-pro-preview')
     * Why use: Opt for this model when you need to produce images affordably, especially for applications like social media content, basic visualizations, or scenarios where image quality can be compromised for cost savings.
  */
 export const googleAINanoBanana = google('gemini-2.5-flash-image')
+export const googleNanoBanana = google('gemini-3-pro-image-preview')
 
 const model = 'gemini-2.5-flash-preview-09-2025';
 
@@ -74,8 +107,14 @@ const { name: cachedContent } = await cacheManager.create({
   systemInstruction: 'This is model has cache',
   displayName: 'cacheContent',
   expireTime: '1h'
-
-
 });
+
+export const imageGen = google.image('imagen-4.0-generate-001');
+
+export const imageUltra = google.image('imagen-4.0-ultra-generate-001');
+
+export const imageFast = google.image('imagen-4.0-fast-generate-001');
+
+
 
 export { cachedContent }

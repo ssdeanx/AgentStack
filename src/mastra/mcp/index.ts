@@ -1,5 +1,5 @@
 import { MCPServer } from '@mastra/mcp'
-import { a2aCoordinatorAgent } from '../agents/a2aCoordinatorAgent'
+import { a2aCoordinatorAgent } from '../a2a/a2aCoordinatorAgent'
 import type {
   MCPServerResourceContent,
   MCPServerResources,

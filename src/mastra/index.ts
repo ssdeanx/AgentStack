@@ -12,7 +12,7 @@ import {
   SensitiveDataFilter,
 } from "@mastra/core/ai-tracing";
 import { ArizeExporter } from "@mastra/arize";
-import { a2aCoordinatorAgent } from './agents/a2aCoordinatorAgent'
+import { a2aCoordinatorAgent } from './a2a/a2aCoordinatorAgent'
 import { a2aCoordinatorMcpServer } from './mcp'
 import { csvToExcalidrawAgent } from './agents/csv_to_excalidraw'
 import { imageToCsvAgent } from './agents/image_to_csv'
@@ -24,7 +24,17 @@ import { evaluationAgent } from './agents/evaluationAgent';
 import { researchAgent } from './agents/researchAgent';
 import { editorAgent } from './agents/editorAgent';
 import { copywriterAgent } from './agents/copywriterAgent';
-import { agentNetwork } from './networks';
+import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
+
+// CSV/Data Pipeline Agents
+import { dataExportAgent } from './agents/dataExportAgent';
+import { dataIngestionAgent } from './agents/dataIngestionAgent';
+import { dataTransformationAgent } from './agents/dataTransformationAgent';
+
+// Research & Document Processing Agents
+import { researchPaperAgent } from './agents/researchPaperAgent';
+import { documentProcessingAgent } from './agents/documentProcessingAgent';
+import { knowledgeIndexingAgent } from './agents/knowledgeIndexingAgent';
 
 import { contentStrategistAgent } from './agents/contentStrategistAgent';
 import { scriptWriterAgent } from './agents/scriptWriterAgent';
@@ -46,7 +56,18 @@ export const mastra = new Mastra({
     researchAgent,
     agentNetwork,
     contentStrategistAgent,
-    scriptWriterAgent
+    scriptWriterAgent,
+    // CSV/Data Pipeline Agents & Networks
+    dataExportAgent,
+    dataIngestionAgent,
+    dataTransformationAgent,
+    dataPipelineNetwork,
+    reportGenerationNetwork,
+    // Research & Document Processing Agents & Networks
+    researchPaperAgent,
+    documentProcessingAgent,
+    knowledgeIndexingAgent,
+    researchPipelineNetwork,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer },
@@ -81,7 +102,7 @@ export const mastra = new Mastra({
     apiRoutes: [
       chatRoute({
         path: "/chat",
-        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent",
+        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent",
         defaultOptions: {},
         sendStart: true,
         sendFinish: true,
@@ -94,7 +115,7 @@ export const mastra = new Mastra({
       }),
       networkRoute({
         path: "/network",
-        agent: "agentNetwork",
+        agent: "agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork",
         defaultOptions: {},
       }),
     ]

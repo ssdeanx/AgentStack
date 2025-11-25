@@ -5,9 +5,9 @@ import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals
 import { googleAIFlashLite } from '../config/google'
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { researchAgent } from './researchAgent'
-import { copywriterAgent } from './copywriterAgent'
-import { editorAgent } from './editorAgent'
+import { researchAgent } from '../agents/researchAgent'
+import { copywriterAgent } from '../agents/copywriterAgent'
+import { editorAgent } from '../agents/editorAgent'
 
 // Import all agents
 

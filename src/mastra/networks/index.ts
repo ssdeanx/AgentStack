@@ -10,6 +10,13 @@ import { reportAgent } from '../agents/reportAgent';
 import { pgMemory } from '../config';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 
+// CSV/Data Pipeline Networks
+export { dataPipelineNetwork } from './dataPipelineNetwork';
+export { reportGenerationNetwork } from './reportGenerationNetwork';
+
+// Research Pipeline Network
+export { researchPipelineNetwork } from './researchPipelineNetwork';
+
 export const agentNetwork = new Agent({
   id: 'agent-network',
   name: 'Primary Agent Network',

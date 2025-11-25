@@ -12,7 +12,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI3, googleAIFlashLite, google } from '../config/google'
+import { googleAI3, googleAIFlashLite, google, gvoice, googleAI } from '../config/google'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -27,8 +27,9 @@ import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubQuotesTool, finnhubTechnicalTool } from '../tools/finnhub-tools'
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { CompositeVoice } from '@mastra/core/voice'
 import { PGVECTOR_PROMPT } from "@mastra/pg";
+import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 
 export interface ResearchAgentContext {
     userId?: string
@@ -163,11 +164,12 @@ export const researchAgent = new Agent({
         `,
             providerOptions: {
                 google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'high',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
+                  structuredOutput: true,
+                  thinkingConfig: {
+                      thinkingLevel: 'high',
+                      includeThoughts: true,
+                      thinkingBudget: -1,
+                  }
                 }
             }
         }
@@ -204,9 +206,12 @@ export const researchAgent = new Agent({
         finnhubCompanyTool,
         finnhubFinancialsTool,
         finnhubTechnicalTool,
-        google_search: google.tools.googleSearch({}),
-        code_execution: google.tools.codeExecution({}),
-        url_context: google.tools.urlContext({})
+        google_search: google.tools.googleSearch({
+          mode: "MODE_DYNAMIC",
+          dynamicThreshold: 0.7,
+        }),
+        code_execution: google.tools.codeExecution({
+        }),
     },
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -233,10 +238,29 @@ export const researchAgent = new Agent({
     },
   },
   maxRetries: 5,
-  voice: new CompositeVoice({
-//    input: {
-//      listeningModel: 'googleAIFlashLite',
-//      speechModel: 'googleAIFlashLite'
-    })
+  voice: gvoice,
+  inputProcessors: [
+    new UnicodeNormalizer({
+      stripControlChars: true,
+      collapseWhitespace: true,
+    }),
+  ],
+  outputProcessors: [
+    new BatchPartsProcessor({
+      batchSize: 5,
+      maxWaitTime: 100,
+      emitOnNonText: true,
+    }),
+  ],
 })
 
+// access the grounding metadata. Casting to the provider metadata type
+// is optional but provides autocomplete and type safety.
+type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
+
+const providerMetadata: ProviderMetadataMap | undefined =
+    ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
+    ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
+
+const metadata = providerMetadata?.google;  // Access .google here
+const groundingMetadata = metadata?.groundingMetadata;
