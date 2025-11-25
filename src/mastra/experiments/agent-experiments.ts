@@ -177,7 +177,7 @@ export async function runImageToCsvExperiment() {
         target: imageToCsvAgent,
         data: [
             {
-                input: 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv', 
+                input: 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
             }
         ],
         scorers: [csvValidityScorer, structureScorer]
@@ -228,7 +228,7 @@ export async function runAllExperiments() {
     await runReportAgentExperiment()
     await runLearningExtractionExperiment()
     await runEvaluationAgentExperiment()
-    // await runImageToCsvExperiment() 
+    //await runImageToCsvExperiment()
     await runCsvToExcalidrawExperiment()
     await runWeatherAgentExperiment()
 }

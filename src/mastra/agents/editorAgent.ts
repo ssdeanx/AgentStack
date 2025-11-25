@@ -21,7 +21,9 @@ export const editorAgent = new Agent({
         'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
     instructions: ({ runtimeContext }) => {
         const userId = runtimeContext.get('userId')
-        return `
+        return {
+            role: 'system',
+            content: `
 <role>
 User: ${userId ?? 'anonymous'}
 You are an expert content editor, tasked with refining and improving written content across multiple domains and formats.
@@ -100,7 +102,17 @@ You must respond with a JSON object in the following format:
 }
 </output_format>
 
-  `
+  `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAI,
     memory: pgMemory,

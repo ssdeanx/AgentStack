@@ -8,8 +8,11 @@ export const csvToExcalidrawAgent = new Agent({
   id: "csvToExcalidrawAgent",
   name: "CSV to Excalidraw Converter",
   description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
-  instructions: () => {
-    return `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
+  instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
 
 Your response MUST be a JSON object with two fields:
 1. "filename": A string ending in .excalidraw
@@ -153,8 +156,18 @@ Structure:
 - Always return valid JSON filename and contents
 - Cedar action required for "save", "add to canvas", "persist" keywords
 </decision_logic>
-`
-  },
+`,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
   model: googleAI,
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.ALL } },

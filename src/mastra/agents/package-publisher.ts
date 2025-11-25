@@ -137,7 +137,11 @@ export const PUBLISH_PACKAGES_PROMPT = `
 export const danePackagePublisher = new Agent({
   id: 'dane-package-publisher',
   name: 'DanePackagePublisher',
-  instructions: `
+  instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
       I am Dane, a specialized agent for managing pnpm package publications in monorepos. My core responsibilities are:
   
       1. Package Analysis:
@@ -159,6 +163,17 @@ export const danePackagePublisher = new Agent({
       - Follow semantic versioning principles
       - Validate package.json configurations before publishing
       `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
   model: googleAIFlashLite,
   memory: pgMemory,
   tools: {

@@ -12,7 +12,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI3, googleAIFlashLite } from '../config/google'
+import { googleAI3, googleAIFlashLite, google } from '../config/google'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -47,7 +47,9 @@ export const researchAgent = new Agent({
         const userId = runtimeContext.get('userId')
         const tier = runtimeContext.get('tier')
         const researchDepth = runtimeContext.get('researchDepth')
-        return `
+        return {
+            role: 'system',
+            content: `
         <role>
         User: ${userId ?? 'admin'}
         Tier: ${tier ?? 'enterprise'}
@@ -158,7 +160,17 @@ export const researchAgent = new Agent({
         }
         </output_format>
         ${PGVECTOR_PROMPT}
-        `
+        `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'high',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAI3,
     tools: {
@@ -191,7 +203,10 @@ export const researchAgent = new Agent({
         finnhubQuotesTool,
         finnhubCompanyTool,
         finnhubFinancialsTool,
-        finnhubTechnicalTool
+        finnhubTechnicalTool,
+        google_search: google.tools.googleSearch({}),
+        code_execution: google.tools.codeExecution({}),
+        url_context: google.tools.urlContext({})
     },
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },

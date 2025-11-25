@@ -1,6 +1,11 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { modelRegistry, ModelProvider, ModelCapability } from './model-registry'
 import { logError } from './logger'
+import { GoogleAICacheManager } from '@google/generative-ai/server';
+
+
+export const cacheManager = new GoogleAICacheManager(
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '',
+);
 
 export const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -54,96 +59,23 @@ export const googleAI3 = google('gemini-3-pro-preview')
  */
 export const googleAINanoBanana = google('gemini-2.5-flash-image')
 
-// Register provider and models (non-blocking)
-try {
-    modelRegistry.registerProvider({
-        provider: ModelProvider.GOOGLE,
-        apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
-    })
+const model = 'gemini-2.5-flash-preview-09-2025';
 
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-2.5-flash-preview-09-2025',
-            name: 'Gemini 2.5 Flash',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.TEXT, ModelCapability.REASONING, ModelCapability.VISION],
-            contextWindow: 1048576, // 1MB
-            costTier: 'low',
-            maxTokens: 65536,
-            supportsStreaming: true,
-        },
-        googleAI
-    )
+const { name: cachedContent } = await cacheManager.create({
+  model,
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: 'Research Topics, Insights Gained, New Information' }],
+    },
+  ],
+  ttlSeconds: 60 * 5,
+  tools: [],
+  systemInstruction: 'This is model has cache',
+  displayName: 'cacheContent',
+  expireTime: '1h'
 
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-2.5-pro',
-            name: 'Gemini 2.5 Pro',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.TEXT, ModelCapability.REASONING, ModelCapability.VISION],
-            contextWindow: 1048576, // 1MB
-            costTier: 'medium',
-            maxTokens: 65536,
-            supportsStreaming: true,
-        },
-        googleAIPro
-    )
 
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-2.5-flash-lite-preview-09-2025',
-            name: 'Gemini 2.5 Flash Lite',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.TEXT, ModelCapability.REASONING, ModelCapability.VISION],
-            contextWindow: 1048576, // 1MB
-            costTier: 'free',
-            maxTokens: 64000,
-            supportsStreaming: true,
-        },
-        googleAIFlashLite
-    )
+});
 
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-embedding-001',
-            name: 'Gemini Embedding 001',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.EMBEDDING],
-            contextWindow: 2048,
-            costTier: 'free',
-            maxTokens: 2048,
-            supportsStreaming: true,
-        },
-        googleAIEmbedding
-    )
-
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-2.5-computer-use-preview-10-2025',
-            name: 'Gemini 2.5 Computer Use',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.TEXT, ModelCapability.REASONING, ModelCapability.VISION],
-            contextWindow: 1048576, // 1MB
-            costTier: 'high',
-            maxTokens: 65536,
-            supportsStreaming: true,
-        },
-        googleAIComputerUse
-    )
-
-    modelRegistry.registerModel(
-        {
-            id: 'gemini-2.5-flash-image',
-            name: 'Gemini 2.5 Flash Image',
-            provider: ModelProvider.GOOGLE,
-            capabilities: [ModelCapability.IMAGE_GENERATION, ModelCapability.VISION, ModelCapability.TEXT],
-            contextWindow: 32000, // 32k tokens
-            costTier: 'low',
-            maxTokens: 8192,
-            supportsStreaming: true,
-        },
-        googleAINanoBanana
-    )
-} catch (err) {
-    logError('google.config.register', err)
-}
+export { cachedContent }

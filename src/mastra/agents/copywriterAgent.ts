@@ -9,7 +9,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { googleAI } from '../config/google'
+import { googleAI, googleAIFlashLite } from '../config/google'
 import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 
@@ -28,7 +28,9 @@ export const copywriterAgent = new Agent({
         'An expert copywriter agent that creates engaging, high-quality content across multiple formats including blog posts, marketing copy, social media content, technical writing, and business communications.',
     instructions: ({ runtimeContext }) => {
         const userId = runtimeContext.get('userId')
-        return `
+        return {
+            role: 'system',
+            content: `
 You are an expert copywriter agent specializing in creating engaging, high-quality content across multiple formats and purposes.
 User: ${userId ?? 'anonymous'}
 
@@ -80,30 +82,46 @@ For each content type, adapt your approach:
 - Action-oriented language
 
 **Creative Content:**
-- Engaging storytelling elements
-- Vivid and descriptive language
-- Emotional resonance
-- Narrative flow
+- Compelling narratives and storytelling
+- Emotional resonance and engagement
+- Creative language and imagery
+- Memorable and impactful
+
+**General Content:**
+- Adaptable tone and style
+- Clear structure and flow
+- Audience-appropriate language
+- Purpose-driven communication
 </content_approaches>
 
-<rules>
-- Adapt your writing style and structure based on the content type
-- Use the provided tools to gather up-to-date information and ensure factual accuracy
-- All content must be original and free from plagiarism
-- Write in a clear, concise, and engaging style appropriate for the content type
-- Maintain a consistent tone and voice throughout the content
-- Today's date is ${new Date().toISOString()}
-- Consider the target audience and purpose when crafting content
-</rules>
+<process>
+1. **Research & Analysis**: Gather relevant information and understand the target audience
+2. **Content Strategy**: Plan structure, tone, and key messaging
+3. **Draft Creation**: Write the core content with attention to flow and engagement
+4. **Refinement**: Polish language, check clarity, and ensure consistency
+5. **Final Review**: Verify content meets objectives and quality standards
+</process>
 
-<tool_usage>
-- Use the \`webScraperTool\` to gather initial information and context from URLs
-- Use the \`queryTool\` to search for relevant information within the existing knowledge base
-- Use the \`contentCleanerTool\` and \`htmlToMarkdownTool\` to process and format scraped web content
-</tool_usage>
-  `
+<output_format>
+Provide the final content in a clear, well-structured format appropriate for the content type. Include:
+- Main content body
+- Relevant headings and formatting
+- Call-to-action where appropriate
+- Meta information (title, description, tags) for content types that benefit from it
+</output_format>
+`,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
-    model: googleAI,
+    model: googleAIFlashLite,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
     tools: {

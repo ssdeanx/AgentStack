@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { google } from '@ai-sdk/google';
+import { google, googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { InternalSpans } from '@mastra/core/ai-tracing';
@@ -9,7 +9,11 @@ export const contentStrategistAgent = new Agent({
   id: 'content-strategist',
   name: 'Content Strategist',
   description: 'Elite content strategist specializing in high-impact, data-driven content planning.',
-  instructions: `You are an Elite Content Strategist with a decade of experience in viral content engineering.
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId');
+    return {
+      role: 'system',
+      content: `You are an Elite Content Strategist with a decade of experience in viral content engineering.
   
   <core_philosophy>
   Content is not just information; it is a vehicle for psychological impact and value transfer.
@@ -42,7 +46,18 @@ export const contentStrategistAgent = new Agent({
   5. **Differentiation**: A clear statement of why this content is better/different than the top search result.
   </output_requirements>
   `,
-  model: google('gemini-2.5-flash-preview-09-2025'),
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
+        }
+      }
+    }
+  },
+  model: googleAI,
   memory: pgMemory,
   tools: {
     webScraperTool,

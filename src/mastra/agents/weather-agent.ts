@@ -11,7 +11,11 @@ export const weatherAgent = new Agent({
   name: 'Weather Agent',
   id: 'weather-agent',
   description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
-  instructions: `
+  instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
       You are a helpful weather assistant that provides accurate weather information and can help planning activities based on the weather.
 
       Your primary function is to help users get weather details for specific locations. When responding:
@@ -25,6 +29,17 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'low',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
   model: googleAIFlashLite,
   tools: { weatherTool, webScraperTool, mdocumentChunker },
   scorers: {

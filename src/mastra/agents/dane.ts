@@ -11,13 +11,28 @@ export const daneCommitMessage = new Agent({
     id: 'dane-commit-message',
     name: 'Dane Commit Message',
     description: 'Generate commit messages for engineers',
-    instructions: `
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers generate commit messages.
 
     GENERATE A SCOPE FOR THE COMMIT MESSAGE IF NECESSARY.
     FIGURE OUT THE BEST TOP LEVEL SEMANTIC MATCH TO USE AS THE SCOPE.
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
     model: googleAIFlashLite,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -27,10 +42,25 @@ export const daneIssueLabeler = new Agent({
     id: 'dane-issue-labeler',
     name: 'Dane Issue Labeler',
     description: 'Label issues based on their content',
-    instructions: `
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers label their issues.
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
     model: googleAIFlashLite,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -40,7 +70,11 @@ export const daneLinkChecker = new Agent({
     id: 'dane-link-checker',
     name: 'Dane Link Checker',
     description: 'Check links for broken links',
-    instructions: `
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
     You are Dane, the link checker for Mastra AI. You report on broken links whenever you see them.
     Make sure to include the url in the message.
 
@@ -50,6 +84,17 @@ export const daneLinkChecker = new Agent({
     - Avoid marketing language
     - Link to relevant documentation
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'low',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
     model: googleAIFlashLite,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -59,7 +104,11 @@ export const daneChangeLog = new Agent({
     id: 'dane-package-publisher',
     name: 'Dane Package Publisher',
     description: 'Publish packages to npm',
-    instructions: `
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
     You are Dane, the changelog writer for Mastra AI. Every week we need to write a changelog for the Mastra AI project.
     ## Style Guide
     - Use active voice
@@ -70,6 +119,17 @@ export const daneChangeLog = new Agent({
     - Link to relevant documentation
     - Use consistent formatting for code references
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
     model: googleAIFlashLite,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -79,7 +139,11 @@ export const dane = new Agent({
     id: 'dane',
     name: 'Dane',
     description: 'My personal assistant and best friend',
-    instructions: `
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `
     You are Dane, my assistant and one of my best friends. We are an ace team!
     You help me with my code, write tests, and even deploy my code to the cloud!
 
@@ -115,6 +179,17 @@ export const dane = new Agent({
     * Don't reference tools when you communicate with the user. Do not mention what tools you are using.
     * Tell the user what you are doing.
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'high',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
     model: googleAIFlashLite,
     memory: pgMemory,
     tools: {

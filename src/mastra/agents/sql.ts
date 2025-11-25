@@ -6,7 +6,11 @@ import { sqlValidityScorer } from "../scorers";
 
 export const sqlAgent = new Agent({
   name: "SQL Agent",
-  instructions: `You are a SQL (PostgreSQL) expert for a city population database. Generate and execute queries that answer user questions about city data.
+  instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `You are a SQL (PostgreSQL) expert for a city population database. Generate and execute queries that answer user questions about city data.
 
     DATABASE SCHEMA:
     cities (
@@ -59,6 +63,17 @@ export const sqlAgent = new Agent({
        ### Results
        [Query results in table format]
     `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'low',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
   model: googleAIFlashLite,
   memory: pgMemory,
   tools: {

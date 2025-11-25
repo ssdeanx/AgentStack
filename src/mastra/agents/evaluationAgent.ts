@@ -20,7 +20,9 @@ export const evaluationAgent = new Agent({
         'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
     instructions: ({ runtimeContext }) => {
         const userId = runtimeContext.get('userId')
-        return `
+        return {
+            role: 'system',
+            content: `
 <role>
 User: ${userId ?? 'anonymous'}
 You are an expert evaluation agent. Your task is to evaluate whether a given search result is relevant to a specific research query.
@@ -117,7 +119,17 @@ CRITICAL: You must always respond with a valid JSON object in the following form
   "reason": "The article directly discusses the core concepts of the query and provides detailed examples." // string
 }
 </output_format>
-  `
+  `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAIFlashLite,
     memory: pgMemory,

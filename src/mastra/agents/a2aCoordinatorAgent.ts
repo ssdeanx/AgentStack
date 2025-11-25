@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { google } from '@ai-sdk/google'
+import { google, googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
 import { googleAIFlashLite } from '../config/google'
@@ -26,7 +26,11 @@ export const a2aCoordinatorAgent = new Agent({
     id: 'a2aCoordinator',
     name: 'a2aCoordinator',
     description: 'A2A Coordinator that orchestrates multiple specialized agents in parallel. Routes tasks dynamically, coordinates workflows, and synthesizes results using the A2A protocol.',
-    instructions: `You are an A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent workflows.
+    instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `You are an A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent workflows.
 
 CORE CAPABILITIES:
 - Orchestrate multiple agents working in parallel
@@ -58,7 +62,18 @@ CRITICAL: Always prefer parallel orchestration over sequential execution for eff
 Only use sequential when tasks have strict dependencies on previous results.
 Use Promise.all() pattern for parallel execution.
 `,
-    model: google('gemini-2.5-flash-preview-09-2025'),
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'high',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
+    model: googleAI,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.ALL } },
     agents: { researchAgent, editorAgent, copywriterAgent },

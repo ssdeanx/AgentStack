@@ -1,14 +1,19 @@
 import { Agent } from '@mastra/core/agent';
-import { google } from '@ai-sdk/google';
+import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { scriptFormatScorer, pacingScorer, creativityScorer } from '../scorers';
-
+import { google } from '@ai-sdk/google';
+import { googleTools } from '@ai-sdk/google/internal';
 export const scriptWriterAgent = new Agent({
   id: 'script-writer',
   name: 'Script Writer',
   description: 'Master scriptwriter focused on retention, pacing, and psychological engagement.',
-  instructions: `You are a Master Scriptwriter. You do not write "text"; you write "experiences".
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId');
+    return {
+      role: 'system',
+      content: `You are a Master Scriptwriter. You do not write "text"; you write "experiences".
   
   <core_philosophy>
   Retention is King. If they click off, we failed.
@@ -39,6 +44,17 @@ export const scriptWriterAgent = new Agent({
   - Indicate tone shifts (e.g., (Whispering), (Excitedly)).
   </formatting_rules>
   `,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
+        }
+      }
+    }
+  },
   model: google('gemini-2.5-flash-preview-09-2025'),
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.ALL } },
@@ -56,4 +72,7 @@ export const scriptWriterAgent = new Agent({
       sampling: { type: 'ratio', rate: 0.8 },
     },
   },
+  tools: {google_search: google.tools.googleSearch({}),
+          code_execution: google.tools.codeExecution({}),
+          url_context: google.tools.urlContext({})}
 });

@@ -22,7 +22,9 @@ export const reportAgent = new Agent({
         'An expert researcher agent that generates comprehensive reports based on research data.',
     instructions: ({ runtimeContext }) => {
         const userId = runtimeContext.get('userId')
-        return `
+        return {
+            role: 'system',
+            content: `
         <role>
         User: ${userId ?? 'anonymous'}
         You are an expert report generator. Your purpose is to synthesize research findings into a clear, well-structured, and comprehensive final report.
@@ -86,7 +88,17 @@ export const reportAgent = new Agent({
             - [Source 3] (URL)
             - [Source 3] (URL)
             </output_format>
-            `
+            `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAI,
     memory: pgMemory,

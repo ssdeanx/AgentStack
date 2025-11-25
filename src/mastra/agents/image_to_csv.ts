@@ -7,7 +7,11 @@ export const imageToCsvAgent = new Agent({
    id: "imageToCsvAgent",
    name: "Image to CSV Converter",
    description: `You are an expert at converting images of diagrams into structured CSV data. Your task is to analyze the visual elements in the provided image and represent them in a CSV format that captures all relevant properties and relationships.`,
-   instructions: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
+   instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
 
 When you receive an image, carefully analyze its contents and create a CSV representation that captures:
 
@@ -103,6 +107,17 @@ Output Format:
 IMPORTANT: Only return the CSV string including the header row. Do not include any other content.
 
 `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
    model: googleAI,
    memory: pgMemory,
    options: { tracingPolicy: { internal: InternalSpans.ALL } },

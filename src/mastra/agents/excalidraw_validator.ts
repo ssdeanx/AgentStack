@@ -6,7 +6,11 @@ export const excalidrawValidatorAgent = new Agent({
   id: "excalidrawValidatorAgent",
   name: "Excalidraw Validator",
   description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
-  instructions: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
+  instructions: ({ runtimeContext }) => {
+        const userId = runtimeContext.get('userId');
+        return {
+            role: 'system',
+            content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
 
 Your response MUST be valid JSON in the excalidraw JSON format.
 
@@ -75,6 +79,17 @@ The format must follow this exact schema:
 
 You can update the JSON to be valid and ensure it matches the expected excalidraw schema.
 `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'low',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
+    },
   model: googleAI,
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.ALL } },

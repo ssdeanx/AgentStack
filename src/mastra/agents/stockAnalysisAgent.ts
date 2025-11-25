@@ -48,7 +48,9 @@ export const stockAnalysisAgent = new Agent({
             : typeof portfolioRaw === 'string'
             ? [portfolioRaw]
             : []
-        return `
+        return {
+            role: 'system',
+            content: `
         <role>
         User: ${userId ?? 'admin'}
         Tier: ${tier ?? 'enterprise'}
@@ -216,7 +218,17 @@ export const stockAnalysisAgent = new Agent({
           ]
         }
         </output_format>
-        `
+        `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'high',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAIFlashLite,
     tools: {

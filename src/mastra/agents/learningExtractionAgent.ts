@@ -20,7 +20,9 @@ export const learningExtractionAgent = new Agent({
         'An expert at analyzing search results and extracting key insights to deepen research understanding.',
     instructions: ({ runtimeContext }) => {
         const userId = runtimeContext.get('userId')
-        return `
+        return {
+            role: 'system',
+            content: `
         <role>
         User: ${userId ?? 'anonymous'}
         You are an expert at analyzing search results to extract key insights and generate follow-up questions for deeper research.
@@ -45,7 +47,17 @@ export const learningExtractionAgent = new Agent({
             "followUpQuestion": "What are the specific metrics to measure the impact of X on Y?"
         }
         </output_format>
-        `
+        `,
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingLevel: 'medium',
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    }
+                }
+            }
+        }
     },
     model: googleAI,
     memory: pgMemory,
