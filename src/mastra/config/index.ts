@@ -1,7 +1,6 @@
 /**
  * Barrel exports for mastra config
  */
-export * from './model-registry'
 export * from './logger'
 export * from './pg-storage'
 export * from './role-hierarchy'

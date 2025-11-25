@@ -103,37 +103,38 @@ export const pgMemory = new Memory({
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
             version: 'vnext', // Enable the improved/experimental tool
-            template: `# User Profile & Context
-            ## Personal Information
-            - **Name**: [To be learned]
-            - **Role/Title**: [To be learned]
-            - **Organization**: [To be learned]
-            - **Location**: [To be learned]
-            - **Time Zone**: [To be learned]
+            template: `
+# User Profile & Context
+## Personal Information
+    - Name:
+    - Role/Title:
+    - Organization:
+    - Location:
+    - Time Zone:
 
-            ## Communication Preferences
-            - **Preferred Communication Style**: [To be learned]
-            - **Response Length Preference**: [To be learned]
-            - **Technical Level**: [To be learned]
+## Communication Preferences
+    - Preferred Communication Style:
+    - Response Length Preference:
+    - Technical Level:
 
-            ## Current Context
-            - **Active Projects**: [To be learned]
-            - **Current Goals**: [To be learned]
-            - **Recent Activities**: [To be learned]
-            - **Pain Points**: [To be learned]
+## Current Context
+    - Active Projects:
+    - Current Goals:
+    - Recent Activities:
+    - Pain Points:
 
-            ## Long-term Memory
-            - **Key Achievements**: [To be learned]
-            - **Important Relationships**: [To be learned]
-            - **Recurring Patterns**: [To be learned]
-            - **Preferences & Habits**: [To be learned]
+## Long-term Memory
+    - Key Achievements:
+    - Important Relationships:
+    - Recurring Patterns:
+    - Preferences & Habits:
 
-            ## Session Notes
-            - **Today's Focus**: [To be learned]
-            - **Outstanding Questions**: [To be learned]
-            - **Action Items**: [To be learned]
-            - **Follow-ups Needed**: [To be learned]
-            `,
+## Session Notes
+    - Today's Focus:
+    - Outstanding Questions:
+    - Action Items:
+    - Follow-ups Needed:
+    `,
         },
         // Thread management with supported options
         threads: {
@@ -144,7 +145,7 @@ export const pgMemory = new Memory({
 })
 
 log.info('PG Store and Memory initialized with PgVector support', {
-    schema: process.env.DB_SCHEMA ?? 'public',
+    schema: process.env.DB_SCHEMA ?? 'mastra',
     maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
@@ -155,6 +156,11 @@ log.info('PG Store and Memory initialized with PgVector support', {
                 after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
             },
             scope: 'resource',
+            indexConfig: {
+                type: 'flat',
+                metric: 'cosine',
+                ivf: { lists: 4000 }, // Adjust list count based on your needs
+            }
         },
         workingMemory: {
             enabled: true,
@@ -401,42 +407,3 @@ export function formatStorageMessages(
     // Return as UIMessage array (would need proper conversion in real implementation)
     return [messageData as UIMessage]
 }
-
-// Basic index for common queries
-await pgStore.createIndex({
-  name: "idx_threads_resource",
-  table: "mastra_threads",
-  columns: ["resourceId"],
-  concurrent: true,
-  method: "btree",
-  opclass: "btree_text_ops",
-  unique: true,
-  where: 'condition',
-  storage: { fillfactor: 90 }
-});
-
-// Composite index with sort order for filtering + sorting
-await pgStore.createIndex({
-  name: "idx_messages_composite",
-  table: "mastra_messages",
-  columns: ["thread_id", "createdAt DESC"],
-  concurrent: true,
-  method: "brin",
-  opclass: "brin_minmax_ops",
-  unique: true,
-  where: 'condition',
-  storage: { fillfactor: 90 }
-});
-
-// GIN index for JSONB columns (fast JSON queries)
-await pgStore.createIndex({
-  name: "idx_traces_attributes",
-  table: "mastra_traces",
-  columns: ["attributes"],
-  method: "gin",
-  concurrent: true,
-  opclass: "jsonb_path_ops",
-  unique: true,
-  where: 'condition',
-  storage: { fillfactor: 90 }
-});

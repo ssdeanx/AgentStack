@@ -12,7 +12,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI3, googleAIFlashLite, google, gvoice, googleAI } from '../config/google'
+import { googleAI3, googleAIFlashLite, google, googleAI } from '../config/google'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -238,7 +238,7 @@ export const researchAgent = new Agent({
     },
   },
   maxRetries: 5,
-  voice: gvoice,
+  //voice: gvoice,
   inputProcessors: [
     new UnicodeNormalizer({
       stripControlChars: true,

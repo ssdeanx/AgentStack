@@ -1,43 +1,43 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { logError } from './logger'
-import { GoogleAICacheManager } from '@google/generative-ai/server';
-import { GoogleVoice } from "@mastra/voice-google";
+//import { GoogleAICacheManager } from '@google/generative-ai/server';
+//import { GoogleVoice } from "@mastra/voice-google";
 import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 
 // Initialize with custom configuration
-export const gvoice = new GoogleVoice({
-  speechModel: {
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
-  },
-  listeningModel: {
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
-  },
-  speaker: "en-US-Casual-K",
-});
+//export const gvoice = new GoogleVoice({
+//  speechModel: {
+//    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
+//  },
+//  listeningModel: {
+//    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
+//  },
+//  speaker: "en-US-Casual-K",
+//});
 
 // Text-to-Speech
-const audioStream = await gvoice.speak("Hello, world!", {
-  languageCode: "en-US",
-  audioConfig: {
-    audioEncoding: "LINEAR16",
-  },
-});
+//const audioStream = await gvoice.speak("Hello, world!", {
+//  languageCode: "en-US",
+//  audioConfig: {
+//    audioEncoding: "LINEAR16",
+//  },
+//});
 
 // Speech-to-Text
-export const transcript = await gvoice.listen(audioStream, {
-  config: {
-    encoding: "LINEAR16",
-    languageCode: "en-US",
-  },
-});
+//export const transcript = await gvoice.listen(audioStream, {
+//  config: {
+//    encoding: "LINEAR16",
+//    languageCode: "en-US",
+//  },
+//});
 
 // Get available voices for a specific language
-export const voices = await gvoice.getSpeakers({ languageCode: "en-US" });
+//export const voices = await gvoice.getSpeakers({ languageCode: "en-US" });
 
-export const cacheManager = new GoogleAICacheManager(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '',
-);
+//export const cacheManager = new GoogleAICacheManager(
+//  process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '',
+//);
 
 export const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -81,7 +81,7 @@ export const googleAIEmbedding = google.textEmbedding('gemini-embedding-001')
     * Why use: Choose this model when the quality and reliability of the generated content are crucial to your application's success, even if it comes with increased computational costs.
  */
 export const googleAIComputerUse = google('gemini-2.5-computer-use-preview-10-2025')
-export const googleAI3 = google('gemini-3-pro-preview')
+export const googleAI3 = google('gemini-2.5-flash-preview-09-2025')
 
 // Gemini Nano Banana model for low-cost image generation
 /*
@@ -92,29 +92,24 @@ export const googleAI3 = google('gemini-3-pro-preview')
 export const googleAINanoBanana = google('gemini-2.5-flash-image')
 export const googleNanoBanana = google('gemini-3-pro-image-preview')
 
-const model = 'gemini-2.5-flash-preview-09-2025';
+//const model = 'gemini-2.5-flash-preview-09-2025';
 
-const { name: cachedContent } = await cacheManager.create({
-  model,
-  contents: [
-    {
-      role: 'user',
-      parts: [{ text: 'Research Topics, Insights Gained, New Information' }],
-    },
-  ],
-  ttlSeconds: 60 * 5,
-  tools: [],
-  systemInstruction: 'This is model has cache',
-  displayName: 'cacheContent',
-  expireTime: '1h'
-});
+//const { name: cachedContent } = await cacheManager.create({
+//  model,
+//  contents: [
+//    {
+//      role: 'user',
+//      parts: [{ text: 'Research Topics, Insights Gained, New Information' }],
+//    },
+//  ],
+//  ttlSeconds: 60 * 5,
+//  tools: [],
+//  systemInstruction: 'This is model has cache',
+//  displayName: 'cacheContent',
+//});
 
 export const imageGen = google.image('imagen-4.0-generate-001');
 
 export const imageUltra = google.image('imagen-4.0-ultra-generate-001');
 
 export const imageFast = google.image('imagen-4.0-fast-generate-001');
-
-
-
-export { cachedContent }

@@ -71,7 +71,7 @@ export abstract class BaseInputProcessor {
     metadata?: Record<string, unknown>
   ) {
     return tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.LLM_GENERATION,
+      type: AISpanType.PROCESSOR_RUN,
       name: `${this.name}-${operation}`,
       input: { processor: this.name, operation },
       metadata: {
@@ -127,7 +127,7 @@ export abstract class BaseOutputProcessor<TOOLS extends ToolSet = ToolSet> {
     metadata?: Record<string, unknown>
   ) {
     return tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.GENERIC,
+      type: AISpanType.PROCESSOR_RUN,
       name: `${this.name}-${operation}`,
       input: { processor: this.name, operation },
       metadata: {

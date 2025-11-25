@@ -1,3 +1,4 @@
+import { Logger } from './../../node_modules/playwright-core/types/types.d';
 import { Mastra } from '@mastra/core/mastra';
 import { LibSQLStore } from '@mastra/libsql';
 import { weatherWorkflow } from './workflows/weather-workflow';
@@ -40,6 +41,8 @@ import { contentStrategistAgent } from './agents/contentStrategistAgent';
 import { scriptWriterAgent } from './agents/scriptWriterAgent';
 import { contentStudioWorkflow } from './workflows/content-studio-workflow';
 import { chatRoute, workflowRoute, networkRoute } from "@mastra/ai-sdk";
+import { notes } from './mcp/server';
+
 export const mastra = new Mastra({
   workflows: { weatherWorkflow, contentStudioWorkflow },
   agents: {
@@ -70,7 +73,7 @@ export const mastra = new Mastra({
     researchPipelineNetwork,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
-  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer },
+  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes },
   storage: new LibSQLStore({
     url: "file:./mastra.db",
   }),
@@ -78,7 +81,7 @@ export const mastra = new Mastra({
   logger: log,
   telemetry: {
     // Telemetry is deprecated and will be removed in the Nov 4th release
-    enabled: false,
+    enabled: true,
   },
   observability: {
     configs: {
@@ -93,7 +96,14 @@ export const mastra = new Mastra({
             apiKey: process.env.PHOENIX_API_KEY,
             projectName: process.env.PHOENIX_PROJECT_NAME,
           }), new DefaultExporter(
-            { strategy: 'realtime'}
+            {
+              maxBatchSize: 100,
+              maxBufferSize: 500,
+              maxBatchWaitMs: 700,
+              maxRetries: 3,
+              retryDelayMs: 500,
+              strategy: 'batch-with-updates'
+            }
           )],
       },
     },

@@ -99,9 +99,9 @@ export const reportGenerationNetwork = new Agent({
 `,
     model: googleAI3,
     memory: pgMemory,
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+//    options: {
+//        tracingPolicy: { internal: InternalSpans.ALL },
+//   },
     agents: {
         dataIngestionAgent,
         dataTransformationAgent,

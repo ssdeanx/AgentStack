@@ -47,9 +47,8 @@ async function getPdfParseModule(): Promise<PdfParseFunction> {
 
 	try {
 		// NOTE: Avoid importing internal paths like 'pdf-parse/lib/pdf-parse.js' which may not exist
-		// Use eval to move import outside TypeScript compiler scope
-		const pdfMod = await import("pdf-parse");
-		pdfParse = pdfMod;
+		const pdfMod = await import("pdf-parse") as unknown as { default?: PdfParseFunction };
+		pdfParse = (pdfMod.default ?? pdfMod) as unknown as PdfParseFunction;
 		return pdfParse as PdfParseFunction;
 	} catch (error) {
 		const err =

@@ -3,10 +3,23 @@ import chalk from 'chalk'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { z } from 'zod'
-
-// @ts-ignore
-import pdfParse from 'pdf-parse/lib/pdf-parse.js'
 import { log } from '../config/logger'
+
+type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: number }>
+
+// Lazy-loaded pdf-parse to avoid ESM export issues
+let pdfParse: PdfParseFunction | null = null
+
+async function getPdfParse(): Promise<PdfParseFunction> {
+    if (pdfParse) return pdfParse
+    try {
+        const mod = await import('pdf-parse') as unknown as { default?: PdfParseFunction }
+        pdfParse = (mod.default ?? mod) as unknown as PdfParseFunction
+        return pdfParse
+    } catch {
+        throw new Error('pdf-parse module not available')
+    }
+}
 
 export const readPDF = createTool({
     id: 'readPDF',
@@ -35,7 +48,8 @@ export const readPDF = createTool({
             const dataBuffer = readFileSync(pdfPath)
 
             // Parse PDF content
-            const data = await pdfParse(dataBuffer)
+            const parser = await getPdfParse()
+            const data = await parser(dataBuffer)
 
             log.info(chalk.blue('\n'))
             log.info(chalk.blue('PDF Information:'))

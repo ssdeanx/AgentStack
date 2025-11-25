@@ -2,7 +2,6 @@ import { Memory } from '@mastra/memory';
 import { UpstashStore, UpstashVector } from '@mastra/upstash';
 //import { pinecone } from './pinecone';
 import { z } from 'zod';
-import { PinoLogger } from '@mastra/loggers';
 import type { CoreMessage as OriginalCoreMessage } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core';
 import type { UIMessage } from 'ai';
@@ -10,6 +9,7 @@ import type { UIMessage } from 'ai';
 import { google } from '@ai-sdk/google'
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { TracingContext } from '@mastra/core/ai-tracing';
+import { log } from './logger';
 
 /**
  * Redefine CoreMessage to include a metadata property for custom data.
@@ -560,7 +560,7 @@ export async function searchMemoryMessages(
     const result = await upstashMemory.query(queryConfig);
 
     // Filter out "data" role messages from uiMessages to match return type
-    const filteredUiMessages = result.uiMessages.filter(msg => msg.role !== 'data');
+    const filteredUiMessages = result.uiMessages.filter((msg: any) => msg.role !== 'data');
 
     logger.info('Memory message search completed', {
       threadId: params.threadId,
@@ -644,7 +644,7 @@ export async function getMemoryUIThreadMessages(threadId: string, last = 100): P
       selectBy: { last },
     });
     // Filter out "data" role messages to match UIMessage type
-    return uiMessages.filter(msg => msg.role !== 'data') as UIMessage[];
+    return uiMessages.filter(msg => msg) as UIMessage[];
   } catch (error: unknown) {
     logger.error(`getMemoryUIThreadMessages failed: ${(error as Error).message}`);
     throw error;
@@ -703,10 +703,16 @@ export async function enhancedMemorySearchMessages(
       },
     },
   });
-
+  log.info('Semantic search completed', {
+    threadId,
+    vectorSearchString,
+    topK,
+    before,
+    after,
+  })
   return {
     messages: result.messages,
-    uiMessages: result.uiMessages.filter(msg => msg.role !== 'data') as UIMessage[],
+    uiMessages: result.uiMessages.filter(msg => msg) as UIMessage[],
     searchMetadata: { topK, before, after },
   };
 }
@@ -1418,7 +1424,7 @@ export async function extractChunkMetadata(
   metadata: Record<string, unknown>;
 }>> {
   const span = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.LLM_CHUNK,
+    type: AISpanType.MODEL_CHUNK,
     name: 'extract-chunk-metadata',
     input: {
       chunkCount: chunks.length,
