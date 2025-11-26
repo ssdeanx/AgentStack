@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const financialInputSchema = z.object({
@@ -159,6 +159,7 @@ const fetchPriceDataStep = createStep({
           name: `price-fetch-${symbol}`,
           input: { symbol },
           metadata: { service: 'polygon' },
+          tracingPolicy: { internal: InternalSpans.ALL }
         });
 
         try {
@@ -273,6 +274,7 @@ const fetchCompanyMetricsStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'parallel-metrics-fetch',
       input: { symbols: inputData.symbols },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -396,6 +398,7 @@ const fetchNewsSentimentStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'parallel-news-fetch',
       input: { symbols: inputData.symbols },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -540,6 +543,7 @@ const mergeDataStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'data-merge',
       input: { symbolsCount: inputData.metadata.symbols.length },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -621,6 +625,7 @@ const analyzeDataStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'stock-analysis',
       input: { symbols: inputData.metadata.symbols },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -751,6 +756,7 @@ const generateReportStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'report-generation',
       input: { symbolsCount: inputData.metadata.totalSymbols },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {

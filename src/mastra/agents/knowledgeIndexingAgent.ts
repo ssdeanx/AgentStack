@@ -133,9 +133,7 @@ When indexing, include relevant metadata:
         readDataFileTool,
         listDataDirTool,
     },
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Knowledge Indexing Agent initialized')

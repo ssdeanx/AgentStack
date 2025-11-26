@@ -3,10 +3,11 @@ import { pnpmChangesetStatus, pnpmBuild, pnpmChangesetPublish, activeDistTag } f
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
 import { taskCompletionScorer } from '../scorers';
+import { InternalSpans } from '@mastra/core/ai-tracing';
 
 const packages_llm_text = `
   # PACKAGE LOCATION RULES - FOLLOW THESE EXACTLY:
-  
+
   ## 1. Core packages - all must be directly under packages/:
   @mastra/core -> packages/core
   @mastra/deployer -> packages/deployer
@@ -32,7 +33,7 @@ const packages_llm_text = `
   ## 4. Speech packages - STRICT RULES:
   - ALL speech packages must be directly under speech/
   - Format: @mastra/speech-{name} -> speech/{name}
-  
+
   ##VALIDATION:
   1. Never mix examples/ or integrations/ with package paths
   2. Package paths must exactly match these patterns
@@ -182,6 +183,7 @@ export const danePackagePublisher = new Agent({
     pnpmChangesetPublish,
     activeDistTag,
   },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     taskCompletion: {
       scorer: taskCompletionScorer,

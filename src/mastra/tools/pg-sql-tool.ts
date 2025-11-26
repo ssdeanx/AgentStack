@@ -2,6 +2,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { Pool } from "pg";
 import { log } from "../config/logger";
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 
 const pool = new Pool({
   max: 20,
@@ -35,7 +36,14 @@ export const pgExecute = createTool({
       .describe("SQL query to execute against the cities database"),
   }),
   description: `Executes a SQL query against the cities database and returns the results`,
-  execute: async ({ context: { query }, writer }) => {
+  execute: async ({ context: { query }, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'pg-execute',
+      input: { query },
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
     await writer?.write({ type: 'progress', data: { message: 'Executing SQL query' } });
     try {
       const trimmedQuery = query.trim().toLowerCase();
@@ -43,10 +51,14 @@ export const pgExecute = createTool({
         throw new Error("Only SELECT queries are allowed for security reasons");
       }
 
-      return await executeQuery(query);
+      const result = await executeQuery(query);
+      span?.end({ output: { rowCount: result.length } });
+      return result;
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
       throw new Error(
-        `Failed to execute SQL query: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to execute SQL query: ${errorMsg}`
       );
     }
   },

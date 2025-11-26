@@ -98,9 +98,7 @@ export const dataIngestionAgent = new Agent({
         listDataDirTool,
         getDataFileInfoTool,
     },
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Data Ingestion Agent initialized')

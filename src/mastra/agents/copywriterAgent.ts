@@ -123,7 +123,7 @@ Provide the final content in a clear, well-structured format appropriate for the
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     tools: {
         webScraperTool,
         //    batchWebScraperTool,

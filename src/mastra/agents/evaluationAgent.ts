@@ -133,7 +133,7 @@ CRITICAL: You must always respond with a valid JSON object in the following form
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,

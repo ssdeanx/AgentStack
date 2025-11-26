@@ -2,6 +2,7 @@ import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
 import { Agent } from "@mastra/core/agent";
 import * as tools from "../tools/pg-sql-tool";
 import { googleAIFlashLite, pgMemory } from "../config";
+import { InternalSpans } from '@mastra/core/ai-tracing';
 
 export const sqlAgent = new Agent({
   name: "SQL Agent",
@@ -78,6 +79,7 @@ export const sqlAgent = new Agent({
   tools: {
     pgExecute: tools.pgExecute,
   },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     sqlValidity: {
       scorer: sqlValidityScorer,

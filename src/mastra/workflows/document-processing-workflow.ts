@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const sourceSchema = z.object({
@@ -117,6 +117,7 @@ const loadDocumentStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'document-loader',
       input: { sourceType: inputData.source.type },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -253,6 +254,7 @@ const convertPdfToMarkdownStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'pdf-to-markdown-converter',
       input: { contentType: inputData.contentType },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -393,6 +395,7 @@ const chunkDocumentStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'document-chunker',
       input: { strategy: inputData.settings.chunkStrategy, contentLength: inputData.content.length },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -566,6 +569,7 @@ const indexChunksStep = createStep({
       type: AISpanType.TOOL_CALL,
       name: 'vector-indexer',
       input: { totalChunks: inputData.totalChunks, indexName: inputData.settings.indexName },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {

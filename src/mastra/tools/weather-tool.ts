@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { RuntimeContext } from '@mastra/core/runtime-context'
 
 // Define the Zod schema for the runtime context
@@ -62,6 +62,8 @@ export const weatherTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'weather-tool',
             input: { location: context.location, temperatureUnit },
+            tracingPolicy: { internal: InternalSpans.ALL },
+            runtimeContext: runtimeContext as RuntimeContext<WeatherToolContext>,
         })
 
         try {

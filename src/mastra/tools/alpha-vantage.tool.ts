@@ -1,5 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 
 /**
  * Alpha Vantage Tools
@@ -54,7 +55,14 @@ export const alphaVantageCryptoTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'alpha-vantage-crypto',
+      input: { symbol: context.symbol, market: context.market, function: context.function },
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
     await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${context.symbol}/${context.market}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
@@ -145,7 +153,7 @@ export const alphaVantageCryptoTool = createTool({
       };
 
       await writer?.write({ type: 'progress', data: { message: `✅ Crypto data ready for ${context.symbol}` } });
-        return {
+        const result = {
           data,
           metadata: {
             function: getMetadataValue("1. Information") ?? context.function,
@@ -157,10 +165,13 @@ export const alphaVantageCryptoTool = createTool({
             time_zone: getMetadataValue("7. Time Zone") ?? undefined
           }
         };
+        span?.end({ output: result });
+        return result;
 
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
       await writer?.write({ type: 'progress', data: { message: `❌ Crypto fetch error: ${errMsg}` } });
+      span?.error({ error: error instanceof Error ? error : new Error(errMsg), endSpan: true });
       return {
         data: null,
         error: errMsg
@@ -224,7 +235,14 @@ export const alphaVantageStockTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'alpha-vantage-stock',
+      input: { symbol: context.symbol, function: context.function },
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
     await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${context.symbol || 'symbol'}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
@@ -309,7 +327,7 @@ export const alphaVantageStockTool = createTool({
 
       const metadataObj = metadata as unknown;
 
-      return {
+      const result = {
         data,
         metadata: {
           function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? context.function,
@@ -323,8 +341,11 @@ export const alphaVantageStockTool = createTool({
           series_type: context.series_type
         }
       };
+      span?.end({ output: result });
+      return result;
 
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       return {
         data: null,
         error: error instanceof Error ? error.message : "Unknown error occurred"
@@ -409,7 +430,14 @@ export const alphaVantageTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'alpha-vantage',
+      input: { function: context.function, symbol: context.symbol },
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
     await writer?.write({ type: 'progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
@@ -498,7 +526,7 @@ export const alphaVantageTool = createTool({
 
       await writer?.write({ type: 'progress', data: { message: `✅ General data ready for ${context.function}` } });
 
-      return {
+      const result = {
         data,
         metadata: {
           function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? context.function,
@@ -509,6 +537,8 @@ export const alphaVantageTool = createTool({
           time_zone: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "6. Time Zone" in metadataObj ? String((metadataObj as Record<string, unknown>)["6. Time Zone"]) : undefined
         }
       };
+      span?.end({ output: result });
+      return result;
 
     } catch (error) {
       return {

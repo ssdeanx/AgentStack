@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: number }>
 
@@ -30,7 +31,14 @@ export const readPDF = createTool({
     outputSchema: z.object({
         content: z.string(),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'read-pdf',
+            input: { pdfPath: context.pdfPath },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         const { pdfPath } = context
         await writer?.write({ type: 'progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
         try {
@@ -56,13 +64,16 @@ export const readPDF = createTool({
             log.info(chalk.blue('-----------------'))
             log.info(chalk.blue(`Number of pages: ${data.numpages}`))
 
+            span?.end({ output: { pageCount: data.numpages, textLength: data.text.length } });
             return { content: data.text }
         } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
             log.error(
-                `Error reading PDF: ${e instanceof Error ? e.message : String(e)}`
+                `Error reading PDF: ${errorMsg}`
             )
+            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
             return {
-                content: `Error scanning PDF: ${e instanceof Error ? e.message : String(e)}`,
+                content: `Error scanning PDF: ${errorMsg}`,
             }
         }
     },

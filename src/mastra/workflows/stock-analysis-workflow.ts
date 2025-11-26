@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const stockDataSchema = z.object({
@@ -81,6 +81,7 @@ const fetchStockDataStep = createStep({
       name: 'polygon-snapshot-fetch',
       input: { symbol: inputData.symbol },
       metadata: { service: 'polygon', endpoint: '/v2/snapshot' },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -170,6 +171,7 @@ const getCompanyNewsStep = createStep({
       name: 'finnhub-news-fetch',
       input: { symbol: inputData.symbol },
       metadata: { service: 'finnhub', endpoint: '/company-news' },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -273,6 +275,7 @@ const runAnalysisStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'stock-analysis-agent-call',
       input: { symbol: inputData.stockData.symbol },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -389,9 +392,10 @@ const generateReportStep = createStep({
     });
 
     const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
+      type: AISpanType.WORKFLOW_RUN,
       name: 'report-agent-call',
       input: { symbol: inputData.symbol },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {

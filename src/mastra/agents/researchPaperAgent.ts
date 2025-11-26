@@ -111,7 +111,7 @@ Physics:
         arxivPaperDownloaderTool,
     },
     options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
+        tracingPolicy: { internal: InternalSpans.AGENT },
     },
 })
 

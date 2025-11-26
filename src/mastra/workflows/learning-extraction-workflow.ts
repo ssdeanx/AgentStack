@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const learningInputSchema = z.object({
@@ -124,6 +124,7 @@ const extractLearningsStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'learning-extraction',
       input: { contentType: inputData.contentType, contentLength: inputData.content.length },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -151,7 +152,7 @@ const extractLearningsStep = createStep({
         };
 
         const prompt = `Analyze this ${inputData.contentType} and extract learnings.
-        
+
 ${depthInstructions[inputData.extractionDepth]}
 
 Content:
@@ -275,9 +276,10 @@ const humanApprovalStep = createStep({
     });
 
     const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
+      type: AISpanType.WORKFLOW_RUN,
       name: 'human-approval-check',
       input: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -350,12 +352,12 @@ const humanApprovalStep = createStep({
         approvedLearnings = [];
         rejectedCount = inputData.learnings.length;
       } else if (resumeData.approvedLearnings && resumeData.approvedLearnings.length > 0) {
-        approvedLearnings = inputData.learnings.filter(l => 
+        approvedLearnings = inputData.learnings.filter(l =>
           resumeData.approvedLearnings!.includes(l.id)
         );
         rejectedCount = inputData.learnings.length - approvedLearnings.length;
       } else if (resumeData.rejectedLearnings && resumeData.rejectedLearnings.length > 0) {
-        approvedLearnings = inputData.learnings.filter(l => 
+        approvedLearnings = inputData.learnings.filter(l =>
           !resumeData.rejectedLearnings!.includes(l.id)
         );
         rejectedCount = resumeData.rejectedLearnings.length;
@@ -385,7 +387,7 @@ const humanApprovalStep = createStep({
       };
 
       span?.end({
-        output: { 
+        output: {
           approved: resumeData.approved,
           approvedCount: approvedLearnings.length,
           rejectedCount,
@@ -437,6 +439,7 @@ const validateLearningsStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'learning-validation',
       input: { learningsCount: inputData.learnings.length },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -519,7 +522,7 @@ const validateLearningsStep = createStep({
       };
 
       span?.end({
-        output: { 
+        output: {
           totalValidated: result.validationSummary.totalValidated,
           highQuality,
           needsReview,
@@ -570,6 +573,7 @@ const generateLearningReportStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'learning-report-generation',
       input: { learningsCount: inputData.learnings.length },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -612,14 +616,13 @@ Create a comprehensive report with summary, categorized learnings, action items,
         summary = response.object.summary;
       } else {
         summary = `Extracted and validated ${inputData.learnings.length} learnings: ${criticalLearnings.length} critical, ${actionableItems.length} actionable.`;
-        
         report = `# Learning Extraction Report
 
 ## Summary
 ${summary}
 
 ## Critical Learnings
-${criticalLearnings.length > 0 
+${criticalLearnings.length > 0
   ? criticalLearnings.map(l => `### ${l.title}\n${l.description}\n- Quality Score: ${l.qualityScore}%`).join('\n\n')
   : 'No critical learnings identified.'}
 

@@ -214,7 +214,7 @@ export const researchAgent = new Agent({
         }),
     },
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),

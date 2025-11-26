@@ -170,7 +170,7 @@ Structure:
     },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   tools: {},
   scorers: {
     structure: {

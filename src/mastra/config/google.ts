@@ -1,4 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { logError } from './logger'
 //import { GoogleAICacheManager } from '@google/generative-ai/server';
 //import { GoogleVoice } from "@mastra/voice-google";
@@ -113,3 +114,22 @@ export const imageGen = google.image('imagen-4.0-generate-001');
 export const imageUltra = google.image('imagen-4.0-ultra-generate-001');
 
 export const imageFast = google.image('imagen-4.0-fast-generate-001');
+
+/*
+ * googleWithMemory: Google Generative AI model integrated with Supermemory for enhanced conversational capabilities
+      * When to use: This configuration is ideal for applications that require context-aware interactions, such as chatbots, virtual assistants, and customer support systems. It leverages Supermemory to provide relevant historical context in conversations.
+      * Why use: Utilize this setup when you want to enhance user interactions by incorporating past conversations and relevant information, leading to more personalized and accurate responses.
+      * Example use cases:
+         * A customer support chatbot that remembers previous interactions with users to provide tailored assistance.
+         * A virtual assistant that maintains context across multiple user requests for more coherent interactions.
+         * An educational tutor bot that recalls past lessons and user progress to adapt its teaching approach.
+         * A travel planning assistant that considers past queries about destinations and preferences to suggest personalized itineraries.
+         * A medical consultation tool that takes into account patient history and previous consultations to offer more informed advice.
+      * Configuration details: This setup uses the 'mastra' container tag for memory search, includes a conversation ID for grouping messages, and operates in 'full' mode to maximize context retrieval. It is configured to always add relevant memories to the prompts.
+*/
+export const googleWithMemory = withSupermemory(googleAI,"mastra", {
+   conversationId: "mastra-conversation",
+   verbose: true,
+   mode: "full",
+   addMemory: "always"
+});

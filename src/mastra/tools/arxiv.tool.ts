@@ -1,5 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
+import { ar } from "zod/v4/locales";
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -168,7 +170,13 @@ export const arxivTool = createTool({
     max_results: z.number(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'arxiv-search',
+      input: { query: context.query, id: context.id, category: context.category }
+    });
+
     await writer?.write({ type: 'progress', data: { message: `📚 Searching arXiv for "${context.query || context.id || 'papers'}"` } });
     toolCallCounters.set('arxiv', (toolCallCounters.get('arxiv') ?? 0) + 1);
     try {
@@ -245,14 +253,17 @@ export const arxivTool = createTool({
       const startIndexMatch = startIndexRegex.exec(xmlText);
       const startIndex = startIndexMatch ? parseInt(startIndexMatch[1], 10) : (context.start ?? 0);
 
-      return {
+      const result = {
         papers,
         total_results: totalResults,
         start_index: startIndex,
         max_results: context.max_results ?? 10
       };
+      span?.end({ output: { total_results: totalResults, count: papers.length } });
+      return result;
 
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       return {
         papers: [],
         total_results: 0,
@@ -297,7 +308,13 @@ export const arxivPdfParserTool = createTool({
     }),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'arxiv-pdf-parser',
+      input: { arxivId: context.arxivId }
+    });
+
     await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv PDF parser for ' + context.arxivId } });
     toolCallCounters.set('arxiv-pdf-parser', (toolCallCounters.get('arxiv-pdf-parser') ?? 0) + 1);
     const startTime = Date.now();
@@ -386,7 +403,7 @@ export const arxivPdfParserTool = createTool({
       await writer?.write({ type: 'progress', data: { message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages' } });
       const processingTime = Date.now() - startTime;
 
-      return {
+      const result = {
         success: true,
         arxivId: context.arxivId,
         markdown,
@@ -402,10 +419,13 @@ export const arxivPdfParserTool = createTool({
           processingTimeMs: processingTime
         }
       };
+      span?.end({ output: { success: true, pageCount: pdfContent.numpages } });
+      return result;
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      span?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true });
 
       return {
         success: false,
@@ -460,7 +480,15 @@ export const arxivPaperDownloaderTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer }) => {
+  execute: async ({ context, writer, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'arxiv-paper-downloader',
+      input: { arxivId: context.arxivId },
+      metadata: {arxivId: context.arxivId},
+      tracingPolicy: { internal: InternalSpans.ALL },
+    });
+
     await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv paper downloader for ' + context.arxivId } });
     toolCallCounters.set('arxiv-paper-downloader', (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1);
     try {
@@ -538,9 +566,11 @@ export const arxivPaperDownloaderTool = createTool({
         result.pdfContent = pdfContent;
       }
 
+      span?.end({ output: { success: true } });
       return result;
 
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       return {
         success: false,
         arxivId: context.arxivId,

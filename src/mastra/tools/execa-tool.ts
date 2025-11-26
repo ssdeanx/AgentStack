@@ -4,6 +4,7 @@ import { execa, ExecaError } from 'execa'
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 
 // Create transform stream that applies chalk
 const colorTransform = new Transform({
@@ -26,7 +27,14 @@ export const execaTool = createTool({
         message: z.string(),
     }),
 
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'execa-tool',
+            input: { command: context.command, args: context.args },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         const { command, args } = context
         await writer?.write({ type: 'progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
         try {
@@ -39,9 +47,12 @@ export const execaTool = createTool({
             })
             const output = result.all ?? ''
             await writer?.write({ type: 'progress', data: { message: '✅ Command executed successfully' } });
+            span?.end({ output: { success: true, outputLength: output.length } });
             return { message: chalk.green(output) }
         } catch (e) {
-            log.error(e instanceof Error ? e.message : String(e))
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            log.error(errorMsg)
+            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
             if (e instanceof ExecaError) {
                 return { message: e.all ?? e.message ?? 'Command failed' }
             }

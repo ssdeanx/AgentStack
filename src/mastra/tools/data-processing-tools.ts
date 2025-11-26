@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { z } from 'zod'
 import { createTool } from '@mastra/core/tools'
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 // Import data processing libraries
 // svgjson does not ship with TypeScript types. Rather than attempting to
@@ -226,7 +226,14 @@ export const csvToExcalidrawTool = createTool({
             elementSpacing: z.number(),
         }),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'csv-to-excalidraw',
+            input: { layoutType: context.layoutType, hasHeaders: context.hasHeaders },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });
         const { csvData, layoutType = 'table', title, hasHeaders = true, delimiter = ',' } = context
 
@@ -433,7 +440,8 @@ export const csvToExcalidrawTool = createTool({
         const filename = `csv-diagram-${Date.now()}.excalidraw`
 
         await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
-        return {
+        
+        const result = {
             filename,
             contents: excalidrawData,
             elementCount: elements.length,
@@ -442,7 +450,9 @@ export const csvToExcalidrawTool = createTool({
                 totalHeight,
                 elementSpacing: spacing,
             },
-        }
+        };
+        span?.end({ output: { elementCount: elements.length, filename } });
+        return result;
     },
 })
 
@@ -473,7 +483,14 @@ export const imageToCSVTool = createTool({
         elementCount: z.number(),
         columns: z.array(z.string()),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'image-to-csv',
+            input: { elementCount: context.elements.length },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: '🖼️ Converting image analysis to CSV' } });
         const { elements, filename } = context
 
@@ -499,12 +516,15 @@ export const imageToCSVTool = createTool({
         const outputFilename = filename ?? `image-analysis-${Date.now()}.csv`
 
         await writer?.write({ type: 'progress', data: { message: `✅ Converted ${elements.length} elements to CSV` } });
-        return {
+        
+        const result = {
             csvContent,
             filename: outputFilename,
             elementCount: elements.length,
             columns,
-        }
+        };
+        span?.end({ output: { elementCount: elements.length, filename: outputFilename } });
+        return result;
     },
 })
 
@@ -525,7 +545,14 @@ export const validateExcalidrawTool = createTool({
         warnings: z.array(z.string()),
         elementCount: z.number(),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'validate-excalidraw',
+            input: { autoFix: context.autoFix },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: '🔍 Validating Excalidraw data' } });
         const { excalidrawData, autoFix = true } = context
         const errors: string[] = []
@@ -616,17 +643,21 @@ export const validateExcalidrawTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${errors.length === 0}` } });
-            return {
+            const result = {
                 isValid: errors.length === 0,
                 fixedData: errors.length === 0 ? undefined : fixedData,
                 errors,
                 warnings,
                 elementCount: Array.isArray(fixedData?.elements) ? fixedData.elements.length : 0,
-            }
+            };
+            span?.end({ output: { isValid: result.isValid, errorCount: errors.length } });
+            return result;
         } catch (error) {
+            const errorMsg = String(error);
+            span?.end({ metadata: { error: errorMsg, isValid: false } });
             return {
                 isValid: false,
-                errors: [`Validation failed: ${String(error)}`],
+                errors: [`Validation failed: ${errorMsg}`],
                 warnings,
                 elementCount: 0,
             }
@@ -658,7 +689,14 @@ export const processSVGTool = createTool({
         }),
         elementCount: z.number(),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'process-svg',
+            input: { extractPaths: context.extractPaths, extractText: context.extractText },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: '🖼️ Processing SVG content' } });
         const { svgContent, extractPaths = true, extractText = true, extractStyles = true } = context
 
@@ -736,8 +774,10 @@ export const processSVGTool = createTool({
             result.elementCount = svgJson.children ? svgJson.children.length : 0
 
             await writer?.write({ type: 'progress', data: { message: `✅ Processed SVG with ${result.elementCount} elements` } });
+            span?.end({ output: { elementCount: result.elementCount } });
             return result
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
             throw new Error(`SVG processing failed: ${String(error)}`)
         }
     },
@@ -765,7 +805,14 @@ export const processXMLTool = createTool({
         extractedData: z.any(),
         rootElement: z.string(),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'process-xml',
+            input: { extractElements: context.extractElements, extractAttributes: context.extractAttributes },
+            tracingPolicy: { internal: InternalSpans.TOOL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: '📄 Processing XML content' } });
         const { xmlContent, extractElements = [], extractAttributes = [] } = context
 
@@ -841,13 +888,17 @@ export const processXMLTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: `✅ Processed XML with ${elements.length} elements` } });
-            return {
+            
+            const result = {
                 document: xmlDoc,
                 elements,
                 extractedData,
                 rootElement: xmlDoc.documentElement?.tagName ?? 'unknown',
-            }
+            };
+            span?.end({ output: { elementCount: elements.length, rootElement: result.rootElement } });
+            return result;
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
             throw new Error(`XML processing failed: ${String(error)}`)
         }
     },
@@ -874,7 +925,14 @@ export const convertDataFormatTool = createTool({
             conversionType: z.string(),
         }),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'convert-data-format',
+            input: { inputFormat: context.inputFormat, outputFormat: context.outputFormat },
+            tracingPolicy: { internal: InternalSpans.ALL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${context.inputFormat} to ${context.outputFormat}` } });
         const { inputData, inputFormat, outputFormat, options = {} } = context
 
@@ -971,12 +1029,16 @@ export const convertDataFormatTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: '✅ Data conversion successful' } });
-            return {
+            
+            const result = {
                 convertedData,
                 format: outputFormat,
                 metadata,
-            }
+            };
+            span?.end({ output: { success: true, format: outputFormat } });
+            return result;
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
             throw new Error(`Data conversion failed: ${String(error)}`)
         }
     },
@@ -999,7 +1061,14 @@ export const validateDataTool = createTool({
         warnings: z.array(z.string()),
         validatedData: z.any().optional(),
     }),
-    execute: async ({ context, writer }) => {
+    execute: async ({ context, writer, tracingContext }) => {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'validate-data',
+            input: { schemaType: context.schemaType, strict: context.strict },
+            tracingPolicy: { internal: InternalSpans.TOOL }
+        });
+
         await writer?.write({ type: 'progress', data: { message: `✅ Validating ${context.schemaType} data` } });
         const { data, schemaType, strict = true } = context
         const errors: string[] = []
@@ -1105,16 +1174,21 @@ export const validateDataTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${isValid}` } });
-            return {
+            
+            const result = {
                 isValid,
                 errors,
                 warnings,
                 validatedData,
-            }
+            };
+            span?.end({ output: { isValid, errorCount: errors.length } });
+            return result;
         } catch (error) {
+            const errorMsg = String(error);
+            span?.end({ metadata: { error: errorMsg, isValid: false } });
             return {
                 isValid: false,
-                errors: [`Validation failed: ${String(error)}`],
+                errors: [`Validation failed: ${errorMsg}`],
                 warnings,
             }
         }

@@ -35,7 +35,7 @@ export const daneCommitMessage = new Agent({
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneIssueLabeler = new Agent({
@@ -63,7 +63,7 @@ export const daneIssueLabeler = new Agent({
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneLinkChecker = new Agent({
@@ -97,7 +97,7 @@ export const daneLinkChecker = new Agent({
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneChangeLog = new Agent({
@@ -132,7 +132,7 @@ export const daneChangeLog = new Agent({
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const dane = new Agent({
@@ -200,5 +200,5 @@ export const dane = new Agent({
         readPDF,
         listEvents,
     },
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })

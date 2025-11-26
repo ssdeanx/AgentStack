@@ -135,9 +135,7 @@ When using mastraChunker, enable extraction for richer metadata:
         listDataDirTool,
         getDataFileInfoTool,
     },
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Document Processing Agent initialized')

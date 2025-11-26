@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const researchInputSchema = z.object({
@@ -132,6 +132,7 @@ const researchTopicStep = createStep({
       name: `research-${inputData.topic.slice(0, 20)}`,
       input: { topic: inputData.topic },
       metadata: { maxSources: inputData.maxSources },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -205,7 +206,7 @@ const researchTopicStep = createStep({
       });
 
       span?.end({
-        output: { 
+        output: {
           findingsCount: result.keyFindings.length,
           sourcesCount: result.sources.length,
           confidence: result.confidence,
@@ -301,6 +302,7 @@ const synthesizeResearchStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'research-synthesis',
       input: { topicsCount: inputData.topics.length, synthesisType: inputData.synthesisType },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -440,6 +442,7 @@ const generateResearchReportStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'research-report-generation',
       input: { topicsCount: inputData.metadata.topicsCount },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {

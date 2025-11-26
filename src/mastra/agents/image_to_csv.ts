@@ -120,7 +120,7 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
     },
    model: googleAI,
    memory: pgMemory,
-   options: { tracingPolicy: { internal: InternalSpans.ALL } },
+   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
    tools: {},
    scorers: {
       csvValidity: {

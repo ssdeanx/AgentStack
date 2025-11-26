@@ -16,7 +16,7 @@
 
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import * as cheerio from 'cheerio'
 import { Request, CheerioCrawler } from 'crawlee'
 import { marked } from 'marked'
@@ -420,6 +420,7 @@ export const webScraperTool = createTool({
                 saveMarkdown: context.saveMarkdown,
                 extractAttributesCount: context.extractAttributes?.length ?? 0,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         await writer?.write({ type: 'progress', data: { message: '🐛 Initializing crawler...' } });
@@ -590,8 +591,8 @@ export const webScraperTool = createTool({
                             typeof context.markdownFileName === 'string' &&
                             context.markdownFileName.trim() !== ''
                                 ? ValidationUtils.sanitizeFileName(
-                                      context.markdownFileName
-                                  )
+                                    context.markdownFileName
+                                )
                                 : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`
 
                         const dataDir = path.join(process.cwd(), './data')
@@ -650,9 +651,9 @@ export const webScraperTool = createTool({
                 error instanceof ScrapingError
                     ? error
                     : new ScrapingError(
-                          `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`,
-                          'GENERAL_ERROR'
-                      )
+                        `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`,
+                        'GENERAL_ERROR'
+                    )
 
             errorMessage = scrapingError.message
             log.error(scrapingError.message)
@@ -671,8 +672,8 @@ export const webScraperTool = createTool({
                     ? undefined
                     : typeof rawContent === 'string' &&
                         rawContent.trim().length > 0
-                      ? rawContent
-                      : undefined,
+                        ? rawContent
+                        : undefined,
             markdownContent,
             savedFilePath,
             status,
@@ -751,6 +752,7 @@ export const batchWebScraperTool = createTool({
                 maxConcurrent: context.maxConcurrent ?? 3,
                 saveResults: context.saveResults,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         await writer?.write({ type: 'progress', data: { message: '🐛 Initializing batch crawlers...' } });
@@ -1007,6 +1009,7 @@ export const siteMapExtractorTool = createTool({
                 maxPages: context.maxPages ?? 50,
                 includeExternal: context.includeExternal ?? false,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         await writer?.write({ type: 'progress', data: { message: '🔍 Crawling internal links...' } });
@@ -1264,6 +1267,7 @@ export const linkExtractorTool = createTool({
                 includeAnchors: context.includeAnchors ?? true,
                 filterCount: context.filterPatterns?.length ?? 0,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         log.info('Starting enhanced link extraction with JSDOM', {
@@ -1492,6 +1496,7 @@ export const htmlToMarkdownTool = createTool({
                 saveToFile: context.saveToFile,
                 fileName: context.fileName,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         await writer?.write({ type: 'progress', data: { message: '🧹 Sanitizing HTML...' } });
@@ -1620,6 +1625,7 @@ export const listScrapedContentTool = createTool({
                 pattern: context.pattern,
                 includeMetadata: context.includeMetadata ?? true,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         log.info('Listing scraped content with security validation', {
@@ -1810,6 +1816,7 @@ export const contentCleanerTool = createTool({
                 removeStyles: context.removeStyles ?? true,
                 removeComments: context.removeComments ?? true,
             },
+            tracingPolicy: { internal: InternalSpans.ALL }
         })
 
         log.info('Cleaning HTML content with enhanced JSDOM security', {

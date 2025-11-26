@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
 
 const MAX_ITERATIONS = 10;
@@ -89,6 +89,7 @@ const researchTopicStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'research-agent-call',
       input: { topic: inputData.topic },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -196,6 +197,7 @@ const draftContentStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'copywriter-agent-call',
       input: { topic: inputData.topic, contentType: inputData.contentType },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -303,6 +305,7 @@ const initialReviewStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'editor-agent-review',
       input: { wordCount: inputData.draft.wordCount },
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
@@ -432,6 +435,7 @@ const refineContentStep = createStep({
       type: AISpanType.AGENT_RUN,
       name: 'content-refinement',
       input: { iteration: nextIteration, previousScore: inputData.score },
+      tracingPolicy: { internal: InternalSpans.ALL },
       metadata: { iteration: nextIteration },
     });
 

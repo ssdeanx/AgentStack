@@ -5,6 +5,7 @@ import { InternalSpans } from '@mastra/core/ai-tracing';
 import { scriptFormatScorer, pacingScorer, creativityScorer } from '../scorers';
 import { google } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
+
 export const scriptWriterAgent = new Agent({
   id: 'script-writer',
   name: 'Script Writer',
@@ -57,7 +58,7 @@ export const scriptWriterAgent = new Agent({
   },
   model: google('gemini-2.5-flash-preview-09-2025'),
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     scriptFormat: {
       scorer: scriptFormatScorer,

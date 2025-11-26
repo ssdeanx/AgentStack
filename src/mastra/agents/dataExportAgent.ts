@@ -85,9 +85,7 @@ export const dataExportAgent = new Agent({
         backupDataTool,
         listDataDirTool,
     },
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Data Export Agent initialized')

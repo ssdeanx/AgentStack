@@ -1,5 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 
 const forecastSchema = z.object({
   date: z.string(),
@@ -39,7 +40,15 @@ const fetchWeather = createStep({
     city: z.string().describe('The city to get the weather for'),
   }),
   outputSchema: forecastSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'fetch-weather',
+      input: inputData,
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
+    try {
     if (!inputData?.city) {
       throw new Error('City not provided in input data');
     }
@@ -82,7 +91,12 @@ const fetchWeather = createStep({
       location: name,
     };
 
+    span?.end({ output: forecast });
     return forecast;
+    } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      throw error;
+    }
   },
 });
 
@@ -93,7 +107,15 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.AGENT_RUN,
+      name: 'plan-activities',
+      input: inputData,
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
+    try {
     const forecast = inputData;
 
     if (!forecast?.date) {
@@ -161,9 +183,15 @@ const planActivities = createStep({
       activitiesText += chunk;
     }
 
-    return {
+    const result = {
       activities: activitiesText,
     };
+    span?.end({ output: result });
+    return result;
+    } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      throw error;
+    }
   },
 });
 

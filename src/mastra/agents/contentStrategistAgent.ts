@@ -72,5 +72,5 @@ export const contentStrategistAgent = new Agent({
       sampling: { type: 'ratio', rate: 1.0 },
     },
   },
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 });

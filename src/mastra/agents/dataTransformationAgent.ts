@@ -122,9 +122,7 @@ export const dataTransformationAgent = new Agent({
         readDataFileTool,
         writeDataFileTool,
     },
-    options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
-    },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Data Transformation Agent initialized')

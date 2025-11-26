@@ -102,7 +102,7 @@ export const reportAgent = new Agent({
     },
     model: googleAI,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     scorers: {
         researchCompleteness: {
             scorer: researchCompletenessScorer,

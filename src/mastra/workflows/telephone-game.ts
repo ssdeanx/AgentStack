@@ -3,13 +3,17 @@ import { input } from '@inquirer/prompts';
 import { Agent } from '@mastra/core/agent';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { googleAIFlashLite } from '../config';
+import { googleAIFlashLite, pgMemory } from '../config';
 
-const agent = new Agent({
+const telephone = new Agent({
   id: 'telephone-game-agent',
   name: 'Telephone Game Agent',
+  description: 'Agent for playing the telephone game',
   instructions: `Telephone game agent`,
   model: googleAIFlashLite,
+  memory: pgMemory,
+  tools: [],
+  scorers: {},
 });
 
 const stepA1 = createStep({
@@ -73,7 +77,7 @@ const stepC2 = createStep({
     message: z.string(),
   }),
   execute: async ({ inputData }) => {
-    const result = await agent.generate(`
+    const result = await telephone.generate(`
           You are playing a game of telephone.
           Here is the message the previous person sent ${inputData.message}.
           But you want to change the message.

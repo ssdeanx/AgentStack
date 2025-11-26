@@ -116,7 +116,7 @@ You must respond with a JSON object in the following format:
     },
     model: googleAI,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({})},
     scorers: {
         responseQuality: {
