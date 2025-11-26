@@ -2,13 +2,13 @@
 
 ## Current Focus (Nov 2025)
 
-- **[Synced Nov 25, 2025]** `/memory-bank` fully aligned with codebase: 23 agents; 30+ tools (including arxiv, pdf-data-conversion, document-chunking); 5 workflows; 4 networks; config/pg-storage active.
+- **[Synced Nov 26, 2025]** `/memory-bank` fully aligned with codebase: 22+ agents; 30+ tools; 10 workflows; 4 networks; config/pg-storage active.
 - Maintain `/memory-bank` sync for session continuity.
 - Harden Mastra runtime (`src/mastra/index.ts`): A2A/MCP, Vitest coverage toward 97% per README.
 
 ```mermaid
 graph TB
-    subgraph Agents["Agents (23 files)"]
+    subgraph Agents["Agents (22+ files)"]
         A2A[a2aCoordinatorAgent.ts]
         Research[researchAgent.ts]
         ResearchPaper[researchPaperAgent.ts]
@@ -38,12 +38,16 @@ graph TB
         ReportGen[reportGenerationNetwork]
         ResearchPipe[researchPipelineNetwork]
     end
-    subgraph Workflows["Workflows (5 files)"]
+    subgraph Workflows["Workflows (10 files)"]
         Weather[weather-workflow.ts]
         Content[content-studio-workflow.ts]
+        Financial[financial-report-workflow.ts]
+        DocWf[document-processing-workflow.ts]
+        ResearchWf[research-synthesis-workflow.ts]
     end
     Agents --> Tools
     Networks --> Agents
+    Networks --> Workflows
     Tools --> Config
     Workflows --> Agents
 ```

@@ -1,19 +1,20 @@
 # Progress
 
-## What's Done **[Synced Nov 25 from dirs/AGENTS.md]**
+## What's Done **[Synced Nov 26 from dirs/AGENTS.md]**
 
 | Category | Status | Key Files/Details |
 |----------|--------|-------------------|
-| Bootstrap | ✅ | `index.ts`: agents/tools/workflows/MCP/pg-storage/observability. |
-| Agents | 23 files | a2aCoordinatorAgent.ts, researchAgent.ts, stockAnalysisAgent.ts, copywriterAgent.ts, editorAgent.ts, reportAgent.ts, scriptWriterAgent.ts, contentStrategistAgent.ts, learningExtractionAgent.ts, evaluationAgent.ts, weather-agent.ts, excalidraw_validator.ts, csv_to_excalidraw.ts, image_to_csv.ts, dataExportAgent.ts, dataIngestionAgent.ts, dataTransformationAgent.ts, **researchPaperAgent.ts**, **documentProcessingAgent.ts**, **knowledgeIndexingAgent.ts** (+ dane.ts/sql.ts/package-publisher.ts). |
-| Networks | 4 files | agentNetwork, dataPipelineNetwork, reportGenerationNetwork, **researchPipelineNetwork** |
-| Tools | 30+ | Financial: polygon-tools.ts(10+), finnhub-tools.ts(6+), alpha-vantage.tool.ts; Research: serpapi-*.tool.ts(5+), **arxiv.tool.ts** (search, pdf-parser, downloader); Data: csv-to-json.tool.ts, json-to-csv.tool.ts, data-validator.tool.ts; RAG: **document-chunking.tool.ts** (mastraChunker, mdocumentChunker, documentRerankerTool), **pdf-data-conversion.tool.ts** (pdfToMarkdownTool); Web: browser-tool.ts, web-scraper-tool.ts; Other: jwt-auth.tool.ts, execa-tool.ts, github.ts, fs.ts. |
-| Workflows | 5 | weather-workflow.ts, content-studio-workflow.ts, changelog.ts, new-contributor.ts, telephone-game.ts. |
+| Bootstrap | ✅ | `index.ts`: 25+ agents, 10 workflows, 4 networks, MCP/pg-storage/observability. |
+| Agents | 22+ files | a2aCoordinatorAgent.ts, researchAgent.ts, stockAnalysisAgent.ts, copywriterAgent.ts, editorAgent.ts, reportAgent.ts, scriptWriterAgent.ts, contentStrategistAgent.ts, learningExtractionAgent.ts, evaluationAgent.ts, weather-agent.ts, excalidraw_validator.ts, csv_to_excalidraw.ts, image_to_csv.ts, dataExportAgent.ts, dataIngestionAgent.ts, dataTransformationAgent.ts, researchPaperAgent.ts, documentProcessingAgent.ts, knowledgeIndexingAgent.ts, dane.ts, sql.ts |
+| Networks | 4 files | agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork |
+| Workflows | 10 files | weather-workflow.ts, content-studio-workflow.ts, content-review-workflow.ts, document-processing-workflow.ts, financial-report-workflow.ts, learning-extraction-workflow.ts, research-synthesis-workflow.ts, stock-analysis-workflow.ts, changelog.ts, telephone-game.ts |
+| Tools | 30+ | Financial: polygon-tools.ts(10+), finnhub-tools.ts(6+), alpha-vantage.tool.ts; Research: serpapi-*.tool.ts(5+), arxiv.tool.ts; Data: csv-to-json.tool.ts, json-to-csv.tool.ts, data-validator.tool.ts; RAG: document-chunking.tool.ts, pdf-data-conversion.tool.ts; Web: browser-tool.ts, web-scraper-tool.ts; Other: jwt-auth.tool.ts, execa-tool.ts, github.ts, fs.ts. |
 | MCP | ✅ | `mcp/index.ts`: a2aCoordinatorMcpServer; tools: coordinate_a2a_task etc. |
 | Scorers | ✅ | weather-scorer.ts, custom-scorers.ts. |
 | Observability | ✅ | Arize/Phoenix exporters; always-on sampling. |
 | Config | ✅ | pg-storage.ts (PgVector/Postgres); models (google/openai/anthropic/openrouter/vertex/gemini-cli). |
 | Tests | Progress | Vitest data tools verified; target 97%. |
+| AGENTS.md Sync | ✅ | All AGENTS.md files updated Nov 26 with accurate counts, dates, and meta headers. |
 
 ## What’s Next
 
@@ -22,6 +23,15 @@
   - ✅ DocumentProcessingAgent: PDF→markdown, document chunking
   - ✅ KnowledgeIndexingAgent: PgVector indexing, semantic search with reranking
   - ✅ ResearchPipelineNetwork: Coordinates full research workflow
+
+- **Workflows Integration** (✅ Complete Nov 26):
+  - ✅ All 10 workflows registered in index.ts
+  - ✅ Workflows integrated into networks
+  - ✅ API routes updated
+
+- **Documentation Sync** (✅ Complete Nov 26):
+  - ✅ All AGENTS.md files synced with current state
+  - ✅ README.md updated to v3.1.0
 
 - **CSV Agents Feature** (✅ Complete):
   - ✅ DataExportAgent, DataIngestionAgent, DataTransformationAgent

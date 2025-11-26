@@ -9,6 +9,8 @@ import { researchPaperAgent } from '../agents/researchPaperAgent'
 import { documentProcessingAgent } from '../agents/documentProcessingAgent'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
 import { researchAgent } from '../agents/researchAgent'
+import { documentProcessingWorkflow } from '../workflows/document-processing-workflow'
+import { contentReviewWorkflow } from '../workflows/content-review-workflow'
 
 log.info('Initializing Research Pipeline Network...')
 
@@ -137,6 +139,10 @@ Use for: building research knowledge bases, literature reviews, indexing academi
         documentProcessingAgent,
         knowledgeIndexingAgent,
         researchAgent,
+    },
+    workflows: {
+        documentProcessingWorkflow,
+        contentReviewWorkflow,
     },
     options: {
         tracingPolicy: { internal: InternalSpans.ALL },

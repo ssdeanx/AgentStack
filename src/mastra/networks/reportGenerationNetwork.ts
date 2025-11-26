@@ -10,6 +10,9 @@ import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { researchAgent } from '../agents/researchAgent'
 import { reportAgent } from '../agents/reportAgent'
 import { weatherWorkflow } from '../workflows/weather-workflow'
+import { financialReportWorkflow } from '../workflows/financial-report-workflow'
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 
 log.info('Initializing Report Generation Network...')
 
@@ -48,6 +51,21 @@ export const reportGenerationNetwork = new Agent({
 **Use for:** Weather-based reports and activity planning
 **Input:** City name
 **Output:** Weather forecast with activity suggestions
+
+### financialReportWorkflow
+**Use for:** Multi-source financial reports with parallel data fetching
+**Input:** Stock symbols, report type (daily/weekly/quarterly)
+**Output:** Comprehensive financial report with analysis
+
+### researchSynthesisWorkflow
+**Use for:** Multi-topic research synthesis using foreach iteration
+**Input:** List of topics, synthesis type
+**Output:** Synthesized research report across all topics
+
+### learningExtractionWorkflow
+**Use for:** Extract learnings with human-in-the-loop approval
+**Input:** Content to analyze, extraction depth
+**Output:** Validated learnings with report
 
 ## Report Generation Patterns
 
@@ -111,6 +129,9 @@ export const reportGenerationNetwork = new Agent({
     tools: {},
     workflows: {
         weatherWorkflow,
+        financialReportWorkflow,
+        researchSynthesisWorkflow,
+        learningExtractionWorkflow,
     },
 })
 

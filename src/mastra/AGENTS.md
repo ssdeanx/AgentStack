@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Library","version":"1.0.0","applies_to":"/src/mastra","last_updated":"2025-11-14T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Library","version":"2.0.0","applies_to":"/src/mastra","last_updated":"2025-11-26T00:00:00Z","status":"stable"} -->
 
 # Mastra Core (`/src/mastra`)
 
@@ -8,23 +8,28 @@ Name: Core Engineer — Objective: Build and maintain the framework primitives t
 
 ## Purpose
 
-This folder contains the middleware and high-level components that define Mastra's runtime: the top-level entry (`index.ts`), tools, agents, config, and workflows.
+This folder contains the middleware and high-level components that define Mastra's runtime: the top-level entry (`index.ts`), tools, agents, networks, config, and workflows.
 
 ## Key Files
 
 | File | Description |
 | ---- | ----------- |
-| `index.ts` | Library entry point for bootstrapping Mastra apps and exporting utilities |
-| `agents/` | Contains agent definitions such as `weather-agent.ts` |
-| `workflows/` | Defines workflows like `weather-workflow.ts` |
-| `tools/` | Reusable tools for agents (see `src/mastra/tools/AGENTS.md`) |
+| `index.ts` | Library entry point bootstrapping Mastra with 25+ agents, 10 workflows, 4 networks, MCP servers, and observability |
+| `agents/` | 22+ agent definitions (weather, research, stock analysis, content, data processing) |
+| `workflows/` | 10 workflow definitions (weather, content, financial, document, research) |
+| `networks/` | 4 agent networks for routing (agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork) |
+| `tools/` | 30+ reusable tools for agents (see `src/mastra/tools/AGENTS.md`) |
 | `config/` | Runtime configuration for models, storage, and logging (see `src/mastra/config/AGENTS.md`) |
+| `mcp/` | MCP server for A2A coordination |
+| `a2a/` | Agent-to-Agent coordinator |
+| `scorers/` | Evaluation scorers for quality assessment |
 
 ## How to extend
 
 1. Add new tools under `src/mastra/tools` following the `createTool` pattern with Zod schemas.
 2. Add agents under `src/mastra/agents` that wire tools together into higher-level behaviors.
 3. Add workflows under `src/mastra/workflows` to orchestrate multi-step flows.
+4. Add networks under `src/mastra/networks` to coordinate multiple agents.
 
 ## Local development tips
 
@@ -43,4 +48,4 @@ This folder contains the middleware and high-level components that define Mastra
 - Use `RuntimeContext` to enforce access control in tools and workflows.
 
 ---
-Last updated: 2025-11-14
+Last updated: 2025-11-26

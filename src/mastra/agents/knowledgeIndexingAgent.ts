@@ -1,12 +1,11 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-
-import { googleAI3 } from '../config/google'
+import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
-
 import { mdocumentChunker, documentRerankerTool } from '../tools/document-chunking.tool'
 import { readDataFileTool, listDataDirTool } from '../tools/data-file-manager'
+
 
 export interface KnowledgeIndexingContext {
     userId?: string
@@ -126,7 +125,7 @@ When indexing, include relevant metadata:
 - Query failures: Return empty results with error message
 `
     },
-    model: googleAI3,
+    model: googleAIFlashLite,
     memory: pgMemory,
     tools: {
         mdocumentChunker,

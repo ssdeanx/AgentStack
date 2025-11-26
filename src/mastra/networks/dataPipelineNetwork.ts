@@ -9,6 +9,7 @@ import { dataExportAgent } from '../agents/dataExportAgent'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { reportAgent } from '../agents/reportAgent'
+import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow'
 
 log.info('Initializing Data Pipeline Network...')
 
@@ -63,6 +64,14 @@ For complex requests requiring multiple agents:
 2. **Transform then Export:** DataTransformationAgent → DataExportAgent
 3. **Full Pipeline:** DataIngestionAgent → DataTransformationAgent → DataExportAgent
 4. **Analysis Pipeline:** DataIngestionAgent → reportAgent
+5. **Stock Analysis:** Use stockAnalysisWorkflow for financial data processing
+
+## Available Workflows
+
+### stockAnalysisWorkflow
+**Use for:** Sequential stock analysis with data enrichment
+**Input:** Stock symbol, analysis depth (quick/standard/deep)
+**Output:** Comprehensive stock analysis report with recommendation
 
 ## Guidelines
 
@@ -83,7 +92,9 @@ For complex requests requiring multiple agents:
         reportAgent,
     },
     tools: {},
-    workflows: {},
+    workflows: {
+        stockAnalysisWorkflow,
+    },
 })
 
 log.info('Data Pipeline Network initialized')

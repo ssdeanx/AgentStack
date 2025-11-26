@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { chromium } from 'playwright-core';
 import { z } from 'zod';
 import { log } from '../config/logger';
+import { tr } from 'zod/v4/locales';
 
 export const browserTool = createTool({
   id: 'browserTool',
@@ -76,6 +77,8 @@ export const googleSearch = createTool({
     try {
       browser = await chromium.launch({
         headless: true,
+        devtools: true,
+        chromiumSandbox: false
       });
     } catch (e) {
       if (e instanceof Error) {

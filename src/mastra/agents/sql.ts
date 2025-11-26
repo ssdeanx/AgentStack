@@ -1,8 +1,7 @@
+import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
 import { Agent } from "@mastra/core/agent";
-import * as tools from "../tools/population-info";
+import * as tools from "../tools/pg-sql-tool";
 import { googleAIFlashLite, pgMemory } from "../config";
-import { sqlValidityScorer } from "../scorers";
-
 
 export const sqlAgent = new Agent({
   name: "SQL Agent",
@@ -10,7 +9,7 @@ export const sqlAgent = new Agent({
         const userId = runtimeContext.get('userId');
         return {
             role: 'system',
-            content: `You are a SQL (PostgreSQL) expert for a city population database. Generate and execute queries that answer user questions about city data.
+            content: `You are a SQL (PostgreSQL) expert for an Execute PG SQL  database. Generate and execute queries that answer user questions about city data.
 
     DATABASE SCHEMA:
     cities (
@@ -77,7 +76,7 @@ export const sqlAgent = new Agent({
   model: googleAIFlashLite,
   memory: pgMemory,
   tools: {
-    populationInfo: tools.populationInfo,
+    pgExecute: tools.pgExecute,
   },
   scorers: {
     sqlValidity: {

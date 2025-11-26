@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Tools","version":"2.0.0","last_updated":"2025-11-16T01:55:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"]} -->
+<!-- AGENTS-META {"title":"Mastra Tools","version":"2.1.0","last_updated":"2025-11-26T00:00:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"]} -->
 
 # Tools Directory (`/src/mastra/tools`)
 
@@ -9,7 +9,7 @@
 
 ## Purpose
 
-Encapsulate atomic operational capabilities (security checks, vector queries, content fetch, UI state mutation hooks) in auditable, schema-validated units invoked by agents.
+Encapsulate 30+ atomic operational capabilities (security checks, vector queries, content fetch, data processing) in auditable, schema-validated units invoked by agents.
 
 ## Tool Categories
 
@@ -152,7 +152,7 @@ npm test src/mastra/tools/__tests__/your-tool.test.ts
 - Various API SDKs for specific services
 
 ---
-Last updated: 2025-11-16
+Last updated: 2025-11-26
 
 ## Related Documentation
 
@@ -164,6 +164,7 @@ Last updated: 2025-11-16
 
 | Version | Date (UTC) | Changes |
 |---------|------------|---------|
+| 2.1.0   | 2025-11-26 | Updated meta date, 30+ tools documented |
 | 2.0.0   | 2025-11-16 | Complete reorganization of tools documentation. Added detailed sections for Web Scraping, Document Processing, Financial Data APIs, and Research tools. |
 | 1.4.0   | 2025-10-18 | Added alpha-vantage, arxiv, finnhub, polygon, and starter-agent tools |
 | 1.3.0   | 2025-10-18 | Added pdf-data-conversion.tool.ts for PDF processing |

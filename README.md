@@ -1,5 +1,5 @@
 
-<!-- AGENTS-META {"title":"AgentStack README","version":"3.0.0","applies_to":"/","last_updated":"2025-11-25T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"3.1.0","applies_to":"/","last_updated":"2025-11-26T00:00:00Z","status":"stable"} -->
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **50+ enterprise tools**, **25+ specialized agents**, and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, and **secure governance**.
+**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **30+ enterprise tools**, **25+ specialized agents**, **10 workflows**, **4 agent networks**, and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, and **secure governance**.
 
 [![GitHub](https://img.shields.io/badge/GitHub-ssdeanx/AgentStack-blueviolet?logo=github)](https://github.com/ssdeanx/AgentStack)
 [![@mastra/core](https://img.shields.io/npm/v/@mastra/core.svg)](https://www.npmjs.com/package/@mastra/core)
@@ -52,11 +52,13 @@
 
 - **💰 Financial Intelligence**: 20+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
 - **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
-- **🤖 25+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator)
-- **🌐 A2A Orchestration**: MCP server coordinates parallel agents (research+stock→report)
+- **🤖 25+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline)
+- **📋 10 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction
+- **🌐 4 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline
+- **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report)
 - **📊 Full Observability**: Arize/Phoenix traces + 10+ custom scorers (diversity/quality/completeness)
 - **🛡️ Enterprise Security**: JWT auth, RBAC, path validation, HTML sanitization, secrets masking
-- **⚡ Extensible**: Model registry (Gemini/OpenAI/Anthropic), workflows, 50+ tools
+- **⚡ Extensible**: Model registry (Gemini/OpenAI/Anthropic), Zod schemas everywhere
 
 ## 🏗️ **Architecture**
 
@@ -169,13 +171,15 @@ npm run start
 
 ```bash
 src/mastra/
-├── index.ts              # 🎯 Mastra bootstrap (agents/tools/workflows/MCP)
-├── agents/               # 🤖 25+ agents (research/stock/copywriter/report...)
-├── tools/                # 🔧 50+ tools (financial/RAG/scrape/PDF/SerpAPI...)
-├── workflows/            # 📋 Multi-step (research→report, weather→activities)
+├── index.ts              # 🎯 Mastra bootstrap (25+ agents, 10 workflows, 4 networks, MCP)
+├── agents/               # 🤖 22+ agents (research/stock/copywriter/report/data pipeline...)
+├── tools/                # 🔧 30+ tools (financial/RAG/scrape/PDF/SerpAPI...)
+├── workflows/            # 📋 10 workflows (weather, content, financial, document, research)
+├── networks/             # 🌐 4 agent networks (routing/coordination)
 ├── config/               # ⚙️ Models/PgVector/Logging/Auth
 ├── scorers/              # 📊 10+ evals (diversity/quality/completeness...)
-└── mcp/                  # 🌐 A2A Coordinator MCP server
+├── mcp/                  # 🔌 MCP server (A2A coordination)
+└── a2a/                  # 🤝 Agent-to-Agent coordinator
 ```
 
 ## 🛠️ **Development**
@@ -282,8 +286,10 @@ npm run mcp-server
 
 ## 📚 **Resources**
 
-- **[Agents Catalog](src/mastra/agents/AGENTS.md)**: 25+ agents
-- **[Tools Matrix](src/mastra/tools/AGENTS.md)**: 50+ tools
+- **[Agents Catalog](src/mastra/agents/AGENTS.md)**: 22+ agents
+- **[Tools Matrix](src/mastra/tools/AGENTS.md)**: 30+ tools
+- **[Workflows](src/mastra/workflows/AGENTS.md)**: 10 multi-step workflows
+- **[Networks](src/mastra/networks/AGENTS.md)**: 4 agent networks
 - **[Config Guide](src/mastra/config/AGENTS.md)**: Setup + env vars
 - **[MCP/A2A](src/mastra/mcp/AGENTS.md)**: Multi-agent federation
 - **[Scorers](src/mastra/scorers/AGENTS.md)**: 10+ eval metrics
@@ -293,6 +299,8 @@ npm run mcp-server
 - [x] **Financial Suite**: Polygon/Finnhub/AlphaVantage (✅ Live)
 - [x] **RAG Pipeline**: PgVector + rerank/graph (✅ Live)
 - [x] **A2A MCP**: Parallel orchestration (✅ Live)
+- [x] **10 Workflows**: Sequential, parallel, branch, loop, foreach, suspend/resume (✅ Live)
+- [x] **4 Agent Networks**: Routing and coordination (✅ Live)
 - [ ] **LangSmith/Phoenix**: Eval dashboards
 - [ ] **Docker/Helm**: K8s deploy
 - [ ] **OpenAI/Anthropic**: Model parity
@@ -303,4 +311,4 @@ npm run mcp-server
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-*Last updated: 2025-11-25 | v3.0.0*
+*Last updated: 2025-11-26 | v3.1.0*

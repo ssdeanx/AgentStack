@@ -27,7 +27,7 @@ const executeQuery = async (query: string) => {
   }
 };
 
-export const populationInfo = createTool({
+export const pgExecute = createTool({
   id: "Execute SQL Query",
   inputSchema: z.object({
     query: z

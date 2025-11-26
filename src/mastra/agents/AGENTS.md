@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Agents","version":"1.2.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-19T10:57:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Agents","version":"2.0.0","applies_to":"/src/mastra/agents","last_updated":"2025-11-26T00:00:00Z","status":"stable"} -->
 
 # Agents (`/src/mastra/agents`)
 
@@ -8,26 +8,34 @@ Agent Developer — objective: Implement higher-level behaviors by composing too
 
 ## Purpose
 
-This directory contains agent definitions that map use-case intents to sequences of tool invocations, policies, and memory usage.
+This directory contains 22+ agent definitions that map use-case intents to sequences of tool invocations, policies, and memory usage.
 
-## Current Agents
+## Current Agents (22 files)
 
 | File                         | Export                     | Agent ID                   | Purpose                                                          | Dependencies                      |
 | ---------------------------- | -------------------------- | -------------------------- | ---------------------------------------------------------------- | --------------------------------- |
 | `a2aCoordinatorAgent.ts`     | `a2aCoordinatorAgent`      | `a2aCoordinator`           | Orchestrates and routes tasks across multiple specialized agents | Core Mastra, Agent Registry       |
-| `weather-agent.ts`           | `weatherAgent`             | -                          | Fetches weather data and suggests activities                     | `weatherTool`, Web Scraping Tools |
+| `weather-agent.ts`           | `weatherAgent`             | `weatherAgent`             | Fetches weather data and suggests activities                     | `weatherTool`, Web Scraping Tools |
 | `csv_to_excalidraw.ts`       | `csvToExcalidrawAgent`     | `csvToExcalidrawAgent`     | Converts CSV data to Excalidraw diagrams                         | Data Processing Tools             |
 | `image_to_csv.ts`            | `imageToCsvAgent`          | `imageToCsvAgent`          | Extracts tabular data from images                                | Image Processing, OCR Tools       |
 | `excalidraw_validator.ts`    | `excalidrawValidatorAgent` | `excalidrawValidatorAgent` | Validates and fixes Excalidraw diagrams                          | Data Validation Tools             |
-| `reportAgent.ts`             | `reportAgent`              | -                          | Generates reports from processed data                            | Data Processing, Templating       |
-| `learningExtractionAgent.ts` | `learningExtractionAgent`  | -                          | Extracts and processes learning data                             | NLP, Text Processing              |
-| `evaluationAgent.ts`         | `evaluationAgent`          | -                          | Evaluates and scores agent performance                           | Evaluation Metrics                |
-| `researchAgent.ts`           | `researchAgent`            | `research`                 | Conducts research using web search and analysis tools            | Web Scraping, Search APIs         |
-| `editorAgent.ts`             | `editorAgent`              | -                          | Manages document editing workflows                               | Content Processing                |
-| `copywriterAgent.ts`         | `copywriterAgent`          | -                          | Handles content writing and generation                           | NLP, Content Generation           |
-| `contentStrategistAgent.ts`  | `contentStrategistAgent`   | -                          | Develops content strategies and plans                            | Research Tools                    |
-| `scriptWriterAgent.ts`       | `scriptWriterAgent`        | -                          | Writes scripts for video and audio content                       | NLP, Script Formatting            |
-| `stockAnalysisAgent.ts`      | `stockAnalysisAgent`       | -                          | Analyzes stock market data                                       | Financial Data Tools              |
+| `reportAgent.ts`             | `reportAgent`              | `reportAgent`              | Generates formatted reports from processed data                  | Data Processing, Templating       |
+| `learningExtractionAgent.ts` | `learningExtractionAgent`  | `learningExtractionAgent`  | Extracts learnings and insights from content                     | NLP, Text Processing              |
+| `evaluationAgent.ts`         | `evaluationAgent`          | `evaluationAgent`          | Evaluates and scores agent performance and content quality       | Evaluation Metrics, Scorers       |
+| `researchAgent.ts`           | `researchAgent`            | `research`                 | Conducts research using web search and analysis tools            | SerpAPI, Web Scraping             |
+| `editorAgent.ts`             | `editorAgent`              | `editorAgent`              | Reviews and improves written content                             | Content Processing, NLP           |
+| `copywriterAgent.ts`         | `copywriterAgent`          | `copywriterAgent`          | Handles content writing and generation                           | NLP, Content Generation           |
+| `contentStrategistAgent.ts`  | `contentStrategistAgent`   | `contentStrategistAgent`   | Develops content strategies and plans                            | Research Tools                    |
+| `scriptWriterAgent.ts`       | `scriptWriterAgent`        | `scriptWriterAgent`        | Writes scripts for video and audio content                       | NLP, Script Formatting            |
+| `stockAnalysisAgent.ts`      | `stockAnalysisAgent`       | `stockAnalysisAgent`       | Analyzes stock market data with technical/fundamental analysis   | Polygon, Finnhub, AlphaVantage    |
+| `dataExportAgent.ts`         | `dataExportAgent`          | `dataExportAgent`          | JSON → CSV conversion, file writing, backup, validation          | CSV/JSON Tools, File System       |
+| `dataIngestionAgent.ts`      | `dataIngestionAgent`       | `dataIngestionAgent`       | CSV parsing, file reading, structure validation                  | CSV/JSON Tools, File System       |
+| `dataTransformationAgent.ts` | `dataTransformationAgent`  | `dataTransformationAgent`  | CSV↔JSON↔XML transformations and restructuring                   | Data Processing Tools             |
+| `researchPaperAgent.ts`      | `researchPaperAgent`       | `researchPaperAgent`       | Search arXiv, download papers, parse PDFs to markdown            | arXiv Tools, PDF Tools            |
+| `documentProcessingAgent.ts` | `documentProcessingAgent`  | `documentProcessingAgent`  | Convert PDFs to markdown, chunk documents for RAG                | PDF Tools, Chunking Tools         |
+| `knowledgeIndexingAgent.ts`  | `knowledgeIndexingAgent`   | `knowledgeIndexingAgent`   | Index documents into PgVector, semantic search with reranking    | RAG Tools, PgVector               |
+| `dane.ts`                    | `dane`                     | `dane`                     | Utility agent for development and testing                        | Various                           |
+| `sql.ts`                     | `sqlAgent`                 | `sqlAgent`                 | SQL query generation and database operations                     | pg-sql-tool                       |
 
 ## Agent Development
 
@@ -102,6 +110,7 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 2.0.0   | 2025-11-26 | Major update: 22 agents documented. Added data pipeline, research paper, document processing, knowledge indexing agents.             |
+| 1.2.0   | 2025-11-19 | Added content creation and stock analysis agents.                                                                                    |
 | 1.1.0   | 2025-11-16 | Complete reorganization of agents documentation. Added detailed sections for each agent, development guidelines, and best practices. |
 | 1.0.0   | 2025-11-15 | Initial version with core agents for web scraping, data processing, and API integrations.                                            |
-| 1.2.0   | 2025-11-19 | Added content creation and stock analysis agents.                                                                                    |
