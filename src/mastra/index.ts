@@ -180,7 +180,7 @@ export const mastra = new Mastra({
     ]
   },
   bundler: {
-    externals: ["playwright-core", "pdf-parse", "crawlee"],
+    externals: ["playwright-core", "crawlee"],
   }
 });
 
