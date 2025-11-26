@@ -1,0 +1,589 @@
+import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { z } from 'zod';
+import { AISpanType } from '@mastra/core/ai-tracing';
+import { logStepStart, logStepEnd, logError } from '../config/logger';
+
+const researchInputSchema = z.object({
+  topics: z.array(z.string()).min(1).describe('List of topics to research'),
+  synthesisType: z.enum(['summary', 'comparative', 'comprehensive']).default('summary'),
+  maxSourcesPerTopic: z.number().default(5),
+  concurrency: z.number().default(2).describe('Number of concurrent topic researches'),
+});
+
+const topicResearchSchema = z.object({
+  topic: z.string(),
+  summary: z.string(),
+  keyFindings: z.array(z.string()),
+  sources: z.array(z.object({
+    title: z.string(),
+    url: z.string().optional(),
+    relevance: z.number().optional(),
+  })),
+  relatedTopics: z.array(z.string()).optional(),
+  confidence: z.number(),
+});
+
+const researchProgressSchema = z.object({
+  completedTopics: z.array(topicResearchSchema),
+  currentTopic: z.string(),
+  topicsRemaining: z.number(),
+  totalTopics: z.number(),
+  synthesisType: z.string(),
+});
+
+const synthesizedResearchSchema = z.object({
+  topics: z.array(topicResearchSchema),
+  synthesis: z.object({
+    overallSummary: z.string(),
+    commonThemes: z.array(z.string()),
+    keyInsights: z.array(z.object({
+      insight: z.string(),
+      relatedTopics: z.array(z.string()),
+      importance: z.enum(['high', 'medium', 'low']),
+    })),
+    recommendations: z.array(z.string()),
+    gaps: z.array(z.string()).optional(),
+  }),
+  metadata: z.object({
+    topicsCount: z.number(),
+    synthesisType: z.string(),
+    totalSources: z.number(),
+    averageConfidence: z.number(),
+    generatedAt: z.string(),
+  }),
+});
+
+const reportOutputSchema = z.object({
+  report: z.string(),
+  synthesis: synthesizedResearchSchema.shape.synthesis,
+  topics: z.array(topicResearchSchema),
+  metadata: z.object({
+    topicsCount: z.number(),
+    synthesisType: z.string(),
+    totalSources: z.number(),
+    generatedAt: z.string(),
+  }),
+});
+
+const initializeResearchStep = createStep({
+  id: 'initialize-research',
+  description: 'Prepares topic list for foreach iteration',
+  inputSchema: researchInputSchema,
+  outputSchema: z.array(z.object({
+    topic: z.string(),
+    maxSources: z.number(),
+  })),
+  execute: async ({ inputData, writer }) => {
+    const startTime = Date.now();
+    logStepStart('initialize-research', { topicsCount: inputData.topics.length });
+
+    await writer?.write({
+      type: 'step-start',
+      stepId: 'initialize-research',
+      timestamp: Date.now(),
+    });
+
+    await writer?.write({
+      type: 'progress',
+      percent: 50,
+      message: `Preparing ${inputData.topics.length} topics for research...`,
+    });
+
+    const topics = inputData.topics.map(topic => ({
+      topic,
+      maxSources: inputData.maxSourcesPerTopic,
+    }));
+
+    await writer?.write({
+      type: 'step-complete',
+      stepId: 'initialize-research',
+      success: true,
+      duration: Date.now() - startTime,
+    });
+
+    logStepEnd('initialize-research', { topicsCount: topics.length }, Date.now() - startTime);
+
+    return topics;
+  },
+});
+
+const researchTopicStep = createStep({
+  id: 'research-topic-item',
+  description: 'Researches a single topic using researchAgent',
+  inputSchema: z.object({
+    topic: z.string(),
+    maxSources: z.number(),
+  }),
+  outputSchema: topicResearchSchema,
+  retries: 2,
+  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+    const startTime = Date.now();
+    logStepStart('research-topic-item', { topic: inputData.topic });
+
+    await writer?.write({
+      type: 'topic-progress',
+      topic: inputData.topic,
+      status: 'started',
+      timestamp: Date.now(),
+    });
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.AGENT_RUN,
+      name: `research-${inputData.topic.slice(0, 20)}`,
+      input: { topic: inputData.topic },
+      metadata: { maxSources: inputData.maxSources },
+    });
+
+    try {
+      await writer?.write({
+        type: 'topic-progress',
+        topic: inputData.topic,
+        status: 'researching',
+        percent: 30,
+      });
+
+      const agent = mastra?.getAgent('researchAgent');
+      let result: z.infer<typeof topicResearchSchema>;
+
+      if (agent) {
+        const prompt = `Research the topic "${inputData.topic}" thoroughly.
+        
+        Provide:
+        1. A comprehensive summary
+        2. Key findings (5-10 bullet points)
+        3. Up to ${inputData.maxSources} relevant sources
+        4. Related topics for further exploration
+        5. A confidence score (0-100) for the research quality
+        
+        Focus on accuracy and citing credible sources.`;
+
+        const response = await agent.generate(prompt, {
+          output: z.object({
+            summary: z.string(),
+            keyFindings: z.array(z.string()),
+            sources: z.array(z.object({
+              title: z.string(),
+              url: z.string().optional(),
+              relevance: z.number().optional(),
+            })),
+            relatedTopics: z.array(z.string()).optional(),
+            confidence: z.number().min(0).max(100),
+          }),
+        });
+
+        result = {
+          topic: inputData.topic,
+          summary: response.object.summary,
+          keyFindings: response.object.keyFindings,
+          sources: response.object.sources.slice(0, inputData.maxSources),
+          relatedTopics: response.object.relatedTopics,
+          confidence: response.object.confidence,
+        };
+      } else {
+        result = {
+          topic: inputData.topic,
+          summary: `Research summary for "${inputData.topic}". This topic covers important aspects that require detailed analysis.`,
+          keyFindings: [
+            `Key finding 1 about ${inputData.topic}`,
+            `Key finding 2 about ${inputData.topic}`,
+            `Key finding 3 about ${inputData.topic}`,
+          ],
+          sources: [
+            { title: `Source about ${inputData.topic}`, relevance: 0.9 },
+          ],
+          relatedTopics: [`Related to ${inputData.topic}`],
+          confidence: 70,
+        };
+      }
+
+      await writer?.write({
+        type: 'topic-progress',
+        topic: inputData.topic,
+        status: 'completed',
+        percent: 100,
+        findingsCount: result.keyFindings.length,
+      });
+
+      span?.end({
+        output: { 
+          findingsCount: result.keyFindings.length,
+          sourcesCount: result.sources.length,
+          confidence: result.confidence,
+        },
+        metadata: { responseTime: Date.now() - startTime },
+      });
+
+      logStepEnd('research-topic-item', { topic: inputData.topic, confidence: result.confidence }, Date.now() - startTime);
+      return result;
+    } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      logError('research-topic-item', error, { topic: inputData.topic });
+
+      await writer?.write({
+        type: 'topic-progress',
+        topic: inputData.topic,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return {
+        topic: inputData.topic,
+        summary: `Research failed for "${inputData.topic}"`,
+        keyFindings: [],
+        sources: [],
+        confidence: 0,
+      };
+    }
+  },
+});
+
+const aggregateResearchStep = createStep({
+  id: 'aggregate-research',
+  description: 'Aggregates foreach results into array',
+  inputSchema: z.object({
+    results: z.array(topicResearchSchema),
+    synthesisType: z.string(),
+  }),
+  outputSchema: z.object({
+    topics: z.array(topicResearchSchema),
+    synthesisType: z.string(),
+  }),
+  execute: async ({ inputData, writer }) => {
+    const startTime = Date.now();
+
+    await writer?.write({
+      type: 'step-start',
+      stepId: 'aggregate-research',
+      timestamp: Date.now(),
+    });
+
+    await writer?.write({
+      type: 'progress',
+      percent: 50,
+      message: `Aggregating ${inputData.results.length} topic results...`,
+    });
+
+    const validResults = inputData.results.filter(r => r.confidence > 0);
+
+    await writer?.write({
+      type: 'step-complete',
+      stepId: 'aggregate-research',
+      success: true,
+      duration: Date.now() - startTime,
+    });
+
+    return {
+      topics: validResults,
+      synthesisType: inputData.synthesisType,
+    };
+  },
+});
+
+const synthesizeResearchStep = createStep({
+  id: 'synthesize-research',
+  description: 'Synthesizes research across all topics using researchPaperAgent',
+  inputSchema: z.object({
+    topics: z.array(topicResearchSchema),
+    synthesisType: z.string(),
+  }),
+  outputSchema: synthesizedResearchSchema,
+  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+    const startTime = Date.now();
+    logStepStart('synthesize-research', { topicsCount: inputData.topics.length });
+
+    await writer?.write({
+      type: 'step-start',
+      stepId: 'synthesize-research',
+      timestamp: Date.now(),
+    });
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.AGENT_RUN,
+      name: 'research-synthesis',
+      input: { topicsCount: inputData.topics.length, synthesisType: inputData.synthesisType },
+    });
+
+    try {
+      await writer?.write({
+        type: 'progress',
+        percent: 20,
+        message: 'Synthesizing research across topics...',
+      });
+
+      const agent = mastra?.getAgent('researchPaperAgent') ?? mastra?.getAgent('researchAgent');
+
+      let synthesis: z.infer<typeof synthesizedResearchSchema>['synthesis'];
+
+      if (agent) {
+        await writer?.write({
+          type: 'progress',
+          percent: 50,
+          message: 'AI synthesizing findings...',
+        });
+
+        const topicsSummary = inputData.topics.map(t => 
+          `Topic: ${t.topic}\nSummary: ${t.summary}\nKey Findings: ${t.keyFindings.join('; ')}`
+        ).join('\n\n---\n\n');
+
+        const prompt = `Synthesize the following research into a ${inputData.synthesisType} analysis:
+
+${topicsSummary}
+
+Provide:
+1. An overall summary connecting all topics
+2. Common themes across topics
+3. Key insights with importance levels (high/medium/low) and related topics
+4. Actionable recommendations
+5. Any gaps in the research`;
+
+        const response = await agent.generate(prompt, {
+          output: z.object({
+            overallSummary: z.string(),
+            commonThemes: z.array(z.string()),
+            keyInsights: z.array(z.object({
+              insight: z.string(),
+              relatedTopics: z.array(z.string()),
+              importance: z.enum(['high', 'medium', 'low']),
+            })),
+            recommendations: z.array(z.string()),
+            gaps: z.array(z.string()).optional(),
+          }),
+        });
+
+        synthesis = response.object;
+      } else {
+        const allFindings = inputData.topics.flatMap(t => t.keyFindings);
+        const allTopicNames = inputData.topics.map(t => t.topic);
+
+        synthesis = {
+          overallSummary: `Synthesis of research across ${inputData.topics.length} topics: ${allTopicNames.join(', ')}. ${inputData.topics.map(t => t.summary).join(' ')}`,
+          commonThemes: ['Cross-topic theme 1', 'Cross-topic theme 2'],
+          keyInsights: allFindings.slice(0, 5).map(finding => ({
+            insight: finding,
+            relatedTopics: allTopicNames.slice(0, 2),
+            importance: 'medium' as const,
+          })),
+          recommendations: [
+            'Recommendation based on synthesis',
+            'Further research suggested',
+          ],
+          gaps: ['Area requiring more research'],
+        };
+      }
+
+      await writer?.write({
+        type: 'progress',
+        percent: 90,
+        message: 'Synthesis complete...',
+      });
+
+      const totalSources = inputData.topics.reduce((sum, t) => sum + t.sources.length, 0);
+      const averageConfidence = inputData.topics.reduce((sum, t) => sum + t.confidence, 0) / inputData.topics.length;
+
+      const result: z.infer<typeof synthesizedResearchSchema> = {
+        topics: inputData.topics,
+        synthesis,
+        metadata: {
+          topicsCount: inputData.topics.length,
+          synthesisType: inputData.synthesisType,
+          totalSources,
+          averageConfidence,
+          generatedAt: new Date().toISOString(),
+        },
+      };
+
+      span?.end({
+        output: { themesCount: synthesis.commonThemes.length, insightsCount: synthesis.keyInsights.length },
+        metadata: { responseTime: Date.now() - startTime },
+      });
+
+      await writer?.write({
+        type: 'step-complete',
+        stepId: 'synthesize-research',
+        success: true,
+        duration: Date.now() - startTime,
+      });
+
+      logStepEnd('synthesize-research', { themesCount: synthesis.commonThemes.length }, Date.now() - startTime);
+      return result;
+    } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      logError('synthesize-research', error);
+
+      await writer?.write({
+        type: 'step-error',
+        stepId: 'synthesize-research',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw error;
+    }
+  },
+});
+
+const generateResearchReportStep = createStep({
+  id: 'generate-research-report',
+  description: 'Generates final research report using reportAgent',
+  inputSchema: synthesizedResearchSchema,
+  outputSchema: reportOutputSchema,
+  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+    const startTime = Date.now();
+    logStepStart('generate-research-report', { topicsCount: inputData.metadata.topicsCount });
+
+    await writer?.write({
+      type: 'step-start',
+      stepId: 'generate-research-report',
+      timestamp: Date.now(),
+    });
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.AGENT_RUN,
+      name: 'research-report-generation',
+      input: { topicsCount: inputData.metadata.topicsCount },
+    });
+
+    try {
+      await writer?.write({
+        type: 'progress',
+        percent: 20,
+        message: 'Generating research report...',
+      });
+
+      const agent = mastra?.getAgent('reportAgent');
+      let report = '';
+
+      if (agent) {
+        await writer?.write({
+          type: 'progress',
+          percent: 50,
+          message: 'AI generating comprehensive report...',
+        });
+
+        const prompt = `Generate a comprehensive ${inputData.metadata.synthesisType} research report:
+
+Overall Summary:
+${inputData.synthesis.overallSummary}
+
+Common Themes:
+${inputData.synthesis.commonThemes.map(t => `- ${t}`).join('\n')}
+
+Key Insights:
+${inputData.synthesis.keyInsights.map(i => `- [${i.importance.toUpperCase()}] ${i.insight} (Topics: ${i.relatedTopics.join(', ')})`).join('\n')}
+
+Recommendations:
+${inputData.synthesis.recommendations.map(r => `- ${r}`).join('\n')}
+
+Individual Topics:
+${inputData.topics.map(t => `## ${t.topic}\n${t.summary}\n\nKey Findings:\n${t.keyFindings.map(f => `- ${f}`).join('\n')}`).join('\n\n')}
+
+Create a well-structured, professional research report.`;
+
+        const response = await agent.generate(prompt, {
+          output: z.object({ report: z.string() }),
+        });
+
+        report = response.object.report;
+      } else {
+        report = `# Research Synthesis Report
+
+## Executive Summary
+${inputData.synthesis.overallSummary}
+
+## Common Themes
+${inputData.synthesis.commonThemes.map(t => `- ${t}`).join('\n')}
+
+## Key Insights
+${inputData.synthesis.keyInsights.map(i => `### ${i.insight}\n- Importance: ${i.importance}\n- Related Topics: ${i.relatedTopics.join(', ')}`).join('\n\n')}
+
+## Recommendations
+${inputData.synthesis.recommendations.map(r => `- ${r}`).join('\n')}
+
+## Topic Details
+${inputData.topics.map(t => `### ${t.topic}\n${t.summary}\n\n**Key Findings:**\n${t.keyFindings.map(f => `- ${f}`).join('\n')}\n\n**Sources:** ${t.sources.length} sources reviewed\n**Confidence:** ${t.confidence}%`).join('\n\n---\n\n')}
+
+## Research Gaps
+${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gaps identified.'}
+
+---
+*Generated: ${inputData.metadata.generatedAt}*
+*Topics Analyzed: ${inputData.metadata.topicsCount}*
+*Total Sources: ${inputData.metadata.totalSources}*
+*Average Confidence: ${inputData.metadata.averageConfidence.toFixed(1)}%*`;
+      }
+
+      await writer?.write({
+        type: 'progress',
+        percent: 90,
+        message: 'Report complete...',
+      });
+
+      const result: z.infer<typeof reportOutputSchema> = {
+        report,
+        synthesis: inputData.synthesis,
+        topics: inputData.topics,
+        metadata: {
+          topicsCount: inputData.metadata.topicsCount,
+          synthesisType: inputData.metadata.synthesisType,
+          totalSources: inputData.metadata.totalSources,
+          generatedAt: new Date().toISOString(),
+        },
+      };
+
+      span?.end({
+        output: { reportLength: report.length },
+        metadata: { responseTime: Date.now() - startTime },
+      });
+
+      await writer?.write({
+        type: 'step-complete',
+        stepId: 'generate-research-report',
+        success: true,
+        duration: Date.now() - startTime,
+      });
+
+      logStepEnd('generate-research-report', { reportLength: report.length }, Date.now() - startTime);
+      return result;
+    } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      logError('generate-research-report', error);
+
+      await writer?.write({
+        type: 'step-error',
+        stepId: 'generate-research-report',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw error;
+    }
+  },
+});
+
+const foreachWrapperStep = createStep({
+  id: 'foreach-wrapper',
+  description: 'Wraps foreach results for synthesis',
+  inputSchema: z.array(topicResearchSchema),
+  outputSchema: z.object({
+    topics: z.array(topicResearchSchema),
+    synthesisType: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    return {
+      topics: inputData,
+      synthesisType: 'summary',
+    };
+  },
+});
+
+export const researchSynthesisWorkflow = createWorkflow({
+  id: 'research-synthesis-workflow',
+  description: 'Multi-topic research with synthesis using .foreach() for concurrent topic processing',
+  inputSchema: researchInputSchema,
+  outputSchema: reportOutputSchema,
+})
+  .then(initializeResearchStep)
+  .foreach(researchTopicStep, { concurrency: 2 })
+  .then(foreachWrapperStep)
+  .then(synthesizeResearchStep)
+  .then(generateResearchReportStep);
+
+researchSynthesisWorkflow.commit();
