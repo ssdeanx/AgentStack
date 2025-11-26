@@ -179,6 +179,9 @@ export const mastra = new Mastra({
       }),
     ]
   },
+  bundler: {
+    externals: ["playwright-core"],
+  }
 });
 
 log.info("Mastra instance created");
