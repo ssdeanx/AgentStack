@@ -66,6 +66,8 @@ import { learningExtractionWorkflow } from './workflows/learning-extraction-work
 import { researchSynthesisWorkflow } from './workflows/research-synthesis-workflow';
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
+import { acpAgent } from './agents/acpAgent';
+import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
 
 export const mastra = new Mastra({
   workflows: {
@@ -110,6 +112,12 @@ export const mastra = new Mastra({
     dataPipelineNetwork,
     reportGenerationNetwork,
     researchPipelineNetwork,
+    acpAgent,
+    daneCommitMessage,
+    daneIssueLabeler,
+    daneLinkChecker,
+    daneChangeLog,
+    dane
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes },
@@ -165,7 +173,9 @@ export const mastra = new Mastra({
       networkRoute({
         path: "/network",
         agent: "agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork",
-        defaultOptions: {},
+        defaultOptions: {
+          format: 'aisdk'
+        },
       }),
     ]
   },

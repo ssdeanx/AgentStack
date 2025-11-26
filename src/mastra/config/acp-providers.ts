@@ -27,15 +27,23 @@ const opencode = createACPProvider({
 });
 
 const stackpak = createACPProvider({
-  command: 'opencode',
+  command: 'stackpak',
   session: {
     cwd: process.cwd(),
     mcpServers: [],
   },
 });
 
-const geminiCLI = gemini.languageModel()
+const geminiLM = gemini.languageModel()
 
 const claudeLM = claude.languageModel()
 
 const opencodeLM = opencode.languageModel()
+const stackpakLM = stackpak.languageModel()
+
+export {
+  geminiLM,
+  claudeLM,
+  opencodeLM,
+  stackpakLM,
+};
