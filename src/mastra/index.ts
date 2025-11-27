@@ -1,43 +1,43 @@
-import { Mastra } from '@mastra/core/mastra';
-import { LibSQLStore } from '@mastra/libsql';
-import { chatRoute, workflowRoute, networkRoute } from "@mastra/ai-sdk";
-import {
-  CloudExporter,
-  DefaultExporter,
-  SamplingStrategyType,
-  SensitiveDataFilter,
-} from "@mastra/core/ai-tracing";
+import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
 import { ArizeExporter } from "@mastra/arize";
+import {
+    CloudExporter,
+    DefaultExporter,
+    SamplingStrategyType,
+    SensitiveDataFilter,
+} from "@mastra/core/ai-tracing";
+import { Mastra } from '@mastra/core/mastra';
 import { LangfuseExporter } from "@mastra/langfuse";
+import { LibSQLStore } from '@mastra/libsql';
 // Config
-import { pgVector } from './config/pg-storage';
 import { log } from './config/logger';
+import { pgVector } from './config/pg-storage';
 
 // Scorers
-import { toolCallAppropriatenessScorer, completenessScorer, translationScorer } from './scorers/weather-scorer';
 import { responseQualityScorer, taskCompletionScorer } from './scorers/custom-scorers';
+import { completenessScorer, toolCallAppropriatenessScorer, translationScorer } from './scorers/weather-scorer';
 
 // MCP
 import { a2aCoordinatorMcpServer } from './mcp';
-import { notes } from './mcp/server';
+import { notesMCP } from './mcp/server';
 
 // A2A Coordinator
 import { a2aCoordinatorAgent } from './a2a/a2aCoordinatorAgent';
 
 // Core Agents
-import { weatherAgent } from './agents/weather-agent';
-import { csvToExcalidrawAgent } from './agents/csv_to_excalidraw';
-import { imageToCsvAgent } from './agents/image_to_csv';
-import { excalidrawValidatorAgent } from './agents/excalidraw_validator';
-import { reportAgent } from './agents/reportAgent';
-import { learningExtractionAgent } from './agents/learningExtractionAgent';
-import { evaluationAgent } from './agents/evaluationAgent';
-import { researchAgent } from './agents/researchAgent';
-import { editorAgent } from './agents/editorAgent';
-import { copywriterAgent } from './agents/copywriterAgent';
 import { contentStrategistAgent } from './agents/contentStrategistAgent';
+import { copywriterAgent } from './agents/copywriterAgent';
+import { csvToExcalidrawAgent } from './agents/csv_to_excalidraw';
+import { editorAgent } from './agents/editorAgent';
+import { evaluationAgent } from './agents/evaluationAgent';
+import { excalidrawValidatorAgent } from './agents/excalidraw_validator';
+import { imageToCsvAgent } from './agents/image_to_csv';
+import { learningExtractionAgent } from './agents/learningExtractionAgent';
+import { reportAgent } from './agents/reportAgent';
+import { researchAgent } from './agents/researchAgent';
 import { scriptWriterAgent } from './agents/scriptWriterAgent';
 import { stockAnalysisAgent } from './agents/stockAnalysisAgent';
+import { weatherAgent } from './agents/weather-agent';
 
 // CSV/Data Pipeline Agents
 import { dataExportAgent } from './agents/dataExportAgent';
@@ -45,9 +45,9 @@ import { dataIngestionAgent } from './agents/dataIngestionAgent';
 import { dataTransformationAgent } from './agents/dataTransformationAgent';
 
 // Research & Document Processing Agents
-import { researchPaperAgent } from './agents/researchPaperAgent';
 import { documentProcessingAgent } from './agents/documentProcessingAgent';
 import { knowledgeIndexingAgent } from './agents/knowledgeIndexingAgent';
+import { researchPaperAgent } from './agents/researchPaperAgent';
 
 // Utility Agents
 import { daneNewContributor } from './workflows/new-contributor';
@@ -56,18 +56,18 @@ import { daneNewContributor } from './workflows/new-contributor';
 import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
 
 // Workflows
-import { weatherWorkflow } from './workflows/weather-workflow';
-import { contentStudioWorkflow } from './workflows/content-studio-workflow';
+import { acpAgent } from './agents/acpAgent';
+import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
 import { changelogWorkflow } from './workflows/changelog';
 import { contentReviewWorkflow } from './workflows/content-review-workflow';
+import { contentStudioWorkflow } from './workflows/content-studio-workflow';
 import { documentProcessingWorkflow } from './workflows/document-processing-workflow';
 import { financialReportWorkflow } from './workflows/financial-report-workflow';
 import { learningExtractionWorkflow } from './workflows/learning-extraction-workflow';
 import { researchSynthesisWorkflow } from './workflows/research-synthesis-workflow';
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
-import { acpAgent } from './agents/acpAgent';
-import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
+import { weatherWorkflow } from './workflows/weather-workflow';
 
 export const mastra = new Mastra({
   workflows: {
@@ -120,7 +120,7 @@ export const mastra = new Mastra({
     dane
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
-  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes },
+  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
   storage: new LibSQLStore({
     url: process.env.TURSO_URL ?? "file:./mastra.db",
     authToken: process.env.TURSO_AUTH_TOKEN,

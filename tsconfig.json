@@ -33,7 +33,10 @@
         "eslint.config.cjs",
         "prettier.config.js",
         "eslint-config-next.d.ts",
-        "read_pdf_parse.js"
+        "read_pdf_parse.js",
+        "postcss.config.mjs",
+        "next.config.ts",
+        "components.json"
     ],
     "exclude": [
         "node_modules",

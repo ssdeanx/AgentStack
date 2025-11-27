@@ -10,6 +10,7 @@ import { TokenLimiter } from '@mastra/memory/processors'
 import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core';
+import z from 'zod'
 
 // Use the proper CoreMessage type from @mastra/core
 // This replaces the custom extension that was causing type conflicts
@@ -101,42 +102,28 @@ export const pgMemory = new Memory({
         // Enhanced working memory with supported template
         workingMemory: {
             enabled: true,
-            scope: 'resource', // 'resource' | 'thread'
-            version: 'vnext', // Enable the improved/experimental tool
-            template: `
-# User Profile & Context
-## Personal Information
- - Name:
- - Role/Title:
- - Organization:
- - Location:
- - Time Zone:
-
-## Communication Preferences
- - Preferred Communication Style:
- - Response Length Preference:
- - Technical Level:
-
-## Current Context
- - Active Projects:
- - Current Goals:
- - Recent Activities:
- - Pain Points:
-
-## Long-term Memory
- - Key Achievements:
- - Important Relationships:
- - Recurring Patterns:
- - Preferences & Habits:
-
-## Session Notes
- - Today's Focus: Testing the system
- - Outstanding Questions:
- - Action Items:
- - Follow-ups Needed:
-
-    `,
-        },
+            scope: 'resource',
+//        version: 'vnext',
+            schema: z.object({
+                items: z.array(
+                    z.object({
+                    title: z.string(),
+                    due: z.string().optional(),
+                    description: z.string(),
+                    subtasks: z.array(z.any()).optional(),
+                    requirements: z.array(z.any()).optional(),
+                    dependencies: z.array(z.any()).optional(),
+                    attachments: z.array(z.any()).optional(),
+                    comments: z.array(z.any()).optional(),
+                    assignees: z.array(z.any()).optional(),
+                    priority: z.number(),
+                    status: z.enum(["active", "completed"]).default("active"),
+                    tags: z.array(z.string()).optional(),
+                    estimatedTime: z.string().optional(),
+                }),
+            ),
+        }),
+    },
         // Thread management with supported options
         threads: {
             generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',

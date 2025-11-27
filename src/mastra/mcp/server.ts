@@ -1,11 +1,11 @@
 import { MCPServer } from "@mastra/mcp";
-import { resourceHandlers } from "./resources";
 import { writeNoteTool } from "../tools/write-note";
 import { promptHandlers } from "./prompts";
+import { resourceHandlers } from "./resources";
 
-export const notes = new MCPServer({
+export const notesMCP = new MCPServer({
   name: "notes",
-  version: "0.1.0",
+  version: "0.1.2",
   resources: resourceHandlers,
   prompts: promptHandlers,
   tools: {

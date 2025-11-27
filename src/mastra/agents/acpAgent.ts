@@ -1,8 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
+import { supermemoryTools } from "@supermemory/tools/ai-sdk";
 import { googleAIFlashLite, pgMemory } from '../config';
-import { supermemoryTools } from "@supermemory/tools/ai-sdk"
-import { mcpTools } from '../mcp/mcp-client';
 import { browserTool, clickAndExtractTool, extractTablesTool, fillFormTool, googleSearch, monitorPageTool, pdfGeneratorTool, screenshotTool } from '../tools/browser-tool';
 
 export const acpAgent = new Agent({

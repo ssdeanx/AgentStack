@@ -1,13 +1,12 @@
 import { Agent } from '@mastra/core/agent'
-import { google, googleAI } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
-import { googleAIFlashLite } from '../config/google'
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { researchAgent } from '../agents/researchAgent'
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
+import { researchAgent } from '../agents/researchAgent'
+import { googleAI, googleAIFlashLite } from '../config/google'
+import { pgMemory } from '../config/pg-storage'
+import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
 
 // Import all agents
 
@@ -75,7 +74,7 @@ Use Promise.all() pattern for parallel execution.
     },
     model: googleAI,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     agents: { researchAgent, editorAgent, copywriterAgent },
     workflows: {},
     maxRetries: 5,

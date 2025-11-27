@@ -1,9 +1,21 @@
+---
+name: Copilot Instructions
+applyTo: '**'
+---
 - 🧠 Read `/memory-bank/memory-bank-instructions.md` first.
 - 🗂 Load all `/memory-bank/*.md` before any task.
 - 🚦 Use the Kiro-Lite workflow: PRD → Design → Tasks → Code.
 - 🔒 Follow security & style rules in `copilot-rules.md`.
 - 📝 On "/update memory bank", refresh activeContext.md & progress.md.
 - ✅ Confirm memory bank loaded with `[Memory Bank: Active]` or warn with `[Memory Bank: Missing]`.
+
+- 🔍 For research, use [#web] or [#websearch] tool and to make sure you have no knowledge gaps.
+- 🤖 Check if there is a problem, use [#problem] tool to check code for errors.
+  - This tool will help you identify issues and suggest fixes.
+  - This is especially useful for debugging and improving code quality.
+  - Try run it before writing new code & after completing so you can ensure everything works correctly.
+- 📌 To update your memory bank, use [#update-memory-bank] tool to add new information.
+- 🛠 Mastra mcp tools use [#mastradocs], [#mastraChanges], [#mastraexamples]  tool.
 
 [byterover-mcp]
 

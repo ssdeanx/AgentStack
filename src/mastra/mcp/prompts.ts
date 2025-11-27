@@ -1,24 +1,24 @@
 import type { MCPServerPrompts } from "@mastra/mcp";
-import { unified } from "unified";
-import remarkParse from "remark-parse";
 import matter from "gray-matter";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import type { Node } from "unist";
 
 const prompts = [
   {
-    name: "new_daily_note",
-    description: "Create a new daily note.",
-    version: "1.0.0",
+    name: "new_note",
+    description: "Create a new note, that can be used for brainstorming ideas, organizing thoughts, or capturing information. This note can be easily edited and shared with others. It can also be used to keep track of tasks or projects. You can also use it to create a to-do list or a project plan. You can also use it to create a to-do list or a project plan.",
+    version: "1.0.1",
   },
   {
     name: "summarize_note",
-    description: "Give me a TL;DR of the note.",
-    version: "1.0.0",
+    description: "Give me a TL;DR of the note. This can be useful for quickly understanding the main points of a note.",
+    version: "1.0.1",
   },
   {
     name: "brainstorm_ideas",
-    description: "Brainstorm new ideas based on a note.",
-    version: "1.0.0",
+    description: "Brainstorm new ideas based on a note. This can be useful for generating new ideas or solutions to problems.",
+    version: "1.0.1",
   },
 ];
 
@@ -57,14 +57,14 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
   args,
 }) => {
   switch (name) {
-    case "new_daily_note":
+    case "new_note":
       const today = new Date().toISOString().split("T")[0];
       return [
         {
           role: "user",
           content: {
             type: "text",
-            text: `Create a new note titled \"${today}\" with sections: \"## Tasks\", \"## Meetings\", \"## Notes\".`,
+            text: `Create a new note, It is critical to provide a detailed description of each section. Ensure that each section is well-organized and easy to read. Also, include subsections for each section.  Provide as much detail as possible for each section. Using this template titled \"${today}\" with sections: \"## Tasks\", \"## Specifications\", \"## Resources\", and \"## Notes\".  `,
           },
         },
       ];
@@ -76,7 +76,7 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
           role: "user",
           content: {
             type: "text",
-            text: `Summarize each section in ≤ 3 bullets.\\n\\n### Outline\\n${metaSum.headings.map((h) => `- ${h} (${metaSum.wordCounts[h] || 0} words)`).join("\\n")}`.trim(),
+            text: `Summarize each section in ≤ 5 bullets.\\n\\n### Outline\\n${metaSum.headings.map((h) => `- ${h} (${metaSum.wordCounts[h] || 0} words)`).join("\\n")}`.trim(),
           },
         },
       ];
@@ -88,12 +88,12 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
           role: "user",
           content: {
             type: "text",
-            text: `Brainstorm 3 ideas for underdeveloped sections below ${args?.topic ? `on ${args.topic}` : "."}\\n\\nUnderdeveloped sections:\\n${metaBrain.headings.length ? metaBrain.headings.map((h) => `- ${h}`).join("\\n") : "- (none, pick any)"}`,
+            text: `Brainstorm ≤5 ideas for underdeveloped sections below ${args?.topic ? `on ${args.topic}` : "."}\\n\\nUnderdeveloped sections:\\n${metaBrain.headings.length ? metaBrain.headings.map((h) => `- ${h}`).join("\\n") : "- (none, pick any)"}`,
           },
         },
       ];
     default:
-      throw new Error(`Prompt \"${name}\" not found`);
+      throw new Error(`Prompt \"${name}\" not found, please check the prompt name and try again.`);
   }
 };
 
