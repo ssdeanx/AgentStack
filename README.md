@@ -1,4 +1,3 @@
-
 <!-- AGENTS-META {"title":"AgentStack README","version":"3.2.0","applies_to":"/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
 
 <div align="center">
@@ -36,16 +35,16 @@
 
 ## 🎯 **Why AgentStack?**
 
-| Feature | AgentStack | LangChain | CrewAI | AutoGen |
-|---------|------------|-----------|--------|---------|
-| **Production Observability** | ✅ **Full Arize/Phoenix tracing + custom scorers** | ⚠️ Partial | ❌ Basic | ❌ Limited |
-| **Financial Tools** | ✅ **Polygon/Finnhub/AlphaVantage (20+ endpoints)** | ❌ None | ❌ None | ❌ None |
-| **RAG Pipeline** | ✅ **PgVector HNSW + rerank + graphRAG** | ⚠️ External | ❌ Basic | ❌ None |
-| **Multi-Agent** | ✅ **A2A MCP + parallel orchestration** | ⚠️ Sequential | ✅ Sequential | ✅ Custom |
-| **Governance** | ✅ **JWT/RBAC + path traversal + HTML sanitization** | ❌ Custom | ❌ None | ❌ None |
-| **TypeScript** | ✅ **Zod schemas everywhere** | ⚠️ JS/TS mix | ⚠️ JS focus | ❌ Python |
-| **UI Components** | ✅ **49 AI Elements + shadcn/ui** | ❌ None | ❌ None | ❌ None |
-| **Tests** | ✅ **97% Vitest coverage** | ⚠️ Partial | ❌ Sparse | ⚠️ Partial |
+| Feature                      | AgentStack                                           | LangChain     | CrewAI        | AutoGen    |
+| ---------------------------- | ---------------------------------------------------- | ------------- | ------------- | ---------- |
+| **Production Observability** | ✅ **Full Arize/Phoenix tracing + custom scorers**   | ⚠️ Partial    | ❌ Basic      | ❌ Limited |
+| **Financial Tools**          | ✅ **Polygon/Finnhub/AlphaVantage (20+ endpoints)**  | ❌ None       | ❌ None       | ❌ None    |
+| **RAG Pipeline**             | ✅ **PgVector HNSW + rerank + graphRAG**             | ⚠️ External   | ❌ Basic      | ❌ None    |
+| **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration**              | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
+| **Governance**               | ✅ **JWT/RBAC + path traversal + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
+| **TypeScript**               | ✅ **Zod schemas everywhere**                        | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
+| **UI Components**            | ✅ **49 AI Elements + shadcn/ui**                    | ❌ None       | ❌ None       | ❌ None    |
+| **Tests**                    | ✅ **97% Vitest coverage**                           | ⚠️ Partial    | ❌ Sparse     | ⚠️ Partial |
 
 **Built for production**: Secure, observable, testable agents with **zero-config** PgVector RAG + **enterprise financial APIs**.
 
@@ -76,8 +75,8 @@ graph TB
     end
 
     subgraph "🎯 AgentStack Runtime"
-        Coord --> Agents[25+ Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
-        Agents --> Tools[50+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
+        Coord --> Agents[22+ Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
+        Agents --> Tools[30+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
         Agents --> Workflows[Research→Report<br/>Weather→Activities]
     end
 
@@ -208,13 +207,13 @@ src/mastra/
 
 ## 🔧 **Configuration**
 
-| Env Var | Purpose | Required |
-|---------|---------|----------|
-| `PG_CONNECTION` | Postgres + PgVector RAG | ✅ |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini LLM/Embeddings | ✅ |
-| `SERPAPI_API_KEY` | Search/News/Shopping (10+ tools) | ✅ |
-| `POLYGON_API_KEY` | Stock/Crypto quotes/aggs/fundamentals | ✅ |
-| `PHOENIX_ENDPOINT` | Arize/Phoenix tracing | Observability |
+| Env Var                        | Purpose                               | Required      |
+| ------------------------------ | ------------------------------------- | ------------- |
+| `PG_CONNECTION`                | Postgres + PgVector RAG               | ✅            |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini LLM/Embeddings                 | ✅            |
+| `SERPAPI_API_KEY`              | Search/News/Shopping (10+ tools)      | ✅            |
+| `POLYGON_API_KEY`              | Stock/Crypto quotes/aggs/fundamentals | ✅            |
+| `PHOENIX_ENDPOINT`             | Arize/Phoenix tracing                 | Observability |
 
 **Full**: `.env.example` + `src/mastra/config/AGENTS.md`
 
@@ -251,15 +250,15 @@ Arize/Phoenix Exporters:
 
 ## 🌐 **Integrations Matrix**
 
-| Category | Tools | Agents |
-|----------|-------|--------|
-| **🔍 Search** | SerpAPI (News/Trends/Shopping/Scholar/Local/Yelp) | ResearchAgent |
-| **💰 Financial** | Polygon (10+), Finnhub (6+), AlphaVantage (indicators) | StockAnalysis, CryptoAnalysis |
-| **📄 RAG** | PgVector chunk/rerank/query/graph | Retrieve/Rerank/Answerer |
-| **📝 Content** | PDF→MD, Web Scraper, Copywriter/Editor | CopywriterAgent, EditorAgent, ReportAgent |
-| **🎨 Visual** | CSV↔Excalidraw, SVG/XML process | csvToExcalidrawAgent, imageToCsvAgent |
-| **🌐 Orchestration** | A2A MCP Server | a2aCoordinatorAgent |
-| **💻 UI** | AI Elements (30), shadcn/ui (19), Radix primitives | Chat/Reasoning/Canvas interfaces |
+| Category             | Tools                                                  | Agents                                    |
+| -------------------- | ------------------------------------------------------ | ----------------------------------------- |
+| **🔍 Search**        | SerpAPI (News/Trends/Shopping/Scholar/Local/Yelp)      | ResearchAgent                             |
+| **💰 Financial**     | Polygon (10+), Finnhub (6+), AlphaVantage (indicators) | StockAnalysis, CryptoAnalysis             |
+| **📄 RAG**           | PgVector chunk/rerank/query/graph                      | Retrieve/Rerank/Answerer                  |
+| **📝 Content**       | PDF→MD, Web Scraper, Copywriter/Editor                 | CopywriterAgent, EditorAgent, ReportAgent |
+| **🎨 Visual**        | CSV↔Excalidraw, SVG/XML process                       | csvToExcalidrawAgent, imageToCsvAgent     |
+| **🌐 Orchestration** | A2A MCP Server                                         | a2aCoordinatorAgent                       |
+| **💻 UI**            | AI Elements (30), shadcn/ui (19), Radix primitives     | Chat/Reasoning/Canvas interfaces          |
 
 ## 🚀 **Advanced Usage**
 
@@ -269,11 +268,11 @@ Arize/Phoenix Exporters:
 // src/mastra/agents/my-agent.ts
 import { Agent } from '@mastra/core/agent'
 export const myAgent = new Agent({
-  id: 'my-agent',
-  tools: { polygonStockQuotesTool, pgQueryTool },
-  instructions: 'Analyze stocks with Polygon + RAG...',
-  model: googleAI, // From model registry
-  memory: pgMemory,
+    id: 'my-agent',
+    tools: { polygonStockQuotesTool, pgQueryTool },
+    instructions: 'Analyze stocks with Polygon + RAG...',
+    model: googleAI, // From model registry
+    memory: pgMemory,
 })
 // Auto-registers in index.ts
 ```
@@ -333,4 +332,4 @@ npm run mcp-server
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-*Last updated: 2025-11-27 | v3.2.0*
+_Last updated: 2025-11-27 | v3.2.0_

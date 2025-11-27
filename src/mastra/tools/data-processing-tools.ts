@@ -1,8 +1,9 @@
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
+import { createTool } from '@mastra/core/tools'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import { DOMParser } from 'xmldom'
 import { z } from 'zod'
-import { createTool } from '@mastra/core/tools'
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 // Import data processing libraries
 // svgjson does not ship with TypeScript types. Rather than attempting to
@@ -22,7 +23,6 @@ interface SvgJsonNode {
 // to avoid TypeScript errors when the @types package is not installed. The
 // ambient declaration above provides minimal typing when available.
 const svgjson = require('svgjson') as (input: string) => SvgJsonNode // eslint-disable-line no-unused-vars
-import { DOMParser } from 'xmldom'
 
 // Define runtime context for these tools
 export interface DataProcessingContext {
@@ -151,6 +151,7 @@ export const readCSVDataTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'read_csv_data',
             input: { fileName: context.fileName },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -231,7 +232,7 @@ export const csvToExcalidrawTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'csv-to-excalidraw',
             input: { layoutType: context.layoutType, hasHeaders: context.hasHeaders },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });
@@ -440,7 +441,7 @@ export const csvToExcalidrawTool = createTool({
         const filename = `csv-diagram-${Date.now()}.excalidraw`
 
         await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
-        
+
         const result = {
             filename,
             contents: excalidrawData,
@@ -488,7 +489,7 @@ export const imageToCSVTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'image-to-csv',
             input: { elementCount: context.elements.length },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         await writer?.write({ type: 'progress', data: { message: '🖼️ Converting image analysis to CSV' } });
@@ -516,7 +517,7 @@ export const imageToCSVTool = createTool({
         const outputFilename = filename ?? `image-analysis-${Date.now()}.csv`
 
         await writer?.write({ type: 'progress', data: { message: `✅ Converted ${elements.length} elements to CSV` } });
-        
+
         const result = {
             csvContent,
             filename: outputFilename,
@@ -550,7 +551,7 @@ export const validateExcalidrawTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'validate-excalidraw',
             input: { autoFix: context.autoFix },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         await writer?.write({ type: 'progress', data: { message: '🔍 Validating Excalidraw data' } });
@@ -694,7 +695,7 @@ export const processSVGTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'process-svg',
             input: { extractPaths: context.extractPaths, extractText: context.extractText },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         await writer?.write({ type: 'progress', data: { message: '🖼️ Processing SVG content' } });
@@ -888,7 +889,7 @@ export const processXMLTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: `✅ Processed XML with ${elements.length} elements` } });
-            
+
             const result = {
                 document: xmlDoc,
                 elements,
@@ -930,7 +931,7 @@ export const convertDataFormatTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'convert-data-format',
             input: { inputFormat: context.inputFormat, outputFormat: context.outputFormat },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${context.inputFormat} to ${context.outputFormat}` } });
@@ -1029,7 +1030,7 @@ export const convertDataFormatTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: '✅ Data conversion successful' } });
-            
+
             const result = {
                 convertedData,
                 format: outputFormat,
@@ -1174,7 +1175,7 @@ export const validateDataTool = createTool({
             }
 
             await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${isValid}` } });
-            
+
             const result = {
                 isValid,
                 errors,

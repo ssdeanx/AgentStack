@@ -1,6 +1,6 @@
-import { createTool } from '@mastra/core/tools'
-import { z } from 'zod'
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { createTool } from '@mastra/core/tools';
+import { z } from 'zod';
 
 export const editorTool = createTool({
     id: 'editor-agent',
@@ -48,6 +48,7 @@ export const editorTool = createTool({
                     instructions.trim().length > 0,
                 tone: tone ?? 'not-specified',
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {

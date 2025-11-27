@@ -1,8 +1,8 @@
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import { Pool } from "pg";
-import { log } from "../config/logger";
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
+import { createTool } from "@mastra/core/tools";
+import { Pool } from "pg";
+import { z } from "zod";
+import { log } from "../config/logger";
 
 const pool = new Pool({
   max: 20,
@@ -41,7 +41,7 @@ export const pgExecute = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'pg-execute',
       input: { query },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: 'Executing SQL query' } });

@@ -1,6 +1,6 @@
-import { GithubIntegration } from "@mastra/github";
-import { createTool } from '@mastra/core/tools';
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { createTool } from '@mastra/core/tools';
+import { GithubIntegration } from "@mastra/github";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -14,7 +14,7 @@ const GITHUB_API_BASE = 'https://api.github.com';
 
 async function githubFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = process.env.GITHUB_API_KEY || process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-  
+
   const response = await fetch(`${GITHUB_API_BASE}${path}`, {
     ...options,
     headers: {
@@ -62,13 +62,13 @@ export const listRepositories = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'github-list-repos',
       input: { org: context.org },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: '📚 Fetching repositories...' } });
 
     try {
-      const path = context.org 
+      const path = context.org
         ? `/orgs/${context.org}/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`
         : `/user/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`;
 
@@ -461,12 +461,12 @@ export const getFileContent = createTool({
       if (context.ref) apiPath += `?ref=${context.ref}`;
 
       const data = await githubFetch<Record<string, unknown>>(apiPath);
-      
+
       if (Array.isArray(data)) {
         throw new Error('Path points to a directory, not a file');
       }
 
-      const content = data.encoding === 'base64' 
+      const content = data.encoding === 'base64'
         ? Buffer.from(data.content as string, 'base64').toString('utf-8')
         : data.content as string;
 

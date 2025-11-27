@@ -13,13 +13,13 @@
 // approvedBy: sam
 // approvalDate: 9/22
 
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
+import { createTool } from '@mastra/core/tools'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { z } from 'zod'
-import { createTool } from '@mastra/core/tools'
-import { AISpanType } from '@mastra/core/ai-tracing'
-import * as zlib from 'zlib'
 import { pipeline } from 'stream/promises'
+import * as zlib from 'zlib'
+import { z } from 'zod'
 import { log } from '../config/logger'
 
 // Define runtime context for these tools
@@ -64,6 +64,7 @@ export const readDataFileTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'read_data_file',
             input: { fileName: context.fileName },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -114,6 +115,7 @@ export const writeDataFileTool = createTool({
                 fileName: context.fileName,
                 contentLength: context.content.length,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -167,6 +169,7 @@ export const deleteDataFileTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'delete_data_file',
             input: { fileName: context.fileName },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -213,6 +216,7 @@ export const listDataDirTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'list_data_directory',
             input: { dirPath: context.dirPath ?? 'docs/data' },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -264,6 +268,7 @@ export const copyDataFileTool = createTool({
                 sourceFile: context.sourceFile,
                 destFile: context.destFile,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -322,6 +327,7 @@ export const moveDataFileTool = createTool({
                 sourceFile: context.sourceFile,
                 destFile: context.destFile,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -387,6 +393,7 @@ export const searchDataFilesTool = createTool({
                 searchContent: context.searchContent,
                 dirPath: context.dirPath,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -482,6 +489,7 @@ export const getDataFileInfoTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'get_data_file_info',
             input: { fileName: context.fileName },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -579,6 +587,7 @@ export const removeDataDirTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'remove_data_directory',
             input: { dirPath: context.dirPath },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -636,6 +645,7 @@ export const archiveDataTool = createTool({
                 sourcePath: context.sourcePath,
                 archiveName: context.archiveName,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {
@@ -701,6 +711,7 @@ export const backupDataTool = createTool({
                 sourcePath: context.sourcePath,
                 backupDir: context.backupDir ?? 'backups',
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {

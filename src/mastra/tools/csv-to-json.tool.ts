@@ -1,9 +1,8 @@
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
 import { parse } from "csv-parse/sync";
 import * as fs from "node:fs/promises";
-import { AISpanType } from "@mastra/core/ai-tracing";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { z } from "zod";
 
 const csvToolContextSchema = z.object({
   maxRows: z.number().optional(),
@@ -40,6 +39,8 @@ export const csvToJsonTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: "csv-to-json",
       input: context,
+      runtimeContext: runtimeContext,
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     try {

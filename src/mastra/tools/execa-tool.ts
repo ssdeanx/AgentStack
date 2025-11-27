@@ -1,10 +1,10 @@
-import { createTool } from '@mastra/core/tools'
-import chalk from 'chalk'
-import { execa, ExecaError } from 'execa'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { createTool } from '@mastra/core/tools';
+import chalk from 'chalk';
+import { execa, ExecaError } from 'execa';
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 
 // Create transform stream that applies chalk
 const colorTransform = new Transform({
@@ -32,7 +32,7 @@ export const execaTool = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'execa-tool',
             input: { command: context.command, args: context.args },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         const { command, args } = context

@@ -1,10 +1,10 @@
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: number }>
 
@@ -36,7 +36,7 @@ export const readPDF = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'read-pdf',
             input: { pdfPath: context.pdfPath },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         const { pdfPath } = context

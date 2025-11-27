@@ -1,7 +1,7 @@
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType } from '@mastra/core/ai-tracing'
 
 export const extractLearningsTool = createTool({
     id: 'extract-learnings',
@@ -27,6 +27,7 @@ export const extractLearningsTool = createTool({
                 url: context.result.url,
                 contentLength: context.result.content.length,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {

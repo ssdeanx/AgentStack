@@ -1,8 +1,8 @@
+ import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import { readFileSync, writeFileSync } from 'fs'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 export const fsTool = createTool({
     id: 'fsTool',

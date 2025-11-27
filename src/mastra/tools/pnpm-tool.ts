@@ -1,3 +1,4 @@
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import chalk from 'chalk'
 import { execa, ExecaError } from 'execa'
@@ -5,7 +6,6 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 
 export const pnpmBuild = createTool({
     id: 'pnpmBuild',
@@ -22,7 +22,7 @@ export const pnpmBuild = createTool({
             type: AISpanType.TOOL_CALL,
             name: 'pnpm-build',
             input: { name: context.name, packagePath: context.packagePath },
-            tracingPolicy: { internal: InternalSpans.ALL }
+            tracingPolicy: { internal: InternalSpans.TOOL }
         });
 
         const { name, packagePath } = context

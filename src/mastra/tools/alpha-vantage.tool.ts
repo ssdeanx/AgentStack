@@ -1,6 +1,6 @@
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 
 /**
  * Alpha Vantage Tools
@@ -60,7 +60,7 @@ export const alphaVantageCryptoTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage-crypto',
       input: { symbol: context.symbol, market: context.market, function: context.function },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${context.symbol}/${context.market}` } });
@@ -240,7 +240,7 @@ export const alphaVantageStockTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage-stock',
       input: { symbol: context.symbol, function: context.function },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${context.symbol || 'symbol'}` } });
@@ -435,7 +435,7 @@ export const alphaVantageTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage',
       input: { function: context.function, symbol: context.symbol },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });

@@ -1,7 +1,6 @@
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { ar } from "zod/v4/locales";
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -312,7 +311,8 @@ export const arxivPdfParserTool = createTool({
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'arxiv-pdf-parser',
-      input: { arxivId: context.arxivId }
+      input: { arxivId: context.arxivId },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv PDF parser for ' + context.arxivId } });
@@ -486,7 +486,7 @@ export const arxivPaperDownloaderTool = createTool({
       name: 'arxiv-paper-downloader',
       input: { arxivId: context.arxivId },
       metadata: {arxivId: context.arxivId},
-      tracingPolicy: { internal: InternalSpans.ALL },
+      tracingPolicy: { internal: InternalSpans.TOOL },
     });
 
     await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv paper downloader for ' + context.arxivId } });

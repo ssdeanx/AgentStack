@@ -1,7 +1,7 @@
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { AISpanType } from '@mastra/core/ai-tracing'
 
 // Define runtime context for this tool
 export interface CopywriterToolContext {
@@ -94,6 +94,7 @@ export const copywriterTool = createTool({
                 length,
                 hasRequirements: (specificRequirements?.length ?? 0) > 0,
             },
+            tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         try {

@@ -1,9 +1,9 @@
-<!-- AGENTS-META {"title":"Mastra Root","version":"2.1.0","applies_to":"/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Root","version":"2.2.0","applies_to":"/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
 # AGENTS
 
 ## Project Overview
 
-Mastra is a production-grade multi-agent framework for building agent-driven applications and RAG (retrieval-augmented generation) workflows. It provides **50+ enterprise tools**, **25+ specialized agents**, **10 workflows**, **4 agent networks**, **A2A/MCP orchestration**, and now a **complete UI component library** (49 components) for scalable AI systems. Key capabilities include **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+Mastra is a production-grade multi-agent framework for building agent-driven applications and RAG (retrieval-augmented generation) workflows. It provides **30+ enterprise tools**, **22+ specialized agents**, **10 workflows**, **4 agent networks**, **A2A/MCP orchestration**, and now a **complete UI component library** (49 components) for scalable AI systems. Key capabilities include **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 This repo is structured to keep tools, agents, workflows, networks, UI components, and configs separated, with strict Zod schemas for tool inputs/outputs and strong environment-based configuration in `src/mastra/config`.
 

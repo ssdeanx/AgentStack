@@ -1,11 +1,11 @@
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
 import {
-  logStepStart,
-  logStepEnd,
-  logError,
-  logToolExecution,
+    logError,
+    logStepEnd,
+    logStepStart,
+    logToolExecution,
 } from "../config/logger";
 
 /**
@@ -33,7 +33,8 @@ export const finnhubQuotesTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-quotes',
-      input: { symbol: context.symbol }
+      input: { symbol: context.symbol },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
@@ -184,7 +185,8 @@ export const finnhubCompanyTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-company',
-      input: { function: context.function, symbol: context.symbol, from: context.from, to: context.to }
+      input: { function: context.function, symbol: context.symbol, from: context.from, to: context.to },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
@@ -368,7 +370,8 @@ export const finnhubFinancialsTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-financials',
-      input: { function: context.function, symbol: context.symbol }
+      input: { function: context.function, symbol: context.symbol },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
@@ -548,7 +551,8 @@ export const finnhubAnalysisTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-analysis',
-      input: { function: context.function, symbol: context.symbol }
+      input: { function: context.function, symbol: context.symbol },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
@@ -732,7 +736,8 @@ export const finnhubTechnicalTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-technical',
-      input: { function: context.function, symbol: context.symbol, resolution: context.resolution, indicator: context.indicator, timeperiod: context.timeperiod, series_type: context.series_type }
+      input: { function: context.function, symbol: context.symbol, resolution: context.resolution, indicator: context.indicator, timeperiod: context.timeperiod, series_type: context.series_type },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
@@ -819,6 +824,7 @@ export const finnhubTechnicalTool = createTool({
         type: AISpanType.TOOL_CALL,
         name: 'finnhub-api-call',
         input: { url: url.replace(apiKey, '[REDACTED]'), method: 'GET' },
+        tracingPolicy: { internal: InternalSpans.TOOL }
       });
 
       logStepStart('finnhub-api-call', {
@@ -928,7 +934,8 @@ export const finnhubEconomicTool = createTool({
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-economic',
-      input: { economic_code: context.economic_code }
+      input: { economic_code: context.economic_code },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     await writer?.write({
