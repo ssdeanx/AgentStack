@@ -2,12 +2,19 @@
 
 ## Current Focus (Nov 2025)
 
-- **[Synced Nov 26, 2025]** `/memory-bank` fully aligned with codebase: 22+ agents; 30+ tools; 10 workflows; 4 networks; config/pg-storage active.
+- **[Synced Nov 27, 2025]** `/memory-bank` fully aligned with codebase: 22+ agents; 30+ tools; 10 workflows; 4 networks; config/pg-storage active.
+- **[NEW]** AI Elements UI library installed: 30 AI-focused components + 19 shadcn/ui base components.
+- **[NEW]** Next.js 16 frontend configured with Tailwind CSS 4, React 19, and dark mode support.
 - Maintain `/memory-bank` sync for session continuity.
 - Harden Mastra runtime (`src/mastra/index.ts`): A2A/MCP, Vitest coverage toward 97% per README.
 
 ```mermaid
 graph TB
+    subgraph Frontend["Frontend (Next.js 16)"]
+        App[app/]
+        AIElements["AI Elements (30 components)"]
+        ShadcnUI["shadcn/ui (19 components)"]
+    end
     subgraph Agents["Agents (22+ files)"]
         A2A[a2aCoordinatorAgent.ts]
         Research[researchAgent.ts]
@@ -45,6 +52,8 @@ graph TB
         DocWf[document-processing-workflow.ts]
         ResearchWf[research-synthesis-workflow.ts]
     end
+    Frontend --> Agents
+    AIElements --> ShadcnUI
     Agents --> Tools
     Networks --> Agents
     Networks --> Workflows
@@ -104,6 +113,35 @@ graph TB
 1. Run `npm run build` to verify compilation
 2. Test agents via API endpoints
 3. Add unit tests (optional enhancement)
+
+## Active Feature: AI Elements UI Library
+
+**Status:** ✅ Installed Nov 27, 2025  
+**Location:** `src/components/ai-elements/` (30 components) + `ui/` (19 base components)
+
+**AI Elements Components (30):**
+
+- **Chat**: `message.tsx`, `conversation.tsx`, `prompt-input.tsx`, `suggestion.tsx`
+- **AI Display**: `reasoning.tsx`, `chain-of-thought.tsx`, `plan.tsx`, `task.tsx`
+- **Tools**: `tool.tsx`, `code-block.tsx`, `artifact.tsx`, `sources.tsx`
+- **Canvas**: `canvas.tsx`, `node.tsx`, `edge.tsx`, `connection.tsx`, `controls.tsx`
+- **Feedback**: `loader.tsx`, `shimmer.tsx`, `progress.tsx`, `checkpoint.tsx`
+- **Context**: `context.tsx`, `panel.tsx`, `toolbar.tsx`, `queue.tsx`
+- **Interactive**: `confirmation.tsx`, `model-selector.tsx`, `open-in-chat.tsx`, `web-preview.tsx`, `image.tsx`, `inline-citation.tsx`
+
+**Base UI Components (19 in `ui/`):**
+
+`button`, `input`, `card`, `dialog`, `select`, `tooltip`, `dropdown-menu`, `hover-card`, `badge`, `alert`, `separator`, `collapsible`, `scroll-area`, `textarea`, `carousel`, `progress`, `command`, `button-group`, `input-group`
+
+**Tech Stack:**
+
+- Next.js 16 with App Router
+- React 19, Tailwind CSS 4
+- Radix UI primitives
+- Dark mode via CSS variables (oklch color space)
+- Streamdown for markdown streaming
+
+---
 
 ## Active Feature: Research & Document Processing Pipeline
 

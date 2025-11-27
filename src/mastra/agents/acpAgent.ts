@@ -1,7 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
-import { pgMemory } from '../config';
+import { gemini3Pro, pgMemory } from '../config';
 import { geminiLM } from '../config/acp-providers';
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
 
 export const acpAgent = new Agent({
   id: 'acp-agent',
@@ -28,9 +29,12 @@ Current user: ${userId ?? 'anonymous'}`,
       },
     };
   },
-  model: geminiLM,
+  model: gemini3Pro,
   memory: pgMemory,
   tools: {
+	...supermemoryTools(process.env.SUPERMEMORY_API_KEY ?? '', {
+		containerTags: ['acp-agent']
+	}),
   },
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 });

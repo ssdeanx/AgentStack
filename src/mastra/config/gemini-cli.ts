@@ -1,6 +1,7 @@
 import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli'
 import { logError } from './logger'
 import os from 'os'
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
 
 const useApiKey =
     (process.env.GOOGLE_GENERATIVE_AI_API_KEY !== undefined) ||
@@ -22,6 +23,28 @@ export const geminiAI = gemini('gemini-2.5-pro', {
     functionCalling: true,
     urlContext: true
 });
+
+
+
+export const gemini3Pro = gemini('gemini-3-pro-preview', {
+    contextWindow: 1048576, // 1MB
+    maxTokens: 65536,
+    supportsStreaming: true,
+    thinkingBudget: -1,
+    showThoughts: true,
+    codeexecution: true,
+    structuredOutput: true,
+    functionCalling: true,
+    urlContext: true
+});
+
+export const googleWithMemory = withSupermemory(gemini3Pro, "geminiCLI", {
+   conversationId: "geminiCLI-conversation",
+   verbose: true,
+   mode: "full",
+   addMemory: "always"
+});
+
 export const geminiAIFlash = gemini('gemini-2.5-flash', {
     contextWindow: 1048576, // 1MB
     maxTokens: 65536,
