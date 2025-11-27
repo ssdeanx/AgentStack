@@ -8,7 +8,7 @@ import {
   SensitiveDataFilter,
 } from "@mastra/core/ai-tracing";
 import { ArizeExporter } from "@mastra/arize";
-
+import { LangfuseExporter } from "@mastra/langfuse";
 // Config
 import { pgVector } from './config/pg-storage';
 import { log } from './config/logger';
@@ -122,7 +122,10 @@ export const mastra = new Mastra({
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes },
   storage: new LibSQLStore({
-    url: "file:./mastra.db",
+    url: process.env.TURSO_URL ?? "file:./mastra.db",
+    authToken: process.env.TURSO_AUTH_TOKEN,
+    maxRetries: 5,
+    initialBackoffMs: 200,
   }),
   vectors: { pgVector },
   logger: log,
@@ -132,6 +135,43 @@ export const mastra = new Mastra({
   },
   observability: {
     configs: {
+      langfuse: {
+        serviceName: "ai",
+        sampling: { type: SamplingStrategyType.ALWAYS },
+        processors: [new SensitiveDataFilter(
+          {
+            sensitiveFields: ['api-key', 'authorization', 'password', 'token',
+              'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
+            redactionToken: '[REDACTED]',
+            redactionStyle: 'partial'
+          }
+        )],
+        exporters: [
+          new LangfuseExporter({
+            publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
+            secretKey: process.env.LANGFUSE_SECRET_KEY!,
+            baseUrl: process.env.LANGFUSE_BASE_URL,
+            realtime: true,
+            logger: log,
+            logLevel: 'debug',
+            options: {
+              environment: process.env.NODE_ENV,
+            },
+          }),
+          new CloudExporter(
+          { logger: log, logLevel: 'debug' }),
+          new DefaultExporter(
+            {
+              maxBatchSize: 100,
+              maxBufferSize: 500,
+              maxBatchWaitMs: 700,
+              maxRetries: 3,
+              retryDelayMs: 500,
+              strategy: 'auto'
+            }
+          )
+        ],
+      },
       default: {
         serviceName: "mastra",
         sampling: { type: SamplingStrategyType.ALWAYS },
@@ -180,7 +220,7 @@ export const mastra = new Mastra({
     ]
   },
   bundler: {
-    externals: ["playwright-core", "crawlee"],
+    externals: ["playwright", "crawlee"],
   }
 });
 

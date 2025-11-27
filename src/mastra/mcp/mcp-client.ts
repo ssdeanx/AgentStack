@@ -7,6 +7,9 @@ const neo4jUsername = process.env.NEO4J_USERNAME
 const neo4jUri = process.env.NEO4J_URI
 const NEO4J_DATABASE = process.env.NEO4J_DATABASE ?? "neo4j"
 
+const Klavis = process.env.KLAVIS_INSTANCE_ID;
+const strata = process.env.KLAVIS_STRATA;
+
 export const mcpTools = new MCPClient({
   id: "mcp-client",
   servers: {
@@ -14,52 +17,52 @@ export const mcpTools = new MCPClient({
       command: "npx",
       args: ["-y", "wikipedia-mcp"]
     },
-    chromedevtools: {
-			command: "npx",
-			args: ["-y", "chrome-devtools-mcp@latest"],
-		},
-    neo4jagentmemory: {
-			command: "npx",
-			args: [
-				"@knowall-ai/mcp-neo4j-agent-memory"
-			],
-			env: {
-				"NEO4J_URI": `${neo4jUri}`,
-				"NEO4J_USERNAME": `${neo4jUsername}`,
-				"NEO4J_PASSWORD": `${neo4jPassword}`,
-				"NEO4J_DATABASE": `${NEO4J_DATABASE}`
-			}
-		},
+//    chromedevtools: {
+//			command: "npx",
+//			args: ["-y", "chrome-devtools-mcp@latest"],
+//		},
+//    neo4jagentmemory: {
+//			command: "npx",
+//			args: [
+//				"@knowall-ai/mcp-neo4j-agent-memory"
+//			],
+//			env: {
+//				"NEO4J_URI": `${neo4jUri}`,
+//				"NEO4J_USERNAME": `${neo4jUsername}`,
+//				"NEO4J_PASSWORD": `${neo4jPassword}`,
+//				"NEO4J_DATABASE": `${NEO4J_DATABASE}`
+//			}
+//		},
     googleSheets: {
-      url: new URL("https://mcp.composio.dev/googlesheets/[private-url-path]"),
+      url: new URL(`https://gsheets-mcp-server.klavis.ai/mcp/?instance_id=${Klavis}`),
       sessionId: "google_sheets_session",
       reconnectionOptions: {
-              maxReconnectionDelay: 10000,
-              initialReconnectionDelay: 1000,
-              reconnectionDelayGrowFactor: 1.3,
-              maxRetries: 5,
-            },
+        maxReconnectionDelay: 10000,
+        initialReconnectionDelay: 1000,
+        reconnectionDelayGrowFactor: 1.3,
+        maxRetries: 5,
+      },
     },
     gh_grep: {
 			url: new URL("https://mcp.grep.app"),
       sessionId: "gh_grep_session",
       reconnectionOptions: {
-              maxReconnectionDelay: 10000,
-              initialReconnectionDelay: 1000,
-              reconnectionDelayGrowFactor: 1.3,
-              maxRetries: 5,
-            },
+        maxReconnectionDelay: 10000,
+        initialReconnectionDelay: 1000,
+        reconnectionDelayGrowFactor: 1.3,
+        maxRetries: 5,
+      },
 		},
-    docfork: {
-            url: new URL(`https://server.smithery.ai/@docfork/mcp/mcp?api_key=${smithry}&profile=${smithryProfile}`),
-            requestInit: {headers: {},},
-            sessionId: "docfork_session",
-            reconnectionOptions: {
-              maxReconnectionDelay: 10000,
-              initialReconnectionDelay: 1000,
-              reconnectionDelayGrowFactor: 1.3,
-              maxRetries: 5,
-            },
+    strata: {
+      url: new URL(`https://strata.klavis.ai/mcp/?strata_id=${strata}`),
+      requestInit: {headers: {},},
+      sessionId: "strata_session",
+      reconnectionOptions: {
+        maxReconnectionDelay: 10000,
+        initialReconnectionDelay: 1000,
+        reconnectionDelayGrowFactor: 1.3,
+        maxRetries: 5,
+      },
     },
   }
 });

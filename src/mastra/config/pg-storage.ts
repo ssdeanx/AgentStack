@@ -106,34 +106,35 @@ export const pgMemory = new Memory({
             template: `
 # User Profile & Context
 ## Personal Information
-    - Name:
-    - Role/Title:
-    - Organization:
-    - Location:
-    - Time Zone:
+ - Name:
+ - Role/Title:
+ - Organization:
+ - Location:
+ - Time Zone:
 
 ## Communication Preferences
-    - Preferred Communication Style:
-    - Response Length Preference:
-    - Technical Level:
+ - Preferred Communication Style:
+ - Response Length Preference:
+ - Technical Level:
 
 ## Current Context
-    - Active Projects:
-    - Current Goals:
-    - Recent Activities:
-    - Pain Points:
+ - Active Projects:
+ - Current Goals:
+ - Recent Activities:
+ - Pain Points:
 
 ## Long-term Memory
-    - Key Achievements:
-    - Important Relationships:
-    - Recurring Patterns:
-    - Preferences & Habits:
+ - Key Achievements:
+ - Important Relationships:
+ - Recurring Patterns:
+ - Preferences & Habits:
 
 ## Session Notes
-    - Today's Focus:
-    - Outstanding Questions:
-    - Action Items:
-    - Follow-ups Needed:
+ - Today's Focus: Testing the system
+ - Outstanding Questions:
+ - Action Items:
+ - Follow-ups Needed:
+
     `,
         },
         // Thread management with supported options
