@@ -1,6 +1,6 @@
 # Progress
 
-## What's Done **[Synced Nov 27 from dirs/AGENTS.md]**
+## What's Done **[Synced Nov 28 from dirs/AGENTS.md]**
 
 | Category | Status | Key Files/Details |
 |----------|--------|-------------------|
@@ -15,10 +15,17 @@
 | Config | ✅ | pg-storage.ts (PgVector/Postgres); models (google/openai/anthropic/openrouter/vertex/gemini-cli). |
 | Tests | Progress | Vitest data tools verified; target 97%. |
 | AGENTS.md Sync | ✅ | All AGENTS.md files updated Nov 27 with accurate counts, dates, and meta headers. |
-| **UI Components** | ✅ **NEW** | **49 files**: AI Elements (30 in `src/components/ai-elements/`) + shadcn/ui base (19 in `ui/`). Next.js 16, React 19, Tailwind CSS 4. |
+| **UI Components** | ✅ | **49 files**: AI Elements (30 in `src/components/ai-elements/`) + shadcn/ui base (19 in `ui/`). Next.js 16, React 19, Tailwind CSS 4. |
+| **Mastra Client SDK** | ✅ **NEW** | **lib/mastra-client.ts**: MastraClient instance for client-side agent calls. |
+| **Next.js Frontend** | ✅ **NEW** | **app/layout.tsx**: Root layout with ThemeProvider. **app/page.tsx**: Landing page with agent overview. **app/chat/page.tsx**: Client SDK demo with streaming. |
 
 ## What’s Next
-
+- **Mastra Client SDK Integration** (✅ Complete Nov 28):
+  - ✅ lib/mastra-client.ts: MastraClient instance
+  - ✅ app/layout.tsx: Root layout with ThemeProvider
+  - ✅ app/page.tsx: Landing page with agent overview
+  - ✅ app/chat/page.tsx: Client SDK demo with streaming
+  - ⬜ TASK-010: Enhanced chat with AI Elements (optional)
 - **UI/Frontend Development** (Ready to Start):
   - Build chat interface using AI Elements components
   - Create agent interaction pages

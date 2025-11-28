@@ -161,8 +161,37 @@ cp .env.example .env
 ### Run Dev Server
 
 ```bash
+# Terminal 1: Start Mastra backend (agents/tools/workflows at :4111)
 npm run dev
+
+# Terminal 2: Start Next.js frontend (at :3000)
+npm run dev:next
 ```
+
+### Next.js + Mastra Client SDK
+
+The frontend uses `@mastra/client-js` to interact with agents:
+
+```typescript
+// lib/mastra-client.ts
+import { MastraClient } from "@mastra/client-js";
+
+export const mastraClient = new MastraClient({
+  baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111",
+});
+
+// Usage in client components
+const agent = mastraClient.getAgent("weatherAgent");
+const response = await agent.stream({
+  messages: [{ role: "user", content: "Hello" }],
+});
+```
+
+**Pages:**
+
+- `/` - Landing page with agent overview
+- `/test` - Server action demo (SSR)
+- `/chat` - Client SDK demo (streaming)
 
 ### MCP Server (A2A)
 

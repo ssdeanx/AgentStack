@@ -215,15 +215,15 @@ export default function RootLayout({
 
 | ID | Title | Effort | Phase | Status |
 |----|-------|--------|-------|--------|
-| TASK-001 | Install @mastra/client-js | S | 1 | ⬜ |
-| TASK-002 | Create Mastra Client Instance | S | 1 | ⬜ |
-| TASK-003 | Add Environment Variable | S | 1 | ⬜ |
-| TASK-004 | Fix Root Layout | M | 2 | ⬜ |
-| TASK-005 | Create Landing Page | M | 2 | ⬜ |
-| TASK-006 | Create Chat Page | M | 3 | ⬜ |
-| TASK-007 | Add Streaming Support | M | 3 | ⬜ |
-| TASK-008 | Add Mastra Dev Script | S | 4 | ⬜ |
-| TASK-009 | Update README | S | 4 | ⬜ |
+| TASK-001 | Install @mastra/client-js | S | 1 | ✅ |
+| TASK-002 | Create Mastra Client Instance | S | 1 | ✅ |
+| TASK-003 | Add Environment Variable | S | 1 | ✅ |
+| TASK-004 | Fix Root Layout | M | 2 | ✅ |
+| TASK-005 | Create Landing Page | M | 2 | ✅ |
+| TASK-006 | Create Chat Page | M | 3 | ✅ |
+| TASK-007 | Add Streaming Support | M | 3 | ✅ |
+| TASK-008 | Add Mastra Dev Script | S | 4 | ✅ |
+| TASK-009 | Update README | S | 4 | ✅ |
 | TASK-010 | Create Chat with AI Elements | L | 5 | ⬜ |
 
 **Legend:** S = Small (< 30 min), M = Medium (30-60 min), L = Large (> 1 hr)
