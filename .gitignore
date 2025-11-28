@@ -118,3 +118,5 @@ gha-creds-*.json
 .stakpak
 stakpak.backup
 stakpak.exe
+opnapi.json
+openapi.json
