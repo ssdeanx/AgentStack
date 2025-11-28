@@ -113,3 +113,8 @@ gha-creds-*.json
 .kiro/steering/*.md
 .kilocode/mcp.json
 .zencoder/rules/*.md
+
+# Stakpak local files
+.stakpak
+stakpak.backup
+stakpak.exe

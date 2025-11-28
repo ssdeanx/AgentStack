@@ -66,7 +66,7 @@
     "@mastra/voice-google": "^0.11.12",
     "@mastra/voice-openai": "^0.11.12",
     "@mcpc-tech/acp-ai-provider": "^0.1.25",
-    "@openrouter/ai-sdk-provider": "^1.2.7",
+    "@openrouter/ai-sdk-provider": "^1.2.8",
     "@opentelemetry/api": "^1.9.0",
     "@opeoginni/github-copilot-openai-compatible": "^0.1.21",
     "@radix-ui/react-collapsible": "^1.1.12",
