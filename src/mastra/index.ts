@@ -8,7 +8,7 @@ import {
 } from "@mastra/core/ai-tracing";
 import { Mastra } from '@mastra/core/mastra';
 import { LangfuseExporter } from "@mastra/langfuse";
-import { LibSQLStore } from '@mastra/libsql';
+import { PostgresStore } from "@mastra/pg";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
@@ -69,6 +69,7 @@ import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
 
+
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -121,11 +122,13 @@ export const mastra = new Mastra({
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
-  storage: new LibSQLStore({
-    url: process.env.TURSO_URL ?? "file:./mastra.db",
-    authToken: process.env.TURSO_AUTH_TOKEN,
-    maxRetries: 5,
-    initialBackoffMs: 200,
+  storage: new PostgresStore({
+      // Connection configuration
+      connectionString:
+          process.env.SUPABASE ??
+          'postgresql://user:password@localhost:5432/mydb',
+      // Schema management
+      schemaName: process.env.DB_SCHEMA ?? 'mastra',
   }),
   vectors: { pgVector },
   logger: log,
@@ -135,8 +138,8 @@ export const mastra = new Mastra({
   },
   observability: {
     configs: {
-      langfuse: {
-        serviceName: "ai",
+      default: {
+        serviceName: "AgentStack",
         sampling: { type: SamplingStrategyType.ALWAYS },
         processors: [new SensitiveDataFilter(
           {
@@ -146,7 +149,8 @@ export const mastra = new Mastra({
             redactionStyle: 'partial'
           }
         )],
-        exporters: [
+        exporters: [new CloudExporter(
+          { logger: log, logLevel: 'debug' }),
           new LangfuseExporter({
             publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
             secretKey: process.env.LANGFUSE_SECRET_KEY!,
@@ -157,31 +161,6 @@ export const mastra = new Mastra({
             options: {
               environment: process.env.NODE_ENV,
             },
-          }),
-          new CloudExporter(
-          { logger: log, logLevel: 'debug' }),
-          new DefaultExporter(
-            {
-              maxBatchSize: 100,
-              maxBufferSize: 500,
-              maxBatchWaitMs: 700,
-              maxRetries: 3,
-              retryDelayMs: 500,
-              strategy: 'auto'
-            }
-          )
-        ],
-      },
-      default: {
-        serviceName: "mastra",
-        sampling: { type: SamplingStrategyType.ALWAYS },
-        processors: [new SensitiveDataFilter()],
-        exporters: [new CloudExporter(
-          { logger: log, logLevel: 'debug' }),
-          new ArizeExporter({
-            endpoint: process.env.PHOENIX_ENDPOINT!,
-            apiKey: process.env.PHOENIX_API_KEY,
-            projectName: process.env.PHOENIX_PROJECT_NAME,
           }), new DefaultExporter(
             {
               maxBatchSize: 100,

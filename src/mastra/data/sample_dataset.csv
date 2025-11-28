@@ -1,0 +1,815 @@
+attributes.llm.prompt_template.variables.local_info,attributes.metadata.ls_model_name,attributes.llm.prompt_template.variables.travel_style,attributes.llm.prompt_template.variables.duration,attributes.llm.prompt_template.variables.destination,attributes.llm.model_name,attributes.llm.invocation_parameters,attributes.llm.prompt_template.variables.budget_info,attributes.llm.prompt_template.variables.research,attributes.llm.prompt_template.variables,attributes.llm.prompt_template.template,input_system_message,input_user,output_content
+"**Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Explore regional Turkish dishes, especially from the southeastern regions.  
+2. **Mendel's** in Beşiktaş - A cozy spot for authentic Jewi",gpt-4o-mini,Standard,2 weeks,"Istanbul, Turkey",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $1,200 - $1,800 (mid-range hotels)  
+**Transport:** $200 (local transport and airport transfers)  
+**Food:** $600 (average $20/day)  
+**Activities:** $800 (museums, tours, etc.)  
+*","**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra","{""destination"": ""Istanbul, Turkey"", ""duration"": ""2 weeks"", ""travel_style"": ""Standard"", ""research"": ""**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.\n\n**Top 3 Attra"", ""budget_info"": ""**Accommodation:** $1,200 - $1,800 (mid-range hotels)  \n**Transport:** $200 (local transport and airport transfers)  \n**Food:** $600 (average $20/day)  \n**Activities:** $800 (museums, tours, etc.)  \n*"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Çiya Sofrası** in Kadıköy - Explore regional Turkish dishes, especially from the southeastern regions.  \n2. **Mendel's** in Beşiktaş - A cozy spot for authentic Jewi""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","2 weeks itinerary for Istanbul, Turkey (Standard style):
+
+Research: **Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra
+Budget: **Accommodation:** $1,200 - $1,800 (mid-range hotels)  
+**Transport:** $200 (local transport and airport transfers)  
+**Food:** $600 (average $20/day)  
+**Activities:** $800 (museums, tours, etc.)  
+*
+Local: **Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Explore regional Turkish dishes, especially from the southeastern regions.  
+2. **Mendel's** in Beşiktaş - A cozy spot for authentic Jewi
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival**  
+- 14:00 - Arrive at Istanbul Airport - $50 (transfer to hotel)  
+- 15:00 - Check-in at mid-range hotel - $100  
+- 17:00 - Stroll around Sultanahmet Square  
+- 19:00 - Dinner at **Çiya Sofrası** - $25  
+
+**Day 2: Historical Sites**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit Hagia Sophia - $15  
+- 12:00 - Lunch at local café - $10  
+- 13:30 - Visit Topkapi Palace - $15  
+- 17:00 - Explore Basilica Cistern - $5  
+- 19:00 - Dinner at **Mendel's** - $20  
+
+**Day 3: Bosphorus Tour**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Bosphorus cruise - $20  
+- 12:00 - Lunch on the boat - $15  
+- 14:00 - Visit Dolmabahçe Palace - $10  
+- 17:00 - Return to hotel  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 4: Grand Bazaar & Spice Market**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Explore Grand Bazaar - Free  
+- 12:00 - Lunch at nearby eatery - $10  
+- 14:00 - Visit Spice Market - Free  
+- 17:00 - Return to hotel  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 5: Asian Side**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Ferry to Kadıköy - $5  
+- 11:00 - Explore Kadıköy Market  
+- 13:00 - Lunch at **Çiya Sofrası** - $25  
+- 15:00 - Visit Moda neighborhood  
+- 17:00 - Return to European side - $5  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 6: Art & Culture**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit Istanbul Modern - $10  
+- 12:00 - Lunch at café - $10  
+- 14:00 - Explore Galata Tower - $10  
+- 17:00 - Walk across Galata Bridge  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 7: Free Day**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Optional activities (shopping, spa)  
+- 12:00 - Lunch at local café - $10  
+- 14:00 - Explore local neighborhoods  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 8: Day Trip to Princes' Islands**  
+- 08:00 - Breakfast at hotel  
+- 09:00 - Ferry to Büyükada - $10  
+- 10:30 - Rent a bike - $5  
+- 12:00 - Lunch at seaside restaurant - $15  
+- 15:00 - Explore the island  
+- 17:00 - Return to Istanbul - $10  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 9: Museums & Parks**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit Pera Museum - $10  
+- 12:00 - Lunch at nearby café - $10  
+- 14:00 - Stroll in Gulhane Park - Free  
+- 17:00 - Return to hotel  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 10: Culinary Experience**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Turkish cooking class - $50  
+- 13:00 - Enjoy your meal from class  
+- 15:00 - Free time for shopping  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 11: Explore Taksim**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit Taksim Square  
+- 12:00 - Lunch at local café - $10  
+- 14:00 - Walk Istiklal Street  
+- 17:00 - Return to hotel  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 12: Relaxation Day**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit a Turkish bath - $30  
+- 12:00 - Lunch at local café - $10  
+- 14:00 - Free time for leisure  
+- 19:00 - Dinner at local restaurant - $20  
+
+**Day 13: Last-Minute Sightseeing**  
+- 09:00 - Breakfast at hotel  
+- 10:00 - Visit Chora Church - $10  
+- 12:00 - Lunch at nearby café - $10  
+- 14:00 - Last-minute shopping  
+- 19:00 - Farewell dinner at local restaurant - $30  
+
+**Day 14: Departure**  
+- 09:00 - Breakfast at hotel  
+- 11:00 - Check-out and transfer to airport - $50  
+- 14:00 - Depart Istanbul.  
+
+**Total Estimated Cost:** $2,500 - $3,000 (excluding flights)."
+"**Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  
+2. **Mendel's** in Beşiktaş - A cozy spot for homemade pasta and fresh",gpt-4o-mini,family-friendly,1 week,"Istanbul, Turkey",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $1,400 - $2,800 (mid-range hotels)  
+**Transport:** $100 - $200 (local transport and airport transfers)  
+**Food:** $350 - $700 (daily meals)  
+**Activities:** $500 - $1,000 (tours,","**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra","{""destination"": ""Istanbul, Turkey"", ""duration"": ""1 week"", ""travel_style"": ""family-friendly"", ""research"": ""**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.\n\n**Top 3 Attra"", ""budget_info"": ""**Accommodation:** $1,400 - $2,800 (mid-range hotels)  \n**Transport:** $100 - $200 (local transport and airport transfers)  \n**Food:** $350 - $700 (daily meals)  \n**Activities:** $500 - $1,000 (tours,"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  \n2. **Mendel's** in Beşiktaş - A cozy spot for homemade pasta and fresh""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","1 week itinerary for Istanbul, Turkey (family-friendly style):
+
+Research: **Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra
+Budget: **Accommodation:** $1,400 - $2,800 (mid-range hotels)  
+**Transport:** $100 - $200 (local transport and airport transfers)  
+**Food:** $350 - $700 (daily meals)  
+**Activities:** $500 - $1,000 (tours,
+Local: **Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  
+2. **Mendel's** in Beşiktaş - A cozy spot for homemade pasta and fresh
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival**  
+- 10:00 AM - Arrive at Istanbul Airport  
+- 11:00 AM - Transfer to hotel (Mid-range) - $50  
+- 1:00 PM - Lunch at Mendel's - $60  
+- 3:00 PM - Explore Sultanahmet Square (free)  
+- 5:00 PM - Visit Hagia Sophia (free)  
+- 7:00 PM - Dinner at local restaurant - $80  
+
+**Day 2: Historical Sites**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 10:00 AM - Visit Topkapi Palace - $15  
+- 1:00 PM - Lunch at Çiya Sofrası - $70  
+- 3:00 PM - Explore Basilica Cistern - $5  
+- 5:00 PM - Tram to Taksim Square - $2  
+- 7:00 PM - Dinner at local restaurant - $80  
+
+**Day 3: Bosphorus Cruise**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 10:00 AM - Bosphorus cruise - $20  
+- 12:00 PM - Lunch on the cruise - $30  
+- 2:00 PM - Visit Dolmabahçe Palace - $15  
+- 5:00 PM - Return to hotel  
+- 7:00 PM - Dinner at local restaurant - $80  
+
+**Day 4: Asian Side**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 10:00 AM - Ferry to Kadıköy - $2  
+- 11:00 AM - Explore Kadıköy Market (free)  
+- 1:00 PM - Lunch at Çiya Sofrası - $70  
+- 3:00 PM - Visit Moda Park (free)  
+- 5:00 PM - Return ferry to European side - $2  
+- 7:00 PM - Dinner at local restaurant - $80  
+
+**Day 5: Culture & Shopping**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 10:00 AM - Visit Istanbul Modern - $10  
+- 1:00 PM - Lunch at nearby café - $50  
+- 3:00 PM - Shopping at Grand Bazaar (free entry)  
+- 6:00 PM - Dinner at local restaurant - $80  
+
+**Day 6: Family Fun**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 10:00 AM - Visit Miniaturk - $10  
+- 1:00 PM - Lunch at nearby café - $50  
+- 3:00 PM - Explore Rahmi M. Koç Museum - $10  
+- 6:00 PM - Dinner at local restaurant - $80  
+
+**Day 7: Departure**  
+- 9:00 AM - Breakfast at hotel (included)  
+- 11:00 AM - Last-minute shopping in Taksim - $50  
+- 1:00 PM - Lunch at local restaurant - $80  
+- 3:00 PM - Transfer to airport - $50  
+- 5:00 PM - Depart Istanbul"
+"**Hidden Gem Restaurants:**  
+1. **Bu Qtair** - A casual seafood spot near the beach, known for its fresh catch and simple spices.  
+2. **Ravi Restaurant** - A beloved Pakistani eatery in Satwa, famou",gpt-4o-mini,Standard,7 days,"Dubai, UAE",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Budget Options for 7 Days in Dubai:**
+
+**Low Budget:**
+- Accommodation: $200 (hostels)
+- Transport: $50 (public transport)
+- Food: $150 (street food)
+- Activities: $100 (free/low-cost attractions)
+-","**Weather/Best Time:** The best time to visit Dubai is from November to March when temperatures range from 24°C to 30°C (75°F to 86°F). Summer months can exceed 40°C (104°F).
+
+**Top 3 Attractions:**
+1","{""destination"": ""Dubai, UAE"", ""duration"": ""7 days"", ""travel_style"": ""Standard"", ""research"": ""**Weather/Best Time:** The best time to visit Dubai is from November to March when temperatures range from 24°C to 30°C (75°F to 86°F). Summer months can exceed 40°C (104°F).\n\n**Top 3 Attractions:**\n1"", ""budget_info"": ""**Budget Options for 7 Days in Dubai:**\n\n**Low Budget:**\n- Accommodation: $200 (hostels)\n- Transport: $50 (public transport)\n- Food: $150 (street food)\n- Activities: $100 (free/low-cost attractions)\n-"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Bu Qtair** - A casual seafood spot near the beach, known for its fresh catch and simple spices.  \n2. **Ravi Restaurant** - A beloved Pakistani eatery in Satwa, famou""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","7 days itinerary for Dubai, UAE (Standard style):
+
+Research: **Weather/Best Time:** The best time to visit Dubai is from November to March when temperatures range from 24°C to 30°C (75°F to 86°F). Summer months can exceed 40°C (104°F).
+
+**Top 3 Attractions:**
+1
+Budget: **Budget Options for 7 Days in Dubai:**
+
+**Low Budget:**
+- Accommodation: $200 (hostels)
+- Transport: $50 (public transport)
+- Food: $150 (street food)
+- Activities: $100 (free/low-cost attractions)
+-
+Local: **Hidden Gem Restaurants:**  
+1. **Bu Qtair** - A casual seafood spot near the beach, known for its fresh catch and simple spices.  
+2. **Ravi Restaurant** - A beloved Pakistani eatery in Satwa, famou
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival**  
+- 10:00 AM - Check-in at hostel - $30  
+- 12:00 PM - Lunch at Ravi Restaurant - $10  
+- 2:00 PM - Visit Dubai Mall (free)  
+- 5:00 PM - Watch the Dubai Fountain (free)  
+- 7:00 PM - Dinner at Bu Qtair - $15  
+- 9:00 PM - Return to hostel - $5  
+
+**Day 2: Burj Khalifa & Old Dubai**  
+- 9:00 AM - Breakfast at hostel - $5  
+- 10:00 AM - Burj Khalifa observation deck - $40  
+- 1:00 PM - Lunch at local café - $10  
+- 2:30 PM - Explore Al Fahidi Historical District (free)  
+- 5:00 PM - Visit Dubai Museum - $3  
+- 7:00 PM - Dinner at local eatery - $10  
+- 9:00 PM - Return to hostel - $5  
+
+**Day 3: Desert Safari**  
+- 8:00 AM - Breakfast at hostel - $5  
+- 9:00 AM - Free time at Jumeirah Beach (free)  
+- 1:00 PM - Lunch at beach café - $10  
+- 3:00 PM - Desert Safari tour - $60  
+- 8:00 PM - Dinner included in safari  
+- 10:00 PM - Return to hostel - $5  
+
+**Day 4: Modern Dubai**  
+- 9:00 AM - Breakfast at hostel - $5  
+- 10:00 AM - Visit Dubai Marina (free)  
+- 1:00 PM - Lunch at Marina Walk - $15  
+- 3:00 PM - Explore Palm Jumeirah (free)  
+- 6:00 PM - Visit Atlantis Aquaventure (entry $70)  
+- 8:00 PM - Dinner at Atlantis - $20  
+- 10:00 PM - Return to hostel - $5  
+
+**Day 5: Cultural Day**  
+- 9:00 AM - Breakfast at hostel - $5  
+- 10:00 AM - Visit Sheikh Mohammed Centre (free)  
+- 1:00 PM - Lunch at local café - $10  
+- 3:00 PM - Explore Global Village (entry $5)  
+- 7:00 PM - Dinner at local restaurant - $10  
+- 9:00 PM - Return to hostel - $5  
+
+**Day 6: Shopping & Relaxation**  
+- 9:00 AM - Breakfast at hostel - $5  
+- 10:00 AM - Visit Gold & Spice Souks (free)  
+- 1:00 PM - Lunch at local eatery - $10  
+- 3:00 PM - Relax at hotel pool (free)  
+- 6:00 PM - Visit Mall of the Emirates (free)  
+- 8:00 PM - Dinner at food court - $15  
+- 10:00 PM - Return to hostel - $5  
+
+**Day 7: Departure**  
+- 9:00 AM - Breakfast at hostel - $5  
+- 10:00 AM - Last-minute shopping - $20  
+- 1:00 PM - Lunch at local café - $10  
+- 3:00 PM - Check-out and transport to airport - $10  
+- Total Estimated Cost: $525"
+"**Hidden Gem Restaurants:**  
+1. **Nopa** - A cozy spot in the Western Addition, known for its wood-fired dishes and seasonal ingredients.  
+2. **Saison** - A Michelin-starred gem in the Mission, offe",gpt-4o-mini,mid-range,1 week,sfo,gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $350 - $500  
+**Transport:** $100 (public transport/rideshares)  
+**Food:** $200 (average $28/day)  
+**Activities:** $200 (museums, parks, tours)  
+**Total Estimate:** $950 - $1,000","**Weather/Best Time:**  
+Best time to visit San Francisco is September to November for mild weather (60-70°F) and fewer tourists. Expect fog in summer.
+
+**Top 3 Attractions:**  
+1. **Golden Gate Bridg","{""destination"": ""sfo"", ""duration"": ""1 week"", ""travel_style"": ""mid-range"", ""research"": ""**Weather/Best Time:**  \nBest time to visit San Francisco is September to November for mild weather (60-70°F) and fewer tourists. Expect fog in summer.\n\n**Top 3 Attractions:**  \n1. **Golden Gate Bridg"", ""budget_info"": ""**Accommodation:** $350 - $500  \n**Transport:** $100 (public transport/rideshares)  \n**Food:** $200 (average $28/day)  \n**Activities:** $200 (museums, parks, tours)  \n**Total Estimate:** $950 - $1,000"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Nopa** - A cozy spot in the Western Addition, known for its wood-fired dishes and seasonal ingredients.  \n2. **Saison** - A Michelin-starred gem in the Mission, offe""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","1 week itinerary for sfo (mid-range style):
+
+Research: **Weather/Best Time:**  
+Best time to visit San Francisco is September to November for mild weather (60-70°F) and fewer tourists. Expect fog in summer.
+
+**Top 3 Attractions:**  
+1. **Golden Gate Bridg
+Budget: **Accommodation:** $350 - $500  
+**Transport:** $100 (public transport/rideshares)  
+**Food:** $200 (average $28/day)  
+**Activities:** $200 (museums, parks, tours)  
+**Total Estimate:** $950 - $1,000
+Local: **Hidden Gem Restaurants:**  
+1. **Nopa** - A cozy spot in the Western Addition, known for its wood-fired dishes and seasonal ingredients.  
+2. **Saison** - A Michelin-starred gem in the Mission, offe
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival**  
+3:00 PM - Check-in at hotel - $400  
+5:00 PM - Dinner at Nopa - $50  
+7:00 PM - Explore Alamo Square Park - Free  
+9:00 PM - Return to hotel - $10  
+
+**Day 2: Golden Gate Park**  
+8:00 AM - Breakfast at hotel - Free  
+9:00 AM - Visit Golden Gate Park (Japanese Tea Garden) - $15  
+12:00 PM - Lunch at park café - $20  
+1:30 PM - Explore California Academy of Sciences - $40  
+5:00 PM - Dinner at Saison - $100  
+7:00 PM - Return to hotel - $10  
+
+**Day 3: Golden Gate Bridge**  
+8:00 AM - Breakfast at hotel - Free  
+9:00 AM - Walk Golden Gate Bridge - Free  
+11:00 AM - Visit Marin Headlands - Free  
+1:00 PM - Lunch at local café - $20  
+3:00 PM - Explore Presidio - Free  
+6:00 PM - Dinner at local restaurant - $30  
+8:00 PM - Return to hotel - $10  
+
+**Day 4: Fisherman’s Wharf**  
+8:00 AM - Breakfast at hotel - Free  
+10:00 AM - Visit Pier 39 - Free  
+12:00 PM - Lunch at Boudin Bakery - $25  
+2:00 PM - Sea Lion viewing - Free  
+4:00 PM - Ride on Bay Cruise - $40  
+6:00 PM - Dinner at Fisherman’s Wharf - $40  
+8:00 PM - Return to hotel - $10  
+
+**Day 5: Chinatown & North Beach**  
+8:00 AM - Breakfast at hotel - Free  
+10:00 AM - Explore Chinatown - Free  
+12:00 PM - Dim Sum lunch - $30  
+2:00 PM - Visit Coit Tower - $10  
+4:00 PM - Stroll through North Beach - Free  
+6:00 PM - Dinner at local Italian restaurant - $40  
+8:00 PM - Return to hotel - $10  
+
+**Day 6: Mission District**  
+8:00 AM - Breakfast at hotel - Free  
+10:00 AM - Explore Mission murals - Free  
+12:00 PM - Lunch at local taqueria - $15  
+2:00 PM - Visit Mission Dolores Park - Free  
+4:00 PM - Coffee at local café - $5  
+6:00 PM - Dinner at local restaurant - $30  
+8:00 PM - Return to hotel - $10  
+
+**Day 7: Departure**  
+8:00 AM - Breakfast at hotel - Free  
+10:00 AM - Last-minute shopping - $50  
+12:00 PM - Check-out and transport to airport - $30"
+"**Hidden Gem Restaurants:**  
+1. **Baan Khanitha** - Authentic Thai cuisine in a charming house setting.  
+2. **Savoey Seafood** - Fresh seafood with a local twist, located near the beach.
+
+**Cultural",gpt-4o-mini,solo traveler,1 month,"Bangkok, Thailand",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $1,200 - $2,000 (mid-range hotels)  
+**Transport:** $200 - $300 (public transport/taxis)  
+**Food:** $600 - $900 (local dining)  
+**Activities:** $800 - $1,200 (tours, attractions)","**Weather/Best Time:** Bangkok has a tropical climate. The best time to visit is from November to February when temperatures are cooler (20-30°C) and humidity is lower.
+
+**Top 3 Attractions:**
+1. **Gr","{""destination"": ""Bangkok, Thailand"", ""duration"": ""1 month"", ""travel_style"": ""solo traveler"", ""research"": ""**Weather/Best Time:** Bangkok has a tropical climate. The best time to visit is from November to February when temperatures are cooler (20-30°C) and humidity is lower.\n\n**Top 3 Attractions:**\n1. **Gr"", ""budget_info"": ""**Accommodation:** $1,200 - $2,000 (mid-range hotels)  \n**Transport:** $200 - $300 (public transport/taxis)  \n**Food:** $600 - $900 (local dining)  \n**Activities:** $800 - $1,200 (tours, attractions) "", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Baan Khanitha** - Authentic Thai cuisine in a charming house setting.  \n2. **Savoey Seafood** - Fresh seafood with a local twist, located near the beach.\n\n**Cultural""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","1 month itinerary for Bangkok, Thailand (solo traveler style):
+
+Research: **Weather/Best Time:** Bangkok has a tropical climate. The best time to visit is from November to February when temperatures are cooler (20-30°C) and humidity is lower.
+
+**Top 3 Attractions:**
+1. **Gr
+Budget: **Accommodation:** $1,200 - $2,000 (mid-range hotels)  
+**Transport:** $200 - $300 (public transport/taxis)  
+**Food:** $600 - $900 (local dining)  
+**Activities:** $800 - $1,200 (tours, attractions) 
+Local: **Hidden Gem Restaurants:**  
+1. **Baan Khanitha** - Authentic Thai cuisine in a charming house setting.  
+2. **Savoey Seafood** - Fresh seafood with a local twist, located near the beach.
+
+**Cultural
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: 9 AM - Arrival at Suvarnabhumi Airport - $10 (taxi)**  
+11 AM - Check-in at hotel - $50  
+1 PM - Lunch at Baan Khanitha - $15  
+3 PM - Visit Grand Palace - $15  
+6 PM - Dinner at local street food - $5  
+8 PM - Explore Khao San Road - Free  
+
+**Day 2: 8 AM - Breakfast at hotel - $10**  
+9 AM - Visit Wat Pho - $5  
+12 PM - Lunch at Savoey Seafood - $20  
+2 PM - Boat ride on Chao Phraya River - $2  
+4 PM - Visit Wat Arun - $3  
+7 PM - Dinner at local restaurant - $10  
+
+**Day 3: 9 AM - Breakfast at hotel - $10**  
+10 AM - Chatuchak Weekend Market - Free  
+1 PM - Lunch at market - $5  
+3 PM - Visit Jim Thompson House - $6  
+6 PM - Dinner at local eatery - $8  
+8 PM - Night market exploration - Free  
+
+**Day 4: 9 AM - Breakfast at hotel - $10**  
+10 AM - Day trip to Ayutthaya - $30 (tour)  
+1 PM - Lunch in Ayutthaya - $10  
+5 PM - Return to Bangkok - $10 (transport)  
+7 PM - Dinner at local restaurant - $10  
+
+**Day 5: 9 AM - Breakfast at hotel - $10**  
+10 AM - Visit Erawan Shrine - Free  
+12 PM - Lunch at nearby café - $8  
+2 PM - Explore Lumpini Park - Free  
+6 PM - Dinner at local restaurant - $10  
+8 PM - Rooftop bar visit - $20  
+
+**Days 6-30: Repeat similar structure with variations in attractions, dining, and local experiences.**  
+**Total Estimated Cost: $2,500 - $3,500**"
+"**Hidden Gem Restaurants:**  
+1. **Kopar** - A cozy spot by the harbor, known for its fresh seafood and local lamb dishes.  
+2. **Sjávargrillið** - Offers a unique twist on traditional Icelandic cuisi",gpt-4o-mini,adventure,long weekend,"Reykjavik, Iceland",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $800 - $1,200 (3 nights)  
+**Transport:** $300 (round-trip flights) + $100 (local transport)  
+**Food:** $300 (3 days)  
+**Activities:** $400 (tours, museums)  
+**Total Estimate:**",**Weather/Best Time:** The best time to visit Reykjavik is from June to August for mild temperatures (10-15°C) and long daylight hours. Winter (December-February) offers a chance to see the Northern L,"{""destination"": ""Reykjavik, Iceland"", ""duration"": ""long weekend"", ""travel_style"": ""adventure"", ""research"": ""**Weather/Best Time:** The best time to visit Reykjavik is from June to August for mild temperatures (10-15°C) and long daylight hours. Winter (December-February) offers a chance to see the Northern L"", ""budget_info"": ""**Accommodation:** $800 - $1,200 (3 nights)  \n**Transport:** $300 (round-trip flights) + $100 (local transport)  \n**Food:** $300 (3 days)  \n**Activities:** $400 (tours, museums)  \n**Total Estimate:** "", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Kopar** - A cozy spot by the harbor, known for its fresh seafood and local lamb dishes.  \n2. **Sjávargrillið** - Offers a unique twist on traditional Icelandic cuisi""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","long weekend itinerary for Reykjavik, Iceland (adventure style):
+
+Research: **Weather/Best Time:** The best time to visit Reykjavik is from June to August for mild temperatures (10-15°C) and long daylight hours. Winter (December-February) offers a chance to see the Northern L
+Budget: **Accommodation:** $800 - $1,200 (3 nights)  
+**Transport:** $300 (round-trip flights) + $100 (local transport)  
+**Food:** $300 (3 days)  
+**Activities:** $400 (tours, museums)  
+**Total Estimate:** 
+Local: **Hidden Gem Restaurants:**  
+1. **Kopar** - A cozy spot by the harbor, known for its fresh seafood and local lamb dishes.  
+2. **Sjávargrillið** - Offers a unique twist on traditional Icelandic cuisi
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival in Reykjavik**  
+- 10:00 AM - Arrive at Keflavik Airport  
+- 11:00 AM - Transfer to Reykjavik (Bus) - $30  
+- 12:00 PM - Check-in at hotel - $300  
+- 1:00 PM - Lunch at Kopar - $30  
+- 2:30 PM - Explore Harpa Concert Hall - Free  
+- 4:00 PM - Visit Sun Voyager - Free  
+- 6:00 PM - Dinner at Sjávargrillið - $40  
+- 8:00 PM - Evening stroll along Laugavegur Street - Free  
+
+**Day 2: Golden Circle Tour**  
+- 8:00 AM - Breakfast at hotel - Included  
+- 9:00 AM - Golden Circle Tour (Geysir, Gullfoss, Þingvellir) - $100  
+- 5:00 PM - Return to Reykjavik  
+- 6:00 PM - Dinner at local bistro - $40  
+- 8:00 PM - Relax at a local bar - $20  
+
+**Day 3: South Coast Adventure**  
+- 7:00 AM - Breakfast at hotel - Included  
+- 8:00 AM - South Coast Tour (Seljalandsfoss, Skógafoss, Reynisfjara) - $120  
+- 6:00 PM - Return to Reykjavik  
+- 7:00 PM - Dinner at a local food truck - $20  
+- 9:00 PM - Northern Lights tour (if in season) - $100  
+
+**Day 4: Departure**  
+- 8:00 AM - Breakfast at hotel - Included  
+- 10:00 AM - Last-minute shopping - $50  
+- 12:00 PM - Transfer to Keflavik Airport (Bus) - $30  
+- 2:00 PM - Depart Reykjavik"
+"**Hidden Gem Restaurants:**  
+1. **Can Culleretes** - Barcelona's oldest restaurant, serving traditional Catalan dishes in a charming, historic setting.  
+2. **La Cova Fumada** - A local favorite in B",gpt-4o-mini,group travel,weekend,"Barcelona, Spain",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $800 - $1,200 (3 nights in mid-range hotel)  
+**Transport:** $150 (round-trip flights) + $50 (local transport)  
+**Food:** $300 (3 days, $100/day)  
+**Activities:** $400 (museums, t","**Weather/Best Time:** Best time to visit Barcelona is from April to June and September to October for mild weather (average 20-25°C).
+
+**Top 3 Attractions:**
+1. **Sagrada Familia:** Iconic basilica b","{""destination"": ""Barcelona, Spain"", ""duration"": ""weekend"", ""travel_style"": ""group travel"", ""research"": ""**Weather/Best Time:** Best time to visit Barcelona is from April to June and September to October for mild weather (average 20-25°C).\n\n**Top 3 Attractions:**\n1. **Sagrada Familia:** Iconic basilica b"", ""budget_info"": ""**Accommodation:** $800 - $1,200 (3 nights in mid-range hotel)  \n**Transport:** $150 (round-trip flights) + $50 (local transport)  \n**Food:** $300 (3 days, $100/day)  \n**Activities:** $400 (museums, t"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Can Culleretes** - Barcelona's oldest restaurant, serving traditional Catalan dishes in a charming, historic setting.  \n2. **La Cova Fumada** - A local favorite in B""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","weekend itinerary for Barcelona, Spain (group travel style):
+
+Research: **Weather/Best Time:** Best time to visit Barcelona is from April to June and September to October for mild weather (average 20-25°C).
+
+**Top 3 Attractions:**
+1. **Sagrada Familia:** Iconic basilica b
+Budget: **Accommodation:** $800 - $1,200 (3 nights in mid-range hotel)  
+**Transport:** $150 (round-trip flights) + $50 (local transport)  
+**Food:** $300 (3 days, $100/day)  
+**Activities:** $400 (museums, t
+Local: **Hidden Gem Restaurants:**  
+1. **Can Culleretes** - Barcelona's oldest restaurant, serving traditional Catalan dishes in a charming, historic setting.  
+2. **La Cova Fumada** - A local favorite in B
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival & Exploration**  
+- 10:00 AM - Arrive in Barcelona  
+- 11:00 AM - Check into hotel ($300)  
+- 12:00 PM - Lunch at Can Culleretes ($25)  
+- 1:30 PM - Visit Sagrada Familia ($30)  
+- 4:00 PM - Explore Park Güell ($10)  
+- 7:00 PM - Dinner at La Cova Fumada ($30)  
+- 9:00 PM - Evening stroll in Gothic Quarter  
+- **Total Day 1 Cost:** $395  
+
+**Day 2: Culture & Cuisine**  
+- 8:00 AM - Breakfast at hotel  
+- 9:00 AM - Visit Picasso Museum ($15)  
+- 12:00 PM - Lunch at local café ($20)  
+- 1:30 PM - Visit Casa Batlló ($35)  
+- 4:00 PM - Relax at Barceloneta Beach  
+- 7:00 PM - Dinner at local tapas bar ($40)  
+- 9:00 PM - Flamenco show ($50)  
+- **Total Day 2 Cost:** $250  
+
+**Day 3: Departure**  
+- 8:00 AM - Breakfast at hotel  
+- 9:00 AM - Visit La Boqueria Market  
+- 11:00 AM - Last-minute shopping  
+- 1:00 PM - Lunch at nearby restaurant ($25)  
+- 3:00 PM - Depart for airport  
+- **Total Day 3 Cost:** $25  
+
+**Overall Trip Cost:** $670 (excluding accommodation)"
+"**Hidden Gem Restaurants:**  
+1. **The Test Kitchen** - A unique dining experience in Woodstock, offering innovative dishes in a cozy setting.  
+2. **Kloof Street House** - A charming eatery with a lu",gpt-4o-mini,relaxation,long weekend,"Cape Town, South Africa",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $1,200 - $2,000 (3 nights in mid-range hotel)  
+**Transport:** $300 (flights) + $150 (local transport)  
+**Food:** $600 ($50/day)  
+**Activities:** $800 (tours, attractions)  
+**Tot","**Weather/Best Time:** The best time to visit Cape Town is from late October to April, with warm, dry weather. Peak summer (December-February) can be hot.
+
+**Top 3 Attractions:**
+1. **Table Mountain:*","{""destination"": ""Cape Town, South Africa"", ""duration"": ""long weekend"", ""travel_style"": ""relaxation"", ""research"": ""**Weather/Best Time:** The best time to visit Cape Town is from late October to April, with warm, dry weather. Peak summer (December-February) can be hot.\n\n**Top 3 Attractions:**\n1. **Table Mountain:*"", ""budget_info"": ""**Accommodation:** $1,200 - $2,000 (3 nights in mid-range hotel)  \n**Transport:** $300 (flights) + $150 (local transport)  \n**Food:** $600 ($50/day)  \n**Activities:** $800 (tours, attractions)  \n**Tot"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **The Test Kitchen** - A unique dining experience in Woodstock, offering innovative dishes in a cozy setting.  \n2. **Kloof Street House** - A charming eatery with a lu""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","long weekend itinerary for Cape Town, South Africa (relaxation style):
+
+Research: **Weather/Best Time:** The best time to visit Cape Town is from late October to April, with warm, dry weather. Peak summer (December-February) can be hot.
+
+**Top 3 Attractions:**
+1. **Table Mountain:*
+Budget: **Accommodation:** $1,200 - $2,000 (3 nights in mid-range hotel)  
+**Transport:** $300 (flights) + $150 (local transport)  
+**Food:** $600 ($50/day)  
+**Activities:** $800 (tours, attractions)  
+**Tot
+Local: **Hidden Gem Restaurants:**  
+1. **The Test Kitchen** - A unique dining experience in Woodstock, offering innovative dishes in a cozy setting.  
+2. **Kloof Street House** - A charming eatery with a lu
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival & Relaxation**  
+- 12:00 PM - Arrive in Cape Town, transfer to hotel - $50  
+- 1:30 PM - Lunch at Kloof Street House - $30  
+- 3:00 PM - Check-in at hotel - $400 (3 nights)  
+- 4:30 PM - Stroll along the V&A Waterfront - Free  
+- 6:00 PM - Dinner at The Test Kitchen - $100  
+- 8:00 PM - Evening walk on the beach - Free  
+
+**Day 2: Table Mountain & Scenic Views**  
+- 8:00 AM - Breakfast at hotel - Included  
+- 9:00 AM - Cable car to Table Mountain - $25  
+- 11:00 AM - Explore Table Mountain - Free  
+- 1:00 PM - Lunch at a café on the mountain - $20  
+- 3:00 PM - Return to hotel - $25  
+- 4:30 PM - Relax at hotel pool - Free  
+- 7:00 PM - Dinner at local seafood restaurant - $50  
+
+**Day 3: Cape Peninsula Tour**  
+- 7:30 AM - Breakfast at hotel - Included  
+- 9:00 AM - Full-day Cape Peninsula tour - $100  
+- 12:00 PM - Lunch at a beachside café - $25  
+- 5:00 PM - Return to hotel - Included  
+- 6:30 PM - Dinner at a local bistro - $40  
+
+**Day 4: Departure**  
+- 8:00 AM - Breakfast at hotel - Included  
+- 10:00 AM - Last-minute shopping at V&A Waterfront - Free  
+- 12:00 PM - Check-out and transfer to airport - $50  
+- 2:00 PM - Depart Cape Town - Included  
+
+**Total Estimated Cost: $2,000**"
+"**Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  
+2. **Mendel's** in Karaköy - A cozy spot for homemade Turkish pasta an",gpt-4o-mini,romantic,long weekend,"Istanbul, Turkey",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $30-$70 per night (hostels/hotels)  
+**Transport:** $10-$20 (public transport/taxis)  
+**Food:** $15-$30 per day  
+**Activities:** $20-$50 (museums, attractions)  
+
+**Total Estimate","**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra","{""destination"": ""Istanbul, Turkey"", ""duration"": ""long weekend"", ""travel_style"": ""romantic"", ""research"": ""**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.\n\n**Top 3 Attra"", ""budget_info"": ""**Accommodation:** $30-$70 per night (hostels/hotels)  \n**Transport:** $10-$20 (public transport/taxis)  \n**Food:** $15-$30 per day  \n**Activities:** $20-$50 (museums, attractions)  \n\n**Total Estimate"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  \n2. **Mendel's** in Karaköy - A cozy spot for homemade Turkish pasta an""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","long weekend itinerary for Istanbul, Turkey (romantic style):
+
+Research: **Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
+
+**Top 3 Attra
+Budget: **Accommodation:** $30-$70 per night (hostels/hotels)  
+**Transport:** $10-$20 (public transport/taxis)  
+**Food:** $15-$30 per day  
+**Activities:** $20-$50 (museums, attractions)  
+
+**Total Estimate
+Local: **Hidden Gem Restaurants:**  
+1. **Çiya Sofrası** in Kadıköy - Savor regional Turkish dishes with a focus on Anatolian flavors.  
+2. **Mendel's** in Karaköy - A cozy spot for homemade Turkish pasta an
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival & Sultanahmet**  
+10:00 AM - Arrive in Istanbul  
+11:00 AM - Check into hotel ($50)  
+12:00 PM - Lunch at Mendel's ($20)  
+1:30 PM - Visit Hagia Sophia ($15)  
+3:00 PM - Explore Blue Mosque (Free)  
+5:00 PM - Stroll through Sultanahmet Square  
+7:00 PM - Dinner at a rooftop restaurant ($30)  
+9:00 PM - Evening walk along the Bosphorus  
+
+**Day 2: Bosphorus & Asian Side**  
+8:00 AM - Breakfast at hotel (included)  
+9:00 AM - Bosphorus cruise ($20)  
+11:00 AM - Visit Dolmabahçe Palace ($15)  
+1:00 PM - Lunch at Çiya Sofrası ($20)  
+3:00 PM - Ferry to Kadıköy ($5)  
+4:00 PM - Explore Kadıköy Market  
+6:00 PM - Dinner at a local seafood restaurant ($30)  
+8:00 PM - Return to hotel  
+
+**Day 3: Art & Culture**  
+8:00 AM - Breakfast at hotel (included)  
+9:00 AM - Visit Istanbul Modern ($10)  
+11:00 AM - Explore Galata Tower ($10)  
+1:00 PM - Lunch at a café in Karaköy ($20)  
+3:00 PM - Visit Spice Bazaar (Free)  
+5:00 PM - Turkish tea at a local café ($5)  
+7:00 PM - Dinner at a romantic restaurant ($30)  
+9:00 PM - Night walk in Taksim Square  
+
+**Day 4: Departure**  
+8:00 AM - Breakfast at hotel (included)  
+10:00 AM - Last-minute shopping in Grand Bazaar  
+12:00 PM - Check out and depart  
+Total Estimated Cost: $400-$600 per person."
+"**Hidden Gem Restaurants:**  
+1. **Katz's Delicatessen** - Iconic for its pastrami sandwiches, this Lower East Side deli has been serving since 1888.  
+2. **Sushi Nakazawa** - A Michelin-starred sushi",gpt-4o-mini,mid-range,1 week,nyc,gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $600 (budget hotels/hostels)  
+**Transport:** $100 (subway/bus)  
+**Food:** $200 (average $28/day)  
+**Activities:** $100 (museums, parks, etc.)  
+**Total Estimate:** $1,000  
+
+This",**Weather/Best Time:** The best time to visit NYC is from late spring (May-June) and early fall (September-October) for mild weather and fewer crowds. Average temperatures range from 60°F to 75°F (15°,"{""destination"": ""nyc"", ""duration"": ""1 week"", ""travel_style"": ""mid-range"", ""research"": ""**Weather/Best Time:** The best time to visit NYC is from late spring (May-June) and early fall (September-October) for mild weather and fewer crowds. Average temperatures range from 60°F to 75°F (15°"", ""budget_info"": ""**Accommodation:** $600 (budget hotels/hostels)  \n**Transport:** $100 (subway/bus)  \n**Food:** $200 (average $28/day)  \n**Activities:** $100 (museums, parks, etc.)  \n**Total Estimate:** $1,000  \n\nThis"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Katz's Delicatessen** - Iconic for its pastrami sandwiches, this Lower East Side deli has been serving since 1888.  \n2. **Sushi Nakazawa** - A Michelin-starred sushi""}","{duration} itinerary for {destination} ({travel_style} style):
+
+Research: {research}
+Budget: {budget_info}
+Local: {local_info}
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","You are a concise trip planner. CRITICAL: Your response must be under 200 words and 1200 characters. Create day-by-day format with times, activities, and costs only.","1 week itinerary for nyc (mid-range style):
+
+Research: **Weather/Best Time:** The best time to visit NYC is from late spring (May-June) and early fall (September-October) for mild weather and fewer crowds. Average temperatures range from 60°F to 75°F (15°
+Budget: **Accommodation:** $600 (budget hotels/hostels)  
+**Transport:** $100 (subway/bus)  
+**Food:** $200 (average $28/day)  
+**Activities:** $100 (museums, parks, etc.)  
+**Total Estimate:** $1,000  
+
+This
+Local: **Hidden Gem Restaurants:**  
+1. **Katz's Delicatessen** - Iconic for its pastrami sandwiches, this Lower East Side deli has been serving since 1888.  
+2. **Sushi Nakazawa** - A Michelin-starred sushi
+
+Format: Day X: Time - Activity - Cost
+Include top attractions, meals, transport between locations.
+Be concise.","**Day 1: Arrival**  
+3:00 PM - Check-in at budget hotel/hostel - $100  
+5:00 PM - Walk in Central Park - Free  
+7:00 PM - Dinner at Katz's Delicatessen - $20  
+9:00 PM - Explore Lower East Side - Free  
+
+**Day 2: Midtown & Times Square**  
+9:00 AM - Breakfast at hotel - Free  
+10:00 AM - Visit Top of the Rock - $40  
+12:00 PM - Lunch at a local deli - $15  
+1:00 PM - Stroll through Times Square - Free  
+3:00 PM - Visit MoMA - $25  
+6:00 PM - Dinner at a nearby restaurant - $30  
+8:00 PM - Broadway show (discount ticket) - $50  
+
+**Day 3: Brooklyn**  
+9:00 AM - Breakfast at hotel - Free  
+10:00 AM - Subway to Brooklyn Bridge - $2.75  
+11:00 AM - Walk across Brooklyn Bridge - Free  
+12:00 PM - Lunch at a local pizzeria - $15  
+2:00 PM - Visit Brooklyn Museum - $16  
+5:00 PM - Dinner at a local restaurant - $25  
+7:00 PM - Return to Manhattan - $2.75  
+
+**Day 4: Museums**  
+9:00 AM - Breakfast at hotel - Free  
+10:00 AM - Visit American Museum of Natural History - $23  
+1:00 PM - Lunch at a nearby café - $15  
+3:00 PM - Explore Central Park - Free  
+6:00 PM - Dinner at a local restaurant - $30  
+
+**Day 5: Lower Manhattan**  
+9:00 AM - Breakfast at hotel - Free  
+10:00 AM - Visit 9/11 Memorial & Museum - $28  
+1:00 PM - Lunch at a food truck - $10  
+3:00 PM - Walk through Wall Street - Free  
+5:00 PM - Dinner at Sushi Nakazawa - $50  
+
+**Day 6: Shopping & Culture**  
+9:00 AM - Breakfast at hotel - Free  
+10:00 AM - Shopping in SoHo - Free (shopping costs vary)  
+1:00 PM - Lunch at a local café - $15  
+3:00 PM - Visit The High Line - Free  
+6:00 PM - Dinner at a local restaurant - $30  
+
+**Day 7: Departure**  
+9:00 AM - Breakfast at hotel - Free  
+11:00 AM - Last-minute sightseeing - Free  
+1:00 PM - Check-out and transport to airport - $20  
+Total Estimated Cost: $1,000"
