@@ -95,7 +95,11 @@ export const reportAgent = new Agent({
                         thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
+                    temperature: 0.2,
+                    topP: 1.0
                 }
             }
         }

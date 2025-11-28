@@ -1,6 +1,8 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAI, googleAIFlashLite, pgMemory } from '../config'
+import { grokAI } from '../config/copilot';
+import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors/processors';
 
 export const rechartsTypes = new Agent({
     id: 'recharts-types',
@@ -18,18 +20,18 @@ export const rechartsTypes = new Agent({
             ## Style Guide
 
     `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+          ///  providerOptions: {
+            //    google: {
+            //        thinkingConfig: {
+            //            thinkingLevel: 'medium',
+            //            includeThoughts: true,
+            //            thinkingBudget: -1,
+            //        }
+        //        }
+        //    }
         }
     },
-    model: googleAIFlashLite,
+    model: grokAI,
     memory: pgMemory,
     options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
@@ -53,7 +55,11 @@ export const rechartsIssueLabeler = new Agent({
                         thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
+                    temperature: 0.2,
+                    topP: 1.0,
                 }
             }
         }
@@ -88,7 +94,11 @@ export const rechartsLinkChecker = new Agent({
                         thinkingLevel: 'low',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
+                    temperature: 0.2,
+                    topP: 1.0
                 }
             }
         }
@@ -124,7 +134,11 @@ export const chartdesigner = new Agent({
                         thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
+                    temperature: 0.2,
+                    topP: 1.0
                 }
             }
         }
@@ -161,7 +175,11 @@ export const rechartsMaster = new Agent({
                         thinkingLevel: 'high',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
+                    temperature: 0.2,
+                    topP: 1.0
                 }
             }
         }
@@ -172,4 +190,26 @@ export const rechartsMaster = new Agent({
 
     },
     options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    scorers: {
+        // Add any custom scorers here
+    },
+    workflows: {
+        // Add any custom workflows here
+    },
+    inputProcessors: [
+        new UnicodeNormalizer({
+            stripControlChars: false,
+            collapseWhitespace: true,
+            preserveEmojis: true,
+            trim: true,
+        }),
+      ],
+      outputProcessors: [
+        new BatchPartsProcessor({
+          batchSize: 15,
+          maxWaitTime: 50,
+          emitOnNonText: true,
+        }),
+      ],
+    maxRetries: 5
 })

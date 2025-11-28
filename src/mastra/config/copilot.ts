@@ -3,6 +3,7 @@ import { createGitHubCopilotOpenAICompatible } from '@opeoginni/github-copilot-o
 const githubCopilot = createGitHubCopilotOpenAICompatible({
   baseURL: 'https://api.githubcopilot.com',
   name: 'githubcopilot',
+  apiKey: process.env.COPILOT_TOKEN,
   headers: {
     Authorization: `Bearer ${process.env.COPILOT_TOKEN}`,
     "Copilot-Integration-Id": "vscode-chat", // These configs must be provided
