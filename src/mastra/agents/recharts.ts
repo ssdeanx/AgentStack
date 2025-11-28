@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { googleAI, googleAIFlashLite, pgMemory } from '../config'
+import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
 import { log } from '../config/logger'
 import {
@@ -24,6 +24,7 @@ import {
 } from '../tools/finnhub-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import { chartDataProcessorTool, chartGeneratorTool, chartTypeAdvisorTool } from '../tools/financial-chart-tools'
+import { PGVECTOR_PROMPT } from "@mastra/pg";
 
 export interface FinancialChartAgentContext {
     userId?: string
@@ -444,6 +445,9 @@ Financial Data:
 - finnhubQuotesTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubAnalysisTool, finnhubTechnicalTool
 - alphaVantageStockTool
 - googleFinanceTool
+- chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool
+- pgQueryTool
+${PGVECTOR_PROMPT}
 </tools_available>
 
 <output_format>
@@ -499,10 +503,12 @@ Return comprehensive chart package:
         googleFinanceTool,
         chartGeneratorTool,
         chartDataProcessorTool,
-        chartTypeAdvisorTool
+        chartTypeAdvisorTool,
+        pgQueryTool
     },
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    options: { tracingPolicy: { internal: InternalSpans.MODEL}
+    },
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,

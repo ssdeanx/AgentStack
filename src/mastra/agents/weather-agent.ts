@@ -66,6 +66,6 @@ export const weatherAgent = new Agent({
     },
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
   maxRetries: 5
 });

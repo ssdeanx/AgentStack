@@ -79,7 +79,7 @@ export const sqlAgent = new Agent({
   tools: {
     pgExecute: tools.pgExecute,
   },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
   scorers: {
     sqlValidity: {
       scorer: sqlValidityScorer,

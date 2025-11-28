@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@mastra/*", "@ai-sdk/*", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
-  allowedDevOrigins: ['http://localhost:3000', 'http://localhost:4111', '**'],
+  serverExternalPackages: ["@mastra/*", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
+  allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: true,
   reactStrictMode: true,
   output: undefined,
@@ -15,10 +15,6 @@ const nextConfig: NextConfig = {
   cacheMaxMemorySize: 128 * 1024 * 1024, // 128 MB
   compiler: {
     emotion: true,
-  },
-  i18n: {
-    locales: ["en-US"],
-    defaultLocale: "en-US",
   },
   // TODO: enable this when we have a proper domain
   compress: true,
@@ -35,11 +31,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  exportPathMap: async function () {
-    return {
-      "/": { page: "/" },
-    };
-  },
+//  exportPathMap: async function () {
+//    return {
+//      "/": { page: "/" },
+//    };
+//  },
   experimental: {
 //    adapterPath: "./src/adapter/edge.ts",
     useSkewCookie: true,
@@ -48,30 +44,19 @@ const nextConfig: NextConfig = {
     prerenderEarlyExit: true,
     linkNoTouchStart: true,
     caseSensitiveRoutes: true,
-    clientParamParsingOrigins: [],
+//    clientParamParsingOrigins: [],
     dynamicOnHover: true,
     preloadEntriesOnStart: true,
     fetchCacheKeyPrefix: "",
     isrFlushToDisk: true,
-    urlImports: [],
+//    urlImports: [],
     workerThreads: true,
     disableOptimizedLoading: true,
     hideLogsAfterAbort: true,
     optimizeCss: true,
 //    swcPlugins: [["./src/swc-plugin.js", {}]],
 //    forceSwcTransforms: true,
-    typedRoutes: true,
     ppr: false,
-    serverComponentsExternalPackages: [
-      "@mastra/*",
-      "@ai-sdk/*",
-      "@mcpc-tech/*",
-      "@openrouter/*",
-      "@supermemory/*",
-      "playwright",
-      "playwright-core",
-      "crawlee"
-    ]
   },
 };
 

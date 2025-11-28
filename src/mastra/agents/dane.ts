@@ -3,8 +3,6 @@ import { InternalSpans } from '@mastra/core/ai-tracing'
 import { browserTool, googleSearch } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
-import { fsTool } from '../tools/fs.js'
-import { readPDF } from '../tools/pdf.js'
 import { googleAIFlashLite, pgMemory } from '../config'
 
 export const daneCommitMessage = new Agent({
@@ -193,11 +191,9 @@ export const dane = new Agent({
     model: googleAIFlashLite,
     memory: pgMemory,
     tools: {
-        fsTool,
         execaTool,
         browserTool,
         googleSearch,
-        readPDF,
         listEvents,
     },
     options: { tracingPolicy: { internal: InternalSpans.AGENT } },

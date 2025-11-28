@@ -244,7 +244,7 @@ export const stockAnalysisAgent = new Agent({
         googleFinanceTool,
     },
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    options: { tracingPolicy: { internal: InternalSpans.MODEL} },
     scorers: {
         responseQuality: {
             scorer: responseQualityScorer,

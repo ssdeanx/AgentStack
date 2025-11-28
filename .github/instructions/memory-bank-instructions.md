@@ -1,187 +1,425 @@
 ---
-description: "Guidelines for GitHub Copilot's Memory Bank and Project Instructions"
-applyTo: '**'
+name: Memory Bank & Context Engineering Instructions
+description: Instructions for GitHub Copilot on maintaining memory, loading context efficiently, recovering from resets, and managing tokens using the Memory Bank.
+argument-hint: Follow these instructions to effectively use the Memory Bank for context management, decision persistence, and task isolation.
+agent: agent
+applyTo: ['**.md', '**.prompt.md', '**/memory-bank/**']
 ---
-# Copilot Memory Bank & Project Instructions
+# Memory Bank & Context Engineering Instructions
 
-## Summary
+## Purpose
 
-This document defines how GitHub Copilot maintains project memory and context across sessions. Copilot’s memory resets between sessions, so all project knowledge must be captured in the Memory Bank to ensure continuity, accuracy, and effective collaboration.
+This document instructs GitHub Copilot on how to:
+
+1. **Maintain memory** across sessions using persistent Markdown files
+2. **Load context efficiently** using progressive loading (not all files upfront)
+3. **Recover from resets** by reading structured state files
+4. **Manage tokens** by compressing and isolating context
+
+**Key Insight:** Copilot's memory resets between sessions. The Memory Bank (`/memory-bank/`) is the single source of truth.
 
 ---
 
-## Core Principle
+## Quick Start: What to Do First
 
-**Copilot MUST read ALL memory bank files at the start of EVERY task.**
+### On Every New Task
 
-* No exceptions.
-* Use this checklist before any work:
+```markdown
+1. ALWAYS READ:
+   - projectbrief.md    → What is this project?
+   - activeContext.md   → What are we working on NOW?
+   - copilot-rules.md   → What rules must I follow?
 
-  * [ ] Read `projectbrief.md`
-  * [ ] Read `productContext.md`
-  * [ ] Read `systemPatterns.md`
-  * [ ] Read `techContext.md`
-  * [ ] Read `activeContext.md`
-  * [ ] Read `progress.md`
-  * [ ] Read `copilot-rules.md`
-  * [ ] Read any additional context files in `/memory-bank/`
+2. THEN READ (based on task):
+   - Requirements work  → + productContext.md
+   - Architecture work  → + systemPatterns.md, techContext.md
+   - Implementation     → + /memory-bank/<feature>/*.md
+   - Status check       → + progress.md
+```
+
+### On Context Reset (New Session)
+
+```markdown
+1. Read activeContext.md     → "Where did we leave off?"
+2. Read feature context.md   → "What decisions were made?"
+3. Read progress.md          → "What's done, what's pending?"
+4. Resume from last task
+```
 
 ---
 
 ## Memory Bank Structure
 
-The Memory Bank consists of required core files and optional context files, all in Markdown. Files build upon each other in a clear hierarchy:
+```markdown
+/memory-bank/
+├── `projectbrief.md`      ← ALWAYS LOAD: scope, goals
+├── `activeContext.md`     ← ALWAYS LOAD: current focus
+├── `copilot-rules.md`     ← ALWAYS LOAD: safety rules
+│
+├── `productContext.md`    ← ON DEMAND: user problems, UX goals
+├── `systemPatterns.md`    ← ON DEMAND: architecture patterns
+├── `techContext.md`       ← ON DEMAND: tech stack, constraints
+├── `progress.md`          ← ON DEMAND: completion status
+│
+└── <feature>/           ← PER-FEATURE CONTEXT
+    ├── `prd.md`           # Requirements (user stories, acceptance criteria)
+    ├── `design.md`        # Architecture (diagrams, data models, APIs)
+    ├── `tasks.md`         # Task breakdown (TASK_ID, effort, dependencies)
+    └── `context.md`       # SCRATCHPAD: decisions, blockers, notes
+```
+
+### File Dependency Hierarchy
 
 ```mermaid
 flowchart TD
-    PB[projectbrief.md] --> PC[productContext.md]
+    PB[projectbrief.md<br/>ALWAYS LOAD] --> PC[productContext.md]
     PB --> SP[systemPatterns.md]
     PB --> TC[techContext.md]
 
-    PC --> AC[activeContext.md]
+    PC --> AC[activeContext.md<br/>ALWAYS LOAD]
     SP --> AC
     TC --> AC
 
     AC --> P[progress.md]
-    AC --> CR[copilot-rules.md]
+    AC --> CR[copilot-rules.md<br/>ALWAYS LOAD]
+    
+    AC --> FC[Feature Context]
+    FC --> PRD[prd.md]
+    FC --> DES[design.md]
+    FC --> TSK[tasks.md]
+    FC --> CTX[context.md<br/>SCRATCHPAD]
 ```
-
-### Core Files (Required)
-
-1. **projectbrief.md**
-   Foundation document for all others. Defines core requirements, goals, and project scope.
-2. **productContext.md**
-   Why this project exists, problems it solves, user experience goals.
-3. **systemPatterns.md**
-   System architecture, key technical decisions, design patterns, component relationships.
-4. **techContext.md**
-   Technologies used, development setup, technical constraints, dependencies.
-5. **activeContext.md**
-   Current work focus, recent changes, next steps, active decisions.
-6. **progress.md**
-   What works, what’s left to build, current status, known issues.
-7. **copilot-rules.md**
-   Project rules, Copilot guidance, safety/security policies, evolving project patterns.
-
-### Additional Context
-
-Add extra files/folders in `/memory-bank/` for:
-
-* Complex features
-* Integration specs
-* API docs
-* Testing strategies
-* Deployment procedures
 
 ---
 
-## Core Workflows
+## The Four Context Strategies
 
-### Plan Mode
+### 1. WRITE: Persist Decisions
 
-```mermaid
-flowchart TD
-    Start[Start] --> ReadFiles[Read Memory Bank]
-    ReadFiles --> CheckFiles{Files Complete?}
-    CheckFiles -->|No| Plan[Create Plan]
-    Plan --> Document[Document in Chat]
-    CheckFiles -->|Yes| Verify[Verify Context]
-    Verify --> Strategy[Develop Strategy]
-    Strategy --> Present[Present Approach]
-```
+**What:** Save information that must survive context resets.
+**Where:** `/memory-bank/<feature>/context.md` (the scratchpad)
+**When:** After every significant decision or blocker.
 
-**Description:**
-
-* Always start by reading all memory bank files.
-* If files are missing, create a plan and document it.
-* If files are complete, verify context and develop a strategy before acting.
-
-### Act Mode
-
-```mermaid
-flowchart TD
-    Start[Start] --> Context[Check Memory Bank]
-    Context --> Update[Update Documentation]
-    Update --> Rules[Update copilot-rules.md if needed]
-    Rules --> Execute[Execute Task]
-    Execute --> Document[Document Changes]
-```
-
-**Description:**
-
-* Check memory bank before any action.
-* Update documentation as you work.
-* Update `copilot-rules.md` if new patterns or rules are discovered.
-* Document all changes.
-
----
-
-## Documentation Updates
-
-Update the Memory Bank when:
-
-1. Discovering new project patterns or rules
-2. After significant changes
-3. When the user requests with **update memory bank** (review ALL files)
-4. When context needs clarification
-
-```mermaid
-flowchart TD
-    Start[Update Process]
-    subgraph Process
-        P1[Review ALL Files]
-        P2[Document Current State]
-        P3[Clarify Next Steps]
-        P4[Update copilot-rules.md]
-        P1 --> P2 --> P3 --> P4
-    end
-    Start --> Process
-```
-
-**Note:**
-On **update memory bank**, review every file, even if some don’t require changes.
-Focus on `activeContext.md` and `progress.md` for current state.
-
----
-
-## Project Rules (`copilot-rules.md`)
-
-This file is Copilot’s and the team’s learning journal for the project. It captures:
-
-* Critical implementation paths
-* User preferences and workflow
-* Project-specific patterns
-* Security requirements and known challenges
-* Evolution of project decisions
-* Tool usage patterns
-
-**Example: Core Security Rule**
+**Scratchpad Format:**
 
 ```markdown
-## 🚨 Security: Never Upload Secrets
+# Feature Context: notifications
 
-- Never copy, move, or commit secret files or values (e.g., `.env`, `secrets.json`, API keys, tokens, passwords) to version control or into example/sample config files.
-- Example files like `.env.example` must be built by hand with only safe placeholder values.
-- Always verify that no secrets are present before staging, committing, or pushing code.
-- If a secret is ever committed, treat as a security incident: remove from history and rotate affected credentials immediately.
-- Use secret scanning tools (e.g., GitHub Secret Scanning, TruffleHog, git-secrets) for extra safety.
+## Phase: IMPLEMENTATION
+
+## Session: 2025-11-28
+
+### Decisions Made
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Validation library | Zod | Better TypeScript inference than TypeBox |
+| Queue type | Database | Persistence required per NFR-3 |
+| Rate limit | 100/min/user | Balance UX with system load |
+
+### Blockers
+- [ ] Waiting on email API credentials from DevOps
+
+### Completed Tasks
+- [x] NOTIFY-1: Service scaffold
+- [x] NOTIFY-2: Email channel
+- [ ] NOTIFY-3: Push channel (in progress)
+
+### Open Questions
+- Should we batch notifications? (ask user)
+- WebSocket vs SSE for real-time? (research needed)
+```
+
+### 2. SELECT: Load Only What You Need
+
+**What:** Pull context relevant to current task type.
+**How:** Match task type to required files.
+
+| Task Type | Load These Files |
+|-----------|------------------|
+| **Requirements** | projectbrief + productContext |
+| **Architecture** | projectbrief + systemPatterns + techContext |
+| **Implementation** | projectbrief + activeContext + feature/*.md |
+| **Status Update** | activeContext + progress.md |
+| **Debugging** | activeContext + feature/context.md + related code |
+
+**Example:** Implementing NOTIFY-3
+
+```markdown
+Load:
+✅ projectbrief.md (always)
+✅ activeContext.md (always)
+✅ copilot-rules.md (always)
+✅ /memory-bank/notifications/design.md (architecture)
+✅ /memory-bank/notifications/tasks.md (task details)
+✅ /memory-bank/notifications/context.md (decisions)
+
+Skip:
+❌ productContext.md (not doing requirements)
+❌ progress.md (not updating status)
+❌ /memory-bank/other-feature/* (unrelated)
+```
+
+### 3. COMPRESS: Reduce Token Usage
+
+**What:** Summarize conversation history to fit context window.
+**When:**
+
+- After 50+ conversation turns
+- When context window is 80%+ full
+- Before starting a new major phase
+
+**How to Compress:**
+
+```markdown
+## Compressed: Session 2025-11-28
+
+### Summary
+Implemented NOTIFY-1 through NOTIFY-3 (email and push channels).
+
+### Key Outcomes
+- Created: src/mastra/tools/notifications.ts
+- Created: src/mastra/tools/tests/notifications.test.ts
+- Integrated with existing event bus
+
+### Decisions Locked
+- Database queue (not in-memory) — persistence required
+- Resend for email — already in project dependencies
+- Rate limit: 100/min/user
+
+### Pending
+- NOTIFY-4: Event bus integration
+- NOTIFY-5: User preferences
+- NOTIFY-6: Admin config UI
+
+### Open Questions (still unresolved)
+- Batch notifications? (user to decide)
+```
+
+**Compression Rules:**
+
+1. Keep: Decisions, outcomes, file paths, blockers
+2. Remove: Intermediate reasoning, exploration, failed attempts
+3. Preserve: Open questions, pending tasks
+
+### 4. ISOLATE: One Task = One Focus
+
+**What:** Each task implementation operates in isolated context.
+**How:**
+
+- Load ONLY files relevant to current TASK_ID
+- Do NOT cross-reference unrelated features
+- Use scratchpad to pass state between tasks
+
+**Example Flow:**
+
+```markdown
+/implement NOTIFY-3
+├── Load: notifications/design.md, notifications/tasks.md
+├── Focus: NOTIFY-3 acceptance criteria only
+├── Implement: Push channel
+├── Validate: Run tests, lint, types
+├── Write: Update notifications/context.md with decisions
+└── Isolate: Do NOT touch NOTIFY-4,5,6 code
+
+/implement NOTIFY-4
+├── Load: notifications/context.md (read NOTIFY-3 decisions)
+├── Focus: NOTIFY-4 acceptance criteria only
+└── Continue...
 ```
 
 ---
 
-## How to Use This Document
+## Workflows
 
-* Reference this file at the start of every session.
-* Use the checklists and diagrams to guide your workflow.
-* Update the Memory Bank and `copilot-rules.md` as you learn.
-* Treat this as a living document—improve it as the project evolves.
+### Automatic Workflow (Preferred)
+
+When user describes a feature:
+
+```mermaid
+flowchart LR
+    U[User: I need X] --> R[Research codebase]
+    R --> D[Draft spec + tasks]
+    D --> Q[Ask confirmation Qs]
+    Q --> A{Approved?}
+    A -->|Yes| I[Implement task by task]
+    A -->|Modify| D
+    I --> V[Validate]
+    V --> N[Next task or Done]
+```
+
+### Manual Workflow (Slash Commands)
+
+When user wants explicit control:
+
+```markdown
+/start feature <name>  → Create feature folder + templates
+/approve               → Confirm current phase, proceed
+/implement <TASK_ID>   → Implement one specific task
+/status                → Show phase, progress, blockers
+/pause                 → Stop automatic progression
+/context summary       → Compress current session
+```
 
 ---
 
-**REMEMBER:**
-After every memory reset, Copilot begins completely fresh. The Memory Bank is the only link to previous work. Maintain it with precision and clarity—project effectiveness and security depend on its accuracy.
+## Validation Hooks
+
+After EVERY implementation:
+
+```bash
+# 1. Run tests
+npm test -- --grep <pattern>
+# or: npx vitest -t <pattern>
+
+# 2. Run lint
+npx eslint <affected-files> --max-warnings=0
+
+# 3. Run type check
+npx tsc --noEmit
+```
+
+**Output Format:**
+
+```markdown
+✅ Tests: 12/12 passing
+✅ Lint: 0 warnings, 0 errors
+✅ Types: No errors
+→ NOTIFY-3 complete. Proceeding to NOTIFY-4...
+
+# OR if failure:
+❌ Tests: 10/12 passing (2 failed)
+   - notifications.test.ts:45 - Expected push to be called
+   - notifications.test.ts:67 - Timeout exceeded
+→ Fix required before proceeding.
+```
 
 ---
 
-*Last updated: 2025-06-30*
-*Version: 1.1.0*
+## Self-Consistency Protocol
+
+For architectural or security decisions:
+
+```markdown
+## Decision: Notification Queue Storage
+
+### Option A: In-Memory Queue
++ Fast, simple implementation
+- Lost on restart (unacceptable for notifications)
+- Not horizontally scalable
+
+### Option B: Database Queue ← SELECTED
++ Persistent across restarts
++ Scales horizontally with read replicas
+- Slightly more complex setup
+
+### Option C: External Message Broker (RabbitMQ/Redis)
++ Industry standard, battle-tested
+- Overkill for current scale (< 10k users)
+- Additional infrastructure to maintain
+
+### Decision
+**Option B: Database Queue**
+
+Rationale: NFR-3 requires notification persistence. Database approach balances simplicity with reliability. Can migrate to Option C if scale exceeds 100k users.
+```
+
+---
+
+## File Templates
+
+### activeContext.md
+
+```markdown
+# Active Context
+
+## Current Focus
+Implementing notification system (NOTIFY-3: Push channel)
+
+## Recent Changes
+- 2025-11-28: Completed NOTIFY-1 (service scaffold)
+- 2025-11-28: Completed NOTIFY-2 (email channel with Resend)
+
+## Next Steps
+1. Complete NOTIFY-3 push implementation
+    - Web-push integration
+    - Native notification handling
+    - Apply rate limiting
+2. Integrate with event bus (NOTIFY-4)
+    - Database queue setup
+    - Event listener implementation
+    - Write
+    - What 4
+3. User preference UI (NOTIFY-5)
+    - Simple toggle interface
+    - Store preferences in user profile
+    - Admin config UI (NOTIFY-6)
+    - Basic settings page
+    - Save to database
+    - Admin auth
+    - Write mechanism
+
+
+
+## Active Decisions
+- Batch vs immediate notifications: Waiting for user input
+```
+
+### Feature context.md
+
+```markdown
+# Feature Context: notifications
+
+## Phase: IMPLEMENTATION
+
+## Decisions
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Email provider | Resend | Already in project deps |
+| Queue storage | PostgreSQL | Persistence required |
+| Rate limit | 100/min/user | Balance UX + load |
+
+## Blockers
+- [ ] Need email API key from DevOps
+
+## Session: 2025-11-28
+- Implemented NOTIFY-1,2,3
+- Chose database queue over in-memory
+- Rate limiting added at service layer
+```
+
+---
+
+## Anti-Patterns to Avoid
+
+| ❌ Don't Do This | ✅ Do This Instead |
+|------------------|-------------------|
+| Load ALL memory bank files at start | Load only what current task needs |
+| Keep all conversation history | Compress after 50+ turns |
+| Mix multiple task implementations | Isolate: one task per focus |
+| Forget decisions after reset | Write to context.md immediately |
+| Skip validation hooks | Always run tests, lint, types |
+| Make assumptions | Ask targeted confirmation questions |
+
+---
+
+## Quick Reference Card
+
+```markdown
+┌─────────────────────────────────────────────────────────────┐
+│ ALWAYS LOAD: projectbrief + activeContext + copilot-rules   │
+├─────────────────────────────────────────────────────────────┤
+│ WRITE decisions → context.md (scratchpad)                   │
+│ SELECT context → based on task type                         │
+│ COMPRESS → after 50 turns or 80% window                     │
+│ ISOLATE → one TASK_ID at a time                             │
+├─────────────────────────────────────────────────────────────┤
+│ VALIDATE: eslint → tsc --noEmit                             │
+├─────────────────────────────────────────────────────────────┤
+│ RECOVERY: activeContext → context.md → progress → resume    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+*Last updated: 2025-11-28*
+*Version: 2.1.0*

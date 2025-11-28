@@ -284,13 +284,10 @@ GET
 
 POST
 /api/workflows/legacy/{workflowId}/resume
-
 POST
 /api/workflows/legacy/{workflowId}/resume-async
-
 POST
 /api/workflows/legacy/{workflowId}/create-run
-
 POST
 /api/workflows/legacy/{workflowId}/start-async
 
@@ -304,52 +301,37 @@ workflows
 
 GET
 /api/workflows
-
 GET
 /api/workflows/{workflowId}
-
 GET
 /api/workflows/{workflowId}/runs
-
 GET
 /api/workflows/{workflowId}/runs/{runId}/execution-result
-
 GET
 /api/workflows/{workflowId}/runs/{runId}
 
 POST
 /api/workflows/{workflowId}/resume
-
 POST
 /api/workflows/{workflowId}/resume-stream
-
 POST
 /api/workflows/{workflowId}/resume-async
-
 POST
 /api/workflows/{workflowId}/stream-legacy
-
 POST
 /api/workflows/{workflowId}/observe-stream-legacy
-
 POST
 /api/workflows/{workflowId}/streamVNext
-
 POST
 /api/workflows/{workflowId}/observe
-
 POST
 /api/workflows/{workflowId}/stream
-
 POST
 /api/workflows/{workflowId}/observe-streamVNext
-
 POST
 /api/workflows/{workflowId}/create-run
-
 POST
 /api/workflows/{workflowId}/start-async
-
 POST
 /api/workflows/{workflowId}/start
 
@@ -358,7 +340,6 @@ GET
 
 POST
 /api/workflows/{workflowId}/runs/{runId}/cancel
-
 POST
 /api/workflows/{workflowId}/runs/{runId}/send-event
 
@@ -366,10 +347,8 @@ logs
 
 GET
 /api/logs
-
 GET
 /api/logs/transports
-
 GET
 /api/logs/{runId}
 
@@ -377,16 +356,12 @@ agent-builder
 
 GET
 /api/agent-builder
-
 GET
 /api/agent-builder/{actionId}
-
 GET
 /api/agent-builder/{actionId}/runs
-
 GET
 /api/agent-builder/{actionId}/runs/{runId}/execution-result
-
 GET
 /api/agent-builder/{actionId}/runs/{runId}
 

@@ -5,9 +5,9 @@ const project = process.env.GOOGLE_CLOUD_PROJECT
 const location = process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1'
 const keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS
 
-if (!project || project.trim() === '') {
-    throw new Error('GOOGLE_CLOUD_PROJECT is required for Vertex configuration')
-}
+//if (!project || project.trim() === '') {
+//    throw new Error('GOOGLE_CLOUD_PROJECT is required for Vertex configuration')
+//}
 
 const vertex = createVertex({
     project,

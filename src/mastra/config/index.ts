@@ -9,8 +9,6 @@ export * from './role-hierarchy'
 export * from './google'
 export * from './openai'
 export * from './openrouter'
-export * from './vertex'
-export * from './gemini-cli'
 export * from './anthropic'
 
 

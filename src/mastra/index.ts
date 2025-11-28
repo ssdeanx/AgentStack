@@ -1,5 +1,4 @@
 import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
-import { ArizeExporter } from "@mastra/arize";
 import {
     CloudExporter,
     DefaultExporter,
@@ -7,7 +6,7 @@ import {
     SensitiveDataFilter,
 } from "@mastra/core/ai-tracing";
 import { Mastra } from '@mastra/core/mastra';
-import { LangfuseExporter } from "@mastra/langfuse";
+import { LangfuseExporter } from "./config/tracing";
 import { PostgresStore } from "@mastra/pg";
 // Config
 import { log } from './config/logger';
@@ -162,19 +161,18 @@ export const mastra = new Mastra({
             redactionStyle: 'partial'
           }
         )],
-        exporters: [new CloudExporter(
-          { logger: log, logLevel: 'debug' }),
+        exporters: [
           new LangfuseExporter({
-            publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
-            secretKey: process.env.LANGFUSE_SECRET_KEY!,
+            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+            secretKey: process.env.LANGFUSE_SECRET_KEY,
             baseUrl: process.env.LANGFUSE_BASE_URL,
-            realtime: true,
+          }),
+          new CloudExporter({
             logger: log,
             logLevel: 'debug',
-            options: {
-              environment: process.env.NODE_ENV,
-            },
-          }), new DefaultExporter(
+          }),
+          
+          new DefaultExporter(
             {
               maxBatchSize: 100,
               maxBufferSize: 500,

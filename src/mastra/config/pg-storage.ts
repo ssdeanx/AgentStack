@@ -11,6 +11,7 @@ import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core';
 import z from 'zod'
+import { MDocument } from "@mastra/rag";
 
 // Use the proper CoreMessage type from @mastra/core
 // This replaces the custom extension that was causing type conflicts
@@ -102,7 +103,7 @@ export const pgMemory = new Memory({
         // Enhanced working memory with supported template
         workingMemory: {
             enabled: true,
-            scope: 'resource',
+            scope: 'thread', // 'resource' | 'thread'
 //        version: 'vnext',
             schema: z.object({
                 items: z.array(
@@ -110,13 +111,6 @@ export const pgMemory = new Memory({
                     title: z.string(),
                     due: z.string().optional(),
                     description: z.string(),
-                    subtasks: z.array(z.any()).optional(),
-                    requirements: z.array(z.any()).optional(),
-                    dependencies: z.array(z.any()).optional(),
-                    attachments: z.array(z.any()).optional(),
-                    comments: z.array(z.any()).optional(),
-                    assignees: z.array(z.any()).optional(),
-                    priority: z.number(),
                     status: z.enum(["active", "completed"]).default("active"),
                     tags: z.array(z.string()).optional(),
                     estimatedTime: z.string().optional(),

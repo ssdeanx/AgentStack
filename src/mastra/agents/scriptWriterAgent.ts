@@ -5,6 +5,7 @@ import { InternalSpans } from '@mastra/core/ai-tracing';
 import { scriptFormatScorer, pacingScorer, creativityScorer } from '../scorers';
 import { google } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
+import { codeToTokensWithThemes } from 'shiki';
 
 export const scriptWriterAgent = new Agent({
   id: 'script-writer',
@@ -58,7 +59,7 @@ export const scriptWriterAgent = new Agent({
   },
   model: google('gemini-2.5-flash-preview-09-2025'),
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
   scorers: {
     scriptFormat: {
       scorer: scriptFormatScorer,
@@ -73,7 +74,10 @@ export const scriptWriterAgent = new Agent({
       sampling: { type: 'ratio', rate: 0.8 },
     },
   },
-  tools: {google_search: google.tools.googleSearch({}),
+  tools: {google_search: google.tools.googleSearch({
+    mode: 'MODE_DYNAMIC',
+    dynamicThreshold: 0.7,
+  }),
           code_execution: google.tools.codeExecution({}),
           url_context: google.tools.urlContext({})}
 });
