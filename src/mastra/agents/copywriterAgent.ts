@@ -12,6 +12,7 @@ import { pgMemory } from '../config/pg-storage'
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
+import { chartSupervisorTool } from '../tools/financial-chart-tools'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -131,6 +132,7 @@ Provide the final content in a clear, well-structured format appropriate for the
         //    linkExtractorTool,
         htmlToMarkdownTool,
         contentCleanerTool,
+        chartSupervisorTool
     },
     scorers: {
         creativity: {

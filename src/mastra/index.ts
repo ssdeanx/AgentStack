@@ -52,6 +52,14 @@ import { researchPaperAgent } from './agents/researchPaperAgent';
 // Utility Agents
 import { daneNewContributor } from './workflows/new-contributor';
 
+// Financial Chart Agents
+import {
+    chartTypeAdvisorAgent,
+    chartDataProcessorAgent,
+    chartGeneratorAgent,
+    chartSupervisorAgent,
+} from './agents/recharts';
+
 // Networks
 import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
 
@@ -118,7 +126,12 @@ export const mastra = new Mastra({
     daneIssueLabeler,
     daneLinkChecker,
     daneChangeLog,
-    dane
+    dane,
+    // Financial Chart Agents
+    chartTypeAdvisorAgent,
+    chartDataProcessorAgent,
+    chartGeneratorAgent,
+    chartSupervisorAgent,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
@@ -178,7 +191,7 @@ export const mastra = new Mastra({
     apiRoutes: [
       chatRoute({
         path: "/chat",
-        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor",
+        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent",
         defaultOptions: {},
         sendStart: true,
         sendFinish: true,

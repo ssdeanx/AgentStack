@@ -13,6 +13,7 @@ import {
     getDataFileInfoTool,
 } from '../tools/data-file-manager'
 import { readCSVDataTool } from '../tools/data-processing-tools'
+import { chartSupervisorTool } from '../tools/financial-chart-tools'
 
 export interface DataIngestionContext {
     userId?: string
@@ -97,6 +98,7 @@ export const dataIngestionAgent = new Agent({
         dataValidatorTool,
         listDataDirTool,
         getDataFileInfoTool,
+        chartSupervisorTool
     },
     options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })

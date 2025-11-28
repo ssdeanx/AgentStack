@@ -10,6 +10,7 @@ import { google } from '@ai-sdk/google'
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { TracingContext } from '@mastra/core/ai-tracing';
 import { log } from './logger';
+import { ExtractParams } from '@mastra/rag';
 
 /**
  * Redefine CoreMessage to include a metadata property for custom data.
@@ -32,10 +33,6 @@ export class VectorStoreError extends Error {
     this.details = details;
   }
 }
-
-
-const logger = new PinoLogger({ name: 'memory', level: 'info' });
-
 
 // Validation schemas
 const createThreadSchema = z.object({
@@ -161,27 +158,6 @@ export interface VectorOperationResult {
 }
 
 /**
- * ExtractParams interface for metadata extraction following Mastra patterns
- * Supports title, summary, keywords, and questions extraction from document chunks
- */
-export interface ExtractParams {
-  title?: boolean | {
-    nodes?: number;
-    nodeTemplate?: string;
-    combineTemplate?: string;
-  };
-  keywords?: boolean | {
-    keywords?: number;
-    promptTemplate?: string;
-  };
-  questions?: boolean | {
-    questions?: number;
-    promptTemplate?: string;
-    embeddingOnly?: boolean;
-  };
-}
-
-/**
  * Enhanced metadata filter interface supporting Upstash-compatible MongoDB/Sift query syntax
  *
  * @remarks
@@ -236,37 +212,6 @@ export interface UpstashVectorQueryResult {
   vector?: number[];
 }
 
-/**
- * Workflow snapshot interface for Mastra workflow persistence
- */
-export interface WorkflowSnapshot {
-  workflowName: string;
-  runId: string;
-  snapshot: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Complex workflow state type from Mastra
-}
-
-/**
- * Raw trace data from Upstash storage
- */
-export interface RawTraceData {
-  id: string;
-  parentSpanId?: string;
-  name: string;
-  traceId: string;
-  scope: string;
-  kind: number;
-  attributes: Record<string, unknown>;
-  status: {
-    code: number;
-    message?: string;
-  };
-  events: Array<Record<string, unknown>>;
-  links: Array<Record<string, unknown>>;
-  other: string | Record<string, unknown>;
-  startTime: string | bigint;
-  endTime: string | bigint;
-  createdAt: Date;
-}
 
 /**
  * Create shared Upstash storage instance
@@ -375,33 +320,6 @@ export const upstashMemory = new Memory({
   ],
 });
 
-/**
- * Create a new memory thread using Upstash storage.
- * @param resourceId - User/resource identifier
- * @param title - Optional thread title
- * @param metadata - Optional thread metadata
- * @param threadId - Optional specific thread ID
- * @returns Promise resolving to thread information
- */
-export async function createMemoryThread(
-  resourceId?: string,
-  title?: string,
-  metadata?: Record<string, unknown>,
-  threadId?: string
-) {
-  logger.info(`[memory] createMemoryThread received. resourceId: ${resourceId}, threadId: ${threadId}`);
-  const params = createThreadSchema.parse({ resourceId, threadId, title, metadata });
-  const finalResourceId = params.resourceId ?? ''; // Provide a default empty string if undefined
-  try {
-    return await upstashMemory.createThread({
-      ...params,
-      resourceId: finalResourceId
-    });
-  } catch (error: unknown) {
-    logger.error(`createMemoryThread failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
 
 /**
  * Query messages for a thread using Upstash storage.
@@ -424,7 +342,7 @@ export async function getMemoryThreadMessages(
       selectBy: { last: params.last }
     });
   } catch (error: unknown) {
-    logger.error(`getMemoryThreadMessages failed: ${(error as Error).message}`);
+    log.error(`getMemoryThreadMessages failed: ${(error as Error).message}`);
     throw error;
   }
 }
@@ -439,7 +357,7 @@ export async function getMemoryThreadById(threadId: string) {
   try {
     return await upstashMemory.getThreadById({ threadId: id });
   } catch (error: unknown) {
-    logger.error(`getMemoryThreadById failed: ${(error as Error).message}`);
+    log.error(`getMemoryThreadById failed: ${(error as Error).message}`);
     throw error;
   }
 }
@@ -455,178 +373,8 @@ export async function getMemoryThreadsByResourceId(resourceId?: string) {
   try {
     return await upstashMemory.getThreadsByResourceId({ resourceId: finalResourceId });
   } catch (error: unknown) {
-    logger.error(`getMemoryThreadsByResourceId failed: ${(error as Error).message}`);
+    log.error(`getMemoryThreadsByResourceId failed: ${(error as Error).message}`);
     throw error;
-  }
-}
-
-/**
- * Perform a semantic search in a thread's messages using Upstash vector search.
- * Enhanced to support metadata filtering following Mastra patterns.
- *
- * @param threadId - Thread identifier
- * @param vectorSearchString - Query string for semantic search
- * @param topK - Number of similar messages to retrieve
- * @param before - Number of messages before each match
- * @param after - Number of messages after each match
- * @param filter - Optional metadata filter using MongoDB/Sift query syntax
- * @returns Promise resolving to { messages: CoreMessage[], uiMessages: UIMessage[] }
- *
- * @warning Current Type Limitation:
- * Filter parameter uses `any` casting due to local Upstash package constraints.
- * This maintains functionality while awaiting proper type imports.
- *
- * @example
- * ```typescript
- * // Basic search
- * const results = await searchUpstashMessages('thread-123', 'AI concepts', 5);
- *
- * // Search with metadata filtering
- * const filteredResults = await searchUpstashMessages(
- *   'thread-123',
- *   'AI concepts',
- *   5,
- *   2,
- *   1,
- *   { role: 'assistant', importance: { $gt: 0.8 } }
- * );
- * ```
- */
-export async function searchMemoryMessages(
-  threadId: string,
-  vectorSearchString: string,
-  topK = 3,
-  before = 2,
-  after = 1,
-  filter?: MetadataFilter,
-  tracingContext?: TracingContext
-): Promise<{ messages: CoreMessage[]; uiMessages: UIMessage[] }> {
-  const params = searchMessagesSchema.parse({ threadId, vectorSearchString, topK, before, after });
-
-  // Create tracing span for memory search
-  const searchSpan = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.GENERIC,
-    name: 'search-memory-messages',
-    input: {
-      threadId: params.threadId,
-      vectorSearchString: params.vectorSearchString.substring(0, 100), // Truncate for logging
-      topK: params.topK,
-      hasFilter: !!filter
-    },
-    metadata: {
-      component: 'upstash-memory',
-      operationType: 'semantic-search',
-      searchType: 'vector'
-    }
-  });
-
-  const startTime = Date.now();
-  try {
-    const queryConfig: {
-      threadId: string;
-      selectBy: { vectorSearchString: string };
-      threadConfig: {
-        semanticRecall: {
-          topK: number;
-          messageRange: { before: number; after: number };
-        };
-      };
-      filter?: MetadataFilter;
-    } = {
-      threadId: params.threadId,
-      selectBy: { vectorSearchString: params.vectorSearchString },
-      threadConfig: {
-        semanticRecall: {
-          topK: params.topK,
-          messageRange: {
-            before: params.before,
-            after: params.after
-          }
-        }
-      },
-    };
-
-    // Add metadata filter if provided (validate for Upstash compatibility)
-    if (filter) {
-      const validatedFilter = validateMetadataFilter(filter);
-      queryConfig.filter = validatedFilter;
-      logger.info('Applying Upstash-compatible metadata filter to search', {
-        threadId: params.threadId,
-        filter: validatedFilter,
-        topK: params.topK
-      });
-    }
-
-    const result = await upstashMemory.query(queryConfig);
-
-    // Filter out "data" role messages from uiMessages to match return type
-    const filteredUiMessages = result.uiMessages.filter((msg: any) => msg.role !== 'data');
-
-    logger.info('Memory message search completed', {
-      threadId: params.threadId,
-      messagesFound: result.messages.length,
-      uiMessagesFound: filteredUiMessages.length,
-      hasFilter: !!filter
-    });
-
-    const processingTime = Date.now() - startTime;
-
-    // End span successfully
-    searchSpan?.end({
-      output: {
-        messagesFound: result.messages.length,
-        uiMessagesFound: filteredUiMessages.length,
-        processingTimeMs: processingTime,
-        success: true
-      },
-      metadata: {
-        component: 'upstash-memory',
-        operation: 'semantic-search',
-        finalStatus: 'success'
-      }
-    });
-
-    return {
-      messages: result.messages,
-      uiMessages: filteredUiMessages as UIMessage[]
-    };
-  } catch (error: unknown) {
-    const processingTime = Date.now() - startTime;
-    logger.error(`searchMemoryMessages failed: ${(error as Error).message}`, {
-      threadId: params.threadId,
-      vectorSearchString: params.vectorSearchString,
-      filter
-    });
-
-    // Record error in span and end it
-    searchSpan?.error({
-      error: error instanceof Error ? error : new Error('Unknown search error'),
-      metadata: {
-        component: 'upstash-memory',
-        operation: 'semantic-search',
-        processingTime,
-        threadId: params.threadId
-      }
-    });
-
-    searchSpan?.end({
-      output: {
-        success: false,
-        processingTimeMs: processingTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
-      metadata: {
-        component: 'upstash-memory',
-        operation: 'semantic-search',
-        finalStatus: 'error'
-      }
-    });
-
-    throw new VectorStoreError(
-      `Failed to search messages: ${(error as Error).message}`,
-      'operation_failed',
-      { threadId: params.threadId, filter }
-    );
   }
 }
 
@@ -646,7 +394,7 @@ export async function getMemoryUIThreadMessages(threadId: string, last = 100): P
     // Filter out "data" role messages to match UIMessage type
     return uiMessages.filter(msg => msg) as UIMessage[];
   } catch (error: unknown) {
-    logger.error(`getMemoryUIThreadMessages failed: ${(error as Error).message}`);
+    log.error(`getMemoryUIThreadMessages failed: ${(error as Error).message}`);
     throw error;
   }
 }
@@ -669,55 +417,6 @@ export function maskMemoryWorkingMemoryStream(
 }
 
 /**
- * Enhanced search function with performance tracking and detailed logging for Upstash.
- * @param threadId - Thread identifier
- * @param vectorSearchString - Query string for semantic search
- * @param topK - Number of similar messages to retrieve
- * @param before - Number of messages before each match
- * @param after - Number of messages after each match
- * @returns Promise resolving to { messages, uiMessages } with enhanced metadata
- */
-export async function enhancedMemorySearchMessages(
-  threadId: string,
-  vectorSearchString: string,
-  topK = 3,
-  before = 2,
-  after = 1
-): Promise<{
-  messages: CoreMessage[];
-  uiMessages: UIMessage[];
-  searchMetadata: {
-    topK: number;
-    before: number;
-    after: number;
-  };
-}> {
-  // Use the pinecone-backed memory (upstashMemory configured with pinecone) for semantic recall
-  const result = await upstashMemory.query({
-    threadId,
-    selectBy: { vectorSearchString },
-    threadConfig: {
-      semanticRecall: {
-        topK,
-        messageRange: { before, after },
-      },
-    },
-  });
-  log.info('Semantic search completed', {
-    threadId,
-    vectorSearchString,
-    topK,
-    before,
-    after,
-  })
-  return {
-    messages: result.messages,
-    uiMessages: result.uiMessages.filter(msg => msg) as UIMessage[],
-    searchMetadata: { topK, before, after },
-  };
-}
-
-/**
  * Create a vector index with proper configuration
  * @param indexName - Name of the index to create
  * @param dimension - Vector dimension (default: 1536)
@@ -736,7 +435,7 @@ export async function createVectorIndex(
       dimension: params.dimension,
       metric: params.metric,
     });
-    logger.info('Vector index created successfully', {
+    log.info('Vector index created successfully', {
       indexName: params.indexName,
       dimension: params.dimension,
       metric: params.metric,
@@ -747,7 +446,7 @@ export async function createVectorIndex(
       indexName: params.indexName,
     };
   } catch (error: unknown) {
-    logger.error('Failed to create vector index', {
+    log.error('Failed to create vector index', {
       error: (error as Error).message,
       indexName: params.indexName,
       dimension: params.dimension,
@@ -769,10 +468,10 @@ export async function createVectorIndex(
 export async function listVectorIndexes(): Promise<string[]> {
   try {
     const indexes = await upstashVector.listIndexes();
-    logger.info('Vector indexes listed successfully', { count: indexes.length });
+    log.info('Vector indexes listed successfully', { count: indexes.length });
     return indexes;
   } catch (error: unknown) {
-    logger.error('Failed to list vector indexes', {
+    log.error('Failed to list vector indexes', {
       error: (error as Error).message
     });
     throw error;
@@ -787,14 +486,14 @@ export async function listVectorIndexes(): Promise<string[]> {
 export async function describeVectorIndex(indexName: string): Promise<VectorIndexStats> {
   try {
     const stats = await upstashVector.describeIndex({ indexName });
-    logger.info('Vector index described successfully', { indexName, stats });
+    log.info('Vector index described successfully', { indexName, stats });
     return {
       dimension: stats.dimension,
       count: stats.count,
       metric: stats.metric ?? 'cosine'
     };
   } catch (error: unknown) {
-    logger.error('Failed to describe vector index', {
+    log.error('Failed to describe vector index', {
       error: (error as Error).message,
       indexName
     });
@@ -810,14 +509,14 @@ export async function describeVectorIndex(indexName: string): Promise<VectorInde
 export async function deleteVectorIndex(indexName: string): Promise<VectorOperationResult> {
   try {
     await upstashVector.deleteIndex({ indexName });
-    logger.info('Vector index deleted successfully', { indexName });
+    log.info('Vector index deleted successfully', { indexName });
     return {
       success: true,
       operation: 'deleteIndex',
       indexName
     };
   } catch (error: unknown) {
-    logger.error('Failed to delete vector index', {
+    log.error('Failed to delete vector index', {
       error: (error as Error).message,
       indexName
     });
@@ -853,7 +552,7 @@ export async function upsertVectors(
       metadata: params.metadata,
       ids: params.ids
     });
-    logger.info('Vectors upserted successfully', {
+    log.info('Vectors upserted successfully', {
       indexName: params.indexName,
       vectorCount: params.vectors.length,
       hasMetadata: !!params.metadata,
@@ -866,7 +565,7 @@ export async function upsertVectors(
       count: params.vectors.length
     };
   } catch (error: unknown) {
-    logger.error('Failed to upsert vectors', {
+    log.error('Failed to upsert vectors', {
       error: (error as Error).message,
       indexName: params.indexName,
       vectorCount: params.vectors.length
@@ -911,11 +610,9 @@ export async function queryVectors(
   try {
     // Validate filter for upstash compatibility if provided
     let upstashFilter: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- Using 'any' for UpstashVectorFilter compatibility
-    if (params.filter !== null) {
-      const validatedFilter = validateMetadataFilter(params.filter as MetadataFilter);
-      upstashFilter = transformToUpstashFilter(validatedFilter);
+    if (params.filter) {
+      upstashFilter = transformToUpstashFilter(params.filter);
     }
-
     const results = await upstashVector.query({
       indexName: params.indexName,
       queryVector: params.queryVector,
@@ -924,7 +621,7 @@ export async function queryVectors(
       includeVector: params.includeVector
     });
 
-    logger.info('Vector query completed successfully', {
+    log.info('Vector query completed successfully', {
       indexName: params.indexName,
       topK: params.topK,
       resultCount: results.length,
@@ -940,7 +637,7 @@ export async function queryVectors(
       vector: result.vector
     }));
   } catch (error: unknown) {
-    logger.error('Failed to query vectors', {
+    log.error('Failed to query vectors', {
       error: (error as Error).message,
       indexName: params.indexName,
       topK: params.topK
@@ -1013,7 +710,7 @@ export async function updateVector(
         metadata: params.metadata
       }
     });
-    logger.info('Vector updated successfully', {
+    log.info('Vector updated successfully', {
       indexName: params.indexName,
       id: params.id,
       hasVector: !!params.vector,
@@ -1025,7 +722,7 @@ export async function updateVector(
       indexName: params.indexName
     };
   } catch (error: unknown) {
-    logger.error('Failed to update vector', {
+    log.error('Failed to update vector', {
       error: (error as Error).message,
       indexName: params.indexName,
       id: params.id
@@ -1051,14 +748,14 @@ export async function deleteVector(
 ): Promise<VectorOperationResult> {
   try {
     await upstashVector.deleteVector({ indexName, id });
-    logger.info('Vector deleted successfully', { indexName, id });
+    log.info('Vector deleted successfully', { indexName, id });
     return {
       success: true,
       operation: 'deleteVector',
       indexName,
     };
   } catch (error: unknown) {
-    logger.error('Failed to delete vector', {
+    log.error('Failed to delete vector', {
       error: (error as Error).message,
       indexName,
       id
@@ -1105,7 +802,7 @@ export async function batchUpsertVectors(
         errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${(error as Error).message}`);
       }
     }
-    logger.info('Batch vector upsert completed', {
+    log.info('Batch vector upsert completed', {
       indexName,
       totalVectors,
       successCount,
@@ -1120,7 +817,7 @@ export async function batchUpsertVectors(
       error: errors.length > 0 ? errors.join('; ') : undefined
     };
   } catch (error: unknown) {
-    logger.error('Batch vector upsert failed', {
+    log.error('Batch vector upsert failed', {
       error: (error as Error).message,
       indexName,
       totalVectors
@@ -1132,264 +829,6 @@ export async function batchUpsertVectors(
       error: (error as Error).message
     };
   }
-}
-
-/**
- * Enhanced vector search with semantic filtering and ranking
- * @param indexName - Name of the index to search
- * @param queryVector - Query vector for similarity search
- * @param options - Search configuration options
- * @returns Promise resolving to enhanced search results
- *
- * @warning Current Type Limitation:
- * Filter parameter uses `any` casting due to local pinecone package constraints.
- */
-export async function enhancedVectorSearch(
-  indexName: string,
-  queryVector: number[],
-  options: {
-    topK?: number;
-    filter?: MetadataFilter;
-    includeVector?: boolean;
-    minScore?: number;
-    rerank?: boolean;
-  } = {}
-): Promise<{
-  results: VectorQueryResult[];
-  searchMetadata: {
-    totalResults: number;
-    filteredResults: number;
-    searchTime: number;
-    topK: number;
-  };
-}> {
-  const startTime = Date.now();
-  const {
-    topK = 5,
-    filter,
-    includeVector = false,
-    minScore = 0,
-    rerank = false
-  } = options;
-  try {
-    let results = await queryVectors(indexName, queryVector, topK, filter, includeVector);
-    const totalResults = results.length;
-    // Apply minimum score filtering
-    if (minScore > 0) {
-      results = results.filter(result => result.score >= minScore);
-    }
-    // Apply reranking if requested
-    if (rerank && results.length > 1) {
-      results = results.sort((a, b) => {
-        // Enhanced ranking considering both score and metadata relevance
-        const scoreWeight = 0.8;
-        const metadataWeight = 0.2;
-        const aScore = a.score * scoreWeight;
-        const bScore = b.score * scoreWeight;
-        // Simple metadata relevance (can be enhanced based on specific needs)
-        const aMetadataScore = Object.keys(a.metadata).length * metadataWeight;
-        const bMetadataScore = Object.keys(b.metadata).length * metadataWeight;
-        return (bScore + bMetadataScore) - (aScore + aMetadataScore);
-      });
-    }
-    const searchTime = Date.now() - startTime;
-    logger.info('Enhanced vector search completed', {
-      indexName,
-      totalResults,
-      filteredResults: results.length,
-      searchTime,
-      topK,
-      hasFilter: !!filter,
-      minScore,
-      rerank
-    });
-    return {
-      results,
-      searchMetadata: {
-        totalResults,
-        filteredResults: results.length,
-        searchTime,
-        topK
-      }
-    };
-  } catch (error: unknown) {
-    logger.error('Enhanced vector search failed', {
-      error: (error as Error).message,
-      indexName,
-      topK
-    });
-    throw error;
-  }
-}
-
-/**
- * Batch operations for improved performance with Upstash Redis pipeline
- */
-export interface UpstashThread {
-  id: string;
-  resourceId: string;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Batch create multiple threads efficiently using Upstash Redis
- * @param threadRequests - Array of thread creation requests
- * @returns Promise resolving to array of created threads
- */
-export async function batchCreateMemoryThreads(
-  threadRequests: Array<{
-    resourceId: string;
-    metadata?: Record<string, unknown>;
-    threadId?: string;
-  }>
-): Promise<UpstashThread[]> {
-  const startTime = Date.now();
-  try {
-    const results = await Promise.allSettled(
-      threadRequests.map(request =>
-        createMemoryThread(request.resourceId, undefined, request.metadata, request.threadId)
-      )
-    );
-    const successes = results.filter(r => r.status === 'fulfilled').length;
-    const failures = results.filter(r => r.status === 'rejected').length;
-    const duration = Date.now() - startTime;
-    logger.info('Batch memory thread creation completed', {
-      totalRequests: threadRequests.length,
-      successes,
-      failures,
-      duration,
-    });
-    return results
-      .map(result => (result.status === 'fulfilled' ? result.value : null))
-      .filter(Boolean) as UpstashThread[];
-  } catch (error: unknown) {
-    logger.error(`batchCreateMemoryThreads failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Enhanced memory cleanup and optimization for Upstash Redis
- * @param options - Cleanup configuration options
- */
-export async function optimizeMemoryStorage(options: {
-  olderThanDays?: number;
-  keepMinimumMessages?: number;
-  compactVectorIndex?: boolean;
-} = {}): Promise<{
-  threadsProcessed: number;
-  messagesCompacted: number;
-  vectorIndexOptimized: boolean;
-}> {
-  const {
-    olderThanDays = 30,
-    keepMinimumMessages = 10,
-    compactVectorIndex = true
-  } = options;
-  const startTime = Date.now();
-  try {
-    logger.info('Memory optimization requested', {
-      olderThanDays,
-      keepMinimumMessages,
-      compactVectorIndex,
-      timestamp: new Date().toISOString()
-    });
-    // Upstash Redis handles memory optimization automatically
-    // This is provided for API consistency
-    const optimizationResults = {
-      threadsProcessed: 0,
-      messagesCompacted: 0,
-      vectorIndexOptimized: compactVectorIndex,
-      duration: Date.now() - startTime
-    };
-    logger.info('Memory optimization completed (auto-managed)', optimizationResults);
-    return optimizationResults;
-  } catch (error: unknown) {
-    logger.error(`optimizeMemoryStorage failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Validate metadata filter for Upstash compatibility
- * Ensures filter meets Upstash-specific requirements and limitations
- *
- * @param filter - Metadata filter to validate
- * @returns Validated filter or throws VectorStoreError
- *
- * @example
- * ```typescript
- * const validFilter = validateUpstashFilter({
- *   category: 'electronics',
- *   price: { $gt: 100 },
- *   tags: { $in: ['sale', 'new'] }
- * });
- * ```
- */
-export function validateMetadataFilter(filter: MetadataFilter): MetadataFilter {
-  if (!filter) {
-    throw new VectorStoreError('Filter must be a valid non-empty object', 'operation_failed');
-  }
-
-  // Check if filter is an empty object
-  const filterKeys = Object.keys(filter as Record<string, unknown>);
-  if (filterKeys.length === 0) {
-    throw new VectorStoreError('Filter must be a valid non-empty object', 'operation_failed');
-  }
-
-  // Check field key length limits (512 chars for Pinecone)
-  const checkFieldKeys = (obj: Record<string, unknown>, path = ''): void => {
-    Object.keys(obj).forEach(key => {
-      const fullPath = path ? `${path}.${key}` : key;
-
-      if (fullPath.length > 512) {
-        throw new VectorStoreError(
-          `Field key '${fullPath}' exceeds 512 character limit for Pinecone`,
-          'operation_failed',
-          { fieldKey: fullPath, length: fullPath.length }
-        );
-      }
-
-      // Check for null/undefined values (not supported by Pinecone)
-      const value = obj[key];
-      if (value === null || value === undefined) {
-        throw new VectorStoreError(
-          `Null/undefined values not supported by Pinecone in field '${fullPath}'`,
-          'operation_failed',
-          { fieldKey: fullPath, value }
-        );
-      }
-
-      // Recursively check nested objects
-      if (typeof value === 'object' && !Array.isArray(value) && !key.startsWith('$')) {
-        checkFieldKeys(value as Record<string, unknown>, fullPath);
-      }
-    });
-  };
-
-  checkFieldKeys(filter);
-
-  // Check for large IN clauses (Pinecone has query size limits)
-  const checkArraySizes = (obj: Record<string, unknown>): void => {
-    Object.entries(obj).forEach(([key, value]) => {
-      if (key === '$in' || key === '$nin') {
-        if (Array.isArray(value) && value.length > 100) {
-          logger.warn('Large IN/NIN clause detected - may hit Pinecone query size limits', {
-            operator: key,
-            arraySize: value.length
-          });
-        }
-      }
-
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        checkArraySizes(value as Record<string, unknown>);
-      }
-    });
-  };
-
-  checkArraySizes(filter);
-
-  return filter;
 }
 
 /**
@@ -1440,7 +879,7 @@ export async function extractChunkMetadata(
   const startTime = Date.now();
 
   try {
-    logger.info('Starting metadata extraction for chunks', {
+    log.info('Starting metadata extraction for chunks', {
       chunkCount: chunks.length,
       extractParams: Object.keys(extractParams)
     });
@@ -1506,7 +945,7 @@ export async function extractChunkMetadata(
     }
 
     const processingTime = Date.now() - startTime;
-    logger.info('Metadata extraction completed', {
+    log.info('Metadata extraction completed', {
       chunkCount: enhancedChunks.length,
       processingTime,
       extractedFields: Object.keys(extractParams)
@@ -1530,7 +969,7 @@ export async function extractChunkMetadata(
     return enhancedChunks;
   } catch (error: unknown) {
     const processingTime = Date.now() - startTime;
-    logger.error('Metadata extraction failed', {
+    log.error('Metadata extraction failed', {
       error: (error as Error).message,
       chunkCount: chunks.length
     });
@@ -1564,212 +1003,5 @@ export async function extractChunkMetadata(
       'operation_failed',
       { chunkCount: chunks.length, extractParams }
     );
-  }
-}
-
-/**
- * Saves a suspended workflow's state.
- * @param workflowData - The workflow data to save.
- * @returns A promise that resolves when the workflow is saved.
- */
-export async function saveWorkflow(workflowData: WorkflowSnapshot): Promise<void> {
-  logger.info(`[memory] saveWorkflow received. run_id: ${workflowData.runId}`);
-  try {
-    await upstashStorage.persistWorkflowSnapshot({ namespace: 'default', ...workflowData });
-    logger.info(`[memory] Workflow saved successfully. run_id: ${workflowData.runId}`);
-  } catch (error: unknown) {
-    logger.error(`saveWorkflow failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Retrieves a suspended workflow's state.
- * @param run_id - The run ID of the workflow to retrieve.
- * @returns A promise that resolves to the workflow data, or null if not found.
- */
-export async function getWorkflow(runId: string, workflowName: string): Promise<WorkflowRun | null> {
-  logger.info(`[memory] getWorkflow received. run_id: ${runId}`);
-  try {
-    const run = await upstashStorage.getWorkflowRunById({ runId, workflowName });
-    if (!run) {
-      logger.warn(`[memory] Workflow not found. run_id: ${runId}`);
-      return null;
-    }
-    return {
-      ...run,
-      namespace: 'default'
-    };
-  } catch (error: unknown) {
-    logger.error(`getWorkflow failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Retrieves all workflow runs, with optional filtering.
- * @param options - Filtering and pagination options.
- * @returns A promise resolving to the workflow runs.
- */
-export async function getWorkflowRuns(options: {
-  namespace?: string;
-  workflowName?: string;
-  resourceId?: string;
-  fromDate?: Date;
-  toDate?: Date;
-  limit?: number;
-  offset?: number;
-}): Promise<{ runs: WorkflowRun[]; total: number; }> {
-  logger.info('[memory] getWorkflowRuns received.', options);
-  try {
-    const { namespace, ...restOptions } = options;
-    const result = await upstashStorage.getWorkflowRuns(restOptions);
-    logger.info(`[memory] Found ${result.total} workflow runs.`);
-
-    // Transform the runs to match our WorkflowRun interface
-    const transformedRuns: WorkflowRun[] = result.runs.map(run => ({
-      ...run,
-      namespace: namespace ?? 'default'
-    }));
-
-    return {
-      runs: transformedRuns,
-      total: result.total
-    };
-  } catch (error: unknown) {
-    logger.error(`getWorkflowRuns failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Saves a trace.
- * @param traceData - The trace data to save.
- * @returns A promise that resolves when the trace is saved.
- */
-export async function saveTrace(traceData: Trace): Promise<void> {
-  logger.info(`[memory] saveTrace received. id: ${traceData.id}`);
-  try {
-    // BigInts are not supported by JSON.stringify, so convert to string
-    const recordToSave = {
-      ...traceData,
-      startTime: traceData.startTime.toString(),
-      endTime: traceData.endTime.toString(),
-    };
-    await upstashStorage.insert({ tableName: 'traces' as any, record: recordToSave }); // eslint-disable-line @typescript-eslint/no-explicit-any
-    logger.info(`[memory] Trace saved successfully. id: ${traceData.id}`);
-  } catch (error: unknown) {
-    logger.error(`saveTrace failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Retrieves all traces with pagination and filtering.
- * @param args - Filtering and pagination options.
- * @returns A promise resolving to a paginated list of traces.
- */
-export async function getTraces(args: {
-  name?: string;
-  scope?: string;
-  page?: number;
-  perPage?: number;
-  attributes?: Record<string, unknown>;
-  filters?: Record<string, unknown>;
-  dateRange?: { start?: Date; end?: Date };
-}): Promise<{ traces: Trace[]; total: number; page: number; perPage: number; hasMore: boolean; }> {
-  logger.info('[memory] getTraces received.', args);
-  try {
-    const page = args.page ?? 0;
-    const perPage = args.perPage ?? 20;
-
-    const result = await (upstashStorage).getTracesPaginated({
-      ...args,
-      page,
-      perPage,
-      // Convert attributes from Record<string, unknown> to Record<string, string>
-      attributes: args.attributes
-        ? Object.fromEntries(
-            Object.entries(args.attributes).map(([key, value]) => [key, String(value)])
-          )
-        : undefined
-    });
-
-    logger.info(`[memory] Found ${result.total} traces.`);
-
-    // Transform traces to match local Trace interface
-    const transformedTraces: Trace[] = result.traces.map((trace: RawTraceData) => ({
-      ...trace,
-      startTime: BigInt(trace.startTime),
-      endTime: BigInt(trace.endTime),
-      other: typeof trace.other === 'object' ? JSON.stringify(trace.other) : trace.other
-    }));
-
-    return {
-      traces: transformedTraces,
-      total: result.total,
-      page: result.page,
-      perPage: result.perPage,
-      hasMore: result.hasMore
-    };
-  } catch (error: unknown) {
-    logger.error(`getTraces failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-/**
- * Saves an eval dataset.
- * @param evalData - The eval dataset to save.
- * @returns A promise that resolves when the eval dataset is saved.
- */
-export async function saveEval(evalData: Eval): Promise<void> {
-  logger.info(`[memory] saveEval received. run_id: ${evalData.runId}`);
-  try {
-    await upstashStorage.insert({ tableName: 'evals' as any, record: evalData }); // eslint-disable-line @typescript-eslint/no-explicit-any
-    logger.info(`[memory] Eval saved successfully. run_id: ${evalData.runId}`);
-  } catch (error: unknown) {
-    logger.error(`saveEval failed: ${(error as Error).message}`);
-    throw error;
-  }
-}
-
-
-/**
- * Retrieves all evals with pagination and filtering.
- * @param options - Filtering and pagination options.
- * @returns A promise resolving to a paginated list of evals.
- */
-export async function getEvals(options?: {
-  agentName?: string;
-  type?: 'test' | 'live';
-  page?: number;
-  perPage?: number;
-  dateRange?: { start?: Date; end?: Date };
-}): Promise<{ evals: Eval[]; total: number; page: number; perPage: number; hasMore: boolean; }> {
-  logger.info('[memory] getEvals received.', options);
-  try {
-    const page = options?.page ?? 0;
-    const perPage = options?.perPage ?? 20;
-
-    const result = await (upstashStorage).getEvals({
-      agentName: options?.agentName,
-      type: options?.type,
-      dateRange: options?.dateRange,
-      page,
-      perPage
-    });
-
-    logger.info(`[memory] Found ${result.total} evals.`);
-    return {
-      evals: result.evals as Eval[],
-      total: result.total,
-      page: result.page,
-      perPage: result.perPage,
-      hasMore: result.hasMore
-    };
-  } catch (error: unknown) {
-    logger.error(`getEvals failed: ${(error as Error).message}`);
-    throw error;
   }
 }

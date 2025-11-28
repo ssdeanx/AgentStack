@@ -78,6 +78,16 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 | PDF | PDF utilities | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfTool` | `pdf-parse` | [pdf.ts](./pdf.ts) |
 | SerpAPI Config | SerpAPI configuration | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | Config exports | `serpapi` | [serpapi-config.ts](./serpapi-config.ts) |
 
+### 6. 📈 Financial Chart Tools
+![charts](https://img.shields.io/badge/category-charts-teal?style=flat&logo=appwrite)
+
+| Name | Description | Status | Exports | Dependencies | Links |
+|------|-------------|--------|---------|--------------|-------|
+| Chart Supervisor Tool | Orchestrates chart creation pipeline | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `chartSupervisorTool` | `recharts`, financial tools | [financial-chart-tools.ts](./financial-chart-tools.ts) |
+| Chart Generator Tool | Generates Recharts React components | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `chartGeneratorTool` | `recharts` | [financial-chart-tools.ts](./financial-chart-tools.ts) |
+| Chart Data Processor Tool | Transforms financial data for charts | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `chartDataProcessorTool` | Polygon, Finnhub, AlphaVantage | [financial-chart-tools.ts](./financial-chart-tools.ts) |
+| Chart Type Advisor Tool | Recommends optimal chart types | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `chartTypeAdvisorTool` | `recharts` | [financial-chart-tools.ts](./financial-chart-tools.ts) |
+
 *Status based on test coverage & maturity: stable (tested, production-ready), alpha (basic tests), experimental (untested/prototype). 18/30+ tools tested.*
 
 ## Tool Development Guide
@@ -136,6 +146,7 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.3.0 | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool |
 | 2.2.0 | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links |
 | 2.1.0 | 2025-11-26 | Meta update, 30+ claim |
 | 2.0.0 | 2025-11-16 | Reorg by categories |

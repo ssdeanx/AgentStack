@@ -4,6 +4,7 @@ import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { structureScorer, creativityScorer } from '../scorers';
+import { chartSupervisorTool } from '../tools/financial-chart-tools';
 
 export const contentStrategistAgent = new Agent({
   id: 'content-strategist',
@@ -89,6 +90,7 @@ Output:
   memory: pgMemory,
   tools: {
     webScraperTool,
+    chartSupervisorTool
   },
   scorers: {
     structure: {

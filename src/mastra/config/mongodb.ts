@@ -1,8 +1,12 @@
-import { MongoDBVector } from "@mastra/mongodb";
+import { MongoDBVector, MongoDBStore } from "@mastra/mongodb";
 import { createVectorQueryTool, createGraphRAGTool } from "@mastra/rag";
 import { google } from '@ai-sdk/google';
 import { embedMany } from 'ai';
-import { log } from '../logger';
+import { log } from './logger';
+import { TokenLimiter } from "@mastra/memory/processors";
+import z from "zod";
+import { Memory } from "@mastra/memory";
+
 
 /**
  * MongoDB Vector configuration for the Governed RAG system
@@ -20,13 +24,82 @@ const MONGODB_CONFIG = {
   embeddingModel: google.textEmbedding("gemini-embedding-001"),
 } as const;
 
+const mongoStore = new MongoDBStore({
+  url: process.env.MONGODB_URI ?? 'mongodb://localhost:27017',
+  dbName: process.env.MONGODB_DATABASE ?? 'mastra_db',
+});
 /**
  * Initialize MongoDB Vector store with proper configuration
  */
-const mongoStore = new MongoDBVector({
+const mongoVector = new MongoDBVector({
   uri: MONGODB_CONFIG.uri,
   dbName: MONGODB_CONFIG.dbName,
 });
+
+
+/**
+ * * Memory configuration using MongoDB Vector & Storage
+ * * Supports advanced semantic recall and working memory
+ * * Integrates with Google Gemini embeddings
+ * * Works with MongoDB Atlas Vector Search
+ * * Works with full MongoDB query syntax for filtering
+ * * Configured for governed RAG applications
+ */
+export const mongoMemory = new Memory({
+    storage: mongoStore,
+    vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
+    embedder: google.textEmbedding('gemini-embedding-001'),
+    options: {
+        // Message management
+        lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+        // Advanced semantic recall with HNSW index configuration
+        semanticRecall: {
+            topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
+            messageRange: {
+                before: parseInt(process.env.SEMANTIC_RANGE_BEFORE ?? '3'),
+                after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
+            },
+            scope: 'resource', // 'resource' | 'thread'
+            // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
+            indexConfig: {
+                type: 'flat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
+                metric: 'cosine', // Distance metric for normalized embeddings
+                ivf: {lists: 4000},
+                }
+        },
+        // Enhanced working memory with supported template
+        workingMemory: {
+            enabled: true,
+            scope: 'resource',
+//        version: 'vnext',
+            schema: z.object({
+                items: z.array(
+                    z.object({
+                    title: z.string(),
+                    due: z.string().optional(),
+                    description: z.string(),
+                    subtasks: z.array(z.any()).optional(),
+                    requirements: z.array(z.any()).optional(),
+                    dependencies: z.array(z.any()).optional(),
+                    attachments: z.array(z.any()).optional(),
+                    comments: z.array(z.any()).optional(),
+                    assignees: z.array(z.any()).optional(),
+                    priority: z.number(),
+                    status: z.enum(["active", "completed"]).default("active"),
+                    tags: z.array(z.string()).optional(),
+                    estimatedTime: z.string().optional(),
+                }),
+            ),
+        }),
+    },
+        // Thread management with supported options
+        threads: {
+            generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
+        },
+    },
+    processors: [new TokenLimiter(1048576)],
+})
+
 
 /**
  * MongoDB-compatible filter format for vector queries
@@ -55,7 +128,7 @@ export type MongoDBRawFilter = Record<string, unknown>;
  */
 export async function initializeVectorIndex(): Promise<void> {
   try {
-    await mongoStore.createIndex({
+    await mongoVector.createIndex({
       indexName: MONGODB_CONFIG.collectionName,
       dimension: MONGODB_CONFIG.embeddingDimension,
       metric: "cosine", // MongoDB supports cosine, euclidean, and dotProduct
@@ -159,7 +232,7 @@ export async function storeDocumentEmbeddings(
     }));
 
     // Upsert vectors with metadata
-    const ids = await mongoStore.upsert({
+    const ids = await mongoVector.upsert({
       indexName: MONGODB_CONFIG.collectionName,
       vectors: embeddings,
       metadata,
@@ -201,7 +274,7 @@ export async function querySimilarDocuments(
     });
 
     // Query the vector store
-    const results = await mongoStore.query({
+    const results = await mongoVector.query({
       indexName: MONGODB_CONFIG.collectionName,
       queryVector: queryEmbedding,
       topK: options.topK ?? 10,
@@ -231,7 +304,7 @@ export async function querySimilarDocuments(
  */
 export async function disconnectVectorStore(): Promise<void> {
   try {
-    await mongoStore.disconnect();
+    await mongoVector.disconnect();
     log.info("MongoDB Vector store disconnected");
   } catch (error) {
     log.error("Failed to disconnect vector store", { error: String(error) });

@@ -1,10 +1,10 @@
 attributes.llm.prompt_template.variables.local_info,attributes.metadata.ls_model_name,attributes.llm.prompt_template.variables.travel_style,attributes.llm.prompt_template.variables.duration,attributes.llm.prompt_template.variables.destination,attributes.llm.model_name,attributes.llm.invocation_parameters,attributes.llm.prompt_template.variables.budget_info,attributes.llm.prompt_template.variables.research,attributes.llm.prompt_template.variables,attributes.llm.prompt_template.template,input_system_message,input_user,output_content
-"**Hidden Gem Restaurants:**  
+"**Hidden Gem Restaurants:**
 1. **Çiya Sofrası** in Kadıköy - Explore regional Turkish dishes, especially from the southeastern regions.  
 2. **Mendel's** in Beşiktaş - A cozy spot for authentic Jewi",gpt-4o-mini,Standard,2 weeks,"Istanbul, Turkey",gpt-4o-mini,"{""model"": ""gpt-4o-mini"", ""model_name"": ""gpt-4o-mini"", ""stream"": false, ""n"": 1, ""temperature"": 0.0, ""max_completion_tokens"": 2000, ""_type"": ""openai-chat"", ""stop"": null}","**Accommodation:** $1,200 - $1,800 (mid-range hotels)  
 **Transport:** $200 (local transport and airport transfers)  
-**Food:** $600 (average $20/day)  
-**Activities:** $800 (museums, tours, etc.)  
+**Food:** $600 (average $20/day)
+**Activities:** $800 (museums, tours, etc.)
 *","**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.
 
 **Top 3 Attra","{""destination"": ""Istanbul, Turkey"", ""duration"": ""2 weeks"", ""travel_style"": ""Standard"", ""research"": ""**Weather/Best Time:** The best time to visit Istanbul is in spring (April to June) and fall (September to November) when temperatures are mild (15-25°C/59-77°F) and crowds are smaller.\n\n**Top 3 Attra"", ""budget_info"": ""**Accommodation:** $1,200 - $1,800 (mid-range hotels)  \n**Transport:** $200 (local transport and airport transfers)  \n**Food:** $600 (average $20/day)  \n**Activities:** $800 (museums, tours, etc.)  \n*"", ""local_info"": ""**Hidden Gem Restaurants:**  \n1. **Çiya Sofrası** in Kadıköy - Explore regional Turkish dishes, especially from the southeastern regions.  \n2. **Mendel's** in Beşiktaş - A cozy spot for authentic Jewi""}","{duration} itinerary for {destination} ({travel_style} style):
@@ -260,22 +260,22 @@ Local: **Hidden Gem Restaurants:**
 
 Format: Day X: Time - Activity - Cost
 Include top attractions, meals, transport between locations.
-Be concise.","**Day 1: Arrival**  
-- 10:00 AM - Check-in at hostel - $30  
-- 12:00 PM - Lunch at Ravi Restaurant - $10  
-- 2:00 PM - Visit Dubai Mall (free)  
-- 5:00 PM - Watch the Dubai Fountain (free)  
-- 7:00 PM - Dinner at Bu Qtair - $15  
-- 9:00 PM - Return to hostel - $5  
+Be concise.","**Day 1: Arrival**
+- 10:00 AM - Check-in at hostel - $30
+- 12:00 PM - Lunch at Ravi Restaurant - $10
+- 2:00 PM - Visit Dubai Mall (free)
+- 5:00 PM - Watch the Dubai Fountain (free)
+- 7:00 PM - Dinner at Bu Qtair - $15
+- 9:00 PM - Return to hostel - $5
 
-**Day 2: Burj Khalifa & Old Dubai**  
-- 9:00 AM - Breakfast at hostel - $5  
-- 10:00 AM - Burj Khalifa observation deck - $40  
-- 1:00 PM - Lunch at local café - $10  
-- 2:30 PM - Explore Al Fahidi Historical District (free)  
-- 5:00 PM - Visit Dubai Museum - $3  
-- 7:00 PM - Dinner at local eatery - $10  
-- 9:00 PM - Return to hostel - $5  
+**Day 2: Burj Khalifa & Old Dubai**
+- 9:00 AM - Breakfast at hostel - $5
+- 10:00 AM - Burj Khalifa observation deck - $40
+- 1:00 PM - Lunch at local café - $10
+- 2:30 PM - Explore Al Fahidi Historical District (free)
+- 5:00 PM - Visit Dubai Museum - $3
+- 7:00 PM - Dinner at local eatery - $10
+- 9:00 PM - Return to hostel - $5
 
 **Day 3: Desert Safari**  
 - 8:00 AM - Breakfast at hostel - $5  

@@ -10,7 +10,7 @@ Agent Developer — objective: Implement higher-level behaviors by composing too
 
 This directory contains 22+ agent definitions that map use-case intents to sequences of tool invocations, policies, and memory usage.
 
-## Current Agents (22 files)
+## Current Agents (26 files)
 
 | File                         | Export                     | Agent ID                   | Purpose                                                          | Dependencies                      |
 | ---------------------------- | -------------------------- | -------------------------- | ---------------------------------------------------------------- | --------------------------------- |
@@ -28,6 +28,10 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 | `contentStrategistAgent.ts`  | `contentStrategistAgent`   | `contentStrategistAgent`   | Develops content strategies and plans                            | Research Tools                    |
 | `scriptWriterAgent.ts`       | `scriptWriterAgent`        | `scriptWriterAgent`        | Writes scripts for video and audio content                       | NLP, Script Formatting            |
 | `stockAnalysisAgent.ts`      | `stockAnalysisAgent`       | `stockAnalysisAgent`       | Analyzes stock market data with technical/fundamental analysis   | Polygon, Finnhub, AlphaVantage    |
+| `recharts.ts`                | `chartTypeAdvisorAgent`    | `chart-type-advisor`       | Recommends optimal Recharts chart types for financial data       | Recharts                          |
+| `recharts.ts`                | `chartDataProcessorAgent`  | `chart-data-processor`     | Transforms financial API data into Recharts format               | Polygon, Finnhub, AlphaVantage    |
+| `recharts.ts`                | `chartGeneratorAgent`      | `chart-generator`          | Generates Recharts React component code                          | Recharts                          |
+| `recharts.ts`                | `chartSupervisorAgent`     | `chart-supervisor`         | Orchestrates the chart creation pipeline                         | Polygon, Finnhub, AlphaVantage    |
 | `dataExportAgent.ts`         | `dataExportAgent`          | `dataExportAgent`          | JSON → CSV conversion, file writing, backup, validation          | CSV/JSON Tools, File System       |
 | `dataIngestionAgent.ts`      | `dataIngestionAgent`       | `dataIngestionAgent`       | CSV parsing, file reading, structure validation                  | CSV/JSON Tools, File System       |
 | `dataTransformationAgent.ts` | `dataTransformationAgent`  | `dataTransformationAgent`  | CSV↔JSON↔XML transformations and restructuring                   | Data Processing Tools             |
@@ -110,6 +114,7 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 2.1.0   | 2025-11-28 | Added 4 Financial Chart agents: chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent.          |
 | 2.0.0   | 2025-11-26 | Major update: 22 agents documented. Added data pipeline, research paper, document processing, knowledge indexing agents.             |
 | 1.2.0   | 2025-11-19 | Added content creation and stock analysis agents.                                                                                    |
 | 1.1.0   | 2025-11-16 | Complete reorganization of agents documentation. Added detailed sections for each agent, development guidelines, and best practices. |
