@@ -6,7 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
-import { dataValidatorTool } from '../tools/data-validator.tool'
+import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import {
     writeDataFileTool,
     backupDataTool,
@@ -80,7 +80,7 @@ export const dataExportAgent = new Agent({
     memory: pgMemory,
     tools: {
         jsonToCsvTool,
-        dataValidatorTool,
+        dataValidatorToolJSON,
         writeDataFileTool,
         backupDataTool,
         listDataDirTool,

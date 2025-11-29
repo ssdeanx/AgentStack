@@ -272,8 +272,71 @@ export class LangfuseExporter extends BaseLangfuseExporter {
         return attrs
     }
 
+    /**
+     * Ensures a trace exists in the parent exporter's traceMap before child spans are exported.
+     * The base LangfuseExporter only creates traces when root spans arrive, causing warnings
+     * when child spans (like MODEL_STEP) are exported first due to async timing.
+     */
+    private ensureTraceExists(span: AnyExportedAISpan): void {
+        // Access the parent's traceMap via the inherited property
+        // @ts-expect-error - traceMap is protected in base class but we need to check it
+        const traceMap = this.traceMap as Map<string, unknown> | undefined
+        if (!traceMap || !span.traceId) return
+
+        if (!traceMap.has(span.traceId)) {
+            this.customLogger.debug('Creating synthetic trace for orphan span', {
+                traceId: span.traceId,
+                spanId: span.id,
+                spanName: span.name,
+                spanType: span.type,
+                parentSpanId: span.parentSpanId,
+            })
+            
+            // Create a synthetic root span to initialize the trace
+            // Use the original span's traceId and derive a meaningful name
+            const syntheticRootSpan = {
+                ...span,
+                id: `synthetic-root-${span.traceId.slice(0, 8)}`,
+                isRootSpan: true,
+                parentSpanId: undefined,
+                name: this.deriveSyntheticTraceName(span),
+            }
+            
+            // @ts-expect-error - initTrace is protected but we need to call it
+            this.initTrace?.(syntheticRootSpan)
+        }
+    }
+
+    /**
+     * Derives a meaningful trace name from an orphan child span.
+     */
+    private deriveSyntheticTraceName(span: AnyExportedAISpan): string {
+        // Try to extract a meaningful prefix from the span name
+        if (span.name.includes(':')) {
+            return span.name.split(':')[0].trim()
+        }
+        // Use span type to create a descriptive name
+        const typeNames: Record<string, string> = {
+            [AISpanType.MODEL_STEP]: 'model-generation',
+            [AISpanType.MODEL_CHUNK]: 'model-generation',
+            [AISpanType.MODEL_GENERATION]: 'model-generation',
+            [AISpanType.AGENT_RUN]: 'agent-run',
+            [AISpanType.TOOL_CALL]: 'tool-execution',
+            [AISpanType.MCP_TOOL_CALL]: 'mcp-tool',
+            [AISpanType.WORKFLOW_RUN]: 'workflow',
+            [AISpanType.WORKFLOW_STEP]: 'workflow',
+        }
+        return typeNames[span.type] ?? `trace-${span.traceId.slice(0, 8)}`
+    }
+
     protected override async _exportEvent(event: AITracingEvent): Promise<void> {
         const span = event.exportedSpan
+
+        // Ensure trace exists before processing child spans to prevent "No trace data found" warnings
+        // This handles cases where child spans arrive before or without their root span due to async timing
+        if (!span.isRootSpan) {
+            this.ensureTraceExists(span)
+        }
 
         this.customLogger.debug('Exporting event', { 
             type: event.type, 

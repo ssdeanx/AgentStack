@@ -10,7 +10,7 @@ import { TokenLimiter } from '@mastra/memory/processors'
 import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core';
-import z from 'zod'
+import { z } from 'zod'
 import { MDocument } from "@mastra/rag";
 
 // Use the proper CoreMessage type from @mastra/core

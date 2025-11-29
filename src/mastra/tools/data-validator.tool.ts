@@ -100,8 +100,8 @@ const buildZodSchema = (def: SchemaDefinition): z.ZodTypeAny => {
   return schema;
 };
 
-export const dataValidatorTool = createTool({
-  id: "data-validator",
+export const dataValidatorToolJSON = createTool({
+  id: "data-validator-json",
   description: "Validate JSON data against a dynamic schema definition.",
   inputSchema: z.object({
     data: z.any().describe("The data to validate"),

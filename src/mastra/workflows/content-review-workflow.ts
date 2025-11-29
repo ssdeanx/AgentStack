@@ -1,7 +1,8 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { AISpanType, InternalSpans, TracingContext } from '@mastra/core/ai-tracing';
 import { logStepStart, logStepEnd, logError } from '../config/logger';
+
 
 const MAX_ITERATIONS = 10;
 const DEFAULT_QUALITY_THRESHOLD = 80;

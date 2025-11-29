@@ -7,7 +7,7 @@ import { log } from '../config/logger'
 
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
-import { dataValidatorTool } from '../tools/data-validator.tool'
+import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import {
     convertDataFormatTool,
     validateDataTool,
@@ -115,7 +115,7 @@ export const dataTransformationAgent = new Agent({
     tools: {
         csvToJsonTool,
         jsonToCsvTool,
-        dataValidatorTool,
+        dataValidatorToolJSON,
         convertDataFormatTool,
         validateDataTool,
         processXMLTool,

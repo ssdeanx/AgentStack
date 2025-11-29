@@ -6,7 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
-import { dataValidatorTool } from '../tools/data-validator.tool'
+import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import {
     readDataFileTool,
     listDataDirTool,
@@ -95,7 +95,7 @@ export const dataIngestionAgent = new Agent({
         csvToJsonTool,
         readCSVDataTool,
         readDataFileTool,
-        dataValidatorTool,
+        dataValidatorToolJSON,
         listDataDirTool,
         getDataFileInfoTool,
         chartSupervisorTool
