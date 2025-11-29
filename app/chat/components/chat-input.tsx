@@ -11,13 +11,21 @@ import {
   PromptInputAttachment,
 } from "@/src/components/ai-elements/prompt-input"
 import { useChatContext } from "@/app/chat/providers/chat-context"
+import { AgentSuggestions, getSuggestionsForAgent } from "./agent-suggestions"
 import { PaperclipIcon, SquareIcon } from "lucide-react"
+import { useMemo } from "react"
 
 export function ChatInput() {
-  const { sendMessage, stopGeneration, isLoading, status, agentConfig } =
+  const { sendMessage, stopGeneration, isLoading, status, agentConfig, selectedAgent, messages } =
     useChatContext()
 
   const supportsFiles = agentConfig?.features.fileUpload ?? false
+  const showSuggestions = messages.length === 0 && !isLoading
+
+  const suggestions = useMemo(
+    () => getSuggestionsForAgent(selectedAgent),
+    [selectedAgent]
+  )
 
   const handleSubmit = async (message: { text: string; files: unknown[] }) => {
     if (message.text.trim()) {
@@ -25,9 +33,20 @@ export function ChatInput() {
     }
   }
 
+  const handleSuggestionClick = (suggestion: string) => {
+    sendMessage(suggestion)
+  }
+
   return (
     <footer className="border-t border-border p-4">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-3">
+        {showSuggestions && (
+          <AgentSuggestions
+            suggestions={suggestions}
+            onSelect={handleSuggestionClick}
+            disabled={isLoading}
+          />
+        )}
         <PromptInput
           onSubmit={handleSubmit}
           className="rounded-lg border shadow-sm"

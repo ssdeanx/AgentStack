@@ -1,15 +1,16 @@
 "use client"
 
-import { mastraClient } from "@/lib/mastra-client"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import { getAgentConfig, AGENT_CONFIGS } from "@/app/chat/config/agents"
-import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart } from "ai"
+import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart, ToolUIPart } from "ai"
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
-  useRef,
   type ReactNode,
 } from "react"
 
@@ -28,6 +29,21 @@ export type ChatStatus = "ready" | "submitted" | "streaming" | "error"
 
 export type ToolInvocationState = DynamicToolUIPart
 
+export interface QueuedTask {
+  id: string
+  title: string
+  description?: string
+  status: "pending" | "running" | "completed" | "failed"
+}
+
+export interface PendingConfirmation {
+  id: string
+  toolName: string
+  description: string
+  approval: { id: string; approved?: boolean; reason?: string }
+  state: ToolUIPart["state"]
+}
+
 export interface ChatContextValue {
   messages: UIMessage[]
   isLoading: boolean
@@ -40,11 +56,18 @@ export interface ChatContextValue {
   usage: TokenUsage | null
   error: string | null
   agentConfig: ReturnType<typeof getAgentConfig>
-  sendMessage: (text: string, files?: File[]) => Promise<void>
+  queuedTasks: QueuedTask[]
+  pendingConfirmations: PendingConfirmation[]
+  sendMessage: (text: string, files?: File[]) => void
   stopGeneration: () => void
   clearMessages: () => void
   selectAgent: (agentId: string) => void
   dismissError: () => void
+  addTask: (task: Omit<QueuedTask, "id">) => string
+  updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
+  removeTask: (taskId: string) => void
+  approveConfirmation: (confirmationId: string) => void
+  rejectConfirmation: (confirmationId: string, reason?: string) => void
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -62,244 +85,193 @@ export interface ChatProviderProps {
   defaultAgent?: string
 }
 
-function getTextFromParts(parts: UIMessage["parts"]): string {
-  const textPart = parts.find((p): p is TextUIPart => p.type === "text")
-  return textPart?.text ?? ""
-}
+const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
 
 export function ChatProvider({
   children,
   defaultAgent = "researchAgent",
 }: ChatProviderProps) {
-  const [messages, setMessages] = useState<UIMessage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [status, setStatus] = useState<ChatStatus>("ready")
   const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
-  const [streamingContent, setStreamingContent] = useState("")
-  const [streamingReasoning, setStreamingReasoning] = useState("")
-  const [toolInvocations, setToolInvocations] = useState<ToolInvocationState[]>([])
   const [sources, setSources] = useState<Source[]>([])
   const [usage, setUsage] = useState<TokenUsage | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
+  const [queuedTasks, setQueuedTasks] = useState<QueuedTask[]>([])
+  const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([])
 
-  const abortControllerRef = useRef<AbortController | null>(null)
-  const messageIdCounter = useRef(0)
+  const {
+    messages,
+    sendMessage: aiSendMessage,
+    stop,
+    status: aiStatus,
+    error: aiError,
+  } = useChat({
+    transport: new DefaultChatTransport({
+      api: `${MASTRA_API_URL}/chat`,
+//      fetch: globalThis.fetch,
+      prepareSendMessagesRequest({ messages }) {
+        return {
+          id: selectedAgent,
+          messages: messages,
+          requestMetadata: {
+            agentId: selectedAgent
+          },
+          body: {
+            messages,
+            resourceId: selectedAgent,
+            data: {
+              agentId: selectedAgent,
+            },
+          },
+        }
+      },
+    }),
+  })
 
-  const generateMessageId = useCallback(() => {
-    messageIdCounter.current += 1
-    return `msg-${Date.now()}-${messageIdCounter.current}`
-  }, [])
+  const status: ChatStatus = useMemo(() => {
+    if (aiError || chatError) return "error"
+    if (aiStatus === "streaming") return "streaming"
+    if (aiStatus === "submitted") return "submitted"
+    return "ready"
+  }, [aiStatus, aiError, chatError])
+
+  const isLoading = status === "streaming" || status === "submitted"
+
+  const streamingContent = useMemo(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant" && aiStatus === "streaming") {
+      const textPart = lastMessage.parts?.find((p): p is TextUIPart => p.type === "text")
+      return textPart?.text ?? ""
+    }
+    return ""
+  }, [messages, aiStatus])
+
+  const streamingReasoning = useMemo(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant") {
+      const reasoningPart = lastMessage.parts?.find(
+        (p): p is ReasoningUIPart => p.type === "reasoning"
+      )
+      return reasoningPart?.text ?? ""
+    }
+    return ""
+  }, [messages])
+
+  const toolInvocations = useMemo((): ToolInvocationState[] => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant") {
+      return lastMessage.parts?.filter(
+        (p): p is DynamicToolUIPart => p.type === "dynamic-tool"
+      ) ?? []
+    }
+    return []
+  }, [messages])
+
+  // Extract sources from source-url parts
+  useEffect(() => {
+    const allSources: Source[] = []
+    for (const message of messages) {
+      if (message.role === "assistant" && message.parts) {
+        for (const part of message.parts) {
+          if (part.type === "source-url") {
+            const src = part as { url: string; title?: string }
+            allSources.push({
+              url: src.url,
+              title: src.title || src.url,
+            })
+          }
+        }
+      }
+    }
+    if (allSources.length > 0) {
+      setSources(allSources)
+    } else if (allSources.length === 0) {
+      // clear when there are no sources
+      setSources([])
+    }
+  }, [messages])
 
   const sendMessage = useCallback(
-    async (text: string, _files?: File[]) => {
+    (text: string, _files?: File[]) => {
       if (!text.trim() || isLoading) return
-
-      const userMessageId = generateMessageId()
-      const userMessage: UIMessage = {
-        id: userMessageId,
-        role: "user",
-        parts: [{ type: "text", text: text.trim() }],
-      }
-
-      setMessages((prev) => [...prev, userMessage])
-      setIsLoading(true)
-      setStatus("submitted")
-      setStreamingContent("")
-      setStreamingReasoning("")
-      setToolInvocations([])
+      setChatError(null)
       setSources([])
-      setError(null)
-
-      abortControllerRef.current = new AbortController()
-
-      try {
-        const agent = mastraClient.getAgent(selectedAgent)
-
-        const allMessages = [...messages, userMessage].map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: getTextFromParts(m.parts),
-        }))
-
-        const response = await agent.stream({
-          messages: allMessages,
-        })
-
-        setStatus("streaming")
-        let fullContent = ""
-        let fullReasoning = ""
-        const collectedTools: ToolInvocationState[] = []
-        const collectedSources: Source[] = []
-
-        await response.processDataStream({
-          onChunk: async (chunk) => {
-            if (abortControllerRef.current?.signal.aborted) return
-
-            switch (chunk.type) {
-              case "text-delta": {
-                const text = chunk.payload?.text || ""
-                fullContent += text
-                setStreamingContent(fullContent)
-                break
-              }
-              case "reasoning-delta": {
-                const reasoning = chunk.payload?.text || ""
-                fullReasoning += reasoning
-                setStreamingReasoning(fullReasoning)
-                break
-              }
-              case "tool-call": {
-                const toolName = chunk.payload?.toolName || "unknown"
-                const toolCall: ToolInvocationState = {
-                  type: "dynamic-tool",
-                  state: "input-available",
-                  toolCallId: chunk.payload?.toolCallId || generateMessageId(),
-                  toolName,
-                  input: chunk.payload?.args || {},
-                }
-                collectedTools.push(toolCall)
-                setToolInvocations([...collectedTools])
-                break
-              }
-              case "tool-result": {
-                const existingIndex = collectedTools.findIndex(
-                  (t) => t.toolCallId === chunk.payload?.toolCallId
-                )
-                if (existingIndex >= 0) {
-                  const existing = collectedTools[existingIndex]
-                  collectedTools[existingIndex] = {
-                    type: "dynamic-tool",
-                    state: "output-available",
-                    toolCallId: existing.toolCallId,
-                    toolName: existing.toolName,
-                    input: existing.input,
-                    output: chunk.payload?.result,
-                  }
-                  setToolInvocations([...collectedTools])
-                }
-                break
-              }
-              case "source": {
-                if (chunk.payload?.url) {
-                  collectedSources.push({
-                    url: chunk.payload.url,
-                    title: chunk.payload.title || chunk.payload.url,
-                  })
-                  setSources([...collectedSources])
-                }
-                break
-              }
-              case "finish": {
-                const finishUsage = chunk.payload?.output?.usage
-                if (finishUsage) {
-                  setUsage({
-                    inputTokens: finishUsage.inputTokens || 0,
-                    outputTokens: finishUsage.outputTokens || 0,
-                    totalTokens: (finishUsage.inputTokens || 0) + (finishUsage.outputTokens || 0),
-                  })
-                }
-                break
-              }
-            }
-          },
-        })
-
-        const assistantMessageId = generateMessageId()
-        
-        const parts: UIMessage["parts"] = []
-        
-        if (fullReasoning) {
-          const reasoningPart: ReasoningUIPart = {
-            type: "reasoning",
-            text: fullReasoning,
-          }
-          parts.push(reasoningPart)
-        }
-        
-        const textPart: TextUIPart = {
-          type: "text",
-          text: fullContent || "No response received.",
-        }
-        parts.push(textPart)
-        
-        for (const tool of collectedTools) {
-          parts.push(tool)
-        }
-
-        const assistantMessage: UIMessage = {
-          id: assistantMessageId,
-          role: "assistant",
-          parts,
-        }
-
-        setMessages((prev) => [...prev, assistantMessage])
-        setStatus("ready")
-      } catch (err) {
-        if (abortControllerRef.current?.signal.aborted) {
-          setStatus("ready")
-          return
-        }
-
-        const errorMessage =
-          err instanceof Error ? err.message : "An error occurred"
-        setError(errorMessage)
-        setStatus("error")
-
-        const errorAssistantMessage: UIMessage = {
-          id: generateMessageId(),
-          role: "assistant",
-          parts: [{ type: "text", text: `Error: ${errorMessage}` }],
-        }
-        setMessages((prev) => [...prev, errorAssistantMessage])
-      } finally {
-        setIsLoading(false)
-        setStreamingContent("")
-        setStreamingReasoning("")
-        abortControllerRef.current = null
-      }
+      aiSendMessage({ text: text.trim() })
     },
-    [isLoading, messages, selectedAgent, generateMessageId]
+    [isLoading, aiSendMessage]
   )
 
   const stopGeneration = useCallback(() => {
-    abortControllerRef.current?.abort()
-    setIsLoading(false)
-    setStatus("ready")
-  }, [])
+    stop()
+  }, [stop])
 
   const clearMessages = useCallback(() => {
-    setMessages([])
-    setStreamingContent("")
-    setStreamingReasoning("")
-    setToolInvocations([])
     setSources([])
     setUsage(null)
-    setError(null)
-    setStatus("ready")
+    setChatError(null)
+    setQueuedTasks([])
+    setPendingConfirmations([])
+    window.location.reload()
   }, [])
 
   const selectAgent = useCallback(
     (agentId: string) => {
       if (AGENT_CONFIGS[agentId]) {
         setSelectedAgent(agentId)
-        setMessages([])
         setSources([])
-        setError(null)
+        setChatError(null)
       }
     },
     []
   )
 
   const dismissError = useCallback(() => {
-    setError(null)
-    if (status === "error") {
-      setStatus("ready")
-    }
-  }, [status])
+    setChatError(null)
+  }, [])
+
+  const addTask = useCallback((task: Omit<QueuedTask, "id">): string => {
+    const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    setQueuedTasks((prev) => [...prev, { ...task, id }])
+    return id
+  }, [])
+
+  const updateTask = useCallback((taskId: string, updates: Partial<QueuedTask>) => {
+    setQueuedTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
+    )
+  }, [])
+
+  const removeTask = useCallback((taskId: string) => {
+    setQueuedTasks((prev) => prev.filter((task) => task.id !== taskId))
+  }, [])
+
+  const approveConfirmation = useCallback((confirmationId: string) => {
+    setPendingConfirmations((prev) =>
+      prev.map((c) =>
+        c.id === confirmationId
+          ? { ...c, approval: { ...c.approval, approved: true } }
+          : c
+      )
+    )
+    // TODO: Send approval to backend via AI SDK when available
+  }, [])
+
+  const rejectConfirmation = useCallback((confirmationId: string, reason?: string) => {
+    setPendingConfirmations((prev) =>
+      prev.map((c) =>
+        c.id === confirmationId
+          ? { ...c, approval: { ...c.approval, approved: false, reason } }
+          : c
+      )
+    )
+    // TODO: Send rejection to backend via AI SDK when available
+  }, [])
 
   const agentConfig = useMemo(
     () => getAgentConfig(selectedAgent),
     [selectedAgent]
   )
+
+  const error = aiError?.message ?? chatError
 
   const value = useMemo<ChatContextValue>(
     () => ({
@@ -314,11 +286,18 @@ export function ChatProvider({
       usage,
       error,
       agentConfig,
+      queuedTasks,
+      pendingConfirmations,
       sendMessage,
       stopGeneration,
       clearMessages,
       selectAgent,
       dismissError,
+      addTask,
+      updateTask,
+      removeTask,
+      approveConfirmation,
+      rejectConfirmation,
     }),
     [
       messages,
@@ -332,11 +311,18 @@ export function ChatProvider({
       usage,
       error,
       agentConfig,
+      queuedTasks,
+      pendingConfirmations,
       sendMessage,
       stopGeneration,
       clearMessages,
       selectAgent,
       dismissError,
+      addTask,
+      updateTask,
+      removeTask,
+      approveConfirmation,
+      rejectConfirmation,
     ]
   )
 

@@ -25,7 +25,9 @@ export interface AgentFeatures {
   confirmation: boolean
   checkpoint: boolean
   queue: boolean
-
+  codeBlocks: boolean
+  images: boolean
+  webPreview: boolean
 }
 
 export interface AgentConfig {
@@ -50,6 +52,9 @@ const defaultFeatures: AgentFeatures = {
   confirmation: false,
   checkpoint: false,
   queue: false,
+  codeBlocks: true,
+  images: true,
+  webPreview: false,
 }
 
 export const AGENT_CONFIGS: Record<string, AgentConfig> = {

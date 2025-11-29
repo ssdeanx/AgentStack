@@ -13,8 +13,12 @@ import {
   MessageToolbar,
   MessageActions,
   MessageAction,
+  MessageAttachment,
+  MessageAttachments,
 } from "@/src/components/ai-elements/message"
 import { Loader } from "@/src/components/ai-elements/loader"
+import { CodeBlock, CodeBlockCopyButton } from "@/src/components/ai-elements/code-block"
+import { Image as AIImage } from "@/src/components/ai-elements/image"
 import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/chat-context"
 import { AgentReasoning } from "./agent-reasoning"
 import { AgentChainOfThought, parseReasoningToSteps } from "./agent-chain-of-thought"
@@ -24,15 +28,19 @@ import { AgentArtifact, type ArtifactData } from "./agent-artifact"
 import { AgentPlan, extractPlanFromText } from "./agent-plan"
 import { AgentCheckpoint } from "./agent-checkpoint"
 import { AgentTask, type AgentTaskData } from "./agent-task"
+import { AgentQueue } from "./agent-queue"
+import { AgentConfirmation } from "./agent-confirmation"
 import { parseInlineCitations } from "./agent-inline-citation"
 import { CopyIcon, CheckIcon, MessageSquareIcon, BookmarkPlusIcon } from "lucide-react"
 import { useState, useCallback, useMemo, Fragment } from "react"
-import type { UIMessage } from "ai"
+import type { UIMessage, FileUIPart } from "ai"
 import {
   isTextUIPart,
   isReasoningUIPart,
   isToolOrDynamicToolUIPart,
+  isFileUIPart,
 } from "ai"
+import type { BundledLanguage } from "shiki"
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -61,8 +69,9 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function extractArtifacts(text: string): { content: string; artifacts: ArtifactData[] } {
+function extractArtifacts(text: string): { content: string; artifacts: ArtifactData[]; codeBlocks: { language: string; code: string }[] } {
   const artifacts: ArtifactData[] = []
+  const codeBlocks: { language: string; code: string }[] = []
   let cleanContent = text
   
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
@@ -83,10 +92,13 @@ function extractArtifacts(text: string): { content: string; artifacts: ArtifactD
         content: code,
       })
       cleanContent = cleanContent.replace(match[0], `\n*[Code artifact: ${language}]*\n`)
+    } else {
+      codeBlocks.push({ language, code })
+      cleanContent = cleanContent.replace(match[0], `\n__CODE_BLOCK_${codeBlocks.length - 1}__\n`)
     }
   }
   
-  return { content: cleanContent, artifacts }
+  return { content: cleanContent, artifacts, codeBlocks }
 }
 
 interface MessageItemProps {
@@ -97,10 +109,13 @@ interface MessageItemProps {
   showTools: boolean
   showSources: boolean
   showArtifacts: boolean
+  showConfirmation: boolean
   sources: { url: string; title: string }[]
   checkpoints: number[]
   onCreateCheckpoint?: (index: number) => void
   onRestoreCheckpoint?: (index: number) => void
+  onApproveConfirmation?: (id: string) => void
+  onRejectConfirmation?: (id: string) => void
 }
 
 function MessageItem({
@@ -111,26 +126,34 @@ function MessageItem({
   showTools,
   showSources,
   showArtifacts,
+  showConfirmation,
   sources,
   checkpoints,
   onCreateCheckpoint,
   onRestoreCheckpoint,
+  onApproveConfirmation,
+  onRejectConfirmation,
 }: MessageItemProps) {
   const isAssistant = message.role === "assistant"
+  const isUser = message.role === "user"
   const textPart = message.parts?.find(isTextUIPart)
   const rawContent = textPart?.text || ""
 
-  const { content, artifacts } = useMemo(() => {
+  const { content, artifacts, codeBlocks } = useMemo(() => {
     if (isAssistant && showArtifacts) {
       return extractArtifacts(rawContent)
     }
-    return { content: rawContent, artifacts: [] }
+    return { content: rawContent, artifacts: [], codeBlocks: [] }
   }, [rawContent, isAssistant, showArtifacts])
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
   const messageTools = message.parts?.filter(
     isToolOrDynamicToolUIPart
   ) as ToolInvocationState[] | undefined
+  
+  const fileParts = message.parts?.filter(isFileUIPart) as FileUIPart[] | undefined
+  const imageParts = fileParts?.filter((f) => f.mediaType?.startsWith("image/"))
+  const otherFileParts = fileParts?.filter((f) => !f.mediaType?.startsWith("image/"))
 
   const reasoningSteps = useMemo(() => {
     if (showChainOfThought && messageReasoning?.text) {
@@ -156,10 +179,45 @@ function MessageItem({
 
   const isCheckpoint = checkpoints.includes(messageIndex)
 
+  const renderContentWithCodeBlocks = useCallback((text: string) => {
+    if (codeBlocks.length === 0) return text
+    
+    const parts = text.split(/__CODE_BLOCK_(\d+)__/)
+    return parts.map((part, i) => {
+      if (i % 2 === 1) {
+        const blockIndex = parseInt(part, 10)
+        const block = codeBlocks[blockIndex]
+        if (block) {
+          return (
+            <CodeBlock
+              key={`code-${blockIndex}`}
+              code={block.code}
+              language={block.language as BundledLanguage}
+              className="my-2"
+            >
+              <CodeBlockCopyButton />
+            </CodeBlock>
+          )
+        }
+      }
+      return part
+    })
+  }, [codeBlocks])
+
   return (
     <Fragment>
       <Message from={message.role}>
         <MessageContent>
+          {/* User file attachments */}
+          {isUser && fileParts && fileParts.length > 0 && (
+            <MessageAttachments>
+              {fileParts.map((file, idx) => (
+                <MessageAttachment key={`file-${idx}`} data={file} />
+              ))}
+            </MessageAttachments>
+          )}
+
+          {/* Chain of Thought / Reasoning */}
           {isAssistant && showChainOfThought && reasoningSteps.length > 0 && (
             <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
           )}
@@ -171,18 +229,46 @@ function MessageItem({
             />
           )}
 
+          {/* Plan */}
           {plan && (
             <AgentPlan plan={plan} defaultOpen={false} />
           )}
 
+          {/* Generated images */}
+          {isAssistant && imageParts && imageParts.length > 0 && (
+            <div className="flex flex-wrap gap-2 my-2">
+              {imageParts.map((img, idx) => {
+                const base64Data = img.url?.startsWith("data:") 
+                  ? img.url.split(",")[1] || "" 
+                  : ""
+                return (
+                  <AIImage
+                    key={`img-${idx}`}
+                    base64={base64Data}
+                    uint8Array={new Uint8Array()}
+                    mediaType={img.mediaType || "image/png"}
+                    className="max-w-md rounded-lg"
+                    alt={img.filename || `Generated image ${idx + 1}`}
+                  />
+                )
+              })}
+            </div>
+          )}
+
+          {/* Message content with inline code blocks */}
           {hasCitations && citationNodes ? (
             <div className="prose prose-sm dark:prose-invert max-w-none">
               {citationNodes}
+            </div>
+          ) : codeBlocks.length > 0 ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {renderContentWithCodeBlocks(content)}
             </div>
           ) : (
             <MessageResponse>{content}</MessageResponse>
           )}
 
+          {/* Artifacts */}
           {isAssistant && showArtifacts && artifacts.length > 0 && (
             <div className="space-y-3 mt-3">
               {artifacts.map((artifact) => (
@@ -191,10 +277,31 @@ function MessageItem({
             </div>
           )}
 
+          {/* Tool Confirmations */}
+          {isAssistant && showConfirmation && messageTools && messageTools.length > 0 && (
+            <>
+              {messageTools
+                .filter((tool) => tool.state === "approval-requested" as unknown)
+                .map((tool) => (
+                  <AgentConfirmation
+                    key={tool.toolCallId}
+                    toolName={tool.toolName || "unknown"}
+                    description={`Execute ${tool.toolName} with provided parameters`}
+                    approval={{ id: tool.toolCallId }}
+                    state={tool.state}
+                    onApprove={(id) => onApproveConfirmation?.(id)}
+                    onReject={(id) => onRejectConfirmation?.(id)}
+                  />
+                ))}
+            </>
+          )}
+
+          {/* Tools */}
           {isAssistant && showTools && messageTools && messageTools.length > 0 && (
             <AgentTools tools={messageTools} />
           )}
 
+          {/* Sources */}
           {isAssistant && showSources && sources.length > 0 && (
             <AgentSources sources={sources} />
           )}
@@ -237,6 +344,10 @@ export function ChatMessages() {
     sources,
     selectedAgent,
     agentConfig,
+    queuedTasks,
+    approveConfirmation,
+    rejectConfirmation,
+    removeTask,
   } = useChatContext()
 
   const [checkpoints, setCheckpoints] = useState<number[]>([])
@@ -246,6 +357,8 @@ export function ChatMessages() {
   const showTools = agentConfig?.features.tools ?? false
   const showSources = agentConfig?.features.sources ?? false
   const showArtifacts = agentConfig?.features.artifacts ?? false
+  const showConfirmation = agentConfig?.features.confirmation ?? false
+  const showQueue = agentConfig?.features.queue ?? false
 
   const handleCreateCheckpoint = useCallback((index: number) => {
     setCheckpoints((prev) => {
@@ -277,6 +390,16 @@ export function ChatMessages() {
           />
         ) : (
           <>
+            {/* Task Queue */}
+            {showQueue && queuedTasks.length > 0 && (
+              <AgentQueue
+                tasks={queuedTasks}
+                onView={(id) => console.log("View task:", id)}
+                onRetry={(id) => console.log("Retry task:", id)}
+                onDelete={removeTask}
+              />
+            )}
+
             {messages.map((message, index) => (
               <MessageItem
                 key={message.id}
@@ -287,10 +410,13 @@ export function ChatMessages() {
                 showTools={showTools}
                 showSources={showSources}
                 showArtifacts={showArtifacts}
+                showConfirmation={showConfirmation}
                 sources={sources}
                 checkpoints={checkpoints}
                 onCreateCheckpoint={handleCreateCheckpoint}
                 onRestoreCheckpoint={handleRestoreCheckpoint}
+                onApproveConfirmation={approveConfirmation}
+                onRejectConfirmation={rejectConfirmation}
               />
             ))}
 

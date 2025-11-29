@@ -1,9 +1,33 @@
-<!-- AGENTS-META {"title":"Chat App","version":"1.0.0","applies_to":"app/chat/","last_updated":"2025-11-29T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Chat App","version":"1.1.0","applies_to":"app/chat/","last_updated":"2025-11-29T00:00:00Z","status":"stable"} -->
 # App/Chat
 
 ## Overview
 
-The `/chat` route provides a rich AI chat interface built with **AI Elements** (30 components) integrated with **26+ Mastra agents**. Uses AI SDK v5 patterns with streaming, reasoning display, tool execution, and source citations.
+The `/chat` route provides a rich AI chat interface built with **AI Elements** (30 components) integrated with **26+ Mastra agents**. Uses `@ai-sdk/react` with `useChat` and `DefaultChatTransport` to stream responses from Mastra's `/chat` route.
+
+## AI SDK Integration
+
+Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport`:
+
+```tsx
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
+
+const { messages, sendMessage, stop, status } = useChat({
+  transport: new DefaultChatTransport({
+    api: "http://localhost:4111/chat",
+    prepareSendMessagesRequest({ messages }) {
+      return {
+        body: {
+          messages,
+          resourceId: selectedAgent,
+          data: { agentId: selectedAgent },
+        },
+      }
+    },
+  }),
+})
+```
 
 ## Architecture
 
