@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@mastra/*", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
+  serverExternalPackages: ["@mastra/*", "cheerio", "jsdom", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: true,
   reactStrictMode: true,
@@ -15,46 +15,53 @@ const nextConfig: NextConfig = {
   cacheMaxMemorySize: 128 * 1024 * 1024, // 128 MB
   compiler: {
     emotion: true,
+    styledComponents: true,
+    styledJsx: {
+      useLightningcss: true,
+    }
   },
   // TODO: enable this when we have a proper domain
   compress: true,
   poweredByHeader: false,
-  basePath: "",
   trailingSlash: false,
-
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
-  },
-
 //  exportPathMap: async function () {
 //    return {
 //      "/": { page: "/" },
 //    };
 //  },
   experimental: {
-//    adapterPath: "./src/adapter/edge.ts",
     useSkewCookie: true,
     multiZoneDraftMode: true,
     appNavFailHandling: true,
     prerenderEarlyExit: true,
     linkNoTouchStart: true,
     caseSensitiveRoutes: true,
-//    clientParamParsingOrigins: [],
     dynamicOnHover: true,
     preloadEntriesOnStart: true,
-    fetchCacheKeyPrefix: "",
     isrFlushToDisk: true,
-//    urlImports: [],
     workerThreads: true,
     disableOptimizedLoading: true,
     hideLogsAfterAbort: true,
     optimizeCss: true,
-//    swcPlugins: [["./src/swc-plugin.js", {}]],
+    esmExternals: true,
+    scrollRestoration: true,
+    cpus: 16,
+//    cssChunking: true,
+ //   craCompat: true,
+//    validateRSCRequestHeaders: true,
+    webpackMemoryOptimizations: true,
+    webpackBuildWorker: true,
+ //   turbopackTreeShaking: true,
+    turbopackMinify: true,
+    turbopackImportTypeBytes: true,
+//    turbopackMemoryLimit: 8192,
+//    turbopackRemoveUnusedExports: true,
+    turbopackFileSystemCacheForDev: true,
+  //  turbopackFileSystemCacheForBuild: true,
+    useCache: true,
+    useLightningcss: true,
+    useWasmBinary: true,
+//    swcTraceProfiling: true,
 //    forceSwcTransforms: true,
     ppr: false,
   },

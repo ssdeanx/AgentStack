@@ -1,13 +1,13 @@
+
 import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
 import {
-    CloudExporter,
-    DefaultExporter,
-    SamplingStrategyType,
-    SensitiveDataFilter,
+  DefaultExporter,
+  SamplingStrategyType,
+  SensitiveDataFilter
 } from "@mastra/core/ai-tracing";
 import { Mastra } from '@mastra/core/mastra';
-import { LangfuseExporter } from "./config/tracing";
 import { PostgresStore } from "@mastra/pg";
+import { LangfuseExporter } from "./config/tracing";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
@@ -53,10 +53,10 @@ import { daneNewContributor } from './workflows/new-contributor';
 
 // Financial Chart Agents
 import {
-    chartTypeAdvisorAgent,
-    chartDataProcessorAgent,
-    chartGeneratorAgent,
-    chartSupervisorAgent,
+  chartDataProcessorAgent,
+  chartGeneratorAgent,
+  chartSupervisorAgent,
+  chartTypeAdvisorAgent,
 } from './agents/recharts';
 
 // Networks
@@ -75,6 +75,7 @@ import { researchSynthesisWorkflow } from './workflows/research-synthesis-workfl
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
+import { trace } from "@opentelemetry/api";
 
 
 export const mastra = new Mastra({
@@ -135,19 +136,19 @@ export const mastra = new Mastra({
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
   storage: new PostgresStore({
-      // Connection configuration
-      connectionString:
-          process.env.SUPABASE ??
-          'postgresql://user:password@localhost:5432/mydb',
-      // Schema management
-      schemaName: process.env.DB_SCHEMA ?? 'mastra',
+    // Connection configuration
+    connectionString:
+      process.env.SUPABASE ??
+      'postgresql://user:password@localhost:5432/mydb',
+    // Schema management
+    schemaName: process.env.DB_SCHEMA ?? 'mastra',
   }),
   vectors: { pgVector },
   logger: log,
-  telemetry: {
+//  telemetry: {
     // Telemetry is deprecated and will be removed in the Nov 4th release
-    enabled: true,
-  },
+//    enabled: true,
+//  },
   observability: {
     configs: {
       default: {
@@ -166,31 +167,51 @@ export const mastra = new Mastra({
             publicKey: process.env.LANGFUSE_PUBLIC_KEY,
             secretKey: process.env.LANGFUSE_SECRET_KEY,
             baseUrl: process.env.LANGFUSE_BASE_URL,
-          }),
-          new CloudExporter({
             logger: log,
-            logLevel: 'debug',
+            options: {
+              tracer: trace.getTracer("AgentStack"),
+            }
           }),
-          
+          //          new CloudExporter({
+          //            logger: log,
+          //                logLevel: 'debug',
+          //          }),
+
           new DefaultExporter(
             {
               maxBatchSize: 100,
               maxBufferSize: 500,
-              maxBatchWaitMs: 700,
+              maxBatchWaitMs: 75,
               maxRetries: 3,
               retryDelayMs: 500,
-              strategy: 'batch-with-updates'
+              strategy: 'batch-with-updates',
             }
           )],
       },
-    },
+    }
   },
   server: {
     apiRoutes: [
       chatRoute({
         path: "/chat",
-        agent: "weatherAgent, a2aCoordinator, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent",
-        defaultOptions: {},
+        agent: "weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent",
+        defaultOptions: {
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+            metadata: {
+              route: "/chat",
+              project: "AgentStack",
+              environment: process.env.NODE_ENV ?? "development",
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
         sendStart: true,
         sendFinish: true,
         sendReasoning: true,
@@ -203,14 +224,29 @@ export const mastra = new Mastra({
       networkRoute({
         path: "/network",
         agent: "agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork",
-        defaultOptions: {
-          format: 'aisdk'
-        },
       }),
-    ]
-  },
-  bundler: {
-    externals: ["playwright", "crawlee"],
+    ],
+    middleware: [
+      async (c, next) => {
+        const runtimeContext = c.get("runtimeContext");
+
+        if (c.req.method === "POST") {
+          try {
+            const clonedReq = c.req.raw.clone();
+            const body = await clonedReq.json();
+
+            if (body?.data) {
+              for (const [key, value] of Object.entries(body.data)) {
+                runtimeContext.set(key, value);
+              }
+            }
+          } catch {
+            log.error("Failed to parse request body for middleware");
+          }
+        }
+        await next();
+      },
+    ],
   }
 });
 

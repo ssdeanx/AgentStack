@@ -84,6 +84,34 @@ export const mongoMemory = new Memory({
     processors: [new TokenLimiter(1048576)],
 })
 
+log.info('Mongos and Memory initialized with PgVector support', {
+    dbName: process.env.MONGODB_DATABASE ?? 'AgentStack',
+    collectionName: process.env.MONGODB_COLLECTION ?? 'governed_rag',
+    memoryOptions: {
+        lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+        semanticRecall: {
+            topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
+            messageRange: {
+                before: parseInt(process.env.SEMANTIC_RANGE_BEFORE ?? '3'),
+                after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
+            },
+            scope: 'resource',
+            indexConfig: {
+                type: 'flat',
+                metric: 'cosine',
+                ivf: { lists: 4000 }, // Adjust list count based on your needs
+            }
+        },
+        workingMemory: {
+            enabled: true,
+            scope: 'resource',
+            version: 'vnext',
+        },
+        threads: {
+            generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
+        },
+    },
+})
 
 /**
  * MongoDB-compatible filter format for vector queries
