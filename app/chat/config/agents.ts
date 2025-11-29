@@ -50,10 +50,17 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     category: 'core',
     features: { ...defaultFeatures, tools: true },
   },
-  a2aCoordinatorAgent: {
-    id: 'a2aCoordinatorAgent',
+  a2aCoordinator: {
+    id: 'a2aCoordinator',
     name: 'A2A Coordinator',
     description: 'Orchestrates and routes tasks across multiple specialized agents',
+    category: 'core',
+    features: { ...defaultFeatures, chainOfThought: true, tools: true },
+  },
+  agentNetwork: {
+    id: 'agentNetwork',
+    name: 'Agent Network',
+    description: 'Routes requests to specialized agents based on query analysis',
     category: 'core',
     features: { ...defaultFeatures, chainOfThought: true, tools: true },
   },
@@ -142,12 +149,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Report Agent',
     description: 'Generates formatted reports from processed data',
     category: 'content',
-    features: { 
-      ...defaultFeatures, 
-      chainOfThought: true, 
-      tools: true, 
-      sources: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      chainOfThought: true,
+      tools: true,
+      sources: true,
+      artifacts: true
     },
   },
 
@@ -157,11 +164,11 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Data Export Agent',
     description: 'Convert JSON to CSV, file writing, backup, and validation',
     category: 'data',
-    features: { 
-      ...defaultFeatures, 
-      chainOfThought: true, 
-      tools: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      chainOfThought: true,
+      tools: true,
+      artifacts: true
     },
   },
   dataIngestionAgent: {
@@ -169,11 +176,11 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Data Ingestion Agent',
     description: 'CSV parsing, file reading, and structure validation',
     category: 'data',
-    features: { 
-      ...defaultFeatures, 
-      chainOfThought: true, 
-      tools: true, 
-      fileUpload: true 
+    features: {
+      ...defaultFeatures,
+      chainOfThought: true,
+      tools: true,
+      fileUpload: true
     },
   },
   dataTransformationAgent: {
@@ -190,13 +197,13 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Stock Analysis Agent',
     description: 'Analyze stocks with technical and fundamental analysis',
     category: 'financial',
-    features: { 
-      ...defaultFeatures, 
-      reasoning: true, 
-      chainOfThought: true, 
-      tools: true, 
-      sources: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      reasoning: true,
+      chainOfThought: true,
+      tools: true,
+      sources: true,
+      artifacts: true
     },
   },
   chartTypeAdvisorAgent: {
@@ -225,12 +232,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Chart Supervisor',
     description: 'Orchestrates the chart creation pipeline',
     category: 'financial',
-    features: { 
-      ...defaultFeatures, 
-      reasoning: true, 
-      chainOfThought: true, 
-      tools: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      reasoning: true,
+      chainOfThought: true,
+      tools: true,
+      artifacts: true
     },
   },
 
@@ -240,12 +247,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'CSV to Excalidraw Agent',
     description: 'Converts CSV data to Excalidraw diagrams',
     category: 'diagram',
-    features: { 
-      ...defaultFeatures, 
-      chainOfThought: true, 
-      tools: true, 
-      canvas: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      chainOfThought: true,
+      tools: true,
+      canvas: true,
+      artifacts: true
     },
   },
   imageToCsvAgent: {
@@ -253,12 +260,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Image to CSV Agent',
     description: 'Extracts tabular data from images using OCR',
     category: 'diagram',
-    features: { 
-      ...defaultFeatures, 
-      chainOfThought: true, 
-      tools: true, 
-      artifacts: true, 
-      fileUpload: true 
+    features: {
+      ...defaultFeatures,
+      chainOfThought: true,
+      tools: true,
+      artifacts: true,
+      fileUpload: true
     },
   },
   excalidrawValidatorAgent: {
@@ -275,12 +282,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Evaluation Agent',
     description: 'Evaluates and scores agent performance and content quality',
     category: 'utility',
-    features: { 
-      ...defaultFeatures, 
-      reasoning: true, 
-      chainOfThought: true, 
-      tools: true, 
-      artifacts: true 
+    features: {
+      ...defaultFeatures,
+      reasoning: true,
+      chainOfThought: true,
+      tools: true,
+      artifacts: true
     },
   },
   learningExtractionAgent: {
@@ -290,19 +297,12 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     category: 'utility',
     features: { ...defaultFeatures, reasoning: true, tools: true },
   },
-  dane: {
-    id: 'dane',
-    name: 'Dane',
-    description: 'Utility agent for development and testing workflows',
+  daneNewContributor: {
+    id: 'daneNewContributor',
+    name: 'Dane New Contributor',
+    description: 'Helps new contributors get started with the project',
     category: 'utility',
     features: { ...defaultFeatures, tools: true },
-  },
-  sqlAgent: {
-    id: 'sqlAgent',
-    name: 'SQL Agent',
-    description: 'SQL query generation and database operations',
-    category: 'utility',
-    features: { ...defaultFeatures, tools: true, artifacts: true },
   },
 }
 

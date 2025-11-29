@@ -2,14 +2,14 @@
 
 import { mastraClient } from "@/lib/mastra-client"
 import { getAgentConfig, AGENT_CONFIGS } from "@/app/chat/config/agents"
-import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart } from "ai"
+import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart } from "ai"
 import {
   createContext,
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState,
+  useRef,
   type ReactNode,
 } from "react"
 
@@ -22,15 +22,13 @@ export interface TokenUsage {
   inputTokens: number
   outputTokens: number
   totalTokens: number
-  reasoningTokens?: number
-  cachedInputTokens?: number
 }
 
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error"
 
 export type ToolInvocationState = DynamicToolUIPart
 
-export interface ChatState {
+export interface ChatContextValue {
   messages: UIMessage[]
   isLoading: boolean
   status: ChatStatus
@@ -41,18 +39,12 @@ export interface ChatState {
   sources: Source[]
   usage: TokenUsage | null
   error: string | null
-}
-
-export interface ChatActions {
+  agentConfig: ReturnType<typeof getAgentConfig>
   sendMessage: (text: string, files?: File[]) => Promise<void>
   stopGeneration: () => void
   clearMessages: () => void
   selectAgent: (agentId: string) => void
   dismissError: () => void
-}
-
-export interface ChatContextValue extends ChatState, ChatActions {
-  agentConfig: ReturnType<typeof getAgentConfig>
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -77,7 +69,7 @@ function getTextFromParts(parts: UIMessage["parts"]): string {
 
 export function ChatProvider({
   children,
-  defaultAgent = "weatherAgent",
+  defaultAgent = "researchAgent",
 }: ChatProviderProps) {
   const [messages, setMessages] = useState<UIMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -289,6 +281,9 @@ export function ChatProvider({
     (agentId: string) => {
       if (AGENT_CONFIGS[agentId]) {
         setSelectedAgent(agentId)
+        setMessages([])
+        setSources([])
+        setError(null)
       }
     },
     []

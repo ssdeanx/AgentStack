@@ -19,8 +19,10 @@ import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/c
 import { AgentReasoning } from "./agent-reasoning"
 import { AgentTools } from "./agent-tools"
 import { AgentSources } from "./agent-sources"
+import { AgentArtifact, type ArtifactData } from "./agent-artifact"
 import { CopyIcon, CheckIcon, MessageSquareIcon } from "lucide-react"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
+import type { UIMessage } from "ai"
 import {
   isTextUIPart,
   isReasoningUIPart,
@@ -54,6 +56,100 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+function extractArtifacts(text: string): { content: string; artifacts: ArtifactData[] } {
+  const artifacts: ArtifactData[] = []
+  let cleanContent = text
+  
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
+  let match: RegExpExecArray | null
+  let artifactIndex = 0
+  
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const language = match[1] || "text"
+    const code = match[2].trim()
+    
+    if (code.length > 100) {
+      const artifactId = `artifact-${Date.now()}-${artifactIndex++}`
+      artifacts.push({
+        id: artifactId,
+        title: `Code: ${language}`,
+        type: language === "json" ? "json" : "code",
+        language,
+        content: code,
+      })
+      cleanContent = cleanContent.replace(match[0], `\n*[Code artifact: ${language}]*\n`)
+    }
+  }
+  
+  return { content: cleanContent, artifacts }
+}
+
+interface MessageItemProps {
+  message: UIMessage
+  showReasoning: boolean
+  showTools: boolean
+  showSources: boolean
+  showArtifacts: boolean
+  sources: { url: string; title: string }[]
+}
+
+function MessageItem({ message, showReasoning, showTools, showSources, showArtifacts, sources }: MessageItemProps) {
+  const isAssistant = message.role === "assistant"
+  const textPart = message.parts?.find(isTextUIPart)
+  const rawContent = textPart?.text || ""
+
+  const { content, artifacts } = useMemo(() => {
+    if (isAssistant && showArtifacts) {
+      return extractArtifacts(rawContent)
+    }
+    return { content: rawContent, artifacts: [] }
+  }, [rawContent, isAssistant, showArtifacts])
+
+  const messageReasoning = message.parts?.find(isReasoningUIPart)
+  const messageTools = message.parts?.filter(
+    isToolOrDynamicToolUIPart
+  ) as ToolInvocationState[] | undefined
+
+  return (
+    <Message from={message.role}>
+      <MessageContent>
+        {isAssistant && showReasoning && messageReasoning && (
+          <AgentReasoning
+            reasoning={messageReasoning.text || ""}
+            isStreaming={false}
+          />
+        )}
+
+        <MessageResponse>{content}</MessageResponse>
+
+        {isAssistant && showArtifacts && artifacts.length > 0 && (
+          <div className="space-y-3 mt-3">
+            {artifacts.map((artifact) => (
+              <AgentArtifact key={artifact.id} artifact={artifact} />
+            ))}
+          </div>
+        )}
+
+        {isAssistant && showTools && messageTools && messageTools.length > 0 && (
+          <AgentTools tools={messageTools} />
+        )}
+
+        {isAssistant && showSources && sources.length > 0 && (
+          <AgentSources sources={sources} />
+        )}
+      </MessageContent>
+
+      {isAssistant && (
+        <MessageToolbar>
+          <MessageActions>
+            <CopyButton text={rawContent} />
+          </MessageActions>
+        </MessageToolbar>
+      )}
+    </Message>
+  )
+}
+
 export function ChatMessages() {
   const {
     messages,
@@ -69,6 +165,7 @@ export function ChatMessages() {
   const showReasoning = agentConfig?.features.reasoning || agentConfig?.features.chainOfThought
   const showTools = agentConfig?.features.tools
   const showSources = agentConfig?.features.sources
+  const showArtifacts = agentConfig?.features.artifacts
 
   return (
     <Conversation className="flex-1">
@@ -81,47 +178,17 @@ export function ChatMessages() {
           />
         ) : (
           <>
-            {messages.map((message) => {
-              const isAssistant = message.role === "assistant"
-              const textPart = message.parts?.find(isTextUIPart)
-              const content = textPart?.text || ""
-
-              const messageReasoning = message.parts?.find(isReasoningUIPart)
-              const messageTools = message.parts?.filter(
-                isToolOrDynamicToolUIPart
-              ) as ToolInvocationState[] | undefined
-
-              return (
-                <Message key={message.id} from={message.role}>
-                  <MessageContent>
-                    {isAssistant && showReasoning && messageReasoning && (
-                      <AgentReasoning
-                        reasoning={messageReasoning.text || ""}
-                        isStreaming={false}
-                      />
-                    )}
-
-                    <MessageResponse>{content}</MessageResponse>
-
-                    {isAssistant && showTools && messageTools && messageTools.length > 0 && (
-                      <AgentTools tools={messageTools} />
-                    )}
-
-                    {isAssistant && showSources && sources.length > 0 && (
-                      <AgentSources sources={sources} />
-                    )}
-                  </MessageContent>
-
-                  {isAssistant && (
-                    <MessageToolbar>
-                      <MessageActions>
-                        <CopyButton text={content} />
-                      </MessageActions>
-                    </MessageToolbar>
-                  )}
-                </Message>
-              )
-            })}
+            {messages.map((message) => (
+              <MessageItem
+                key={message.id}
+                message={message}
+                showReasoning={showReasoning ?? false}
+                showTools={showTools ?? false}
+                showSources={showSources ?? false}
+                showArtifacts={showArtifacts ?? false}
+                sources={sources}
+              />
+            ))}
 
             {isLoading && (
               <Message from="assistant">

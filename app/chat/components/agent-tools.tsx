@@ -8,35 +8,41 @@ import {
   ToolOutput,
 } from "@/src/components/ai-elements/tool"
 import type { ToolInvocationState } from "@/app/chat/providers/chat-context"
-import type { DynamicToolUIPart } from "ai"
+import type { DynamicToolUIPart, ToolUIPart } from "ai"
 
 export interface AgentToolsProps {
   tools: (ToolInvocationState | DynamicToolUIPart)[]
 }
 
+type ToolState = ToolUIPart["state"]
+
 export function AgentTools({ tools }: AgentToolsProps) {
   if (!tools || tools.length === 0) return null
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
       {tools.map((tool) => {
         const t = tool as ToolInvocationState
-        const toolName = t.toolName || t.type?.replace(/^(tool-|dynamic-tool)/, "") || "unknown"
-        const toolType = `tool-${toolName}` as const
+        const toolName = t.toolName || "unknown"
+        const toolType = `tool-${toolName}` as ToolUIPart["type"]
+        const toolState = t.state as ToolState
+
+        const hasOutput = toolState === "output-available" || toolState === "output-error"
+        const errorText = toolState === "output-error" ? (t as unknown as { errorText?: string }).errorText : undefined
 
         return (
           <Tool key={t.toolCallId} defaultOpen={false}>
             <ToolHeader
               title={toolName}
               type={toolType}
-              state={t.state}
+              state={toolState}
             />
             <ToolContent>
               <ToolInput input={t.input} />
-              {(t.state === "output-available" || t.state === "output-error") && (
+              {hasOutput && (
                 <ToolOutput
-                  output={t.state === "output-available" ? t.output : undefined}
-                  errorText={t.state === "output-error" ? t.errorText : undefined}
+                  output={toolState === "output-available" ? t.output : undefined}
+                  errorText={errorText}
                 />
               )}
             </ToolContent>
