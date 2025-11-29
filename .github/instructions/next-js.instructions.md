@@ -1,6 +1,7 @@
 ---
+name: Next.js Best Practices
 description: This rule provides comprehensive guidance for Next.js development, covering code organization, performance, security, testing, and common pitfalls. It helps developers build robust, scalable, and maintainable Next.js applications by adhering to community-accepted best practices and coding standards.
-applyTo: ['**.js', '**.jsx', '**.ts', '**.tsx', '**/next.config.js', '**/pages/**', '**/app/**']
+applyTo: "**.js, **.jsx, **.ts, **.tsx, **/next.config.ts, **/pages/**, **/app/**, **/src/components/**, **/ui/**, **/lib/**, **/types/**, **/hooks/**"
 ---
 # Next.js Best Practices
 
@@ -19,10 +20,6 @@ This document outlines best practices for developing Next.js applications, focus
     *   `route.ts`: Defines server-side route handlers (API routes).
     *   `[dynamic-segment]`: Dynamic route segments, using brackets.
     *   `@folder-name`:  Route Groups to organize routes without affecting URL structure.
-*   **`pages/`**: (Legacy - Before Next.js 13) Contains page components.
-    *   `api/`: Serverless functions (API routes).
-    *   `_app.js/tsx`: Custom App component (wraps all pages).
-    *   `_document.js/tsx`: Custom Document component (control the entire HTML document).
 *   **`components/`**: Reusable UI components.
 *   **`lib/`**: Utility functions, helper functions, and third-party integrations.
 *   **`hooks/`**: Custom React hooks.
@@ -36,9 +33,9 @@ This document outlines best practices for developing Next.js applications, focus
 ### File Naming Conventions
 
 *   **Components:** `ComponentName.jsx` or `ComponentName.tsx`
-*   **Pages:** `page.js`, `page.jsx`, `page.ts`, `page.tsx` (within the `app` or `pages` directory)
+*   **Pages:** `page.js`, `page.jsx`, `page.ts`, `page.tsx` (within the `app`)
 *   **Layouts:** `layout.js`, `layout.jsx`, `layout.ts`, `layout.tsx` (within the `app` directory)
-*   **API Routes:** `route.js`, `route.ts` (within the `app/api` directory or `pages/api` directory)
+*   **API Routes:** `route.js`, `route.ts` (within the `app/api` directory)
 *   **Hooks:** `useHookName.js` or `useHookName.ts`
 *   **Styles:** `ComponentName.module.css` or `ComponentName.module.scss`
 *   **Types:** `types.ts` or `interfaces.ts`

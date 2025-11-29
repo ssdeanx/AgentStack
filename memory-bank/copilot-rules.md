@@ -165,10 +165,57 @@ If any fail, do NOT proceed. Fix issues first.
 
 ```typescript
 // Base components
-import { Button } from '@/components/ui/button'
+import { Button } from '@/ui/button'
 
 // AI components
-import { Message } from '@/components/ai-elements/message'
+import { Message } from '@/src/components/ai-elements/message'
+
+// AI SDK v5 type guards (for message part filtering)
+import {
+  isTextUIPart,
+  isReasoningUIPart,
+  isToolOrDynamicToolUIPart,
+} from "ai"
+```
+
+### AI SDK v5 Patterns
+
+**Message Parts (NOT content):**
+
+```typescript
+// ❌ WRONG - v4 pattern
+const content = message.content
+
+// ✅ CORRECT - v5 pattern
+const textPart = message.parts?.find(isTextUIPart)
+const content = textPart?.text || ""
+```
+
+**Tool Invocation Types:**
+
+```typescript
+// ❌ WRONG - v4 types
+import type { UIToolInvocation } from "ai"
+state: "call" | "result"
+args: {...}
+result: {...}
+
+// ✅ CORRECT - v5 types
+import type { DynamicToolUIPart } from "ai"
+state: "input-streaming" | "input-available" | "output-available" | "output-error"
+input: {...}
+output: {...}
+```
+
+**Mastra Stream Chunk Types:**
+
+```typescript
+// Mastra uses different chunk types than raw AI SDK
+case "text-delta":     // NOT "text"
+case "reasoning-delta": // NOT "reasoning"
+case "tool-call":      // Tool invocation started
+case "tool-result":    // Tool execution complete
+case "finish":         // payload.output.usage.inputTokens
 ```
 
 ### Styling
