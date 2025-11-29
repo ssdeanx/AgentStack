@@ -43,7 +43,7 @@
     "ui/**/*.tsx",
     "ui/**/*.ts",
     "lib/**/*.ts",
-    "types/**/*.d.ts",
+    "src/mastra/types/**/*.d.ts",
     "hooks/**/*.ts",
     "utils/**/*.ts",
     "vitest.config.ts",

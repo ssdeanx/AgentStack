@@ -1,9 +1,10 @@
+"use client"
 import Link from "next/link"
 
 const FOOTER_LINKS = {
   product: [
     { label: "Agents", href: "/chat" },
-    { label: "Workflows", href: "#" },
+    { label: "Workflows", href: "/workflows" },
     { label: "Networks", href: "#" },
     { label: "Tools", href: "#" },
   ],

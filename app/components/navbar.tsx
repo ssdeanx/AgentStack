@@ -18,7 +18,7 @@ const NAV_LINKS = [
     href: "#",
     items: [
       { label: "Agents", href: "/chat", description: "22+ AI agents" },
-      { label: "Workflows", href: "#", description: "10 automated workflows" },
+      { label: "Workflows", href: "/workflows", description: "10 automated workflows" },
       { label: "Networks", href: "#", description: "4 agent networks" },
     ],
   },

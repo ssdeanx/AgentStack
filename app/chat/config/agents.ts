@@ -20,6 +20,12 @@ export interface AgentFeatures {
   canvas: boolean
   artifacts: boolean
   fileUpload: boolean
+  plan: boolean
+  task: boolean
+  confirmation: boolean
+  checkpoint: boolean
+  queue: boolean
+
 }
 
 export interface AgentConfig {
@@ -39,6 +45,11 @@ const defaultFeatures: AgentFeatures = {
   canvas: false,
   artifacts: false,
   fileUpload: false,
+  plan: false,
+  task: false,
+  confirmation: false,
+  checkpoint: false,
+  queue: false,
 }
 
 export const AGENT_CONFIGS: Record<string, AgentConfig> = {
@@ -76,7 +87,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       reasoning: true,
       chainOfThought: true,
       tools: true,
-      sources: true
+      sources: true,
+      plan: true,
+      task: true
     },
   },
   researchPaperAgent: {
@@ -90,7 +103,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       sources: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
   documentProcessingAgent: {
@@ -104,7 +119,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       tools: true,
       sources: true,
       artifacts: true,
-      fileUpload: true
+      fileUpload: true,
+      task: true,
+      plan: true
     },
   },
   knowledgeIndexingAgent: {
@@ -112,7 +129,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Knowledge Indexing Agent',
     description: 'Index documents into PgVector for semantic search',
     category: 'research',
-    features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    features: { ...defaultFeatures, chainOfThought: true, tools: true, artifacts: true, fileUpload: true, task: true, plan: true },
   },
 
   // Content Agents
@@ -121,28 +138,28 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Copywriter Agent',
     description: 'Professional content writing and copy generation',
     category: 'content',
-    features: { ...defaultFeatures, reasoning: true, artifacts: true },
+    features: { ...defaultFeatures, reasoning: true, artifacts: true, task: true, plan: true },
   },
   editorAgent: {
     id: 'editorAgent',
     name: 'Editor Agent',
     description: 'Reviews and improves written content with suggestions',
     category: 'content',
-    features: { ...defaultFeatures, reasoning: true, artifacts: true },
+    features: { ...defaultFeatures, reasoning: true, artifacts: true, task: true, plan: true },
   },
   contentStrategistAgent: {
     id: 'contentStrategistAgent',
     name: 'Content Strategist Agent',
     description: 'Develops content strategies and editorial plans',
     category: 'content',
-    features: { ...defaultFeatures, reasoning: true, chainOfThought: true },
+    features: { ...defaultFeatures, reasoning: true, chainOfThought: true, task: true, plan: true },
   },
   scriptWriterAgent: {
     id: 'scriptWriterAgent',
     name: 'Script Writer Agent',
     description: 'Writes scripts for video, audio, and presentations',
     category: 'content',
-    features: { ...defaultFeatures, reasoning: true, artifacts: true },
+    features: { ...defaultFeatures, reasoning: true, artifacts: true, task: true, plan: true },
   },
   reportAgent: {
     id: 'reportAgent',
@@ -154,7 +171,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       sources: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
 
@@ -168,7 +187,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       ...defaultFeatures,
       chainOfThought: true,
       tools: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
   dataIngestionAgent: {
@@ -180,7 +201,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       ...defaultFeatures,
       chainOfThought: true,
       tools: true,
-      fileUpload: true
+      fileUpload: true,
+      task: true,
+      plan: true
     },
   },
   dataTransformationAgent: {
@@ -188,7 +211,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Data Transformation Agent',
     description: 'CSV↔JSON↔XML transformations and data restructuring',
     category: 'data',
-    features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    features: { ...defaultFeatures, chainOfThought: true, tools: true, task: true, plan: true },
   },
 
   // Financial Agents
@@ -203,7 +226,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       sources: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
   chartTypeAdvisorAgent: {
@@ -211,21 +236,21 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Chart Type Advisor',
     description: 'Recommends optimal chart types for financial data',
     category: 'financial',
-    features: { ...defaultFeatures, reasoning: true },
+    features: { ...defaultFeatures, reasoning: true, task: true, plan: true },
   },
   chartDataProcessorAgent: {
     id: 'chartDataProcessorAgent',
     name: 'Chart Data Processor',
     description: 'Transforms financial API data into Recharts format',
     category: 'financial',
-    features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    features: { ...defaultFeatures, chainOfThought: true, tools: true, task: true, plan: true },
   },
   chartGeneratorAgent: {
     id: 'chartGeneratorAgent',
     name: 'Chart Generator',
     description: 'Generates Recharts React component code',
     category: 'financial',
-    features: { ...defaultFeatures, tools: true, artifacts: true },
+    features: { ...defaultFeatures, tools: true, artifacts: true, task: true, plan: true },
   },
   chartSupervisorAgent: {
     id: 'chartSupervisorAgent',
@@ -237,7 +262,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       reasoning: true,
       chainOfThought: true,
       tools: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
 
@@ -252,7 +279,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       canvas: true,
-      artifacts: true
+      artifacts: true, fileUpload: true,
+      task: true,
+      plan: true
     },
   },
   imageToCsvAgent: {
@@ -265,7 +294,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       artifacts: true,
-      fileUpload: true
+      fileUpload: true,
+      task: true,
+      plan: true
     },
   },
   excalidrawValidatorAgent: {
@@ -273,7 +304,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Excalidraw Validator',
     description: 'Validates and fixes Excalidraw diagram schemas',
     category: 'diagram',
-    features: { ...defaultFeatures, tools: true, canvas: true },
+    features: { ...defaultFeatures, tools: true, canvas: true, task: true, plan: true },
   },
 
   // Utility Agents
@@ -287,7 +318,9 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       reasoning: true,
       chainOfThought: true,
       tools: true,
-      artifacts: true
+      artifacts: true,
+      task: true,
+      plan: true
     },
   },
   learningExtractionAgent: {
@@ -295,14 +328,14 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Learning Extraction Agent',
     description: 'Extracts learnings and insights from content',
     category: 'utility',
-    features: { ...defaultFeatures, reasoning: true, tools: true },
+    features: { ...defaultFeatures, reasoning: true, tools: true, task: true, plan: true },
   },
   daneNewContributor: {
     id: 'daneNewContributor',
     name: 'Dane New Contributor',
     description: 'Helps new contributors get started with the project',
     category: 'utility',
-    features: { ...defaultFeatures, tools: true },
+    features: { ...defaultFeatures, tools: true, task: true, plan: true },
   },
 }
 

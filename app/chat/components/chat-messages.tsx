@@ -17,11 +17,16 @@ import {
 import { Loader } from "@/src/components/ai-elements/loader"
 import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/chat-context"
 import { AgentReasoning } from "./agent-reasoning"
+import { AgentChainOfThought, parseReasoningToSteps } from "./agent-chain-of-thought"
 import { AgentTools } from "./agent-tools"
 import { AgentSources } from "./agent-sources"
 import { AgentArtifact, type ArtifactData } from "./agent-artifact"
-import { CopyIcon, CheckIcon, MessageSquareIcon } from "lucide-react"
-import { useState, useCallback, useMemo } from "react"
+import { AgentPlan, extractPlanFromText } from "./agent-plan"
+import { AgentCheckpoint } from "./agent-checkpoint"
+import { AgentTask, type AgentTaskData } from "./agent-task"
+import { parseInlineCitations } from "./agent-inline-citation"
+import { CopyIcon, CheckIcon, MessageSquareIcon, BookmarkPlusIcon } from "lucide-react"
+import { useState, useCallback, useMemo, Fragment } from "react"
 import type { UIMessage } from "ai"
 import {
   isTextUIPart,
@@ -86,14 +91,31 @@ function extractArtifacts(text: string): { content: string; artifacts: ArtifactD
 
 interface MessageItemProps {
   message: UIMessage
+  messageIndex: number
   showReasoning: boolean
+  showChainOfThought: boolean
   showTools: boolean
   showSources: boolean
   showArtifacts: boolean
   sources: { url: string; title: string }[]
+  checkpoints: number[]
+  onCreateCheckpoint?: (index: number) => void
+  onRestoreCheckpoint?: (index: number) => void
 }
 
-function MessageItem({ message, showReasoning, showTools, showSources, showArtifacts, sources }: MessageItemProps) {
+function MessageItem({
+  message,
+  messageIndex,
+  showReasoning,
+  showChainOfThought,
+  showTools,
+  showSources,
+  showArtifacts,
+  sources,
+  checkpoints,
+  onCreateCheckpoint,
+  onRestoreCheckpoint,
+}: MessageItemProps) {
   const isAssistant = message.role === "assistant"
   const textPart = message.parts?.find(isTextUIPart)
   const rawContent = textPart?.text || ""
@@ -110,43 +132,98 @@ function MessageItem({ message, showReasoning, showTools, showSources, showArtif
     isToolOrDynamicToolUIPart
   ) as ToolInvocationState[] | undefined
 
+  const reasoningSteps = useMemo(() => {
+    if (showChainOfThought && messageReasoning?.text) {
+      return parseReasoningToSteps(messageReasoning.text)
+    }
+    return []
+  }, [showChainOfThought, messageReasoning])
+
+  const plan = useMemo(() => {
+    if (isAssistant) {
+      return extractPlanFromText(rawContent)
+    }
+    return null
+  }, [isAssistant, rawContent])
+
+  const hasCitations = isAssistant && showSources && sources.length > 0
+  const citationNodes = useMemo(() => {
+    if (hasCitations) {
+      return parseInlineCitations(content, sources)
+    }
+    return null
+  }, [hasCitations, content, sources])
+
+  const isCheckpoint = checkpoints.includes(messageIndex)
+
   return (
-    <Message from={message.role}>
-      <MessageContent>
-        {isAssistant && showReasoning && messageReasoning && (
-          <AgentReasoning
-            reasoning={messageReasoning.text || ""}
-            isStreaming={false}
-          />
+    <Fragment>
+      <Message from={message.role}>
+        <MessageContent>
+          {isAssistant && showChainOfThought && reasoningSteps.length > 0 && (
+            <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
+          )}
+
+          {isAssistant && showReasoning && !showChainOfThought && messageReasoning && (
+            <AgentReasoning
+              reasoning={messageReasoning.text || ""}
+              isStreaming={false}
+            />
+          )}
+
+          {plan && (
+            <AgentPlan plan={plan} defaultOpen={false} />
+          )}
+
+          {hasCitations && citationNodes ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {citationNodes}
+            </div>
+          ) : (
+            <MessageResponse>{content}</MessageResponse>
+          )}
+
+          {isAssistant && showArtifacts && artifacts.length > 0 && (
+            <div className="space-y-3 mt-3">
+              {artifacts.map((artifact) => (
+                <AgentArtifact key={artifact.id} artifact={artifact} />
+              ))}
+            </div>
+          )}
+
+          {isAssistant && showTools && messageTools && messageTools.length > 0 && (
+            <AgentTools tools={messageTools} />
+          )}
+
+          {isAssistant && showSources && sources.length > 0 && (
+            <AgentSources sources={sources} />
+          )}
+        </MessageContent>
+
+        {isAssistant && (
+          <MessageToolbar>
+            <MessageActions>
+              <CopyButton text={rawContent} />
+              {onCreateCheckpoint && (
+                <MessageAction
+                  tooltip="Create checkpoint"
+                  onClick={() => onCreateCheckpoint(messageIndex)}
+                >
+                  <BookmarkPlusIcon className="size-4" />
+                </MessageAction>
+              )}
+            </MessageActions>
+          </MessageToolbar>
         )}
+      </Message>
 
-        <MessageResponse>{content}</MessageResponse>
-
-        {isAssistant && showArtifacts && artifacts.length > 0 && (
-          <div className="space-y-3 mt-3">
-            {artifacts.map((artifact) => (
-              <AgentArtifact key={artifact.id} artifact={artifact} />
-            ))}
-          </div>
-        )}
-
-        {isAssistant && showTools && messageTools && messageTools.length > 0 && (
-          <AgentTools tools={messageTools} />
-        )}
-
-        {isAssistant && showSources && sources.length > 0 && (
-          <AgentSources sources={sources} />
-        )}
-      </MessageContent>
-
-      {isAssistant && (
-        <MessageToolbar>
-          <MessageActions>
-            <CopyButton text={rawContent} />
-          </MessageActions>
-        </MessageToolbar>
+      {isCheckpoint && onRestoreCheckpoint && (
+        <AgentCheckpoint
+          messageIndex={messageIndex}
+          onRestore={onRestoreCheckpoint}
+        />
       )}
-    </Message>
+    </Fragment>
   )
 }
 
@@ -162,10 +239,32 @@ export function ChatMessages() {
     agentConfig,
   } = useChatContext()
 
-  const showReasoning = agentConfig?.features.reasoning || agentConfig?.features.chainOfThought
-  const showTools = agentConfig?.features.tools
-  const showSources = agentConfig?.features.sources
-  const showArtifacts = agentConfig?.features.artifacts
+  const [checkpoints, setCheckpoints] = useState<number[]>([])
+
+  const showReasoning = agentConfig?.features.reasoning ?? false
+  const showChainOfThought = agentConfig?.features.chainOfThought ?? false
+  const showTools = agentConfig?.features.tools ?? false
+  const showSources = agentConfig?.features.sources ?? false
+  const showArtifacts = agentConfig?.features.artifacts ?? false
+
+  const handleCreateCheckpoint = useCallback((index: number) => {
+    setCheckpoints((prev) => {
+      if (prev.includes(index)) return prev
+      return [...prev, index].sort((a, b) => a - b)
+    })
+  }, [])
+
+  const handleRestoreCheckpoint = useCallback((index: number) => {
+    // TODO: Integrate with ChatContext to restore messages to checkpoint
+    console.log("Restore to checkpoint at index:", index)
+  }, [])
+
+  const streamingReasoningSteps = useMemo(() => {
+    if (showChainOfThought && streamingReasoning) {
+      return parseReasoningToSteps(streamingReasoning)
+    }
+    return []
+  }, [showChainOfThought, streamingReasoning])
 
   return (
     <Conversation className="flex-1">
@@ -178,22 +277,31 @@ export function ChatMessages() {
           />
         ) : (
           <>
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <MessageItem
                 key={message.id}
                 message={message}
-                showReasoning={showReasoning ?? false}
-                showTools={showTools ?? false}
-                showSources={showSources ?? false}
-                showArtifacts={showArtifacts ?? false}
+                messageIndex={index}
+                showReasoning={showReasoning}
+                showChainOfThought={showChainOfThought}
+                showTools={showTools}
+                showSources={showSources}
+                showArtifacts={showArtifacts}
                 sources={sources}
+                checkpoints={checkpoints}
+                onCreateCheckpoint={handleCreateCheckpoint}
+                onRestoreCheckpoint={handleRestoreCheckpoint}
               />
             ))}
 
             {isLoading && (
               <Message from="assistant">
                 <MessageContent>
-                  {showReasoning && streamingReasoning && (
+                  {showChainOfThought && streamingReasoningSteps.length > 0 && (
+                    <AgentChainOfThought steps={streamingReasoningSteps} isStreaming={true} />
+                  )}
+
+                  {showReasoning && !showChainOfThought && streamingReasoning && (
                     <AgentReasoning
                       reasoning={streamingReasoning}
                       isStreaming={true}
