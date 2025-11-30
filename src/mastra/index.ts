@@ -63,6 +63,7 @@ import {
 import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
 
 // Workflows
+import { trace } from "@opentelemetry/api";
 import { acpAgent } from './agents/acpAgent';
 import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
 import { changelogWorkflow } from './workflows/changelog';
@@ -75,7 +76,6 @@ import { researchSynthesisWorkflow } from './workflows/research-synthesis-workfl
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
-import { trace } from "@opentelemetry/api";
 
 
 export const mastra = new Mastra({
@@ -145,11 +145,12 @@ export const mastra = new Mastra({
   }),
   vectors: { pgVector },
   logger: log,
-//  telemetry: {
-    // Telemetry is deprecated and will be removed in the Nov 4th release
-//    enabled: true,
-//  },
+  //  telemetry: {
+  // Telemetry is deprecated and will be removed in the Nov 4th release
+  //    enabled: true,
+  //  },
   observability: {
+    default: { enabled: true },
     configs: {
       default: {
         serviceName: "AgentStack",

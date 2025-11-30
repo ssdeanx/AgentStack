@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/ui/button"
-import { CheckIcon } from "lucide-react"
+import { CheckIcon, XIcon } from "lucide-react"
 import { Switch } from "@/ui/switch"
 import { Label } from "@/ui/label"
 import { motion } from "framer-motion"
@@ -34,6 +34,18 @@ const TIERS = [
   },
 ]
 
+const COMPARISON_FEATURES = [
+  { feature: "Agents", hobby: "Up to 3", pro: "Unlimited", enterprise: "Unlimited" },
+  { feature: "Workflows", hobby: "Basic", pro: "Advanced", enterprise: "Custom" },
+  { feature: "Support", hobby: "Community", pro: "Priority", enterprise: "Dedicated" },
+  { feature: "Analytics", hobby: "Basic", pro: "Advanced", enterprise: "Enterprise" },
+  { feature: "Team Collaboration", hobby: false, pro: true, enterprise: true },
+  { feature: "Custom Integrations", hobby: false, pro: false, enterprise: true },
+  { feature: "SLA", hobby: false, pro: false, enterprise: true },
+  { feature: "On-premise Deployment", hobby: false, pro: false, enterprise: true },
+  { feature: "SSO & Audit Logs", hobby: false, pro: false, enterprise: true },
+]
+
 export function PricingTiers() {
   const [isYearly, setIsYearly] = useState(false)
 
@@ -46,13 +58,13 @@ export function PricingTiers() {
         <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
           Choose the plan that's right for you and start building AI agents today.
         </p>
-        
+
         <div className="mt-8 flex items-center justify-center gap-4">
           <Label htmlFor="billing-toggle" className={`text-sm font-medium ${!isYearly ? "text-foreground" : "text-muted-foreground"}`}>
             Monthly
           </Label>
-          <Switch 
-            id="billing-toggle" 
+          <Switch
+            id="billing-toggle"
             checked={isYearly}
             onCheckedChange={setIsYearly}
           />
@@ -70,18 +82,17 @@ export function PricingTiers() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
             viewport={{ once: true }}
-            className={`relative flex flex-col rounded-2xl border bg-card p-8 shadow-sm transition-all hover:shadow-md ${
-              tier.popular 
-                ? "border-primary ring-1 ring-primary" 
+            className={`relative flex flex-col rounded-2xl border bg-card p-8 shadow-sm transition-all hover:shadow-md ${tier.popular
+                ? "border-primary ring-1 ring-primary"
                 : "border-border hover:border-primary/50"
-            }`}
+              }`}
           >
             {tier.popular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground">
                 Most Popular
               </div>
             )}
-            
+
             <h3 className="text-xl font-semibold text-foreground">{tier.name}</h3>
             <div className="mt-4 mb-6">
               <span className="text-4xl font-bold text-foreground">
@@ -100,8 +111,8 @@ export function PricingTiers() {
                 </li>
               ))}
             </ul>
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               variant={tier.popular ? "default" : "outline"}
               size="lg"
             >
@@ -109,6 +120,58 @@ export function PricingTiers() {
             </Button>
           </motion.div>
         ))}
+      </div>
+
+      <div className="mt-24">
+        <div className="mb-12 text-center">
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
+            Compare Plans
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+            Detailed feature comparison to help you choose the right plan.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-border bg-card">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="p-4 text-left font-semibold text-foreground">Features</th>
+                <th className="p-4 text-center font-semibold text-foreground">Hobby</th>
+                <th className="p-4 text-center font-semibold text-foreground">Pro</th>
+                <th className="p-4 text-center font-semibold text-foreground">Enterprise</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON_FEATURES.map((item, index) => (
+                <tr key={item.feature} className="border-b border-border/50">
+                  <td className="p-4 font-medium text-foreground">{item.feature}</td>
+                  <td className="p-4 text-center text-muted-foreground">
+                    {typeof item.hobby === 'boolean' ? (
+                      item.hobby ? <CheckIcon className="mx-auto size-5 text-primary" /> : <XIcon className="mx-auto size-5 text-muted-foreground" />
+                    ) : (
+                      item.hobby
+                    )}
+                  </td>
+                  <td className="p-4 text-center text-muted-foreground">
+                    {typeof item.pro === 'boolean' ? (
+                      item.pro ? <CheckIcon className="mx-auto size-5 text-primary" /> : <XIcon className="mx-auto size-5 text-muted-foreground" />
+                    ) : (
+                      item.pro
+                    )}
+                  </td>
+                  <td className="p-4 text-center text-muted-foreground">
+                    {typeof item.enterprise === 'boolean' ? (
+                      item.enterprise ? <CheckIcon className="mx-auto size-5 text-primary" /> : <XIcon className="mx-auto size-5 text-muted-foreground" />
+                    ) : (
+                      item.enterprise
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   )

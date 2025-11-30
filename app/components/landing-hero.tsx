@@ -5,12 +5,27 @@ import { motion } from "framer-motion"
 import { Button } from "@/ui/button"
 import { ArrowRightIcon } from "lucide-react"
 
+<style dangerouslySetInnerHTML={{
+  __html: `
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  `
+}} />
+
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden border-b border-border bg-background py-24 sm:py-32">
       <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]"></div>
       <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
-      
+      <div className="absolute inset-0 -z-10 opacity-20" style={{
+        background: 'linear-gradient(-45deg, hsl(var(--primary)), hsl(var(--primary) / 0.5), hsl(var(--accent)), hsl(var(--primary)))',
+        backgroundSize: '400% 400%',
+        animation: 'gradient 15s ease infinite'
+      }}></div>
+
       <div className="container mx-auto px-4 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -25,19 +40,19 @@ export function LandingHero() {
             </span>
             <span className="font-medium text-muted-foreground">Now with AI SDK v5 + React 19</span>
           </div>
-          
+
           <h1 className="mb-8 text-5xl font-bold tracking-tight text-foreground sm:text-7xl">
             Build AI Applications{" "}
             <span className="bg-linear-to-r from-primary to-primary/50 bg-clip-text text-transparent">
               at Scale
             </span>
           </h1>
-          
+
           <p className="mb-10 text-xl leading-relaxed text-muted-foreground sm:text-2xl">
-            Production-grade multi-agent framework with RAG pipelines, 
+            Production-grade multi-agent framework with RAG pipelines,
             observability, and secure governance. Ship faster with 22+ agents ready to deploy.
           </p>
-          
+
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild className="h-12 px-8 text-base">
               <Link href="/chat">

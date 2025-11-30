@@ -4,6 +4,7 @@ import { Agent } from '@mastra/core/agent'
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { RuntimeContext } from '@mastra/core/runtime-context'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -28,14 +29,17 @@ import {
   webScraperTool,
 } from '../tools/web-scraper-tool'
 
-export interface BusinessLegalAgentContext {
-  userId?: string
-  tier?: 'free' | 'pro' | 'enterprise'
-  researchDepth?: number
-  analysisDepth?: string
-  complianceScope?: string
-  strategyScope?: string
+
+export interface BusinessLegalAgentContext extends RuntimeContext {
+  userId: string,
+  tier: string,
+  researchDepth: number,
+  analysisDepth: string,
+  complianceScope: string,
+  strategyScope: string
 }
+
+
 
 log.info('Initializing Business Legal Team Agents...')
 
@@ -48,10 +52,17 @@ export const legalResearchAgent = new Agent({
     const userId = runtimeContext.get('userId')
     const tier = runtimeContext.get('tier')
     const researchDepth = runtimeContext.get('researchDepth')
+    const analysisDepth = runtimeContext.get('analysisDepth')
+    const complianceScope = runtimeContext.get('complianceScope')
+    const strategyScope = runtimeContext.get('strategyScope')
     return {
       role: 'system',
-      content: `
-You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
+      content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
+      Your working with:
+- user: ${userId},
+- tier:${tier},
+- Using strategy: ${strategyScope} with analysis:${analysisDepth}, compliance:${complianceScope},
+- Your researchDepth: ${researchDepth}
 
 **Key Guidelines:**
 - Focus on primary sources: statutes, case law, regulations
