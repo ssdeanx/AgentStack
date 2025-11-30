@@ -1,0 +1,307 @@
+---
+title: "OpenAPI Schema Reference"
+description: "Comprehensive reference for OpenAPI schema definitions used in AgentStack."
+---
+
+# OpenAPI Schema Reference
+This section provides a detailed reference for the OpenAPI schema definitions utilized in AgentStack. These schemas define the structure and data types for various components, including agents, tools, workflows, networks, and UI elements.
+
+## System
+
+<details><summary>System (2 endpoints)</summary>
+
+- **GET** `/health` - Health check endpoint (no params | 200: healthy)
+- **GET** `/api` - Get API status (no params | 200: success)
+
+</details>
+
+## AI SDK
+
+<details><summary>AI SDK (3 endpoints)</summary>
+
+- **POST** `/chat/{agentId}` - Chat with agent, stream AI SDK (path: agentId; 
+  body: messages[] | 200: stream, 400: invalid input, 404: agent not found)
+- **POST** `/workflow/{workflowId}` - Stream workflow AI SDK (path: workflowId; 
+  body: runId, inputData, runtimeContext | 200: UIMessage stream)
+- **POST** `/network/{agentId}` - Execute network, stream AI SDK (path: agentId; 
+  body: messages[], runtimeContext, maxSteps | 200: stream, 404: not found)
+
+</details>
+
+## Agents
+
+<details><summary>Agents (35 endpoints)</summary>
+
+- **GET** `/.well-known/{agentId}/agent-card.json` - Get agent config
+  (path: agentId | 200: config)
+- **POST** `/a2a/{agentId}` - Execute agent A2A protocol (path: agentId;
+  body: method, params | 200: response, 400: invalid params, 404: not found)
+- **GET** `/api/agents` - List all agents (no params | 200: agent list)
+- **GET** `/api/agents/providers` - List model providers status (no params |
+  200: providers)
+- **GET** `/api/agents/{agentId}` - Get agent by ID (path: agentId |
+  200: details, 404: not found)
+- **GET** `/api/agents/{agentId}/evals/ci` - CI evals by agent (path: agentId |
+  200: evals)
+- **GET** `/api/agents/{agentId}/evals/live` - Live evals by agent
+  (path: agentId | 200: evals)
+- **POST** `/api/agents/{agentId}/generate-legacy` - Generate response legacy
+  (path: agentId; body: messages, threadId | 200: response, 404: not found)
+- **POST** `/api/agents/{agentId}/generate` - Generate response (path: agentId;
+  body: messages, structuredOutput | 200: response, 404: not found)
+- **POST** `/api/agents/{agentId}/network` - Execute as network (path: agentId;
+  body: messages, memory, modelSettings)
+- **POST** `/api/agents/{agentId}/generate/vnext` - Generate vnext (path: agentId;
+  body: messages, memory, modelSettings | 200: response, 404: not found)
+- **POST** `/api/agents/{agentId}/stream/vnext` - Stream vnext
+- **POST** `/api/agents/{agentId}/stream-legacy` - Stream legacy (path: agentId;
+  body: messages, threadId | 200: stream, 404: not found)
+- **POST** `/api/agents/{agentId}/stream` - Stream response (path: agentId;
+  body: messages, structuredOutput | 200: stream, 404: not found)
+- **POST** `/api/agents/{agentId}/streamVNext` - Stream VNext
+- **POST** `/api/agents/{agentId}/stream/vnext/ui` - Stream UI vnext
+- **POST** `/api/agents/{agentId}/stream/ui` - Stream UI (path: agentId;
+  body: messages, memory | 200: stream, 404: not found)
+- **POST** `/api/agents/{agentId}/model` - Update agent model (path: agentId;
+  body: modelId, provider | 200: updated, 404: not found)
+- **POST** `/api/agents/{agentId}/model/reset` - Reset model (path: agentId |
+  200: reset, 404: not found)
+- **POST** `/api/agents/{agentId}/models/reorder` - Reorder models (path: agentId;
+  body: reorderedModelIds | 200: reordered, 404: not found)
+- **POST** `/api/agents/{agentId}/models/{modelConfigId}` - Update model config
+  (path: agentId, modelConfigId; body: model, maxRetries | 200: updated,
+  404: not found)
+- **GET** `/api/agents/{agentId}/speakers` - [DEP] Speakers list (path: agentId |
+  200: speakers, 400: no voice, 404: not found)
+- **GET** `/api/agents/{agentId}/voice/speakers` - Voice speakers (path: agentId |
+  200: speakers, 400: no voice, 404: not found)
+- **POST** `/api/agents/{agentId}/speak` - [DEP] TTS (path: agentId;
+  body: text, options | 200: audio, 400: invalid, 404: not found)
+- **POST** `/api/agents/{agentId}/voice/speak` - Voice TTS
+- **GET** `/api/agents/{agentId}/voice/listener` - Voice listener (path: agentId |
+  200: enabled, 400: no voice, 404: not found)
+- **POST** `/api/agents/{agentId}/listen` - [DEP] STT (path: agentId;
+  body: audio | 200: text, 400: invalid, 404: not found)
+- **POST** `/api/agents/{agentId}/voice/listen` - Voice STT
+- **GET** `/api/agents/{agentId}/tools/{toolId}` - Get tool (path: agentId,
+  toolId | 200: details, 404: not found)
+- **POST** `/api/agents/{agentId}/tools/{toolId}/execute` - Exec tool
+  (path: agentId, toolId; body: data, runtimeContext | 200: result, 404: not found)
+- **POST** `/api/agents/{agentId}/approve-tool-call` - Approve tool call
+  (path: agentId; body: runId, toolCallId | 200: approved, 404: not found)
+- **POST** `/api/agents/{agentId}/decline-tool-call` - Decline tool call
+  (path: agentId; body: runId, toolCallId | 200: declined, 404: not found)
+- **POST** `/api/agents/{agentId}/instructions` - Update instructions
+- **POST** `/api/agents/{agentId}/instructions/enhance` - Enhance instructions
+
+</details>
+
+## MCP
+
+<details><summary>MCP (9 endpoints)</summary>
+
+- **POST** `/api/mcp/{serverId}/mcp` - MCP Streamable HTTP (path: serverId;
+  body: {} | 200: processed, 404: not found)
+- **GET** `/api/mcp/{serverId}/mcp` - MCP GET (path: serverId | 200: processed,
+  404: not found)
+- **GET** `/api/mcp/{serverId}/sse` - SSE connection (path: serverId |
+  200: SSE stream, 404: not found, 500: error)
+- **POST** `/api/mcp/{serverId}/messages` - Send SSE message (path: serverId;
+  body: JSON-RPC | 200: processed, 400: bad req, 404: not found, 503: no conn)
+- **GET** `/api/mcp/v0/servers` - List MCP servers (query: limit, offset |
+  200: servers list)
+- **GET** `/api/mcp/v0/servers/{id}` - Get server details (path: id;
+  query: version | 200: details, 404: not found)
+- **GET** `/api/mcp/{serverId}/tools` - List tools
+- **GET** `/api/mcp/{serverId}/tools/{toolId}` - Get tool
+- **POST** `/api/mcp/{serverId}/tools/{toolId}/execute` - Exec MCP tool
+
+</details>
+
+## Network Memory
+
+<details><summary>Network Memory (9 endpoints)</summary>
+
+- **GET** `/api/memory/network/status` - Network memory status (query: networkId |
+  200: status)
+- **GET** `/api/memory/network/threads` - List threads (query: resourceid,
+  networkId, orderBy, sortDirection | 200: threads)
+- **POST** `/api/memory/network/threads` - Create thread (query: networkId;
+  body: title, metadata | 200: created)
+- **GET** `/api/memory/network/threads/{threadId}` - Get thread (path: threadId;
+  query: networkId | 200: details, 404: not found)
+- **PATCH** `/api/memory/network/threads/{threadId}` - Update thread
+  (path: threadId; query: networkId)
+- **DELETE** `/api/memory/network/threads/{threadId}` - Delete thread
+  (path: threadId; query: networkId | 200: deleted, 404: not found)
+- **GET** `/api/memory/network/threads/{threadId}/messages` - List messages
+  (path: threadId; query: networkId, limit | 200: messages)
+- **POST** `/api/memory/network/save-messages` - Save messages (query: networkId;
+  body: messages[] | 200: saved)
+- **POST** `/api/memory/network/messages/delete` - Delete messages (query: networkId;
+  body: messageIds | 200: deleted)
+
+</details>
+
+## Memory
+
+<details><summary>Memory (12 endpoints)</summary>
+
+- **GET** `/api/memory/status` - Memory status
+- **GET** `/api/memory/config` - Memory config (query: agentId | 200: config)
+- **GET** `/api/memory/threads` - List threads (query: resourceid, agentId,
+  orderBy, sortDirection | 200: threads)
+- **POST** `/api/memory/threads` - Create thread (query: agentId;
+  body: title, metadata | 200: created)
+- **GET** `/api/memory/threads/paginated` - Paginated threads (query: resourceId,
+  agentId, page, perPage | 200: paginated)
+- **GET** `/api/memory/threads/{threadId}` - Get thread (path: threadId;
+  query: agentId | 200: details, 404: not found)
+- **PATCH** `/api/memory/threads/{threadId}` - Update thread (path: threadId;
+  query: agentId)
+- **DELETE** `/api/memory/threads/{threadId}` - Delete thread (path: threadId)
+- **GET** `/api/memory/threads/{threadId}/messages` - Messages (path: threadId)
+- **GET** `/api/memory/threads/{threadId}/messages/paginated` - Paginated messages
+- **GET** `/api/memory/search` - Search memory
+- **GET** `/api/memory/threads/{threadId}/working-memory` - Working memory
+- **POST** `/api/memory/threads/{threadId}/working-memory` - Update working memory
+- **POST** `/api/memory/save-messages` - Save messages
+- **POST** `/api/memory/messages/delete` - Delete messages
+
+</details>
+
+## Telemetry
+
+<details><summary>Telemetry (2 endpoints)</summary>
+
+- **GET** `/api/telemetry` - Get telemetry
+- **POST** `/api/telemetry` - Post telemetry
+
+</details>
+
+## Observability
+
+<details><summary>Observability (3 endpoints)</summary>
+
+- **GET** `/api/observability/traces` - List traces
+- **GET** `/api/observability/traces/{traceId}` - Get trace
+- **POST** `/api/observability/traces/score` - Score trace
+
+</details>
+
+## Scores
+
+<details><summary>Scores (7 endpoints)</summary>
+
+- **GET** `/api/observability/traces/{traceId}/{spanId}/scores` - Span scores
+- **GET** `/api/scores/scorers` - List scorers
+- **GET** `/api/scores/scorers/{scorerId}` - Get scorer
+- **GET** `/api/scores/run/{runId}` - Run scores
+- **GET** `/api/scores/scorer/{scorerId}` - Scorer details
+- **GET** `/api/scores/entity/{entityType}/{entityId}` - Entity scores
+- **POST** `/api/scores` - Create score
+
+</details>
+
+## Legacy Workflows
+
+<details><summary>Legacy Workflows (10 endpoints)</summary>
+
+- **GET** `/api/workflows/legacy` - List legacy
+- **GET** `/api/workflows/legacy/{workflowId}` - Get legacy
+- **GET** `/api/workflows/legacy/{workflowId}/runs` - List runs
+- **POST** `/api/workflows/legacy/{workflowId}/resume` - Resume
+- **POST** `/api/workflows/legacy/{workflowId}/resume-async` - Resume async
+- **POST** `/api/workflows/legacy/{workflowId}/create-run` - Create run
+- **POST** `/api/workflows/legacy/{workflowId}/start-async` - Start async
+- **POST** `/api/workflows/legacy/{workflowId}/start` - Start
+- **GET** `/api/workflows/legacy/{workflowId}/watch` - Watch
+
+</details>
+
+## Workflows
+
+<details><summary>Workflows (18 endpoints)</summary>
+
+- **GET** `/api/workflows` - List workflows
+- **GET** `/api/workflows/{workflowId}` - Get workflow
+- **GET** `/api/workflows/{workflowId}/runs` - List runs
+- **GET** `/api/workflows/{workflowId}/runs/{runId}/execution-result` - Run result
+- **GET** `/api/workflows/{workflowId}/runs/{runId}` - Get run
+- **POST** `/api/workflows/{workflowId}/resume` - Resume
+- **POST** `/api/workflows/{workflowId}/resume-stream` - Resume stream
+- **POST** `/api/workflows/{workflowId}/resume-async` - Resume async
+- **POST** `/api/workflows/{workflowId}/stream-legacy` - Stream legacy
+- **POST** `/api/workflows/{workflowId}/observe-stream-legacy` - Observe legacy
+- **POST** `/api/workflows/{workflowId}/streamVNext` - Stream VNext
+- **POST** `/api/workflows/{workflowId}/observe` - Observe
+- **POST** `/api/workflows/{workflowId}/stream` - Stream
+- **POST** `/api/workflows/{workflowId}/observe-streamVNext` - Observe VNext stream
+- **POST** `/api/workflows/{workflowId}/create-run` - Create run
+- **POST** `/api/workflows/{workflowId}/start-async` - Start async
+- **POST** `/api/workflows/{workflowId}/start` - Start
+- **GET** `/api/workflows/{workflowId}/watch` - Watch
+- **POST** `/api/workflows/{workflowId}/runs/{runId}/cancel` - Cancel
+- **POST** `/api/workflows/{workflowId}/runs/{runId}/send-event` - Send event
+
+</details>
+
+## Logs
+
+<details><summary>Logs (3 endpoints)</summary>
+
+- **GET** `/api/logs` - List logs
+- **GET** `/api/logs/transports` - List transports
+- **GET** `/api/logs/{runId}` - Run logs
+
+</details>
+
+## Agent Builder
+
+<details><summary>Agent Builder (13 endpoints)</summary>
+
+- **GET** `/api/agent-builder` - List builders
+- **GET** `/api/agent-builder/{actionId}` - Get action
+- **GET** `/api/agent-builder/{actionId}/runs` - List runs
+- **GET** `/api/agent-builder/{actionId}/runs/{runId}/execution-result` - Run result
+- **GET** `/api/agent-builder/{actionId}/runs/{runId}` - Get run
+- **POST** `/api/agent-builder/{actionId}/resume` - Resume
+- **POST** `/api/agent-builder/{actionId}/resume-async` - Resume async
+- **POST** `/api/agent-builder/{actionId}/stream` - Stream
+- **POST** `/api/agent-builder/{actionId}/streamVNext` - Stream VNext
+- **POST** `/api/agent-builder/{actionId}/create-run` - Create run
+- **POST** `/api/agent-builder/{actionId}/start-async` - Start async
+- **POST** `/api/agent-builder/{actionId}/start` - Start
+- **GET** `/api/agent-builder/{actionId}/watch` - Watch
+- **POST** `/api/agent-builder/{actionId}/runs/{runId}/cancel` - Cancel
+- **POST** `/api/agent-builder/{actionId}/runs/{runId}/send-event` - Send event
+
+</details>
+
+## Tools
+
+<details><summary>Tools (3 endpoints)</summary>
+
+- **GET** `/api/tools` - List tools
+- **GET** `/api/tools/{toolId}` - Get tool
+- **POST** `/api/tools/{toolId}/execute` - Exec tool
+
+</details>
+
+## Vector
+
+<details><summary>Vector (6 endpoints)</summary>
+
+- **POST** `/api/vector/{vectorName}/upsert` - Upsert vectors
+- **POST** `/api/vector/{vectorName}/create-index` - Create index
+- **POST** `/api/vector/{vectorName}/query` - Query vectors
+- **GET** `/api/vector/{vectorName}/indexes` - List indexes
+- **GET** `/api/vector/{vectorName}/indexes/{indexName}` - Get index
+- **DELETE** `/api/vector/{vectorName}/indexes/{indexName}` - Delete index
+
+</details>
+
+---
+
+*Framework Version: 1.0.0 | Last Updated: November 2025*</content>
+<parameter name="filePath">c:\Users\ssdsk\mastra\app\api-reference\openapi-schema\page.mdx
