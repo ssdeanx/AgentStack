@@ -30,19 +30,24 @@ import {
 } from '../tools/web-scraper-tool';
 
 
-export interface BusinessLegalAgentContext extends RuntimeContext {
-  userId: string,
-  tier: string,
-  researchDepth: number,
-  analysisDepth: string,
-  complianceScope: string,
-  strategyScope: string
-}
+
+export type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
+
+export type AnalysisConfig = 'summary' | 'detailed' | 'extensive' | 'full'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type BusinessRuntimeContext = {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
+  responseFormat: 'json' | 'markdown'
+  research: {
+    depth: Research,
+    scope: AnalysisConfig
+  }
+  analysis: {
+    depth: Research,
+    scope: AnalysisConfig
+  }
 }
 
 log.info('Initializing Business Legal Team Agents...')
@@ -56,12 +61,17 @@ export const legalResearchAgent = new Agent({
     // runtimeContext is read at invocation time
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
+    const responseFormat = runtimeContext.get('responseFormat') ?? 'json'
+    const research = runtimeContext.get('research') ?? { depth: 'extensive', scope: 'full' }
+    const analysis = runtimeContext.get('analysis') ?? { depth: 'extensive', scope: 'full' }
     return {
       role: 'system',
       content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
       Your working with:
       - User: ${userTier}
       - Language: ${language}
+      - Research: Depth ${research.depth}, Scope ${research.scope}
+      - Analysis: Depth ${analysis.depth}, Scope ${analysis.scope}
 
 **Key Guidelines:**
 - Focus on primary sources: statutes, case law, regulations
@@ -321,7 +331,7 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
     htmlToMarkdownTool,
     contentCleanerTool,
     googleScholarTool,
-    google_search: google.tools.googleSearch({
+    google_search: googleTools.googleSearch({
       mode: "MODE_DYNAMIC",
       dynamicThreshold: 0.7,
     }),

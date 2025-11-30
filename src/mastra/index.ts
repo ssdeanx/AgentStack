@@ -65,6 +65,7 @@ import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPip
 // Workflows
 import { trace } from "@opentelemetry/api";
 import { acpAgent } from './agents/acpAgent';
+import { businessStrategyAgent, complianceMonitoringAgent, contractAnalysisAgent, legalResearchAgent } from "./agents/businessLegalAgents";
 import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
 import { changelogWorkflow } from './workflows/changelog';
 import { contentReviewWorkflow } from './workflows/content-review-workflow';
@@ -132,6 +133,11 @@ export const mastra = new Mastra({
     chartDataProcessorAgent,
     chartGeneratorAgent,
     chartSupervisorAgent,
+    // Business Legal Agents
+    legalResearchAgent,
+    businessStrategyAgent,
+    complianceMonitoringAgent,
+    contractAnalysisAgent
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
@@ -195,7 +201,7 @@ export const mastra = new Mastra({
     apiRoutes: [
       chatRoute({
         path: "/chat",
-        agent: "weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent",
+        agent: "weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent, legalResearchAgent, businessStrategyAgent, complianceMonitoringAgent, contractAnalysisAgent",
         defaultOptions: {
           maxSteps: 50,
           includeRawChunks: true,
