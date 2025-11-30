@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -128,3 +128,5 @@ export const evaluateResultTool = createTool({
         }
     },
 })
+
+export type EvaluateResultUITool = InferUITool<typeof evaluateResultTool>;

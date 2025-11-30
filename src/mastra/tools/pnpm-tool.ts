@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools"
 import chalk from 'chalk'
 import { execa, ExecaError } from 'execa'
 import { readFileSync } from 'fs'
@@ -49,6 +49,8 @@ export const pnpmBuild = createTool({
     },
 })
 
+export type PnpmBuildUITool = InferUITool<typeof pnpmBuild>;
+
 export const pnpmChangesetStatus = createTool({
     id: 'pnpmChangesetStatus',
     description: 'Used to check which pnpm modules need to be published',
@@ -97,6 +99,8 @@ export const pnpmChangesetStatus = createTool({
     },
 })
 
+export type PnpmChangesetStatusUITool = InferUITool<typeof pnpmChangesetStatus>;
+
 export const pnpmChangesetPublish = createTool({
     id: 'pnpmChangesetPublish',
     description: 'Used to publish the pnpm module',
@@ -133,6 +137,8 @@ export const pnpmChangesetPublish = createTool({
         }
     },
 })
+
+export type PnpmChangesetPublishUITool = InferUITool<typeof pnpmChangesetPublish>;
 
 export const activeDistTag = createTool({
     id: 'activeDistTag',
@@ -185,3 +191,5 @@ export const activeDistTag = createTool({
         }
     },
 })
+
+export type ActiveDistTagUITool = InferUITool<typeof activeDistTag>;

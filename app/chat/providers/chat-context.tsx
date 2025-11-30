@@ -99,9 +99,10 @@ export function ChatProvider({
   const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([])
 
   const {
+    regenerate,
+    stop,
     messages,
     sendMessage: aiSendMessage,
-    stop,
     status: aiStatus,
     error: aiError,
   } = useChat({
@@ -111,9 +112,14 @@ export function ChatProvider({
       prepareSendMessagesRequest({ messages }) {
         return {
           id: selectedAgent,
-          messages: messages,
+          messages,
+          memory: {
+            thread: "user-1",
+            resource: "user-1",
+          },
           requestMetadata: {
-            agentId: selectedAgent
+            agentId: selectedAgent,
+            resourceId: selectedAgent
           },
           body: {
             messages,

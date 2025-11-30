@@ -6,7 +6,7 @@
  * @module serpapi-academic-local-tool
  */
 
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { getJson } from 'serpapi'
 import { log } from '../config/logger'
@@ -111,6 +111,8 @@ export const googleScholarTool = createTool({
     },
 })
 
+export type GoogleScholarUITool = InferUITool<typeof googleScholarTool>;
+
 // Google Finance Tool
 const googleFinanceInputSchema = z.object({
     query: z.string().min(1).describe('Stock symbol or company name (e.g., "AAPL", "Apple")'),
@@ -200,6 +202,8 @@ export const googleFinanceTool = createTool({
         }
     },
 })
+
+export type GoogleFinanceUITool = InferUITool<typeof googleFinanceTool>;
 
 // Yelp Search Tool
 const yelpSearchInputSchema = z.object({
@@ -308,3 +312,5 @@ export const yelpSearchTool = createTool({
         }
     },
 })
+
+export type YelpSearchUITool = InferUITool<typeof yelpSearchTool>;

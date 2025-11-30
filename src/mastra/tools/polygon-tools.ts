@@ -1,4 +1,4 @@
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AISpanType } from "@mastra/core/ai-tracing";
 import type { RuntimeContext } from "@mastra/core/runtime-context";
@@ -311,6 +311,8 @@ export const polygonStockQuotesTool = createTool({
   }
 });
 
+export type PolygonStockQuotesUITool = InferUITool<typeof polygonStockQuotesTool>;
+
 /**
  * Polygon.io Stock Aggregates Tool
  *
@@ -558,6 +560,8 @@ export const polygonStockAggregatesTool = createTool({
     }
   }
 });
+
+export type PolygonStockAggregatesUITool = InferUITool<typeof polygonStockAggregatesTool>;
 
 /**
  * Polygon.io Stock Fundamentals Tool
@@ -846,6 +850,8 @@ export const polygonStockFundamentalsTool = createTool({
   }
 });
 
+export type PolygonStockFundamentalsUITool = InferUITool<typeof polygonStockFundamentalsTool>;
+
 /**
  * Polygon.io Crypto Quotes Tool
  *
@@ -1091,6 +1097,8 @@ export const polygonCryptoQuotesTool = createTool({
   }
 });
 
+export type PolygonCryptoQuotesUITool = InferUITool<typeof polygonCryptoQuotesTool>;
+
 /**
  * Polygon.io Crypto Aggregates Tool
  *
@@ -1297,6 +1305,8 @@ export const polygonCryptoAggregatesTool = createTool({
   }
 });
 
+export type PolygonCryptoAggregatesUITool = InferUITool<typeof polygonCryptoAggregatesTool>;
+
 /**
  * Polygon.io Crypto Snapshots Tool
  *
@@ -1466,3 +1476,5 @@ export const polygonCryptoSnapshotsTool = createTool({
     }
   }
 });
+
+export type PolygonCryptoSnapshotsUITool = InferUITool<typeof polygonCryptoSnapshotsTool>;

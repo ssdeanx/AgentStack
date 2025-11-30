@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import {
     logError,
@@ -1050,3 +1050,16 @@ export const finnhubEconomicTool = createTool({
     }
   }
 });
+
+export type FinnhubEconomicUITool = InferUITool<typeof finnhubEconomicTool>;
+export type FinnhubTechnicalUITool = InferUITool<typeof finnhubTechnicalTool>;
+export type FinnhubAnalysisUITool = InferUITool<typeof finnhubAnalysisTool>;
+export type FinnhubFinancialsUITool = InferUITool<typeof finnhubFinancialsTool>;
+export type FinnhubCompanyUITool = InferUITool<typeof finnhubCompanyTool>;
+
+export type FinnhubTools =
+  | FinnhubEconomicUITool
+  | FinnhubTechnicalUITool
+  | FinnhubAnalysisUITool
+  | FinnhubFinancialsUITool
+  | FinnhubCompanyUITool;

@@ -1,4 +1,7 @@
-import { createTool } from '@mastra/core/tools';
+/*
+ * Not working
+*/
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { MDocument } from '@mastra/rag';
 import { chromium, Browser } from 'playwright-core';
@@ -508,3 +511,12 @@ export const monitorPageTool = createTool({
     }
   },
 });
+
+export type BrowserToolUITool = InferUITool<typeof browserTool>;
+export type ScreenshotToolUITool = InferUITool<typeof screenshotTool>;
+export type PdfGeneratorToolUITool = InferUITool<typeof pdfGeneratorTool>;
+export type ClickAndExtractToolUITool = InferUITool<typeof clickAndExtractTool>;
+export type FillFormToolUITool = InferUITool<typeof fillFormTool>;
+export type GoogleSearchUITool = InferUITool<typeof googleSearch>;
+export type ExtractTablesToolUITool = InferUITool<typeof extractTablesTool>;
+export type MonitorPageToolUITool = InferUITool<typeof monitorPageTool>;

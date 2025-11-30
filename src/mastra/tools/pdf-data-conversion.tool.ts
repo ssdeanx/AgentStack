@@ -13,7 +13,7 @@
 // approvedBy: sam
 // approvalDate: 10/18
 
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools"
 import { z } from 'zod'
 import { AISpanType } from '@mastra/core/ai-tracing'
 import { marked } from 'marked'
@@ -793,6 +793,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
 	},
 })
 
+export type PdfToMarkdownUITool = InferUITool<typeof pdfToMarkdownTool>;
 // ============================================================================
 // EXPORTS FOR SUB-TOOL TESTING AND COMPOSITION
 // ============================================================================

@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { DOMParser } from 'xmldom'
@@ -1232,3 +1232,14 @@ function jsonToXML(data: JSONLike, rootElement = 'root'): string {
 
     return objectToXML(data, rootElement)
 }
+
+
+export type ReadCSVDataToolUITool = InferUITool<typeof readCSVDataTool>;
+export type  ImageToCSVUITool = InferUITool<typeof imageToCSVTool>;
+export type DataProcessingUITool = InferUITool<typeof convertDataFormatTool>;
+export type ExcalidrawValidationUITool = InferUITool<typeof validateExcalidrawTool>;
+export type SVGProcessingUITool = InferUITool<typeof processSVGTool>;
+export type XMLProcessingUITool = InferUITool<typeof processXMLTool>;
+export type DataValidationUITool = InferUITool<typeof validateDataTool>;
+
+

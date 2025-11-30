@@ -14,7 +14,7 @@
 // approvalDate: 9/22
 
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { pipeline } from 'stream/promises'
@@ -91,6 +91,8 @@ export const readDataFileTool = createTool({
     },
 })
 
+export type ReadDataFileUITool = InferUITool<typeof readDataFileTool>;
+
 export const writeDataFileTool = createTool({
     id: 'write-data-file',
     description:
@@ -150,6 +152,8 @@ export const writeDataFileTool = createTool({
     },
 })
 
+export type WriteDataFileUITool = InferUITool<typeof writeDataFileTool>;
+
 export const deleteDataFileTool = createTool({
     id: 'delete-data-file',
     description: 'Deletes a file within the data directory.',
@@ -194,6 +198,8 @@ export const deleteDataFileTool = createTool({
         }
     },
 })
+
+export type DeleteDataFileUITool = InferUITool<typeof deleteDataFileTool>;
 
 export const listDataDirTool = createTool({
     id: 'list-data-directory',
@@ -241,6 +247,9 @@ export const listDataDirTool = createTool({
         }
     },
 })
+
+export type ListDataDirUITool = InferUITool<typeof listDataDirTool>;
+
 export const copyDataFileTool = createTool({
     id: 'copy-data-file',
     description: 'Copies a file within the data directory to a new location.',
@@ -300,6 +309,8 @@ export const copyDataFileTool = createTool({
     },
 })
 
+export type CopyDataFileUITool = InferUITool<typeof copyDataFileTool>;
+
 export const moveDataFileTool = createTool({
     id: 'move-data-file',
     description: 'Moves or renames a file within the data directory.',
@@ -358,6 +369,8 @@ export const moveDataFileTool = createTool({
         }
     },
 })
+
+export type MoveDataFileUITool = InferUITool<typeof moveDataFileTool>;
 
 export const searchDataFilesTool = createTool({
     id: 'search-data-files',
@@ -463,6 +476,8 @@ export const searchDataFilesTool = createTool({
     },
 })
 
+export type SearchDataFilesUITool = InferUITool<typeof searchDataFilesTool>;
+
 export const getDataFileInfoTool = createTool({
     id: 'get-data-file-info',
     description:
@@ -525,6 +540,7 @@ export const getDataFileInfoTool = createTool({
     },
 })
 
+export type GetDataFileInfoUITool = InferUITool<typeof getDataFileInfoTool>;
 export const createDataDirTool = createTool({
     id: 'create-data-directory',
     description: 'Creates a new directory within the data directory.',
@@ -567,6 +583,8 @@ export const createDataDirTool = createTool({
         }
     },
 })
+
+export type CreateDataDirUITool = InferUITool<typeof createDataDirTool>;
 
 export const removeDataDirTool = createTool({
     id: 'remove-data-directory',
@@ -616,6 +634,8 @@ export const removeDataDirTool = createTool({
         }
     },
 })
+
+export type RemoveDataDirUITool = InferUITool<typeof removeDataDirTool>;
 
 export const archiveDataTool = createTool({
     id: 'archive-data',
@@ -681,6 +701,8 @@ export const archiveDataTool = createTool({
         }
     },
 })
+
+export type ArchiveDataUITool = InferUITool<typeof archiveDataTool>;
 
 export const backupDataTool = createTool({
     id: 'backup-data',
@@ -749,3 +771,5 @@ export const backupDataTool = createTool({
         }
     },
 })
+
+export type BackupDataUITool = InferUITool<typeof backupDataTool>;

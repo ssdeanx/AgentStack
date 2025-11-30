@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
 // In-memory counter to track tool calls per request
@@ -274,6 +274,8 @@ export const arxivTool = createTool({
   }
 });
 
+export type ArxivUITool = InferUITool<typeof arxivTool>;
+
 /**
  * ArXiv PDF Parser Tool
  *
@@ -442,6 +444,8 @@ export const arxivPdfParserTool = createTool({
   }
 });
 
+export type ArxivPdfParserUITool = InferUITool<typeof arxivPdfParserTool>;
+
 /**
  * ArXiv Paper Downloader Tool
  *
@@ -579,6 +583,8 @@ export const arxivPaperDownloaderTool = createTool({
     }
   }
 });
+
+export type ArxivPaperDownloaderUITool = InferUITool<typeof arxivPaperDownloaderTool>;
 
 /**
  * Simple XML parser for ArXiv API response

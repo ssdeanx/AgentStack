@@ -14,7 +14,7 @@
 // approvedBy: sam
 // approvalDate: 9/22
 
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import * as cheerio from 'cheerio'
@@ -682,6 +682,7 @@ export const webScraperTool = createTool({
     },
 })
 
+export type WebScraperUITool = InferUITool<typeof webScraperTool>;
 // ===== BATCH WEB SCRAPER TOOL =====
 
 const batchWebScraperInputSchema = z.object({
@@ -941,6 +942,8 @@ export const batchWebScraperTool = createTool({
         }
     },
 })
+
+export type BatchWebScraperUITool = InferUITool<typeof batchWebScraperTool>;
 
 // ===== SITE MAP EXTRACTOR TOOL =====
 
@@ -1206,6 +1209,7 @@ export const siteMapExtractorTool = createTool({
     },
 })
 
+export type SiteMapExtractorUITool = InferUITool<typeof siteMapExtractorTool>;
 // ===== LINK EXTRACTOR TOOL =====
 
 const linkExtractorInputSchema = z.object({
@@ -1580,6 +1584,8 @@ export const htmlToMarkdownTool = createTool({
     },
 })
 
+export type HtmlToMarkdownUITool = InferUITool<typeof htmlToMarkdownTool>;
+
 // ===== SCRAPED CONTENT MANAGER TOOL =====
 
 const listScrapedContentInputSchema = z.object({
@@ -1769,6 +1775,8 @@ export const listScrapedContentTool = createTool({
     },
 })
 
+export type ListScrapedContentUITool = InferUITool<typeof listScrapedContentTool>;
+
 // ===== CONTENT CLEANER TOOL =====
 
 const contentCleanerInputSchema = z.object({
@@ -1904,3 +1912,4 @@ export const contentCleanerTool = createTool({
         }
     },
 })
+export type ContentCleanerUITool = InferUITool<typeof contentCleanerTool>;

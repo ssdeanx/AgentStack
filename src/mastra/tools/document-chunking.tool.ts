@@ -2,7 +2,7 @@ import { MDocument,
     rerankWithScorer as rerank,
   MastraAgentRelevanceScorer,
  } from '@mastra/rag'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { AISpanType } from '@mastra/core/ai-tracing'
 import { pgVector } from '../config/pg-storage'
@@ -901,3 +901,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         }
     },
 })
+
+export type DocumentRerankerUITool = InferUITool<typeof documentRerankerTool>;
+export type MastraChunkerUITool = InferUITool<typeof mastraChunker>;
+export type MDocumentChunkerUITool = InferUITool<typeof mdocumentChunker>;

@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -637,3 +637,10 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
         }
     },
 })
+
+
+export type ChartSupervisorUITool = InferUITool<typeof chartSupervisorTool>;
+export type ChartGeneratorUITool = InferUITool<typeof chartGeneratorTool>;
+export type ChartDataProcessorUITool = InferUITool<typeof chartDataProcessorTool>;
+
+export type ChartTypeAdvisorUITool = InferUITool<typeof chartTypeAdvisorTool>;

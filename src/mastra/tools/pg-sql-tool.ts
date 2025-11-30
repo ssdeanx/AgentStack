@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { Pool } from "pg";
 import { z } from "zod";
 import { log } from "../config/logger";
@@ -63,3 +63,5 @@ export const pgExecute = createTool({
     }
   },
 });
+
+export type PgSqlTool = InferUITool<typeof pgExecute>;

@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { createTool } from '@mastra/core/tools';
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { GithubIntegration } from "@mastra/github";
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -488,3 +488,11 @@ export const getFileContent = createTool({
     }
   },
 });
+
+export type GitHubListRepositoriesUITool = InferUITool<typeof listRepositories>;
+export type GitHubListPullRequestsUITool = InferUITool<typeof listPullRequests>;
+export type GitHubListIssuesUITool = InferUITool<typeof listIssues>;
+export type GitHubCreateIssueUITool = InferUITool<typeof createIssue>;
+export type GitHubGetRepositoryInfoUITool = InferUITool<typeof getRepositoryInfo>;
+export type GitHubSearchCodeUITool = InferUITool<typeof searchCode>;
+export type GitHubGetFileContentUITool = InferUITool<typeof getFileContent>;

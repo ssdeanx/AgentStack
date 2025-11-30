@@ -1,4 +1,4 @@
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AISpanType } from "@mastra/core/ai-tracing";
 
@@ -96,3 +96,5 @@ export const jsonToCsvTool = createTool({
     }
   },
 });
+
+export type JsonToCsvUITool = InferUITool<typeof jsonToCsvTool>;

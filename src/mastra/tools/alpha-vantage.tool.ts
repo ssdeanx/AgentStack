@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
 /**
@@ -548,3 +548,7 @@ export const alphaVantageTool = createTool({
     }
   }
 });
+
+export type AlphaVantageCryptoUITool = InferUITool<typeof alphaVantageCryptoTool>;
+export type AlphaVantageStockUITool = InferUITool<typeof alphaVantageStockTool>;
+export type AlphaVantageUITool = InferUITool<typeof alphaVantageTool>;

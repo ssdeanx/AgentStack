@@ -1,4 +1,4 @@
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
@@ -151,3 +151,5 @@ function getWeatherCondition(code: number): string {
     }
     return conditions[code] ?? 'Unknown'
 }
+
+export type WeatherUITool = InferUITool<typeof weatherTool>;

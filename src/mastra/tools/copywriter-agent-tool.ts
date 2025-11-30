@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -208,3 +208,7 @@ export const copywriterTool = createTool({
         }
     },
 })
+
+// InferUITools expects a ToolSet (an object mapping ids to tools), not a single Tool.
+// Provide an object with the tool id as the key to satisfy the constraint.
+export type CopywriterUITool = InferUITool<typeof copywriterTool>;

@@ -1,4 +1,4 @@
-import { createTool } from '@mastra/core/tools';
+import { InferUITools, createTool } from "@mastra/core/tools";
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { execSync } from 'child_process';
 import { z } from 'zod';

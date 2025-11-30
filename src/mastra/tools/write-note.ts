@@ -1,4 +1,4 @@
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { AISpanType } from "@mastra/core/ai-tracing";
 import { z } from "zod";
 import path from "node:path";
@@ -51,3 +51,5 @@ export const writeNoteTool = createTool({
     }
   },
 });
+
+export type WriteNoteUITool = InferUITool<typeof writeNoteTool>;

@@ -1,5 +1,5 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { createTool } from '@mastra/core/tools'
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { readFileSync, writeFileSync } from 'fs'
 import { z } from 'zod'
 import { log } from '../config/logger'

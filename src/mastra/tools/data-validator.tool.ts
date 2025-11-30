@@ -1,4 +1,4 @@
-import { createTool } from "@mastra/core/tools";
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AISpanType } from "@mastra/core/ai-tracing";
 
@@ -160,3 +160,5 @@ export const dataValidatorToolJSON = createTool({
     }
   },
 });
+
+export type DataValidatorJSONUITool = InferUITool<typeof dataValidatorToolJSON>;
