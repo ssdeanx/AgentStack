@@ -1,60 +1,60 @@
-import { Agent } from '@mastra/core/agent'
-
-import { evaluateResultTool } from '../tools/evaluateResultTool'
-import { extractLearningsTool } from '../tools/extractLearningsTool'
-import {
-    webScraperTool,
-    batchWebScraperTool,
-    siteMapExtractorTool,
-    linkExtractorTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
-} from '../tools/web-scraper-tool'
-import { log } from '../config/logger'
-import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { googleAI3, googleAIFlashLite, google, googleAI } from '../config/google'
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { googleTools } from '@ai-sdk/google/internal';
+import { Agent } from '@mastra/core/agent';
+import { InternalSpans } from '@mastra/core/ai-tracing';
+import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
 } from "@mastra/evals/scorers/llm";
-import { mdocumentChunker } from '../tools/document-chunking.tool'
-import { googleFinanceTool, googleScholarTool } from '../tools/serpapi-academic-local.tool'
-import { googleNewsLiteTool, googleNewsTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool'
-import { alphaVantageCryptoTool, alphaVantageStockTool } from '../tools/alpha-vantage.tool'
-import { polygonCryptoAggregatesTool, polygonCryptoQuotesTool, polygonCryptoSnapshotsTool, polygonStockAggregatesTool, polygonStockFundamentalsTool, polygonStockQuotesTool } from '../tools/polygon-tools'
-import { arxivTool } from '../tools/arxiv.tool'
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubQuotesTool, finnhubTechnicalTool } from '../tools/finnhub-tools'
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { PGVECTOR_PROMPT } from "@mastra/pg";
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
-
-export interface ResearchAgentContext {
-    userId?: string
-    tier?: 'free' | 'pro' | 'enterprise'
-    researchDepth?: number
+import { google, googleAI, googleAIFlashLite } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory, pgQueryTool } from '../config/pg-storage';
+import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers';
+import { alphaVantageCryptoTool, alphaVantageStockTool } from '../tools/alpha-vantage.tool';
+import { arxivTool } from '../tools/arxiv.tool';
+import { mdocumentChunker } from '../tools/document-chunking.tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubQuotesTool, finnhubTechnicalTool } from '../tools/finnhub-tools';
+import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
+import { polygonCryptoAggregatesTool, polygonCryptoQuotesTool, polygonCryptoSnapshotsTool, polygonStockAggregatesTool, polygonStockFundamentalsTool, polygonStockQuotesTool } from '../tools/polygon-tools';
+import { googleFinanceTool, googleScholarTool } from '../tools/serpapi-academic-local.tool';
+import { googleNewsLiteTool, googleNewsTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool';
+import {
+  batchWebScraperTool,
+  contentCleanerTool,
+  htmlToMarkdownTool,
+  linkExtractorTool,
+  siteMapExtractorTool,
+  webScraperTool,
+} from '../tools/web-scraper-tool';
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type ResearchRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
-
 log.info('Initializing Research Agent...')
 
 export const researchAgent = new Agent({
-    id: 'research',
-    name: 'Research Agent',
-    description:
-        'An expert research agent that conducts thorough research using web search and analysis tools.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier')
-        const researchDepth = runtimeContext.get('researchDepth')
-        return {
-            role: 'system',
-            content: `
+  id: 'research',
+  name: 'Research Agent',
+  description:
+    'An expert research agent that conducts thorough research using web search and analysis tools.',
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+    return {
+      role: 'system',
+      content: `
         <role>
-        User: ${userId ?? 'admin'}
-        Tier: ${tier ?? 'enterprise'}
-        Research Depth: ${researchDepth ?? '1-5'}
+
+        Tier: ${userTier}
+        Language: ${language}
+
         You are a Senior Research Analyst. Your goal is to research topics thoroughly by following a precise, multi-phase process.
         Today's date is ${new Date().toISOString()}
         </role>
@@ -162,60 +162,71 @@ export const researchAgent = new Agent({
         </output_format>
         ${PGVECTOR_PROMPT}
         `,
-            providerOptions: {
-                google: {
-                  structuredOutput: true,
-                  thinkingConfig: {
-                      thinkingLevel: 'high',
-                      includeThoughts: true,
-                      thinkingBudget: -1,
-                  }
-                }
-            }
+      providerOptions: {
+        google: {
+          structuredOutput: true,
+          thinkingConfig: {
+            thinkingLevel: 'high',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-    model: googleAI3,
-    tools: {
-        webScraperTool,
-        siteMapExtractorTool,
-        linkExtractorTool,
-        htmlToMarkdownTool,
-        contentCleanerTool,
-        pgQueryTool,
-        batchWebScraperTool,
-        mdocumentChunker,
-        evaluateResultTool,
-        extractLearningsTool,
-        googleScholarTool,
-        googleTrendsTool,
-        googleFinanceTool,
-        googleNewsLiteTool,
-        googleNewsTool,
-        alphaVantageCryptoTool,
-        alphaVantageStockTool,
-        polygonCryptoQuotesTool,
-        polygonCryptoAggregatesTool,
-        polygonCryptoSnapshotsTool,
-        arxivTool,
-        pdfToMarkdownTool,
-        finnhubAnalysisTool,
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        polygonStockFundamentalsTool,
-        finnhubQuotesTool,
-        finnhubCompanyTool,
-        finnhubFinancialsTool,
-        finnhubTechnicalTool,
-        google_search: google.tools.googleSearch({
-          mode: "MODE_DYNAMIC",
-          dynamicThreshold: 0.7,
-        }),
-        code_execution: google.tools.codeExecution({
-        }),
-    },
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    scorers: {
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return google.chat('gemini-2.5-flash-preview-09-2025')
+  },
+  tools: {
+    webScraperTool,
+    siteMapExtractorTool,
+    linkExtractorTool,
+    htmlToMarkdownTool,
+    contentCleanerTool,
+    pgQueryTool,
+    batchWebScraperTool,
+    mdocumentChunker,
+    evaluateResultTool,
+    extractLearningsTool,
+    googleScholarTool,
+    googleTrendsTool,
+    googleFinanceTool,
+    googleNewsLiteTool,
+    googleNewsTool,
+    alphaVantageCryptoTool,
+    alphaVantageStockTool,
+    polygonCryptoQuotesTool,
+    polygonCryptoAggregatesTool,
+    polygonCryptoSnapshotsTool,
+    arxivTool,
+    pdfToMarkdownTool,
+    finnhubAnalysisTool,
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    finnhubQuotesTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubTechnicalTool,
+    googleSearch: googleTools.googleSearch({
+      mode: 'MODE_DYNAMIC',
+      dynamicThreshold: 0.7,
+    }),
+    codeExecution: googleTools.codeExecution({}),
+    urlContext: googleTools.urlContext({}),
+  },
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
       sampling: { type: "ratio", rate: 0.5 }
@@ -259,8 +270,8 @@ export const researchAgent = new Agent({
 type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
 
 const providerMetadata: ProviderMetadataMap | undefined =
-    ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
-    ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
+  ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
+  ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
 
 const metadata = providerMetadata?.google;  // Access .google here
 const groundingMetadata = metadata?.groundingMetadata;

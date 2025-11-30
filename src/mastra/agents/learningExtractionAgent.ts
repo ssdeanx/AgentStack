@@ -1,28 +1,30 @@
 import { Agent } from '@mastra/core/agent'
+import { InternalSpans } from '@mastra/core/ai-tracing'
+import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { googleAI } from '../config/google'
-import { researchCompletenessScorer, summaryQualityScorer, structureScorer } from '../scorers'
-import { InternalSpans } from '@mastra/core/ai-tracing'
+import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
 
-// Define runtime context for this agent
-export interface LearningExtractionAgentContext {
-    userId?: string
-    researchPhase?: string
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type LearningExtractionAgentContext = {
+  userId?: string
+  researchPhase?: string
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Learning Extraction Agent...')
 
 export const learningExtractionAgent = new Agent({
-    id: 'learning',
-    name: 'Learning Extraction Agent',
-    description:
-        'An expert at analyzing search results and extracting key insights to deepen research understanding.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        return {
-            role: 'system',
-            content: `
+  id: 'learning',
+  name: 'Learning Extraction Agent',
+  description:
+    'An expert at analyzing search results and extracting key insights to deepen research understanding.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    return {
+      role: 'system',
+      content: `
         <role>
         User: ${userId ?? 'anonymous'}
         You are an expert at analyzing search results to extract key insights and generate follow-up questions for deeper research.
@@ -48,35 +50,34 @@ export const learningExtractionAgent = new Agent({
         }
         </output_format>
         `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
+      }
+    }
+  },
+  model: googleAI,
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  scorers: {
+    researchCompleteness: {
+      scorer: researchCompletenessScorer,
+      sampling: { type: 'ratio', rate: 0.6 },
     },
-    model: googleAI,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    scorers: {
-        researchCompleteness: {
-            scorer: researchCompletenessScorer,
-            sampling: { type: 'ratio', rate: 0.6 },
-        },
-        summaryQuality: {
-            scorer: summaryQualityScorer,
-            sampling: { type: 'ratio', rate: 0.7 },
-        },
-        structure: {
-            scorer: structureScorer,
-            sampling: { type: 'ratio', rate: 1.0 },
-        },
+    summaryQuality: {
+      scorer: summaryQualityScorer,
+      sampling: { type: 'ratio', rate: 0.7 },
     },
-    workflows: {},
-    maxRetries: 5
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+  },
+  workflows: {},
+  maxRetries: 5
 })
-

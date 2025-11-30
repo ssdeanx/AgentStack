@@ -1,9 +1,15 @@
 import { Agent } from '@mastra/core/agent';
-import { pnpmChangesetStatus, pnpmBuild, pnpmChangesetPublish, activeDistTag } from '../tools/pnpm-tool';
+import { InternalSpans } from '@mastra/core/ai-tracing';
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
 import { taskCompletionScorer } from '../scorers';
-import { InternalSpans } from '@mastra/core/ai-tracing';
+import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
+
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type PackagePublisherRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 const packages_llm_text = `
   # PACKAGE LOCATION RULES - FOLLOW THESE EXACTLY:
@@ -43,7 +49,7 @@ const packages_llm_text = `
 export const PACKAGES_LIST_PROMPT = `
         Please analyze the following monorepo directories and identify packages that need pnpm publishing:
         CRITICAL: This step is about planning. We do not want to build anything. All packages MUST be placed in the correct order.
-        
+
         Publish Requirements:
         - @mastra/core first, MUST be before any other package
         - all packages in correct dependency order before building
@@ -78,17 +84,17 @@ export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
                 - create-mastra package (in packages/create-mastra)
               </action>
             </parallel_phase>
-            
+
             <parallel_phase name="integrations">
               <description>Build integrations/ directory packages</description>
               <action>Use pnpmBuild for each @mastra/integration-* package</action>
             </parallel_phase>
-            
+
             <parallel_phase name="deployers">
               <description>Build deployers/ directory packages</description>
               <action>Use pnpmBuild for each @mastra/deployer-* package</action>
             </parallel_phase>
-            
+
             <parallel_phase name="stores">
               <description>Build stores/ directory packages</description>
               <action>Use pnpmBuild for each @mastra/* package in stores/</action>
@@ -132,49 +138,49 @@ export const PUBLISH_PACKAGES_PROMPT = `
           Report the publish status and any errors encountered.
         </output_format>
       </publish_changeset>
-    
+
 `;
 
 export const danePackagePublisher = new Agent({
   id: 'dane-package-publisher',
   name: 'DanePackagePublisher',
   instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
-        return {
-            role: 'system',
-            content: `
+    const userId = runtimeContext.get('userId');
+    return {
+      role: 'system',
+      content: `
       I am Dane, a specialized agent for managing pnpm package publications in monorepos. My core responsibilities are:
-  
+
       1. Package Analysis:
          - Identify packages requiring publication across the monorepo
          - Detect changes that warrant new version releases
          - Validate package dependencies and versioning
-  
+
       2. Publication Management:
          - Orchestrate the correct build order for interdependent packages
          - Ensure proper versioning using changesets
          - Maintain package publishing standards
-  
+
       3. Directory Structure Knowledge:
       ${packages_llm_text}
-  
+
       Important Guidelines:
       - Always respect package dependencies when determining build order
       - Ensure all necessary builds complete before publishing
       - Follow semantic versioning principles
       - Validate package.json configurations before publishing
       `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
+      }
+    }
+  },
   model: googleAIFlashLite,
   memory: pgMemory,
   tools: {

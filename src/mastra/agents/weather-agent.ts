@@ -1,21 +1,27 @@
 import { Agent } from '@mastra/core/agent';
-import { weatherTool } from '../tools/weather-tool';
-import { scorers } from '../scorers/weather-scorer';
-import { googleAIFlashLite } from '../config/google';
-import { webScraperTool } from '../tools/web-scraper-tool';
-import { mdocumentChunker } from '../tools/document-chunking.tool';
-import { pgMemory } from '../config/pg-storage';
 import { InternalSpans } from '@mastra/core/ai-tracing';
+import { RuntimeContext } from '@mastra/core/runtime-context';
+import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google';
+import { pgMemory } from '../config/pg-storage';
+import { scorers } from '../scorers/weather-scorer';
+import { mdocumentChunker } from '../tools/document-chunking.tool';
+import { weatherTool } from '../tools/weather-tool';
+import { webScraperTool } from '../tools/web-scraper-tool';
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type WeatherRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
   id: 'weather-agent',
   description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
   instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
-        return {
-            role: 'system',
-            content: `
+    const userId = runtimeContext.get('userId');
+    return {
+      role: 'system',
+      content: `
       You are a helpful weather assistant that provides accurate weather information and can help planning activities based on the weather.
 
       Your primary function is to help users get weather details for specific locations. When responding:
@@ -29,18 +35,29 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'low',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'low',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-  model: googleAIFlashLite,
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<WeatherRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
   tools: { weatherTool, webScraperTool, mdocumentChunker },
   scorers: {
     toolCallAppropriateness: {
@@ -66,6 +83,6 @@ export const weatherAgent = new Agent({
     },
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
   maxRetries: 5
 });

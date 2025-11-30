@@ -1,32 +1,33 @@
 import { Agent } from '@mastra/core/agent'
 
+import { InternalSpans } from '@mastra/core/ai-tracing'
+import { RuntimeContext } from '@mastra/core/runtime-context'
+import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { googleAI } from '../config/google'
-import { researchCompletenessScorer, summaryQualityScorer, structureScorer } from '../scorers'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-
-// Define runtime context for this agent
-export interface ReportAgentContext {
-    userId?: string
-    reportFormat?: string
-    audience?: string
+import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type ReportRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
-
 log.info('Initializing Report Agent...')
 
 export const reportAgent = new Agent({
-    id: 'report',
-    name: 'Report Agent',
-    description:
-        'An expert researcher agent that generates comprehensive reports based on research data.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        return {
-            role: 'system',
-            content: `
+  id: 'report',
+  name: 'Report Agent',
+  description:
+    'An expert researcher agent that generates comprehensive reports based on research data.',
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ReportRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+    return {
+      role: 'system',
+      content: `
         <role>
-        User: ${userId ?? 'anonymous'}
+        User: ${userTier}
+        Language: ${language}
         You are an expert report generator. Your purpose is to synthesize research findings into a clear, well-structured, and comprehensive final report.
         </role>
 
@@ -89,41 +90,52 @@ export const reportAgent = new Agent({
             - [Source 3] (URL)
             </output_format>
             `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-                    maxOutputTokens: 64000,
-                    temperature: 0.2,
-                    topP: 1.0
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          maxOutputTokens: 64000,
+          temperature: 0.2,
+          topP: 1.0
         }
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ReportRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  scorers: {
+    researchCompleteness: {
+      scorer: researchCompletenessScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
     },
-    model: googleAI,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    scorers: {
-        researchCompleteness: {
-            scorer: researchCompletenessScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        summaryQuality: {
-            scorer: summaryQualityScorer,
-            sampling: { type: 'ratio', rate: 0.6 },
-        },
-        structure: {
-            scorer: structureScorer,
-            sampling: { type: 'ratio', rate: 1.0 },
-        },
+    summaryQuality: {
+      scorer: summaryQualityScorer,
+      sampling: { type: 'ratio', rate: 0.6 },
     },
-    tools: {},
-    workflows: {},
-    maxRetries: 5
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+  },
+  tools: {},
+  workflows: {},
+  maxRetries: 5
 })
 
 // --- IGNORE ---

@@ -1,16 +1,25 @@
-import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
 import { Agent } from "@mastra/core/agent";
-import * as tools from "../tools/pg-sql-tool";
-import { googleAIFlashLite, pgMemory } from "../config";
 import { InternalSpans } from '@mastra/core/ai-tracing';
+import { RuntimeContext } from '@mastra/core/runtime-context';
+import { googleAI, googleAIFlashLite, googleAIPro, pgMemory } from "../config";
+import * as tools from "../tools/pg-sql-tool";
+import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type SqlAgentRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 export const sqlAgent = new Agent({
   name: "SQL Agent",
-  instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
-        return {
-            role: 'system',
-            content: `You are a SQL (PostgreSQL) expert for an Execute PG SQL  database. Generate and execute queries that answer user questions about city data.
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<SqlAgentRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+
+    return {
+      role: 'system',
+      content: `You are a SQL (PostgreSQL) expert for an Execute PG SQL  database. Generate and execute queries that answer user questions about city data.
 
     DATABASE SCHEMA:
     cities (
@@ -63,23 +72,34 @@ export const sqlAgent = new Agent({
        ### Results
        [Query results in table format]
     `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'low',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'low',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-  model: googleAIFlashLite,
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<SqlAgentRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
   memory: pgMemory,
   tools: {
     pgExecute: tools.pgExecute,
   },
-  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
   scorers: {
     sqlValidity: {
       scorer: sqlValidityScorer,

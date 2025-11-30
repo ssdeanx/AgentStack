@@ -1,28 +1,29 @@
 import { Agent } from '@mastra/core/agent'
+import { InternalSpans } from '@mastra/core/ai-tracing'
+import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { googleAIFlashLite } from '../config/google'
-import { responseQualityScorer, taskCompletionScorer, structureScorer } from '../scorers'
-import { InternalSpans } from '@mastra/core/ai-tracing'
+import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
 
-// Define runtime context for this agent
-export interface EvaluationAgentContext {
-    userId?: string
-    queryContext?: string
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type EvaluationContext = {
+  userId?: string
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Evaluation Agent...')
 
 export const evaluationAgent = new Agent({
-    id: 'evaluationAgent',
-    name: 'Evaluation Agent',
-    description:
-        'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        return {
-            role: 'system',
-            content: `
+  id: 'evaluationAgent',
+  name: 'Evaluation Agent',
+  description:
+    'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userId ?? 'anonymous'}
 You are an expert evaluation agent. Your task is to evaluate whether a given search result is relevant to a specific research query.
@@ -120,34 +121,34 @@ CRITICAL: You must always respond with a valid JSON object in the following form
 }
 </output_format>
   `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
+      }
+    }
+  },
+  model: googleAIFlashLite,
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  scorers: {
+    responseQuality: {
+      scorer: responseQualityScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
     },
-    model: googleAIFlashLite,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    scorers: {
-        responseQuality: {
-            scorer: responseQualityScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        taskCompletion: {
-            scorer: taskCompletionScorer,
-            sampling: { type: 'ratio', rate: 0.7 },
-        },
-        structure: {
-            scorer: structureScorer,
-            sampling: { type: 'ratio', rate: 1.0 },
-        },
+    taskCompletion: {
+      scorer: taskCompletionScorer,
+      sampling: { type: 'ratio', rate: 0.7 },
     },
-    workflows: {},
-    maxRetries: 5
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+  },
+  workflows: {},
+  maxRetries: 5
 })

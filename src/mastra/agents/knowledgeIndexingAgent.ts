@@ -1,35 +1,37 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
-import { mdocumentChunker, documentRerankerTool } from '../tools/document-chunking.tool'
-import { readDataFileTool, listDataDirTool } from '../tools/data-file-manager'
+import { pgMemory } from '../config/pg-storage'
+import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
+import { documentRerankerTool, mdocumentChunker } from '../tools/document-chunking.tool'
 
-
-export interface KnowledgeIndexingContext {
-    userId?: string
-    indexName?: string
-    chunkSize?: number
-    chunkOverlap?: number
-    chunkingStrategy?: string
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type KnowledgeIndexingContext = {
+  userId?: string
+  indexName?: string
+  chunkSize?: number
+  chunkOverlap?: number
+  chunkingStrategy?: string
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Knowledge Indexing Agent...')
 
 export const knowledgeIndexingAgent = new Agent({
-    id: 'knowledge-indexing-agent',
-    name: 'Knowledge Indexing Agent',
-    description:
-        'Indexes documents into PgVector for semantic search and RAG. Use for building knowledge bases, indexing content with embeddings, semantic search, and document retrieval with reranking.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const indexName = runtimeContext?.get('indexName') ?? 'governed_rag'
-        const chunkSize = runtimeContext?.get('chunkSize') ?? 512
-        const chunkOverlap = runtimeContext?.get('chunkOverlap') ?? 50
-        const chunkingStrategy = runtimeContext?.get('chunkingStrategy') ?? 'recursive'
+  id: 'knowledge-indexing-agent',
+  name: 'Knowledge Indexing Agent',
+  description:
+    'Indexes documents into PgVector for semantic search and RAG. Use for building knowledge bases, indexing content with embeddings, semantic search, and document retrieval with reranking.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext?.get('userId') ?? 'default'
+    const indexName = runtimeContext?.get('indexName') ?? 'governed_rag'
+    const chunkSize = runtimeContext?.get('chunkSize') ?? 512
+    const chunkOverlap = runtimeContext?.get('chunkOverlap') ?? 50
+    const chunkingStrategy = runtimeContext?.get('chunkingStrategy') ?? 'recursive'
 
-        return `You are a Knowledge Indexing Specialist focused on building and querying semantic knowledge bases.
+    return `You are a Knowledge Indexing Specialist focused on building and querying semantic knowledge bases.
 
 ## Configuration
 - User: ${userId}
@@ -98,7 +100,7 @@ export const knowledgeIndexingAgent = new Agent({
 - Higher semanticWeight (0.6-0.8)
 - Lower topK (5-10)
 
-### For Comprehensive Results  
+### For Comprehensive Results
 - Use larger chunks (512-1024)
 - Balanced weights (0.4, 0.3, 0.3)
 - Higher topK (15-25)
@@ -124,16 +126,16 @@ When indexing, include relevant metadata:
 - Storage errors: Return partial success with failed chunks
 - Query failures: Return empty results with error message
 `
-    },
-    model: googleAIFlashLite,
-    memory: pgMemory,
-    tools: {
-        mdocumentChunker,
-        documentRerankerTool,
-        readDataFileTool,
-        listDataDirTool,
-    },
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  },
+  model: googleAIFlashLite,
+  memory: pgMemory,
+  tools: {
+    mdocumentChunker,
+    documentRerankerTool,
+    readDataFileTool,
+    listDataDirTool,
+  },
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Knowledge Indexing Agent initialized')

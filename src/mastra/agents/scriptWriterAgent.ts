@@ -1,22 +1,26 @@
-import { Agent } from '@mastra/core/agent';
-import { googleAI } from '../config/google';
-import { pgMemory } from '../config/pg-storage';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import { scriptFormatScorer, pacingScorer, creativityScorer } from '../scorers';
 import { google } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
-import { codeToTokensWithThemes } from 'shiki';
+import { Agent } from '@mastra/core/agent';
+import { InternalSpans } from '@mastra/core/ai-tracing';
+import { RuntimeContext } from '@mastra/core/runtime-context';
+import { googleAI } from '../config/google';
+import { pgMemory } from '../config/pg-storage';
+import { creativityScorer, pacingScorer, scriptFormatScorer } from '../scorers';
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type ScriptWriterRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 export const scriptWriterAgent = new Agent({
   id: 'script-writer',
   name: 'Script Writer',
   description: 'Master scriptwriter focused on retention, pacing, and psychological engagement.',
   instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
     return {
       role: 'system',
       content: `You are a Master Scriptwriter. You do not write "text"; you write "experiences".
-  
+
   <core_philosophy>
   Retention is King. If they click off, we failed.
   Every sentence must earn the right for the next sentence to be read/heard.
@@ -34,9 +38,9 @@ export const scriptWriterAgent = new Agent({
   - **Visual Cues**: You MUST write [VISUAL CUE] instructions. (e.g., [SHOW: Screen recording of X], [CUT TO: B-roll of Y]).
   - **The "But... Therefore" Rule**: Avoid "And then... and then...". Use "But... therefore..." to create causal chains and tension.
 
-  ## 3. THE PAYOFF & CTA
+  ## 3. THE PAYOFF & CALL TO ACTION (CTA)
   - Deliver on the Hook's promise fully.
-  - **The CTA**: Do not beg. Give a logical reason to subscribe/click. (e.g., "If you want to see the advanced version of this, click here").
+  - **CALL TO ACTION (CTA)**: Do not beg. Give a logical reason to subscribe/click. (e.g., "If you want to see the advanced version of this, click here").
   </methodology>
 
   <formatting_rules>
@@ -57,9 +61,20 @@ export const scriptWriterAgent = new Agent({
       }
     }
   },
-  model: google('gemini-2.5-flash-preview-09-2025'),
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ScriptWriterRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return google.chat('gemini-2.5-flash-preview-09-2025')
+  },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.MODEL} },
+  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
   scorers: {
     scriptFormat: {
       scorer: scriptFormatScorer,
@@ -74,10 +89,12 @@ export const scriptWriterAgent = new Agent({
       sampling: { type: 'ratio', rate: 0.8 },
     },
   },
-  tools: {google_search: google.tools.googleSearch({
-    mode: 'MODE_DYNAMIC',
-    dynamicThreshold: 0.7,
-  }),
-          code_execution: google.tools.codeExecution({}),
-          url_context: google.tools.urlContext({})}
+  tools: {
+    googleSearch: googleTools.googleSearch({
+      mode: 'MODE_DYNAMIC',
+      dynamicThreshold: 0.7,
+    }),
+    codeExecution: googleTools.codeExecution({}),
+    urlContext: googleTools.urlContext({}),
+  }
 });

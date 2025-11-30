@@ -1,36 +1,35 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { PGVECTOR_PROMPT } from "@mastra/pg"
+import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
 import {
-    responseQualityScorer,
-    taskCompletionScorer,
-    sourceDiversityScorer,
-    financialDataScorer,
+  financialDataScorer,
+  responseQualityScorer,
+  sourceDiversityScorer,
+  taskCompletionScorer,
 } from '../scorers'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
-import {
-    polygonStockQuotesTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-} from '../tools/polygon-tools'
-import {
-    finnhubQuotesTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
-    finnhubAnalysisTool,
-    finnhubTechnicalTool,
-} from '../tools/finnhub-tools'
-import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import { chartDataProcessorTool, chartGeneratorTool, chartTypeAdvisorTool } from '../tools/financial-chart-tools'
-import { PGVECTOR_PROMPT } from "@mastra/pg";
+import {
+  finnhubAnalysisTool,
+  finnhubCompanyTool,
+  finnhubFinancialsTool,
+  finnhubQuotesTool,
+  finnhubTechnicalTool,
+} from '../tools/finnhub-tools'
+import {
+  polygonStockAggregatesTool,
+  polygonStockFundamentalsTool,
+  polygonStockQuotesTool,
+} from '../tools/polygon-tools'
+import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 
-export interface FinancialChartAgentContext {
-    userId?: string
-    tier?: 'free' | 'pro' | 'enterprise'
-    chartStyle?: 'minimal' | 'detailed' | 'dashboard'
-    colorScheme?: 'light' | 'dark' | 'corporate'
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type FinancialChartRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Financial Chart Agents...')
@@ -40,17 +39,17 @@ log.info('Initializing Financial Chart Agents...')
  * Recommends optimal chart types based on financial data characteristics
  */
 export const chartTypeAdvisorAgent = new Agent({
-    id: 'chart-type-advisor',
-    name: 'Chart Type Advisor',
-    description: 'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier') ?? 'pro'
-        const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
-        return {
-            role: 'system',
-            content: `
+  id: 'chart-type-advisor',
+  name: 'Chart Type Advisor',
+  description: 'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    const tier = runtimeContext.get('tier') ?? 'pro'
+    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userId ?? 'anonymous'}
 Tier: ${tier}
@@ -106,21 +105,21 @@ Return recommendations as JSON:
 }
 </output_format>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-    model: googleAIFlashLite,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    maxRetries: 3
+      }
+    }
+  },
+  model: googleAIFlashLite,
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  maxRetries: 3
 })
 
 /**
@@ -128,17 +127,17 @@ Return recommendations as JSON:
  * Transforms raw financial data into Recharts-compatible format
  */
 export const chartDataProcessorAgent = new Agent({
-    id: 'chart-data-processor',
-    name: 'Chart Data Processor',
-    description: 'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier') ?? 'pro'
-        const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
-        return {
-            role: 'system',
-            content: `
+  id: 'chart-data-processor',
+  name: 'Chart Data Processor',
+  description: 'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    const tier = runtimeContext.get('tier') ?? 'pro'
+    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userId ?? 'anonymous'}
 You are a Financial Data Processing Specialist that transforms raw API data into Recharts-ready formats.
@@ -203,28 +202,28 @@ Return processed data as JSON:
 }
 </output_format>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-    model: googleAIFlashLite,
-    tools: {
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        finnhubQuotesTool,
-        finnhubTechnicalTool,
-        alphaVantageStockTool,
-    },
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    maxRetries: 3
+      }
+    }
+  },
+  model: googleAIFlashLite,
+  tools: {
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    finnhubQuotesTool,
+    finnhubTechnicalTool,
+    alphaVantageStockTool,
+  },
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  maxRetries: 3
 })
 
 /**
@@ -232,18 +231,18 @@ Return processed data as JSON:
  * Generates complete Recharts React component code
  */
 export const chartGeneratorAgent = new Agent({
-    id: 'chart-generator',
-    name: 'Chart Generator',
-    description: 'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier') ?? 'pro'
-        const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+  id: 'chart-generator',
+  name: 'Chart Generator',
+  description: 'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    const tier = runtimeContext.get('tier') ?? 'pro'
+    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
 
-        return {
-            role: 'system',
-            content: `
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userId ?? 'anonymous'}
 Color Scheme: ${colorScheme}
@@ -351,21 +350,21 @@ Return complete component code:
 }
 </output_format>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'high',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
-    model: googleAI,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    maxRetries: 3
+      }
+    }
+  },
+  model: googleAI,
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  maxRetries: 3
 })
 
 /**
@@ -373,16 +372,16 @@ Return complete component code:
  * Orchestrates the chart creation pipeline from data to component
  */
 export const chartSupervisorAgent = new Agent({
-    id: 'chart-supervisor',
-    name: 'Chart Supervisor',
-    description: 'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier') ?? 'pro'
-        const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-        return {
-            role: 'system',
-            content: `
+  id: 'chart-supervisor',
+  name: 'Chart Supervisor',
+  description: 'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext.get('userId')
+    const tier = runtimeContext.get('tier') ?? 'pro'
+    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userId ?? 'anonymous'}
 Tier: ${tier}
@@ -478,69 +477,70 @@ Return comprehensive chart package:
 }
 </output_format>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'high',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
+      }
+    }
+  },
+  model: googleAI,
+  tools: {
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    finnhubQuotesTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubAnalysisTool,
+    finnhubTechnicalTool,
+    alphaVantageStockTool,
+    googleFinanceTool,
+    chartGeneratorTool,
+    chartDataProcessorTool,
+    chartTypeAdvisorTool,
+    pgQueryTool
+  },
+  memory: pgMemory,
+  options: {
+    tracingPolicy: { internal: InternalSpans.MODEL }
+  },
+  scorers: {
+    responseQuality: {
+      scorer: responseQualityScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
     },
-    model: googleAI,
-    tools: {
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        polygonStockFundamentalsTool,
-        finnhubQuotesTool,
-        finnhubCompanyTool,
-        finnhubFinancialsTool,
-        finnhubAnalysisTool,
-        finnhubTechnicalTool,
-        alphaVantageStockTool,
-        googleFinanceTool,
-        chartGeneratorTool,
-        chartDataProcessorTool,
-        chartTypeAdvisorTool,
-        pgQueryTool
+    taskCompletion: {
+      scorer: taskCompletionScorer,
+      sampling: { type: 'ratio', rate: 0.5 },
     },
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.MODEL}
+    sourceDiversity: {
+      scorer: sourceDiversityScorer,
+      sampling: { type: 'ratio', rate: 0.3 },
     },
-    scorers: {
-        responseQuality: {
-            scorer: responseQualityScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        taskCompletion: {
-            scorer: taskCompletionScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
-        },
-        sourceDiversity: {
-            scorer: sourceDiversityScorer,
-            sampling: { type: 'ratio', rate: 0.3 },
-        },
-        financialData: {
-            scorer: financialDataScorer,
-            sampling: { type: 'ratio', rate: 1.0 },
-        },
+    financialData: {
+      scorer: financialDataScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
     },
-    inputProcessors: [
-        new UnicodeNormalizer({
-            stripControlChars: false,
-            collapseWhitespace: true,
-            preserveEmojis: true,
-            trim: true,
-        }),
-    ],
-    outputProcessors: [
-        new BatchPartsProcessor({
-            batchSize: 15,
-            maxWaitTime: 50,
-            emitOnNonText: true,
-        }),
-    ],
-    maxRetries: 5
+  },
+  inputProcessors: [
+    new UnicodeNormalizer({
+      stripControlChars: false,
+      collapseWhitespace: true,
+      preserveEmojis: true,
+      trim: true,
+    }),
+  ],
+  outputProcessors: [
+    new BatchPartsProcessor({
+      batchSize: 15,
+      maxWaitTime: 50,
+      emitOnNonText: true,
+    }),
+  ],
+  maxRetries: 5
 })

@@ -1,25 +1,25 @@
 
-import { Agent } from '@mastra/core/agent'
-
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { googleTools } from '@ai-sdk/google/internal';
+import { Agent } from '@mastra/core/agent';
+import { InternalSpans } from '@mastra/core/ai-tracing';
+import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
-} from "@mastra/evals/scorers/llm"
-import { PGVECTOR_PROMPT } from "@mastra/pg"
-import { google, googleAI, googleAI3, googleAIFlashLite } from '../config/google'
-import { log } from '../config/logger'
-import { pgMemory, pgQueryTool } from '../config/pg-storage'
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers'
-import { mdocumentChunker } from '../tools/document-chunking.tool'
-import { evaluateResultTool } from '../tools/evaluateResultTool'
-import { extractLearningsTool } from '../tools/extractLearningsTool'
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import { googleFinanceTool, googleScholarTool } from '../tools/serpapi-academic-local.tool'
-import { googleNewsLiteTool, googleNewsTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool'
+} from "@mastra/evals/scorers/llm";
+import { PGVECTOR_PROMPT } from "@mastra/pg";
+import { google, googleAI, googleAI3, googleAIFlashLite } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory, pgQueryTool } from '../config/pg-storage';
+import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers';
+import { mdocumentChunker } from '../tools/document-chunking.tool';
+import { evaluateResultTool } from '../tools/evaluateResultTool';
+import { extractLearningsTool } from '../tools/extractLearningsTool';
+import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
+import { googleFinanceTool, googleScholarTool } from '../tools/serpapi-academic-local.tool';
+import { googleNewsLiteTool, googleNewsTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool';
 import {
   batchWebScraperTool,
   contentCleanerTool,
@@ -27,7 +27,7 @@ import {
   linkExtractorTool,
   siteMapExtractorTool,
   webScraperTool,
-} from '../tools/web-scraper-tool'
+} from '../tools/web-scraper-tool';
 
 
 export interface BusinessLegalAgentContext extends RuntimeContext {
@@ -39,7 +39,11 @@ export interface BusinessLegalAgentContext extends RuntimeContext {
   strategyScope: string
 }
 
-
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type BusinessRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 log.info('Initializing Business Legal Team Agents...')
 
@@ -48,21 +52,16 @@ export const legalResearchAgent = new Agent({
   name: 'Legal Research Agent',
   description:
     'An expert legal research agent that conducts thorough research using authoritative legal sources.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier')
-    const researchDepth = runtimeContext.get('researchDepth')
-    const analysisDepth = runtimeContext.get('analysisDepth')
-    const complianceScope = runtimeContext.get('complianceScope')
-    const strategyScope = runtimeContext.get('strategyScope')
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
       Your working with:
-- user: ${userId},
-- tier:${tier},
-- Using strategy: ${strategyScope} with analysis:${analysisDepth}, compliance:${complianceScope},
-- Your researchDepth: ${researchDepth}
+      - User: ${userTier}
+      - Language: ${language}
 
 **Key Guidelines:**
 - Focus on primary sources: statutes, case law, regulations
@@ -98,7 +97,19 @@ ${PGVECTOR_PROMPT}
       }
     }
   },
-  model: googleAI3,
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAI3
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
+
   tools: {
     webScraperTool,
     siteMapExtractorTool,
@@ -161,14 +172,17 @@ export const contractAnalysisAgent = new Agent({
   name: 'Contract Analysis Agent',
   description:
     'An expert contract analysis agent that reviews and analyzes legal documents for risks and compliance.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier')
-    const analysisDepth = runtimeContext.get('analysisDepth')
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
 You are a Senior Contract Analyst. Analyze legal documents for risks, obligations, and compliance.
+
+**User Tier:** ${userTier}
+**Language:** ${language}
 
 **Analysis Framework:**
 1. **Document Overview:** Identify type, parties, governing law, key terms
@@ -248,14 +262,18 @@ export const complianceMonitoringAgent = new Agent({
   name: 'Compliance Monitoring Agent',
   description:
     'An expert compliance agent that monitors regulatory compliance and identifies compliance risks.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier')
-    const complianceScope = runtimeContext.get('complianceScope')
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
 You are a Compliance Officer. Monitor regulatory compliance and identify risks across business operations.
+
+**User Information:**
+- User Tier: ${userTier}
+- Language: ${language}
 
 **Monitoring Process:**
 1. **Regulatory Mapping:** Identify applicable laws, regulations, standards
@@ -341,14 +359,18 @@ export const businessStrategyAgent = new Agent({
   name: 'Business Strategy Agent',
   description:
     'A strategic business agent that coordinates legal compliance with business objectives and oversees the legal team.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier')
-    const strategyScope = runtimeContext.get('strategyScope')
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
 You are a Chief Strategy Officer with legal expertise. Align business strategy with legal requirements and coordinate the legal team.
+
+**Business Context:**
+- User Tier: ${userTier}
+- Language: ${language}
 
 **Strategy Framework:**
 1. **Business Analysis:** Define objectives, assess market opportunities
@@ -394,7 +416,7 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
     googleFinanceTool,
     googleScholarTool,
     webScraperTool,
-    google_search: google.tools.googleSearch({
+    google_search: googleTools.googleSearch({
       mode: "MODE_DYNAMIC",
       dynamicThreshold: 0.7,
     }),

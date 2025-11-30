@@ -1,31 +1,34 @@
-import { Agent } from '@mastra/core/agent'
-import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
-import { googleAI } from '../config/google'
-import { responseQualityScorer, summaryQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
-import { google } from '@ai-sdk/google'
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
-import { InternalSpans } from '@mastra/core/ai-tracing'
-// Define runtime context for this agent
-export interface EditorAgentContext {
-    userId?: string
-    contentType?: string
+import { google } from '@ai-sdk/google';
+import { Agent } from '@mastra/core/agent';
+import { InternalSpans } from '@mastra/core/ai-tracing';
+import { RuntimeContext } from '@mastra/core/runtime-context';
+import { googleAI } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
+import { responseQualityScorer, structureScorer, summaryQualityScorer, toneConsistencyScorer } from '../scorers';
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type EditorRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
-
 log.info('Initializing Editor Agent...')
 
 export const editorAgent = new Agent({
-    id: 'editorAgent',
-    name: 'Editor',
-    description:
-        'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        return {
-            role: 'system',
-            content: `
+  id: 'editorAgent',
+  name: 'Editor',
+  description:
+    'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<EditorRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+    return {
+      role: 'system',
+      content: `
 <role>
-User: ${userId ?? 'anonymous'}
+User: ${userTier}
+Language: ${language}
 You are an expert content editor, tasked with refining and improving written content across multiple domains and formats.
 </role>
 
@@ -103,41 +106,52 @@ You must respond with a JSON object in the following format:
 </output_format>
 
   `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'medium',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<EditorRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return google.chat('gemini-2.5-flash-preview-09-2025')
+  },
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({}) },
+  scorers: {
+    responseQuality: {
+      scorer: responseQualityScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
     },
-    model: googleAI,
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-    tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({})},
-    scorers: {
-        responseQuality: {
-            scorer: responseQualityScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        summaryQuality: {
-            scorer: summaryQualityScorer,
-            sampling: { type: 'ratio', rate: 0.6 },
-        },
-        toneConsistency: {
-            scorer: toneConsistencyScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
-        },
-        structure: {
-            scorer: structureScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
-        },
+    summaryQuality: {
+      scorer: summaryQualityScorer,
+      sampling: { type: 'ratio', rate: 0.6 },
     },
-    workflows: {},
-    maxRetries: 5
+    toneConsistency: {
+      scorer: toneConsistencyScorer,
+      sampling: { type: 'ratio', rate: 0.5 },
+    },
+    structure: {
+      scorer: structureScorer,
+      sampling: { type: 'ratio', rate: 0.5 },
+    },
+  },
+  workflows: {},
+  maxRetries: 5
 })
 
 // Attempt to resolve provider metadata from available SDK objects
@@ -146,8 +160,8 @@ You must respond with a JSON object in the following format:
 type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
 
 const providerMetadata: ProviderMetadataMap | undefined =
-    ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
-    ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
+  ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
+  ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
 
 const metadata = providerMetadata?.google;
 const groundingMetadata = metadata?.groundingMetadata;

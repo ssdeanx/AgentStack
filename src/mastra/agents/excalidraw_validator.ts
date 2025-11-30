@@ -1,16 +1,27 @@
 import { Agent } from "@mastra/core/agent";
-import { googleAI, pgMemory } from "../config";
 import { InternalSpans } from "@mastra/core/ai-tracing";
+import { googleAI, pgMemory } from "../config";
+
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type KnowledgeIndexingContext = {
+  userId?: string
+  indexName?: string
+  chunkSize?: number
+  chunkOverlap?: number
+  chunkingStrategy?: string
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
 
 export const excalidrawValidatorAgent = new Agent({
   id: "excalidrawValidatorAgent",
   name: "Excalidraw Validator",
   description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
   instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
-        return {
-            role: 'system',
-            content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
+    const userId = runtimeContext.get('userId');
+    return {
+      role: 'system',
+      content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
 
 Your response MUST be valid JSON in the excalidraw JSON format.
 
@@ -79,17 +90,17 @@ The format must follow this exact schema:
 
 You can update the JSON to be valid and ensure it matches the expected excalidraw schema.
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'low',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'low',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
-    },
+      }
+    }
+  },
   model: googleAI,
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },

@@ -1,61 +1,54 @@
 import { Agent } from '@mastra/core/agent'
-import { pgMemory } from '../config/pg-storage'
-import { googleAIFlashLite } from '../config/google'
+import { InternalSpans } from '@mastra/core/ai-tracing'
+import { RuntimeContext } from '@mastra/core/runtime-context'
+import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 import {
-    responseQualityScorer,
-    taskCompletionScorer,
-    sourceDiversityScorer,
-    financialDataScorer,
+  financialDataScorer,
+  responseQualityScorer,
+  sourceDiversityScorer,
+  taskCompletionScorer,
 } from '../scorers'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
-    polygonStockQuotesTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-} from '../tools/polygon-tools'
-import {
-    finnhubQuotesTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
-    finnhubAnalysisTool,
-    finnhubTechnicalTool,
+  finnhubAnalysisTool,
+  finnhubCompanyTool,
+  finnhubFinancialsTool,
+  finnhubQuotesTool,
+  finnhubTechnicalTool,
 } from '../tools/finnhub-tools'
+import {
+  polygonStockAggregatesTool,
+  polygonStockFundamentalsTool,
+  polygonStockQuotesTool,
+} from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 
-export interface StockAnalysisAgentContext {
-    userId?: string
-    tier?: 'free' | 'pro' | 'enterprise'
-    riskTolerance?: 'low' | 'medium' | 'high'
-    portfolio?: string[]
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type StockRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Stock Analysis Agent...')
 
 export const stockAnalysisAgent = new Agent({
-    id: 'stock-analysis',
-    name: 'Stock Analysis Agent',
-    description:
-        'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
-        const tier = runtimeContext.get('tier')
-        const riskTolerance = runtimeContext.get('riskTolerance')
-        const portfolioRaw = runtimeContext.get('portfolio')
-        const portfolio = Array.isArray(portfolioRaw)
-            ? (portfolioRaw as string[])
-            : typeof portfolioRaw === 'string'
-            ? [portfolioRaw]
-            : []
-        return {
-            role: 'system',
-            content: `
+  id: 'stock-analysis',
+  name: 'Stock Analysis Agent',
+  description:
+    'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
+  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<StockRuntimeContext> }) => {
+    // runtimeContext is read at invocation time
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+    return {
+      role: 'system',
+      content: `
         <role>
-        User: ${userId ?? 'admin'}
-        Tier: ${tier ?? 'enterprise'}
-        Risk Tolerance: ${riskTolerance ?? 'medium'}
-        Portfolio: ${portfolio.length ? portfolio.join(', ') : 'None'}
+        User: ${runtimeContext.get('user-tier') ?? 'pro'}
+
+        Language: ${language}
 
         You are a Senior Stock Market Analyst with expertise in technical analysis, fundamental analysis, and investment strategy.
         Today's date is ${new Date().toISOString()}
@@ -170,17 +163,17 @@ export const stockAnalysisAgent = new Agent({
         - Combine technical + fundamental tools for signal confirmation
         - Always cite specific numbers in recommendation
         - Verify analysis across multiple data sources
-        
+
         FORBIDDEN:
         - Never recommend using only news/sentiment (use as confirmation only)
         - Never skip fundamental analysis for technical only
         - Never ignore major support/resistance levels
-        
+
         WHEN PRICE CROSSES KEY LEVELS:
         - Verify with fundamental metrics first
         - Check analyst sentiment for confirmation
         - Reassess risk metrics
-        
+
         OUTPUT REQUIREMENTS:
         Provide analysis as JSON with: symbol, currentPrice, technical analysis, fundamental analysis, sentiment, recommendation, priceTarget, risks, sources</rules>
         </rules>
@@ -219,50 +212,60 @@ export const stockAnalysisAgent = new Agent({
         }
         </output_format>
         `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'high',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          }
         }
+      }
+    }
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<StockRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
+  tools: {
+    alphaVantageStockTool,
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    finnhubQuotesTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubAnalysisTool,
+    finnhubTechnicalTool,
+    googleFinanceTool,
+  },
+  memory: pgMemory,
+  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
+  scorers: {
+    responseQuality: {
+      scorer: responseQualityScorer,
+      sampling: { type: 'ratio', rate: 0.8 },
     },
-    model: googleAIFlashLite,
-    tools: {
-        alphaVantageStockTool,
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        polygonStockFundamentalsTool,
-        finnhubQuotesTool,
-        finnhubCompanyTool,
-        finnhubFinancialsTool,
-        finnhubAnalysisTool,
-        finnhubTechnicalTool,
-        googleFinanceTool,
+    taskCompletion: {
+      scorer: taskCompletionScorer,
+      sampling: { type: 'ratio', rate: 0.5 },
     },
-    memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.MODEL} },
-    scorers: {
-        responseQuality: {
-            scorer: responseQualityScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        taskCompletion: {
-            scorer: taskCompletionScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
-        },
-        sourceDiversity: {
-            scorer: sourceDiversityScorer,
-            sampling: { type: 'ratio', rate: 0.3 },
-        },
-        financialData: {
-            scorer: financialDataScorer,
-            sampling: { type: 'ratio', rate: 1.0 },
-        },
+    sourceDiversity: {
+      scorer: sourceDiversityScorer,
+      sampling: { type: 'ratio', rate: 0.3 },
     },
-    maxRetries: 5
+    financialData: {
+      scorer: financialDataScorer,
+      sampling: { type: 'ratio', rate: 1.0 },
+    },
+  },
+  maxRetries: 5
 })
-

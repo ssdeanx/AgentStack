@@ -1,33 +1,32 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
+import { RuntimeContext } from '@mastra/core/runtime-context'
+import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
-import { arxivTool, arxivPdfParserTool, arxivPaperDownloaderTool } from '../tools/arxiv.tool'
+import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
 
-export interface ResearchPaperContext {
-    userId?: string
-    outputDirectory?: string
-    maxPapers?: number
-    categories?: string[]
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type ResearchPaperAgentRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Research Paper Agent...')
 
 export const researchPaperAgent = new Agent({
-    id: 'research-paper-agent',
-    name: 'Research Paper Agent',
-    description:
-        'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const outputDirectory = runtimeContext?.get('outputDirectory') ?? './papers'
-        const maxPapers = runtimeContext?.get('maxPapers') ?? 10
-        const categories = runtimeContext?.get('categories') ?? ['cs.AI', 'cs.LG', 'cs.CL']
+  id: 'research-paper-agent',
+  name: 'Research Paper Agent',
+  description:
+    'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
+  instructions: ({ runtimeContext }) => {
+    const userId = runtimeContext?.get('userId') ?? 'default'
+    const outputDirectory = runtimeContext?.get('outputDirectory') ?? './papers'
+    const maxPapers = runtimeContext?.get('maxPapers') ?? 10
+    const categories = runtimeContext?.get('categories') ?? ['cs.AI', 'cs.LG', 'cs.CL']
 
-        return `You are a Research Paper Specialist with expertise in academic literature retrieval and analysis.
+    return `You are a Research Paper Specialist with expertise in academic literature retrieval and analysis.
 
 ## Configuration
 - User: ${userId}
@@ -102,17 +101,28 @@ Physics:
 - If PDF parsing fails: return available metadata
 - If rate limited: wait and retry with exponential backoff
 `
-    },
-    model: googleAI3,
-    memory: pgMemory,
-    tools: {
-        arxivTool,
-        arxivPdfParserTool,
-        arxivPaperDownloaderTool,
-    },
-    options: {
-        tracingPolicy: { internal: InternalSpans.AGENT },
-    },
+  },
+  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchPaperAgentRuntimeContext> }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI3
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
+  memory: pgMemory,
+  tools: {
+    arxivTool,
+    arxivPdfParserTool,
+    arxivPaperDownloaderTool,
+  },
+  options: {
+    tracingPolicy: { internal: InternalSpans.AGENT },
+  },
 })
 
 log.info('Research Paper Agent initialized')
