@@ -49,7 +49,7 @@ const CustomDocumentChunkingInputSchema = z.object({
     chunkSize: z.number().min(50).max(4000).default(512),
     chunkOverlap: z.number().min(0).max(500).default(50),
     chunkSeparator: z.string().default('\n'),
-    indexName: z.string().default('governed_rag'),
+    indexName: z.string().default('memory_messages_3072'),
     generateEmbeddings: z.boolean().default(true),
 })
 
@@ -435,7 +435,7 @@ content indexing, or semantic search capabilities.
                 chunkingStrategy: context.chunkingStrategy,
                 chunkSize: context.chunkSize,
                 generateEmbeddings: context.generateEmbeddings,
-                indexName: 'governed_rag',
+                indexName: 'memory_messages_3072',
             },
         })
 
@@ -613,7 +613,7 @@ content indexing, or semantic search capabilities.
 
                 const storageTime = Date.now() - storageStartTime
                 logStepStart('vectors-stored', {
-                    indexName: 'governed_rag',
+                    indexName: 'memory_messages_3072',
                     vectorCount: embeddings.length,
                     storageTimeMs: storageTime,
                 })
@@ -717,7 +717,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
   `,
     inputSchema: z.object({
         userQuery: z.string().min(1, 'Query cannot be empty'),
-        indexName: z.string().default('governed_rag'),
+        indexName: z.string().default('memory_messages_3072'),
         topK: z.number().min(1).max(50).default(10),
         initialTopK: z.number().min(1).max(100).default(20),
         semanticWeight: z.number().min(0).max(1).default(0.5),

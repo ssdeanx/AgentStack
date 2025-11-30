@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { dataValidatorTool } from "../data-validator.tool";
+import { dataValidatorToolJSON } from "../data-validator.tool";
 import type { RuntimeContext } from "@mastra/core/runtime-context";
 import type { TracingContext } from "@mastra/core/ai-tracing";
 
@@ -32,7 +32,7 @@ describe("dataValidatorTool", () => {
     };
     const data = { name: "Alice", age: 30, active: true };
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,
@@ -51,7 +51,7 @@ describe("dataValidatorTool", () => {
     };
     const data = { email: "not-an-email" };
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,
@@ -76,7 +76,7 @@ describe("dataValidatorTool", () => {
     };
     const data = { user: { id: 123 } };
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,
@@ -92,7 +92,7 @@ describe("dataValidatorTool", () => {
     };
     const data = [1, 2, 3];
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,
@@ -108,7 +108,7 @@ describe("dataValidatorTool", () => {
     };
     const data = "yellow";
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,
@@ -133,7 +133,7 @@ describe("dataValidatorTool", () => {
     const getMock = mockContext.get as unknown as ReturnType<typeof vi.fn>;
     getMock.mockReturnValue({ maxErrors: 1 });
 
-    const result = await dataValidatorTool.execute({
+    const result = await dataValidatorToolJSON.execute({
       context: { data, schema },
       runtimeContext: mockContext,
       tracingContext: mockTracingContext,

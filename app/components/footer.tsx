@@ -1,30 +1,32 @@
 "use client"
+
 import Link from "next/link"
 
 const FOOTER_LINKS = {
   product: [
     { label: "Agents", href: "/chat" },
     { label: "Workflows", href: "/workflows" },
-    { label: "Networks", href: "#" },
-    { label: "Tools", href: "#" },
+    { label: "Networks", href: "/networks" },
+    { label: "Tools", href: "/tools" },
   ],
   resources: [
-    { label: "Documentation", href: "#" },
-    { label: "API Reference", href: "#" },
-    { label: "Examples", href: "#" },
-    { label: "Changelog", href: "#" },
+    { label: "Documentation", href: "/docs" },
+    { label: "API Reference", href: "/api-reference" },
+    { label: "Examples", href: "/examples" },
+    { label: "Changelog", href: "/changelog" },
   ],
   company: [
-    { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "About", href: "/about" },
+    { label: "Blog", href: "/blog" },
+    { label: "Careers", href: "/careers" },
+    { label: "Contact", href: "/contact" },
   ],
   legal: [
-    { label: "Privacy", href: "#" },
-    { label: "Terms", href: "#" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
   ],
 }
+
 
 export function Footer() {
   return (

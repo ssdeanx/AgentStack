@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import remarkFrontmatter from "remark-frontmatter";
+import rehypeHighlight from "rehype-highlight";
+import rehypeClassNames from "rehype-class-names";
 
 const nextConfig: NextConfig = {
+  pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   serverExternalPackages: ["@mastra/*", "cheerio", "jsdom", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: true,
@@ -67,4 +74,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withMDX = createMDX({
+  extension: /\.mdx?$/,
+  options: {
+    remarkPlugins: [remarkGfm, remarkBreaks, remarkFrontmatter],
+    rehypePlugins: [rehypeHighlight, rehypeClassNames],
+  },
+});
+
+export default withMDX(nextConfig);

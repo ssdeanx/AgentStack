@@ -164,7 +164,7 @@ export const graphQueryTool = createGraphRAGTool({
         'Graph-based retrieval augmented generation using PostgreSQL and PgVector for advanced semantic search and context retrieval.',
     // Supported vector store and index options
     vectorStoreName: 'pgVector',
-    indexName: 'governed_rag',
+    indexName: 'memory_messages_3072',
     model: google.textEmbedding('gemini-embedding-001'),
     // Supported graph options (updated for 1568 dimensions)
     graphOptions: {
@@ -186,7 +186,7 @@ export const pgQueryTool = createVectorQueryTool({
         'PostgreSQL vector similarity search using PgVector for semantic content retrieval and question answering.',
     // Supported vector store and index options
     vectorStoreName: 'pgVector',
-    indexName: 'governed_rag',
+    indexName: 'memory_messages_3072',
     model: google.textEmbedding('gemini-embedding-001'),
     // Supported database configuration for PgVector
     databaseConfig: {

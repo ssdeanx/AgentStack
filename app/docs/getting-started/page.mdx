@@ -1,0 +1,208 @@
+---
+title: "Getting Started with AgentStack"
+description: "Learn how to set up and start building with AgentStack - a production-grade multi-agent framework"
+---
+
+# Getting Started with AgentStack
+
+Welcome to AgentStack (formerly Mastra)! This comprehensive multi-agent framework helps you build production-grade AI applications with **22+ specialized agents**, **30+ enterprise tools**, **10+ workflows**, and **4 agent networks**.
+
+## Installation
+
+Install dependencies for the full AgentStack framework:
+
+```bash
+npm install
+```
+
+## Quick Start
+
+Start the development server with Mastra CLI:
+
+```bash
+npm run dev
+```
+
+This starts both the Next.js frontend and Mastra backend services concurrently.
+
+## Core Architecture
+
+AgentStack is built around several key components:
+
+### 🤖 Agents (22+ Available)
+- **Research Agent** - Web research and data gathering
+- **Content Strategist** - Content planning and optimization
+- **Copywriter Agent** - Professional content creation
+- **Data Processing Agents** - CSV, JSON, and document processing
+- **Financial Agents** - Stock analysis and reporting
+- **Script Writers** - Automated content generation
+- **Calendar & Weather Agents** - External API integrations
+
+### 🛠️ Tools (30+ Enterprise Tools)
+- **Financial Tools**: Polygon, Finnhub, Alpha Vantage APIs
+- **Research Tools**: SerpAPI, ArXiv integration
+- **Data Tools**: CSV/JSON processing, document chunking
+- **RAG Tools**: Vector embeddings, semantic search
+- **Development Tools**: GitHub integration, code analysis
+
+### 🔄 Workflows (10+ Pre-built)
+- **Content Review Workflow** - Multi-stage content validation
+- **Financial Report Workflow** - Automated financial analysis
+- **Research Synthesis** - Knowledge aggregation
+- **Document Processing** - File analysis and extraction
+- **Stock Analysis** - Market intelligence
+- **Learning Extraction** - Educational content processing
+
+### 🌐 Networks (4 Agent Networks)
+- **Agent Network** - Primary router: routes to research, stock, weather, content agents
+- **Data Pipeline Network** - ETL operations: CSV/JSON import/export/transform
+- **Report Generation Network** - Multi-source reporting: research → transform → report
+- **Research Pipeline Network** - Research lifecycle: arXiv → PDF → chunk → index → query
+
+## Environment Setup
+
+Configure your environment variables in `.env`:
+
+```env
+# Database
+SUPABASE=postgresql://your-connection-string
+
+# AI Providers
+OPENAI_API_KEY=sk-your-key
+GOOGLE_API_KEY=your-key
+ANTHROPIC_API_KEY=your-key
+
+# Tools
+SERPAPI_API_KEY=your-key
+ALPHA_VANTAGE_API_KEY=your-key
+FINNHUB_API_KEY=your-key
+```
+
+## Basic Usage
+
+### Creating an Agent
+
+```typescript
+import { Agent } from '@mastra/core/agent'
+import { googleAI3 } from '@mastra/config/google'
+import { Memory } from '@mastra/memory'
+
+const myAgent = new Agent({
+  id: 'my-agent',
+  name: 'My Custom Agent',
+  description: 'A custom agent for specific tasks',
+  instructions: 'You are a helpful assistant...',
+  model: googleAI3,
+  memory: pgMemory,
+  tools: {
+    // Add your tools here
+  }
+})
+
+const result = await myAgent.stream('Hello world')
+```
+
+### Creating a Workflow
+
+```typescript
+import { createWorkflow, createStep } from '@mastra/core/workflows'
+import { z } from 'zod'
+
+const myStep = createStep({
+  id: 'my-step',
+  inputSchema: z.object({ input: z.string() }),
+  outputSchema: z.object({ output: z.string() }),
+  execute: async ({ inputData }) => {
+    return { output: `Processed: ${inputData.input}` }
+  }
+})
+
+const myWorkflow = createWorkflow({
+  id: 'my-workflow',
+  inputSchema: z.object({ text: z.string() }),
+  outputSchema: z.object({ result: z.string() }),
+})
+.then(myStep)
+.commit()
+
+const result = await myWorkflow.execute({ text: 'Hello' })
+```
+
+### Creating a Network
+
+```typescript
+import { Agent } from '@mastra/core/agent'
+import { googleAI3 } from '@mastra/config/google'
+import { pgMemory } from '@mastra/config/pg-storage'
+
+const myNetwork = new Agent({
+  id: 'my-network',
+  name: 'My Agent Network',
+  description: 'Routes requests to appropriate agents',
+  instructions: ({ agents }) => `
+    You coordinate between multiple agents:
+    ${Object.keys(agents).join(', ')}
+    
+    Route requests to the most appropriate agent.
+  `,
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    // Add your agents here
+  }
+})
+
+const result = await myNetwork.generate('Research this topic')
+```
+
+## UI Components
+
+AgentStack includes **49 UI components** for building AI interfaces:
+
+- **Chat Components**: Real-time conversation interfaces
+- **Reasoning Components**: Thought process visualization
+- **Canvas Components**: Interactive agent workspaces
+- **Data Visualization**: Charts and analytics displays
+
+## Features Overview
+
+| Component | Count | Purpose |
+|-----------|-------|---------|
+| Agents | 22+ | Specialized AI assistants |
+| Tools | 30+ | Enterprise integrations |
+| Workflows | 10+ | Automated processes |
+| Networks | 4 | Multi-agent coordination |
+| UI Components | 49 | Interface building blocks |
+
+## Next Steps
+
+1. **Explore Agents** - Check `/src/mastra/agents/` for available agents
+2. **Configure Tools** - Set up your API keys in `.env`
+3. **Try Workflows** - Start with `/src/mastra/workflows/`
+4. **Build Networks** - Combine agents in `/src/mastra/networks/`
+5. **Create UI** - Use components from `/src/components/ai-elements/`
+
+## Development
+
+Run tests:
+```bash
+npm test
+```
+
+Build for production:
+```bash
+npm run build
+npm run start
+```
+
+## Resources
+
+- **Documentation**: Comprehensive guides in `/docs/`
+- **API Reference**: Tool and agent specifications
+- **Examples**: Working implementations in `/examples/`
+- **Changelog**: Latest updates and features
+
+---
+
+*Framework Version: 1.0.0 | Last Updated: November 2025*</content>
+<parameter name="filePath">c:\Users\ssdsk\mastra\app\docs\getting-started\page.mdx

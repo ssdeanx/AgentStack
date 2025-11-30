@@ -26,8 +26,20 @@ export const translationScorer = createScorer({
   },
 })
   .preprocess(({ run }) => {
-    const userText = (run.input?.inputMessages?.[0]?.content as string) || '';
-    const assistantText = (run.output?.[0]?.content as string) || '';
+    // UIMessageWithMetadata may not have a `content` property in the type
+    // Normalize various possible message shapes into a plain string
+    const extractText = (msg: any) => {
+      if (!msg) return '';
+      if (typeof msg === 'string') return msg;
+      // Common property names for message bodies
+      const candidate = msg.content ?? msg.text ?? msg.message ?? msg.body ?? msg.value ?? '';
+      if (Array.isArray(candidate))
+        return candidate.map((c) => (typeof c === 'string' ? c : JSON.stringify(c))).join(' ');
+      return String(candidate);
+    };
+
+    const userText = extractText(run.input?.inputMessages?.[0]);
+    const assistantText = extractText(run.output?.[0]);
     return { userText, assistantText };
   })
   .analyze({

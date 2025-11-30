@@ -90,10 +90,9 @@ module.exports = [
         },
     },
     {
-        includes: [
+        files: [
             'src/mastra/**/*.ts',
-            'C:/Users/ssdsk/mastra/tsconfig.json',
-            `tsconfig.json`,
+            'app/**'
         ],
     },
     {

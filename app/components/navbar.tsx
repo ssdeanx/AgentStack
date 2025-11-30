@@ -19,19 +19,21 @@ const NAV_LINKS = [
     items: [
       { label: "Agents", href: "/chat", description: "22+ AI agents" },
       { label: "Workflows", href: "/workflows", description: "10 automated workflows" },
-      { label: "Networks", href: "#", description: "4 agent networks" },
+      { label: "Networks", href: "/networks", description: "4 agent networks" },
+      { label: "Tools", href: "/tools", description: "30+ enterprise tools" },
     ],
   },
   {
     label: "Resources",
     href: "#",
     items: [
-      { label: "Documentation", href: "#", description: "Guides & API reference" },
-      { label: "Examples", href: "#", description: "Code samples" },
-      { label: "Blog", href: "#", description: "Latest updates" },
+      { label: "Documentation", href: "/docs", description: "Guides & API reference" },
+      { label: "Examples", href: "/examples", description: "Code samples" },
+      { label: "Blog", href: "/blog", description: "Latest updates" },
+      { label: "Changelog", href: "/changelog", description: "What's new" },
     ],
   },
-  { label: "Pricing", href: "#" },
+  { label: "Pricing", href: "/pricing" },
 ]
 
 export function Navbar() {
