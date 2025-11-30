@@ -19,6 +19,11 @@ import {
 import { Loader } from "@/src/components/ai-elements/loader"
 import { CodeBlock, CodeBlockCopyButton } from "@/src/components/ai-elements/code-block"
 import { Image as AIImage } from "@/src/components/ai-elements/image"
+import {
+  AgentWebPreview,
+  AgentCodeSandbox,
+  type WebPreviewData,
+} from "./agent-web-preview"
 import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/chat-context"
 import { AgentReasoning } from "./agent-reasoning"
 import { AgentChainOfThought, parseReasoningToSteps } from "./agent-chain-of-thought"
@@ -31,7 +36,12 @@ import { AgentTask, type AgentTaskData } from "./agent-task"
 import { AgentQueue } from "./agent-queue"
 import { AgentConfirmation } from "./agent-confirmation"
 import { parseInlineCitations } from "./agent-inline-citation"
-import { CopyIcon, CheckIcon, MessageSquareIcon, BookmarkPlusIcon } from "lucide-react"
+import {
+  CopyIcon,
+  CheckIcon,
+  MessageSquareIcon,
+  BookmarkPlusIcon,
+} from "lucide-react"
 import { useState, useCallback, useMemo, Fragment } from "react"
 import type { UIMessage, FileUIPart } from "ai"
 import {
@@ -41,6 +51,7 @@ import {
   isFileUIPart,
 } from "ai"
 import type { BundledLanguage } from "shiki"
+import { Button } from "@/ui/button"
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -56,32 +67,29 @@ function CopyButton({ text }: { text: string }) {
   }, [text])
 
   return (
-    <MessageAction
-      tooltip={copied ? "Copied!" : "Copy"}
-      onClick={handleCopy}
-    >
-      {copied ? (
-        <CheckIcon className="size-4" />
-      ) : (
-        <CopyIcon className="size-4" />
-      )}
+    <MessageAction tooltip={copied ? "Copied!" : "Copy"} onClick={handleCopy}>
+      {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
     </MessageAction>
   )
 }
 
-function extractArtifacts(text: string): { content: string; artifacts: ArtifactData[]; codeBlocks: { language: string; code: string }[] } {
+function extractArtifacts(text: string): {
+  content: string
+  artifacts: ArtifactData[]
+  codeBlocks: { language: string; code: string }[]
+} {
   const artifacts: ArtifactData[] = []
   const codeBlocks: { language: string; code: string }[] = []
   let cleanContent = text
-  
+
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
   let match: RegExpExecArray | null
   let artifactIndex = 0
-  
+
   while ((match = codeBlockRegex.exec(text)) !== null) {
     const language = match[1] || "text"
     const code = match[2].trim()
-    
+
     if (code.length > 100) {
       const artifactId = `artifact-${Date.now()}-${artifactIndex++}`
       artifacts.push({
@@ -97,7 +105,7 @@ function extractArtifacts(text: string): { content: string; artifacts: ArtifactD
       cleanContent = cleanContent.replace(match[0], `\n__CODE_BLOCK_${codeBlocks.length - 1}__\n`)
     }
   }
-  
+
   return { content: cleanContent, artifacts, codeBlocks }
 }
 
@@ -111,9 +119,10 @@ interface MessageItemProps {
   showArtifacts: boolean
   showConfirmation: boolean
   sources: { url: string; title: string }[]
-  checkpoints: number[]
+  checkpointIds: string[]
+  checkpointMessageIndices: number[]
   onCreateCheckpoint?: (index: number) => void
-  onRestoreCheckpoint?: (index: number) => void
+  onRestoreCheckpoint?: (checkpointId: string) => void
   onApproveConfirmation?: (id: string) => void
   onRejectConfirmation?: (id: string) => void
 }
@@ -128,7 +137,8 @@ function MessageItem({
   showArtifacts,
   showConfirmation,
   sources,
-  checkpoints,
+  checkpointIds,
+  checkpointMessageIndices,
   onCreateCheckpoint,
   onRestoreCheckpoint,
   onApproveConfirmation,
@@ -147,10 +157,10 @@ function MessageItem({
   }, [rawContent, isAssistant, showArtifacts])
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
-  const messageTools = message.parts?.filter(
-    isToolOrDynamicToolUIPart
-  ) as ToolInvocationState[] | undefined
-  
+  const messageTools = message.parts?.filter(isToolOrDynamicToolUIPart) as
+    | ToolInvocationState[]
+    | undefined
+
   const fileParts = message.parts?.filter(isFileUIPart) as FileUIPart[] | undefined
   const imageParts = fileParts?.filter((f) => f.mediaType?.startsWith("image/"))
   const otherFileParts = fileParts?.filter((f) => !f.mediaType?.startsWith("image/"))
@@ -177,32 +187,38 @@ function MessageItem({
     return null
   }, [hasCitations, content, sources])
 
-  const isCheckpoint = checkpoints.includes(messageIndex)
+  // Find checkpoint for this message
+  const checkpointIndex = checkpointMessageIndices.indexOf(messageIndex)
+  const isCheckpoint = checkpointIndex !== -1
+  const checkpointId = isCheckpoint ? checkpointIds[checkpointIndex] : null
 
-  const renderContentWithCodeBlocks = useCallback((text: string) => {
-    if (codeBlocks.length === 0) return text
-    
-    const parts = text.split(/__CODE_BLOCK_(\d+)__/)
-    return parts.map((part, i) => {
-      if (i % 2 === 1) {
-        const blockIndex = parseInt(part, 10)
-        const block = codeBlocks[blockIndex]
-        if (block) {
-          return (
-            <CodeBlock
-              key={`code-${blockIndex}`}
-              code={block.code}
-              language={block.language as BundledLanguage}
-              className="my-2"
-            >
-              <CodeBlockCopyButton />
-            </CodeBlock>
-          )
+  const renderContentWithCodeBlocks = useCallback(
+    (text: string) => {
+      if (codeBlocks.length === 0) return text
+
+      const parts = text.split(/__CODE_BLOCK_(\d+)__/)
+      return parts.map((part, i) => {
+        if (i % 2 === 1) {
+          const blockIndex = parseInt(part, 10)
+          const block = codeBlocks[blockIndex]
+          if (block) {
+            return (
+              <CodeBlock
+                key={`code-${blockIndex}`}
+                code={block.code}
+                language={block.language as BundledLanguage}
+                className="my-2"
+              >
+                <CodeBlockCopyButton />
+              </CodeBlock>
+            )
+          }
         }
-      }
-      return part
-    })
-  }, [codeBlocks])
+        return part
+      })
+    },
+    [codeBlocks]
+  )
 
   return (
     <Fragment>
@@ -223,23 +239,18 @@ function MessageItem({
           )}
 
           {isAssistant && showReasoning && !showChainOfThought && messageReasoning && (
-            <AgentReasoning
-              reasoning={messageReasoning.text || ""}
-              isStreaming={false}
-            />
+            <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
           )}
 
           {/* Plan */}
-          {plan && (
-            <AgentPlan plan={plan} defaultOpen={false} />
-          )}
+          {plan && <AgentPlan plan={plan} defaultOpen={false} />}
 
           {/* Generated images */}
           {isAssistant && imageParts && imageParts.length > 0 && (
-            <div className="flex flex-wrap gap-2 my-2">
+            <div className="my-2 flex flex-wrap gap-2">
               {imageParts.map((img, idx) => {
-                const base64Data = img.url?.startsWith("data:") 
-                  ? img.url.split(",")[1] || "" 
+                const base64Data = img.url?.startsWith("data:")
+                  ? img.url.split(",")[1] || ""
                   : ""
                 return (
                   <AIImage
@@ -257,11 +268,9 @@ function MessageItem({
 
           {/* Message content with inline code blocks */}
           {hasCitations && citationNodes ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              {citationNodes}
-            </div>
+            <div className="prose prose-sm max-w-none dark:prose-invert">{citationNodes}</div>
           ) : codeBlocks.length > 0 ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm max-w-none dark:prose-invert">
               {renderContentWithCodeBlocks(content)}
             </div>
           ) : (
@@ -270,7 +279,7 @@ function MessageItem({
 
           {/* Artifacts */}
           {isAssistant && showArtifacts && artifacts.length > 0 && (
-            <div className="space-y-3 mt-3">
+            <div className="mt-3 space-y-3">
               {artifacts.map((artifact) => (
                 <AgentArtifact key={artifact.id} artifact={artifact} />
               ))}
@@ -281,7 +290,7 @@ function MessageItem({
           {isAssistant && showConfirmation && messageTools && messageTools.length > 0 && (
             <>
               {messageTools
-                .filter((tool) => tool.state === "approval-requested" as unknown)
+                .filter((tool) => tool.state === ("approval-requested" as unknown))
                 .map((tool) => (
                   <AgentConfirmation
                     key={tool.toolCallId}
@@ -302,9 +311,7 @@ function MessageItem({
           )}
 
           {/* Sources */}
-          {isAssistant && showSources && sources.length > 0 && (
-            <AgentSources sources={sources} />
-          )}
+          {isAssistant && showSources && sources.length > 0 && <AgentSources sources={sources} />}
         </MessageContent>
 
         {isAssistant && (
@@ -324,13 +331,72 @@ function MessageItem({
         )}
       </Message>
 
-      {isCheckpoint && onRestoreCheckpoint && (
+      {isCheckpoint && checkpointId && onRestoreCheckpoint && (
         <AgentCheckpoint
           messageIndex={messageIndex}
-          onRestore={onRestoreCheckpoint}
+          onRestore={() => onRestoreCheckpoint(checkpointId)}
         />
       )}
     </Fragment>
+  )
+}
+
+function WebPreviewPanel() {
+  const { webPreview, setWebPreview, agentConfig } = useChatContext()
+
+  if (!webPreview || !agentConfig?.features.webPreview) return null
+
+  const handleCodeChange = useCallback((newCode: string) => {
+    if (webPreview) {
+      setWebPreview({
+        ...webPreview,
+        code: newCode,
+      })
+    }
+  }, [webPreview, setWebPreview])
+
+  const handleClose = useCallback(() => {
+    setWebPreview(null)
+  }, [setWebPreview])
+
+  // If we have code, use the enhanced preview with live editing
+  if (webPreview.code) {
+    return (
+      <div className="mx-auto mb-4 max-w-4xl">
+        <AgentWebPreview
+          preview={{
+            id: webPreview.id,
+            url: webPreview.url,
+            title: webPreview.title,
+            code: webPreview.code,
+            language: webPreview.language,
+          }}
+          onClose={handleClose}
+          onCodeChange={handleCodeChange}
+          defaultTab="preview"
+          height={450}
+          editable={true}
+          showConsole={true}
+        />
+      </div>
+    )
+  }
+
+  // Simple iframe preview for URLs without code
+  return (
+    <div className="mx-auto mb-4 max-w-4xl">
+      <AgentWebPreview
+        preview={{
+          id: webPreview.id,
+          url: webPreview.url,
+          title: webPreview.title,
+        }}
+        onClose={handleClose}
+        defaultTab="preview"
+        height={400}
+        editable={false}
+      />
+    </div>
   )
 }
 
@@ -345,12 +411,14 @@ export function ChatMessages() {
     selectedAgent,
     agentConfig,
     queuedTasks,
+    checkpoints,
+    webPreview,
     approveConfirmation,
     rejectConfirmation,
     removeTask,
+    createCheckpoint,
+    restoreCheckpoint,
   } = useChatContext()
-
-  const [checkpoints, setCheckpoints] = useState<number[]>([])
 
   const showReasoning = agentConfig?.features.reasoning ?? false
   const showChainOfThought = agentConfig?.features.chainOfThought ?? false
@@ -360,17 +428,19 @@ export function ChatMessages() {
   const showConfirmation = agentConfig?.features.confirmation ?? false
   const showQueue = agentConfig?.features.queue ?? false
 
-  const handleCreateCheckpoint = useCallback((index: number) => {
-    setCheckpoints((prev) => {
-      if (prev.includes(index)) return prev
-      return [...prev, index].sort((a, b) => a - b)
-    })
-  }, [])
+  const handleCreateCheckpoint = useCallback(
+    (index: number) => {
+      createCheckpoint(index)
+    },
+    [createCheckpoint]
+  )
 
-  const handleRestoreCheckpoint = useCallback((index: number) => {
-    // TODO: Integrate with ChatContext to restore messages to checkpoint
-    console.log("Restore to checkpoint at index:", index)
-  }, [])
+  const handleRestoreCheckpoint = useCallback(
+    (checkpointId: string) => {
+      restoreCheckpoint(checkpointId)
+    },
+    [restoreCheckpoint]
+  )
 
   const streamingReasoningSteps = useMemo(() => {
     if (showChainOfThought && streamingReasoning) {
@@ -378,6 +448,13 @@ export function ChatMessages() {
     }
     return []
   }, [showChainOfThought, streamingReasoning])
+
+  // Get checkpoint data for message items
+  const checkpointIds = useMemo(() => checkpoints.map((cp) => cp.id), [checkpoints])
+  const checkpointMessageIndices = useMemo(
+    () => checkpoints.map((cp) => cp.messageIndex),
+    [checkpoints]
+  )
 
   return (
     <Conversation className="flex-1">
@@ -400,6 +477,9 @@ export function ChatMessages() {
               />
             )}
 
+            {/* Web Preview Panel */}
+            <WebPreviewPanel />
+
             {messages.map((message, index) => (
               <MessageItem
                 key={message.id}
@@ -412,7 +492,8 @@ export function ChatMessages() {
                 showArtifacts={showArtifacts}
                 showConfirmation={showConfirmation}
                 sources={sources}
-                checkpoints={checkpoints}
+                checkpointIds={checkpointIds}
+                checkpointMessageIndices={checkpointMessageIndices}
                 onCreateCheckpoint={handleCreateCheckpoint}
                 onRestoreCheckpoint={handleRestoreCheckpoint}
                 onApproveConfirmation={approveConfirmation}
@@ -428,10 +509,7 @@ export function ChatMessages() {
                   )}
 
                   {showReasoning && !showChainOfThought && streamingReasoning && (
-                    <AgentReasoning
-                      reasoning={streamingReasoning}
-                      isStreaming={true}
-                    />
+                    <AgentReasoning reasoning={streamingReasoning} isStreaming={true} />
                   )}
 
                   {streamingContent ? (

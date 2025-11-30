@@ -10,6 +10,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -44,7 +45,24 @@ export interface PendingConfirmation {
   state: ToolUIPart["state"]
 }
 
+export interface Checkpoint {
+  id: string
+  messageIndex: number
+  timestamp: Date
+  messageCount: number
+  label?: string
+}
+
+export interface WebPreviewData {
+  id: string
+  url: string
+  title?: string
+  code?: string
+  language?: string
+}
+
 export interface ChatContextValue {
+  // Core state
   messages: UIMessage[]
   isLoading: boolean
   status: ChatStatus
@@ -56,18 +74,48 @@ export interface ChatContextValue {
   usage: TokenUsage | null
   error: string | null
   agentConfig: ReturnType<typeof getAgentConfig>
+
+  // Queue & Tasks
   queuedTasks: QueuedTask[]
   pendingConfirmations: PendingConfirmation[]
+
+  // Checkpoints
+  checkpoints: Checkpoint[]
+
+  // Web Preview
+  webPreview: WebPreviewData | null
+
+  // Memory settings
+  threadId: string
+  resourceId: string
+
+  // Actions
   sendMessage: (text: string, files?: File[]) => void
   stopGeneration: () => void
   clearMessages: () => void
   selectAgent: (agentId: string) => void
   dismissError: () => void
+
+  // Task management
   addTask: (task: Omit<QueuedTask, "id">) => string
   updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
   removeTask: (taskId: string) => void
+
+  // Confirmation management
   approveConfirmation: (confirmationId: string) => void
   rejectConfirmation: (confirmationId: string, reason?: string) => void
+
+  // Checkpoint management
+  createCheckpoint: (messageIndex: number, label?: string) => string
+  restoreCheckpoint: (checkpointId: string) => void
+  removeCheckpoint: (checkpointId: string) => void
+
+  // Web Preview management
+  setWebPreview: (preview: WebPreviewData | null) => void
+
+  // Memory management
+  setThreadId: (threadId: string) => void
+  setResourceId: (resourceId: string) => void
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -83,6 +131,8 @@ export function useChatContext(): ChatContextValue {
 export interface ChatProviderProps {
   children: ReactNode
   defaultAgent?: string
+  defaultThreadId?: string
+  defaultResourceId?: string
 }
 
 const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
@@ -90,6 +140,8 @@ const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localho
 export function ChatProvider({
   children,
   defaultAgent = "researchAgent",
+  defaultThreadId = "user-1",
+  defaultResourceId = "user-1",
 }: ChatProviderProps) {
   const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
   const [sources, setSources] = useState<Source[]>([])
@@ -97,35 +149,42 @@ export function ChatProvider({
   const [chatError, setChatError] = useState<string | null>(null)
   const [queuedTasks, setQueuedTasks] = useState<QueuedTask[]>([])
   const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([])
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([])
+  const [webPreview, setWebPreviewState] = useState<WebPreviewData | null>(null)
+  const [threadId, setThreadIdState] = useState(defaultThreadId)
+  const [resourceId, setResourceIdState] = useState(defaultResourceId)
+
+  // Ref to track message snapshots for checkpoint restore
+  const messageSnapshotsRef = useRef<Map<string, UIMessage[]>>(new Map())
 
   const {
-    regenerate,
-    stop,
     messages,
+    setMessages,
     sendMessage: aiSendMessage,
     status: aiStatus,
     error: aiError,
+    stop,
   } = useChat({
     transport: new DefaultChatTransport({
       api: `${MASTRA_API_URL}/chat`,
-//      fetch: globalThis.fetch,
       prepareSendMessagesRequest({ messages }) {
         return {
           id: selectedAgent,
           messages,
           memory: {
-            thread: "user-1",
-            resource: "user-1",
+            thread: threadId,
+            resource: resourceId,
           },
           requestMetadata: {
             agentId: selectedAgent,
-            resourceId: selectedAgent
+            resourceId: resourceId,
           },
           body: {
             messages,
-            resourceId: selectedAgent,
+            resourceId: resourceId,
             data: {
               agentId: selectedAgent,
+              threadId: threadId,
             },
           },
         }
@@ -165,9 +224,11 @@ export function ChatProvider({
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage?.role === "assistant") {
-      return lastMessage.parts?.filter(
-        (p): p is DynamicToolUIPart => p.type === "dynamic-tool"
-      ) ?? []
+      return (
+        lastMessage.parts?.filter(
+          (p): p is DynamicToolUIPart => p.type === "dynamic-tool"
+        ) ?? []
+      )
     }
     return []
   }, [messages])
@@ -188,11 +249,45 @@ export function ChatProvider({
         }
       }
     }
-    if (allSources.length > 0) {
-      setSources(allSources)
-    } else if (allSources.length === 0) {
-      // clear when there are no sources
-      setSources([])
+    setSources(allSources)
+  }, [messages])
+
+  // Extract web preview data from tool outputs (for chart/diagram agents)
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant" && lastMessage.parts) {
+      for (const part of lastMessage.parts) {
+        // Check for generated HTML/React code in tool outputs
+        if (part.type === "dynamic-tool") {
+          const toolPart = part as DynamicToolUIPart
+          if (toolPart.output && typeof toolPart.output === "object") {
+            const output = toolPart.output as Record<string, unknown>
+
+            // Check for preview URL or generated code
+            if (output.previewUrl && typeof output.previewUrl === "string") {
+              setWebPreviewState({
+                id: `preview-${Date.now()}`,
+                url: output.previewUrl,
+                title: (output.title as string) || "Generated Preview",
+              })
+            } else if (output.code && typeof output.code === "string") {
+              // For code generation (like Recharts), create a data URL or sandbox
+              const language = (output.language as string) || "tsx"
+              if (language === "html" || output.html) {
+                const htmlContent = (output.html as string) || output.code
+                const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+                setWebPreviewState({
+                  id: `preview-${Date.now()}`,
+                  url: dataUrl,
+                  title: (output.title as string) || "Generated UI",
+                  code: output.code,
+                  language,
+                })
+              }
+            }
+          }
+        }
+      }
     }
   }, [messages])
 
@@ -200,7 +295,6 @@ export function ChatProvider({
     (text: string, _files?: File[]) => {
       if (!text.trim() || isLoading) return
       setChatError(null)
-      setSources([])
       aiSendMessage({ text: text.trim() })
     },
     [isLoading, aiSendMessage]
@@ -211,13 +305,16 @@ export function ChatProvider({
   }, [stop])
 
   const clearMessages = useCallback(() => {
+    setMessages([])
     setSources([])
     setUsage(null)
     setChatError(null)
     setQueuedTasks([])
     setPendingConfirmations([])
-    window.location.reload()
-  }, [])
+    setCheckpoints([])
+    setWebPreviewState(null)
+    messageSnapshotsRef.current.clear()
+  }, [setMessages])
 
   const selectAgent = useCallback(
     (agentId: string) => {
@@ -225,6 +322,7 @@ export function ChatProvider({
         setSelectedAgent(agentId)
         setSources([])
         setChatError(null)
+        setWebPreviewState(null)
       }
     },
     []
@@ -234,6 +332,7 @@ export function ChatProvider({
     setChatError(null)
   }, [])
 
+  // Task management
   const addTask = useCallback((task: Omit<QueuedTask, "id">): string => {
     const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     setQueuedTasks((prev) => [...prev, { ...task, id }])
@@ -250,6 +349,7 @@ export function ChatProvider({
     setQueuedTasks((prev) => prev.filter((task) => task.id !== taskId))
   }, [])
 
+  // Confirmation management
   const approveConfirmation = useCallback((confirmationId: string) => {
     setPendingConfirmations((prev) =>
       prev.map((c) =>
@@ -258,7 +358,6 @@ export function ChatProvider({
           : c
       )
     )
-    // TODO: Send approval to backend via AI SDK when available
   }, [])
 
   const rejectConfirmation = useCallback((confirmationId: string, reason?: string) => {
@@ -269,7 +368,82 @@ export function ChatProvider({
           : c
       )
     )
-    // TODO: Send rejection to backend via AI SDK when available
+  }, [])
+
+  // Checkpoint management
+  const createCheckpoint = useCallback(
+    (messageIndex: number, label?: string): string => {
+      const id = `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      const checkpoint: Checkpoint = {
+        id,
+        messageIndex,
+        timestamp: new Date(),
+        messageCount: messageIndex + 1,
+        label,
+      }
+
+      // Store snapshot of messages up to this point
+      messageSnapshotsRef.current.set(id, messages.slice(0, messageIndex + 1))
+
+      setCheckpoints((prev) => {
+        // Remove any existing checkpoint at this index
+        const filtered = prev.filter((cp) => cp.messageIndex !== messageIndex)
+        return [...filtered, checkpoint].sort((a, b) => a.messageIndex - b.messageIndex)
+      })
+
+      return id
+    },
+    [messages]
+  )
+
+  const restoreCheckpoint = useCallback(
+    (checkpointId: string) => {
+      const checkpoint = checkpoints.find((cp) => cp.id === checkpointId)
+      if (!checkpoint) return
+
+      // Try to restore from snapshot first
+      const snapshot = messageSnapshotsRef.current.get(checkpointId)
+      if (snapshot) {
+        setMessages(snapshot)
+      } else {
+        // Fallback: slice current messages to checkpoint index
+        setMessages(messages.slice(0, checkpoint.messageIndex + 1))
+      }
+
+      // Remove checkpoints after the restored one
+      setCheckpoints((prev) =>
+        prev.filter((cp) => cp.messageIndex <= checkpoint.messageIndex)
+      )
+
+      // Clean up snapshots for removed checkpoints
+      const removedIds = checkpoints
+        .filter((cp) => cp.messageIndex > checkpoint.messageIndex)
+        .map((cp) => cp.id)
+      removedIds.forEach((id) => messageSnapshotsRef.current.delete(id))
+
+      // Clear web preview when restoring
+      setWebPreviewState(null)
+    },
+    [checkpoints, messages, setMessages]
+  )
+
+  const removeCheckpoint = useCallback((checkpointId: string) => {
+    setCheckpoints((prev) => prev.filter((cp) => cp.id !== checkpointId))
+    messageSnapshotsRef.current.delete(checkpointId)
+  }, [])
+
+  // Web Preview management
+  const setWebPreview = useCallback((preview: WebPreviewData | null) => {
+    setWebPreviewState(preview)
+  }, [])
+
+  // Memory management
+  const setThreadId = useCallback((newThreadId: string) => {
+    setThreadIdState(newThreadId)
+  }, [])
+
+  const setResourceId = useCallback((newResourceId: string) => {
+    setResourceIdState(newResourceId)
   }, [])
 
   const agentConfig = useMemo(
@@ -294,6 +468,10 @@ export function ChatProvider({
       agentConfig,
       queuedTasks,
       pendingConfirmations,
+      checkpoints,
+      webPreview,
+      threadId,
+      resourceId,
       sendMessage,
       stopGeneration,
       clearMessages,
@@ -304,6 +482,12 @@ export function ChatProvider({
       removeTask,
       approveConfirmation,
       rejectConfirmation,
+      createCheckpoint,
+      restoreCheckpoint,
+      removeCheckpoint,
+      setWebPreview,
+      setThreadId,
+      setResourceId,
     }),
     [
       messages,
@@ -319,6 +503,10 @@ export function ChatProvider({
       agentConfig,
       queuedTasks,
       pendingConfirmations,
+      checkpoints,
+      webPreview,
+      threadId,
+      resourceId,
       sendMessage,
       stopGeneration,
       clearMessages,
@@ -329,6 +517,12 @@ export function ChatProvider({
       removeTask,
       approveConfirmation,
       rejectConfirmation,
+      createCheckpoint,
+      restoreCheckpoint,
+      removeCheckpoint,
+      setWebPreview,
+      setThreadId,
+      setResourceId,
     ]
   )
 

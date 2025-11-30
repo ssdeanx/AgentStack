@@ -241,21 +241,21 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     name: 'Chart Type Advisor',
     description: 'Recommends optimal chart types for financial data',
     category: 'financial',
-    features: { ...defaultFeatures, reasoning: true, task: true, plan: true },
+    features: { ...defaultFeatures, reasoning: true, task: true, plan: true, webPreview: true },
   },
   chartDataProcessorAgent: {
     id: 'chartDataProcessorAgent',
     name: 'Chart Data Processor',
     description: 'Transforms financial API data into Recharts format',
     category: 'financial',
-    features: { ...defaultFeatures, chainOfThought: true, tools: true, task: true, plan: true },
+    features: { ...defaultFeatures, chainOfThought: true, tools: true, task: true, plan: true, webPreview: true },
   },
   chartGeneratorAgent: {
     id: 'chartGeneratorAgent',
     name: 'Chart Generator',
     description: 'Generates Recharts React component code',
     category: 'financial',
-    features: { ...defaultFeatures, tools: true, artifacts: true, task: true, plan: true },
+    features: { ...defaultFeatures, tools: true, artifacts: true, task: true, plan: true, webPreview: true },
   },
   chartSupervisorAgent: {
     id: 'chartSupervisorAgent',
@@ -269,7 +269,8 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       tools: true,
       artifacts: true,
       task: true,
-      plan: true
+      plan: true,
+      webPreview: true
     },
   },
 
@@ -284,9 +285,11 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
       chainOfThought: true,
       tools: true,
       canvas: true,
-      artifacts: true, fileUpload: true,
+      artifacts: true,
+      fileUpload: true,
       task: true,
-      plan: true
+      plan: true,
+      webPreview: true
     },
   },
   imageToCsvAgent: {

@@ -10,17 +10,21 @@ import { BookmarkIcon, RotateCcwIcon } from "lucide-react"
 interface AgentCheckpointProps {
   messageIndex: number
   timestamp?: Date
-  onRestore: (messageIndex: number) => void
+  label?: string
+  onRestore: () => void
 }
 
 export function AgentCheckpoint({
   messageIndex,
   timestamp,
+  label,
   onRestore,
 }: AgentCheckpointProps) {
-  const label = timestamp
-    ? `Restore to ${timestamp.toLocaleTimeString()}`
-    : "Restore checkpoint"
+  const displayLabel = label
+    ? label
+    : timestamp
+      ? `Restore to ${timestamp.toLocaleTimeString()}`
+      : "Restore checkpoint"
 
   return (
     <Checkpoint>
@@ -28,8 +32,8 @@ export function AgentCheckpoint({
         <BookmarkIcon className="size-4 shrink-0 text-primary" />
       </CheckpointIcon>
       <CheckpointTrigger
-        onClick={() => onRestore(messageIndex)}
-        tooltip={label}
+        onClick={onRestore}
+        tooltip={displayLabel}
         className="gap-1"
       >
         <RotateCcwIcon className="size-3" />

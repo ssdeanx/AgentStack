@@ -1,53 +1,227 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ShieldIcon, LockIcon, GithubIcon, CheckCircleIcon } from "lucide-react"
+import {
+  ShieldIcon,
+  LockIcon,
+  CheckCircleIcon,
+  ServerIcon,
+  GlobeIcon,
+  ClockIcon,
+  AwardIcon,
+  HeartHandshakeIcon,
+} from "lucide-react"
+import { Badge } from "@/ui/badge"
 
 const TRUST_SIGNALS = [
   {
     icon: ShieldIcon,
     title: "Enterprise Security",
-    description: "SOC 2 Type II compliant with end-to-end encryption",
+    description: "SOC 2 Type II compliant with end-to-end encryption for all data in transit and at rest.",
+    color: "from-blue-500 to-cyan-500",
   },
   {
     icon: LockIcon,
     title: "Data Privacy",
-    description: "GDPR compliant with zero data retention policies",
+    description: "GDPR and CCPA compliant with zero data retention policies. Your data stays yours.",
+    color: "from-purple-500 to-pink-500",
   },
   {
-    icon: GithubIcon,
-    title: "Open Source",
-    description: "Transparent codebase with community contributions",
+    icon: ServerIcon,
+    title: "99.9% Uptime SLA",
+    description: "Enterprise-grade infrastructure with redundancy and automatic failover.",
+    color: "from-green-500 to-emerald-500",
   },
   {
-    icon: CheckCircleIcon,
-    title: "Production Ready",
-    description: "Battle-tested in enterprise environments",
+    icon: GlobeIcon,
+    title: "Global Infrastructure",
+    description: "Deployed across multiple regions for low latency and high availability worldwide.",
+    color: "from-orange-500 to-red-500",
   },
 ]
 
+const CERTIFICATIONS = [
+  { name: "SOC 2 Type II", icon: AwardIcon },
+  { name: "GDPR Compliant", icon: CheckCircleIcon },
+  { name: "HIPAA Ready", icon: ShieldIcon },
+  { name: "ISO 27001", icon: LockIcon },
+]
+
+const TRUST_METRICS = [
+  { label: "Uptime", value: "99.99%", icon: ClockIcon },
+  { label: "Security Score", value: "A+", icon: ShieldIcon },
+  { label: "Data Centers", value: "12+", icon: ServerIcon },
+  { label: "Support SLA", value: "< 1hr", icon: HeartHandshakeIcon },
+]
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 },
+  },
+}
+
 export function LandingTrust() {
   return (
-    <section className="border-b border-border bg-muted/30">
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {TRUST_SIGNALS.map((signal, index) => (
+    <section className="relative overflow-hidden border-b border-border bg-muted/30">
+      {/* Background decoration */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute left-0 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[100px]" />
+        <div className="absolute bottom-0 right-0 h-[300px] w-[300px] translate-x-1/2 translate-y-1/2 rounded-full bg-blue-500/5 blur-[100px]" />
+      </div>
+
+      <div className="container mx-auto px-4 py-20 lg:py-28">
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+          className="mb-16 text-center"
+        >
+          <Badge variant="outline" className="mb-4">
+            Security & Compliance
+          </Badge>
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Built for Enterprise Trust
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+            Production-ready security, compliance, and reliability that enterprise teams demand.
+          </p>
+        </motion.div>
+
+        {/* Trust signals grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="mb-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+        >
+          {TRUST_SIGNALS.map((signal) => (
             <motion.div
               key={signal.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="flex flex-col items-center text-center"
+              variants={itemVariants}
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg"
             >
-              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              {/* Gradient background on hover */}
+              <div
+                className={`absolute inset-0 -z-10 bg-gradient-to-br ${signal.color} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
+              />
+
+              {/* Icon */}
+              <div
+                className={`mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${signal.color} text-white shadow-lg`}
+              >
                 <signal.icon className="size-6" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-foreground">{signal.title}</h3>
-              <p className="text-sm text-muted-foreground">{signal.description}</p>
+
+              {/* Content */}
+              <h3 className="mb-2 text-lg font-semibold text-foreground">
+                {signal.title}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {signal.description}
+              </p>
+
+              {/* Decorative corner */}
+              <div
+                className={`absolute -right-8 -top-8 size-24 rounded-full bg-gradient-to-br ${signal.color} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
+              />
             </motion.div>
           ))}
-        </div>
+        </motion.div>
+
+        {/* Certifications row */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <h3 className="mb-6 text-center text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Certifications & Compliance
+          </h3>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {CERTIFICATIONS.map((cert, index) => (
+              <motion.div
+                key={cert.name}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
+                viewport={{ once: true }}
+                className="flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+              >
+                <cert.icon className="size-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">{cert.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Trust metrics */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          viewport={{ once: true }}
+          className="rounded-2xl border border-border bg-card/50 p-8 backdrop-blur-sm"
+        >
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {TRUST_METRICS.map((metric, index) => (
+              <motion.div
+                key={metric.label}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center"
+              >
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <metric.icon className="size-5" />
+                </div>
+                <div className="text-2xl font-bold text-foreground md:text-3xl">
+                  {metric.value}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">{metric.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Open source badge */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          viewport={{ once: true }}
+          className="mt-12 text-center"
+        >
+          <div className="inline-flex items-center gap-3 rounded-full border border-green-500/30 bg-green-500/10 px-6 py-3">
+            <div className="flex size-8 items-center justify-center rounded-full bg-green-500/20">
+              <CheckCircleIcon className="size-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-semibold text-foreground">Open Source & Auditable</div>
+              <div className="text-xs text-muted-foreground">
+                Transparent codebase with community security reviews
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   )
