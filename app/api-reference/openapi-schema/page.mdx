@@ -19,11 +19,11 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 <details><summary>AI SDK (3 endpoints)</summary>
 
-- **POST** `/chat/{agentId}` - Chat with agent, stream AI SDK (path: agentId; 
+- **POST** `/chat/{agentId}` - Chat with agent, stream AI SDK (path: agentId;
   body: messages[] | 200: stream, 400: invalid input, 404: agent not found)
-- **POST** `/workflow/{workflowId}` - Stream workflow AI SDK (path: workflowId; 
+- **POST** `/workflow/{workflowId}` - Stream workflow AI SDK (path: workflowId;
   body: runId, inputData, runtimeContext | 200: UIMessage stream)
-- **POST** `/network/{agentId}` - Execute network, stream AI SDK (path: agentId; 
+- **POST** `/network/{agentId}` - Execute network, stream AI SDK (path: agentId;
   body: messages[], runtimeContext, maxSteps | 200: stream, 404: not found)
 
 </details>
