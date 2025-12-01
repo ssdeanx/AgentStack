@@ -1,0 +1,217 @@
+---
+title: "UI & Theming"
+description: "Component library, theming, tokens, and guidelines for building interface components in AgentStack (Mastra)."
+date: "2025-12-01"
+readTime: "7 min read"
+category: "Docs"
+slug: "ui"
+---
+
+import { CodeBlock } from "@/app/components/api-components"
+
+# UI & Theming
+
+This page documents the UI primitives, design tokens, theming approach, and recommended development patterns for building and extending the AgentStack frontend components.
+
+- UI primitives: `Button`, `Input`, `Badge`, `Card`, `Dialog`, `Tabs`, `Switch`, etc.
+- UI folder: `mastra/ui/*`
+- Site components & layouts: `app/components/*`
+- MDX rendering controls: `mdx-components.tsx` for standardized MDX layout and code highlighting
+- Theme control: `ThemeToggle` and the `next-themes` integration
+
+---
+
+## Objectives
+
+- Provide a consistent, accessible, and responsive design system
+- Ensure all UI primitives are composable and reusable
+- Support theme toggling (light/dark) and consistent design tokens
+- Facilitate MDX-based documentation and examples using `mdx-components.tsx`
+
+---
+
+## Design Tokens
+
+Design tokens are the single source of truth for:
+
+- Colors
+- Border radius
+- Spacing
+- Typography and sizes
+- Elevation / shadows
+
+We configure tokens with Tailwind utilities and CSS variables. For quick reference, the typical tokens we use:
+
+```css
+:root {
+  --bg: #0f172a;
+  --muted-text: #94a3b8;
+  --primary: #0ea5e9;
+  --foreground: #ffffff;
+  --card-bg: #001122;
+  --border: rgba(255, 255, 255, 0.06);
+}
+```
+
+The actual theme tokens are applied via Tailwind configuration and `next-themes` for dynamic toggling.
+
+---
+
+## Theming (light/dark) with `next-themes`
+
+We use `next-themes` to provide client-side theme toggling. `ThemeToggle` is the UI wrapper component. Typical usage:
+
+```tsx
+// placing ThemeToggle in the Navbar
+import { ThemeToggle } from "@/ui/theme-toggle";
+
+export function Navbar() {
+  return (
+    <header className="px-4 py-4 bg-background">
+      <div className="container mx-auto flex items-center justify-between">
+        <div>AgentStack</div>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+Design tips:
+
+- Use `prefers-color-scheme` and stored user preference to select default theme.
+- Keep foreground/background contrast high for readability.
+- Prefer color tokens rather than hard-coded hex values.
+
+---
+
+## UI Component Conventions
+
+- Files live in `mastra/ui` and export components with the expected props and types.
+- Components should be small, composable, and accessible by default.
+- Avoid introducing logic in primitives; keep them for styling and simple functionality (e.g., `Button` should be a composable primitive; complex behavior should be in a wrapper/higher-level component).
+- Use `aria-*` attributes properly for dialogs, inputs, and interactive components.
+
+Example `Button` usage:
+
+```tsx
+import { Button } from "@/ui/button";
+
+export default function ExampleButtons() {
+  return (
+    <div className="flex gap-3">
+      <Button>Default</Button>
+      <Button variant="primary">Primary</Button>
+      <Button variant="destructive">Delete</Button>
+      <Button variant="ghost">Ghost</Button>
+    </div>
+  );
+}
+```
+
+---
+
+## Working With MDX
+
+- MDX is used for documentation pages and examples. We provide `mdx-components.tsx` to map MDX tags to custom React components (like `code` -> styled blocks).
+- When authoring MDX docs in the repo, import UI components for live previews and use fenced code blocks for examples:
+
+```mdx
+import { Button } from "@/ui/button"
+
+<Button variant="primary">Primary</Button>
+
+    ```tsx
+    <Button variant="primary">Primary</Button>
+    ```
+```
+
+Note: be careful to keep interactive client components vs server components in mind; importing client components inside MDX may render them as client components in Next.js App Router.
+
+---
+
+## Component Patterns & API
+
+- `variant` prop: used for visual variants (`primary`, `secondary`, `ghost`, `destructive`)
+- `size` prop: standardized sizing (`sm`, `md`, `lg`)
+- `asChild` usage: components can render a different element via `asChild` (useful when combining with routing libraries)
+- `disabled` and focus styling: always implement visible and keyboard accessible focus styles
+
+Common example for `Input`:
+
+```tsx
+import { Input } from "@/ui/input"
+import { Label } from "@/ui/label"
+
+export function ExampleForm() {
+  return (
+    <form className="space-y-4">
+      <div>
+        <Label>Email</Label>
+        <Input placeholder="you@example.com" />
+      </div>
+    </form>
+  )
+}
+```
+
+---
+
+## Component Testing & Accessibility
+
+- Ensure keyboard navigation and focus states are covered (Tab ordering, ESC to exit dialogs).
+- For components with ARIA, add `aria-label` or `aria-describedby` as needed.
+- Build tests that target both looks and behaviors:
+  - Verify className application for variants (snapshot)
+  - Verify onClick and other UI interactions
+  - Check accessibility roles and properties with `@testing-library/jest-dom` and axe
+
+---
+
+## Design & Layout Conventions
+
+- Layout containers use `mx-auto` and `max-w-*` utility classes.
+- Spacing follows the Tailwind scale, prefer `gap-x`, `gap-y` utilities.
+- Use `prose` for MDX/markdown content content, then `prose-invert` for dark mode.
+- Use the `container` utility where appropriate for consistent widths across pages.
+
+---
+
+## Extensibility
+
+- When adding a new component:
+  1. Create a file in `mastra/ui` or `app/components` depending on its scope.
+  2. Add typed props and defaults, export the component.
+  3. Add a code sample for the docs (`/docs/components`) as MDX codeblock.
+  4. Add tests and (optionally) a story or a minimal interactive demo.
+
+---
+
+## Component Playground & Stories
+
+- Consider integrating Storybook or a playground to showcase interactive components with their states.
+- Alternatively, add MDX preview pages under `/docs/components/examples` for quick snapshots with code + sample render.
+
+---
+
+## Accessibility, Localization & Right-to-left (RTL)
+
+- Follow WCAG for contrast and keyboard usage.
+- Keep text translatable; use consistent patterns for strings and date/time format.
+- Consider RTL support for components; use `dir="rtl"` in tests.
+
+---
+
+## Final Notes & Next Steps
+
+- If you want, I can:
+  - Add a set of per-component MDX pages under `/docs/components/examples` with interactive demos and code samples.
+  - Add a `Design Tokens` page that enumerates all the theme variables and sample usage.
+  - Create a Storybook configuration with per-UI component stories for development and documentation.
+- Tell me whether you want the live previews to use a playground iframe or client MDX examples.
+
+---
+
+*Framework Version: 1.0.0 | Last Updated: 2025-12-01*

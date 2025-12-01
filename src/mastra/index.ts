@@ -200,9 +200,15 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       chatRoute({
-        path: "/chat",
-        agent: "weatherAgent, a2aCoordinatorAgent, csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent, reportAgent, learningExtractionAgent, evaluationAgent, researchAgent, copywriterAgent, editorAgent, agentNetwork, contentStrategistAgent, scriptWriterAgent, dataExportAgent, dataIngestionAgent, dataTransformationAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent, stockAnalysisAgent, daneNewContributor, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent, legalResearchAgent, businessStrategyAgent, complianceMonitoringAgent, contractAnalysisAgent",
+        path: "/chat/:agentId",
         defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat"
+          },
           maxSteps: 50,
           includeRawChunks: true,
           telemetry: {
@@ -231,6 +237,24 @@ export const mastra = new Mastra({
       networkRoute({
         path: "/network",
         agent: "agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'network',
+              resourceId: 'network',
+            },
+            resource: "network",
+            options:
+            { semanticRecall: true, }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
       }),
     ],
     middleware: [

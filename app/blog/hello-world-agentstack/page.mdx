@@ -1,0 +1,267 @@
+---
+title: "Hello World with AgentStack (Mastra): A 10-minute Guide"
+description: "A concise hands-on guide to understand Mastra's core pieces — Agents, Tools, PG storage, MCP, Workflows — and create a Hello World agent and call it via the server."
+date: "2025-12-01"
+readTime: "10 min read"
+category: "Tutorial"
+slug: "hello-world-agentstack"
+---
+
+import { BlogLayout } from "@/app/components/blog-layout"
+
+<BlogLayout title="Hello World with AgentStack (Mastra): A 10-minute Guide" date="2025-12-01" readTime="10 min read" category="Tutorial" author="AgentStack Team">
+
+Welcome! In this short guide you're going to learn how the major pieces of AgentStack (Mastra) fit together, and build a small Hello World flow that demonstrates:
+
+- How `Mastra` is configured and started (`src/mastra/index.ts`).
+- How memory/storage is configured (`src/mastra/config/pg-storage.ts`).
+- How to write a simple `Agent` and call it.
+- How `Tools`, `MCP`, and `Workflows` are used together in the system.
+
+This guide avoids heavy abstractions and shows small, copy-and-paste-ready examples so you can try them locally.
+
+--- 
+
+## TL;DR
+
+- Agents are the core: an `Agent` is a specialized AI function.
+- Tools let an agent interact with services (APIs, DBs, file system).
+- Storage (like Postgres + PgVector) enables vector memory and RAG.
+- MCP coordinates agents, resources and prompts for A2A workflows.
+- Workflows orchestrate multiple steps to produce structured outcomes.
+
+By the end of this post you will have a Hello World agent wired into a Mastra instance and a simple `curl` example to call it.
+
+---
+
+## Setup & Run (Quick)
+
+Before you start, make sure you have:
+
+- Node.js 20+ installed
+- A Postgres instance if you want persistent storage (optional for local testing)
+- Environment variables defined (open the `.env` or environment of your choice)
+
+Typical commands:
+```bash
+# Install dependencies
+npm install
+
+# Start development server (runs Next.js and Mastra server concurrently)
+npm run dev
+```
+
+Mastra (the backend) usually defaults to `http://localhost:4111` for the example below.
+
+---
+
+## A Small "Hello World" Agent
+
+Agents are the basic building block. Let's create a minimal agent that responds with "Hello, world!" and register it in `Mastra`.
+
+Example (TypeScript):
+
+```ts
+// src/mastra/agents/helloWorldAgent.ts
+import { Agent } from "@mastra/core/agent";
+
+export const helloWorldAgent = new Agent({
+  id: "hello-world-agent",
+  name: "Hello World Agent",
+  description: "A small agent that says Hello World",
+  instructions: () => ({
+    role: "system",
+    content: "You are a very friendly agent who responds with a short greeting."
+  }),
+  // model and memory are optional here — the agent can use default model settings.
+});
+```
+
+This agent can now be registered and included in the Mastra configuration (see `index.ts` below).
+
+---
+
+## How Mastra is wired (src/mastra/index.ts)
+
+A Mastra instance groups agents, workflows, tools and server routes. The code below shows a minimal example that registers the agent and exposes `/chat`.
+
+```ts
+// src/mastra/index.ts (example excerpt)
+import { Mastra } from "@mastra/core/mastra";
+import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
+import { helloWorldAgent } from "./agents/helloWorldAgent";
+
+export const mastra = new Mastra({
+  agents: { helloWorldAgent },
+  // you can provide vectors, storage, telemetry, scorers, workflows, etc.
+  server: {
+    apiRoutes: [
+      chatRoute({
+        path: "/chat",
+        agent: "hello-world-agent",
+        defaultOptions: {
+          maxSteps: 10
+        }
+      })
+    ]
+  }
+});
+```
+
+When the server is live, you can POST to `/chat` to talk to the `hello-world-agent`.
+
+---
+
+## Test the Hello World Agent
+
+Try this simple curl request (adjust port if necessary):
+
+```bash
+curl -s -X POST http://localhost:4111/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent": "hello-world-agent",
+    "messages": [
+      { "role": "user", "content": "Hi - say hello!" }
+    ]
+  }'
+```
+
+You should receive a response with the agent's streaming output, or a single final response if streaming is disabled.
+
+---
+
+## Storage: Postgres + PgVector (src/mastra/config/pg-storage.ts)
+
+Mastra uses `@mastra/pg` or other vector-backed stores to provide memory & RAG support. Here's a condensed example for Postgres store (pg-vector):
+
+```ts
+// src/mastra/config/pg-storage.ts (excerpt)
+import { Memory } from "@mastra/memory";
+import { PgVector, PostgresStore } from "@mastra/pg";
+import { google } from "@ai-sdk/google";
+
+export const pgStore = new PostgresStore({
+  connectionString: process.env.SUPABASE ?? "postgresql://user:password@localhost/mydb",
+  schemaName: process.env.DB_SCHEMA ?? "mastra",
+});
+
+export const pgVector = new PgVector({
+  connectionString: process.env.SUPABASE ?? "postgresql://user:password@localhost/mydb",
+  schemaName: process.env.DB_SCHEMA ?? "mastra",
+});
+
+export const pgMemory = new Memory({
+  storage: pgStore,
+  vector: pgVector,
+  embedder: google.textEmbedding("gemini-embedding-001"),
+  options: {
+    lastMessages: 500,
+    semanticRecall: { topK: 5 },
+  }
+});
+```
+
+`pgMemory` can be attached to agents to give them long-term and semantic context.
+
+---
+
+## Tools: Agents use tools for external side effects
+
+Tools are small plugins providing structured external interactions — DB queries, APIs, scraping, etc. Tools are created with `createTool` and attached to agents or used independently.
+
+Example (very small tool snippet):
+
+```ts
+// src/mastra/tools/copywriter-agent-tool.ts (simplified)
+import { createTool } from "@mastra/core";
+import { copywriterAgent } from "../agents/copywriterAgent";
+
+export const copywriterTool = createTool({
+  id: "copywriter-agent",
+  description: "Create copy using the copywriter agent",
+  execute: async ({ input }) => {
+    const { topic } = input;
+    const result = await copywriterAgent.generate(`Create a blog post about ${topic}`);
+    return { content: result.output };
+  }
+});
+```
+
+Tools are powerful: they let agents offload specialized tasks using existing agents, external APIs, or runtime logic.
+
+---
+
+## MCP: Agent Coordination & A2A (src/mastra/mcp)
+
+MCP (Mastra Control Protocol) is a set of resources & services that let agents communicate in agent-to-agent (A2A) flows and expose server-side resources.
+
+There's an MCP server in `src/mastra/mcp` like `a2aCoordinatorMcpServer` which exposes agent catalogs, resources, and helpful prompts for coordination. The code is used by agents and web frontends to discover agents & workflows.
+
+You generally won't need to create an MCP server by hand — the repo includes an A2A coordinator and resources that can be extended.
+
+---
+
+## Workflows: Combining Agents into sequences (src/mastra/workflows)
+
+Workflows orchestrate multi-step processes using `createWorkflow` and steps. Here's a simple example:
+
+```ts
+// src/mastra/workflows/hello-workflow.ts (example)
+import { createWorkflow, createStep } from "@mastra/core/workflows";
+import { z } from "zod";
+
+const step = createStep({
+  id: "say-hello",
+  inputSchema: z.object({}),
+  outputSchema: z.object({ greeting: z.string() }),
+  execute: async () => ({ greeting: "Hello from a workflow!" })
+});
+
+export const helloWorkflow = createWorkflow({ id: "hello-workflow", inputSchema: z.object({}) })
+  .then(step)
+  .commit();
+```
+
+Workflows show how agents and tools can be combined into repeatable processes.
+
+---
+
+## Putting it all together: A simple Hello World flow
+
+1. Create `helloWorldAgent` (see earlier).
+2. Register it in `src/mastra/index.ts`.
+3. Optionally attach `pgMemory` to the agent for persistence.
+4. Start the Mastra server with `npm run dev`.
+5. Call `/chat` or `/workflow` endpoints to invoke agents or runs.
+
+---
+
+## Next steps & Practical Tips
+
+- Replace the `helloWorldAgent` instructions with ML model instructions (configured in `index.ts`).
+- Add `pgMemory` to your agent if you want long-term memory, e.g., `memory: pgMemory`.
+- Use Tools to encapsulate API access or database updates.
+- Explore `src/mastra/agents` to find many example agents (copywriter, weather, research, chart generator).
+- Use Workflows for longer or multi-agent tasks (content review, financial reports, etc.).
+- Check `src/mastra/mcp` for A2A patterns and server resource metadata — great for distributed agent coordination.
+
+---
+
+## Closing
+
+You now have the mental model and code snippets to build a Hello World agent with Mastra. From here you can:
+
+- Expand your agent's instructions & model,
+- Add a tool for external I/O,
+- Replace local memory with `pgMemory` for RAG, and
+- Build workflows for multi-step automation.
+
+If you want, I can:
+- Convert an existing agent (e.g. `copywriterAgent`) into a step-by-step tutorial,
+- Add a working MDX post that pulls the code snippets directly from repository files so they remain up-to-date, or
+- Add a "Developer Guide" MDX for `/docs/components` and `/docs/ui` that shows examples for each UI component.
+
+Happy hacking — let’s get your first agent answering "Hello World!"
+
+</BlogLayout>

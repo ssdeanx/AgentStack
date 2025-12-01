@@ -1,0 +1,258 @@
+---
+title: "Configuration"
+description: "Configuration and environment details for running AgentStack (Mastra) — database, vector store, model providers, environment variables, and observability."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "configuration"
+---
+
+# Configuration
+
+This page summarizes the most important configuration topics for AgentStack (Mastra): environment variables, persistent storage (PG + PgVector), memory settings, model/provider integration, observability, and security best practices.
+
+Most configuration is done via environment variables and concrete files in `src/mastra/config/` (e.g., `pg-storage.ts`) and the Mastra server configuration (`src/mastra/index.ts`). Keep secrets out of source control by storing them in a secure secret manager or in `.env.*` that are ignored.
+
+---
+
+## Quick Start: Minimal `.env` example
+
+The project reads these environment variables to configure providers, database connections, and runtime behavior. Quote or copy the following to a `.env.local` (or in your hosting provider):
+
+```dotenv
+# Database
+SUPABASE=postgresql://user:password@host:5432/mastra
+DB_SCHEMA=mastra
+DB_MAX_CONNECTIONS=20
+DB_IDLE_TIMEOUT=30000
+DB_CONNECTION_TIMEOUT=2000
+
+# Memory / Vectors
+EMBEDDING_MODEL=gemini-embedding-001
+SEMANTIC_TOP_K=5
+MEMORY_LAST_MESSAGES=500
+
+# AI Providers - choose one or multiple providers
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
+ANTHROPIC_API_KEY=...
+
+# Tools API Keys
+SERPAPI_API_KEY=...   # Search results
+ALPHA_VANTAGE_API_KEY=...  # Stocks / financial data
+FINNHUB_API_KEY=...
+
+# Telemetry / Observability
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_BASE_URL=https://api.langfuse.com
+
+# App
+NODE_ENV=development
+NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
+```
+
+Notes:
+- Use different keys for ephemeral development and production.
+- Never commit production secrets.
+
+---
+
+## Database & Vector Storage (Postgres + PgVector)
+
+AgentStack typically uses Postgres for durable storage and PgVector to store embeddings. That configuration tends to live in `src/mastra/config/pg-storage.ts`.
+
+Minimal example to instantiate Postgres + PgVector:
+
+```ts
+// src/mastra/config/pg-storage.ts
+import { PostgresStore } from '@mastra/pg'
+import { PgVector } from '@mastra/pg'
+import { Memory } from '@mastra/memory'
+import { google } from '@ai-sdk/google'
+
+export const pgStore = new PostgresStore({
+  connectionString: process.env.SUPABASE,
+  schemaName: process.env.DB_SCHEMA ?? 'mastra',
+  max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
+})
+
+export const pgVector = new PgVector({
+  connectionString: process.env.SUPABASE,
+  schemaName: process.env.DB_SCHEMA ?? 'mastra',
+})
+
+export const pgMemory = new Memory({
+  storage: pgStore,
+  vector: pgVector,
+  embedder: google.textEmbedding(process.env.EMBEDDING_MODEL),
+  options: {
+    lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+    semanticRecall: {
+      topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
+    },
+  },
+})
+```
+
+Best practice:
+- Use a dedicated Postgres schema for Mastra (`DB_SCHEMA`) to isolate system tables.
+- Tune `max`, `idle`, and connection timeouts for your deployment - e.g., `20`–`50` pooled connections for moderate traffic.
+- Choose a vector index type appropriate for your embedding size and query volume (HNSW vs flat vs IVFFlat).
+
+---
+
+## AI Providers & Model Configuration
+
+AgentStack supports multiple providers. The provider and model config often live in `src/mastra/config` or in provider-specific modules, and `src/mastra/index.ts` wires the final model selection.
+
+Common environment flags:
+- `OPENAI_API_KEY` (OpenAI)
+- `GOOGLE_API_KEY` (Google Vertex)
+- `ANTHROPIC_API_KEY` (Anthropic)
+- `OPENROUTER_API_KEY` (OpenRouter or other)
+
+Model selection:
+- In `index.ts` or a central config, register which model to use for agents, and define fallbacks or preferred models for different agents.
+
+Example snippet:
+```ts
+import { googleAI3 } from '@ai-sdk/google'
+
+export const myAgent = new Agent({
+  id: 'example',
+  model: googleAI3, // or the provider you register
+})
+```
+
+---
+
+## Observability & Security
+
+Observability is enabled in `src/mastra/index.ts` via exporters & sensitive data filters. A recommended minimal configuration includes tracing, a sampling strategy, and a `SensitiveDataFilter` to avoid leaking secrets in telemetry.
+
+Example snippet:
+
+```ts
+// src/mastra/index.ts (observability excerpt)
+observability: {
+  default: { enabled: true },
+  configs: {
+    default: {
+      serviceName: "AgentStack",
+      sampling: { type: SamplingStrategyType.ALWAYS },
+      processors: [
+        new SensitiveDataFilter({
+          sensitiveFields: ['authorization', 'api-key', 'secret', 'password', 'token'],
+          redactionToken: '[REDACTED]',
+        })
+      ],
+      exporters: [
+        new LangfuseExporter({ publicKey: process.env.LANGFUSE_PUBLIC_KEY, secretKey: process.env.LANGFUSE_SECRET_KEY })
+      ],
+    },
+  },
+},
+```
+
+Best practices:
+- Never log secrets or PII. Use `SensitiveDataFilter` to remove/mask secrets in telemetry providers.
+- Use a dedicated secret store for production (e.g., AWS Secrets Manager, HashiCorp Vault).
+- Limit telemetry retention and PII capture.
+- Enforce TLS on all external connections.
+- Ensure RBAC & auth on server routes (`/chat`, `/workflow`) if the server is public-facing.
+
+---
+
+## Memory & Threading
+
+The `Memory` configuration in `pg-storage.ts` supports both short-term (working memory) and longer-term semantic recall.
+
+Key parameters:
+- `lastMessages`: number of recent messages to keep.
+- `semanticRecall.topK`: number of embeddings returned by vector queries (typical 3–10).
+- `scope`: 'resource' or 'thread' for semantic recall scoping.
+- Thread settings for `generateTitle`, thread isolation, etc.
+
+Example:
+```ts
+options: {
+  lastMessages: 500,
+  semanticRecall: { topK: 5, messageRange: { before: 3, after: 2 } },
+  threads: { generateTitle: true }
+}
+```
+
+---
+
+## Tools & External Integrations
+
+Tools may require their own API keys:
+- `SERPAPI_API_KEY`
+- `ALPHA_VANTAGE_API_KEY`
+- `FINNHUB_API_KEY`
+
+Store these keys in environment variables and reference them inside your tool implementations — do not expose them in frontend code.
+
+---
+
+## Common env vars & reference table
+
+| Variable | Purpose |
+|---|---|
+| SUPABASE | Postgres connection string for storage & vector store |
+| DB_SCHEMA | Postgres schema name (default `mastra`) |
+| OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY | Model providers |
+| EMBEDDING_MODEL | Model id for embedding generation |
+| MEMORY_LAST_MESSAGES | Number of recent messages for working memory |
+| SEMANTIC_TOP_K | How many vector results to retrieve for semantic recall |
+| LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY | Observability exporter credentials |
+| NEXT_PUBLIC_MASTRA_API_URL | Client-side endpoint to contact Mastra server |
+
+---
+
+## Production Checklist
+
+- Use a secret manager to store env vars.
+- Use TLS/HTTPS and an API gateway or firewall.
+- Enforce authentication & RBAC for sensitive endpoints.
+- Scale your Postgres and vector configuration to match traffic.
+- Monitor usage and cost of models (e.g., embedding calls).
+- Add streaming/ health endpoints to check Mastra liveness.
+- Rotate secrets and keys regularly.
+
+---
+
+## Example: Environment-driven `index.ts` wiring
+
+The `index.ts` file typically reads these env vars and wires the Mastra instance:
+
+```ts
+import { Mastra } from '@mastra/core/mastra';
+import { PostgresStore } from '@mastra/pg';
+import { pgVector } from './config/pg-storage';
+
+const storage = new PostgresStore({
+  connectionString: process.env.SUPABASE,
+  schemaName: process.env.DB_SCHEMA ?? 'mastra',
+});
+
+export const mastra = new Mastra({
+  storage,
+  vectors: { pgVector },
+  // register agents, tools, workflows here...
+});
+```
+
+---
+
+## Appendix & Next Steps
+
+- For a hands-on, follow the Getting Started guide.
+- The `pg-storage.ts` file contains production-ready tunables: concurrency, vector index configs, and embedding setup — review it carefully before deploying.
+- If you want, I can:
+  - Create a consolidated environment variable index (MDX table) for the README or a `/docs/configuration/vars` page.
+  - Add CI/CD guidance for safe secrets injection (Azure Key Vault, AWS Secrets Manager, Vercel environment management).
+  - Add automated checks to prevent secrets from being committed.
+
+If you'd like, I’ll add a richer `configuration/vars` MDX page that lists all required env variables and a small script to validate them at runtime (e.g. `validateEnv()`).

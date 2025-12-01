@@ -1,0 +1,436 @@
+---
+title: "AI SDK (Vercel) Integration"
+description: "Mastra + AI SDK: routing, streaming, client hooks, and recommended patterns for integrating the Vercel AI SDK with AgentStack (Mastra)."
+date: "2025-12-01"
+readTime: "12 min read"
+category: "Framework"
+slug: "ai-sdk"
+---
+
+import { CodeBlock } from "@/app/components/api-components"
+
+# AI SDK Integration & Streaming Patterns
+
+Mastra supports native integrations with the Vercel AI SDK using the `@mastra/ai-sdk` helper utilities, and the `@ai-sdk/react` front-end hooks. This page documents recommended usage patterns for model routing, real-time streams, UI hooks, and converting Mastra streams to AI SDK UIMessages.
+
+> Main end-points commonly used with the AI SDK:
+>
+> - POST /chat/{agentId} — stream agent responses (AI SDK format)
+> - POST /workflow/{workflowId} — stream workflows (AI SDK format)
+> - POST /network/{agentId} — stream agent-network outputs (AI SDK format)
+
+---
+
+## Model Routing
+
+Mastra can register a model per agent or select models dynamically within an agent definition. If you use provider-specific configs you can set the model at `index.ts` or dynamically choose it in `agent.model` using runtimeContext.
+
+```ts
+// src/mastra/agents/weather-agent.ts
+import { Agent } from '@mastra/core/agent';
+
+export const weatherAgent = new Agent({
+  id: 'weather-agent',
+  name: 'Weather Agent',
+  model: 'openai/gpt-4o',
+  instructions: ({ runtimeContext }) => ({
+    role: 'system',
+    content: `You are a weather assistant...`,
+  }),
+});
+```
+
+---
+
+## Streaming with AI SDK — Server Routes
+
+Mastra's `@mastra/ai-sdk` exports route helpers that automatically format streams for the AI SDK UI messages format.
+
+### `chatRoute()`
+`chatRoute` wraps a Mastra agent and returns an AI SDK streaming-compatible response. Typical usage is to wire it into `src/mastra/index.ts`:
+
+```ts
+// src/mastra/index.ts
+import { Mastra } from '@mastra/core/mastra'
+import { chatRoute } from '@mastra/ai-sdk'
+import { weatherAgent } from './agents/weather-agent'
+
+export const mastra = new Mastra({
+  agents: { weatherAgent },
+  server: {
+    apiRoutes: [
+      chatRoute({ path: '/chat', agent: 'weather-agent' }),
+    ],
+  },
+})
+```
+
+The `chatRoute()` uses the Mastra agent to produce a stream and convert it to AI SDK UIMessage parts for the frontend.
+
+### `workflowRoute()`
+`workflowRoute()` exposes workflow runs in AI SDK format and allows you to stream workflow steps and nested agent outputs:
+
+```ts
+import { workflowRoute } from '@mastra/ai-sdk'
+export const mastra = new Mastra({
+  server: {
+    apiRoutes: [
+      workflowRoute({ path: '/workflow', workflow: 'contentStudioWorkflow' })
+    ]
+  }
+})
+```
+
+If a workflow includes agents that stream, add `includeTextStreamParts: true` to `workflowRoute` so nested agent streams are included as `text`/UI parts:
+
+```ts
+workflowRoute({
+  path: '/workflow',
+  workflow: 'contentStudioWorkflow',
+  includeTextStreamParts: true,
+})
+```
+
+### `networkRoute()`
+Networks are used to orchestrate routing between agents and workflows. The `networkRoute()` utility wraps that behavior and streams network-level UI parts.
+
+```ts
+import { networkRoute } from '@mastra/ai-sdk'
+export const mastra = new Mastra({
+  server: {
+    apiRoutes: [
+      networkRoute({ path: '/network', agent: 'agentNetwork' })
+    ]
+  }
+})
+```
+
+---
+
+## Converting Mastra Streams to AI SDK Format
+
+Mastra exposes a `toAISdkFormat()` transformation that converts Mastra's native chunks into AI SDK-compatible parts.
+
+### Server-side streaming transform example
+
+```ts
+// app/api/chat/route.ts
+import { mastra } from "../../mastra";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { toAISdkFormat } from "@mastra/ai-sdk";
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const myAgent = mastra.getAgent("weatherAgent");
+  const stream = await myAgent.stream(messages);
+  const uiMessageStream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      for await (const part of toAISdkFormat(stream, { from: "agent" })!) {
+        writer.write(part);
+      }
+    },
+  });
+  return createUIMessageStreamResponse({ stream: uiMessageStream });
+}
+```
+
+This helper handles:
+
+- Mastra message parts -> UI SDK `uiMessage` parts
+- Nested tool/agent workflow parts (e.g., `data-tool-agent`, `data-tool-workflow`)
+
+---
+
+## Tool Streaming — `writer.custom()` in Tools
+
+When creating tools you can stream custom structured parts into the chat/workflow stream. Use `writer.custom()` for client-friendly display of intermediate or nested events.
+
+```ts
+// src/mastra/tools/my-streaming-tool.ts
+import { createTool } from "@mastra/core";
+export const myTool = createTool({
+  id: "long-running-tool",
+  execute: async ({ context, writer }) => {
+    await writer?.custom({ type: "data-tool-progress", status: "started" });
+    const result = await someLongTask();
+    await writer?.custom({ type: "data-tool-progress", status: "success", details: result.summary });
+    return { output: result.data };
+  },
+});
+```
+
+These custom parts appear as `data-tool-*` parts within the conversion pipeline and can be rendered with specialized components on the client.
+
+---
+
+## Client-side streaming transform
+
+You can also transform client-side Mastra agent streams directly to AI SDK format by piping the chunks into `toAISdkFormat`. This is useful if you have a client streaming response and need to re-route it to a UI message stream.
+
+```ts
+// client-stream-to-ai-sdk.ts
+import { createUIMessageStream } from "ai";
+import { toAISdkFormat } from "@mastra/ai-sdk";
+
+const chunkStream = new ReadableStream({
+  start(controller) {
+    response.processDataStream({
+      onChunk: (chunk) => {
+        controller.enqueue(chunk);
+      },
+      onEof: () => controller.close(),
+    });
+  },
+});
+
+const uiMessageStream = createUIMessageStream({
+  execute: async ({ writer }) => {
+    for await (const part of toAISdkFormat(chunkStream)) {
+      writer.write(part);
+    }
+  },
+});
+```
+
+---
+
+## `@ai-sdk/react` — `useChat()` & `useCompletion()`
+
+Install the `@ai-sdk/react` package to use the front-end hooks for streaming UI:
+
+```bash
+npm install @ai-sdk/react
+```
+
+### `useChat()`
+Use `useChat()` with `DefaultChatTransport` to communicate with the Mastra `/chat` API:
+
+```tsx
+// app/test/chat.tsx
+"use client";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { useState } from "react";
+
+export function Chat() {
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: 'http://localhost:4111/chat' })
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    sendMessage({ text: input });
+  };
+
+  return (
+    <div>
+      <pre>{JSON.stringify(messages, null, 2)}</pre>
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
+      </form>
+    </div>
+  )
+}
+```
+
+You can pass `prepareSendMessagesRequest()` to the transport to add runtime options like memory, runtimeContext, or streaming options:
+
+```tsx
+const { sendMessage } = useChat({
+  transport: new DefaultChatTransport({
+    api: 'http://localhost:4111/chat',
+    prepareSendMessagesRequest({ messages }) {
+      return {
+        body: {
+          messages,
+          // Add memory and runtime context
+          memory: {
+            thread: "user-thread",
+            resource: "user-resource",
+          },
+          data: {
+            userId: "user_123",
+            preferences: { language: 'en' }
+          }
+        }
+      }
+    }
+  }),
+});
+```
+
+Using `prepareSendMessagesRequest` enables you to programmatically inject `runtimeContext` or memory options right from the client.
+
+### `useCompletion()`
+`useCompletion()` is a single-turn hook:
+
+```tsx
+"use client";
+import { useCompletion } from "@ai-sdk/react";
+
+export function Completion() {
+  const { completion, input, handleInputChange, handleSubmit } = useCompletion({
+    api: "api/completion"
+  });
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+      <p>Completion result: {completion}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## Passing Additional Data & `runtimeContext`
+
+You can use `sendMessage` with `data` to pass additional runtime context fields:
+
+```tsx
+sendMessage({ text: 'City name' }, {
+  body: {
+    data: {
+      userId: 'user123',
+      preferences: { language: 'en' }
+    },
+  },
+});
+```
+
+On the server side, add a middleware or a route handler to read `body.data` and set `runtimeContext`:
+
+```ts
+// src/mastra/index.ts (server.middleware)
+async (c, next) => {
+  const runtimeContext = c.get("runtimeContext");
+  if (c.req.method === "POST") {
+    try {
+      const parsed = await c.req.raw.clone().json();
+      if (parsed?.data) {
+        Object.entries(parsed.data).forEach(([k, v]) => runtimeContext.set(k, v));
+      }
+    } catch {}
+  }
+  await next();
+}
+```
+
+---
+
+## `toAISdkFormat()` & nested parts
+
+Mastra emits various top-level and nested parts:
+
+- Top-level UI message types: `data-workflow`, `data-network`, `text`, etc.
+- Nested parts generated inside a tool: `data-tool-agent`, `data-tool-workflow`, `data-tool-network`, which the UI can display differently.
+
+Use `toAISdkFormat()` to convert Mastra parts to standard UI parts; the toolkit will include metadata to recognize nested parts.
+
+---
+
+## `writer.custom()` Tool Streaming Example
+
+To stream tool progress and custom parts from within tool `execute`:
+
+```ts
+await writer.custom({ type: 'data-tool-progress', status: 'pending' });
+// ... perform work ...
+await writer.custom({ type: 'data-tool-progress', status: 'success' });
+```
+
+On the UI side, use a component to render nested parts:
+
+```tsx
+// ui/agent-tool.tsx
+export const AgentTool = ({ id, text, status }) => (
+  <Tool>
+    <ToolHeader type={`${id}`} state={status === 'finished' ? 'output-available' : 'input-available'} />
+    <ToolContent>
+      <ToolOutput output={text} />
+    </ToolContent>
+  </Tool>
+);
+```
+
+---
+
+## `toAISdkFormat` & Rich UI Parts — Best Practices
+
+- Use `writer.custom()` & `data-tool-*` parts for rich UI integration; `toAISdkFormat()` will transform them suitable for frontend rendering.
+- Keep nested parts small (summary / metadata) to avoid huge payloads. Use an `artifact` link if the payload grows.
+- Standardize custom part types in your tools to simplify rendering logic on the UI.
+
+---
+
+## Migration: AI SDK v4 → v5 & Message Conversion
+
+Mastra includes utilities to convert message formats between v4 and v5. Use `convertMessages()` as needed when reading historical messages from storage:
+
+```ts
+import { convertMessages } from "@mastra/core/agent";
+// convert AIV4 -> AIV5.UI
+const v5 = convertMessages(v4Messages).to("AIV5.UI");
+```
+
+The repo includes `openapi.json` and `api` docs for v5-friendly endpoints when using the AI SDK.
+
+---
+
+## Type Safety: `InferUITool` & `InferUITools` Helpers
+
+Use the `InferUITool` or `InferUITools` type helpers to extract input/output types for the tools and ensure type safety:
+
+```ts
+import { InferUITool } from "@mastra/core/tools";
+import { z } from "zod";
+
+const weatherTool = createTool({
+  id: 'get-weather',
+  inputSchema: z.object({ location: z.string() }),
+  outputSchema: z.object({ temperature: z.number(), conditions: z.string() }),
+  execute: async () => ({ temperature: 72, conditions: 'sunny' })
+});
+type WeatherTool = InferUITool<typeof weatherTool>
+```
+
+---
+
+## Recommendations & UX Tips
+
+- Use streaming (`/chat/*/stream`) for best user experiences on chat flows; the UI can append partial output progressively.
+- Use `prepareSendMessagesRequest` to pass runtimeContext, memory options, or extra flags for streaming or tool policies.
+- Leverage `workflowRoute` with `includeTextStreamParts: true` when including internal agent streams inside workflows.
+- Add client-side parsers for nested `data-tool-agent` and `data-tool-workflow` types to render richer result views.
+- Keep nested tool parts small — include only enough metadata for the UI to display & link to details.
+
+---
+
+## Example: Typical chat flow (end-to-end recap)
+
+1. Server registers `chatRoute({ path: '/chat', agent: 'weatherAgent' })`.
+2. Client uses `useChat({ transport: new DefaultChatTransport({ api: '/chat' }) })`.
+3. Client sends a message using `sendMessage()`, optionally passing `data` for `runtimeContext`.
+4. Server runs the agent, tool writers can push custom parts via `writer.custom()`.
+5. `toAISdkFormat()` transforms Mastra parts into AI SDK UIMessage parts.
+6. The UI consumes the streamed UIMessage parts and renders them.
+
+---
+
+## Useful Links & References
+
+- Use the `openapi-schema` docs for introspecting API endpoints: `/api-reference/openapi-schema`
+- For prompts, `docs/prompts` contains sample prompts and templates (e.g., Kiro-Lite).
+- See `src/mastra/config/pg-storage.ts` for embedding & RAG integration examples.
+- RPC / SDK usage: `@mastra/ai-sdk` for server util functions and `@ai-sdk/react` for the UI hooks.
+
+---
+
+If you'd like, I can:
+
+- Add a small interactive example page (MDX) demonstrating streaming with `useChat`.
+- Add a small `msw`/client test showing `createUIMessageStreamResponse` usage for local development.
+- Add more `Ai SDK`-specific "How to" examples for typical patterns: `agent -> tool -> db -> agent` loops.

@@ -1,0 +1,228 @@
+---
+title: "Security"
+description: "Security best practices for AgentStack (Mastra) — protecting secrets, telemetry redaction, API security, PII & memory, tool approvals, and deployment hardening."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "security"
+---
+
+# Security: Protecting your Agents and Data
+
+Security is a continuous concern for any system that operates on user data, interacts with external APIs, or runs complex agent workflows. This page consolidates best practices for AgentStack (Mastra) focusing on the major risks: secrets & credentials, telemetry & redaction, API/endpoint security, PII handling when storing or embedding data, tool approval flows, and production hardening.
+
+---
+
+## 1. High-level Goals
+
+- Block secrets from being committed or leaked in traces/logs.
+- Prevent unauthorized access to sensitive API routes (/chat /workflow /tools /mcp).
+- Ensure telemetry & observability are safe for production (redact/sketch PII).
+- Use least-privilege for tools and provider keys.
+- Apply secure defaults and provide guidance for safe deployment.
+
+---
+
+## 2. Environment & Secrets Management
+
+Keep credentials out of source control and limit their scope.
+
+- Prefer secret managers (AWS Secrets Manager, Google Secret Manager, HashiCorp Vault, etc.).
+- For local dev use `.env.local` and add `.env`-files to `.gitignore`.
+- Rotate keys and limit privileges (e.g., use read-only DB users for ingestion, restrict APIs).
+
+Typical environment variables to secure:
+- SUPABASE / PG connection string (postgres credentials)
+- OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY
+- LANGFUSE_SECRET_KEY / LANGFUSE_PUBLIC_KEY (telemetry)
+- Provider-specific keys (SERPAPI_API_KEY, FINNHUB_API_KEY, etc.)
+
+Example: never commit your secrets, always use environment variables or a secret manager.
+
+---
+
+## 3. Telemetry & Redaction
+
+Telemetry is essential for debugging and observability, but it often contains sensitive pieces. Use `SensitiveDataFilter` or a similar redaction processor to ensure secrets are not exported.
+
+Example (observability snippet):
+```ts
+import { DefaultExporter, SamplingStrategyType, SensitiveDataFilter } from '@mastra/core/ai-tracing';
+import { LangfuseExporter } from './config/tracing';
+
+observability: {
+  default: { enabled: true },
+  configs: {
+    default: {
+      serviceName: "AgentStack",
+      sampling: { type: SamplingStrategyType.ALWAYS },
+      processors: [
+        new SensitiveDataFilter({
+          sensitiveFields: ['api-key', 'authorization', 'password', 'token', 'secret'],
+          redactionToken: '[REDACTED]',
+          redactionStyle: 'partial'
+        })
+      ],
+      exporters: [
+        new LangfuseExporter({
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY
+        })
+      ],
+    },
+  },
+}
+```
+
+Guidance:
+- Mark fields as sensitive to prevent accidental telemetry disclosure.
+- Keep minimal metadata in traces for production.
+- Ensure telemetry storage has retention and access control.
+
+---
+
+## 4. Memory & PII: Masking and Sanitization
+
+Memory (embeddings, message store, working memory) can contain user data, which can be PII (personal data). Always sanitize before embedding or storing.
+
+- Use masking helpers to sanitize sensitive tokens and sensitive fields.
+- Avoid storing sensitive user data in embeddings.
+- For regulated data (GDPR, HIPAA), replace or omit PII in the content before indexing.
+
+Example: `maskStreamTags` and `maskSensitiveMessageData` (in `src/mastra/config/pg-storage.ts`):
+```ts
+import { maskStreamTags } from '@mastra/core';
+
+// Mask sensitive tags in a stream, e.g., <password>secret-value</password>
+function createMaskedStream(inputStream: AsyncIterable<string>, sensitiveTags = ['password', 'token']) {
+  let masked = inputStream;
+  for (const tag of sensitiveTags) {
+    masked = maskStreamTags(masked, tag);
+  }
+  return masked;
+}
+```
+
+Example: safe message logging — remove secrets:
+```ts
+function maskSensitiveMessageData(content) {
+  const sensitiveFields = ['password', 'secret', 'token', 'apiKey'];
+  return content.replace(/("?(password|token|secret|apiKey)"?\s*:\s*)"[^"]*"/gi, '$1"[REDACTED]"');
+}
+```
+
+Guidance:
+- Use dedicated data policies (PII detection) to identify and exclude private data.
+- Keep sensitive fields out of the vector store.
+- For user content that must be retained (e.g., for productivity features), use explicit opt-ins and anonymize data.
+
+---
+
+## 5. API Security: Authentication and Authorization
+
+Server routes like `/chat`, `/workflow`, `/api/tools/:id/execute` should be protected properly.
+
+- Add authentication (JWT, API key, OAuth) for public endpoints.
+- Use role-based access: Admin vs Developer vs User with least privileges for tools.
+- For public frontends, protect sensitive endpoints with token-based auth and CORS.
+- Validate & sanitize incoming payloads (message content, file uploads).
+
+Practical steps:
+- Require an authentication token for POST to `/chat` in production.
+- Implement request validation in middleware: ensure `agent` and `messages` fields are expected and sanitized.
+- Enforce rate-limits and quotas for users and IPs.
+
+Example (middleware in `index.ts`):
+```ts
+server.middleware: [
+  async (c, next) => {
+    const token = c.req.headers['authorization'];
+    // validate token, set runtimeContext or deny requests.
+    if (!isValid(token)) {
+      return c.res.status(401).send('Unauthorized');
+    }
+    await next();
+  }
+]
+```
+
+---
+
+## 6. Tool Approval Flow & "Approval for tool execution"
+
+Tools have side effects (e.g., DB writes, exec commands). Use tool approval flows where needed:
+
+- Add a `toolApproval` system where specific tool calls require manual or programmatic approval (e.g., `POST /api/agents/{agentId}/approve-tool-call`).
+- Implement audit trails for tool calls and approval decisions.
+
+Important:
+- Some tools should be disabled by default in production (e.g., `execa-tool`, or tools that grant system access).
+- Disallow local file system writes unless explicit.
+
+---
+
+## 7. MCP & Agent Discovery: Least Privilege
+
+MCP (A2A / resource discovery) makes metadata available to agents. Limit exposure:
+
+- Only expose minimal metadata in A2A discoverable resources.
+- Filter the resource templates to avoid leaking internal endpoints, keys, or credentials.
+- Ensure that the MCP servers require authentication or are internal-only (private network, service mesh).
+
+---
+
+## 8. Developer Best Practices & CI/CD
+
+- Pre-commit & CI: run linters and secret scanning to prevent commit of keys.
+- Use static scanning tools to audit code for insecure patterns (hard-coded keys, command injection, insecure libs).
+- Use dependency scanning and apply auto-updates for critical security fixes.
+- Use branch protections & PR review for production config changes.
+
+---
+
+## 9. Production Hardening Checklist
+
+- Ensure `SUPABASE` or `PG` connection string uses a user with minimum privileges and network restrictions.
+- Run the app behind a reverse proxy or API gateway with TLS enforcement.
+- Ensure `NEXT_PUBLIC_MASTRA_API_URL` points to secure `https` in production.
+- Enforce CORS and CSP (Content Security Policy) for the Next.js frontend.
+- Limit telemetry data retention and scope of captured metadata.
+- Audit & log all `tool`-level actions and tool approvals.
+- Perform periodic penetration testing and threat modeling.
+- Handle incident response for breach: log revocation steps, rotation keys, and server locks.
+
+---
+
+## 10. Templates & Short-Running Incidents
+
+If exposing high-risk tools (shell exec or fs writes), use a safety template:
+- Require `tool` approval for any tool that mutates external state.
+- Validate all tool inputs and apply policy checks before execution.
+- Add `deny-list` and `allow-list` to restrict external execution.
+
+---
+
+## 11. Operations and Remediation
+
+- Regularly rotate keys: provider API keys, DB credentials, exporter keys.
+- Use monitoring (alerts) for unusual agent behavior (increased token usage, more tool calls).
+- Implement runbooks for key incidents: data breach, key leak, or LLM hallucination causing sensitive ops.
+
+---
+
+## 12. Summary & Next Steps
+
+- We’ve outlined secure practices across the stack: secrets, observability, data privacy, API security, tool approval, and production hardening.
+- Recommended immediate actions:
+  1. Add `SensitiveDataFilter` into your `observability` config used by `index.ts`.
+  2. Verify the `pg-storage.ts` sanitizes PII prior to embedding.
+  3. Add API authentication middleware for your `/chat` & `/workflow` endpoints.
+  4. Create CI checks to block committing secrets.
+  5. Harden `mcp` endpoint declarations for A2A discovery.
+
+Would you like me to:
+- Add an `observability` snippet to your `index.ts` to redact sensitive telemetry automatically?
+- Create a `docs/security/checklist.md` to serve as the repository-specific guide for security audits?
+- Add a `tool-approval` sample workflow and UI approval button example?
+
+If you want any of those implemented, tell me which one and I’ll add it next.

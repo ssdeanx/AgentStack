@@ -1,0 +1,279 @@
+---
+title: "Runtime Context"
+description: "Detailed guide for `runtimeContext` in AgentStack (Mastra) — what it is, how to use it in agents/tools/workflows, best practices, and examples."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "runtime-context"
+---
+
+# Runtime Context
+
+Runtime Context is a per-request, per-run, or per-execution contextual object that flows through agents, tools, workflows and server routes in AgentStack. It provides a consistent way to pass in environment-specific details, authorization scopes, language preferences, tenant IDs, configuration bits and other runtime metadata.
+
+## Why runtimeContext exists
+
+`runtimeContext` lets your agents, tools, and workflows behave differently depending on the calling context. Typical uses include:
+
+- selecting a model or config (e.g. pro vs enterprise),
+- adding user-specific memory or scope,
+- controlling available tools,
+- providing telemetry and tracing metadata,
+- locale or language preferences.
+
+To put it plainly: it avoids hard-coding choices in agents and allows request-specific behavior centrally.
+
+---
+
+## Key properties and patterns
+
+- `runtimeContext.get(key)` / `runtimeContext.set(key, value)` — getter/setter for context keys.
+- `runtimeContext` is commonly used in:
+  - Agent `instructions` (contextual system prompt composition)
+  - Agent `tools` (allowed tools per user tier)
+  - `memory` selection (per-tenant memory stores or per-tier memory strategies)
+  - `model` selection (choose cheaper vs more capable model depending on tier)
+  - Telemetry / tracing contexts (add user id or run id)
+- Don’t trust unvalidated values from user inputs. Authors should set and validate every runtime context property on the server (or via trusted middleware).
+
+---
+
+## Runtime context types (TypeScript pattern)
+
+Here’s a recommended pattern for typing `runtimeContext` for a particular agent or runtime area (from the `supportAgent` example):
+
+```ts
+// Example: types used for Support runtime context
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export type SupportRuntimeContext = {
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+}
+```
+
+Then `RuntimeContext<SupportRuntimeContext>` can be used in agent functions to get typed runtime values.
+
+---
+
+## Where runtimeContext is set
+
+`runtimeContext` is usually set in middleware (e.g., HTTP request route / API route) and passed into Mastra's runtime. For example, an Express-style middleware or route handler could set runtimeContext values from authenticated tokens or request body.
+
+Example middleware snippet (from `src/mastra/index.ts`):
+
+```ts
+// Example: middleware copies request-provided context into runtimeContext
+async (c, next) => {
+  const runtimeContext = c.get('runtimeContext');
+
+  if (c.req.method === "POST") {
+    try {
+      const clonedReq = c.req.raw.clone();
+      const body = await clonedReq.json();
+
+      if (body?.data) {
+        for (const [key, value] of Object.entries(body.data)) {
+          runtimeContext.set(key, value);
+        }
+      }
+    } catch {
+      // handle parse errors
+    }
+  }
+  await next();
+}
+```
+
+> Important: Only copy *trusted* or validated fields into `runtimeContext` from client input. Sensitive keys should be added on the server side only.
+
+---
+
+## Runtime Context in Tools
+
+Tools can read `runtimeContext` for permission checks, locale preferences, or other contextual decisions. The typical `tool.run` receives an `execCtx` or `runtimeContext` parameter:
+
+```ts
+// src/mastra/tools/support-tools.ts
+export const knowledgeBase = {
+  name: 'knowledge-base',
+  description: 'Search internal knowledge base and return compact results',
+  run: async (query: string, execCtx: { runtimeContext?: RuntimeContext<SupportRuntimeContext> }) => {
+    const lang = execCtx?.runtimeContext?.get('language') ?? 'en'
+    return { text: `KB results for "${query}" (language: ${lang})` }
+  }
+}
+```
+
+Tool patterns to follow:
+
+- Validate user-tier and roles in `runtimeContext` to avoid privilege escalation.
+- Use `runtimeContext` for telemetry (e.g., `userId`) and auditing.
+- Don’t accept `runtimeContext` values directly from clients — let server middleware add/adjust fields.
+
+---
+
+## Runtime Context in Agents
+
+Agents can adapt their behavior based on `runtimeContext`. Example from `supportAgent`:
+
+```ts
+export const supportAgent = new Agent({
+  id: 'support',
+  name: 'dynamic-support-agent',
+  instructions: async ({ runtimeContext }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const language = runtimeContext.get('language') ?? 'en'
+
+    return {
+      role: 'system',
+      content: `
+        You are a customer support agent.
+        The current user is on the ${userTier} tier and prefers language ${language} ...
+      `
+    }
+  },
+
+  model: ({ runtimeContext }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') return 'google/chat-bison@001'
+    if (userTier === 'pro') return 'google/chat-bison@001'
+    return 'google/text-bison@001'
+  },
+
+  tools: ({ runtimeContext }) => {
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const baseTools = [knowledgeBase, ticketSystem]
+    if (userTier === 'pro' || userTier === 'enterprise') baseTools.push(advancedAnalytics)
+    if (userTier === 'enterprise') baseTools.push(customIntegration)
+    return baseTools
+  },
+
+  memory: ({ runtimeContext }) => {
+    // pick memory storage based on tier/tenant
+  }
+})
+```
+
+This layout shows the major patterns:
+
+- `instructions`: tailor the system prompt to current context.
+- `model`: pick model variant by tier.
+- `tools`: restrict or extend tools based on `runtimeContext`.
+- `memory`: change the memory instance per-run or per-tenant.
+
+---
+
+## Example: Per-tier Memory & Tool Access
+
+Per-tier memory configuration fosters strong tenant separation and resource control:
+
+```ts
+memory: ({ runtimeContext }) => {
+  const userTier = runtimeContext.get('user-tier') ?? 'free'
+  if (userTier === 'enterprise') {
+    return new Memory({ storage: enterpriseStore, options: { semanticRecall: { topK: 15 } } })
+  }
+  if (userTier === 'pro') {
+    return new Memory({ storage: proStore, options: { semanticRecall: { topK: 8 } } })
+  }
+  return new Memory({ storage: freeStore, options: { semanticRecall: { topK: 3 } } })
+}
+```
+
+Tools can similarly be added/removed:
+
+```ts
+tools: ({ runtimeContext }) => {
+  const userTier = runtimeContext.get('user-tier') ?? 'free'
+  const allowed = [knowledgeBase, ticketSystem]
+  if (userTier === 'pro' || userTier === 'enterprise') allowed.push(advancedAnalytics)
+  return allowed
+}
+```
+
+---
+
+## Setting runtimeContext securely
+
+- Only set or mutate `runtimeContext` values on the server (middleware). Validate values and strip malicious input.
+- For user IDs or roles, set values with proven authentication backends (JWT verification, OAuth tokens).
+- Avoid copying all user-submitted JSON into `runtimeContext`; copy only trusted fields.
+
+Example middleware snippet:
+
+```ts
+// validate token -> set user id and user tier in runtimeContext
+const tokenData = verifyToken(c.req.headers.authorization)
+runtimeContext.set('userId', tokenData.userId)
+runtimeContext.set('user-tier', tokenData.tier)
+runtimeContext.set('language', tokenData.locale ?? 'en')
+```
+
+---
+
+## RuntimeContext vs 'runtimeContext' from the SDK
+
+- `runtimeContext` is often used broadly to represent server-side request context; when constructing UI/SDK calls, ensure consistent naming and mapping. The server's `runtimeContext` is authoritative.
+
+---
+
+## Telemetry & runtimeContext
+
+If you record traces, you can add `runtimeContext` metadata to each trace so you can correlate a particular run to a user or tenant.
+
+```ts
+observability: {
+  // ... config
+  exporters: [
+    new LangfuseExporter({
+      // ...
+      telemetryContextMap: (runtimeContext) => ({
+        userId: runtimeContext.get('userId'),
+        tenantId: runtimeContext.get('tenantId'),
+        userTier: runtimeContext.get('user-tier'),
+      })
+    })
+  ]
+}
+```
+
+Be sure to redact or mask PII and secrets before exporting. Use `SensitiveDataFilter` for traces to remove sensitive fields.
+
+---
+
+## Good practices & patterns
+
+- **Minimal, typed keys**: Keep a small, typed set of runtimeContext keys; avoid arbitrary deep nested structures that are hard to validate and error-prone.
+- **Validation**: Use your middleware to validate keys and types before setting them.
+- **Expiration**: Consider scoped context for ephemeral values such as `requestId` or `one-time token`.
+- **Least privilege**: Always validate the current runtime context against user authorization (tools & state changes should only be allowed for proper roles).
+- **Audit & tracing**: Log critical context changes and tool calls with an audit trail.
+
+---
+
+## Debugging runtimeContext
+
+- Add debugging traces to confirm runtimeContext is accessible in your agent function (but avoid logging sensitive fields).
+- Use `runtimeContext.get('key')` to inspect values during development and lightweight tracing.
+
+---
+
+## Recap and next steps
+
+- `runtimeContext` is the canonical way to communicate per-execution state to agents, tools and workflows.
+- Use it to:
+  - determine agent model & memory selection,
+  - gate tool access,
+  - localize outputs,
+  - add telemetry info.
+- Always validate and sanitize context inputs, protect sensitive data, and use server-side middleware for mapping context values.
+
+---
+
+If you'd like, I can:
+
+- Add example middleware that maps user tokens to `runtimeContext`.
+- Add a small `runtimeContext` type guide for repo-level usage (cover widely-used keys and conventions).
+- Add live examples or sample handlers for a `helloWorld` agent showing how to pass `runtimeContext` values from client -> middleware -> agent run.
+
+Would you like any of those added next?

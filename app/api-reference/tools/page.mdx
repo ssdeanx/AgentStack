@@ -1,0 +1,227 @@
+---
+title: "Tools API"
+description: "API reference and examples for Tools in AgentStack (Mastra) — list, fetch, execute, and security best practices."
+date: "2025-12-01"
+readTime: "6 min read"
+category: "API"
+slug: "tools"
+---
+
+import { ApiEndpoint, ApiParam, CodeBlock } from "@/app/components/api-components"
+
+# Tools API
+
+Tools are sharable, typed utilities your agents use to interface with the outside world. Tools can run API requests, perform transformations, write notes, execute system commands (if permitted), or call other agents.
+
+Tools are defined in `src/mastra/tools/*` and often expose an `inputSchema` to validate inputs. Use the Tools API to inspect, execute, or manage tools programmatically.
+
+---
+
+## Tools Endpoints
+
+### List all tools
+
+```tsx
+<ApiEndpoint method="GET" path="/api/tools" description="List all available tools (id, description, metadata)" />
+```
+
+- Returns an array of tools with their ID, description, supported params, and metadata.
+
+---
+
+### Get tool details
+
+```tsx
+<ApiEndpoint method="GET" path="/api/tools/{toolId}" description="Get a tool's metadata and input schema" />
+```
+
+- Path param:
+  - `toolId` — the ID of the tool to fetch.
+- Response includes the tool's `inputSchema` (e.g., displayed as a simplified schema or `zod` representation) and supported metadata.
+
+---
+
+### Execute a tool
+
+```tsx
+<ApiEndpoint method="POST" path="/api/tools/{toolId}/execute" description="Execute a tool in the context of an optional runtime or user" />
+```
+
+- Path param:
+  - `toolId` — the ID of the tool to execute.
+- Request body:
+  - The shape depends on the tool’s `inputSchema` (tools usually apply validation).
+- Example body (generic):
+
+```json
+{
+  "input": {
+    "topic": "Generate an outline for a blog post on AgentStack",
+    "length": "short",
+    "metadata": { "userId":"123" }
+  },
+  "runtimeContext": {
+    "userId": "123",
+    "tier": "pro"
+  }
+}
+```
+
+---
+
+## Example: Execute a `copywriter-agent` tool
+
+`copywriter-agent` is a typical tool that wraps an internal agent to produce text for a topic:
+
+```tsx
+<ApiEndpoint method="POST" path="/api/tools/copywriter-agent/execute" description="Create short copy using copywriter agent" />
+```
+
+Example `curl`:
+
+```bash
+curl -s -X POST "http://localhost:4111/api/tools/copywriter-agent/execute" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "topic": "Hello World with AgentStack",
+      "contentType": "blog",
+      "length": "short"
+    }
+  }'
+```
+
+The returned payload depends on the tool's implementation; many tools return a JSON object with `content`, `status`, and `metadata` keys.
+
+---
+
+## Tool Execution Modes & Options
+
+- `sync` vs `async`: Tools can be executed synchronously (return final result) or asynchronously (return a `taskId`/`runId` to poll results).
+- `runtimeContext`: Pass `userId` or roles to a tool to ensure authorization, or to scope memory.
+- `approval` pattern: Some tools that perform destructive actions should support an approval flow (Tool Call requests + approvals via `/api/agents/:agentId/approve-tool-call`).
+
+---
+
+## Example Tool: `execa-tool` (dangerous tool — protect it!)
+
+Tools that run shell commands should be guarded. Example of an "execa-like" tool:
+
+- Only admin users should be permitted to run such tools.
+- Implement sandboxing and input validation to avoid arbitrary command execution.
+
+```tsx
+<ApiEndpoint method="POST" path="/api/tools/execa-tool/execute" description="Execute a safer, constrained shell command (admin-only)" />
+```
+
+Example recommended policy:
+
+- Validate allowed commands with a `commandWhitelist`.
+- Sanitize any user-injected arguments.
+- Maintain audit logs for every execution.
+
+---
+
+## Tool: `pg-sql-tool` (DB tool — use with caution)
+
+`pg-sql-tool` may allow direct DB queries. Best practices:
+
+- Use read-only queries where possible.
+- Avoid queries that expose or mutate private data without explicit authorization.
+- Return sanitized results in the tool output.
+
+---
+
+## Tool Input Validation
+
+Tools must validate input using schema libraries (e.g., `zod`) so invalid inputs don't crash tools or allow injection attacks:
+
+- Tools should return `400` with helpful validation messages for invalid inputs.
+- Tools executing external calls should use timeouts and retries with capped backoffs.
+
+Example:
+
+```ts
+import { z } from 'zod';
+
+export const myTool = createTool({
+  id: 'my-tool',
+  inputSchema: z.object({
+    topic: z.string(),
+    userId: z.string().optional()
+  }),
+  execute: async ({ input }) => {
+    // validated input available
+  }
+});
+```
+
+---
+
+## Tool Response Format
+
+Return a well-structured JSON:
+
+```json
+{
+  "status": "success",
+  "output": {
+    "content": "...",
+    "metadata": { "generationTimeMs": 123 }
+  },
+  "errors": []
+}
+```
+
+When tools are executed within the context of an agent, the execution result may get converted to `UIMessage` parts that agent or UI consumers understand.
+
+---
+
+## Tool Permissions & RBAC
+
+- Not all tools should be public; many are admin-only or restricted by role.
+- Use policies to limit which users, agent profiles or client roles can call which tools.
+- Consider multi-step approval (agent tool call request -> admin approval -> execute).
+- Audit logs: Always log `toolId`, `callId`, `userId`, and the `runtimeContext` for future analysis.
+
+---
+
+## Security & Safe Operation
+
+- Validate the request body to ensure it adheres to the tool `inputSchema`.
+- Rate limit high-cost or potentially abusive tool calls.
+- Protect tools that interact with the file system, run commands, or access production data.
+- Use TLS and strong authentication for server routes, and store keys in a credential manager (no secrets in git).
+- Add `SensitiveDataFilter` for telemetry so that logs don’t leak secrets.
+
+---
+
+## Usage from Agents & MCP
+
+- Tools are commonly invoked by agents inside the project; leftover logs and telemetry provide an audit trail.
+- MCP (A2A) can list available tools and define templates for tool calls, often used by a2a coordinator or orchestration workflows.
+
+---
+
+## Where to find tools in the repo
+
+- `src/mastra/tools/` — main tool implementations (e.g., `copywriter-agent-tool.ts`, `execa-tool.ts`, `pg-sql-tool.ts`, `write-note.ts`).
+- For example: `src/mastra/tools/copywriter-agent-tool.ts` demonstrates a tool wrapping an agent and dispatching calls.
+
+---
+
+## Best Practices & Recommendations
+
+- Use `zod` for input validation in each tool.
+- Limit execution to specific roles; guard destructive tools with `approval` flows.
+- Always sanitize outputs and do not return sensitive data.
+- Add tests for tool input validation and success/error scenarios.
+- Document tool `inputSchema` and example calls in the docs (like this page).
+
+---
+
+If you'd like I can:
+
+- Add tool-specific pages for high-risk tools (`execa-tool`, `pg-sql-tool`) with explicit guidelines, examples, and recommended guardrails.
+- Convert examples into interactive cURL examples or a runbook for authorized users.

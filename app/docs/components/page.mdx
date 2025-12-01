@@ -1,0 +1,298 @@
+---
+title: "UI Components"
+description: "A catalog of UI components for AgentStack (Mastra) — usage examples, common props, and best practices."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "components"
+---
+
+import { Button } from "@/ui/button"
+import { Badge } from "@/ui/badge"
+import { Input } from "@/ui/input"
+import { Card } from "@/ui/card"
+import { Avatar } from "@/ui/avatar"
+import { Tooltip } from "@/ui/tooltip"
+import { Dialog, DialogTrigger, DialogContent } from "@/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/ui/tabs"
+import { Switch } from "@/ui/switch"
+import { Badge as StatusBadge } from "@/ui/badge"
+
+# UI Components
+
+This page covers the primary UI components you can use across the AgentStack frontend. These components are implemented in `mastra/ui/` and are designed to follow a consistent design language and accessibility best practices.
+
+Where to find components:
+
+- UI source: `mastra/ui/*`
+- Examples & documentation pages: `/docs/components/*` and this catalog
+
+---
+
+## Buttons
+
+Buttons are a fundamental element of UI design. The library exposes `Button` with several variants (`default`, `primary`, `destructive`, `ghost`) and sizes.
+
+Example usage (inline):
+
+```tsx
+<Button>Default</Button>
+<Button variant="primary">Primary</Button>
+<Button variant="destructive">Delete</Button>
+<Button variant="ghost">Ghost</Button>
+```
+
+Example (code snippet):
+
+```tsx
+import { Button } from "@/ui/button";
+
+export default function Example() {
+  return (
+    <div className="space-x-3">
+      <Button>Cancel</Button>
+      <Button variant="primary">Save</Button>
+      <Button variant="destructive">Delete</Button>
+    </div>
+  )
+}
+```
+
+Props (common):
+
+- `variant`: visual variants like `primary`, `secondary`, `ghost`, `destructive`
+- `size`: `sm`, `md`, `lg` (some components)
+- `asChild`: render as a different element using `asChild` (Radix pattern) if present
+- `onClick`: click handler
+
+---
+
+## Input & Form Elements
+
+The `Input` family supports `Input`, `Textarea`, `Select`, `Checkbox`, and `RadioGroup` components.
+
+Live input example:
+
+```tsx
+<Input placeholder="Enter your email" />
+```
+
+Validation & form integration:
+
+- Use React form libraries (React Hook Form or Formik) to integrate input components.
+- Validate user input on the server side before any tool call or storage action.
+
+---
+
+## Cards & Layout Elements
+
+The `Card` component provides a consistent frame for content blocks (header, body, footer).
+
+Example:
+
+```tsx
+<Card>
+  <h3 className="text-lg font-semibold">Card Title</h3>
+  <p className="text-muted-foreground">Card content goes here. Use cards to group related items.</p>
+</Card>
+```
+
+Cards are excellent for lists, content previews, and dashboards.
+
+---
+
+## Badges & Status Components
+
+`Badge` is used to show metadata, status, or categorical labels.
+
+Usage:
+
+```tsx
+<Badge variant="secondary">Tutorial</Badge>
+<Badge variant="destructive">Deprecated</Badge>
+```
+
+Sometimes you’ll want `StatusBadge` for status-only usage (i.e., success, error, in-progress). Ensure you add suitable `aria` labels for accessibility.
+
+---
+
+## Dialogs & Modals
+
+`Dialog` and `DialogContent` wrap interactive modal conversation windows. Use them for confirmations, form dialogs, and tool approvals.
+
+Example:
+
+```tsx
+<Dialog>
+  <DialogTrigger asChild>
+    <Button variant="primary">Open Dialog</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <div className="p-4">
+      <h3 className="text-lg font-bold">Confirm Action</h3>
+      <p className="text-muted-foreground">Are you sure you want to continue?</p>
+      <div className="mt-4 flex gap-2">
+        <Button>Cancel</Button>
+        <Button variant="destructive">Confirm</Button>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
+```
+
+Use cases:
+
+- Tool execution approval
+- Form submission confirmation
+- Editor modals for live preview
+
+---
+
+## Tabs & Navigation
+
+`Tabs` divide content into visually separated sections with keyboard accessible navigation.
+
+Example:
+
+```tsx
+<Tabs defaultValue="first">
+  <TabsList>
+    <TabsTrigger value="first">Overview</TabsTrigger>
+    <TabsTrigger value="second">Examples</TabsTrigger>
+  </TabsList>
+
+  <TabsContent value="first">
+    <p>Component overview and purpose.</p>
+  </TabsContent>
+
+  <TabsContent value="second">
+    <p>Examples and demos.</p>
+  </TabsContent>
+</Tabs>
+```
+
+---
+
+## Avatar & User Media
+
+The `Avatar` component should be used for author or participant visual identity inside chat lists, comments, and profile pages.
+
+Example:
+
+```tsx
+<Avatar src="/avatar.jpg" alt="Jane Doe" />
+```
+
+Accessibility:
+
+- Always provide `alt` text for images.
+- Use `aria-hidden` when the avatar is decorative (but prefer descriptive text by default).
+
+---
+
+## Tooltips & Accessibility
+
+`Tooltip` provides transient content for hover/focusable elements to convey supplementary context.
+
+Example:
+
+```tsx
+<Tooltip content="Copy to clipboard">
+  <Button variant="ghost">Copy</Button>
+</Tooltip>
+```
+
+Accessibility & keyboard interactions:
+
+- Always make tooltips accessible via focus.
+- Use `aria-describedby` if you need programmatic instructions for screen readers.
+
+---
+
+## Switch & Toggle
+
+Switches represent binary options. Use `Switch` for settings and toggles.
+
+Example:
+
+```tsx
+<Switch />
+```
+
+---
+
+## Component Naming & Patterns
+
+- `ui/*` components are named after their semantic role `Button`, `Input`, `Card`, etc.
+- Keep component usage declarative and compose smaller building blocks where possible.
+- Use `className` and utility-first Tailwind classes to integrate styles if needed.
+
+---
+
+## Styling & Theming
+
+- The site uses Tailwind CSS. The UI components are built with a design system that respects theme variables (colors, fonts).
+- To switch themes, the project uses `next-themes` and `ThemeToggle` component from `ui` directory.
+
+---
+
+## Example: Building a compact card with actions
+
+```tsx
+<Card>
+  <div className="flex items-center justify-between">
+    <div>
+      <h4 className="text-lg font-medium">Report Title</h4>
+      <div className="text-sm text-muted-foreground">Updated 3 days ago</div>
+    </div>
+    <div className="flex items-center gap-2">
+      <Badge variant="secondary">Generated</Badge>
+      <Button variant="ghost">Open</Button>
+    </div>
+  </div>
+  <p className="mt-4 text-muted-foreground">This is a short report summary with some key points and next steps.</p>
+</Card>
+```
+
+---
+
+## Accessibility & Keyboard Navigation
+
+- All interactive elements should include semantic roles (`<button>`, `<input>`) and be keyboard accessible.
+- Use proper focus styles to help keyboard users.
+- Keep color contrast and screen-reader labels in mind for critical flows like approvals and tool execution.
+
+---
+
+## Component API Reference (Shortcuts)
+
+- `Button` — `variant`, `size`, `asChild`, `disabled`
+- `Input` — `type`, `value`, `defaultValue`, `placeholder`, `onChange`
+- `Card` — `header`, `footer`, `children` composition
+- `Badge` — `variant`
+- `Dialog` — `DialogTrigger`, `DialogContent`, `onOpenChange`
+- `Tabs` — `value`, `defaultValue`, `onValueChange`
+
+For full API signatures and props consult the component source in `mastra/ui/` (each file has types and inline docs).
+
+---
+
+## Best Practices
+
+- Use small focused components: prefer composition over flat components with many props.
+- Use theme classes and tokens for colors and spacing across all components.
+- Favor semantic HTML in content (e.g., `h1-h6` for headers).
+- Add tests for critical components (e.g., interactive behavior, a11y attributes).
+- Add Storybook or a simple demo page if you plan to expand the component library.
+
+---
+
+## Want runnable examples or interactive demos?
+
+If you want, I can:
+
+- Add a set of interactive MDX samples for each component (`/docs/components/examples/*`) with live previews and code samples.
+- Add a design tokens page, showing all color, spacing and typography tokens.
+- Build a small Storybook or component playground with `@monaco-editor/loader`.
+
+Which variant would you prefer to start with?

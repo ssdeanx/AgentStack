@@ -1,0 +1,192 @@
+---
+title: "RAG & Embeddings"
+description: "Overview and practical guide to retrieval-augmented generation (RAG), embeddings, and how to configure PgVector/Postgres with AgentStack (Mastra)."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "rag"
+---
+
+# RAG & Embeddings
+
+Retrieval-augmented generation (RAG) pairs a retrieval step (using vector search / semantic similarity) with a generative step (LLM) to provide context-aware, grounded responses. In AgentStack, RAG is commonly realized with a Postgres-backed vector store (PgVector), memory, and query tools.
+
+This guide explains core concepts and shows how to configure a basic RAG pipeline using the project code and tools:
+
+- Where to store embeddings & documents
+- How to embed content & upsert to the vector store
+- How to query the vector index and use results in agents or workflows
+- Best practices for chunking, filtering, and cost control
+
+---
+
+## 1. Why RAG?
+
+RAG solves the problem of grounding LLM responses in real, up-to-date knowledge. Instead of asking the model to have outdated facts or unlimited memory, we store documents as embedding vectors and retrieve the most relevant chunks at query time, and then use the retrieved context to generate a response.
+
+Benefits:
+
+- Up-to-date knowledge
+- Reduced hallucination
+- Improved precision over the LLM-only approach
+- Efficient storage & retrieval through vector indices
+
+---
+
+## 2. Core components used in AgentStack
+
+- `PostgresStore` (`src/mastra/config/pg-storage.ts`): Persistent Postgres store for messages and document metadata.
+- `PgVector`: Vector index storage using PgVector; used to store & query embeddings.
+- `Memory`: `@mastra/memory` component that supports semantic recall + working memory.
+- `createVectorQueryTool` / `createGraphRAGTool`: High-level utilities to perform RAG queries and optionally graph-based traversals.
+- `embedMany`: Utility to create embeddings for a chunked set of text.
+
+These components are wired in `src/mastra/config/pg-storage.ts` and then registered into the Mastra instance (`src/mastra/index.ts`).
+
+---
+
+## 3. Basic RAG workflow
+
+The canonical RAG flow:
+
+1. Ingest a document (PDF, HTML, CSV, JSON, etc.).
+2. Chunk and preprocess the content into manageable text pieces.
+3. Embed each chunk using an embedding model (e.g., `gemini-embedding-001`).
+4. Upsert vectors + metadata to the vector DB (PgVector).
+5. When a user query arrives, query the vector index for the most relevant chunks.
+6. Pass the retrieved chunks as context to an agent or LLM; the agent generates a response informed by the retrieved context.
+
+---
+
+## 4. Example: Chunk → Embed → Upsert
+
+Here’s a concise example for embedding and upserting documents (adapted from repo utilities).
+
+```ts
+// Embedded snippet (conceptual)
+import { embedMany } from 'ai'
+import { pgVector } from './config/pg-storage'
+import type { MDocument } from '@mastra/rag'
+
+async function embedAndUpsert(documents: Array<{ id: string, text: string }>) {
+  const chunks = documents.flatMap(doc => textToChunks(doc.id, doc.text));
+  // embedMany accepts an array of strings and returns embeddings
+  const { embeddings } = await embedMany({
+    values: chunks.map(c => c.text),
+    model: google.textEmbedding('gemini-embedding-001'),
+    maxRetries: 3,
+  });
+
+  const upsertItems: MDocument[] = chunks.map((chunk, idx) => ({
+    id: chunk.id,
+    content: chunk.text,
+    embedding: embeddings[idx],
+    metadata: { sourceId: chunk.sourceId, position: chunk.position }
+  }));
+
+  // Upsert into the PgVector store (using repo function)
+  await pgVector.upsert({ indexName: 'memory_messages_3072', items: upsertItems });
+}
+```
+
+Considerations:
+
+- Chunking: choose chunk sizes that balance context richness and token costs (typical chunk size ~ 200-1000 tokens).
+- Overlap: some overlapping content across chunks improves retrieval quality at the edges.
+- Metadata: store useful metadata to filter or enhance results (source, doc timestamp, author).
+
+---
+
+## 5. Querying the vector store
+
+AgentStack provides tools like `pgQueryTool` (wrapped by `createVectorQueryTool`) to query the index. A sample query call could be:
+
+```ts
+// Using a repo-configured vector query tool (conceptual usage)
+const response = await pgQueryTool.execute({
+  query: "How does the project handle GDPR-compliant user data removal?",
+  topK: 5,
+  filter: { sourceType: 'policy' } // example metadata filter
+})
+```
+
+The tool returns the topK vectors with associated metadata and optionally the stored chunks. Agents then use these chunks to form a prompt for an LLM.
+
+---
+
+## 6. Graph-based RAG and reranking
+
+In addition to flat vector search, AgentStack supports graph-based traversal methods (`graphQueryTool`) — these can help jump across document relationships or traverse related concepts for better context in certain use cases (e.g., knowledge graphs).
+
+Reranking strategies re-score results using a ranking model or additional heuristics to improve precision if retrieval yields noisy or less relevant results.
+
+---
+
+## 7. Embedding generation & tracing
+
+Your repository includes production-grade embedding generation with tracing (extracted from `src/mastra/config/pg-storage.ts`). This shows generating embeddings using `embedMany` and capturing telemetry and tracing data for observability:
+
+```ts
+// conceptual snippet from generateEmbeddings in repo
+const { embeddings } = await embedMany({
+  values: chunks.map(c => c.text),
+  model: google.textEmbedding('gemini-embedding-001'),
+  maxRetries: 3,
+  maxParallelCalls: 20,
+  experimental_telemetry: {
+    // optional telemetry config for tracing embedding calls inside your stack
+  }
+});
+```
+
+Observability around RAG operations provides insights into embedding latency, failed requests, and cost. Guard expensive operations by setting sensible `maxRetries`, `batchSize` and `maxParallelCalls`.
+
+---
+
+## 8. Using RAG in Agents & Workflows
+
+A common pattern: attach `pgMemory` to agents or pass retrieved chunks into agent prompts within a workflow:
+
+- Agents can call the `pgQueryTool` to fetch relevant chunks on demand and use them in the LLM prompt.
+- Workflows can do a pre-fetch step that retrieves relevant documents, potentially filters them by metadata, then pass the results into subsequent steps for summarization or generation.
+
+Example workflow (conceptual):
+
+1. User query is received.
+2. Workflow step: call `pgQueryTool` to fetch topK chunks.
+3. Workflow step: pass retrieved context + user message to an agent to generate a summary/answer.
+4. Optionally save the question & final answer back as a memory/upsert.
+
+---
+
+## 9. Guardrails, costs, and best practices
+
+- Limit topK: higher `topK` yields better context but increases token usage. Common values are 3–10.
+- Use filters: metadata filters drastically improve precision (source, doc type, date).
+- Chunk wisely: 200–700 tokens per chunk is a good range (depends on the model).
+- Keep the prompt size bounded: avoid passing too many chunks to a model that can’t handle them.
+- Redaction & PII: do not embed sensitive data; add preprocessing steps to sanitize or mask personal data before embedding; you can use `maskStreamTags`.
+- Cache & TTL: for expensive retrieval, use a caching layer for repeated queries.
+- Use retrain or indexing refresh strategies for dynamic data (e.g., schedule periodic re-indexing).
+
+---
+
+## 10. Next steps & resources
+
+- For repo references:
+  - `src/mastra/config/pg-storage.ts` — PgVector & Memory config and tools like `pgQueryTool` & `graphQueryTool`.
+  - `src/mastra/tools` — tools that facilitate ingestion, parsing, and RAG helper tools.
+  - `src/mastra/agents` — agent examples that call vector tools.
+  - `src/mastra/workflows` — examples combining retrieval & generation.
+- Consider adding more examples for:
+  - Multi-lingual embeddings & translation workflows
+  - Incremental indexing for streaming ingestion
+  - Evaluation & scoring for retrieved results
+
+---
+
+If you'd like, I can:
+
+- Convert an agent in the repo (e.g., `editorAgent` or `researchAgent`) into a step-by-step RAG example that shows the full pipeline (ingest → chunk → upsert → query → generate).
+- Add a dedicated `/docs/rag/examples` folder with runnable examples and tests.
+- Add guidance on costs and best practices for the specific embedding model & provider you use.

@@ -1,0 +1,215 @@
+---
+title: "Core Concepts"
+description: "High-level overview of Agents, Tools, Workflows, Memory/Storage, Networks, MCP, and other core concepts in AgentStack (Mastra)."
+date: "2025-12-01"
+readTime: "8 min read"
+category: "Docs"
+slug: "core-concepts"
+---
+
+# Core Concepts
+
+This page summarizes the main building blocks you’ll interact with when building applications with AgentStack (Mastra). If you’re new, start with the Getting Started guide and the 'Hello World' blog post — both link to examples that assemble these concepts into a working app.
+
+Key concepts:
+- Agents — the “brains” that process instructions and produce outputs.
+- Tools — helper services that agents call for external actions and integrations.
+- Workflows — multi-step orchestrations built from agents and actions.
+- Memory & Storage — persistent storage and embeddings (e.g., Postgres + PgVector).
+- Networks — logical coordination layers across agents and workflows.
+- Server & API routing — how you expose agent capabilities to clients.
+- MCP — agent/resource discovery and coordination (A2A).
+- Observability & Scorers — tracing, scoring, and telemetry for reliability.
+
+---
+
+## Agents
+
+Agents are stateful or stateless (as designed) units that encapsulate instructions, models, memory, and tool access. They can be simple or complex, from a `hello-world` agent to a data-processing pipeline agent.
+
+Example agent (trimmed):
+```ts
+import { Agent } from "@mastra/core/agent";
+
+export const helloWorldAgent = new Agent({
+  id: "hello-world-agent",
+  name: "Hello World Agent",
+  description: "Replies with a short greeting",
+  instructions: () => ({
+    role: "system",
+    content: "Respond to the user with a short friendly greeting."
+  }),
+  // Optionally attach memory, tools, or model configs
+});
+```
+
+Common responsibilities:
+- Fetching or using memory and context
+- Calling tools for external actions (e.g., data fetch, scraping)
+- Producing structured or streaming responses
+- Leveraging models and tool routing
+
+Tip: See `src/mastra/agents` for full examples (copywriter, research agent, weather agent, etc.).
+
+---
+
+## Tools
+
+Tools let agents perform specific external operations like accessing an API, storing files, or running complex logic. Tools are often built using `createTool` and provide a structured interface for inputs & outputs.
+
+Example tool (simplified):
+```ts
+import { createTool } from "@mastra/core";
+import { copywriterAgent } from "../agents/copywriterAgent";
+
+export const copywriterTool = createTool({
+  id: "copywriter-agent",
+  description: "Generate marketing copy using copywriterAgent",
+  execute: async ({ input }) => {
+    const { topic } = input;
+    const result = await copywriterAgent.generate(`Write a short blog post about ${topic}`);
+    return { content: result.output };
+  }
+});
+```
+
+Use cases:
+- Wrapping provider APIs (SerpAPI, Polygon, Finnhub)
+- Running synchronous or async tasks
+- Integration with internal services (e.g., GitHub, DBs)
+
+---
+
+## Workflows
+
+Workflows are sequences of steps (each step can call an agent or tool) that implement a business process: review loops, document processing, report generation, etc.
+
+Example outline:
+```ts
+import { createWorkflow, createStep } from "@mastra/core/workflows";
+import { z } from "zod";
+
+const step = createStep({
+  id: "draft",
+  inputSchema: z.object({ topic: z.string() }),
+  outputSchema: z.object({ draft: z.string() }),
+  execute: async ({ inputData }) => {
+    // e.g. call a copywriting agent
+    return { draft: "Generated draft..." };
+  },
+});
+
+export const contentWorkflow = createWorkflow({
+  id: "content-workflow",
+  inputSchema: z.object({ topic: z.string() }),
+}).then(step).commit();
+```
+
+Workflows are persistent and track the state of each run — critical for multi-step or long-lived automations.
+
+---
+
+## Memory & Storage
+
+Memory (working & long-term) stores the context agents use to produce higher-quality, grounded outputs. In AgentStack, Postgres + PgVector is a common, production-worthy combination for RAG (retrieval augmented generation).
+
+Key file: `src/mastra/config/pg-storage.ts` — sets up `PostgresStore`, `PgVector`, and `Memory`.
+
+Small snippet:
+```ts
+import { Memory } from "@mastra/memory";
+import { PgVector, PostgresStore } from "@mastra/pg";
+import { google } from "@ai-sdk/google";
+
+export const pgStore = new PostgresStore({ connectionString: process.env.SUPABASE });
+export const pgVector = new PgVector({ connectionString: process.env.SUPABASE });
+export const pgMemory = new Memory({
+  storage: pgStore,
+  vector: pgVector,
+  embedder: google.textEmbedding("gemini-embedding-001"),
+});
+```
+
+Memory features:
+- `semanticRecall` (topK queries against embeddings)
+- `workingMemory` (short-term context)
+- `threaded` memory (threads for focused conversations)
+- Persisting messages and enabling RAG-style context retrieval
+
+---
+
+## Networks
+
+Networks coordinate multiple agents and workflows into a broader route or policy. For example, an Agent Network decides which agent is the best match for a request (research vs. copywriter vs. stock analysis). Networks are defined in `src/mastra/networks`.
+
+Use cases:
+- Routing requests to specialized agents
+- Managing agent-to-agent pipelines
+- Combining analytics and dispatch logic
+
+---
+
+## Server & API routes
+
+`src/mastra/index.ts` stitches agents, vectors, tools, and workflows into a `Mastra` instance and configures server routes like `/chat`, `/workflow`, and `/network`.
+
+Simple API wiring:
+```ts
+import { Mastra } from "@mastra/core/mastra";
+import { chatRoute } from "@mastra/ai-sdk";
+import { helloWorldAgent } from "./agents/helloWorldAgent";
+
+export const mastra = new Mastra({
+  agents: { helloWorldAgent },
+  server: {
+    apiRoutes: [ chatRoute({ path: '/chat', agent: 'hello-world-agent' }) ]
+  }
+});
+```
+
+Routes support streaming and structured responses, enabling frontend libraries to use the UI streaming features.
+
+---
+
+## MCP (Agent Coordination / A2A)
+
+MCP offers discovery & resource metadata for A2A (agent-to-agent) coordination. The MCP server exposes:
+- Resources and templates
+- Available agents and their metadata
+- Standard prompts and protocols for orchestrating agent flows
+
+Check `src/mastra/mcp` for the `a2aCoordinatorMcpServer` and resource handlers.
+
+---
+
+## Observability & Scorers
+
+Observability is important for production: tracing & telemetry, scorers for quality & safety. The repository uses tracing and exporters (e.g., Langfuse exporter) and scoring functions to evaluate and monitor agent outputs.
+
+You’ll see `observability` configured in `index.ts` (sampling, processors, exporters) and custom scorers under `src/mastra/scorers`.
+
+---
+
+## Best practices
+
+- Keep model and provider config in `index.ts` or a central config.
+- Use `pgMemory` (or another vector store) for persistent RAG when needed.
+- Keep tools small and focused — encapsulate API calls or permissions.
+- Limit exposure of unsafe server endpoints and enforce access controls.
+- Use `SensitiveDataFilter`/redaction for telemetry to avoid sending secrets.
+- Use workflows for repeatable, auditable flows: they enable state and observability.
+
+---
+
+## Where to go next
+
+- Getting Started page: practical install & dev setup
+- Blog: “Hello World” example (we just added a 10-minute tutorial)
+- API reference: endpoint docs & examples
+- `src/mastra/agents`: explore agent implementations
+- `src/mastra/tools`: review tool integrations
+- `src/mastra/workflows`: see real workflow examples
+
+---
+
+*Framework Version: 1.0.0 | Last Updated: 2025-12-01*

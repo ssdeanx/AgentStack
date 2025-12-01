@@ -74,6 +74,33 @@ export function ApiReferenceContent() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+        {/* Quick Links — Agents / Tools / Workflows */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/api-reference/agents"
+            className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
+          >
+            <h3 className="mb-1 text-sm font-semibold text-foreground">Agents</h3>
+            <p className="text-sm text-muted-foreground">See agent endpoints, streaming, and agent tool call docs</p>
+          </Link>
+
+          <Link
+            href="/api-reference/tools"
+            className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
+          >
+            <h3 className="mb-1 text-sm font-semibold text-foreground">Tools</h3>
+            <p className="text-sm text-muted-foreground">Tool execution endpoints and sample integrations</p>
+          </Link>
+
+          <Link
+            href="/api-reference/workflows"
+            className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
+          >
+            <h3 className="mb-1 text-sm font-semibold text-foreground">Workflows</h3>
+            <p className="text-sm text-muted-foreground">Workflow run creation, streaming, and management</p>
+          </Link>
+        </div>
       </div>
 
       <div className="mx-auto max-w-4xl space-y-8">

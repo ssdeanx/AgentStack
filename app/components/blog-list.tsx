@@ -7,6 +7,14 @@ import { CalendarIcon, ClockIcon, ArrowRightIcon } from "lucide-react"
 
 const BLOG_POSTS = [
   {
+    title: "Hello World with AgentStack (Mastra)",
+    excerpt: "A 10-minute guide to get started with AgentStack, covering agents, tools, storage, MCP, and workflows.",
+    date: "2025-12-01",
+    readTime: "10 min read",
+    category: "Tutorial",
+    slug: "hello-world-agentstack",
+  },
+  {
     title: "Introducing AgentStack: Multi-Agent Framework for Production",
     excerpt: "Learn how AgentStack simplifies building, deploying, and managing AI agents at scale with our new open-source framework.",
     date: "2025-11-28",

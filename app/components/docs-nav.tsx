@@ -23,6 +23,13 @@ const DOC_SECTIONS = [
     articles: ["Agents", "Tools", "Workflows", "Networks"],
   },
   {
+    title: "AI SDK",
+    description: "Using the Vercel AI SDK with Mastra for streaming, hooks, and UI integration",
+    icon: CodeIcon,
+    href: "/docs/ai-sdk",
+    articles: ["chatRoute()", "useChat()", "toAISdkFormat()"],
+  },
+  {
     title: "API Reference",
     description: "Complete API documentation for all modules",
     icon: CodeIcon,
@@ -42,6 +49,20 @@ const DOC_SECTIONS = [
     icon: SettingsIcon,
     href: "/docs/configuration",
     articles: ["Providers", "Storage", "Environment Variables"],
+  },
+  {
+    title: "Components",
+    description: "Site & component library, examples and usage guidance",
+    icon: CodeIcon,
+    href: "/docs/components",
+    articles: ["Site Components", "Component Patterns", "Examples"],
+  },
+  {
+    title: "UI",
+    description: "Theme, tokens, accessibility, and UI guidelines",
+    icon: BookOpenIcon,
+    href: "/docs/ui",
+    articles: ["Design Tokens", "Theme", "Accessibility"],
   },
   {
     title: "Security",

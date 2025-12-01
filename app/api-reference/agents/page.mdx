@@ -1,0 +1,253 @@
+---
+title: "Agents API"
+description: "Detailed API reference for Agents — endpoints, request and response shapes, examples, and best practices for calling and managing agents in AgentStack."
+date: "2025-12-01"
+readTime: "6 min read"
+category: "API"
+slug: "agents"
+---
+
+import { ApiEndpoint, ApiParam, CodeBlock } from "@/app/components/api-components"
+
+# Agents API Reference
+
+The Agents API exposes endpoints for discovering, running, and managing agents. Agents are first-class runtime elements in the system and can be invoked directly from the client or middleware. Each agent has its own route and a standard set of endpoints for synchronous and streaming responses, tooling calls, and configuration updates.
+
+Authentication
+
+- Use `Authorization: Bearer <API_KEY>` or other authentication mechanisms your server enforces.
+- Verify quotas, rate limits, and RBAC based on your deployment.
+
+---
+
+## Common Agent Endpoints
+
+### List agents
+
+```tsx
+<ApiEndpoint method="GET" path="/api/agents" description="List all registered agents" />
+```
+
+- Description: Returns a list of all agents including ID, name, description, and capabilities.
+- Example request:
+
+```bash
+curl -X GET "http://localhost:4111/api/agents" -H "Authorization: Bearer $KEY"
+```
+
+### Get agent details
+
+```tsx
+<ApiEndpoint method="GET" path="/api/agents/{agentId}" description="Get a specific agent's details" />
+```
+
+- Path param:
+  - `agentId` — the ID of the agent to fetch.
+- Response: Agent config, tools, models, and metadata.
+
+---
+
+## Generate (single/call/structured)
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/generate" description="Generate a response from an agent (non-streaming)" />
+```
+
+- Usage: Synchronous call to run the agent and get a final response. Useful for smaller flows or for SDK use.
+- Request body sample:
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Write a short intro about AgentStack." }
+  ],
+  "structuredOutput": false
+}
+```
+
+- Response: JSON with `UIMessage` style parts or structured output (if requested by `structuredOutput`).
+- Example `curl`:
+
+```bash
+curl -s -X POST "http://localhost:4111/api/agents/my-agent/generate" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages":[ {"role":"user","content":"Hello World!"} ],
+    "structuredOutput": false
+  }'
+```
+
+---
+
+## Stream/Realtime (server-sent events / streaming)
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/stream" description="Open a streaming session with the agent" />
+```
+
+- This route returns an SSE/stream where partial reasoning and content events are emitted. Use this endpoint in UIs for incremental responses.
+- Body same as "generate" but the response is streamed.
+
+---
+
+## Tool Execution
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/tools/{toolId}/execute" description="Execute a specific tool within the context of an agent" />
+```
+
+- Path parameters:
+  - `agentId` — ID of the agent invoking the tool (context for tool security).
+  - `toolId` — ID of the tool to execute.
+- Body: Depends on the tool; each tool defines its `inputSchema`.
+- Example:
+
+```bash
+curl -X POST "http://localhost:4111/api/agents/copywriter-agent/tools/copywriter-agent/execute" \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic": "Hello World with AgentStack",
+    "length": "short"
+  }'
+```
+
+---
+
+## Managing Agent Config
+### Update/Enhance Instructions
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/instructions" description="Update instruction sets for an agent" />
+```
+
+- Body: `instructions` payload or an enhancer.
+- Example: enhance default prompt or fix instruction bias.
+
+### Enhance Instructions using assistant enhancements
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/instructions/enhance" description="Automatic enhancement of instructions" />
+```
+
+- This endpoint may be used to automatically rewrite or improve agent instruction text.
+
+---
+
+## Tool approvals
+Agents may request approvals for specific tool calls (dangerous or costly tools). Admins or policy services can approve or decline tool calls.
+
+- Approve tool call:
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/approve-tool-call" description="Approve a tool call requested by an agent" />
+```
+
+- Decline tool call:
+
+```tsx
+<ApiEndpoint method="POST" path="/api/agents/{agentId}/decline-tool-call" description="Decline a tool call requested by an agent" />
+```
+
+- Body fields:
+  - `runId`: The running session or call ID tied to that tool invocation.
+  - `toolCallId`: The tool call ID to approve or reject.
+- Example:
+
+```bash
+curl -X POST "http://localhost:4111/api/agents/my-agent/approve-tool-call" \
+ -H "Authorization: Bearer $API_KEY" \
+ -d '{"runId":"run-1234","toolCallId":"toolcall-abc"}'
+```
+
+---
+
+## Evals / CI endpoints
+
+- Some agents expose continuous integration or live evaluation endpoints:
+  - `GET /api/agents/{agentId}/evals/ci` — CI-run evaluations
+  - `GET /api/agents/{agentId}/evals/live` — Live running evaluations & results
+
+These endpoints are useful for CI/CD that automates or validates agent behavior.
+
+---
+
+## Misc Agent Endpoints
+
+- `GET /.well-known/{agentId}/agent-card.json` — Public agent metadata card (OpenAgent style JSON).
+- `POST /api/agents/{agentId}/speak` or `/api/agents/{agentId}/voice/speak` — Text to speech (TTS) for agent outputs.
+- `POST /api/agents/{agentId}/listen` or `/api/agents/{agentId}/voice/listen` — Speech-to-text or audio input for an agent.
+- `GET /api/agents/{agentId}/voice/speakers` — list available voice speakers for TTS.
+
+---
+
+## Body & Response Shapes
+
+- `messages[]`:
+  - List of messages in standard roles (`user`, `assistant`, `system`, `tool`). For example:
+  
+    ```json
+    [
+      {"role":"user","content":"Hello!"},
+      {"role":"system","content":"You are a helpful assistant."}
+    ]
+    ```
+
+- Agent responses usually return `UIMessage` shape:
+  - `id`, `createdAt`, `role`, `parts` (array; each part may include `text`, `type`, `tool_data`, `structured_output` etc.)
+  - `metadata` — run/trace info
+
+- For structured output flows, the `structuredOutput` flag returns typed results as described in the agent's output schema.
+
+---
+
+## Rate Limits, Quotas, & Security
+
+- Rate limits and quotas should be enforced according to your hosting plan and use case. Agents are expensive: limit `maxSteps` and streaming concurrency, and require user authentication.
+- Validate the `agentId` path parameter and ensure the agent is allowed to be invoked by the caller (RBAC).
+- For production, add server-side policies to prevent tool misuse, ensure tool usage tracking and audit trails.
+
+---
+
+## Example: Using the Agents API from JavaScript
+
+```ts
+// fetch / generate example
+const resp = await fetch("http://localhost:4111/api/agents/hello-world-agent/generate", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`
+  },
+  body: JSON.stringify({
+    messages: [{ role: "user", content: "Say hello in a friendly tone" }]
+  })
+});
+const data = await resp.json();
+console.log("Agent response:", data);
+```
+
+---
+
+## Best practices
+
+- Always validate and sanitize user input before sending to tools & agents.
+- Use streaming (`/stream`) for better UX when the agent has long-running reasoning.
+- Use `structuredOutput` when the agent is designed to return an object (safer programmatic integration).
+- Monitor telemetry and implement `SensitiveDataFilter` in the server to avoid leaking secrets in observability pipelines.
+
+---
+
+## Further reading
+
+- OpenAPI schema overview: `/api-reference/openapi-schema`
+- RAG & Memory: `/docs/rag`
+- Tools & Agent Builder: see `src/mastra/tools/*` and `src/mastra/agents/*`
+- Example agent definitions and patterns: `src/mastra/agents`
+
+If you want, I can:
+
+- Add full example requests for each endpoint in code samples (JS/TS, curl).
+- Convert the core endpoints to `ApiEndpoint` components for richer UI docs.
+- Add a sandbox example for `agent.generate` and `agent.stream` usage.
