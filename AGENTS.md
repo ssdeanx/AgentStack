@@ -46,18 +46,37 @@ Node >= 20.9.0 is required (see `package.json` engine field).
 
 At minimum, a local development environment should provide:
 
-- `PG_CONNECTION` (for Postgres + PgVector in pg-storage)
-- `OPENAI_API_KEY`, or other model provider keys like `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY` for model access
+- `SUPABASE` / `DATABASE_URL` (for Postgres + PgVector in pg-storage)
+- `GOOGLE_GENERATIVE_AI_API_KEY` / `GOOGLE_API_KEY` (primary model provider)
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY` (alternative providers)
 - `SERPAPI_API_KEY` (if running SerpAPI-based tools)
 - `ALPHA_VANTAGE_API_KEY` / `FINNHUB_API_KEY` / `POLYGON_API_KEY` for financial tools
 
-Create a `.env` file for local development with the above placeholder variables. Example `.env`:
+Create a `.env` file for local development. Example `.env`:
 
 ```env
-PG_CONNECTION=postgres://user:password@localhost:5432/mastra
+# Database
+SUPABASE=postgresql://user:password@localhost:5432/mastra
+DATABASE_URL=postgresql://user:password@localhost:5432/mastra
+DB_SCHEMA=mastra
+
+# AI Providers (Google Gemini is primary)
+GOOGLE_GENERATIVE_AI_API_KEY=your-key
+GOOGLE_API_KEY=your-key
+
+# Optional providers
 OPENAI_API_KEY=sk-xxxxx
+ANTHROPIC_API_KEY=xxxxx
+OPENROUTER_API_KEY=xxxxx
+
+# Tools
 SERPAPI_API_KEY=xxxx
 ALPHA_VANTAGE_API_KEY=xxxx
+FINNHUB_API_KEY=xxxx
+POLYGON_API_KEY=xxxx
+
+# Mastra API
+NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
 ```
 
 ## Development Workflow

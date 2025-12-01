@@ -59,6 +59,9 @@ import {
   chartTypeAdvisorAgent,
 } from './agents/recharts';
 
+// Image Processing Agents
+import { imageAgent } from './agents/image';
+
 // Networks
 import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
 
@@ -137,7 +140,9 @@ export const mastra = new Mastra({
     legalResearchAgent,
     businessStrategyAgent,
     complianceMonitoringAgent,
-    contractAnalysisAgent
+    contractAnalysisAgent,
+    // Image Processing Agents
+    imageAgent,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
@@ -245,7 +250,7 @@ export const mastra = new Mastra({
             },
             resource: "network",
             options:
-            { semanticRecall: true, }
+              { semanticRecall: true, }
           },
           maxSteps: 200,
           telemetry: {
