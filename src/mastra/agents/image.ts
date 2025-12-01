@@ -33,6 +33,7 @@ export const imageAgent = new Agent({
       providerOptions: {
         google: {
           numberOfImages: 4,
+          
         }
       }
     }

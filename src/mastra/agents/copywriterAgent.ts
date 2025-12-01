@@ -117,7 +117,10 @@ Provide the final content in a clear, well-structured format appropriate for the
                         thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
-                    }
+                    },
+                    responseModalities: ['TEXT', 'IMAGE'],
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    maxOutputTokens: 64000,
                 }
             }
         }

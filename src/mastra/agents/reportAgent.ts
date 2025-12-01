@@ -98,6 +98,7 @@ export const reportAgent = new Agent({
             thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT', 'IMAGE'],
           maxOutputTokens: 64000,
           temperature: 0.2,
           topP: 1.0

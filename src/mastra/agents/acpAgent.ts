@@ -124,6 +124,7 @@ export const acpAgent = new Agent({
             thinkingBudget: -1,
           },
           media_resolution: "MEDIA_RESOLUTION_MEDIUM",
+          responseModalities: ['TEXT', 'IMAGE'],
           maxOutputTokens: 64000,
         },
       },

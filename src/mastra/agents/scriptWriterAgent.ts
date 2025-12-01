@@ -56,7 +56,8 @@ export const scriptWriterAgent = new Agent({
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }

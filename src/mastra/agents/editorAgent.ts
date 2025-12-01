@@ -112,7 +112,8 @@ You must respond with a JSON object in the following format:
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }

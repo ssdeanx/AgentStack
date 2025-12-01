@@ -81,7 +81,10 @@ Output:
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT', 'IMAGE'],
+          maxOutputTokens: 64000,
         }
       }
     }
