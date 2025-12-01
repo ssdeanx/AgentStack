@@ -4,13 +4,22 @@ import { RuntimeContext } from '@mastra/core/runtime-context'
 import { imageGen, pgMemory } from '../config'
 import { log } from '../config/logger'
 
+
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type ImageRuntimeContext = {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
+  aspectratio: '16:9' | '4:3' | '1:1'
+  resolution: '2K' | '1K'
+  numberOfImages: 1 | 2 | 4
 }
 
 log.info('Initializing Financial Chart Agents...')
+
+const aspectRatio = '16:9';
+const AspectRatio2K = '4:3';
+const resolution = '2K';
+const resolution1K = '1K';
 
 /**
  * Chart Type Advisor Agent
@@ -24,16 +33,23 @@ export const imageAgent = new Agent({
     // runtimeContext is read at invocation time
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
+    const aspectratioX = runtimeContext.get('aspectratio') ?? '16:9'
+    const resolutionY = runtimeContext.get('resolution') ?? '2K'
     return {
       role: 'system',
       content: `You are an expert in generating images based on user requirements.
       tier: ${userTier}
       language: ${language}
+      aspect ratio: ${aspectratioX}
+      resolution: ${resolutionY}
       Your task is to create visually appealing and informative images that accurately represent the data provided by the user. Consider the user's preferences, such as color scheme and chart style, to ensure the image is both aesthetically pleasing and informative.`,
       providerOptions: {
         google: {
           numberOfImages: 4,
-          
+          imageConfig: {
+          aspectRatio: aspectRatio || AspectRatio2K,
+          imageSize: resolution || resolution1K,
+          },
         }
       }
     }
