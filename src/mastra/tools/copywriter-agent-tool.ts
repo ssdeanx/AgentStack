@@ -2,7 +2,7 @@ import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
-
+import type { TracingContext } from '@mastra/core/ai-tracing';
 // Define runtime context for this tool
 export interface CopywriterToolContext {
     userId?: string
@@ -70,7 +70,7 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Approximate word count of the content'),
     }),
-    execute: async ({ context, mastra, writer, tracingContext }) => {
+    execute: async ({ context, mastra, writer, tracingContext } ) => {
         const {
             topic,
             contentType = 'blog',

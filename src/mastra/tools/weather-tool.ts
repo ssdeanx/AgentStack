@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { TracingContext } from '@mastra/core/ai-tracing';
 
 // Define the Zod schema for the runtime context
 const weatherToolContextSchema = z.object({

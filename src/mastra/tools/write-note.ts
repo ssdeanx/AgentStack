@@ -3,7 +3,7 @@ import { AISpanType } from "@mastra/core/ai-tracing";
 import { z } from "zod";
 import path from "node:path";
 import fs from "fs/promises";
-
+import type { TracingContext } from '@mastra/core/ai-tracing';
 
 const NOTES_DIR = path.join(process.cwd(), "notes");
 
@@ -21,7 +21,7 @@ export const writeNoteTool = createTool({
       .describe("The markdown content of the note."),
   }),
   outputSchema: z.string().nonempty(),
-  execute: async ({ context, tracingContext }) => {
+  execute: async ({ context, tracingContext }: { context: { title: string; content: string }, tracingContext?: TracingContext }) => {
     const startTime = Date.now();
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,

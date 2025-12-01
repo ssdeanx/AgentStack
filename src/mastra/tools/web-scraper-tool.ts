@@ -24,7 +24,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { JSDOM } from 'jsdom'
 import { log } from '../config/logger'
-
+import type { TracingContext } from '@mastra/core/ai-tracing';
 // Enhanced HTML processing with JSDOM
 const DANGEROUS_TAGS = new Set([
     'script',
@@ -408,7 +408,7 @@ export const webScraperTool = createTool({
         'Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.',
     inputSchema: webScraperInputSchema,
     outputSchema: webScraperOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { url: string; selector?: string; extractAttributes?: string[]; saveMarkdown?: boolean; markdownFileName?: string }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: `🌐 Starting web scrape for ${context.url}` } });
         toolCallCounters.set('web-scraper', (toolCallCounters.get('web-scraper') ?? 0) + 1)
         const scrapeSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -741,7 +741,7 @@ export const batchWebScraperTool = createTool({
         'Scrape multiple web pages concurrently with enhanced JSDOM processing and rate limiting.',
     inputSchema: batchWebScraperInputSchema,
     outputSchema: batchWebScraperOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { urls: string[]; selector?: string; maxConcurrent?: number; saveResults?: boolean; baseFileName?: string }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: `🌐 Batch scraping ${context.urls.length} URLs` } });
         toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
         const batchSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1000,7 +1000,7 @@ export const siteMapExtractorTool = createTool({
         'Extract a comprehensive site map by crawling internal links with enhanced JSDOM processing and rate limiting.',
     inputSchema: siteMapExtractorInputSchema,
     outputSchema: siteMapExtractorOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { url: string; maxDepth?: number; maxPages?: number; includeExternal?: boolean; saveMap?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: `🗺️ Starting site map extraction for ${context.url}` } });
         toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
         const mapSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1259,7 +1259,7 @@ export const linkExtractorTool = createTool({
         'Extract and analyze all links from a web page with enhanced JSDOM processing and filtering.',
     inputSchema: linkExtractorInputSchema,
     outputSchema: linkExtractorOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { url: string; linkTypes?: ('internal' | 'external' | 'all')[]; includeAnchors?: boolean; filterPatterns?: string[] }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: `🔗 Extracting links from ${context.url}` } });
         toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
         const linkSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1489,7 +1489,7 @@ export const htmlToMarkdownTool = createTool({
         'Convert HTML content to well-formatted markdown with enhanced JSDOM parsing and security.',
     inputSchema: htmlToMarkdownInputSchema,
     outputSchema: htmlToMarkdownOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { html: string; saveToFile?: boolean; fileName?: string }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: '🔄 Converting HTML to markdown...' } });
         toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
         const convertSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1621,7 +1621,7 @@ export const listScrapedContentTool = createTool({
         'List all scraped content files stored in the data directory with enhanced security.',
     inputSchema: listScrapedContentInputSchema,
     outputSchema: listScrapedContentOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { pattern?: string; includeMetadata?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: '📂 Listing scraped content files...' } });
         toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -1812,7 +1812,7 @@ export const contentCleanerTool = createTool({
         'Clean HTML content by removing unwanted elements with enhanced JSDOM processing and security.',
     inputSchema: contentCleanerInputSchema,
     outputSchema: contentCleanerOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { html: string; removeScripts?: boolean; removeStyles?: boolean; removeComments?: boolean; preserveStructure?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
       await writer?.write({ type: 'progress', data: { message: '🧹 Starting content cleaning...' } });
         toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
         const cleanSpan = tracingContext?.currentSpan?.createChildSpan({

@@ -5,7 +5,7 @@ import { execa, ExecaError } from 'execa';
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
-
+import type { TracingContext } from '@mastra/core/ai-tracing';
 // Create transform stream that applies chalk
 const colorTransform = new Transform({
   transform(chunk, _encoding, callback) {
@@ -27,7 +27,7 @@ export const execaTool = createTool({
         message: z.string(),
     }),
 
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { command: string; args: string[] }, writer?: any, tracingContext?: TracingContext }) => {
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'execa-tool',

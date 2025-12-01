@@ -1,3 +1,4 @@
+import { context } from '@opentelemetry/api';
 // Kilocode: Tool Approval
 // owner: team-data
 // justification: PDF parsing and markdown conversion for RAG indexing
@@ -25,6 +26,7 @@ import {
 	logError,
 	logToolExecution,
 } from '../config/logger'
+import type { TracingContext } from '@mastra/core/ai-tracing';
 
 // Lazy-loaded pdf-parse to avoid demo parsing errors
 let pdfParse: unknown = null
@@ -498,7 +500,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
   `,
 	inputSchema: PdfToMarkdownInputSchema,
 	outputSchema: PdfToMarkdownOutputSchema,
-	execute: async ({ context, tracingContext, writer }) => {
+	execute: async ({ context, tracingContext, writer } ) => {
 		const startTime = Date.now()
 		logToolExecution('pdf-to-markdown', { input: context })
 

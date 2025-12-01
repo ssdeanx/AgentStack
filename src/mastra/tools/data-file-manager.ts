@@ -21,6 +21,7 @@ import { pipeline } from 'stream/promises'
 import * as zlib from 'zlib'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { TracingContext } from '@mastra/core/ai-tracing';
 
 // Define runtime context for these tools
 export interface DataFileManagerContext {
@@ -58,7 +59,7 @@ export const readDataFileTool = createTool({
             ),
     }),
     outputSchema: z.string().describe('The content of the file as a string.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { fileName: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: '📖 Reading file: ' + context.fileName } });
         const readSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -108,7 +109,7 @@ export const writeDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { fileName: string, content: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: '💾 Writing to file: ' + context.fileName } });
         const writeSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -167,7 +168,7 @@ export const deleteDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { fileName: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: '🗑️ Deleting file: ' + context.fileName } });
         const deleteSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -216,7 +217,7 @@ export const listDataDirTool = createTool({
     outputSchema: z
         .array(z.string())
         .describe('An array of file and directory names.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { dirPath?: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: '📂 Listing directory: ' + (context.dirPath ?? 'docs/data') } });
         const listSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -268,7 +269,7 @@ export const copyDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { sourceFile: string, destFile: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: `📋 Copying file: ${context.sourceFile} to ${context.destFile}` } });
         const copySpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -329,7 +330,7 @@ export const moveDataFileTool = createTool({
     outputSchema: z
         .string()
         .describe('A confirmation string indicating success.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { sourceFile: string, destFile: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: `🚚 Moving file: ${context.sourceFile} to ${context.destFile}` } });
         const moveSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -396,7 +397,7 @@ export const searchDataFilesTool = createTool({
     outputSchema: z
         .array(z.string())
         .describe('An array of matching file paths.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { pattern: string, searchContent?: boolean, dirPath?: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: `🔍 Searching for pattern: "${context.pattern}"` } });
         const searchSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -498,7 +499,7 @@ export const getDataFileInfoTool = createTool({
             isDirectory: z.boolean(),
         })
         .describe('File metadata information.'),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer, tracingContext }: { context: { fileName: string }, writer?: any, tracingContext?: TracingContext }) => {
         await writer?.write({ type: 'progress', data: { message: 'ℹ️ Getting info for file: ' + context.fileName } });
         const infoSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
