@@ -1,6 +1,6 @@
-import { createUIMessageStream } from "ai";
 import { toAISdkFormat } from "@mastra/ai-sdk";
 import type { ChunkType, MastraModelOutput } from "@mastra/core/stream";
+import { createUIMessageStream } from "ai";
 import { mastra } from "./mastra";
 
 // Client SDK agent stream

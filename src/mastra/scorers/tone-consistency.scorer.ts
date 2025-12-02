@@ -11,7 +11,7 @@ export const toneConsistencyScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let text = ''
     if (typeof output === 'string') {
         text = output
@@ -24,7 +24,7 @@ export const toneConsistencyScorer = createScorer({
     // or we default to checking for consistency within the text itself.
     // For this scorer, we'll look for a 'tone' property in the input context or instructions.
     let requestedTone = 'consistent'
-    const input = run.input
+    const {input} = run
     if (input && typeof input === 'object') {
         if ('tone' in input) requestedTone = (input as any).tone
         else if ('instructions' in input && typeof (input as any).instructions === 'string') {

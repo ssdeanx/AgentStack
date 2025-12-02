@@ -81,7 +81,8 @@ export const jsonToCsvTool = createTool({
       }
 
       for (const record of data) {
-        const row = headers.map((header) => escapeValue(record[header]));
+        const typedRecord = record as Record<string, unknown>;
+        const row = headers.map((header) => escapeValue(typedRecord[header as string]));
         rows.push(row.join(delimiter));
       }
 

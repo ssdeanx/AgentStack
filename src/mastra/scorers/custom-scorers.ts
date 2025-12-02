@@ -16,7 +16,7 @@ export const sourceDiversityScorer = createScorer({
 })
 .preprocess(({ run }) => {
     // Extract sources from the research output
-    const output = run.output
+    const {output} = run
     let sources: string[] = []
 
     if (typeof output === 'string') {
@@ -119,7 +119,7 @@ export const researchCompletenessScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let learnings: Learning[] = []
     let summary = ''
     let data = ''
@@ -226,7 +226,7 @@ export const summaryQualityScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let summary = ''
     let learnings: Learning[] = []
     let data = ''
@@ -343,9 +343,7 @@ export const taskCompletionScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
-    const input = run.input
-
+    const {output, input} = run;
     let outputText = ''
     let inputText = ''
 
@@ -438,7 +436,7 @@ export const responseQualityScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let responseText = ''
 
     if (typeof output === 'string') {
@@ -522,7 +520,7 @@ export const creativityScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let responseText = ''
 
     if (typeof output === 'string') {

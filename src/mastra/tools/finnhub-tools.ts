@@ -2,10 +2,10 @@ import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import {
-    logError,
-    logStepEnd,
-    logStepStart,
-    logToolExecution,
+  logError,
+  logStepEnd,
+  logStepStart,
+  logToolExecution,
 } from "../config/logger";
 
 /**
@@ -29,7 +29,7 @@ export const finnhubQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-quotes',
@@ -181,7 +181,7 @@ export const finnhubCompanyTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-company',
@@ -366,7 +366,7 @@ export const finnhubFinancialsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-financials',
@@ -547,7 +547,7 @@ export const finnhubAnalysisTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-analysis',
@@ -732,7 +732,7 @@ export const finnhubTechnicalTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-technical',
@@ -774,8 +774,8 @@ export const finnhubTechnicalTool = createTool({
       switch (context.function) {
         case "TECHNICAL_INDICATOR": {
           if (context.indicator === undefined || context.indicator === null || context.indicator.trim() === '' ||
-              context.timeperiod === undefined || context.timeperiod === null ||
-              context.series_type === undefined || context.series_type === null || context.series_type.trim() === '') {
+            context.timeperiod === undefined || context.timeperiod === null ||
+            context.series_type === undefined || context.series_type === null || context.series_type.trim() === '') {
             const error = "TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters";
             rootSpan?.error({
               error: new Error(error),
@@ -930,7 +930,7 @@ export const finnhubEconomicTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'finnhub-economic',

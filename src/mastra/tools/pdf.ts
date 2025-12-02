@@ -2,7 +2,7 @@ import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'fs'
-import path from 'path'
+import  * as path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -12,69 +12,69 @@ type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: nu
 let pdfParse: PdfParseFunction | null = null
 
 async function getPdfParse(): Promise<PdfParseFunction> {
-    if (pdfParse) return pdfParse
-    try {
-        const mod = await import('pdf-parse') as unknown as { default?: PdfParseFunction }
-        pdfParse = (mod.default ?? mod) as unknown as PdfParseFunction
-        return pdfParse
-    } catch {
-        throw new Error('pdf-parse module not available')
-    }
+  if (pdfParse) return pdfParse
+  try {
+    const mod = await import('pdf-parse') as unknown as { default?: PdfParseFunction }
+    pdfParse = (mod.default ?? mod) as unknown as PdfParseFunction
+    return pdfParse
+  } catch {
+    throw new Error('pdf-parse module not available')
+  }
 }
 
 export const readPDF = createTool({
-    id: 'readPDF',
-    description: 'Read PDF file and extract information',
-    inputSchema: z.object({
-        pdfPath: z.string(),
-    }),
-    outputSchema: z.object({
-        content: z.string(),
-    }),
-    execute: async ({ context, writer, tracingContext }) => {
-        const span = tracingContext?.currentSpan?.createChildSpan({
-            type: AISpanType.TOOL_CALL,
-            name: 'read-pdf',
-            input: { pdfPath: context.pdfPath },
-            tracingPolicy: { internal: InternalSpans.TOOL }
-        });
+  id: 'readPDF',
+  description: 'Read PDF file and extract information',
+  inputSchema: z.object({
+    pdfPath: z.string(),
+  }),
+  outputSchema: z.object({
+    content: z.string(),
+  }),
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'read-pdf',
+      input: { pdfPath: context.pdfPath },
+      tracingPolicy: { internal: InternalSpans.TOOL }
+    });
 
-        const { pdfPath } = context
-        await writer?.write({ type: 'progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
-        try {
-            // Check if file exists
-            if (!existsSync(pdfPath)) {
-                throw new Error('PDF file not found')
-            }
+    const { pdfPath } = context
+    await writer?.write({ type: 'progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
+    try {
+      // Check if file exists
+      if (!existsSync(pdfPath)) {
+        throw new Error('PDF file not found')
+      }
 
-            // Check if file is a PDF
-            if (path.extname(pdfPath).toLowerCase() !== '.pdf') {
-                throw new Error('File is not a PDF')
-            }
+      // Check if file is a PDF
+      if (path.extname(pdfPath).toLowerCase() !== '.pdf') {
+        throw new Error('File is not a PDF')
+      }
 
-            // Read the PDF file
-            const dataBuffer = readFileSync(pdfPath)
+      // Read the PDF file
+      const dataBuffer = readFileSync(pdfPath)
 
-            // Parse PDF content
-            const parser = await getPdfParse()
-            const data = await parser(dataBuffer)
+      // Parse PDF content
+      const parser = await getPdfParse()
+      const data = await parser(dataBuffer)
 
-            log.info(chalk.blue('\n'))
-            log.info(chalk.blue('PDF Information:'))
-            log.info(chalk.blue('-----------------'))
-            log.info(chalk.blue(`Number of pages: ${data.numpages}`))
+      log.info(chalk.blue('\n'))
+      log.info(chalk.blue('PDF Information:'))
+      log.info(chalk.blue('-----------------'))
+      log.info(chalk.blue(`Number of pages: ${data.numpages}`))
 
-            span?.end({ output: { pageCount: data.numpages, textLength: data.text.length } });
-            return { content: data.text }
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            log.error(
-                `Error reading PDF: ${errorMsg}`
-            )
-            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
-            return {
-                content: `Error scanning PDF: ${errorMsg}`,
-            }
-        }
-    },
+      span?.end({ output: { pageCount: data.numpages, textLength: data.text.length } });
+      return { content: data.text }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      log.error(
+        `Error reading PDF: ${errorMsg}`
+      )
+      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      return {
+        content: `Error scanning PDF: ${errorMsg}`,
+      }
+    }
+  },
 })

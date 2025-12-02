@@ -3,7 +3,6 @@ import { InferUITool, createTool } from "@mastra/core/tools";
 import { parse } from "csv-parse/sync";
 import * as fs from "node:fs/promises";
 import { z } from "zod";
-import type { TracingContext } from '@mastra/core/ai-tracing';
 
 const csvToolContextSchema = z.object({
   maxRows: z.number().optional(),
@@ -34,7 +33,7 @@ export const csvToJsonTool = createTool({
     data: z.array(z.any()).describe("Parsed JSON data"),
     error: z.string().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }: { context: { csvData?: string; filePath?: string; options?: { delimiter?: string; columns?: boolean; trim?: boolean; skip_empty_lines?: boolean } }, writer?: any, runtimeContext?: any, tracingContext?: TracingContext }) => {
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
     await writer?.write({ type: 'progress', data: { message: '📊 Starting CSV to JSON conversion' } });
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,

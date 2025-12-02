@@ -7,6 +7,7 @@ import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { responseQualityScorer, structureScorer, summaryQualityScorer, toneConsistencyScorer } from '../scorers';
+
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type EditorRuntimeContext = {
   'user-tier': UserTier

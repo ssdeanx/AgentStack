@@ -1,5 +1,4 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { logError } from './logger'
 //import { GoogleAICacheManager } from '@google/generative-ai/server';
 //import { GoogleVoice } from "@mastra/voice-google";

@@ -12,7 +12,7 @@ export const structureScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let text = ''
     if (typeof output === 'string') {
         text = output
@@ -22,7 +22,7 @@ export const structureScorer = createScorer({
     
     // Determine expected structure from input context if possible
     // For Content Strategist, we expect: Title Variations, Target Audience, One Thing, Key Points, Differentiation
-    const input = run.input
+    const {input} = run
     let expectedSections: string[] = []
     
     // Heuristic: Check which agent is running or look at instructions
@@ -129,9 +129,7 @@ export const structureScorer = createScorer({
     
     // Penalize for missing sections
     const penalty = missingSections.length * 0.15
-    const score = Math.max(0, formattingScore - penalty)
-    
-    return score
+    return Math.max(0, formattingScore - penalty);
 })
 .generateReason(({ results, score }) => {
     const { missingSections, explanation } = results.analyzeStepResult

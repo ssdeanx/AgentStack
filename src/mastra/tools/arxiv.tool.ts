@@ -25,13 +25,13 @@ let pdfParse: unknown = null
 let pdfParseError: Error | null = null
 
 type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{
-	text: string;
-	numpages: number;
-	metadata?: unknown;
-	info?: unknown;
-	producedBy?: string;
-	creationDate?: unknown;
-	modificationDate?: unknown;
+  text: string;
+  numpages: number;
+  metadata?: unknown;
+  info?: unknown;
+  producedBy?: string;
+  creationDate?: unknown;
+  modificationDate?: unknown;
 }>;
 
 /**
@@ -39,69 +39,69 @@ type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: str
  * Must be called at runtime, not at module load time
  */
 async function getPdfParseModule(): Promise<PdfParseFunction> {
-	if (pdfParse !== null) {
-		return pdfParse as PdfParseFunction
-	}
-	if (pdfParseError) {
-		throw pdfParseError
-	}
+  if (pdfParse !== null) {
+    return pdfParse as PdfParseFunction
+  }
+  if (pdfParseError) {
+    throw pdfParseError
+  }
 
-	try {
-		// NOTE: Avoid importing internal paths like 'pdf-parse/lib/pdf-parse.js' which may not exist
-		const pdfMod = await import("pdf-parse") as unknown as { default?: PdfParseFunction };
-		pdfParse = (pdfMod.default ?? pdfMod) as unknown as PdfParseFunction;
-		return pdfParse as PdfParseFunction;
-	} catch (error) {
-		const err =
-			error instanceof Error
-				? error
-				: new Error('Failed to load pdf-parse module')
-		pdfParseError = err
-		throw new Error(
-			'pdf-parse module not available. Install with: npm install pdf-parse'
-		)
-	}
+  try {
+    // NOTE: Avoid importing internal paths like 'pdf-parse/lib/pdf-parse.js' which may not exist
+    const pdfMod = await import("pdf-parse") as unknown as { default?: PdfParseFunction };
+    pdfParse = (pdfMod.default ?? pdfMod) as unknown as PdfParseFunction;
+    return pdfParse as PdfParseFunction;
+  } catch (error) {
+    const err =
+      error instanceof Error
+        ? error
+        : new Error('Failed to load pdf-parse module')
+    pdfParseError = err
+    throw new Error(
+      'pdf-parse module not available. Install with: npm install pdf-parse'
+    )
+  }
 }
 /**
  * Extract text content from PDF buffer
  */
 async function extractPdfText(pdfBuffer: Buffer, maxPages = 1000): Promise<{
-	text: string;
-	numpages: number;
-	metadata?: Record<string, unknown>;
+  text: string;
+  numpages: number;
+  metadata?: Record<string, unknown>;
 }> {
-	try {
-		const pdfModule = await getPdfParseModule()
-		const data = await pdfModule(pdfBuffer, {
-			max: maxPages,
-			version: 'v2.0.550',
-		})
+  try {
+    const pdfModule = await getPdfParseModule()
+    const data = await pdfModule(pdfBuffer, {
+      max: maxPages,
+      version: 'v2.0.550',
+    })
 
-		return {
-			text: data.text ?? '',
-			numpages: data.numpages ?? 1,
-			metadata: (data.metadata as Record<string, unknown>) ?? (data.info as Record<string, unknown>),
-		}
-	} catch (error) {
-		throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-	}
+    return {
+      text: data.text ?? '',
+      numpages: data.numpages ?? 1,
+      metadata: (data.metadata as Record<string, unknown>) ?? (data.info as Record<string, unknown>),
+    }
+  } catch (error) {
+    throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 /**
  * Convert extracted PDF text to markdown format
  */
 function convertPdfTextToMarkdown(text: string, metadata?: { title?: string; authors?: string[] }): string {
-	let markdown = text
+  let markdown = text
 
-	// Basic text normalization
-	markdown = markdown
-		.replace(/\f/g, '\n\n') // Form feeds to double newlines
-		.replace(/\r\n/g, '\n') // Normalize line endings
-		.replace(/\n\n\n+/g, '\n\n') // Multiple newlines to double
-		.replace(/\t/g, '  ') // Tabs to spaces
-		.replace(/(\w+)-\n(\w+)/g, '$1$2') // Fix hyphenated words
-		.replace(/\s+([.,!?;:])/g, '$1') // Clean punctuation spacing
-		.trim()
+  // Basic text normalization
+  markdown = markdown
+    .replace(/\f/g, '\n\n') // Form feeds to double newlines
+    .replace(/\r\n/g, '\n') // Normalize line endings
+    .replace(/\n\n\n+/g, '\n\n') // Multiple newlines to double
+    .replace(/\t/g, '  ') // Tabs to spaces
+    .replace(/(\w+)-\n(\w+)/g, '$1$2') // Fix hyphenated words
+    .replace(/\s+([.,!?;:])/g, '$1') // Clean punctuation spacing
+    .trim()
 
   // Add frontmatter if metadata available
   const hasTitle = typeof metadata?.title === 'string' && metadata.title.trim() !== ''
@@ -121,7 +121,7 @@ function convertPdfTextToMarkdown(text: string, metadata?: { title?: string; aut
     markdown = frontmatter + markdown
   }
 
-	return markdown
+  return markdown
 }
 
 export const arxivTool = createTool({
@@ -169,7 +169,7 @@ export const arxivTool = createTool({
     max_results: z.number(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'arxiv-search',
@@ -222,7 +222,7 @@ export const arxivTool = createTool({
 
       if (context.sort_by !== undefined) {
         params.append("sortBy", context.sort_by === "lastUpdatedDate" ? "lastUpdatedDate" :
-                             context.sort_by === "submittedDate" ? "submittedDate" : "relevance");
+          context.sort_by === "submittedDate" ? "submittedDate" : "relevance");
       }
 
       if (context.sort_order !== undefined) {
@@ -309,7 +309,7 @@ export const arxivPdfParserTool = createTool({
     }),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'arxiv-pdf-parser',
@@ -484,12 +484,12 @@ export const arxivPaperDownloaderTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'arxiv-paper-downloader',
       input: { arxivId: context.arxivId },
-      metadata: {arxivId: context.arxivId},
+      metadata: { arxivId: context.arxivId },
       tracingPolicy: { internal: InternalSpans.TOOL },
     });
 

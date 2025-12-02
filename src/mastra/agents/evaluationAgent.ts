@@ -1,3 +1,4 @@
+import { UserTier } from './editorAgent';
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite } from '../config/google'
@@ -7,7 +8,6 @@ import { responseQualityScorer, structureScorer, taskCompletionScorer } from '..
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type EvaluationContext = {
-  userId?: string
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }
@@ -20,12 +20,13 @@ export const evaluationAgent = new Agent({
   description:
     'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
   instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
+    const UserTier = runtimeContext.get('user-tier') as UserTier;
+
     return {
       role: 'system',
       content: `
 <role>
-User: ${userId ?? 'anonymous'}
+User: ${UserTier ?? 'anonymous'}
 You are an expert evaluation agent. Your task is to evaluate whether a given search result is relevant to a specific research query.
 </role>
 

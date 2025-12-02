@@ -1,5 +1,5 @@
 import type { MCPServerPrompts } from "@mastra/mcp";
-import matter from "gray-matter";
+import * as matter from "gray-matter";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import type { Node } from "unist";

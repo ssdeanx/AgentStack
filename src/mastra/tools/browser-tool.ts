@@ -1,10 +1,10 @@
 /*
  * Not working
 */
-import { InferUITool, createTool } from "@mastra/core/tools";
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { InferUITool, createTool } from "@mastra/core/tools";
 import { MDocument } from '@mastra/rag';
-import { chromium, Browser } from 'playwright-core';
+import { Browser, chromium } from 'playwright-core';
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -30,7 +30,7 @@ export const browserTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-scrape',
@@ -96,7 +96,7 @@ export const screenshotTool = createTool({
     screenshot: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-screenshot',
@@ -147,7 +147,7 @@ export const pdfGeneratorTool = createTool({
     pdf: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-pdf-generate',
@@ -199,7 +199,7 @@ export const clickAndExtractTool = createTool({
     content: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-click-extract',
@@ -259,7 +259,7 @@ export const fillFormTool = createTool({
     finalUrl: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-fill-form',
@@ -315,7 +315,7 @@ export const googleSearch = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'google-search',
@@ -389,7 +389,7 @@ export const extractTablesTool = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-extract-tables',
@@ -464,7 +464,7 @@ export const monitorPageTool = createTool({
     checkCount: z.number(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'browser-monitor-page',

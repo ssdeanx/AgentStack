@@ -5,9 +5,9 @@ import { z } from 'zod';
 import { log } from '../config/logger';
 
 export const github = new GithubIntegration({
-    config: {
-        PERSONAL_ACCESS_TOKEN: process.env.GITHUB_API_KEY || process.env.GITHUB_PERSONAL_ACCESS_TOKEN!,
-    }
+  config: {
+    PERSONAL_ACCESS_TOKEN: process.env.GITHUB_API_KEY || process.env.GITHUB_PERSONAL_ACCESS_TOKEN!,
+  }
 });
 
 const GITHUB_API_BASE = 'https://api.github.com';
@@ -57,7 +57,7 @@ export const listRepositories = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-list-repos',
@@ -125,7 +125,7 @@ export const listPullRequests = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-list-prs',
@@ -191,7 +191,7 @@ export const listIssues = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-list-issues',
@@ -255,7 +255,7 @@ export const createIssue = createTool({
     }).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-create-issue',
@@ -324,7 +324,7 @@ export const getRepositoryInfo = createTool({
     }).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-get-repo-info',
@@ -389,7 +389,7 @@ export const searchCode = createTool({
     totalCount: z.number().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-search-code',
@@ -446,7 +446,7 @@ export const getFileContent = createTool({
     size: z.number().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'github-get-file',

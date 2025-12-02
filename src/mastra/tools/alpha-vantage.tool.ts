@@ -55,7 +55,7 @@ export const alphaVantageCryptoTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage-crypto',
@@ -153,20 +153,20 @@ export const alphaVantageCryptoTool = createTool({
       };
 
       await writer?.write({ type: 'progress', data: { message: `✅ Crypto data ready for ${context.symbol}` } });
-        const result = {
-          data,
-          metadata: {
-            function: getMetadataValue("1. Information") ?? context.function,
-            symbol: getMetadataValue("2. Symbol") ?? context.symbol,
-            market: getMetadataValue("3. Market") ?? context.market,
-            last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
-            interval: getMetadataValue("5. Interval") ?? undefined,
-            output_size: getMetadataValue("6. Output Size") ?? undefined,
-            time_zone: getMetadataValue("7. Time Zone") ?? undefined
-          }
-        };
-        span?.end({ output: result });
-        return result;
+      const result = {
+        data,
+        metadata: {
+          function: getMetadataValue("1. Information") ?? context.function,
+          symbol: getMetadataValue("2. Symbol") ?? context.symbol,
+          market: getMetadataValue("3. Market") ?? context.market,
+          last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
+          interval: getMetadataValue("5. Interval") ?? undefined,
+          output_size: getMetadataValue("6. Output Size") ?? undefined,
+          time_zone: getMetadataValue("7. Time Zone") ?? undefined
+        }
+      };
+      span?.end({ output: result });
+      return result;
 
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
@@ -235,7 +235,7 @@ export const alphaVantageStockTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage-stock',
@@ -322,8 +322,8 @@ export const alphaVantageStockTool = createTool({
 
       // Extract metadata if available
       const metadata = ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Meta Data" in dataObj ? (dataObj as Record<string, unknown>)["Meta Data"] : null) ??
-                      ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
-                      {};
+        ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
+        {};
 
       const metadataObj = metadata as unknown;
 
@@ -430,7 +430,7 @@ export const alphaVantageTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, writer, tracingContext }) => {
+  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'alpha-vantage',
@@ -519,8 +519,8 @@ export const alphaVantageTool = createTool({
 
       // Extract metadata if available
       const metadata = ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Meta Data" in dataObj ? (dataObj as Record<string, unknown>)["Meta Data"] : null) ??
-                      ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
-                      {};
+        ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
+        {};
 
       const metadataObj = metadata as unknown;
 

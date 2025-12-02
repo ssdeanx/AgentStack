@@ -11,7 +11,7 @@ export const sqlValidityScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let text = ''
     if (typeof output === 'string') {
         text = output

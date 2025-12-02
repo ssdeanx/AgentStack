@@ -97,13 +97,20 @@ module.exports = [
       'lib/**/*.{tsx,ts}',
       'ui/**/*.{tsx,ts}',
       'hooks/**/*.{tsx,ts}',
+      'tests/'
 
 
     ],
   },
   {
     ignores: [
+      "node_modules/**/*.d.ts",
       'dist/**',
+      '.vscode/mcp.json',
+      '.vscode',
+      'memory-bank',
+      'memory-bank/',
+      'node_modules',
       'node_modules/**',
       '.mastra/**',
       'eslint.config.js',

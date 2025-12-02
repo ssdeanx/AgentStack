@@ -1,6 +1,6 @@
+import { AISpanType } from "@mastra/core/ai-tracing";
 import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
 
 const validatorContextSchema = z.object({
   maxErrors: z.number().optional(),
@@ -36,21 +36,25 @@ const buildZodSchema = (def: SchemaDefinition): z.ZodTypeAny => {
 
   switch (def.type) {
     case "string":
-      { let stringSchema = z.string();
-      if (def.minLength !== undefined) {stringSchema = stringSchema.min(def.minLength);}
-      if (def.maxLength !== undefined) {stringSchema = stringSchema.max(def.maxLength);}
-      if (def.email === true) {stringSchema = stringSchema.email();}
-      if (def.url === true) {stringSchema = stringSchema.url();}
-      schema = stringSchema;
-      break; }
+      {
+        let stringSchema = z.string();
+        if (def.minLength !== undefined) { stringSchema = stringSchema.min(def.minLength); }
+        if (def.maxLength !== undefined) { stringSchema = stringSchema.max(def.maxLength); }
+        if (def.email === true) { stringSchema = stringSchema.email(); }
+        if (def.url === true) { stringSchema = stringSchema.url(); }
+        schema = stringSchema;
+        break;
+      }
 
     case "number":
-      { let numberSchema = z.number();
-      if (def.min !== undefined) {numberSchema = numberSchema.min(def.min);}
-      if (def.max !== undefined) {numberSchema = numberSchema.max(def.max);}
-      if (def.int === true) {numberSchema = numberSchema.int();}
-      schema = numberSchema;
-      break; }
+      {
+        let numberSchema = z.number();
+        if (def.min !== undefined) { numberSchema = numberSchema.min(def.min); }
+        if (def.max !== undefined) { numberSchema = numberSchema.max(def.max); }
+        if (def.int === true) { numberSchema = numberSchema.int(); }
+        schema = numberSchema;
+        break;
+      }
 
     case "boolean":
       schema = z.boolean();
@@ -118,6 +122,10 @@ export const dataValidatorToolJSON = createTool({
       type: AISpanType.TOOL_CALL,
       name: "data-validator",
       input: { hasData: context.data !== undefined, hasSchema: context.schema !== undefined },
+      tracingContext,
+      parentSpanId: tracingContext?.currentSpan?.id,
+      childSpanId: tracingContext?.currentSpan?.id,
+      runtimeContext
     });
 
     try {
@@ -140,8 +148,8 @@ export const dataValidatorToolJSON = createTool({
         let errors = result.error.issues.map((e: z.core.$ZodIssue) => `${e.path.join(".")}: ${e.message}`);
 
         if (maxErrors !== undefined && errors.length > maxErrors) {
-            errors = errors.slice(0, maxErrors);
-            errors.push(`...and ${result.error.issues.length - maxErrors} more errors`);
+          errors = errors.slice(0, maxErrors);
+          errors.push(`...and ${result.error.issues.length - maxErrors} more errors`);
         }
 
         rootSpan?.end({ output: { valid: false, errorCount: errors.length } });

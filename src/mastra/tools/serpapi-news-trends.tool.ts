@@ -63,7 +63,7 @@ export const googleNewsTool = createTool({
         'Search Google News for current news articles. Filter by time range (hour, day, week, month, year), topic (world, business, technology, etc.), and sort by relevance or date. Returns article title, source, date, and snippet.',
     inputSchema: googleNewsInputSchema,
     outputSchema: googleNewsOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async ({ context, writer = undefined, tracingContext = undefined }) => {
         await writer?.write({ type: 'progress', data: { message: '📰 Starting Google News search for "' + context.query + '"' } });
         validateSerpApiKey()
         const newsSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -156,7 +156,8 @@ export const googleNewsLiteTool = createTool({
             )
             .describe('Array of news articles with minimal details'),
     }),
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async (executionContext) => {
+        const { context, writer, tracingContext } = executionContext;
         await writer?.write({ type: 'progress', data: { message: '📰 Starting Google News Lite search for "' + context.query + '"' } });
         validateSerpApiKey()
         const newsLiteSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -237,7 +238,8 @@ export const googleTrendsTool = createTool({
         'Analyze search trends and interest over time for specific topics. Returns interest data over time, related queries, and related topics. Use to understand topic popularity, discover trending related searches, and analyze search patterns over different time periods.',
     inputSchema: googleTrendsInputSchema,
     outputSchema: googleTrendsOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async (executionContext) => {
+        const { context, writer, tracingContext } = executionContext;
         await writer?.write({ type: 'progress', data: { message: '📈 Starting Google Trends analysis for "' + context.query + '"' } });
         validateSerpApiKey()
 
@@ -334,7 +336,8 @@ export const googleAutocompleteTool = createTool({
         'Get Google search suggestions for partial queries. Returns an array of autocomplete suggestions that users commonly search for. Useful for discovering related search terms, query variations, and popular searches.',
     inputSchema: googleAutocompleteInputSchema,
     outputSchema: googleAutocompleteOutputSchema,
-    execute: async ({ context, writer, tracingContext }) => {
+    execute: async (executionContext) => {
+        const { context, writer, tracingContext } = executionContext;
         await writer?.write({ type: 'progress', data: { message: '🔍 Getting autocomplete suggestions for "' + context.query + '"' } });
         validateSerpApiKey()
 

@@ -1,5 +1,5 @@
-import { InferUITools, createTool } from "@mastra/core/tools";
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { createTool } from "@mastra/core/tools";
 import { execSync } from 'child_process';
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -19,11 +19,11 @@ class LocalCalendarReader {
             set eventList to {}
             set startDate to (current date) - 7 * days
             set endDate to (current date) + 365 * days
-            
+
             repeat with calendarAccount in calendars
               set eventList to eventList & (every event of calendarAccount whose start date is greater than or equal to startDate and start date is less than or equal to endDate)
             end repeat
-            
+
             set output to ""
             repeat with anEvent in eventList
               set theTitle to summary of anEvent
@@ -31,18 +31,18 @@ class LocalCalendarReader {
               set theEnd to end date of anEvent as string
               set theLoc to location of anEvent
               set theDesc to description of anEvent
-              
+
               if theLoc is missing value then
                 set theLoc to ""
               end if
               if theDesc is missing value then
                 set theDesc to ""
               end if
-              
+
               set output to output & theTitle & "|" & theStart & "|" & theEnd & "|" & theLoc & "|" & theDesc & "
     "
             end repeat
-            
+
             return output
           end tell
         `;
@@ -123,10 +123,11 @@ export const listEvents = createTool({
     })).optional(),
     count: z.number().optional(),
   }),
-  execute: async ({ tracingContext, writer }) => {
+  execute: async ({ tracingContext, writer, runtimeContext, context }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'list-calendar-events',
+      context,
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
@@ -175,10 +176,12 @@ export const getTodayEvents = createTool({
     })),
     count: z.number(),
   }),
-  execute: async ({ tracingContext, writer }) => {
+  execute: async ({ tracingContext, writer, context, runtimeContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'get-today-events',
+      context,
+      runtimeContext,
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
@@ -235,12 +238,13 @@ export const getUpcomingEvents = createTool({
     })),
     count: z.number(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, writer, runtimeContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'get-upcoming-events',
       input: { days: context.days, limit: context.limit },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.ALL },
+      runtimeContext,
     });
 
     await writer?.write({ type: 'progress', data: { message: `📅 Getting events for next ${context.days} days...` } });
@@ -307,12 +311,13 @@ export const findFreeSlots = createTool({
       end: z.string(),
     })),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
+  execute: async ({ context, tracingContext, writer, runtimeContext }) => {
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'find-free-slots',
       input: { date: context.date },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      tracingPolicy: { internal: InternalSpans.ALL },
+      runtimeContext,
     });
 
     await writer?.write({ type: 'progress', data: { message: '📅 Finding free time slots...' } });

@@ -31,25 +31,29 @@
       }
     ]
   },
+  "typeAcquisition": {
+    "enable": false,
+    "include": [
+      ".next/types/**/*.ts",
+      ".next/dev/types/**/*.ts",
+      "eslint-config-next.d.ts",
+      "src/mastra/types/**/*.d.ts"
+    ],
+    "exclude": [
+      "node_modules",
+      "node_modules/**/*.d.ts",
+      "dist",
+      ".next",
+      ".mastra",
+      ".github",
+      ".cursor",
+      "public",
+    ]
+  },
   "include": [
-    "src/**/*",
-    "/src",
-    "/src/mastra/*",
-    "src/mastra/*",
-    "src/mastra/*.ts",
-    "/src/mastra/**/*.ts",
-    "app/**/*.tsx",
-    "app/**/*.ts",
-    "ui/**/*.tsx",
-    "ui/**/*.ts",
-    "lib/**/*.ts",
-    "src/mastra/types/**/*.d.ts",
-    "hooks/**/*.ts",
-    "utils/**/*.ts",
     "next-env.d.ts",
     "vitest.config.ts",
     "mdx-components.tsx",
-    "tests/**/*",
     "testsSetup.ts",
     "eslint.config.cjs",
     "prettier.config.js",
@@ -58,8 +62,7 @@
     "postcss.config.mjs",
     "next.config.ts",
     "components.json",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "instrumentation.ts"
   ],
   "exclude": [
     "node_modules",
@@ -70,6 +73,7 @@
     ".cursor",
     "public",
     "coverage",
+    "node_modules/**/*.d.ts",
     "scripts",
     ".kilocode",
     "docs",

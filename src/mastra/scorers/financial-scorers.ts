@@ -11,7 +11,7 @@ export const financialDataScorer = createScorer({
     }
 })
 .preprocess(({ run }) => {
-    const output = run.output
+    const {output} = run
     let json: any = null
     let text = ''
     
