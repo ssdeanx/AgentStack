@@ -1,23 +1,33 @@
-# Context: Network-Ready Workflows Feature (Master Level)
+# Context: Workflows Feature (Master Level)
+
+<!-- Updated: 2025-12-04 -->
 
 ## Feature Overview
 
-Creating 6 production-ready workflows showcasing ALL Mastra workflow capabilities:
+Production-ready workflows showcasing ALL Mastra workflow capabilities with a Next.js UI visualization:
 
 - **Streaming:** Real-time progress via `writer` argument
 - **AI Tracing:** Child spans via `tracingContext`
 - **Control Flow:** All patterns (then, branch, parallel, dowhile, foreach, suspend/resume)
 - **Network Integration:** Seamless routing with clear schemas
+- **UI Visualization:** AI Elements Canvas/Node/Edge components
 
-## Current State
+## Current State (Dec 2025)
 
-**Existing Workflows (5):**
+**Implemented Workflows (10):**
 
-- weather-workflow.ts (Sequential with `.then()`)
-- content-studio-workflow.ts (Sequential with `.dowhile()`)
-- changelog.ts
-- new-contributor.ts
-- telephone-game.ts
+| Workflow | Technique | Status |
+|----------|-----------|--------|
+| weatherWorkflow | `.then()` | ✅ Complete |
+| contentStudioWorkflow | `.dowhile()` | ✅ Complete |
+| contentReviewWorkflow | `.then()` | ✅ Complete |
+| documentProcessingWorkflow | `.then()` | ✅ Complete |
+| financialReportWorkflow | `.parallel()` | ✅ Complete |
+| learningExtractionWorkflow | `.then()` | ✅ Complete |
+| researchSynthesisWorkflow | `.then()` | ✅ Complete |
+| stockAnalysisWorkflow | `.then()` | ✅ Complete |
+| telephoneGameWorkflow | `.then()` | ✅ Complete |
+| changelogWorkflow | `.then()` | ✅ Complete |
 
 **Existing Networks (4):**
 
@@ -26,16 +36,53 @@ Creating 6 production-ready workflows showcasing ALL Mastra workflow capabilitie
 - reportGenerationNetwork (Report workflows)
 - researchPipelineNetwork (Research papers)
 
-**Target: 6 New Workflows:**
+**Frontend Visualization:**
 
-| Workflow | Technique | Description |
-|----------|-----------|-------------|
-| stockAnalysisWorkflow | `.then()` + retries | Sequential stock analysis |
-| documentProcessingWorkflow | `.branch()` + `.map()` | Conditional PDF/text processing |
-| contentReviewWorkflow | `.dowhile()` + state | Quality loop with iteration tracking |
-| financialReportWorkflow | `.parallel()` | Concurrent data fetching |
-| researchSynthesisWorkflow | `.foreach()` | Multi-topic research with rate limiting |
-| learningExtractionWorkflow | `suspend()`/`resume()` | Human-in-the-loop approval |
+```text
+app/workflows/
+├── page.tsx                      # Main page with WorkflowProvider
+├── AGENTS.md                     # Documentation
+├── config/workflows.ts           # 10 workflow configurations
+├── providers/workflow-context.tsx # AI SDK streaming + state
+└── components/
+    ├── workflow-header.tsx       # Workflow selector + status
+    ├── workflow-canvas.tsx       # React Flow wrapper
+    ├── workflow-node.tsx         # Custom node with status
+    ├── workflow-info-panel.tsx   # Progress display
+    ├── workflow-legend.tsx       # Collapsible legend
+    ├── workflow-actions.tsx      # Fit/Export/Code buttons
+    ├── workflow-input-panel.tsx  # Query input + examples
+    └── workflow-output.tsx       # Streaming output
+```
+
+## AI SDK Integration
+
+Uses `@ai-sdk/react` with `DefaultChatTransport`:
+
+```typescript
+const { messages, sendMessage, stop, status } = useChat({
+  transport: new DefaultChatTransport({
+    api: `http://localhost:4111/workflow/${selectedWorkflow}`,
+    prepareSendMessagesRequest({ messages }) {
+      const inputData = buildWorkflowInputData(selectedWorkflow, inputText)
+      return { body: { inputData } }
+    },
+  }),
+})
+```
+
+## Mastra Server Routes
+
+All 10 workflows registered with streaming enabled:
+
+```typescript
+workflowRoute({
+  path: "/workflow",
+  workflow: "weatherWorkflow",
+  includeTextStreamParts: true,
+}),
+// ... all 10 workflows
+```
 
 ## Control Flow Techniques Reference
 

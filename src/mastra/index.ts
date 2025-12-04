@@ -449,8 +449,53 @@ export const mastra = new Mastra({
       }),
       workflowRoute({
         path: "/workflow",
-        workflow: "research-synthesis-workflow",
-
+        workflow: "weatherWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "contentStudioWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "changelogWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "contentReviewWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "documentProcessingWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "financialReportWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "learningExtractionWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "researchSynthesisWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "stockAnalysisWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "telephoneGameWorkflow",
+        includeTextStreamParts: true,
       }),
       networkRoute({
         path: "/network",

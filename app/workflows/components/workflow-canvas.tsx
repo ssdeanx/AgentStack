@@ -10,6 +10,7 @@ import { WorkflowInfoPanel } from "./workflow-info-panel"
 import { WorkflowLegend } from "./workflow-legend"
 import { WorkflowActions } from "./workflow-actions"
 import { WorkflowOutput } from "./workflow-output"
+import { WorkflowInputPanel } from "./workflow-input-panel"
 import type { ReactNode } from "react"
 
 const edgeTypes = {
@@ -40,6 +41,7 @@ export function WorkflowCanvas({ children }: WorkflowCanvasProps) {
         <WorkflowLegend />
         <WorkflowActions />
         <WorkflowOutput />
+        <WorkflowInputPanel />
         {children}
       </Canvas>
     </div>

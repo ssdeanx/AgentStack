@@ -98,6 +98,34 @@ export interface WorkflowProviderProps {
 const NODE_SPACING = 350
 const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
 
+function buildWorkflowInputData(workflowId: string, inputText: string): Record<string, unknown> {
+  // Map workflow IDs to their expected input schemas
+  switch (workflowId) {
+    case "weatherWorkflow":
+      return { city: inputText }
+    case "contentStudioWorkflow":
+      return { topic: inputText }
+    case "contentReviewWorkflow":
+      return { content: inputText }
+    case "documentProcessingWorkflow":
+      return { documentPath: inputText }
+    case "financialReportWorkflow":
+      return { symbol: inputText }
+    case "learningExtractionWorkflow":
+      return { content: inputText }
+    case "researchSynthesisWorkflow":
+      return { topic: inputText }
+    case "stockAnalysisWorkflow":
+      return { symbol: inputText }
+    case "telephoneGameWorkflow":
+      return { message: inputText }
+    case "changelogWorkflow":
+      return { repository: inputText }
+    default:
+      return { input: inputText }
+  }
+}
+
 function generateNodes(
   workflow: WorkflowConfig,
   stepProgress: Record<string, StepProgress>
@@ -158,19 +186,21 @@ export function WorkflowProvider({
   // useChat from @ai-sdk/react with DefaultChatTransport for workflow streaming
   const { messages, sendMessage, stop, status } = useChat({
     transport: new DefaultChatTransport({
-      api: `${MASTRA_API_URL}/workflow`,
+      api: `${MASTRA_API_URL}/workflow/${selectedWorkflow}`,
       prepareSendMessagesRequest({ messages }) {
         const last = messages[messages.length - 1]
         const textPart = last?.parts?.find(
           (p): p is { type: "text"; text: string } => p.type === "text"
         )
 
+        const inputText = textPart?.text ?? ""
+
+        // Build inputData based on workflow type
+        const inputData = buildWorkflowInputData(selectedWorkflow, inputText)
+
         return {
           body: {
-            inputData: {
-              workflowId: selectedWorkflow,
-              input: textPart?.text ?? "",
-            },
+            inputData,
           },
         }
       },

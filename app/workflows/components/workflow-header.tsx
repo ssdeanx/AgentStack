@@ -22,11 +22,12 @@ import {
 } from "@/app/workflows/config/workflows"
 import {
   ArrowLeftIcon,
-  PlayIcon,
   PauseIcon,
   SquareIcon,
   RefreshCwIcon,
   WorkflowIcon,
+  AlertCircleIcon,
+  RotateCcwIcon,
 } from "lucide-react"
 import { useMemo } from "react"
 
@@ -34,9 +35,7 @@ export function WorkflowHeader() {
   const {
     selectedWorkflow,
     selectWorkflow,
-    workflowConfig,
     workflowStatus,
-    runWorkflow,
     pauseWorkflow,
     resumeWorkflow,
     stopWorkflow,
@@ -44,48 +43,7 @@ export function WorkflowHeader() {
 
   const workflowsByCategory = useMemo(() => getWorkflowsByCategory(), [])
 
-  const handleRunClick = () => {
-    if (workflowStatus === "idle" || workflowStatus === "completed") {
-      runWorkflow()
-    } else if (workflowStatus === "running") {
-      pauseWorkflow()
-    } else if (workflowStatus === "paused") {
-      resumeWorkflow()
-    }
-  }
-
-  const renderRunButton = () => {
-    switch (workflowStatus) {
-      case "running":
-        return (
-          <>
-            <RefreshCwIcon className="size-4 mr-2 animate-spin" />
-            Running...
-          </>
-        )
-      case "paused":
-        return (
-          <>
-            <PlayIcon className="size-4 mr-2" />
-            Resume
-          </>
-        )
-      case "completed":
-        return (
-          <>
-            <RefreshCwIcon className="size-4 mr-2" />
-            Run Again
-          </>
-        )
-      default:
-        return (
-          <>
-            <PlayIcon className="size-4 mr-2" />
-            Run Workflow
-          </>
-        )
-    }
-  }
+  const isWorkflowActive = workflowStatus === "running" || workflowStatus === "paused"
 
   return (
     <header className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -112,6 +70,7 @@ export function WorkflowHeader() {
         <Select
           value={selectedWorkflow}
           onValueChange={(value) => selectWorkflow(value as WorkflowId)}
+          disabled={isWorkflowActive}
         >
           <SelectTrigger className="w-[280px]">
             <SelectValue />
@@ -140,16 +99,59 @@ export function WorkflowHeader() {
           </SelectContent>
         </Select>
 
-        <Button
-          onClick={handleRunClick}
-          disabled={workflowStatus === "error"}
-        >
-          {renderRunButton()}
-        </Button>
+        {/* Status indicators */}
+        {workflowStatus === "running" && (
+          <Badge variant="outline" className="gap-1.5 text-yellow-600 border-yellow-300 dark:text-yellow-400">
+            <RefreshCwIcon className="size-3 animate-spin" />
+            Running
+          </Badge>
+        )}
 
-        {(workflowStatus === "running" || workflowStatus === "paused") && (
-          <Button variant="outline" size="icon" onClick={stopWorkflow}>
-            <SquareIcon className="size-4" />
+        {workflowStatus === "paused" && (
+          <Badge variant="outline" className="gap-1.5 text-blue-600 border-blue-300 dark:text-blue-400">
+            <PauseIcon className="size-3" />
+            Paused
+          </Badge>
+        )}
+
+        {workflowStatus === "completed" && (
+          <Badge variant="outline" className="gap-1.5 text-green-600 border-green-300 dark:text-green-400">
+            Completed
+          </Badge>
+        )}
+
+        {workflowStatus === "error" && (
+          <Badge variant="outline" className="gap-1.5 text-red-600 border-red-300 dark:text-red-400">
+            <AlertCircleIcon className="size-3" />
+            Error
+          </Badge>
+        )}
+
+        {/* Action buttons */}
+        {isWorkflowActive && (
+          <div className="flex items-center gap-2">
+            {workflowStatus === "running" ? (
+              <Button variant="outline" size="sm" onClick={pauseWorkflow}>
+                <PauseIcon className="size-4 mr-1" />
+                Pause
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={resumeWorkflow}>
+                <RefreshCwIcon className="size-4 mr-1" />
+                Resume
+              </Button>
+            )}
+            <Button variant="outline" size="icon" onClick={stopWorkflow} title="Stop workflow">
+              <SquareIcon className="size-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Reset button after completion or error */}
+        {(workflowStatus === "completed" || workflowStatus === "error") && (
+          <Button variant="outline" size="sm" onClick={stopWorkflow} title="Reset workflow">
+            <RotateCcwIcon className="size-4 mr-1" />
+            Reset
           </Button>
         )}
       </div>

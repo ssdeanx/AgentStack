@@ -8,7 +8,8 @@ applyTo: '**'
 - 🔒 Follow security & style rules in `copilot-rules.md`.
 - 📝 On "/update memory bank", refresh activeContext.md & progress.md.
 - ✅ Confirm memory bank loaded with `[Memory Bank: Active]` or warn with `[Memory Bank: Missing]`.
-
+- 🎯 Always use [`#problem`] tool for debugging, to ensure code quality.
+- 📚 Always sync `#AGENTS.md` in dir your working on so we have up to date info.
 - 🔍 For research, use [#web] or [#websearch] tool and to make sure you have no knowledge gaps.
 - 🤖 Check if there is a problem, use [#problem] tool to check code for errors.
   - This tool will help you identify issues and suggest fixes.
