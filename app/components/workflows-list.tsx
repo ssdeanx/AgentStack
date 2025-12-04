@@ -269,12 +269,12 @@ export function WorkflowsList() {
 
               <div className="flex gap-3">
                 <Button variant="outline" size="sm" asChild className="flex-1">
-                  <Link href={`/workflows?workflow=${workflow.id}`}>
+                  <Link href={{ pathname: "/workflows", query: { workflow: workflow.id } }}>
                     <PlayIcon className="mr-2 size-4" /> Try It
                   </Link>
                 </Button>
                 <Button size="sm" asChild className="flex-1">
-                  <Link href={`/docs/workflows/${workflow.id}`}>
+                  <Link href={{ pathname: `/docs/workflows/${workflow.id}` }}>
                     Learn More <ArrowRightIcon className="ml-2 size-4" />
                   </Link>
                 </Button>
@@ -303,10 +303,10 @@ export function WorkflowsList() {
         </p>
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button size="lg" asChild>
-            <Link href="/contact">Contact Us</Link>
+            <Link href={{ pathname: "/contact" }}>Contact Us</Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="/docs/workflows/custom">Build Your Own</Link>
+            <Link href={{ pathname: "/docs/workflows/custom" }}>Build Your Own</Link>
           </Button>
         </div>
       </div>

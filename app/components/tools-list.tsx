@@ -403,8 +403,8 @@ export function ToolsList() {
               transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <Link
-                href={`/docs/tools/${tool.id}`}
-                className="group flex h-full flex-col rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
+                className="group flex h-full flex-col rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -476,7 +476,7 @@ export function ToolsList() {
               transition={{ duration: 0.3, delay: index * 0.02 }}
             >
               <Link
-                href={`/docs/tools/${tool.id}`}
+                href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
                 className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg"
               >
                 <div className="mb-4 flex items-start justify-between">
@@ -565,7 +565,7 @@ export function ToolsList() {
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         viewport={{ once: true }}
-        className="mt-20 rounded-2xl border border-border bg-gradient-to-br from-primary/5 via-transparent to-transparent p-8 text-center lg:p-12"
+        className="mt-20 rounded-2xl border border-border bg-linear-to-br from-primary/5 via-transparent to-transparent p-8 text-center lg:p-12"
       >
         <div className="mx-auto max-w-2xl">
           <div className="mb-4 inline-flex size-14 items-center justify-center rounded-full bg-primary/10">
@@ -580,13 +580,13 @@ export function ToolsList() {
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/docs/tools/custom">
+              <Link href={{ pathname: "/docs/tools/custom" }}>
                 Build Custom Tool
                 <ArrowRightIcon className="ml-2 size-4" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="/contact">Request a Tool</Link>
+              <Link href={{ pathname: "/contact" }}>Request a Tool</Link>
             </Button>
           </div>
         </div>

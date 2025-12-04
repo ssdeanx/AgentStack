@@ -1,7 +1,8 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { createTool, InferUITool } from "@mastra/core/tools";
 import chalk from 'chalk';
-import { execa, ExecaError } from 'execa';
+import execa from 'execa';
+import type { ExecaError as ExecaErrorType } from 'execa';
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -52,10 +53,11 @@ export const execaTool = createTool({
       const errorMsg = e instanceof Error ? e.message : String(e);
       log.error(errorMsg)
       span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
-      if (e instanceof ExecaError) {
-        return { message: e.all ?? e.message ?? 'Command failed' }
+      const execaErr = e as ExecaErrorType;
+      if (e instanceof Error && 'all' in e) {
+        return { message: execaErr.all ?? execaErr.message ?? 'Command failed' }
       }
-      return { message: 'Error' }
+      return { message: errorMsg || 'Error' }
     }
   },
 })

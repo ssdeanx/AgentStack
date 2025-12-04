@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   serverExternalPackages: ["@mastra/*", "cheerio", "jsdom", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
   allowedDevOrigins: ['http://localhost:4111', '**'],
-  typedRoutes: true,
+  typedRoutes: false,
   reactStrictMode: true,
   distDir: ".next",
   typescript: {

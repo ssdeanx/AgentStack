@@ -7,7 +7,7 @@
  * @module serpapi-search-tool
  */
 
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -105,12 +105,8 @@ export const googleSearchTool = createTool({
         numResults: context.numResults,
         runtimeContext: runtimeContext,
       },
-      tags: {
-
-        location: context.location,
-        query: context.query,
-        numResults: context.numResults,
-        runtimeContext: runtimeContext,
+      tracingPolicy: {
+        internal: InternalSpans.ALL
       }
     })
     log.info('Executing Google search', {

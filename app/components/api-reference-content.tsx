@@ -78,7 +78,7 @@ export function ApiReferenceContent() {
         {/* Quick Links — Agents / Tools / Workflows */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
-            href="/api-reference/agents"
+            href={{ pathname: "/api-reference/agents" }}
             className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
           >
             <h3 className="mb-1 text-sm font-semibold text-foreground">Agents</h3>
@@ -86,7 +86,7 @@ export function ApiReferenceContent() {
           </Link>
 
           <Link
-            href="/api-reference/tools"
+            href={{ pathname: "/api-reference/tools" }}
             className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
           >
             <h3 className="mb-1 text-sm font-semibold text-foreground">Tools</h3>
@@ -94,7 +94,7 @@ export function ApiReferenceContent() {
           </Link>
 
           <Link
-            href="/api-reference/workflows"
+            href={{ pathname: "/api-reference/workflows" }}
             className="group block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-lg"
           >
             <h3 className="mb-1 text-sm font-semibold text-foreground">Workflows</h3>

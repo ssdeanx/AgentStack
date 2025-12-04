@@ -127,7 +127,7 @@ export const listEvents = createTool({
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'list-calendar-events',
-      context,
+      input: context,
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
@@ -180,8 +180,7 @@ export const getTodayEvents = createTool({
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'get-today-events',
-      context,
-      runtimeContext,
+      input: context,
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 

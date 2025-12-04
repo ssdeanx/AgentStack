@@ -115,7 +115,7 @@ export function DocsNav() {
             viewport={{ once: true }}
           >
             <Link
-              href={section.href}
+              href={section.href as any}
               className="group flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg"
             >
               <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary">

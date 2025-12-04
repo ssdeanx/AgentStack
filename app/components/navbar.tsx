@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import type { Route } from "next"
 import { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/ui/button"
@@ -156,7 +157,7 @@ export function Navbar() {
             className="group flex items-center gap-2.5 transition-opacity hover:opacity-80"
             aria-label="AgentStack Home"
           >
-            <div className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 shadow-sm transition-transform group-hover:scale-105">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-sm transition-transform group-hover:scale-105">
               <span className="font-bold text-primary-foreground text-sm">A</span>
             </div>
             <span className="font-semibold text-foreground text-lg">AgentStack</span>
@@ -189,7 +190,7 @@ export function Navbar() {
                     {link.items.map((item) => (
                       <DropdownMenuItem key={item.label} asChild>
                         <Link
-                          href={item.href}
+                          href={item.href as Route}
                           className={`flex items-start gap-3 rounded-md p-2 transition-colors ${isActiveLink(item.href)
                               ? "bg-primary/10 text-primary"
                               : ""
@@ -220,7 +221,7 @@ export function Navbar() {
                       : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
-                  <Link href={link.href}>{link.label}</Link>
+                  <Link href={link.href as Route}>{link.label}</Link>
                 </Button>
               )
             )}
@@ -236,7 +237,7 @@ export function Navbar() {
           <Button
             size="sm"
             asChild
-            className="bg-gradient-to-r from-primary to-primary/90 shadow-sm transition-all hover:shadow-md"
+            className="bg-linear-to-r from-primary to-primary/90 shadow-sm transition-all hover:shadow-md"
           >
             <Link href="/chat">Get Started</Link>
           </Button>
@@ -288,7 +289,7 @@ export function Navbar() {
                     {link.items.map((item) => (
                       <Link
                         key={item.label}
-                        href={item.href}
+                        href={item.href as Route}
                         className={`flex items-center gap-3 rounded-lg p-3 transition-colors ${isActiveLink(item.href)
                             ? "bg-primary/10 text-primary"
                             : "hover:bg-accent"
@@ -312,7 +313,7 @@ export function Navbar() {
               ) : (
                 <Link
                   key={link.label}
-                  href={link.href}
+                  href={link.href as Route}
                   className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${isActiveLink(link.href)
                       ? "bg-primary/10 text-primary"
                       : "hover:bg-accent"
@@ -341,7 +342,7 @@ export function Navbar() {
               <Button
                 size="lg"
                 asChild
-                className="w-full bg-gradient-to-r from-primary to-primary/90"
+                className="w-full bg-linear-to-r from-primary to-primary/90"
                 tabIndex={mobileOpen ? 0 : -1}
               >
                 <Link href="/chat" onClick={() => setMobileOpen(false)}>

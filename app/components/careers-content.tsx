@@ -81,7 +81,11 @@ export function CareersContent() {
         <div>
           <h2 className="mb-8 text-2xl font-bold text-foreground">Open Positions</h2>
           <div className="space-y-4">
-            {POSITIONS.map((position, index) => (
+            {POSITIONS.map((position, index) => {
+              const slug = position.title.toLowerCase().replace(/\s+/g, "-")
+              const href = `/careers/${slug}`
+
+              return (
               <motion.div
                 key={position.title}
                 initial={{ opacity: 0, y: 20 }}
@@ -89,10 +93,7 @@ export function CareersContent() {
                 transition={{ duration: 0.4, delay: index * 0.1 }}
                 viewport={{ once: true }}
               >
-                <Link
-                  href={`/careers/${position.title.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
-                >
+                <Link href={href as any} className="group flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{position.department}</Badge>

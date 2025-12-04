@@ -117,7 +117,7 @@ export function Footer() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 shadow-lg">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-lg">
                 <span className="font-bold text-primary-foreground text-lg">A</span>
               </div>
               <span className="text-xl font-bold text-foreground">AgentStack</span>
@@ -128,7 +128,7 @@ export function Footer() {
             </p>
             <div className="mt-6 flex items-center gap-3">
               {SOCIAL_LINKS.map((social) => (
-                <Link
+                <a
                   key={social.name}
                   href={social.href}
                   target="_blank"
@@ -137,7 +137,7 @@ export function Footer() {
                   aria-label={social.name}
                 >
                   <social.icon className="size-5" />
-                </Link>
+                </a>
               ))}
             </div>
           </div>
@@ -149,7 +149,7 @@ export function Footer() {
               {FOOTER_LINKS.product.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href}
+                    href={link.href as any}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
@@ -166,7 +166,7 @@ export function Footer() {
               {FOOTER_LINKS.resources.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href}
+                    href={link.href as any}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
@@ -183,7 +183,7 @@ export function Footer() {
               {FOOTER_LINKS.company.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href}
+                    href={link.href as any}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
@@ -200,7 +200,7 @@ export function Footer() {
               {FOOTER_LINKS.legal.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href}
+                    href={link.href as any}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}

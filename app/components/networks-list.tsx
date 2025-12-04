@@ -84,7 +84,7 @@ export function NetworksList() {
             viewport={{ once: true }}
           >
             <Link
-              href={`/networks/${network.id}`}
+              href={{ pathname: '/networks/[id]', query: { id: network.id } }}
               className="group flex h-full flex-col rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg"
             >
               <div className="mb-6 flex items-start justify-between">

@@ -58,14 +58,14 @@ export function DocsLayout({
           <nav className="mt-16 flex items-center justify-between border-t border-border pt-8">
             {prevPage ? (
               <Button variant="outline" asChild>
-                <Link href={prevPage.href}>
+                <Link href={prevPage.href as any}>
                   <ArrowLeftIcon className="mr-2 size-4" /> {prevPage.title}
                 </Link>
               </Button>
             ) : <div />}
             {nextPage && (
               <Button variant="outline" asChild>
-                <Link href={nextPage.href}>
+                <Link href={nextPage.href as any}>
                   {nextPage.title} <ChevronRightIcon className="ml-2 size-4" />
                 </Link>
               </Button>

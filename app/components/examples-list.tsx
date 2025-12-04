@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+// use standard anchor for external links to avoid next/link type errors
 import { motion } from "framer-motion"
 import { Input } from "@/ui/input"
 import { Badge } from "@/ui/badge"
@@ -104,14 +104,14 @@ export function ExamplesList() {
             </p>
             <div className="flex gap-3">
               <Button variant="outline" size="sm" asChild className="flex-1">
-                <Link href={example.github} target="_blank" rel="noopener noreferrer">
+                <a href={example.github} target="_blank" rel="noopener noreferrer">
                   <GithubIcon className="mr-2 size-4" /> View Code
-                </Link>
+                </a>
               </Button>
               <Button size="sm" asChild className="flex-1">
-                <Link href={example.github} target="_blank" rel="noopener noreferrer">
+                <a href={example.github} target="_blank" rel="noopener noreferrer">
                   <ExternalLinkIcon className="mr-2 size-4" /> Live Demo
-                </Link>
+                </a>
               </Button>
             </div>
           </motion.div>

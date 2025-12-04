@@ -1,7 +1,8 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import { createTool, InferUITool } from "@mastra/core/tools"
 import chalk from 'chalk'
-import { execa, ExecaError } from 'execa'
+import execa from 'execa'
+import type { ExecaError as ExecaErrorType } from 'execa'
 import { readFileSync } from 'fs'
 import * as path from 'path'
 import { z } from 'zod'
@@ -40,11 +41,9 @@ export const pnpmBuild = createTool({
       span?.end({ output: { success: true } });
       return { message: 'Done' }
     } catch (e) {
-      log.error(e instanceof Error ? e.message : String(e))
-      if (e instanceof ExecaError) {
-        return { message: e.message }
-      }
-      return { message: 'Error' }
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      log.error(errorMsg)
+      return { message: errorMsg || 'Error' }
     }
   },
 })
@@ -81,9 +80,9 @@ export const pnpmChangesetStatus = createTool({
         }
       )
 
-      const lines = result.all.split('\n')
-      const filteredLines = lines.filter((line) => line.startsWith('+'))
-      const packages = filteredLines.map((line) =>
+      const lines = (result.all ?? '').split('\n')
+      const filteredLines = lines.filter((line: string) => line.startsWith('+'))
+      const packages = filteredLines.map((line: string) =>
         line.trim().substring(2).split('@').slice(0, -1).join('@')
       )
 
@@ -129,9 +128,10 @@ export const pnpmChangesetPublish = createTool({
       span?.end({ output: { success: true } });
       return { message: 'Done' }
     } catch (e) {
-      log.error(e instanceof Error ? e.message : String(e))
-      if (e instanceof ExecaError) {
-        return { message: e.message }
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      log.error(errorMsg)
+      if (e instanceof Error && 'message' in e) {
+        return { message: errorMsg }
       }
       return { message: 'Error' }
     }
@@ -183,9 +183,10 @@ export const activeDistTag = createTool({
       span?.end({ output: { success: true } });
       return { message: 'Done' }
     } catch (e) {
-      log.error(e instanceof Error ? e.message : String(e))
-      if (e instanceof ExecaError) {
-        return { message: e.message }
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      log.error(errorMsg)
+      if (e instanceof Error && 'message' in e) {
+        return { message: errorMsg }
       }
       return { message: 'Error' }
     }

@@ -45,7 +45,7 @@ export function LandingCTA() {
     <section className="relative overflow-hidden border-t border-border">
       {/* Background gradients */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-primary/5 via-transparent to-transparent" />
         <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
         <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/2 translate-y-1/2 rounded-full bg-blue-500/10 blur-[100px]" />
         <div className="absolute bottom-0 right-0 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-purple-500/10 blur-[100px]" />
@@ -84,7 +84,7 @@ export function LandingCTA() {
           >
             Ready to Build{" "}
             <span className="relative">
-              <span className="relative z-10 bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
+              <span className="relative z-10 bg-linear-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
                 Something Amazing?
               </span>
             </span>
@@ -113,7 +113,7 @@ export function LandingCTA() {
             <Button
               size="lg"
               asChild
-              className="group h-14 min-w-[200px] bg-gradient-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+              className="group h-14 min-w-[200px] bg-linear-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
             >
               <Link href="/chat">
                 <RocketIcon className="mr-2 size-5" />
@@ -180,7 +180,7 @@ export function LandingCTA() {
                 viewport={{ once: true }}
               >
                 <Link
-                  href={link.href}
+                  href={link.href as any}
                   className="group flex h-full flex-col rounded-2xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg"
                 >
                   <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">

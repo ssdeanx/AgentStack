@@ -1,4 +1,4 @@
-import { AISpanType } from "@mastra/core/ai-tracing";
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import { InferUITool, createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
@@ -122,10 +122,7 @@ export const dataValidatorToolJSON = createTool({
       type: AISpanType.TOOL_CALL,
       name: "data-validator",
       input: { hasData: context.data !== undefined, hasSchema: context.schema !== undefined },
-      tracingContext,
-      parentSpanId: tracingContext?.currentSpan?.id,
-      childSpanId: tracingContext?.currentSpan?.id,
-      runtimeContext
+      tracingPolicy: { internal: InternalSpans.ALL }
     });
 
     try {
