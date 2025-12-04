@@ -1,4 +1,3 @@
-import { UserTier } from './editorAgent';
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite } from '../config/google'

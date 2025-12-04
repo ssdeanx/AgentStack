@@ -18,7 +18,7 @@ import { getFileContent, getRepositoryInfo, listRepositories, searchCode } from 
 import { jsonToCsvTool } from '../tools/json-to-csv.tool';
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
 import { batchWebScraperTool, contentCleanerTool, htmlToMarkdownTool, linkExtractorTool, webScraperTool } from '../tools/web-scraper-tool';
-
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 export const acpAgent = new Agent({
   id: 'acp-agent',
   name: 'ACP Agent',
@@ -119,13 +119,10 @@ export const acpAgent = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'low',
+
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          media_resolution: "MEDIA_RESOLUTION_MEDIUM",
-          responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
         },
       },
     };

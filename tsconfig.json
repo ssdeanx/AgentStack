@@ -43,18 +43,26 @@
     "components.json",
     "instrumentation.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "ui/**/*.ts",
+    "ui/**/*.tsx",
+    "lib/**/*.ts",
+    "hooks/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    ".next",
+
     ".mastra",
     ".github",
     ".cursor",
     "public",
     "coverage",
-    "node_modules/**/*.d.ts",
+
     "scripts",
     ".kilocode",
     "docs",
