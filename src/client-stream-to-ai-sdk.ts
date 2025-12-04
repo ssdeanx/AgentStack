@@ -1,20 +1,14 @@
+import { createUIMessageStream } from "ai";
 import { toAISdkFormat } from "@mastra/ai-sdk";
 import type { ChunkType, MastraModelOutput } from "@mastra/core/stream";
-import { createUIMessageStream } from "ai";
-import { mastra } from "./mastra";
 
-// Client SDK agent stream
-const response = await mastra.stream({
-  messages: "What is the weather in Tokyo",
-});
+const response = await agent.stream({ messages: "Tell me a story" });
 
 const chunkStream: ReadableStream<ChunkType> = new ReadableStream<ChunkType>({
   start(controller) {
     response
       .processDataStream({
-        onChunk: async (chunk: ChunkType) => {
-          controller.enqueue(chunk as ChunkType);
-        },
+        onChunk: async (chunk) => controller.enqueue(chunk as ChunkType),
       })
       .finally(() => controller.close());
   },

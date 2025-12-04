@@ -7,7 +7,7 @@ import {
 } from "@mastra/core/ai-tracing";
 import { Mastra } from '@mastra/core/mastra';
 import { PostgresStore } from "@mastra/pg";
-import { LangfuseExporter } from "./config/tracing";
+import { LangfuseExporter } from "@mastra/langfuse";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
@@ -163,8 +163,8 @@ export const mastra = new Mastra({
   observability: {
     default: { enabled: true },
     configs: {
-      default: {
-        serviceName: "AgentStack",
+      langfuse: {
+        serviceName: "ai",
         sampling: { type: SamplingStrategyType.ALWAYS },
         processors: [new SensitiveDataFilter(
           {
@@ -181,7 +181,7 @@ export const mastra = new Mastra({
             baseUrl: process.env.LANGFUSE_BASE_URL,
             logger: log,
             options: {
-              tracer: trace.getTracer("AgentStack"),
+              tracer: trace.getTracer("ai"),
             }
           }),
           //          new CloudExporter({
@@ -205,14 +205,17 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       chatRoute({
-        path: "/chat/:agentId",
+        path: "/chat",
+        agent: "weatherAgent",
         defaultOptions: {
           memory: {
             thread: {
               id: 'chat',
               resourceId: 'chat',
             },
-            resource: "chat"
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
           },
           maxSteps: 50,
           includeRawChunks: true,
@@ -221,13 +224,222 @@ export const mastra = new Mastra({
             recordInputs: true,
             recordOutputs: true,
             functionId: "chat-api",
-            metadata: {
-              route: "/chat",
-              project: "AgentStack",
-              environment: process.env.NODE_ENV ?? "development",
-              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              timestamp: new Date().toISOString(),
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "researchAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
             },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "reportAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "excalidrawValidatorAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "editorAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "copywriterAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "scriptWriterAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "knowledgeIndexingAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "chat",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat",
+        agent: "documentProcessingAgent",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'chat',
+              resourceId: 'chat',
+            },
+            resource: "network",
+            options:
+              { semanticRecall: true, workingMemory: { enabled: true, } }
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
           },
         },
         sendStart: true,
@@ -237,11 +449,78 @@ export const mastra = new Mastra({
       }),
       workflowRoute({
         path: "/workflow",
-        workflow: "weatherWorkflow, contentStudioWorkflow, changelogWorkflow, contentReviewWorkflow, documentProcessingWorkflow, financialReportWorkflow, learningExtractionWorkflow, researchSynthesisWorkflow, stockAnalysisWorkflow, telephoneGameWorkflow",
+        workflow: "research-synthesis-workflow",
+
       }),
       networkRoute({
         path: "/network",
-        agent: "agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork",
+        agent: "agentNetwork",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'network',
+              resourceId: 'network',
+            },
+            resource: "network",
+            options:
+              { semanticRecall: true, }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
+      }),
+       networkRoute({
+        path: "/network",
+        agent: "dataPipelineNetwork",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'network',
+              resourceId: 'network',
+            },
+            resource: "network",
+            options:
+              { semanticRecall: true, }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
+      }),
+       networkRoute({
+        path: "/network",
+        agent: "reportGenerationNetwork",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'network',
+              resourceId: 'network',
+            },
+            resource: "network",
+            options:
+              { semanticRecall: true, }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
+      }),
+       networkRoute({
+        path: "/network",
+        agent: "researchPipelineNetwork",
         defaultOptions: {
           memory: {
             thread: {

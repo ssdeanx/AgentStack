@@ -19,7 +19,7 @@ export function register() {
       [ATTR_SERVICE_NAME]: "ai",
     }),
     traceExporter: exporter,
-   // instrumentations: [InstrumentClass],
+  // instrumentations: [InstrumentClass],
     metricReader: undefined,
     contextManager: {
     active: () => ROOT_CONTEXT,

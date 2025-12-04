@@ -1,10 +1,5 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
-import remarkFrontmatter from "remark-frontmatter";
-import rehypeHighlight from "rehype-highlight";
-import rehypeClassNames from "rehype-class-names";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
@@ -12,11 +7,10 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: true,
   reactStrictMode: true,
-  output: undefined,
   distDir: ".next",
   typescript: {
     ignoreBuildErrors: true,
-    tsconfigPath: "tsconfig.json",
+    tsconfigPath: "./tsconfig.json",
   },
   cacheComponents: true,
   cacheMaxMemorySize: 128 * 1024 * 1024, // 128 MB
@@ -24,7 +18,7 @@ const nextConfig: NextConfig = {
     emotion: true,
     styledComponents: true,
     styledJsx: {
-      useLightningcss: true,
+//      useLightningcss: true,
     }
   },
   // TODO: enable this when we have a proper domain
@@ -49,7 +43,7 @@ const nextConfig: NextConfig = {
     workerThreads: true,
     disableOptimizedLoading: true,
     hideLogsAfterAbort: true,
-    optimizeCss: true,
+//    optimizeCss: true,
     esmExternals: true,
     scrollRestoration: true,
     cpus: 16,
@@ -59,14 +53,14 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
     webpackBuildWorker: true,
  //   turbopackTreeShaking: true,
-    turbopackMinify: true,
-    turbopackImportTypeBytes: true,
+//    turbopackMinify: true,
+//    turbopackImportTypeBytes: true,
 //    turbopackMemoryLimit: 8192,
 //    turbopackRemoveUnusedExports: true,
     turbopackFileSystemCacheForDev: true,
   //  turbopackFileSystemCacheForBuild: true,
     useCache: true,
-    useLightningcss: true,
+//    useLightningcss: true,
     useWasmBinary: true,
 //    swcTraceProfiling: true,
 //    forceSwcTransforms: true,
@@ -76,10 +70,6 @@ const nextConfig: NextConfig = {
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,
-  options: {
-    remarkPlugins: [remarkGfm, remarkBreaks, remarkFrontmatter],
-    rehypePlugins: [rehypeHighlight, rehypeClassNames],
-  },
 });
 
 export default withMDX(nextConfig);

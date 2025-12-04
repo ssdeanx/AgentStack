@@ -129,9 +129,12 @@ export function NetworkProvider({
     const lastMessage = messages[messages.length - 1]
     if (lastMessage?.role === "assistant" && networkConfig) {
       const dataParts = lastMessage.parts?.filter(
-        (p) => p.type === "data-network" || p.type === "dynamic-tool"
+        (p) =>
+          p.type === "data-network" ||
+          p.type === "dynamic-tool" ||
+          (typeof p.type === "string" && p.type.startsWith("data-tool-"))
       )
-      
+
       if (dataParts && dataParts.length > 0) {
         const steps: RoutingStep[] = networkConfig.agents.map((agent, index) => ({
           agentId: agent.id,

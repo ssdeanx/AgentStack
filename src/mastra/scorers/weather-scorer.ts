@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers';
-import { createCompletenessScorer } from '@mastra/evals/scorers';
+import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/code';
+import { createCompletenessScorer } from '@mastra/evals/scorers/code';
 import { createScorer } from '@mastra/core/scores';
 
 export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({

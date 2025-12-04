@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { getAgentConfig, AGENT_CONFIGS } from "@/app/chat/config/agents"
+import { getAgentConfig, AGENT_CONFIGS } from "../config/agents"
 import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart, ToolUIPart } from "ai"
 import {
   createContext,
@@ -14,6 +14,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { mapDataToolPartToDynamicToolPart } from "../helpers/tool-part-transform";
 
 export interface Source {
   url: string
@@ -179,6 +180,7 @@ export function ChatProvider({
             agentId: selectedAgent,
             resourceId: resourceId,
           },
+          
           body: {
             messages,
             resourceId: resourceId,
@@ -223,14 +225,28 @@ export function ChatProvider({
 
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant") {
-      return (
-        lastMessage.parts?.filter(
-          (p): p is DynamicToolUIPart => p.type === "dynamic-tool"
-        ) ?? []
-      )
+    if (!lastMessage || lastMessage.role !== "assistant" || !lastMessage.parts) return []
+
+    // Iterate parts in order and collect both `dynamic-tool` and
+    // Mastra-native `data-tool-*` parts (converted to dynamic-tool).
+    const {parts} = lastMessage
+    const result: ToolInvocationState[] = []
+
+    for (const p of parts) {
+      if (p.type === "dynamic-tool") {
+        result.push(p as ToolInvocationState)
+        continue
+      }
+
+      if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
+        const converted = mapDataToolPartToDynamicToolPart(p)
+        if (converted) {
+          result.push(converted as ToolInvocationState)
+        }
+      }
     }
-    return []
+
+    return result
   }, [messages])
 
   // Extract sources from source-url parts
@@ -258,32 +274,46 @@ export function ChatProvider({
     if (lastMessage?.role === "assistant" && lastMessage.parts) {
       for (const part of lastMessage.parts) {
         // Check for generated HTML/React code in tool outputs
+        let output: Record<string, unknown> | undefined
+
+        // Extract output from standard dynamic-tool parts
         if (part.type === "dynamic-tool") {
           const toolPart = part as DynamicToolUIPart
-          if (toolPart.output && typeof toolPart.output === "object") {
-            const output = toolPart.output as Record<string, unknown>
+          output = toolPart.output as Record<string, unknown> | undefined
 
-            // Check for preview URL or generated code
-            if (output.previewUrl && typeof output.previewUrl === "string") {
+          // Or convert a Mastra `data-tool-*` part into a DynamicTool shape, then check its output
+        } else if (typeof part.type === "string" && part.type.startsWith("data-tool-")) {
+          const converted = mapDataToolPartToDynamicToolPart(part)
+          output = converted?.output as Record<string, unknown> | undefined
+
+          // Not a tool part we care about
+        } else {
+          continue
+        }
+
+        if (output && typeof output === "object") {
+          const out = output as Record<string, unknown>
+
+          // Check for preview URL or generated code
+          if (out.previewUrl && typeof out.previewUrl === "string") {
+            setWebPreviewState({
+              id: `preview-${Date.now()}`,
+              url: out.previewUrl,
+              title: (out.title as string) || "Generated Preview",
+            })
+          } else if (out.code && typeof out.code === "string") {
+            // For code generation (like Recharts), create a data URL or sandbox
+            const language = (out.language as string) || "tsx"
+            if (language === "html" || (out as any).html) {
+              const htmlContent = (out as any).html || out.code
+              const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
               setWebPreviewState({
                 id: `preview-${Date.now()}`,
-                url: output.previewUrl,
-                title: (output.title as string) || "Generated Preview",
+                url: dataUrl,
+                title: (out.title as string) || "Generated UI",
+                code: out.code,
+                language,
               })
-            } else if (output.code && typeof output.code === "string") {
-              // For code generation (like Recharts), create a data URL or sandbox
-              const language = (output.language as string) || "tsx"
-              if (language === "html" || output.html) {
-                const htmlContent = (output.html as string) || output.code
-                const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
-                setWebPreviewState({
-                  id: `preview-${Date.now()}`,
-                  url: dataUrl,
-                  title: (output.title as string) || "Generated UI",
-                  code: output.code,
-                  language,
-                })
-              }
             }
           }
         }

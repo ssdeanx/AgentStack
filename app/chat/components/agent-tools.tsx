@@ -7,7 +7,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/src/components/ai-elements/tool"
-import type { ToolInvocationState } from "@/app/chat/providers/chat-context"
+import type { ToolInvocationState } from "../providers/chat-context"
 import type { DynamicToolUIPart, ToolUIPart } from "ai"
 
 export interface AgentToolsProps {

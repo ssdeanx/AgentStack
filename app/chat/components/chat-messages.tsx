@@ -50,6 +50,7 @@ import {
   isToolOrDynamicToolUIPart,
   isFileUIPart,
 } from "ai"
+import { mapDataToolPartToDynamicToolPart } from "../helpers/tool-part-transform"
 import type { BundledLanguage } from "shiki"
 import { Button } from "@/ui/button"
 
@@ -157,9 +158,27 @@ function MessageItem({
   }, [rawContent, isAssistant, showArtifacts])
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
-  const messageTools = message.parts?.filter(isToolOrDynamicToolUIPart) as
-    | ToolInvocationState[]
-    | undefined
+  const messageTools = useMemo(() => {
+    if (!message.parts || message.parts.length === 0) return undefined
+    const tools: ToolInvocationState[] = []
+
+    for (const p of message.parts) {
+      if (!p) continue
+      if (isToolOrDynamicToolUIPart(p)) {
+        tools.push(p as ToolInvocationState)
+        continue
+      }
+
+      if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
+        const converted = mapDataToolPartToDynamicToolPart(p)
+        if (converted) {
+          tools.push(converted as ToolInvocationState)
+        }
+      }
+    }
+
+    return tools.length > 0 ? tools : undefined
+  }, [message.parts])
 
   const fileParts = message.parts?.filter(isFileUIPart) as FileUIPart[] | undefined
   const imageParts = fileParts?.filter((f) => f.mediaType?.startsWith("image/"))

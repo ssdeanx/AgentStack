@@ -97,7 +97,8 @@ module.exports = [
       'lib/**/*.{tsx,ts}',
       'ui/**/*.{tsx,ts}',
       'hooks/**/*.{tsx,ts}',
-      'tests/'
+      'tests/',
+      'components.json',
 
 
     ],
