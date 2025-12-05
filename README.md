@@ -379,3 +379,147 @@ npm run mcp-server
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
 _Last updated: 2025-12-05 | v3.3.0_
+
+## 📚 **Class Diagram**
+
+- Latest class diagram for core AgentStack agents and tools:
+
+```mermaid
+classDiagram
+  class Agent {
+    +string id
+    +string name
+    +string description
+    +function instructions(runtimeContext)
+    +model
+    +memory
+    +tools
+    +agents
+    +workflows
+    +scorers
+    +maxRetries
+  }
+
+  class Tool {
+    +string id
+    +string description
+    +inputSchema
+    +outputSchema
+    +function execute(context)
+  }
+
+  class codingTeamNetwork {
+    +id = "coding-team-network"
+    +name = "Coding Team Network"
+    +description
+    +agents: coding_agents
+  }
+
+  class codingA2ACoordinator {
+    +id = "codingA2ACoordinator"
+    +name = "Coding A2A Coordinator"
+    +description
+    +agents: coding_agents
+  }
+
+  class codeArchitectAgent {
+    +id = "code-architect"
+    +name = "Code Architect Agent"
+    +description
+    +UserTier userTier
+    +string language
+    +string projectRoot
+  }
+
+  class codeReviewerAgent {
+    +id = "code-reviewer"
+    +name = "Code Reviewer Agent"
+    +description
+  }
+
+  class testEngineerAgent {
+    +id = "test-engineer"
+    +name = "Test Engineer Agent"
+    +description
+  }
+
+  class refactoringAgent {
+    +id = "refactoring"
+    +name = "Refactoring Agent"
+    +description
+  }
+
+  class codeAnalysisTool {
+    +id = "coding:codeAnalysis"
+    +description
+    +CodeAnalysisInput inputSchema
+    +CodeAnalysisOutput outputSchema
+  }
+
+  class codeSearchTool {
+    +id = "coding:codeSearch"
+    +description
+    +CodeSearchInput inputSchema
+    +CodeSearchOutput outputSchema
+  }
+
+  class diffReviewTool {
+    +id = "coding:diffReview"
+    +description
+    +DiffReviewInput inputSchema
+    +DiffReviewOutput outputSchema
+  }
+
+  class multiStringEditTool {
+    +id = "coding:multiStringEdit"
+    +description
+    +MultiStringEditInput inputSchema
+    +MultiStringEditOutput outputSchema
+  }
+
+  class testGeneratorTool {
+    +id = "coding:testGenerator"
+    +description
+    +TestGeneratorInput inputSchema
+    +TestGeneratorOutput outputSchema
+  }
+
+  Agent <|-- codingTeamNetwork
+  Agent <|-- codingA2ACoordinator
+  Agent <|-- codeArchitectAgent
+  Agent <|-- codeReviewerAgent
+  Agent <|-- testEngineerAgent
+  Agent <|-- refactoringAgent
+
+  Tool <|-- codeAnalysisTool
+  Tool <|-- codeSearchTool
+  Tool <|-- diffReviewTool
+  Tool <|-- multiStringEditTool
+  Tool <|-- testGeneratorTool
+
+  codingTeamNetwork o-- codeArchitectAgent
+  codingTeamNetwork o-- codeReviewerAgent
+  codingTeamNetwork o-- testEngineerAgent
+  codingTeamNetwork o-- refactoringAgent
+
+  codingA2ACoordinator o-- codeArchitectAgent
+  codingA2ACoordinator o-- codeReviewerAgent
+  codingA2ACoordinator o-- testEngineerAgent
+  codingA2ACoordinator o-- refactoringAgent
+
+  codeArchitectAgent --> codeAnalysisTool
+  codeArchitectAgent --> codeSearchTool
+
+  codeReviewerAgent --> codeAnalysisTool
+  codeReviewerAgent --> diffReviewTool
+  codeReviewerAgent --> codeSearchTool
+
+  testEngineerAgent --> codeAnalysisTool
+  testEngineerAgent --> testGeneratorTool
+  testEngineerAgent --> codeSearchTool
+
+  refactoringAgent --> multiStringEditTool
+  refactoringAgent --> codeAnalysisTool
+  refactoringAgent --> diffReviewTool
+  refactoringAgent --> codeSearchTool
+```
