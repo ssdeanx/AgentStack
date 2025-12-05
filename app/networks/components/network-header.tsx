@@ -12,6 +12,18 @@ import {
   SelectValue,
 } from "@/ui/select"
 import { Badge } from "@/ui/badge"
+import {
+  ModelSelector,
+  ModelSelectorTrigger,
+  ModelSelectorContent,
+  ModelSelectorInput,
+  ModelSelectorList,
+  ModelSelectorGroup,
+  ModelSelectorItem,
+  ModelSelectorEmpty,
+  ModelSelectorName,
+  ModelSelectorLogo,
+} from "@/src/components/ai-elements/model-selector"
 import { useNetworkContext } from "@/app/networks/providers/network-context"
 import {
   CATEGORY_ORDER,
@@ -20,12 +32,22 @@ import {
   type NetworkId,
 } from "@/app/networks/config/networks"
 import {
+  MODEL_CONFIGS,
+  PROVIDER_CONFIGS,
+  PROVIDER_ORDER,
+  getModelsByProvider,
+  formatContextWindow,
+  type ModelConfig,
+} from "@/app/chat/config/models"
+import {
   ArrowLeftIcon,
   NetworkIcon,
   SquareIcon,
   Trash2Icon,
+  CpuIcon,
+  CheckIcon,
 } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 
 export function NetworkHeader() {
   const {
@@ -38,8 +60,19 @@ export function NetworkHeader() {
     messages,
   } = useNetworkContext()
 
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<ModelConfig>(
+    MODEL_CONFIGS.find((m) => m.isDefault) || MODEL_CONFIGS[0]
+  )
+
   const networksByCategory = useMemo(() => getNetworksByCategory(), [])
+  const modelsByProvider = useMemo(() => getModelsByProvider(), [])
   const isExecuting = networkStatus === "executing" || networkStatus === "routing"
+
+  const handleSelectModel = (model: ModelConfig) => {
+    setSelectedModel(model)
+    setModelSelectorOpen(false)
+  }
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-6 md:py-4">
@@ -59,6 +92,66 @@ export function NetworkHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Model Selector */}
+        <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
+          <ModelSelectorTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden min-w-[120px] justify-between gap-2 sm:flex"
+            >
+              <CpuIcon className="size-3.5 text-muted-foreground" />
+              <span className="truncate text-xs">{selectedModel.name}</span>
+            </Button>
+          </ModelSelectorTrigger>
+          <ModelSelectorContent className="w-[340px]">
+            <ModelSelectorInput placeholder="Search models..." />
+            <ModelSelectorList className="max-h-[400px]">
+              <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+              {PROVIDER_ORDER.map((provider) => {
+                const models = modelsByProvider[provider]
+                if (models.length === 0) return null
+                const providerConfig = PROVIDER_CONFIGS[provider]
+
+                return (
+                  <ModelSelectorGroup
+                    key={provider}
+                    heading={
+                      <div className="flex items-center gap-2">
+                        <ModelSelectorLogo
+                          provider={providerConfig.logo as never}
+                          className="size-3"
+                        />
+                        {providerConfig.name}
+                      </div>
+                    }
+                  >
+                    {models.map((model) => (
+                      <ModelSelectorItem
+                        key={model.id}
+                        value={model.id}
+                        onSelect={() => handleSelectModel(model)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <ModelSelectorName>{model.name}</ModelSelectorName>
+                          <span className="text-xs text-muted-foreground">
+                            {formatContextWindow(model.contextWindow)} • {model.description}
+                          </span>
+                        </div>
+                        {selectedModel.id === model.id && (
+                          <CheckIcon className="size-4 text-primary" />
+                        )}
+                      </ModelSelectorItem>
+                    ))}
+                  </ModelSelectorGroup>
+                )
+              })}
+            </ModelSelectorList>
+          </ModelSelectorContent>
+        </ModelSelector>
+
+        {/* Network Selector */}
         <Select
           value={selectedNetwork}
           onValueChange={(value) => selectNetwork(value as NetworkId)}

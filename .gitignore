@@ -120,3 +120,17 @@ stakpak.backup
 stakpak.exe
 opnapi.json
 openapi.json
+
+# GitHub Actions
+.github/workflows/**.yml
+.github/workflows/**.yaml
+.github/actions/**/node_modules/
+.github/actions/**/dist/
+.github/actions/**/build/
+.github/actions/**/lib/
+.github/actions/**/out/
+.github/actions/**/.turbo/
+.github/actions/**/.next/
+.github/actions/**/.vercel/
+.github/actions/**/.vercel_build_output/
+.github/actions/**/vercel.json

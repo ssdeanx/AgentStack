@@ -3,6 +3,7 @@
 ## Current Focus (Dec 2025)
 
 - **[Synced Dec 5, 2025]** AI Elements Integration 92% complete (12/13 tasks). Chat interface fully functional.
+- **[NEW]** Models Configuration System: 150+ models from 6 providers, shared between `/chat` and `/networks`.
 - **[COMPLETED]** Workflows UI 100% complete - 10 workflows with Canvas visualization, input panels, streaming output.
 - **[v1 - 50%]** Mastra Admin Dashboard v1 - MastraClient-based dashboard for observability, memory, logs, telemetry.
 - **[v2 - PLANNED]** Dashboard v2 feature spec created - 33 tasks, modular components, React Query, auth prep.
@@ -10,6 +11,50 @@
 - **AI Elements UI library**: 30 AI-focused components + 19 shadcn/ui base components integrated.
 - **Next.js 16 frontend** with Vercel-style navigation and footer. Tailwind CSS 4, React 19, dark mode.
 - Maintain `/memory-bank` sync for session continuity.
+
+## Models Configuration System (Dec 5, 2025)
+
+**Status:** ✅ Complete  
+**Location:** `app/chat/config/`
+
+**Shared by:**
+- `app/chat/` - Chat interface with model selector
+- `app/networks/` - Network interface with model selector
+
+**Provider Files Created:**
+
+| File | Provider | Models |
+|------|----------|--------|
+| `models.ts` | Core types & aggregation | Imports all providers |
+| `google-models.ts` | Google AI | 25 models (Gemini 1.5/2.0/2.5/3.0, Live, TTS, Embedding) |
+| `openai-models.ts` | OpenAI | 28 models (GPT-4o/4.1/5/5.1, o1/o3/o4, Codex, Embeddings) |
+| `anthropic-models.ts` | Anthropic | 20 models (Claude 3/3.5/3.7/4/4.5, Opus/Sonnet/Haiku) |
+| `openrouter-models.ts` | OpenRouter | 60+ models (Aggregated from all providers + free models) |
+| `ollama-models.ts` | Ollama | 25 models (Local: Llama, Mistral, Qwen, DeepSeek, Gemma) |
+
+**Type Definitions:**
+
+```typescript
+type ModelProvider = "google" | "openai" | "anthropic" | "openrouter" | "google-vertex" | "ollama"
+type ModelCapability = "chat" | "reasoning" | "vision" | "embedding" | "code" | "audio"
+
+interface ModelConfig {
+  id: string
+  name: string
+  provider: ModelProvider
+  contextWindow: number
+  capabilities: ModelCapability[]
+  description?: string
+  isDefault?: boolean
+  pricing?: { input: number; output: number }
+}
+```
+
+**Key Functions:**
+- `getModelsByProvider()` - Groups models by provider for UI
+- `getModelConfig(id)` - Get specific model config
+- `getDefaultModel()` - Returns default model (Gemini 2.5 Flash)
+- `formatContextWindow(tokens)` - Format "1M" or "128K"
 
 ## Next Session Priority
 

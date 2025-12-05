@@ -12,13 +12,14 @@
 | MCP | ✅ | `mcp/index.ts`: a2aCoordinatorMcpServer; tools: coordinate_a2a_task etc. |
 | Scorers | ✅ | weather-scorer.ts, custom-scorers.ts. |
 | Observability | ✅ | Arize/Phoenix exporters; always-on sampling. |
-| Config | ✅ | pg-storage.ts (PgVector/Postgres); models (google/openai/anthropic/openrouter/vertex/gemini-cli). |
+| Config | ✅ | pg-storage.ts (PgVector/Postgres); **models config (150+ models from 6 providers: google, openai, anthropic, openrouter, ollama, vertex)**. |
 | Tests | Progress | Vitest data tools verified; target 97%. |
 | AGENTS.md Sync | ✅ | All AGENTS.md files updated Dec 5 with accurate counts, dates, and meta headers. |
 | **UI Components** | ✅ | **49 files**: AI Elements (30 in `src/components/ai-elements/`) + shadcn/ui base (19 in `ui/`). Next.js 16, React 19, Tailwind CSS 4. |
 | **Mastra Client SDK** | ✅ | **lib/mastra-client.ts**: MastraClient instance for client-side agent calls. |
 | **Next.js Frontend** | ✅ | **app/layout.tsx**: Root layout with ThemeProvider. **app/page.tsx**: Landing page with agent overview. **app/chat/page.tsx**: Full chat interface with AI Elements. |
-| **AI Elements Integration** | ✅ 92% | **app/chat/**: 12/13 tasks complete. All features integrated. Pending: E2E tests only. |
+| **AI Elements Integration** | ✅ 92% | **app/chat/**: 12/13 tasks complete. All features integrated. Model selector with 150+ models. Pending: E2E tests only. |
+| **Networks UI** | ✅ | **app/networks/**: Full network interface with model selector, routing visualization, agent coordination. Shares model config with chat. |
 | **Workflows UI** | ✅ 100% | **app/workflows/**: Full Canvas visualization with 8 components, AI SDK streaming, input panels. |
 | **Mastra Admin Dashboard** | 🔄 70% | **app/dashboard/**: TanStack Query v5 installed, shared components created, loading/error files for all routes. Agents page modularized. See `/memory-bank/dashboard-v2/` for detailed tracking. |
 

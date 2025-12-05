@@ -13,6 +13,7 @@ import {
   ModelSelectorItem,
   ModelSelectorEmpty,
   ModelSelectorName,
+  ModelSelectorLogo,
 } from "@/src/components/ai-elements/model-selector"
 import {
   Context,
@@ -24,14 +25,6 @@ import {
   ContextInputUsage,
   ContextOutputUsage,
 } from "@/src/components/ai-elements/context"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -54,6 +47,14 @@ import {
   type AgentConfig,
 } from "@/app/chat/config/agents"
 import {
+  MODEL_CONFIGS,
+  PROVIDER_CONFIGS,
+  PROVIDER_ORDER,
+  getModelsByProvider,
+  formatContextWindow,
+  type ModelConfig,
+} from "@/app/chat/config/models"
+import {
   CheckIcon,
   MessageSquareIcon,
   Trash2Icon,
@@ -63,6 +64,8 @@ import {
   HistoryIcon,
   UserIcon,
   HashIcon,
+  CpuIcon,
+  BotIcon,
 } from "lucide-react"
 import { useMemo, useState, useCallback } from "react"
 
@@ -84,16 +87,26 @@ export function ChatHeader() {
     restoreCheckpoint,
   } = useChatContext()
 
-  const [open, setOpen] = useState(false)
+  const [agentSelectorOpen, setAgentSelectorOpen] = useState(false)
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tempThreadId, setTempThreadId] = useState(threadId)
   const [tempResourceId, setTempResourceId] = useState(resourceId)
+  const [selectedModel, setSelectedModel] = useState<ModelConfig>(
+    MODEL_CONFIGS.find((m) => m.isDefault) || MODEL_CONFIGS[0]
+  )
 
   const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
+  const modelsByProvider = useMemo(() => getModelsByProvider(), [])
 
   const handleSelectAgent = (agent: AgentConfig) => {
     selectAgent(agent.id)
-    setOpen(false)
+    setAgentSelectorOpen(false)
+  }
+
+  const handleSelectModel = (model: ModelConfig) => {
+    setSelectedModel(model)
+    setModelSelectorOpen(false)
   }
 
   const handleSaveSettings = useCallback(() => {
@@ -183,14 +196,74 @@ export function ChatHeader() {
           </Context>
         )}
 
-        {/* Agent Selector */}
-        <ModelSelector open={open} onOpenChange={setOpen}>
+        {/* Model Selector */}
+        <ModelSelector open={modelSelectorOpen} onOpenChange={setModelSelectorOpen}>
           <ModelSelectorTrigger asChild>
             <Button
               variant="outline"
               size="sm"
-              className="min-w-[180px] justify-between"
+              className="min-w-[140px] justify-between gap-2"
             >
+              <CpuIcon className="size-3.5 text-muted-foreground" />
+              <span className="truncate text-xs">{selectedModel.name}</span>
+            </Button>
+          </ModelSelectorTrigger>
+          <ModelSelectorContent className="w-[340px]">
+            <ModelSelectorInput placeholder="Search models..." />
+            <ModelSelectorList className="max-h-[400px]">
+              <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+              {PROVIDER_ORDER.map((provider) => {
+                const models = modelsByProvider[provider]
+                if (models.length === 0) return null
+                const providerConfig = PROVIDER_CONFIGS[provider]
+
+                return (
+                  <ModelSelectorGroup
+                    key={provider}
+                    heading={
+                      <div className="flex items-center gap-2">
+                        <ModelSelectorLogo
+                          provider={providerConfig.logo as never}
+                          className="size-3"
+                        />
+                        {providerConfig.name}
+                      </div>
+                    }
+                  >
+                    {models.map((model) => (
+                      <ModelSelectorItem
+                        key={model.id}
+                        value={model.id}
+                        onSelect={() => handleSelectModel(model)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <ModelSelectorName>{model.name}</ModelSelectorName>
+                          <span className="text-xs text-muted-foreground">
+                            {formatContextWindow(model.contextWindow)} • {model.description}
+                          </span>
+                        </div>
+                        {selectedModel.id === model.id && (
+                          <CheckIcon className="size-4 text-primary" />
+                        )}
+                      </ModelSelectorItem>
+                    ))}
+                  </ModelSelectorGroup>
+                )
+              })}
+            </ModelSelectorList>
+          </ModelSelectorContent>
+        </ModelSelector>
+
+        {/* Agent Selector */}
+        <ModelSelector open={agentSelectorOpen} onOpenChange={setAgentSelectorOpen}>
+          <ModelSelectorTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-w-40 justify-between gap-2"
+            >
+              <BotIcon className="size-3.5 text-muted-foreground" />
               <span className="truncate">{agentConfig?.name || selectedAgent}</span>
             </Button>
           </ModelSelectorTrigger>

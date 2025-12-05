@@ -24,6 +24,8 @@ import {
   ArrowRight,
   RefreshCw,
   Clock,
+  Zap,
+  TrendingUp,
 } from "lucide-react"
 import { StatCard, EmptyState } from "./_components"
 import { useQueryClient } from "@tanstack/react-query"
@@ -42,18 +44,34 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Mastra Admin - Monitor and manage your AI infrastructure
-            </p>
+      <div className="border-b bg-linear-to-r from-background to-muted/20">
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <Badge variant="secondary" className="text-xs">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Live
+                </Badge>
+              </div>
+              <p className="text-muted-foreground">
+                Monitor and manage your Mastra AI infrastructure
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={refetchAll} size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button asChild size="sm">
+                <Link href={"/chat" as Route}>
+                  <Bot className="h-4 w-4 mr-2" />
+                  Chat with Agent
+                </Link>
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={refetchAll}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh All
-          </Button>
         </div>
       </div>
 
@@ -68,6 +86,7 @@ export default function DashboardPage() {
             icon={Bot}
             href="/dashboard/agents"
             description="Active AI agents"
+            trend={{ value: 22, label: "configured", positive: true }}
           />
           <StatCard
             title="Workflows"
@@ -76,6 +95,7 @@ export default function DashboardPage() {
             icon={Workflow}
             href="/dashboard/workflows"
             description="Automated workflows"
+            trend={{ value: 10, label: "available", positive: true }}
           />
           <StatCard
             title="Tools"
@@ -83,7 +103,8 @@ export default function DashboardPage() {
             loading={toolsLoading}
             icon={Wrench}
             href="/dashboard/tools"
-            description="Available tools"
+            description="Enterprise tools"
+            trend={{ value: 30, label: "ready", positive: true }}
           />
           <StatCard
             title="Recent Traces"
@@ -91,57 +112,72 @@ export default function DashboardPage() {
             loading={tracesLoading}
             icon={Activity}
             href="/dashboard/observability"
-            description="In last 24h"
+            description="Last 24 hours"
           />
         </div>
 
-        {/* Quick Access */}
+        {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent Agents */}
-          <Card>
-            <CardHeader>
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bot className="h-5 w-5" />
-                    Agents
-                  </CardTitle>
-                  <CardDescription>Your AI agents</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Bot className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Agents</CardTitle>
+                    <CardDescription className="text-xs">Your AI assistants</CardDescription>
+                  </div>
                 </div>
                 <Link href={"/dashboard/agents" as Route}>
                   <Button variant="ghost" size="sm">
                     View All
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {agentsLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
+                <div className="p-4 space-y-2">
+                  {[...Array(4)].map((_, i) => (
                     <Skeleton key={i} className="h-12 w-full" />
                   ))}
                 </div>
               ) : !agents || agents.length === 0 ? (
-                <EmptyState
-                  icon={Bot}
-                  title="No agents found"
-                  description="Create your first agent to get started"
-                />
+                <div className="p-4">
+                  <EmptyState
+                    icon={Bot}
+                    title="No agents found"
+                    description="Create your first agent to get started"
+                  />
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="divide-y">
                   {agents.slice(0, 5).map((agent) => (
                     <Link
                       key={agent.id}
                       href={`/dashboard/agents?agent=${agent.id}` as Route}
-                      className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
+                      className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <Bot className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{agent.name || agent.id}</span>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                          <Bot className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <span className="font-medium text-sm">{agent.name || agent.id}</span>
+                          {agent.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {agent.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant="secondary">Agent</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Agent
+                      </Badge>
                     </Link>
                   ))}
                 </div>
@@ -150,50 +186,65 @@ export default function DashboardPage() {
           </Card>
 
           {/* Recent Workflows */}
-          <Card>
-            <CardHeader>
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Workflow className="h-5 w-5" />
-                    Workflows
-                  </CardTitle>
-                  <CardDescription>Automated workflows</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                    <Workflow className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Workflows</CardTitle>
+                    <CardDescription className="text-xs">Automated pipelines</CardDescription>
+                  </div>
                 </div>
                 <Link href={"/dashboard/workflows" as Route}>
                   <Button variant="ghost" size="sm">
                     View All
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                    <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {workflowsLoading ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
+                <div className="p-4 space-y-2">
+                  {[...Array(4)].map((_, i) => (
                     <Skeleton key={i} className="h-12 w-full" />
                   ))}
                 </div>
               ) : !workflows || workflows.length === 0 ? (
-                <EmptyState
-                  icon={Workflow}
-                  title="No workflows found"
-                  description="Create your first workflow to automate tasks"
-                />
+                <div className="p-4">
+                  <EmptyState
+                    icon={Workflow}
+                    title="No workflows found"
+                    description="Create your first workflow to automate tasks"
+                  />
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="divide-y">
                   {workflows.slice(0, 5).map((wf) => (
                     <Link
                       key={wf.id}
                       href={`/dashboard/workflows?workflow=${wf.id}` as Route}
-                      className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
+                      className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <Workflow className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{wf.name || wf.id}</span>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                          <Workflow className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <span className="font-medium text-sm">{wf.name || wf.id}</span>
+                          {wf.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {wf.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant="secondary">Workflow</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Workflow
+                      </Badge>
                     </Link>
                   ))}
                 </div>
@@ -203,49 +254,55 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Traces */}
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/30">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Recent Traces
-                </CardTitle>
-                <CardDescription>Latest AI traces from your system</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
+                  <Activity className="h-4 w-4 text-green-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Recent Traces</CardTitle>
+                  <CardDescription className="text-xs">Latest AI execution traces</CardDescription>
+                </div>
               </div>
               <Link href={"/dashboard/observability" as Route}>
                 <Button variant="ghost" size="sm">
                   View All
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {tracesLoading ? (
-              <div className="space-y-2">
+              <div className="p-4 space-y-2">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
             ) : !traces?.spans || traces.spans.length === 0 ? (
-              <EmptyState
-                icon={Activity}
-                title="No traces found"
-                description="Traces will appear here once your agents and workflows run"
-              />
+              <div className="p-4">
+                <EmptyState
+                  icon={Activity}
+                  title="No traces found"
+                  description="Traces will appear here once your agents and workflows run"
+                />
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y">
                 {traces.spans.slice(0, 5).map((span) => (
                   <Link
                     key={span.traceId}
                     href={`/dashboard/observability?trace=${span.traceId}` as Route}
-                    className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
+                    className="flex items-center justify-between p-4 hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                      </div>
                       <div>
-                        <span className="font-medium">
+                        <span className="font-medium text-sm">
                           {span.name || span.traceId}
                         </span>
                         <div className="text-xs text-muted-foreground">
@@ -257,7 +314,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {typeof (span as unknown as Record<string, unknown>).duration === "number" && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs font-mono">
                           <Clock className="h-3 w-3 mr-1" />
                           {String((span as unknown as Record<string, unknown>).duration)}ms
                         </Badge>
@@ -268,6 +325,7 @@ export default function DashboardPage() {
                             ? "default"
                             : "secondary"
                         }
+                        className="text-xs"
                       >
                         {span.spanType || "trace"}
                       </Badge>
@@ -286,24 +344,28 @@ export default function DashboardPage() {
             description="Manage vector indexes"
             icon={Database}
             href="/dashboard/vectors"
+            color="purple"
           />
           <QuickLinkCard
             title="Memory"
             description="Threads & working memory"
             icon={Brain}
             href="/dashboard/memory"
+            color="pink"
           />
           <QuickLinkCard
             title="Logs"
             description="System logs"
             icon={FileText}
             href="/dashboard/logs"
+            color="orange"
           />
           <QuickLinkCard
             title="Telemetry"
             description="Metrics & analytics"
             icon={BarChart3}
             href="/dashboard/telemetry"
+            color="cyan"
           />
         </div>
       </div>
@@ -311,27 +373,36 @@ export default function DashboardPage() {
   )
 }
 
+const colorVariants = {
+  purple: "bg-purple-500/10 text-purple-500",
+  pink: "bg-pink-500/10 text-pink-500",
+  orange: "bg-orange-500/10 text-orange-500",
+  cyan: "bg-cyan-500/10 text-cyan-500",
+}
+
 function QuickLinkCard({
   title,
   description,
   icon: Icon,
   href,
+  color = "purple",
 }: {
   title: string
   description: string
   icon: typeof Bot
   href: string
+  color?: keyof typeof colorVariants
 }) {
   return (
     <Link href={href as Route}>
-      <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
-        <CardHeader>
+      <Card className="hover:bg-accent/50 hover:border-accent transition-all cursor-pointer h-full group">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Icon className="h-5 w-5 text-primary" />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorVariants[color]} transition-transform group-hover:scale-110`}>
+              <Icon className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base">{title}</CardTitle>
+              <CardTitle className="text-base group-hover:text-primary transition-colors">{title}</CardTitle>
               <CardDescription className="text-xs">{description}</CardDescription>
             </div>
           </div>

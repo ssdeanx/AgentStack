@@ -1,0 +1,476 @@
+/**
+ * OpenRouter Gateway Models Configuration
+ * Based on https://mastra.ai/models/gateways/openrouter
+ * 125+ models available through OpenRouter gateway
+ */
+
+import type { ModelConfig, ProviderConfig } from './models';
+
+export const OPENROUTER_PROVIDER_CONFIG: ProviderConfig = {
+  id: "openrouter",
+  name: "OpenRouter",
+  logo: "openrouter",
+  envKey: "OPENROUTER_API_KEY",
+};
+
+export const OPENROUTER_MODELS: ModelConfig[] = [
+  // Anthropic via OpenRouter
+  {
+    id: "openrouter/anthropic/claude-sonnet-4.5",
+    name: "Claude Sonnet 4.5 (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Claude via OpenRouter",
+  },
+  {
+    id: "openrouter/anthropic/claude-opus-4.5",
+    name: "Claude Opus 4.5 (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Most capable Claude via OR",
+  },
+  {
+    id: "openrouter/anthropic/claude-haiku-4.5",
+    name: "Claude Haiku 4.5 (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Fast Claude via OR",
+  },
+  {
+    id: "openrouter/anthropic/claude-3.7-sonnet",
+    name: "Claude 3.7 Sonnet (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Claude 3.7 via OR",
+  },
+  {
+    id: "openrouter/anthropic/claude-3.5-haiku",
+    name: "Claude 3.5 Haiku (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Fast Claude 3.5 via OR",
+  },
+
+  // Google via OpenRouter
+  {
+    id: "openrouter/google/gemini-2.5-flash",
+    name: "Gemini 2.5 Flash (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Gemini via OpenRouter",
+  },
+  {
+    id: "openrouter/google/gemini-2.5-flash-lite",
+    name: "Gemini 2.5 Flash Lite (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Lightweight Gemini via OR",
+  },
+  {
+    id: "openrouter/google/gemini-2.5-pro",
+    name: "Gemini 2.5 Pro (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Pro Gemini via OR",
+  },
+  {
+    id: "openrouter/google/gemini-3-pro-preview",
+    name: "Gemini 3 Pro Preview (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "Next-gen Gemini via OR",
+  },
+  {
+    id: "openrouter/google/gemma-3-27b-it",
+    name: "Gemma 3 27B (OR)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "Open-weight Gemma",
+  },
+
+  // DeepSeek via OpenRouter
+  {
+    id: "openrouter/deepseek/deepseek-r1:free",
+    name: "DeepSeek R1 (Free)",
+    provider: "openrouter",
+    contextWindow: 64000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Free reasoning model",
+  },
+  {
+    id: "openrouter/deepseek/deepseek-r1-0528:free",
+    name: "DeepSeek R1 0528 (Free)",
+    provider: "openrouter",
+    contextWindow: 64000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest free R1",
+  },
+  {
+    id: "openrouter/deepseek/deepseek-chat-v3.1",
+    name: "DeepSeek Chat V3.1",
+    provider: "openrouter",
+    contextWindow: 64000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest DeepSeek chat",
+  },
+  {
+    id: "openrouter/deepseek/deepseek-v3.1-terminus",
+    name: "DeepSeek V3.1 Terminus",
+    provider: "openrouter",
+    contextWindow: 64000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Terminus variant",
+  },
+  {
+    id: "openrouter/deepseek/deepseek-r1-distill-llama-70b",
+    name: "DeepSeek R1 Distill Llama 70B",
+    provider: "openrouter",
+    contextWindow: 64000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Distilled reasoning",
+  },
+
+  // Meta Llama via OpenRouter
+  {
+    id: "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+    name: "Llama 3.3 70B (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "Free Llama 3.3",
+  },
+  {
+    id: "openrouter/meta-llama/llama-3.2-11b-vision-instruct",
+    name: "Llama 3.2 11B Vision",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Vision-capable Llama",
+  },
+  {
+    id: "openrouter/meta-llama/llama-4-scout:free",
+    name: "Llama 4 Scout (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "Latest Llama free",
+  },
+
+  // Qwen via OpenRouter
+  {
+    id: "openrouter/qwen/qwen3-coder:free",
+    name: "Qwen3 Coder (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Free coding model",
+  },
+  {
+    id: "openrouter/qwen/qwen3-coder",
+    name: "Qwen3 Coder",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Advanced coding",
+  },
+  {
+    id: "openrouter/qwen/qwen3-coder-flash",
+    name: "Qwen3 Coder Flash",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Fast coding model",
+  },
+  {
+    id: "openrouter/qwen/qwen3-max",
+    name: "Qwen3 Max",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Most capable Qwen",
+  },
+  {
+    id: "openrouter/qwen/qwen3-235b-a22b:free",
+    name: "Qwen3 235B (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Large free model",
+  },
+  {
+    id: "openrouter/qwen/qwq-32b:free",
+    name: "QwQ 32B (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Reasoning-focused Qwen",
+  },
+  {
+    id: "openrouter/qwen/qwen2.5-vl-72b-instruct:free",
+    name: "Qwen2.5 VL 72B (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Vision-language model",
+  },
+
+  // xAI Grok via OpenRouter
+  {
+    id: "openrouter/x-ai/grok-3",
+    name: "Grok 3",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "xAI flagship",
+  },
+  {
+    id: "openrouter/x-ai/grok-3-mini",
+    name: "Grok 3 Mini",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Efficient Grok",
+  },
+  {
+    id: "openrouter/x-ai/grok-4",
+    name: "Grok 4",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest Grok",
+  },
+  {
+    id: "openrouter/x-ai/grok-4-fast",
+    name: "Grok 4 Fast",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Fast Grok 4",
+  },
+
+  // Mistral via OpenRouter
+  {
+    id: "openrouter/mistralai/mistral-medium-3.1",
+    name: "Mistral Medium 3.1",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest Mistral medium",
+  },
+  {
+    id: "openrouter/mistralai/mistral-small-3.2-24b-instruct:free",
+    name: "Mistral Small 3.2 (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Free Mistral",
+  },
+  {
+    id: "openrouter/mistralai/devstral-small-2505:free",
+    name: "Devstral Small (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Code-focused Mistral",
+  },
+  {
+    id: "openrouter/mistralai/codestral-2508",
+    name: "Codestral",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "Coding specialist",
+  },
+
+  // OpenAI via OpenRouter
+  {
+    id: "openrouter/openai/gpt-4.1",
+    name: "GPT-4.1 (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "GPT-4.1 via OR",
+  },
+  {
+    id: "openrouter/openai/gpt-4.1-mini",
+    name: "GPT-4.1 Mini (OR)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "vision", "code"],
+    description: "Efficient GPT via OR",
+  },
+  {
+    id: "openrouter/openai/gpt-5",
+    name: "GPT-5 (OR)",
+    provider: "openrouter",
+    contextWindow: 400000,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    description: "GPT-5 via OR",
+  },
+  {
+    id: "openrouter/openai/gpt-5-mini",
+    name: "GPT-5 Mini (OR)",
+    provider: "openrouter",
+    contextWindow: 400000,
+    capabilities: ["chat", "vision", "code"],
+    description: "GPT-5 Mini via OR",
+  },
+  {
+    id: "openrouter/openai/o4-mini",
+    name: "o4 Mini (OR)",
+    provider: "openrouter",
+    contextWindow: 200000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Reasoning via OR",
+  },
+
+  // MoonshotAI Kimi via OpenRouter
+  {
+    id: "openrouter/moonshotai/kimi-k2:free",
+    name: "Kimi K2 (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Free Moonshot model",
+  },
+  {
+    id: "openrouter/moonshotai/kimi-k2-thinking",
+    name: "Kimi K2 Thinking",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Reasoning Moonshot",
+  },
+  {
+    id: "openrouter/moonshotai/kimi-dev-72b:free",
+    name: "Kimi Dev 72B (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "Dev-focused Kimi",
+  },
+
+  // MiniMax via OpenRouter
+  {
+    id: "openrouter/minimax/minimax-01",
+    name: "MiniMax 01",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "MiniMax flagship",
+  },
+  {
+    id: "openrouter/minimax/minimax-m1",
+    name: "MiniMax M1",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "MiniMax M1",
+  },
+  {
+    id: "openrouter/minimax/minimax-m2",
+    name: "MiniMax M2",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest MiniMax",
+  },
+
+  // Nous Research via OpenRouter
+  {
+    id: "openrouter/nousresearch/hermes-4-405b",
+    name: "Hermes 4 405B",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Large Hermes model",
+  },
+  {
+    id: "openrouter/nousresearch/hermes-4-70b",
+    name: "Hermes 4 70B",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Hermes 70B",
+  },
+
+  // Nvidia via OpenRouter
+  {
+    id: "openrouter/nvidia/nemotron-nano-9b-v2",
+    name: "Nemotron Nano 9B",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "code"],
+    description: "NVIDIA efficient model",
+  },
+
+  // GLM via OpenRouter
+  {
+    id: "openrouter/z-ai/glm-4.5",
+    name: "GLM 4.5",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "GLM flagship",
+  },
+  {
+    id: "openrouter/z-ai/glm-4.5-air:free",
+    name: "GLM 4.5 Air (Free)",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "code"],
+    description: "Free GLM variant",
+  },
+  {
+    id: "openrouter/z-ai/glm-4.6",
+    name: "GLM 4.6",
+    provider: "openrouter",
+    contextWindow: 128000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Latest GLM",
+  },
+  
+  // Other Free Models
+  {
+    id: "openrouter/amazon/nova-2-lite-v1:free",
+    name: "Amazon: Nova 2 Lite (free)",
+    provider: "openrouter",
+    contextWindow: 1000000,
+    capabilities: ["chat", "code"],
+    description: "Free Nova 2 Lite, by Amazon",
+  },
+  {
+    id: "openrouter/google/gemma-2-9b-it:free",
+    name: "Gemma 2 9B (Free)",
+    provider: "openrouter",
+    contextWindow: 8000,
+    capabilities: ["chat", "code"],
+    description: "Free Gemma",
+  },
+  {
+    id: "openrouter/microsoft/mai-ds-r1:free",
+    name: "MAI DS R1 (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Microsoft reasoning",
+  },
+  {
+    id: "openrouter/thudm/glm-z1-32b:free",
+    name: "GLM Z1 32B (Free)",
+    provider: "openrouter",
+    contextWindow: 32000,
+    capabilities: ["chat", "reasoning", "code"],
+    description: "Free GLM reasoning",
+  },
+];

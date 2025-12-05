@@ -234,6 +234,9 @@ export function Navbar() {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/test">Demo</Link>
           </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={"/login" as Route}>Login</Link>
+          </Button>
           <Button
             size="sm"
             asChild
@@ -275,7 +278,7 @@ export function Navbar() {
             ? "translate-x-0 opacity-100"
             : "translate-x-full opacity-0 pointer-events-none"
           }`}
-        aria-hidden={!mobileOpen}
+        aria-hidden={mobileOpen ? "false" : "true"}
       >
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col gap-6">
@@ -337,6 +340,17 @@ export function Navbar() {
               >
                 <Link href="/test" onClick={() => setMobileOpen(false)}>
                   View Demo
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
+                className="w-full"
+                tabIndex={mobileOpen ? 0 : -1}
+              >
+                <Link href={"/login" as Route} onClick={() => setMobileOpen(false)}>
+                  Login
                 </Link>
               </Button>
               <Button
