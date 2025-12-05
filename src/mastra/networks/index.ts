@@ -17,6 +17,9 @@ export { reportGenerationNetwork } from './reportGenerationNetwork';
 // Research Pipeline Network
 export { researchPipelineNetwork } from './researchPipelineNetwork';
 
+// Coding Team Network
+export { codingTeamNetwork } from './codingTeamNetwork';
+
 export const agentNetwork = new Agent({
   id: 'agent-network',
   name: 'Primary Agent Network',
