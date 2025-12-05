@@ -1,9 +1,9 @@
-<!-- AGENTS-META {"title":"Mastra Root","version":"2.2.0","applies_to":"/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Root","version":"2.3.0","applies_to":"/","last_updated":"2025-12-05T00:00:00Z","status":"stable"} -->
 # AGENTS
 
 ## Project Overview
 
-Mastra is a production-grade multi-agent framework for building agent-driven applications and RAG (retrieval-augmented generation) workflows. It provides **30+ enterprise tools**, **22+ specialized agents**, **10 workflows**, **4 agent networks**, **A2A/MCP orchestration**, and now a **complete UI component library** (49 components) for scalable AI systems. Key capabilities include **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+Mastra is a production-grade multi-agent framework for building agent-driven applications and RAG (retrieval-augmented generation) workflows. It provides **34+ enterprise tools**, **38 specialized agents**, **10 workflows**, **4 agent networks**, **A2A/MCP orchestration**, and a **complete UI component library** (64 components: 30 AI Elements + 34 base UI) for scalable AI systems. Key capabilities include **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 This repo is structured to keep tools, agents, workflows, networks, UI components, and configs separated, with strict Zod schemas for tool inputs/outputs and strong environment-based configuration in `src/mastra/config`.
 
@@ -89,9 +89,9 @@ NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
 
 ## Architecture & conventions
 
-- **Frontend** (`app/`, `ui/`, `src/components/ai-elements/`): Next.js 16 App Router with React 19. AI Elements (30 components) for chat/reasoning/canvas UIs. shadcn/ui base (19 components) in `ui/`. Tailwind CSS 4 with oklch color variables.
-- **Tools** (`src/mastra/tools`): 30+ tools implementing `createTool({ id, inputSchema, outputSchema, execute })` with strict Zod schemas. Categories: Financial (Polygon, Finnhub, AlphaVantage), Research (SerpAPI, ArXiv), Data (CSV, JSON), RAG (chunking, embeddings).
-- **Agents** (`src/mastra/agents`): 22+ agents composing tools into specialized behaviors (research, stock analysis, content creation, data processing).
+- **Frontend** (`app/`, `ui/`, `src/components/ai-elements/`): Next.js 16 App Router with React 19. AI Elements (30 components) for chat/reasoning/canvas UIs. shadcn/ui base (34 components) in `ui/`. Tailwind CSS 4 with oklch color variables.
+- **Tools** (`src/mastra/tools`): 34+ tools implementing `createTool({ id, inputSchema, outputSchema, execute })` with strict Zod schemas. Categories: Financial (Polygon, Finnhub, AlphaVantage), Research (SerpAPI, ArXiv), Data (CSV, JSON), RAG (chunking, embeddings).
+- **Agents** (`src/mastra/agents`): 38 agents composing tools into specialized behaviors (research, stock analysis, content creation, data processing, business/legal, charting, image processing).
 - **Networks** (`src/mastra/networks`): 4 agent networks for routing and orchestration (agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork).
 - **Workflows** (`src/mastra/workflows`): 10 multi-step workflows using Mastra DSL (weather, content, financial reports, document processing, research synthesis).
 - **Config** (`src/mastra/config`): Centralized provider clients (Google, OpenAI, Anthropic, OpenRouter, Vertex), pg-storage with PgVector, and role hierarchy.
@@ -120,11 +120,11 @@ NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
 ## Where to look for more info
 
 - `app/AGENTS.md`: Next.js App Router pages and layouts
-- `ui/AGENTS.md`: shadcn/ui base components (19 components)
+- `ui/AGENTS.md`: shadcn/ui base components (34 components)
 - `src/components/ai-elements/AGENTS.md`: AI Elements library (30 components)
 - `src/mastra/AGENTS.md`: top-level code-agent focused docs (this file is mirrored to subfolders)
-- `src/mastra/tools/AGENTS.md`: 30+ tools and their patterns
-- `src/mastra/agents/AGENTS.md`: 22+ agents catalog
+- `src/mastra/tools/AGENTS.md`: 34+ tools and their patterns
+- `src/mastra/agents/AGENTS.md`: 38 agents catalog
 - `src/mastra/workflows/AGENTS.md`: 10 workflow definitions
 - `src/mastra/networks/AGENTS.md`: 4 agent networks
 - `src/mastra/config/AGENTS.md`: configuration and storage guidance
@@ -135,4 +135,4 @@ NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
 If you need more details for a subdirectory, open the folder-specific `AGENTS.md` which contains persona, purpose, and actionable commands.
 
 ---
-Last updated: 2025-11-27
+Last updated: 2025-12-05

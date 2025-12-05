@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"AgentStack README","version":"3.2.0","applies_to":"/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"3.3.0","applies_to":"/","last_updated":"2025-12-05T00:00:00Z","status":"stable"} -->
 
 <div align="center">
 
@@ -13,7 +13,7 @@
 [![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0)
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **30+ enterprise tools**, **25+ specialized agents**, **10 workflows**, **4 agent networks**, **49 UI components**, and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **34+ enterprise tools**, **38 specialized agents**, **10 workflows**, **4 agent networks**, **64 UI components** (30 AI Elements + 34 base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 [![@mastra/core](https://img.shields.io/npm/v/@mastra/core.svg)](https://www.npmjs.com/package/@mastra/core)
 [![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg.svg)](https://www.npmjs.com/package/@mastra/pg)
@@ -44,7 +44,7 @@
 | **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration**              | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
 | **Governance**               | ✅ **JWT/RBAC + path traversal + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
 | **TypeScript**               | ✅ **Zod schemas everywhere**                        | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
-| **UI Components**            | ✅ **49 AI Elements + shadcn/ui**                    | ❌ None       | ❌ None       | ❌ None    |
+| **UI Components**            | ✅ **64 AI Elements + shadcn/ui**                    | ❌ None       | ❌ None       | ❌ None    |
 | **Tests**                    | ✅ **97% Vitest coverage**                           | ⚠️ Partial    | ❌ Sparse     | ⚠️ Partial |
 
 **Built for production**: Secure, observable, testable agents with **zero-config** PgVector RAG + **enterprise financial APIs**.
@@ -53,11 +53,11 @@
 
 - **💰 Financial Intelligence**: 20+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
 - **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
-- **🤖 25+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline)
+- **🤖 38 Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image)
 - **📋 10 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction
 - **🌐 4 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report)
-- **🎨 49 UI Components**: AI Elements (30 chat/reasoning/canvas components) + shadcn/ui (19 base primitives)
+- **🎨 64 UI Components**: AI Elements (30 chat/reasoning/canvas components) + shadcn/ui (34 base primitives)
 - **📊 Full Observability**: Arize/Phoenix traces + 10+ custom scorers (diversity/quality/completeness)
 - **🛡️ Enterprise Security**: JWT auth, RBAC, path validation, HTML sanitization, secrets masking
 - **⚡ Extensible**: Model registry (Gemini/OpenAI/Anthropic), Zod schemas everywhere
@@ -67,7 +67,7 @@
 ```mermaid
 graph TB
     subgraph "� Frontend (Next.js 16)"
-        UI[AI Elements + shadcn/ui<br/>• 30 AI Components<br/>• 19 Base Primitives]
+        UI[AI Elements + shadcn/ui<br/>• 30 AI Components<br/>• 34 Base Primitives]
         App[App Router<br/>• React 19<br/>• Tailwind CSS 4]
     end
 
@@ -76,8 +76,8 @@ graph TB
     end
 
     subgraph "🎯 AgentStack Runtime"
-        Coord --> Agents[22+ Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
-        Agents --> Tools[30+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
+        Coord --> Agents[38 Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
+        Agents --> Tools[34+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
         Agents --> Workflows[Research→Report<br/>Weather→Activities]
     end
 
@@ -212,14 +212,14 @@ npm run start
 ```bash
 # Frontend
 app/                      # 📱 Next.js 16 App Router (layouts, pages)
-ui/                       # 🎨 shadcn/ui base components (19 primitives)
+ui/                       # 🎨 shadcn/ui base components (34 primitives)
 src/components/ai-elements/  # 🤖 AI Elements (30 chat/reasoning/canvas components)
 
 # Backend
 src/mastra/
-├── index.ts              # 🎯 Mastra bootstrap (25+ agents, 10 workflows, 4 networks, MCP)
-├── agents/               # 🤖 22+ agents (research/stock/copywriter/report/data pipeline...)
-├── tools/                # 🔧 30+ tools (financial/RAG/scrape/PDF/SerpAPI...)
+├── index.ts              # 🎯 Mastra bootstrap (38 agents, 10 workflows, 4 networks, MCP)
+├── agents/               # 🤖 38 agents (research/stock/copywriter/report/data pipeline/business-legal/charting...)
+├── tools/                # 🔧 34+ tools (financial/RAG/scrape/PDF/SerpAPI...)
 ├── workflows/            # 📋 10 workflows (weather, content, financial, document, research)
 ├── networks/             # 🌐 4 agent networks (routing/coordination)
 ├── config/               # ⚙️ Models/PgVector/Logging/Auth
@@ -333,10 +333,10 @@ npm run mcp-server
 
 ## 📚 **Resources**
 
-- **[UI Components](ui/AGENTS.md)**: 19 shadcn/ui base components
+- **[UI Components](ui/AGENTS.md)**: 34 shadcn/ui base components
 - **[AI Elements](src/components/ai-elements/AGENTS.md)**: 30 AI chat/reasoning/canvas components
-- **[Agents Catalog](src/mastra/agents/AGENTS.md)**: 22+ agents
-- **[Tools Matrix](src/mastra/tools/AGENTS.md)**: 30+ tools
+- **[Agents Catalog](src/mastra/agents/AGENTS.md)**: 38 agents
+- **[Tools Matrix](src/mastra/tools/AGENTS.md)**: 34+ tools
 - **[Workflows](src/mastra/workflows/AGENTS.md)**: 10 multi-step workflows
 - **[Networks](src/mastra/networks/AGENTS.md)**: 4 agent networks
 - **[Config Guide](src/mastra/config/AGENTS.md)**: Setup + env vars
@@ -350,7 +350,7 @@ npm run mcp-server
 - [x] **A2A MCP**: Parallel orchestration (✅ Live)
 - [x] **10 Workflows**: Sequential, parallel, branch, loop, foreach, suspend/resume (✅ Live)
 - [x] **4 Agent Networks**: Routing and coordination (✅ Live)
-- [x] **UI Components**: AI Elements + shadcn/ui (49 components) (✅ Live)
+- [x] **UI Components**: AI Elements + shadcn/ui (64 components) (✅ Live)
 - [ ] **Chat Interface**: Full agent chat UI with AI Elements
 - [ ] **LangSmith/Phoenix**: Eval dashboards
 - [ ] **Docker/Helm**: K8s deploy
@@ -362,4 +362,4 @@ npm run mcp-server
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-_Last updated: 2025-11-27 | v3.2.0_
+_Last updated: 2025-12-05 | v3.3.0_

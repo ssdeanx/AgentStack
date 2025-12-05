@@ -3,6 +3,8 @@ import {
   createUIMessageStreamResponse,
 } from "ai";
 import { toAISdkFormat } from "@mastra/ai-sdk";
+import type { Mastra } from "@mastra/core/mastra";
+import type { AgentExecutionOptions } from "@mastra/core/agent";
 import type { MastraModelOutput } from "@mastra/core/stream";
 
 export interface StreamToAISdkOptions {
@@ -16,34 +18,34 @@ export interface AgentStreamOptions {
   format?: "aisdk" | "mastra";
   threadId?: string;
   resourceId?: string;
-  memory?: {
-    thread?: string | { id: string; resourceId?: string };
-    resource?: string;
-    options?: {
-      lastMessages?: number;
-      semanticRecall?: boolean;
-      workingMemory?: { enabled?: boolean };
-    };
-  };
+  memory?: AgentExecutionOptions["memory"];
   maxSteps?: number;
 }
 
-type MastraAgent = {
-  stream: (
-    messages: unknown,
-    options?: {
-      format?: string;
-      threadId?: string;
-      resourceId?: string;
-      memory?: AgentStreamOptions["memory"];
-      maxSteps?: number;
-    }
-  ) => Promise<MastraModelOutput & { toUIMessageStreamResponse?: () => Response }>;
-};
+type StreamResult = MastraModelOutput & { toUIMessageStreamResponse?: () => Response };
 
-type MastraInstance = {
-  getAgent: (id: string) => MastraAgent;
-} & Record<string, any>;
+function isReadableStream<T>(value: unknown): value is ReadableStream<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ReadableStream<T>).getReader === "function"
+  );
+}
+
+async function* asyncIterableFromReadableStream<T>(
+  stream: ReadableStream<T>
+): AsyncIterable<T> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 /**
  * Creates a streaming Response for Next.js API routes using server-side Mastra agent.
@@ -55,7 +57,7 @@ type MastraInstance = {
  * ```ts
  * // app/api/chat/route.ts
  * import { mastra } from "@/src/mastra";
- * import { createAgentStreamResponse } from "@/lib/client-stream-to-ai-sdk";
+ * import { createAgentStreamResponse } from "@/lib/server/agent-stream";
  * 
  * export async function POST(req: Request) {
  *   const { messages, agentId, threadId, resourceId, memory } = await req.json();
@@ -70,7 +72,7 @@ type MastraInstance = {
  * @see https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk
  */
 export async function createAgentStreamResponse(
-  mastra: MastraInstance,
+  mastra: Mastra,
   agentId: string,
   messages: unknown,
   options?: AgentStreamOptions
@@ -85,34 +87,27 @@ export async function createAgentStreamResponse(
     maxSteps: options?.maxSteps,
   };
 
-  // Preferred: Use built-in AI SDK format
-  if (streamOptions.format === "aisdk") {
-    const stream = await agent.stream(messages, streamOptions);
-    if (stream.toUIMessageStreamResponse) {
-      return stream.toUIMessageStreamResponse();
-    }
+  // Call agent.stream once and reuse the result
+  const stream = await agent.stream(messages, streamOptions) as StreamResult;
+
+  // Preferred: Use built-in AI SDK format when available
+  if (streamOptions.format === "aisdk" && stream.toUIMessageStreamResponse) {
+    return stream.toUIMessageStreamResponse();
   }
 
   // Fallback: Manual transformation with toAISdkFormat
-  const stream = await agent.stream(messages, {
-    threadId: options?.threadId,
-    resourceId: options?.resourceId,
-    memory: options?.memory,
-    maxSteps: options?.maxSteps,
-  });
-  
+  // Handles both ReadableStream and AsyncIterable return types
   const uiMessageStream = createUIMessageStream({
     execute: async ({ writer }) => {
-      const aiSdkStream = toAISdkFormat(stream, { from: "agent" });
-      const reader = aiSdkStream.getReader();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          writer.write(value);
-        }
-      } finally {
-        reader.releaseLock();
+      const aiSdkResult = toAISdkFormat(stream, { from: "agent" });
+      
+      // Handle both ReadableStream and AsyncIterable
+      const iterable: AsyncIterable<unknown> = isReadableStream(aiSdkResult)
+        ? asyncIterableFromReadableStream(aiSdkResult)
+        : aiSdkResult;
+      
+      for await (const value of iterable) {
+        writer.write(value as Parameters<typeof writer.write>[0]);
       }
     },
   });

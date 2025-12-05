@@ -1,5 +1,12 @@
 import { MastraClient } from "@mastra/client-js";
 
+/**
+ * Client-side Mastra SDK instance for frontend use.
+ * Use this in React components to interact with the Mastra API.
+ * 
+ * For server-side streaming in API routes, import createAgentStreamResponse
+ * directly from "@/lib/client-stream-to-ai-sdk" instead.
+ */
 export const mastraClient = new MastraClient({
   baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111",
   retries: 3,
@@ -9,6 +16,3 @@ export const mastraClient = new MastraClient({
   headers: {},
   credentials: "same-origin",
 });
-
-export { createAgentStreamResponse } from "./client-stream-to-ai-sdk";
-export type { StreamToAISdkOptions } from "./client-stream-to-ai-sdk";
