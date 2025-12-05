@@ -1,6 +1,6 @@
 # Progress
 
-## What's Done **[Synced Dec 4 from dirs/AGENTS.md]**
+## What's Done **[Synced Dec 5 from dirs/AGENTS.md]**
 
 | Category | Status | Key Files/Details |
 |----------|--------|-------------------|
@@ -14,15 +14,31 @@
 | Observability | ✅ | Arize/Phoenix exporters; always-on sampling. |
 | Config | ✅ | pg-storage.ts (PgVector/Postgres); models (google/openai/anthropic/openrouter/vertex/gemini-cli). |
 | Tests | Progress | Vitest data tools verified; target 97%. |
-| AGENTS.md Sync | ✅ | All AGENTS.md files updated Dec 4 with accurate counts, dates, and meta headers. |
+| AGENTS.md Sync | ✅ | All AGENTS.md files updated Dec 5 with accurate counts, dates, and meta headers. |
 | **UI Components** | ✅ | **49 files**: AI Elements (30 in `src/components/ai-elements/`) + shadcn/ui base (19 in `ui/`). Next.js 16, React 19, Tailwind CSS 4. |
 | **Mastra Client SDK** | ✅ | **lib/mastra-client.ts**: MastraClient instance for client-side agent calls. |
 | **Next.js Frontend** | ✅ | **app/layout.tsx**: Root layout with ThemeProvider. **app/page.tsx**: Landing page with agent overview. **app/chat/page.tsx**: Full chat interface with AI Elements. |
 | **AI Elements Integration** | ✅ 92% | **app/chat/**: 12/13 tasks complete. All features integrated. Pending: E2E tests only. |
 | **Workflows UI** | ✅ 100% | **app/workflows/**: Full Canvas visualization with 8 components, AI SDK streaming, input panels. |
+| **Mastra Admin Dashboard** | 🔄 70% | **app/dashboard/**: TanStack Query v5 installed, shared components created, loading/error files for all routes. Agents page modularized. See `/memory-bank/dashboard-v2/` for detailed tracking. |
 
-## What’s Next
-
+## What's Next
+- **Mastra Admin Dashboard** (🔄 70% Complete - Priority):
+  - ✅ TanStack Query v5 installed and configured
+  - ✅ Created `lib/types/mastra-api.ts` with Zod v4 schemas
+  - ✅ Created `app/dashboard/providers.tsx` with QueryClientProvider
+  - ✅ Created `lib/hooks/use-dashboard-queries.ts` with React Query hooks
+  - ✅ Created 7 shared components (`_components/`: sidebar, stat-card, data-table, etc.)
+  - ✅ Updated dashboard layout to use providers
+  - ✅ Added loading.tsx and error.tsx for all routes
+  - ✅ Refactored dashboard home page with StatCard, EmptyState
+  - ✅ Extracted agents page into modular components
+  - ✅ Fixed Next.js 16 typed routes (`href as never` pattern)
+  - ✅ Fixed Zod v4 syntax (`z.record(z.string(), z.unknown())`)
+  - ⬜ Fix remaining type errors in memory/observability/vectors/telemetry pages
+  - ⬜ Create feature components for workflows, tools pages
+  - ⬜ Add auth preparation middleware structure
+  - ⬜ Add unit tests for hooks
 - **AI Elements Integration** (✅ 92% Complete):
   - ✅ AIEL-001-012: All core features complete
   - ⬜ AIEL-013: E2E tests with Vitest (optional)

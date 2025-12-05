@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import type { Route } from "next"
 import { motion } from "framer-motion"
 import { Badge } from "@/ui/badge"
 import { CalendarIcon, ClockIcon, ArrowRightIcon } from "lucide-react"
@@ -70,7 +71,7 @@ export function BlogList() {
             viewport={{ once: true }}
           >
             <Link
-              href={`/blog/${post.slug}`}
+              href={`/blog/${post.slug}` as Route}
               className="group block rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg"
             >
               <div className="mb-4 flex flex-wrap items-center gap-4">

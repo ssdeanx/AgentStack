@@ -2,12 +2,25 @@
 
 ## Current Focus (Dec 2025)
 
-- **[Synced Dec 4, 2025]** AI Elements Integration 92% complete (12/13 tasks). Chat interface fully functional.
-- **[NEW]** Workflows UI 100% complete - 10 workflows with Canvas visualization, input panels, streaming output.
+- **[Synced Dec 5, 2025]** AI Elements Integration 92% complete (12/13 tasks). Chat interface fully functional.
+- **[COMPLETED]** Workflows UI 100% complete - 10 workflows with Canvas visualization, input panels, streaming output.
+- **[v1 - 50%]** Mastra Admin Dashboard v1 - MastraClient-based dashboard for observability, memory, logs, telemetry.
+- **[v2 - PLANNED]** Dashboard v2 feature spec created - 33 tasks, modular components, React Query, auth prep.
 - `/memory-bank` fully aligned with codebase: 22+ agents; 30+ tools; 10 workflows; 4 networks; config/pg-storage active.
 - **AI Elements UI library**: 30 AI-focused components + 19 shadcn/ui base components integrated.
 - **Next.js 16 frontend** with Vercel-style navigation and footer. Tailwind CSS 4, React 19, dark mode.
 - Maintain `/memory-bank` sync for session continuity.
+
+## Next Session Priority
+
+**Feature:** Dashboard v2 (`/memory-bank/dashboard-v2/`)
+
+1. Review and approve PRD, design, tasks
+2. Start Phase 1: Foundation
+   - DASH-001: Install TanStack Query
+   - DASH-002: Create TypeScript Types
+   - DASH-003: Create Query Client Provider
+   - DASH-004: Create React Query Hooks
 
 ```mermaid
 graph TB
@@ -225,3 +238,88 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 2. Index research papers into vector store for RAG
 3. Semantic search over indexed research content
 4. Build knowledge bases from academic literature
+---
+
+## Active Feature: Mastra Admin Dashboard
+
+**Status:** 🔄 50% Complete  
+**Location:** `/memory-bank/mastra-client-integration/` + `app/dashboard/`
+
+**Objective:** Create a comprehensive admin dashboard using MastraClient for observability, memory management, logs, telemetry, and resource management - separate from AI SDK streaming pages.
+
+**Implemented Components (Dec 5, 2025):**
+
+| Component | Path | Status |
+|-----------|------|--------|
+| Dashboard Layout | `app/dashboard/layout.tsx` | ✅ Created |
+| Dashboard Home | `app/dashboard/page.tsx` | ✅ Created |
+| Agents Page | `app/dashboard/agents/page.tsx` | ✅ Created |
+| Workflows Page | `app/dashboard/workflows/page.tsx` | ✅ Created |
+| Tools Page | `app/dashboard/tools/page.tsx` | ✅ Created |
+| Vectors Page | `app/dashboard/vectors/page.tsx` | ✅ Created |
+| Memory Page | `app/dashboard/memory/page.tsx` | ✅ Created |
+| Observability Page | `app/dashboard/observability/page.tsx` | ✅ Created |
+| Logs Page | `app/dashboard/logs/page.tsx` | ✅ Created |
+| Telemetry Page | `app/dashboard/telemetry/page.tsx` | ✅ Created |
+| MastraClient Hooks | `lib/hooks/use-mastra.ts` | ✅ Created |
+| Dashboard AGENTS.md | `app/dashboard/AGENTS.md` | ✅ Created |
+
+**MastraClient Hooks Created:**
+
+| Hook | Purpose |
+|------|---------|
+| `useAgents()` | List all agents |
+| `useAgent(id)` | Get agent details |
+| `useAgentEvals(id)` | Get CI/live evaluations |
+| `useWorkflows()` | List all workflows |
+| `useWorkflow(id)` | Get workflow details |
+| `useTools()` | List all tools |
+| `useTool(id)` | Get tool details |
+| `useVectorIndexes(name)` | List vector indexes |
+| `useMemoryThreads(resourceId, agentId)` | List memory threads |
+| `useMemoryThread(threadId, agentId)` | Get thread messages |
+| `useWorkingMemory(...)` | Get working memory |
+| `useAITraces(params)` | List AI traces with filtering |
+| `useAITrace(traceId)` | Get complete trace |
+| `useLogs(transportId)` | Get system logs |
+| `useTelemetry(params)` | Get telemetry data |
+
+**Known Issues (To Fix Next Session):**
+
+1. **href/Link Issues**: Some `Link` components need Next.js 16 compatible patterns
+2. **Route Structure**: Verify all routes work with Next.js 16 App Router
+3. **Component Modularity**: Pages need to be broken into smaller, reusable components
+4. **Error Handling**: Add proper error boundaries and loading states
+5. **Type Safety**: Improve TypeScript types for MastraClient responses
+6. **Performance**: Add React Query or SWR for better caching/revalidation
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Your Application                        │
+├──────────────────────────┬──────────────────────────────────┤
+│   Real-time Streaming    │      Data Management             │
+│   (AI SDK)               │      (MastraClient)              │
+├──────────────────────────┼──────────────────────────────────┤
+│ /chat                    │ /dashboard                       │
+│ /workflows               │ /dashboard/agents                │
+│ /networks                │ /dashboard/workflows             │
+│                          │ /dashboard/tools                 │
+│ useChat()                │ /dashboard/vectors               │
+│ DefaultChatTransport     │ /dashboard/memory                │
+│                          │ /dashboard/observability         │
+│                          │ /dashboard/logs                  │
+│                          │ /dashboard/telemetry             │
+└──────────────────────────┴──────────────────────────────────┘
+```
+
+**Next Session Tasks:**
+
+1. Break pages into modular components (extract list views, detail panels, forms)
+2. Fix Next.js 16 routing issues (href, Link components)
+3. Add proper error boundaries
+4. Implement React Query for data fetching
+5. Add loading skeletons throughout
+6. Type MastraClient responses properly
+7. Add unit tests for hooks

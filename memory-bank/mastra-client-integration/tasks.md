@@ -224,6 +224,70 @@ export default function RootLayout({
 | TASK-007 | Add Streaming Support | M | 3 | ✅ |
 | TASK-008 | Add Mastra Dev Script | S | 4 | ✅ |
 | TASK-009 | Update README | S | 4 | ✅ |
-| TASK-010 | Create Chat with AI Elements | L | 5 | ⬜ |
+| TASK-010 | Create Chat with AI Elements | L | 5 | ✅ |
+| TASK-011 | Create Admin Dashboard | XL | 6 | 🔄 50% |
 
-**Legend:** S = Small (< 30 min), M = Medium (30-60 min), L = Large (> 1 hr)
+**Legend:** S = Small (< 30 min), M = Medium (30-60 min), L = Large (> 1 hr), XL = Extra Large (> 4 hrs)
+
+---
+
+## Phase 6: Admin Dashboard (NEW - Dec 5, 2025)
+
+### TASK-011: Create Admin Dashboard
+**Description:** Build comprehensive admin dashboard using MastraClient for observability, memory, logs, telemetry.
+
+**Completed (50%):**
+
+- [x] Dashboard layout with collapsible sidebar
+- [x] Dashboard home with stats overview
+- [x] Agents page (list, details, tools, evaluations)
+- [x] Workflows page (list, details, run execution)
+- [x] Tools page (list, details, execute)
+- [x] Vectors page (indexes, query, create/delete)
+- [x] Memory page (threads, messages, working memory)
+- [x] Observability page (traces, spans, scoring)
+- [x] Logs page (system logs, run logs, filtering)
+- [x] Telemetry page (metrics, analytics)
+- [x] MastraClient React hooks (`lib/hooks/use-mastra.ts`)
+- [x] Dashboard AGENTS.md documentation
+
+**Remaining (Next Session):**
+
+- [ ] Break pages into modular components
+- [ ] Fix Next.js 16 routing issues (href, Link)
+- [ ] Add proper error boundaries
+- [ ] Implement React Query for caching
+- [ ] Type MastraClient responses
+- [ ] Add loading states throughout
+- [ ] Unit tests for hooks
+- [ ] Integration tests
+
+**Files Created:**
+
+```plaintext
+app/dashboard/
+├── layout.tsx           # Sidebar navigation
+├── page.tsx             # Overview with metrics
+├── AGENTS.md            # Documentation
+├── agents/page.tsx      # Agent management
+├── workflows/page.tsx   # Workflow execution
+├── tools/page.tsx       # Tool execution
+├── vectors/page.tsx     # Vector indexes
+├── memory/page.tsx      # Thread management
+├── observability/page.tsx # Traces & scoring
+├── logs/page.tsx        # System logs
+└── telemetry/page.tsx   # Metrics
+
+lib/hooks/
+└── use-mastra.ts        # 15+ MastraClient hooks
+```
+
+**Effort:** XL (4+ hours initial, 2+ hours remaining)
+
+**Known Issues:**
+
+1. Some `Link` href patterns need Next.js 16 compatibility
+2. Pages are monolithic - need component extraction
+3. Missing error boundaries
+4. No data caching (should use React Query/SWR)
+5. Loose TypeScript types for API responses

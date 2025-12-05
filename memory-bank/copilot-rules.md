@@ -299,8 +299,60 @@ Example: [tools] Add vector search tool with PgVector
 - Making assumptions instead of asking
 - Not persisting decisions to scratchpad
 - Modifying security code without review
+- Running terminal commands when `get_errors` tool shows the same info faster
 
 ---
 
-*Last updated: 2025-11-28*
-*Version: 2.0.0*
+## 🔗 Next.js 16 Typed Routes
+
+Use `next/link` with `Route` type casting for strict typing:
+
+```typescript
+// ✅ Import Route type and use with Link
+import Link from "next/link"
+import type { Route } from "next"
+
+<Link href={\"/dashboard/agents\" as Route}>
+<Link href={`/dashboard/agents?agent=${id}` as Route}>
+
+// ✅ For router.push, also cast to Route
+router.push(`/dashboard/agents?agent=${agentId}` as Route)
+```
+
+---
+
+## 📦 Zod v4 Syntax Changes
+
+Zod v4 changed `z.record()` to require two arguments:
+
+```typescript
+// ❌ Zod v3 (old)
+z.record(z.unknown())
+
+// ✅ Zod v4 (current)
+z.record(z.string(), z.unknown())
+```
+
+---
+
+## 🔌 MastraClient API Patterns
+
+Correct method names (verified from @mastra/client-js):
+
+```typescript
+// ✅ Correct method names
+mastraClient.getWorkflows()      // NOT listWorkflows()
+mastraClient.getLogTransports()  // NOT listLogTransports()
+mastraClient.getLogs()           // NOT listLogs()
+
+// ✅ getMemoryThread takes 2 args, not object
+mastraClient.getMemoryThread(threadId, agentId)
+
+// ✅ Type casting for API responses
+(agent as unknown as Record<string, unknown>).name
+```
+
+---
+
+*Last updated: 2025-12-05*
+*Version: 2.1.0*

@@ -1,10 +1,12 @@
 import * as React from "react"
 import NextLink from "next/link"
+import type { Route } from "next"
 import { Slot } from "@radix-ui/react-slot"
 import { cn } from "@/lib/utils"
+import type { UrlObject } from "url"
 
-export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
-  href: string
+export interface LinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
+  href: string | UrlObject
   variant?: "default" | "muted" | "underline" | "nav"
   external?: boolean
   asChild?: boolean
@@ -26,7 +28,8 @@ export function Link({
   children,
   ...props
 }: LinkProps) {
-  const isExternal = external || href.startsWith("http") || href.startsWith("//")
+  const hrefString = typeof href === 'string' ? href : href.href ?? ''
+  const isExternal = external || hrefString.startsWith("http") || hrefString.startsWith("//")
   const Comp = asChild ? Slot : isExternal ? "a" : NextLink
 
   const externalProps = isExternal
@@ -35,7 +38,7 @@ export function Link({
 
   return (
     <Comp
-      href={href}
+      href={href as Route}
       className={cn(linkVariants[variant], className)}
       {...externalProps}
       {...props}
