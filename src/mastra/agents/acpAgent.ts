@@ -119,10 +119,10 @@ export const acpAgent = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-
             includeThoughts: true,
             thinkingBudget: -1,
           },
+          responseModalities: ['TEXT', 'IMAGE'],
         },
       },
     };

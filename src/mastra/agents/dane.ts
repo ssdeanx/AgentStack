@@ -26,7 +26,8 @@ export const daneCommitMessage = new Agent({
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -54,7 +55,8 @@ export const daneIssueLabeler = new Agent({
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -88,7 +90,8 @@ export const daneLinkChecker = new Agent({
             thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -123,7 +126,8 @@ export const daneChangeLog = new Agent({
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -183,7 +187,8 @@ export const dane = new Agent({
             thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }

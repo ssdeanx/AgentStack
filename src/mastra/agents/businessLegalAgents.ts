@@ -227,7 +227,8 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
             thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -319,7 +320,8 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
             thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -416,7 +418,8 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
             thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
         }
       }
     }
@@ -431,10 +434,6 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
     googleFinanceTool,
     googleScholarTool,
     webScraperTool,
-    google_search: googleTools.googleSearch({
-      mode: "MODE_DYNAMIC",
-      dynamicThreshold: 0.7,
-    }),
     // Integration tools for coordinating other agents would be added here
   },
   memory: pgMemory,
@@ -477,12 +476,4 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
   ],
 })
 
-// Type definitions for provider metadata (similar to researchAgent)
-type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
 
-const providerMetadata: ProviderMetadataMap | undefined =
-  ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
-  ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
-
-const metadata = providerMetadata?.google;
-export const groundingMetadata = metadata?.groundingMetadata;
