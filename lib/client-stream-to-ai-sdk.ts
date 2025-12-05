@@ -50,7 +50,7 @@ async function* asyncIterableFromReadableStream<T>(
 /**
  * Creates a streaming Response for Next.js API routes using server-side Mastra agent.
  * 
- * IMPORTANT: This should be used in API routes with the SERVER-SIDE mastra instance,
+ * IMPORTANT: This should be used in API 5stra instance,
  * not the client SDK. The client SDK (MastraClient) is for frontend use only.
  * 
  * @example
