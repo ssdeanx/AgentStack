@@ -1,42 +1,64 @@
-import { mastra } from "../../../src/mastra";
-import { UIMessage, convertToModelMessages } from 'ai';
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { toAISdkFormat } from "@mastra/ai-sdk";
-import type { ChunkType, MastraModelOutput } from "@mastra/core/stream";
-import { RuntimeContext } from "@mastra/core/runtime-context";
-export const maxDuration = 30;
+import { mastra } from "@/src/mastra";
+import { createAgentStreamResponse } from "@/lib/client-stream-to-ai-sdk";
+import type { UIMessage } from "ai";
+
+export const maxDuration = 60;
+
+interface ChatRequestBody {
+  messages: UIMessage[];
+  agentId?: string;
+  threadId?: string;
+  resourceId?: string;
+  memory?: {
+    thread?: string | { id: string; resourceId?: string };
+    resource?: string;
+    options?: {
+      lastMessages?: number;
+      semanticRecall?: boolean;
+      workingMemory?: { enabled?: boolean };
+    };
+  };
+  maxSteps?: number;
+}
+
 export async function POST(req: Request) {
-  const { messages }: {
-    messages: UIMessage[];
-    } = await req.json();
-    const myAgent = mastra.getAgent("weatherAgent");
-    const stream = await myAgent.stream(messages, {  });
-    const uiMessageStream = createUIMessageStream({
-    
-      execute: async ({ writer }) => {
-        const formatted = toAISdkFormat(stream, { from: "agent" })!;
-        const runtimeContext = new RuntimeContext();
-        // If the returned object is an async iterable, use for-await
-      if (Symbol.asyncIterator in formatted) {
-        for await (const part of formatted as AsyncIterable<any>) {
-          writer.write(part);
-        }
-      } else if (typeof (formatted as any).getReader === "function") {
-        // If it's a ReadableStream (browser), read via getReader()
-        const reader = (formatted as ReadableStream<any>).getReader();
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            writer.write(value);
-          }
-        } finally {
-          reader.releaseLock?.();
-        }
-      }
-    },
-  });
-  return createUIMessageStreamResponse({
-    stream: uiMessageStream,
-  });
+  const body: ChatRequestBody = await req.json();
+  
+  // Get available agents dynamically from mastra
+  const agentsMap = await mastra.getAgents();
+  const availableAgents = Object.keys(agentsMap);
+  
+  // Use first available agent if none specified
+  const agentId = body.agentId || availableAgents[0];
+  
+  if (!agentId || !availableAgents.includes(agentId)) {
+    return Response.json(
+      { error: `Invalid or missing agentId. Available: ${availableAgents.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
+  if (!body.messages?.length) {
+    return Response.json({ error: "messages required" }, { status: 400 });
+  }
+  
+  try {
+    return await createAgentStreamResponse(mastra as Parameters<typeof createAgentStreamResponse>[0], agentId, body.messages, {
+      threadId: body.threadId,
+      resourceId: body.resourceId,
+      memory: body.memory,
+      maxSteps: body.maxSteps ?? 50,
+    });
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "Stream failed" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  const agentsMap = await mastra.getAgents();
+  const availableAgents = Object.keys(agentsMap);
+  return Response.json({ agents: availableAgents, count: availableAgents.length });
 }

@@ -9,3 +9,6 @@ export const mastraClient = new MastraClient({
   headers: {},
   credentials: "same-origin",
 });
+
+export { createAgentStreamResponse } from "./client-stream-to-ai-sdk";
+export type { StreamToAISdkOptions } from "./client-stream-to-ai-sdk";
