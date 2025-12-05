@@ -37,6 +37,7 @@ Current user: ${userId ?? 'anonymous'}`,
             includeThoughts: true,
             thinkingBudget: -1,
           },
+          responseModalities: ['TEXT', 'IMAGE'],
         },
       },
     };
