@@ -4,33 +4,49 @@
 
 # 🚀 AgentStack
 
-[![Runtime Dependencies](https://img.shields.io/badge/Runtime%20Deps-25-brightgreen.svg)](https://www.npmjs.com/package/@mastra/core)
-[![Dev Dependencies](https://img.shields.io/badge/Dev%20Deps-15-blue.svg)](https://www.npmjs.com/package/@mastra/core)
-[![Tests](https://img.shields.io/badge/Tests-97%25-brightgreen.svg)](https://vitest.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://www.typescriptlang.org/)
+<!-- Core Project Badges -->
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.9.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub](https://img.shields.io/badge/GitHub-ssdeanx/AgentStack-blueviolet?logo=github)](https://github.com/ssdeanx/AgentStack)
-[![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0)
+
+<!-- Stats Badges -->
+[![Agents](https://img.shields.io/badge/Agents-38-blue?logo=robot&logoColor=white)](src/mastra/agents)
+[![Tools](https://img.shields.io/badge/Tools-34%2B-orange?logo=hammer&logoColor=white)](src/mastra/tools)
+[![Workflows](https://img.shields.io/badge/Workflows-10-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
+[![Networks](https://img.shields.io/badge/Networks-4-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
+[![UI Components](https://img.shields.io/badge/UI%20Components-64-pink?logo=react&logoColor=white)](ui/)
+
+<!-- Quality Badges -->
+[![Tests](https://img.shields.io/badge/Tests-97%25%20Coverage-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Zod](https://img.shields.io/badge/Schema-Zod-3E67B1?logo=zod&logoColor=white)](https://zod.dev/)
+[![ESLint](https://img.shields.io/badge/Lint-ESLint-4B32C3?logo=eslint&logoColor=white)](https://eslint.org/)
+
+<!-- Repository Links -->
+[![GitHub](https://img.shields.io/badge/GitHub-ssdeanx/AgentStack-181717?logo=github)](https://github.com/ssdeanx/AgentStack)
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
+[![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0)
 
 **AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **34+ enterprise tools**, **38 specialized agents**, **10 workflows**, **4 agent networks**, **64 UI components** (30 AI Elements + 34 base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
-[![@mastra/core](https://img.shields.io/npm/v/@mastra/core.svg)](https://www.npmjs.com/package/@mastra/core)
-[![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg.svg)](https://www.npmjs.com/package/@mastra/pg)
-[![@mastra/rag](https://img.shields.io/npm/v/@mastra/rag.svg)](https://www.npmjs.com/package/@mastra/rag)
-[![@mastra/memory](https://img.shields.io/npm/v/@mastra/memory.svg)](https://www.npmjs.com/package/@mastra/memory)
+<!-- Mastra Ecosystem -->
+[![@mastra/core](https://img.shields.io/npm/v/@mastra/core?label=@mastra/core&logo=npm)](https://www.npmjs.com/package/@mastra/core)
+[![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg?label=@mastra/pg&logo=postgresql&logoColor=white)](https://www.npmjs.com/package/@mastra/pg)
+[![@mastra/rag](https://img.shields.io/npm/v/@mastra/rag?label=@mastra/rag&logo=npm)](https://www.npmjs.com/package/@mastra/rag)
+[![@mastra/memory](https://img.shields.io/npm/v/@mastra/memory?label=@mastra/memory&logo=npm)](https://www.npmjs.com/package/@mastra/memory)
+[![@mastra/ai-sdk](https://img.shields.io/npm/v/@mastra/ai-sdk?label=@mastra/ai-sdk&logo=npm)](https://www.npmjs.com/package/@mastra/ai-sdk)
 
-[![@ai-sdk/google](https://img.shields.io/npm/v/@ai-sdk/google.svg)](https://www.npmjs.com/package/@ai-sdk/google)
-[![zod](https://img.shields.io/npm/v/zod.svg)](https://www.npmjs.com/package/zod)
-[![vitest](https://img.shields.io/npm/v/vitest.svg)](https://vitest.dev/)
+<!-- AI/ML Stack -->
+[![@ai-sdk/google](https://img.shields.io/npm/v/@ai-sdk/google?label=AI%20SDK%20Google&logo=google&logoColor=white)](https://www.npmjs.com/package/@ai-sdk/google)
+[![@ai-sdk/react](https://img.shields.io/npm/v/@ai-sdk/react?label=AI%20SDK%20React&logo=react)](https://www.npmjs.com/package/@ai-sdk/react)
+[![Langfuse](https://img.shields.io/badge/Observability-Langfuse-FF6B6B?logo=opentelemetry&logoColor=white)](https://langfuse.com/)
+[![PgVector](https://img.shields.io/badge/Vector-PgVector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 
-[![@mastra/arize](https://img.shields.io/npm/v/@mastra/arize.svg)](https://www.npmjs.com/package/@mastra/arize)
-[![@mastra/mcp](https://img.shields.io/npm/v/@mastra/mcp.svg)](https://www.npmjs.com/package/@mastra/mcp)
-[![cheerio](https://img.shields.io/npm/v/cheerio.svg)](https://www.npmjs.com/package/cheerio)
-[![serpapi](https://img.shields.io/npm/v/serpapi.svg)](https://serpapi.com/)
-
-[![PgVector](https://img.shields.io/badge/VectorStore-PgVector-blue.svg)](https://github.com/pgvector/pgvector)
-[![Gemini](https://img.shields.io/badge/LLM-Gemini%202.5-orange.svg)](https://ai.google.dev/)
+<!-- LLM Providers -->
+[![Gemini](https://img.shields.io/badge/LLM-Gemini%202.5-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![OpenAI](https://img.shields.io/badge/LLM-OpenAI-412991?logo=openai&logoColor=white)](https://openai.com/)
+[![Anthropic](https://img.shields.io/badge/LLM-Claude-D4A373?logo=anthropic&logoColor=white)](https://anthropic.com/)
 
 </div>
 

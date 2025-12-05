@@ -63,7 +63,11 @@ import {
 import { imageAgent } from './agents/image';
 
 // Networks
-import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
+import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork, codingTeamNetwork } from './networks';
+
+// Coding Team
+import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from './agents/codingAgents';
+import { codingA2ACoordinator } from './a2a/codingA2ACoordinator';
 
 // Workflows
 import { trace } from "@opentelemetry/api";
@@ -125,6 +129,7 @@ export const mastra = new Mastra({
     dataPipelineNetwork,
     reportGenerationNetwork,
     researchPipelineNetwork,
+    codingTeamNetwork,
     acpAgent,
     daneCommitMessage,
     daneIssueLabeler,
@@ -143,6 +148,12 @@ export const mastra = new Mastra({
     contractAnalysisAgent,
     // Image Processing Agents
     imageAgent,
+    // Coding Team Agents
+    codeArchitectAgent,
+    codeReviewerAgent,
+    testEngineerAgent,
+    refactoringAgent,
+    codingA2ACoordinator,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
@@ -573,6 +584,28 @@ export const mastra = new Mastra({
               resourceId: 'network',
             },
             resource: "network",
+            options:
+              { semanticRecall: true, }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
+      }),
+       networkRoute({
+        path: "/network",
+        agent: "codingTeamNetwork",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'coding-network',
+              resourceId: 'coding-network',
+            },
+            resource: "coding-network",
             options:
               { semanticRecall: true, }
           },
