@@ -177,14 +177,14 @@ export function LandingTestimonials() {
 
                 {/* Highlight badge */}
                 <div className="mb-8">
-                  <Badge className="bg-gradient-to-r from-primary to-blue-500 text-primary-foreground">
+                  <Badge className="bg-linear-to-r from-primary to-blue-500 text-primary-foreground">
                     ✨ {TESTIMONIALS[activeIndex].highlight}
                   </Badge>
                 </div>
 
                 {/* Author */}
                 <div className="flex items-center gap-4">
-                  <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-lg font-bold text-primary-foreground shadow-lg">
+                  <div className="flex size-14 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/70 text-lg font-bold text-primary-foreground shadow-lg">
                     {TESTIMONIALS[activeIndex].avatar}
                   </div>
                   <div>
@@ -247,7 +247,7 @@ export function LandingTestimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           viewport={{ once: true }}
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          className="@container grid gap-6 @md:grid-cols-2 @lg:grid-cols-3"
         >
           {TESTIMONIALS.slice(0, 6).map((testimonial, index) => (
             <motion.div
@@ -256,7 +256,7 @@ export function LandingTestimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className={`group rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary/30 hover:shadow-lg ${index === activeIndex ? "ring-2 ring-primary/20" : ""
+              className={`card-3d group rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-lg hover:-translate-y-1 cursor-pointer ${index === activeIndex ? "ring-2 ring-primary/20" : ""
                 }`}
               onClick={() => setActiveIndex(index)}
               role="button"
@@ -273,7 +273,7 @@ export function LandingTestimonials() {
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <StarIcon
                       key={i}
-                      className="size-4 fill-yellow-400 text-yellow-400"
+                      className="size-4 fill-yellow-400 text-yellow-400 transition-transform duration-200 hover:scale-110"
                     />
                   ))}
                 </div>
@@ -289,7 +289,7 @@ export function LandingTestimonials() {
 
               {/* Author */}
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                   {testimonial.avatar}
                 </div>
                 <div>
@@ -320,7 +320,7 @@ export function LandingTestimonials() {
             {COMPANY_LOGOS.map((company) => (
               <div
                 key={company}
-                className="flex h-12 items-center justify-center rounded-lg bg-muted/50 px-6 text-lg font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex h-12 items-center justify-center rounded-lg bg-muted/50 px-6 text-lg font-semibold text-muted-foreground transition-all duration-200 ease-smooth hover:bg-muted hover:text-foreground hover:scale-105"
               >
                 {company}
               </div>

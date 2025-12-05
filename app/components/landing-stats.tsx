@@ -107,10 +107,10 @@ function AnimatedCounter({
 
 export function LandingStats() {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-muted/50 to-background">
+    <section className="relative overflow-hidden border-b border-border bg-linear-to-b from-muted/50 to-background">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]" />
       </div>
 
       <div className="container mx-auto px-4 py-16 lg:py-24">
@@ -120,7 +120,7 @@ export function LandingStats() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="mb-16 grid grid-cols-2 gap-6 md:grid-cols-4"
+          className="@container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4"
         >
           {STATS.map((stat, index) => (
             <motion.div
@@ -129,10 +129,10 @@ export function LandingStats() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="group relative rounded-2xl border border-border bg-card/50 p-6 text-center backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-card hover:shadow-lg"
+              className="card-3d group relative rounded-2xl border border-border bg-card/50 p-6 text-center backdrop-blur-sm transition-all duration-300 ease-spring hover:border-primary/30 hover:bg-card hover:shadow-lg hover:-translate-y-1"
             >
-              {/* Icon */}
-              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              {/* Icon with color transition */}
+              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110">
                 <stat.icon className="size-6" />
               </div>
 
@@ -150,7 +150,7 @@ export function LandingStats() {
               <div className="text-xs text-muted-foreground">{stat.description}</div>
 
               {/* Decorative gradient */}
-              <div className="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="absolute inset-0 -z-10 rounded-2xl bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </motion.div>
           ))}
         </motion.div>
@@ -161,7 +161,7 @@ export function LandingStats() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           viewport={{ once: true }}
-          className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm"
+          className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm transition-discrete"
         >
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {SECONDARY_STATS.map((stat, index) => (
@@ -171,9 +171,9 @@ export function LandingStats() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4, delay: 0.4 + index * 0.05 }}
                 viewport={{ once: true }}
-                className="flex items-center justify-center gap-4 text-center md:justify-start"
+                className="flex items-center justify-center gap-4 text-center md:justify-start transition-all duration-200 ease-smooth hover:scale-105"
               >
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary">
                   <stat.icon className="size-5" />
                 </div>
                 <div className="text-left">

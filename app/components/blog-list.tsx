@@ -72,7 +72,7 @@ export function BlogList() {
           >
             <Link
               href={`/blog/${post.slug}` as Route}
-              className="group block rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg"
+              className="card-3d group block rounded-2xl border border-border bg-card p-8 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
             >
               <div className="mb-4 flex flex-wrap items-center gap-4">
                 <Badge variant="secondary">{post.category}</Badge>
@@ -94,7 +94,7 @@ export function BlogList() {
                 {post.excerpt}
               </p>
               <span className="inline-flex items-center text-sm font-medium text-primary">
-                Read more <ArrowRightIcon className="ml-1 size-4 transition-transform group-hover:translate-x-1" />
+                Read more <ArrowRightIcon className="ml-1 size-4 transition-transform duration-200 ease-spring group-hover:translate-x-1" />
               </span>
             </Link>
           </motion.article>

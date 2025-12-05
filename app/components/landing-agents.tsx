@@ -290,7 +290,7 @@ export function LandingAgents() {
       </motion.div>
 
       {/* Agents grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="@container grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-3 @xl:grid-cols-4">
         <AnimatePresence mode="popLayout">
           {displayedAgents.map((agent, index) => (
             <motion.div
@@ -303,7 +303,7 @@ export function LandingAgents() {
             >
               <Link
                 href={`/chat?agent=${agent.id}`}
-                className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg"
+                className="perspective group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
               >
                 <div className="mb-4 flex items-start justify-between">
                   <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
@@ -311,7 +311,7 @@ export function LandingAgents() {
                   </div>
                   <div className="flex items-center gap-2">
                     {agent.popular && (
-                      <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs">
+                      <Badge className="bg-linear-to-r from-amber-500 to-orange-500 text-white text-xs">
                         Popular
                       </Badge>
                     )}

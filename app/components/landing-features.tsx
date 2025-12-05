@@ -98,7 +98,7 @@ export function LandingFeatures() {
   return (
     <section className="relative overflow-hidden py-24 lg:py-32">
       {/* Background decoration */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
 
       <div className="container mx-auto px-4">
         <motion.div
@@ -131,16 +131,17 @@ export function LandingFeatures() {
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className={`group relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 ${feature.className}`}
+              className={`card-3d group relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 ${feature.className}`}
             >
+              <div className="card-3d-inner preserve-3d">
               {/* Gradient background on hover */}
               <div
-                className={`absolute inset-0 -z-10 bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
+                className={`absolute inset-0 -z-10 bg-linear-to-br ${feature.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
               />
 
               {/* Icon */}
               <div
-                className={`mb-6 inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.gradient} text-white shadow-lg`}
+                className={`mb-6 inline-flex size-12 items-center justify-center rounded-xl bg-linear-to-br ${feature.gradient} text-white shadow-lg`}
               >
                 <feature.icon className="size-6" />
               </div>
@@ -168,8 +169,9 @@ export function LandingFeatures() {
 
               {/* Decorative corner */}
               <div
-                className={`absolute -right-8 -top-8 size-24 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
+                className={`absolute -right-8 -top-8 size-24 rounded-full bg-linear-to-br ${feature.gradient} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
               />
+              </div>
             </motion.div>
           ))}
         </motion.div>
@@ -180,13 +182,13 @@ export function LandingFeatures() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+          className="@container grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
         >
           {ADDITIONAL_FEATURES.map((feature) => (
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className="group rounded-xl border border-border bg-card/50 p-6 transition-all duration-300 hover:border-primary/30 hover:bg-card"
+              className="perspective group rounded-xl border border-border bg-card/50 p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:bg-card hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <feature.icon className="size-5" />

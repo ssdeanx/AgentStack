@@ -394,7 +394,7 @@ export function ToolsList() {
           <StarIcon className="size-5 text-yellow-500" />
           Popular Tools
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="@container grid gap-4 @sm:grid-cols-2 @lg:grid-cols-4">
           {popularTools.slice(0, 4).map((tool, index) => (
             <motion.div
               key={tool.id}
@@ -404,10 +404,10 @@ export function ToolsList() {
             >
               <Link
                 href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
-                className="group flex h-full flex-col rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+                className="card-3d group flex h-full flex-col rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5 transition-all duration-300 ease-spring hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
               >
                 <div className="mb-3 flex items-center justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                     <tool.icon className="size-5" />
                   </div>
                   <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
@@ -477,10 +477,10 @@ export function ToolsList() {
             >
               <Link
                 href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
-                className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg"
+                className="card-3d group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
               >
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                     <tool.icon className="size-5" />
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -504,9 +504,9 @@ export function ToolsList() {
 
                 <div className="flex items-center justify-between border-t border-border pt-3">
                   <code className="text-xs text-muted-foreground/70">{tool.id}</code>
-                  <span className="flex items-center text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
+                  <span className="flex items-center text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors duration-200">
                     View Docs
-                    <ArrowRightIcon className="ml-1 size-3 transition-transform group-hover:translate-x-1" />
+                    <ArrowRightIcon className="ml-1 size-3 transition-transform duration-200 ease-spring group-hover:translate-x-1" />
                   </span>
                 </div>
               </Link>
