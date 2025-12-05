@@ -6,11 +6,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
-import type { UIMessage, TextUIPart, DynamicToolUIPart } from "ai"
+import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, SourceUrlUIPart } from "ai"
 import {
   getNetworkConfig,
   NETWORK_CONFIGS,
@@ -30,6 +31,13 @@ export interface RoutingStep {
   completedAt?: Date
 }
 
+export interface Source {
+  url: string
+  title: string
+}
+
+export type ToolInvocationState = DynamicToolUIPart
+
 export interface NetworkContextValue {
   selectedNetwork: NetworkId
   networkConfig: NetworkConfig | undefined
@@ -37,6 +45,9 @@ export interface NetworkContextValue {
   routingSteps: RoutingStep[]
   messages: UIMessage[]
   streamingOutput: string
+  streamingReasoning: string
+  toolInvocations: ToolInvocationState[]
+  sources: Source[]
   error: string | null
   selectNetwork: (networkId: NetworkId) => void
   sendMessage: (text: string) => void
@@ -61,6 +72,43 @@ export interface NetworkProviderProps {
 
 const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
 
+/**
+ * Convert Mastra `data-tool-*` or `data-network` parts to DynamicToolUIPart
+ */
+function mapDataPartToDynamicTool(part: any): DynamicToolUIPart | null {
+  if (!part || typeof part !== "object") return null
+  
+  const partType = part.type as string
+  if (!partType?.startsWith("data-tool") && partType !== "data-network") {
+    return null
+  }
+
+  const payload = part.data ?? part.payload ?? part
+  const inner = payload?.data ?? payload
+
+  const toolCallId = inner?.toolCallId ?? inner?.id ?? inner?.callId ?? `tool-${Date.now()}`
+  const toolName = inner?.toolName ?? inner?.name ?? inner?.tool ?? inner?.agentName ?? "network-step"
+  const input = inner?.input ?? inner?.args ?? inner?.params
+  const output = inner?.output ?? inner?.result ?? inner?.value
+  const errorText = inner?.errorText ?? inner?.error
+  const rawState = (inner?.state ?? inner?.status ?? "").toString().toLowerCase()
+
+  let state: DynamicToolUIPart["state"] = "input-available"
+  if (rawState.includes("stream") || rawState.includes("pending")) state = "input-streaming"
+  else if (rawState.includes("success") || rawState.includes("done") || rawState.includes("completed") || output) state = "output-available"
+  else if (rawState.includes("error") || rawState.includes("failed")) state = "output-error"
+
+  return {
+    type: "dynamic-tool",
+    toolCallId: String(toolCallId),
+    toolName: String(toolName),
+    input,
+    output,
+    errorText,
+    state,
+  } as DynamicToolUIPart
+}
+
 export function NetworkProvider({
   children,
   defaultNetwork = "agentNetwork",
@@ -68,15 +116,16 @@ export function NetworkProvider({
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(defaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
+  const [sources, setSources] = useState<Source[]>([])
 
   const networkConfig = useMemo(
     () => getNetworkConfig(selectedNetwork),
     [selectedNetwork]
   )
 
-  // useChat from @ai-sdk/react with DefaultChatTransport for network streaming
   const {
     messages,
+    setMessages,
     sendMessage: aiSendMessage,
     stop,
     status: aiStatus,
@@ -104,7 +153,6 @@ export function NetworkProvider({
     }),
   })
 
-  // Map status
   const networkStatus: NetworkStatus = useMemo(() => {
     if (aiError || networkError) return "error"
     if (aiStatus === "streaming") return "executing"
@@ -112,7 +160,6 @@ export function NetworkProvider({
     return "idle"
   }, [aiStatus, aiError, networkError])
 
-  // Extract streaming output from messages
   const streamingOutput = useMemo(() => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage?.role === "assistant") {
@@ -124,8 +171,59 @@ export function NetworkProvider({
     return ""
   }, [messages])
 
+  const streamingReasoning = useMemo(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant") {
+      const reasoningPart = lastMessage.parts?.find(
+        (p): p is ReasoningUIPart => p.type === "reasoning"
+      )
+      return reasoningPart?.text ?? ""
+    }
+    return ""
+  }, [messages])
+
+  // Extract tool invocations from messages
+  const toolInvocations = useMemo((): ToolInvocationState[] => {
+    const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || lastMessage.role !== "assistant" || !lastMessage.parts) return []
+
+    const result: ToolInvocationState[] = []
+    for (const p of lastMessage.parts) {
+      // Standard dynamic-tool parts
+      if (p.type === "dynamic-tool") {
+        result.push(p as ToolInvocationState)
+        continue
+      }
+      // Mastra data-tool-* or data-network parts
+      if (typeof p.type === "string" && (p.type.startsWith("data-tool") || p.type === "data-network")) {
+        const converted = mapDataPartToDynamicTool(p)
+        if (converted) result.push(converted)
+      }
+    }
+    return result
+  }, [messages])
+
+  // Extract sources from source-url parts
+  useEffect(() => {
+    const allSources: Source[] = []
+    for (const message of messages) {
+      if (message.role === "assistant" && message.parts) {
+        for (const part of message.parts) {
+          if (part.type === "source-url") {
+            const src = part as SourceUrlUIPart
+            allSources.push({
+              url: src.url,
+              title: src.title ?? src.url,
+            })
+          }
+        }
+      }
+    }
+    setSources(allSources)
+  }, [messages])
+
   // Extract routing steps from data-network parts
-  useMemo(() => {
+  useEffect(() => {
     const lastMessage = messages[messages.length - 1]
     if (lastMessage?.role === "assistant" && networkConfig) {
       const dataParts = lastMessage.parts?.filter(
@@ -152,6 +250,7 @@ export function NetworkProvider({
       setSelectedNetwork(networkId)
       setRoutingSteps([])
       setNetworkError(null)
+      setSources([])
     }
   }, [])
 
@@ -170,10 +269,11 @@ export function NetworkProvider({
   }, [stop])
 
   const clearHistory = useCallback(() => {
+    setMessages([])
     setRoutingSteps([])
     setNetworkError(null)
-    window.location.reload()
-  }, [])
+    setSources([])
+  }, [setMessages])
 
   const error = aiError?.message ?? networkError
 
@@ -185,6 +285,9 @@ export function NetworkProvider({
       routingSteps,
       messages,
       streamingOutput,
+      streamingReasoning,
+      toolInvocations,
+      sources,
       error,
       selectNetwork,
       sendMessage,
@@ -198,6 +301,9 @@ export function NetworkProvider({
       routingSteps,
       messages,
       streamingOutput,
+      streamingReasoning,
+      toolInvocations,
+      sources,
       error,
       selectNetwork,
       sendMessage,

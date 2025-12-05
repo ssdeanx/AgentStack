@@ -14,7 +14,6 @@ import {
 import { Badge } from "@/ui/badge"
 import { useNetworkContext } from "@/app/networks/providers/network-context"
 import {
-  NETWORK_CONFIGS,
   CATEGORY_ORDER,
   CATEGORY_LABELS,
   getNetworksByCategory,
@@ -40,34 +39,31 @@ export function NetworkHeader() {
   } = useNetworkContext()
 
   const networksByCategory = useMemo(() => getNetworksByCategory(), [])
+  const isExecuting = networkStatus === "executing" || networkStatus === "routing"
 
   return (
-    <header className="flex items-center justify-between border-b border-border px-6 py-4">
-      <div className="flex items-center gap-4">
+    <header className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-6 md:py-4">
+      <div className="flex items-center gap-3">
         <Link href="/">
-          <Button variant="ghost" size="sm">
-            <ArrowLeftIcon className="size-4 mr-2" />
-            Back
+          <Button variant="ghost" size="icon">
+            <ArrowLeftIcon className="size-4" />
           </Button>
         </Link>
-        <div className="h-6 w-px bg-border" />
-        <div className="flex items-center gap-3">
-          <NetworkIcon className="size-5 text-muted-foreground" />
-          <div>
-            <h1 className="text-xl font-semibold">Agent Networks</h1>
-            <p className="text-sm text-muted-foreground">
-              {networkConfig?.description || "Multi-agent routing and orchestration"}
-            </p>
+        <div className="hidden h-6 w-px bg-border sm:block" />
+        <div className="flex items-center gap-2">
+          <NetworkIcon className="size-5 text-primary" />
+          <div className="hidden sm:block">
+            <h1 className="text-lg font-semibold">Agent Networks</h1>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Select
           value={selectedNetwork}
           onValueChange={(value) => selectNetwork(value as NetworkId)}
         >
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-[180px] md:w-[260px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -82,7 +78,7 @@ export function NetworkHeader() {
                     <SelectItem key={net.id} value={net.id}>
                       <div className="flex items-center gap-2">
                         <span>{net.name}</span>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="hidden text-xs sm:inline-flex">
                           {net.agents.length} agents
                         </Badge>
                       </div>
@@ -94,13 +90,13 @@ export function NetworkHeader() {
           </SelectContent>
         </Select>
 
-        {networkStatus === "executing" || networkStatus === "routing" ? (
-          <Button variant="outline" size="icon" onClick={stopExecution}>
+        {isExecuting && (
+          <Button variant="outline" size="icon" onClick={stopExecution} title="Stop execution">
             <SquareIcon className="size-4" />
           </Button>
-        ) : null}
+        )}
 
-        {messages.length > 0 && (
+        {messages.length > 0 && !isExecuting && (
           <Button variant="ghost" size="icon" onClick={clearHistory} title="Clear history">
             <Trash2Icon className="size-4" />
           </Button>

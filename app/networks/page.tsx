@@ -2,9 +2,8 @@
 
 import { NetworkProvider } from "./providers/network-context"
 import { NetworkHeader } from "./components/network-header"
-import { NetworkAgents } from "./components/network-agents"
-import { NetworkMessages } from "./components/network-messages"
-import { NetworkInput } from "./components/network-input"
+import { NetworkChat } from "./components/network-chat"
+import { NetworkRoutingPanel } from "./components/network-routing-panel"
 
 export default function NetworksPage() {
   return (
@@ -12,18 +11,15 @@ export default function NetworksPage() {
       <main className="flex h-screen flex-col bg-background">
         <NetworkHeader />
         <div className="flex flex-1 overflow-hidden">
-          {/* Left sidebar - agents */}
-          <aside className="w-80 border-r p-4">
-            <NetworkAgents />
-          </aside>
-
-          {/* Main content - messages */}
-          <div className="flex flex-1 flex-col">
-            <div className="flex-1 overflow-hidden p-4">
-              <NetworkMessages />
-            </div>
-            <NetworkInput />
+          {/* Main content - chat with AI Elements */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <NetworkChat />
           </div>
+
+          {/* Right sidebar - routing visualization */}
+          <aside className="hidden w-80 shrink-0 border-l p-4 lg:block">
+            <NetworkRoutingPanel />
+          </aside>
         </div>
       </main>
     </NetworkProvider>

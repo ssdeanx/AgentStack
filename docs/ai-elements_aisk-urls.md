@@ -4,8 +4,8 @@
 
 Using Vercel AI SDK
 Mastra integrates with Vercel's AI SDK to support model routing, React Hooks, and data streaming methods.
-
-- [AI-SDK Framework](https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk)
+https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk)
+- [AI-SDK Framework](
 
 - [Next.js Framework](https://mastra.ai/docs/frameworks/web-frameworks/next-js)
 - [Custom API Routes](https://mastra.ai/docs/server-db/custom-api-routes)

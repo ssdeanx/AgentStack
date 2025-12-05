@@ -47,12 +47,9 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
       payload = candidate.toolInvocation;
       break;
     }
-    if (isObject(candidate?.data)) {
-      // If candidate.data looks like call/args/out, prefer it
-      if (isObject(candidate.data?.input) || isObject(candidate.data?.output) || candidate.data.id) {
-        payload = candidate.data;
-        break;
-      }
+    if (isObject(candidate?.data) && (isObject(candidate.data?.input) || isObject(candidate.data?.output) || candidate.data.id)) {
+          payload = candidate.data;
+          break;
     }
   }
 

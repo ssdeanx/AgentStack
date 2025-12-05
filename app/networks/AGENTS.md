@@ -2,29 +2,39 @@
 
 ## Overview
 
-The networks page provides an interface for interacting with Mastra agent networks using `@ai-sdk/react` and `DefaultChatTransport` to stream responses from the `/network` route.
+The networks page provides an advanced chat interface for interacting with Mastra agent networks. It uses `@ai-sdk/react` with `DefaultChatTransport` to stream responses from the `/network` route, and leverages **AI Elements** components for a rich chat experience.
 
 ## Architecture
 
-Follows the same modular pattern as chat and workflows:
-
 ```text
 app/networks/
-├── page.tsx                  # Main page component
+├── page.tsx                      # Main page with chat + routing panel
 ├── config/
-│   └── networks.ts           # Network definitions and types
+│   └── networks.ts               # Network definitions and types
 ├── providers/
-│   └── network-context.tsx   # State management with useChat
+│   └── network-context.tsx       # State management with useChat
 └── components/
-    ├── network-header.tsx    # Header with network selector
-    ├── network-agents.tsx    # Agent list sidebar
-    ├── network-messages.tsx  # Conversation display
-    └── network-input.tsx     # Message input
+    ├── network-header.tsx        # Header with network selector
+    ├── network-chat.tsx          # AI Elements chat (Conversation, Message, Reasoning, Tool)
+    ├── network-routing-panel.tsx # Visual routing flow sidebar
+    ├── network-agents.tsx        # Agent list (legacy, optional)
+    ├── network-messages.tsx      # Basic messages (legacy)
+    └── network-input.tsx         # Basic input (legacy)
 ```
+
+## AI Elements Integration
+
+The network chat uses AI Elements components for a rich chat experience:
+
+- **Conversation** - Auto-scrolling message container
+- **Message/MessageContent/MessageResponse** - Styled message bubbles with markdown
+- **Reasoning** - Collapsible reasoning display for chain-of-thought
+- **Tool** - Tool invocation visualization with input/output
+- **PromptInput** - Enhanced input with network selector
 
 ## AI SDK Integration
 
-Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` to connect to Mastra's `/network` route:
+Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport`:
 
 ```tsx
 import { useChat } from "@ai-sdk/react"
@@ -50,25 +60,25 @@ const { messages, sendMessage, stop, status } = useChat({
 
 All 4 Mastra networks are configured in `config/networks.ts`:
 
-- agentNetwork - Intelligent routing to specialized agents
-- dataPipelineNetwork - Data ingestion, transformation, export
-- reportGenerationNetwork - Research, analysis, report generation
-- researchPipelineNetwork - Multi-source research aggregation
+| Network | Description |
+|---------|-------------|
+| agentNetwork | Intelligent routing to specialized agents |
+| dataPipelineNetwork | Data ingestion, transformation, export |
+| reportGenerationNetwork | Research, analysis, report generation |
+| researchPipelineNetwork | Multi-source research aggregation |
 
 ## Usage
 
 ```tsx
 import { NetworkProvider } from "./providers/network-context"
 import { NetworkHeader } from "./components/network-header"
-import { NetworkAgents } from "./components/network-agents"
-import { NetworkMessages } from "./components/network-messages"
-import { NetworkInput } from "./components/network-input"
+import { NetworkChat } from "./components/network-chat"
+import { NetworkRoutingPanel } from "./components/network-routing-panel"
 
 <NetworkProvider defaultNetwork="agentNetwork">
   <NetworkHeader />
-  <NetworkAgents />
-  <NetworkMessages />
-  <NetworkInput />
+  <NetworkChat />
+  <NetworkRoutingPanel />
 </NetworkProvider>
 ```
 
@@ -76,10 +86,23 @@ import { NetworkInput } from "./components/network-input"
 
 `useNetworkContext()` provides:
 
-- `selectedNetwork` - Currently selected network ID
-- `networkConfig` - Current network configuration
-- `networkStatus` - idle | routing | executing | completed | error
-- `messages` - AI SDK message history
-- `streamingOutput` - Current streaming text
-- `sendMessage(text)` - Send message to network
-- `stopExecution()` - Stop streaming
+| Property | Type | Description |
+|----------|------|-------------|
+| `selectedNetwork` | string | Currently selected network ID |
+| `networkConfig` | NetworkConfig | Current network configuration |
+| `networkStatus` | Status | idle \| routing \| executing \| completed \| error |
+| `messages` | UIMessage[] | AI SDK message history |
+| `streamingOutput` | string | Current streaming text |
+| `routingSteps` | RoutingStep[] | Agent routing visualization |
+| `sendMessage(text)` | function | Send message to network |
+| `stopExecution()` | function | Stop streaming |
+| `clearHistory()` | function | Clear conversation |
+
+## Features
+
+- **Real-time streaming** with stop/cancel support
+- **Reasoning visualization** for chain-of-thought models
+- **Tool invocation display** showing agent tool calls
+- **Network selector** in both header and input
+- **Routing flow panel** showing agent execution steps
+- **Responsive layout** with collapsible sidebar on mobile
