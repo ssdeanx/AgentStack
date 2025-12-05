@@ -3,7 +3,7 @@
 import { ReactNode } from "react"
 import Link from "next/link"
 import { Badge } from "@/ui/badge"
-import { CalendarIcon, ClockIcon, ArrowLeftIcon } from "lucide-react"
+import { CalendarIcon, ClockIcon, ArrowLeftIcon, ShareIcon } from "lucide-react"
 import { Button } from "@/ui/button"
 
 interface BlogLayoutProps {
@@ -13,6 +13,7 @@ interface BlogLayoutProps {
   readTime: string
   category: string
   author?: string
+  tags?: string[]
 }
 
 export function BlogLayout({ 
@@ -21,16 +22,31 @@ export function BlogLayout({
   date, 
   readTime, 
   category,
-  author = "AgentStack Team"
+  author = "AgentStack Team",
+  tags = []
 }: BlogLayoutProps) {
+  const handleShare = async () => {
+    if (typeof window === "undefined") return
+    if (navigator.share) {
+      await navigator.share({ title, url: window.location.href })
+    } else {
+      await navigator.clipboard.writeText(window.location.href)
+    }
+  }
+
   return (
     <article className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-3xl">
-        <Button variant="ghost" size="sm" asChild className="mb-8">
-          <Link href="/blog">
-            <ArrowLeftIcon className="mr-2 size-4" /> Back to Blog
-          </Link>
-        </Button>
+        <div className="mb-8 flex items-center justify-between">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/blog">
+              <ArrowLeftIcon className="mr-2 size-4" /> Back to Blog
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleShare}>
+            <ShareIcon className="mr-2 size-4" /> Share
+          </Button>
+        </div>
         
         <header className="mb-12">
           <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -54,9 +70,18 @@ export function BlogLayout({
             {title}
           </h1>
           <p className="text-muted-foreground">By {author}</p>
+          {tags.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </header>
 
-        <div className="prose prose-neutral dark:prose-invert max-w-none **:text-foreground h1:text-foreground h2:text-foreground h3:text-foreground h4:text-foreground p:text-muted-foreground li:text-muted-foreground code:text-foreground pre:bg-muted blockquote:text-muted-foreground table:border-border th:border-border td:border-border">
+        <div className="mdx-content">
           {children}
         </div>
       </div>

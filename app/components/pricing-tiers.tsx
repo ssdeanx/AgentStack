@@ -74,7 +74,7 @@ export function PricingTiers() {
         </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="@container grid gap-8 @md:grid-cols-3">
         {TIERS.map((tier, index) => (
           <motion.div
             key={tier.name}
@@ -82,13 +82,13 @@ export function PricingTiers() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
             viewport={{ once: true }}
-            className={`relative flex flex-col rounded-2xl border bg-card p-8 shadow-sm transition-all hover:shadow-md ${tier.popular
+            className={`card-3d relative flex flex-col rounded-2xl border bg-card p-8 shadow-sm transition-all duration-300 ease-spring hover:shadow-lg hover:-translate-y-1 ${tier.popular
                 ? "border-primary ring-1 ring-primary"
                 : "border-border hover:border-primary/50"
               }`}
           >
             {tier.popular && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground shadow-lg animate-pulse-glow">
                 Most Popular
               </div>
             )}

@@ -108,22 +108,22 @@ export function LandingTrust() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="mb-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+          className="@container mb-16 grid gap-6 @sm:grid-cols-2 @lg:grid-cols-4"
         >
           {TRUST_SIGNALS.map((signal) => (
             <motion.div
               key={signal.title}
               variants={itemVariants}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg"
+              className="card-3d group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
             >
               {/* Gradient background on hover */}
               <div
-                className={`absolute inset-0 -z-10 bg-gradient-to-br ${signal.color} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
+                className={`absolute inset-0 -z-10 bg-linear-to-br ${signal.color} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
               />
 
               {/* Icon */}
               <div
-                className={`mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${signal.color} text-white shadow-lg`}
+                className={`mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-linear-to-br ${signal.color} text-white shadow-lg transition-transform duration-200 ease-spring group-hover:scale-105`}
               >
                 <signal.icon className="size-6" />
               </div>
@@ -138,7 +138,7 @@ export function LandingTrust() {
 
               {/* Decorative corner */}
               <div
-                className={`absolute -right-8 -top-8 size-24 rounded-full bg-gradient-to-br ${signal.color} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
+                className={`absolute -right-8 -top-8 size-24 rounded-full bg-linear-to-br ${signal.color} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
               />
             </motion.div>
           ))}
@@ -163,9 +163,9 @@ export function LandingTrust() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
                 viewport={{ once: true }}
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+                className="flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm transition-all duration-200 ease-spring hover:border-primary/30 hover:shadow-md hover:scale-105"
               >
-                <cert.icon className="size-4 text-primary" />
+                <cert.icon className="size-4 text-primary transition-transform duration-200 group-hover:rotate-12" />
                 <span className="text-sm font-medium text-foreground">{cert.name}</span>
               </motion.div>
             ))}
@@ -190,7 +190,7 @@ export function LandingTrust() {
                 viewport={{ once: true }}
                 className="text-center"
               >
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 ease-spring hover:bg-primary hover:text-primary-foreground hover:scale-105">
                   <metric.icon className="size-5" />
                 </div>
                 <div className="text-2xl font-bold text-foreground md:text-3xl">

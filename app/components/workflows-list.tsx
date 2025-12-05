@@ -202,7 +202,7 @@ export function WorkflowsList() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="@container grid gap-6 @md:grid-cols-2 @lg:grid-cols-3">
         {filteredWorkflows.map((workflow, index) => (
           <motion.div
             key={workflow.id}
@@ -211,9 +211,9 @@ export function WorkflowsList() {
             transition={{ duration: 0.4, delay: index * 0.05 }}
             viewport={{ once: true }}
           >
-            <div className="group flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg">
+            <div className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
               <div className="mb-4 flex items-start justify-between">
-                <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                   <workflow.icon className="size-6" />
                 </div>
                 <div className="flex items-center gap-2">

@@ -113,19 +113,19 @@ export function LandingCTA() {
             <Button
               size="lg"
               asChild
-              className="group h-14 min-w-[200px] bg-linear-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+              className="group h-14 min-w-[200px] bg-linear-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all duration-300 ease-spring hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 hover:animate-pulse-glow"
             >
               <Link href="/chat">
                 <RocketIcon className="mr-2 size-5" />
                 Launch Chat
-                <ArrowRightIcon className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRightIcon className="ml-2 size-4 transition-transform duration-200 ease-spring group-hover:translate-x-1" />
               </Link>
             </Button>
             <Button
               size="lg"
               variant="outline"
               asChild
-              className="group h-14 min-w-[200px] border-2 px-8 text-base backdrop-blur-sm"
+              className="group h-14 min-w-[200px] border-2 px-8 text-base backdrop-blur-sm transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-lg"
             >
               <Link
                 href="https://github.com/ssdeanx/agentstack"
@@ -170,7 +170,7 @@ export function LandingCTA() {
           viewport={{ once: true }}
           className="mx-auto mt-20 max-w-4xl"
         >
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="@container grid gap-4 @md:grid-cols-3">
             {QUICK_LINKS.map((link, index) => (
               <motion.div
                 key={link.title}
@@ -181,16 +181,16 @@ export function LandingCTA() {
               >
                 <Link
                   href={link.href as any}
-                  className="group flex h-full flex-col rounded-2xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card hover:shadow-lg"
+                  className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-all duration-300 ease-spring hover:border-primary/50 hover:bg-card hover:shadow-lg hover:-translate-y-1"
                 >
-                  <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110">
                     <link.icon className="size-6" />
                   </div>
-                  <h3 className="mb-1 font-semibold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="mb-1 font-semibold text-foreground group-hover:text-primary transition-colors duration-200">
                     {link.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">{link.description}</p>
-                  <div className="mt-4 flex items-center text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="mt-4 flex items-center text-sm font-medium text-primary opacity-0 transition-all duration-200 ease-spring group-hover:opacity-100 group-hover:translate-x-1">
                     Learn more
                     <ArrowRightIcon className="ml-1 size-4 transition-transform group-hover:translate-x-1" />
                   </div>

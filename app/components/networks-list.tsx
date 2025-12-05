@@ -85,10 +85,10 @@ export function NetworksList() {
           >
             <Link
               href={{ pathname: '/networks/[id]', query: { id: network.id } }}
-              className="group flex h-full flex-col rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/50 hover:shadow-lg"
+              className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card p-8 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
             >
               <div className="mb-6 flex items-start justify-between">
-                <div className="flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex size-14 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                   <network.icon className="size-7" />
                 </div>
                 <Badge variant="secondary">{network.category}</Badge>
@@ -106,7 +106,7 @@ export function NetworksList() {
                   {network.agents} agents
                 </span>
                 <span className="inline-flex items-center text-sm font-medium text-primary">
-                  Explore <ArrowRightIcon className="ml-1 size-4 transition-transform group-hover:translate-x-1" />
+                  Explore <ArrowRightIcon className="ml-1 size-4 transition-transform duration-200 ease-spring group-hover:translate-x-1" />
                 </span>
               </div>
             </Link>

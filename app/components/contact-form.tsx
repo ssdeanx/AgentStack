@@ -143,23 +143,34 @@ export function ContactForm() {
 
     setStatus("loading")
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
 
-    // Simulate success
-    setStatus("success")
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      company: "",
-      inquiryType: "",
-      subject: "",
-      message: "",
-    })
+      const result = await response.json()
 
-    // Reset after 5 seconds
-    setTimeout(() => setStatus("idle"), 5000)
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send message")
+      }
+
+      setStatus("success")
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        company: "",
+        inquiryType: "",
+        subject: "",
+        message: "",
+      })
+    } catch (error) {
+      console.error("Contact form error:", error)
+      setStatus("error")
+      setTimeout(() => setStatus("idle"), 3000)
+    }
   }
 
   return (
@@ -192,8 +203,8 @@ export function ContactForm() {
           className="mb-12 grid grid-cols-3 gap-4 rounded-2xl border border-border bg-muted/30 p-6"
         >
           {QUICK_STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div key={stat.label} className="text-center transition-transform duration-200 ease-spring hover:scale-105">
+              <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors duration-200 hover:bg-primary hover:text-primary-foreground">
                 <stat.icon className="size-5" />
               </div>
               <div className="text-lg font-semibold text-foreground">{stat.value}</div>
@@ -227,9 +238,9 @@ export function ContactForm() {
                   href={info.href}
                   target={info.href.startsWith("http") ? "_blank" : undefined}
                   rel={info.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                  className="group flex items-start gap-4 rounded-lg p-3 -m-3 transition-colors hover:bg-accent"
+                  className="group flex items-start gap-4 rounded-lg p-3 -m-3 transition-all duration-200 ease-smooth hover:bg-accent"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
                     <info.icon className="size-5" />
                   </div>
                   <div>
@@ -295,6 +306,29 @@ export function ContactForm() {
                     onClick={() => setStatus("idle")}
                   >
                     Send Another Message
+                  </Button>
+                </motion.div>
+              ) : status === "error" ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center py-12 text-center"
+                >
+                  <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-destructive/10">
+                    <MailIcon className="size-8 text-destructive" />
+                  </div>
+                  <h3 className="mb-2 text-xl font-semibold text-foreground">
+                    Failed to Send
+                  </h3>
+                  <p className="max-w-sm text-muted-foreground">
+                    Something went wrong. Please try again or email us directly at support@agentstack.ai
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-6"
+                    onClick={() => setStatus("idle")}
+                  >
+                    Try Again
                   </Button>
                 </motion.div>
               ) : (

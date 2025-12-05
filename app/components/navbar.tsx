@@ -144,7 +144,7 @@ export function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ${scrolled
+      className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ease-smooth ${scrolled
           ? "border-border/40 bg-background/80 backdrop-blur-lg shadow-sm"
           : "border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
         }`}
@@ -154,10 +154,10 @@ export function Navbar() {
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="group flex items-center gap-2.5 transition-opacity hover:opacity-80"
+            className="group flex items-center gap-2.5 transition-all duration-200 ease-spring hover:opacity-80"
             aria-label="AgentStack Home"
           >
-            <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-sm transition-transform group-hover:scale-105">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-sm transition-all duration-200 ease-spring group-hover:scale-105 group-hover:shadow-md">
               <span className="font-bold text-primary-foreground text-sm">A</span>
             </div>
             <span className="font-semibold text-foreground text-lg">AgentStack</span>
@@ -240,7 +240,7 @@ export function Navbar() {
           <Button
             size="sm"
             asChild
-            className="bg-linear-to-r from-primary to-primary/90 shadow-sm transition-all hover:shadow-md"
+            className="bg-linear-to-r from-primary to-primary/90 shadow-sm transition-all duration-200 ease-spring hover:shadow-md hover:-translate-y-px"
           >
             <Link href="/chat">Get Started</Link>
           </Button>
@@ -274,11 +274,9 @@ export function Navbar() {
       {/* Mobile Menu */}
       <div
         id="mobile-menu"
-        className={`fixed inset-x-0 top-16 z-40 h-[calc(100vh-4rem)] transform overflow-y-auto border-t border-border bg-background transition-all duration-300 ease-in-out lg:hidden ${mobileOpen
-            ? "translate-x-0 opacity-100"
-            : "translate-x-full opacity-0 pointer-events-none"
-          }`}
-        aria-hidden={mobileOpen ? "false" : "true"}
+        data-state={mobileOpen ? "open" : "closed"}
+        className="mobile-menu fixed inset-x-0 top-16 z-40 h-[calc(100vh-4rem)] overflow-y-auto border-t border-border bg-background lg:hidden"
+        {...(!mobileOpen && { "aria-hidden": true })}
       >
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col gap-6">
@@ -371,7 +369,7 @@ export function Navbar() {
       {/* Mobile menu backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="backdrop-animate fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />

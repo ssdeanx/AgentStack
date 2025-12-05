@@ -76,14 +76,14 @@ export function Footer() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 pr-4 text-base"
+                  className="h-12 pr-4 text-base transition-all duration-200 ease-smooth focus:ring-2 focus:ring-primary/50"
                   disabled={status === "loading" || status === "success"}
                 />
               </div>
               <Button
                 type="submit"
                 size="lg"
-                className="h-12 min-w-[140px]"
+                className="h-12 min-w-[140px] transition-all duration-200 ease-spring hover:-translate-y-px"
                 disabled={status === "loading" || status === "success"}
               >
                 {status === "loading" ? (
@@ -116,8 +116,8 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-6">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-lg">
+            <Link href="/" className="group flex items-center gap-2 transition-opacity duration-200 hover:opacity-80">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 ease-spring group-hover:scale-105 group-hover:shadow-xl">
                 <span className="font-bold text-primary-foreground text-lg">A</span>
               </div>
               <span className="text-xl font-bold text-foreground">AgentStack</span>
@@ -133,7 +133,7 @@ export function Footer() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary hover:text-primary-foreground hover:shadow-md"
+                  className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-all duration-200 ease-spring hover:border-primary/50 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:scale-105 hover:-translate-y-0.5"
                   aria-label={social.name}
                 >
                   <social.icon className="size-5" />
@@ -150,7 +150,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href as any}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
                   </Link>
@@ -167,7 +167,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href as any}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
                   </Link>
@@ -184,7 +184,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href as any}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
                   </Link>
@@ -201,7 +201,7 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href as any}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
                   </Link>

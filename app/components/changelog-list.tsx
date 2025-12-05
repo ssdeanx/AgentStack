@@ -88,14 +88,14 @@ export function ChangelogList() {
                 </span>
               </div>
               
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-md">
                 <ul className="space-y-4">
                   {entry.changes.map((change, changeIndex) => {
                     const Icon = CHANGE_ICONS[change.type as keyof typeof CHANGE_ICONS] || SparklesIcon
                     const colorClass = CHANGE_COLORS[change.type as keyof typeof CHANGE_COLORS] || "text-primary"
                     return (
-                      <li key={changeIndex} className="flex items-start gap-3">
-                        <Icon className={`mt-0.5 size-5 shrink-0 ${colorClass}`} />
+                      <li key={changeIndex} className="group flex items-start gap-3 transition-colors duration-200 hover:text-foreground">
+                        <Icon className={`mt-0.5 size-5 shrink-0 ${colorClass} transition-transform duration-200 group-hover:scale-110`} />
                         <span className="text-muted-foreground">{change.text}</span>
                       </li>
                     )

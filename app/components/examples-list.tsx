@@ -87,7 +87,7 @@ export function ExamplesList() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
             viewport={{ once: true }}
-            className="group flex flex-col rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg"
+            className="card-3d group flex flex-col rounded-2xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
           >
             <div className="mb-4 flex flex-wrap gap-2">
               {example.tags.map(tag => (
@@ -96,7 +96,7 @@ export function ExamplesList() {
                 </Badge>
               ))}
             </div>
-            <h2 className="mb-2 text-xl font-bold text-foreground">
+            <h2 className="mb-2 text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-200">
               {example.title}
             </h2>
             <p className="mb-6 flex-1 text-muted-foreground">

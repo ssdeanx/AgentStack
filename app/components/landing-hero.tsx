@@ -14,9 +14,9 @@ const FLOATING_ICONS = [
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-background py-24 sm:py-32 lg:py-40">
-      {/* Animated grid background */}
-      <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
+    <section className="relative overflow-hidden border-b border-border bg-background py-24 sm:py-32 lg:py-40 perspective">
+      {/* Animated grid background with shimmer */}
+      <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]" />
 
       {/* Gradient orbs */}
       <motion.div
@@ -38,23 +38,20 @@ export function LandingHero() {
         className="absolute bottom-0 left-0 -z-10 h-[300px] w-[300px] -translate-x-1/4 translate-y-1/4 rounded-full bg-purple-500/30 blur-[100px]"
       />
 
-      {/* Floating icons */}
+      {/* Floating icons - using CSS animation from globals.css */}
       <div className="absolute inset-0 -z-5 hidden lg:block">
         {FLOATING_ICONS.map((item, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
-            animate={{
-              opacity: 0.3,
-              y: [0, -10, 0],
-            }}
+            animate={{ opacity: 0.3 }}
             transition={{
               opacity: { duration: 1, delay: item.delay },
-              y: { duration: 3, repeat: Infinity, delay: item.delay }
             }}
-            className="absolute left-1/2 top-1/2"
+            className="animate-float absolute left-1/2 top-1/2"
             style={{
-              transform: `translate(calc(-50% + ${item.x}px), calc(-50% + ${item.y}px))`
+              transform: `translate(calc(-50% + ${item.x}px), calc(-50% + ${item.y}px))`,
+              animationDelay: `${item.delay}s`
             }}
           >
             <item.icon className="size-8 text-primary/40" />
@@ -74,7 +71,7 @@ export function LandingHero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1.5 text-sm backdrop-blur-sm"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1.5 text-sm backdrop-blur-sm transition-discrete"
           >
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-400 opacity-75" />
@@ -95,14 +92,14 @@ export function LandingHero() {
           >
             Build AI Applications{" "}
             <span className="relative">
-              <span className="relative z-10 bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
+              <span className="relative z-10 bg-linear-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
                 at Scale
               </span>
               <motion.span
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
-                className="absolute -bottom-2 left-0 h-3 w-full origin-left bg-gradient-to-r from-primary/20 via-blue-500/20 to-purple-500/20 blur-sm"
+                className="absolute -bottom-2 left-0 h-3 w-full origin-left bg-linear-to-r from-primary/20 via-blue-500/20 to-purple-500/20 blur-sm"
               />
             </span>
           </motion.h1>
@@ -131,7 +128,7 @@ export function LandingHero() {
             <Button
               size="lg"
               asChild
-              className="group h-12 min-w-[180px] bg-gradient-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+              className="group h-12 min-w-[180px] bg-linear-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all duration-300 ease-spring hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 hover:animate-pulse-glow"
             >
               <Link href="/chat">
                 Start Building
@@ -158,20 +155,20 @@ export function LandingHero() {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground"
           >
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded-full bg-green-500/10">
+            <div className="flex items-center gap-2 transition-all duration-300 ease-smooth hover:text-foreground hover:scale-105">
+              <div className="flex size-6 items-center justify-center rounded-full bg-green-500/10 transition-colors hover:bg-green-500/20">
                 <div className="size-2 rounded-full bg-green-500" />
               </div>
               <span>Open Source</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded-full bg-blue-500/10">
+            <div className="flex items-center gap-2 transition-all duration-300 ease-smooth hover:text-foreground hover:scale-105">
+              <div className="flex size-6 items-center justify-center rounded-full bg-blue-500/10 transition-colors hover:bg-blue-500/20">
                 <div className="size-2 rounded-full bg-blue-500" />
               </div>
               <span>Enterprise Ready</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded-full bg-purple-500/10">
+            <div className="flex items-center gap-2 transition-all duration-300 ease-smooth hover:text-foreground hover:scale-105">
+              <div className="flex size-6 items-center justify-center rounded-full bg-purple-500/10 transition-colors hover:bg-purple-500/20">
                 <div className="size-2 rounded-full bg-purple-500" />
               </div>
               <span>TypeScript First</span>
