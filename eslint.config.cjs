@@ -3,7 +3,6 @@ const tseslint = require('@typescript-eslint/eslint-plugin')
 const tsparser = require('@typescript-eslint/parser')
 const prettierConfig = require('eslint-config-prettier')
 
-//import reactPlugin from 'eslint-plugin-react'
 
 module.exports = [
   js.configs.recommended,
@@ -28,7 +27,6 @@ module.exports = [
       },
     },
     rules: {
-      //      ...reactPlugin.configs.recommended.rules,
       // Standard style guide rules
       'no-unused-vars': 'warn', // Turn off base rule
       '@typescript-eslint/no-unused-vars': 'warn',
@@ -89,30 +87,27 @@ module.exports = [
       'eol-last': 'warn',
     },
   },
-  {
-    includes: [
-      'src/mastra/**/*.ts',
-      'src/**/*.{tsx,ts}',
-      'app/**/*.{tsx,ts}',
-      'lib/**/*.{tsx,ts}',
-      'ui/**/*.{tsx,ts}',
-      'hooks/**/*.{tsx,ts}',
-      'tests/',
-      'components.json',
 
-
-    ],
-  },
   {
     ignores: [
       "node_modules/**/*.d.ts",
-      'dist/**',
+      '/node_modules/**/*.js',
+      '/node_modules/**/*.jsx',
+      '/node_modules/**/*.ts',
+      '/node_modules/**/*.tsx',
+      '/node_modules/**/*.d.ts',
+      '/dist/**/*.js',
+      '/docs/**/*.md',
+      '/memories/**/*.md',
+      '/memory-bank/**/*.md',
+      'dist/**/*.ts',
+      'dist/**/*.d.ts',
       '.vscode/mcp.json',
       '.vscode',
       'memory-bank',
       'memory-bank/',
       'node_modules',
-      'node_modules/**',
+      'node_modules/**/*.ts',
       '.mastra/**',
       'eslint.config.js',
       'vitest.config.ts',

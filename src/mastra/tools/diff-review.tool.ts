@@ -47,7 +47,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
   outputSchema: diffReviewOutputSchema,
   execute: async ({ context }): Promise<DiffReviewOutput> => {
     const { original, modified, filename = 'file', context: contextLines = 3 } = context
-    
+
     const unifiedDiff = createPatch(
       filename,
       original,
@@ -56,7 +56,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
-    
+
     const structured = structuredPatch(
       filename,
       filename,
@@ -66,7 +66,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
-    
+
     interface DiffHunk {
       oldStart: number
       oldLines: number
@@ -74,23 +74,23 @@ Use for code review, comparing versions, and analyzing modifications.`,
       newLines: number
       lines: string[]
     }
-    
-    const hunks: z.infer<typeof hunkSchema>[] = (structured.hunks as DiffHunk[]).map(hunk => ({
+
+    const hunks: Array<z.infer<typeof hunkSchema>> = (structured.hunks as DiffHunk[]).map(hunk => ({
       oldStart: hunk.oldStart,
       oldLines: hunk.oldLines,
       newStart: hunk.newStart,
       newLines: hunk.newLines,
       lines: hunk.lines,
     }))
-    
-    const changes: z.infer<typeof changeSchema>[] = []
+
+    const changes: Array<z.infer<typeof changeSchema>> = []
     let additions = 0
     let deletions = 0
-    
+
     for (const hunk of structured.hunks) {
       let oldLine = hunk.oldStart
       let newLine = hunk.newStart
-      
+
       for (const line of hunk.lines) {
         if (line.startsWith('+')) {
           changes.push({
@@ -119,19 +119,19 @@ Use for code review, comparing versions, and analyzing modifications.`,
         }
       }
     }
-    
+
     const totalChanges = additions + deletions
     let summary: string
-    
+
     if (totalChanges === 0) {
       summary = 'No changes detected between the two versions.'
     } else {
       const parts: string[] = []
-      if (additions > 0) parts.push(`${additions} addition${additions !== 1 ? 's' : ''}`)
-      if (deletions > 0) parts.push(`${deletions} deletion${deletions !== 1 ? 's' : ''}`)
+      if (additions > 0) {parts.push(`${additions} addition${additions !== 1 ? 's' : ''}`)}
+      if (deletions > 0) {parts.push(`${deletions} deletion${deletions !== 1 ? 's' : ''}`)}
       summary = `${totalChanges} change${totalChanges !== 1 ? 's' : ''}: ${parts.join(', ')} across ${hunks.length} hunk${hunks.length !== 1 ? 's' : ''}.`
     }
-    
+
     return {
       unifiedDiff,
       hunks,
