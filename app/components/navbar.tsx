@@ -232,7 +232,7 @@ export function Navbar() {
         <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle />
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/test">Demo</Link>
+            <Link href="/networks">Networks</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
             <Link href={"/login" as Route}>Login</Link>
@@ -336,8 +336,8 @@ export function Navbar() {
                 className="w-full"
                 tabIndex={mobileOpen ? 0 : -1}
               >
-                <Link href="/test" onClick={() => setMobileOpen(false)}>
-                  View Demo
+                <Link href="/networks" onClick={() => setMobileOpen(false)}>
+                  View Networks
                 </Link>
               </Button>
               <Button

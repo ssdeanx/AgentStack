@@ -4,6 +4,7 @@ import { googleAIFlashLite, pgMemory } from '../config'
 import { browserTool, googleSearch } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export const daneCommitMessage = new Agent({
   id: 'dane-commit-message',
@@ -28,7 +29,7 @@ export const daneCommitMessage = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -57,7 +58,7 @@ export const daneIssueLabeler = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -92,7 +93,7 @@ export const daneLinkChecker = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -128,7 +129,7 @@ export const daneChangeLog = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -189,7 +190,7 @@ export const dane = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

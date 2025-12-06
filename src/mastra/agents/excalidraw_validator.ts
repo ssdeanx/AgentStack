@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { InternalSpans } from "@mastra/core/ai-tracing";
 import { googleAI, pgMemory } from "../config";
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type KnowledgeIndexingContext = {
@@ -96,8 +97,10 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
             thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
-        }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

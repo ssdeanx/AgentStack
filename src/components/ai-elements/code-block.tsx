@@ -58,7 +58,7 @@ export async function highlightCode(
     ? [lineNumberTransformer]
     : [];
 
-  return await Promise.all([
+  return Promise.all([
     codeToHtml(code, {
       lang: language,
       theme: "one-light",

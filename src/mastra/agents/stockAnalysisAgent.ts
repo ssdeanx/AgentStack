@@ -24,6 +24,7 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type StockRuntimeContext = {
@@ -219,7 +220,7 @@ export const stockAnalysisAgent = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -249,23 +250,6 @@ export const stockAnalysisAgent = new Agent({
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.MODEL } },
-  scorers: {
-    responseQuality: {
-      scorer: responseQualityScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
-    taskCompletion: {
-      scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    sourceDiversity: {
-      scorer: sourceDiversityScorer,
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
-    financialData: {
-      scorer: financialDataScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
-  },
+ 
   maxRetries: 5
 })

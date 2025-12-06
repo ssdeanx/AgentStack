@@ -4,6 +4,7 @@ import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type EvaluationContext = {
@@ -127,8 +128,10 @@ CRITICAL: You must always respond with a valid JSON object in the following form
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
-        }
+          },
+          responseModalities: ['TEXT', 'IMAGE'],
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

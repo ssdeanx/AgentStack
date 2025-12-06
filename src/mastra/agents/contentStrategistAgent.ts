@@ -5,6 +5,7 @@ import { webScraperTool } from '../tools/web-scraper-tool';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { structureScorer, creativityScorer } from '../scorers';
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export const contentStrategistAgent = new Agent({
   id: 'content-strategist',
@@ -84,8 +85,7 @@ Output:
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
@@ -72,9 +70,20 @@ const nextConfig: NextConfig = {
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,
+  // Turbopack requires loader options be serializable. Passing
+  // plugin functions (remarkGfm, rehypeHighlight) causes an error
+  // because functions are not serializable across worker boundaries.
+  // Use specifier strings so the loader can resolve them at runtime.
   options: {
-    remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypeHighlight],
+    // Enable frontmatter parsing so MDX frontmatter is not rendered as page content
+    // and is instead exposed to the MDX module as exports.
+    // Keep MDX remark plugins minimal and stable in development to avoid
+    // loader/preset interop issues with Turbopack. `remark-gfm` is sufficient
+    // for most docs formatting. Frontmatter parsing can be handled separately
+    // if needed (e.g. server-side gray-matter extraction), which avoids
+    // depending on unified plugin resolution in the dev bundler.
+    remarkPlugins: ["remark-gfm"],
+    rehypePlugins: ["rehype-highlight"],
   },
 });
 

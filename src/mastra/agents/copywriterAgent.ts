@@ -13,6 +13,7 @@ import { googleAI, googleAIFlashLite } from '../config/google'
 import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -119,9 +120,8 @@ Provide the final content in a clear, well-structured format appropriate for the
                         thinkingBudget: -1,
                     },
                     responseModalities: ['TEXT', 'IMAGE'],
-                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-                    maxOutputTokens: 64000,
-                }
+                    mediaResolution: 'MEDIA_RESOLUTION_LOW',
+                } satisfies GoogleGenerativeAIProviderOptions,
             }
         }
     },

@@ -25,6 +25,7 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type FinancialChartRuntimeContext = {
@@ -112,7 +113,7 @@ Return recommendations as JSON:
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -209,7 +210,7 @@ Return processed data as JSON:
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -357,7 +358,7 @@ Return complete component code:
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -484,7 +485,7 @@ Return comprehensive chart package:
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -533,13 +534,6 @@ Return comprehensive chart package:
       collapseWhitespace: true,
       preserveEmojis: true,
       trim: true,
-    }),
-  ],
-  outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 15,
-      maxWaitTime: 50,
-      emitOnNonText: true,
     }),
   ],
   maxRetries: 5

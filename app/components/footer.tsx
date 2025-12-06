@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/ui/button"
 import { Input } from "@/ui/input"
@@ -58,6 +58,12 @@ export function Footer() {
     setEmail("")
     setTimeout(() => setStatus("idle"), 3000)
   }
+
+  const [year, setYear] = useState<number | null>(null)
+
+  useEffect(() => {
+    setYear(new Date().getFullYear())
+  }, [])
 
   return (
     <footer className="border-t border-border bg-background">
@@ -216,7 +222,7 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 md:flex-row">
           <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground md:flex-row md:gap-4">
-            <p>© {new Date().getFullYear()} AgentStack. All rights reserved.</p>
+            <p>© {year ?? ''} AgentStack. All rights reserved.</p>
             <span className="hidden md:inline">•</span>
             <p>Built with ❤️ for developers</p>
           </div>

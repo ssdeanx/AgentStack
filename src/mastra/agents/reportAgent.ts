@@ -5,6 +5,7 @@ import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type ReportRuntimeContext = {
@@ -99,10 +100,7 @@ export const reportAgent = new Agent({
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
-          temperature: 0.2,
-          topP: 1.0
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

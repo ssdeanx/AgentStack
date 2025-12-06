@@ -7,6 +7,7 @@ import { scorers } from '../scorers/weather-scorer';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type WeatherRuntimeContext = {
   'user-tier': UserTier
@@ -42,7 +43,7 @@ export const weatherAgent = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

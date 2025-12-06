@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { InternalSpans } from "@mastra/core/ai-tracing";
 import { googleAI, pgMemory } from "../config";
 import { csvValidityScorer } from "../scorers";
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -125,8 +126,10 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
             thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
-        }
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT', 'IMAGE'],
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

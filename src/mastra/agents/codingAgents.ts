@@ -3,6 +3,13 @@ import { InternalSpans } from '@mastra/core/ai-tracing'
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
 import { RuntimeContext } from '@mastra/core/runtime-context'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+
+
+const model = google('gemini-2.5-flash');
+
+
+
 
 import { googleAI, googleAI3, googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
@@ -83,7 +90,6 @@ Provide structured responses with:
 Always consider maintainability, scalability, and testability in your recommendations.`,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             thinkingLevel: userTier === 'enterprise' ? 'high' : 'low',
             includeThoughts: true,
@@ -91,12 +97,8 @@ Always consider maintainability, scalability, and testability in your recommenda
           },
           mediaResolution: 'MEDIA_RESOLUTION_LOW',
           responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
-          temperature: 0.2,
-          topP: 0.95,
-          topK: 40,
-          
-        }
+          cachedContent: 'Repo Name, Description, Key Modules, Recent Commits',
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -115,7 +117,7 @@ Always consider maintainability, scalability, and testability in your recommenda
     getRepositoryInfo,
     searchCode,
     getFileContent,
-    ...githubMCP.getTools(),
+//    ...githubMCP.getTools(),
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -134,9 +136,10 @@ Always consider maintainability, scalability, and testability in your recommenda
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
   outputProcessors: [
-    new BatchPartsProcessor({ batchSize: 5, maxWaitTime: 100, emitOnNonText: true }),
   ],
 })
+
+//log.info('Cached tokens:', providerMetadata.google?.usageMetadata);
 
 /**
  * Code Reviewer Agent
@@ -201,15 +204,12 @@ export const codeReviewerAgent = new Agent({
 Be constructive and educational in feedback.`,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
             includeThoughts: true,
           },
           responseModalities: ['TEXT'],
-          maxOutputTokens: 32000,
-          temperature: 0.2,
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -317,15 +317,12 @@ Provide:
 Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
             includeThoughts: true,
           },
           responseModalities: ['TEXT'],
-          maxOutputTokens: 32000,
-          temperature: 0.2,
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -431,15 +428,12 @@ For each refactoring:
 - Verification steps`,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
             includeThoughts: true,
           },
           responseModalities: ['TEXT'],
-          maxOutputTokens: 32000,
-          temperature: 0.2,
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
