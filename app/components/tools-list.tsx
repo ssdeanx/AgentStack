@@ -403,7 +403,7 @@ export function ToolsList() {
               transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <Link
-                href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
+                href={`/docs/tools/${tool.id}`}
                 className="card-3d group flex h-full flex-col rounded-xl border border-primary/20 bg-linear-to-br from-primary/5 to-transparent p-5 transition-all duration-300 ease-spring hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -476,7 +476,7 @@ export function ToolsList() {
               transition={{ duration: 0.3, delay: index * 0.02 }}
             >
               <Link
-                href={{ pathname: '/docs/tools/[id]', query: { id: tool.id } }}
+                href={`/docs/tools/${tool.id}`}
                 className="card-3d group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
               >
                 <div className="mb-4 flex items-start justify-between">
@@ -580,13 +580,13 @@ export function ToolsList() {
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href={{ pathname: "/docs/tools/custom" }}>
+              <Link href="/docs/tools/custom">
                 Build Custom Tool
                 <ArrowRightIcon className="ml-2 size-4" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link href={{ pathname: "/contact" }}>Request a Tool</Link>
+              <Button variant="outline" size="lg" asChild>
+              <Link href="/contact">Request a Tool</Link>
             </Button>
           </div>
         </div>

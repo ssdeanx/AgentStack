@@ -1,5 +1,5 @@
 
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
@@ -97,7 +97,7 @@ ${PGVECTOR_PROMPT}
       `,
       providerOptions: {
         google: {
-          structuredOutput: true,
+
           thinkingConfig: {
             thinkingLevel: 'high',
             includeThoughts: true,
@@ -105,10 +105,7 @@ ${PGVECTOR_PROMPT}
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
-          temperature: 0.2,
-          topP: 1.0
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

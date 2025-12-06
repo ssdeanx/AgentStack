@@ -4,6 +4,7 @@ import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
 import { taskCompletionScorer } from '../scorers';
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type PackagePublisherRuntimeContext = {
@@ -177,7 +178,7 @@ export const danePackagePublisher = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

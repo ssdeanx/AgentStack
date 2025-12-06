@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
@@ -115,7 +115,7 @@ You must respond with a JSON object in the following format:
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -133,7 +133,7 @@ You must respond with a JSON object in the following format:
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-  tools: { code_execution: google.tools.codeExecution({}), google_search: google.tools.googleSearch({}) },
+  tools: [],
   scorers: {
     responseQuality: {
       scorer: responseQualityScorer,

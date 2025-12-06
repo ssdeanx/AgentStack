@@ -4,6 +4,9 @@
 
 # 🚀 AgentStack
 
+![Networks v1.0.0](networksv1.png)
+![Networks Custom Tool v1.0.0](networksCustomToolv1.png)
+
 <!-- Core Project Badges -->
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.9.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

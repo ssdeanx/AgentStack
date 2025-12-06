@@ -10,11 +10,23 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </h1>
     ),
-    h2: ({ children }) => (
-      <h2 className="mb-4 mt-10 text-2xl font-bold text-foreground scroll-m-20">
-        {children}
-      </h2>
-    ),
+    h2: ({ children }) => {
+      // Skip rendering accidental MDX frontmatter that may appear verbatim
+      // in documents when frontmatter parsing is disabled. Frontmatter
+      // typically contains `title:` and `description:` keys; if we detect
+      // that pattern, render nothing to avoid duplicating metadata in the page
+      // body and to prevent SSR/CSR hydration mismatches.
+      if (typeof children === "string") {
+        const lower = children.toLowerCase()
+        if (lower.includes("title:") && lower.includes("description:")) return null
+      }
+
+      return (
+        <h2 className="mb-4 mt-10 text-2xl font-bold text-foreground scroll-m-20">
+          {children}
+        </h2>
+      )
+    },
     h3: ({ children }) => (
       <h3 className="mb-3 mt-8 text-xl font-semibold text-foreground scroll-m-20">
         {children}

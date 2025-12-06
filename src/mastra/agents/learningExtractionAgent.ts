@@ -4,6 +4,7 @@ import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type LearningExtractionAgentContext = {
@@ -57,7 +58,7 @@ export const learningExtractionAgent = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

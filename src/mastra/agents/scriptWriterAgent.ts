@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
@@ -6,6 +6,7 @@ import { RuntimeContext } from '@mastra/core/runtime-context';
 import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { creativityScorer, pacingScorer, scriptFormatScorer } from '../scorers';
+import { webScraperTool } from '../tools/web-scraper-tool';
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type ScriptWriterRuntimeContext = {
   'user-tier': UserTier
@@ -58,7 +59,7 @@ export const scriptWriterAgent = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -91,11 +92,6 @@ export const scriptWriterAgent = new Agent({
     },
   },
   tools: {
-    googleSearch: googleTools.googleSearch({
-      mode: 'MODE_DYNAMIC',
-      dynamicThreshold: 0.7,
-    }),
-    codeExecution: googleTools.codeExecution({}),
-    urlContext: googleTools.urlContext({}),
+    webScraperTool
   }
 });

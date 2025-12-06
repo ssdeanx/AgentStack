@@ -3,6 +3,7 @@ import { InternalSpans } from '@mastra/core/ai-tracing'
 import { RuntimeContext } from '@mastra/core/runtime-context'
 import { imageGen, pgMemory } from '../config'
 import { log } from '../config/logger'
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -45,12 +46,11 @@ export const imageAgent = new Agent({
       Your task is to create visually appealing and informative images that accurately represent the data provided by the user. Consider the user's preferences, such as color scheme and chart style, to ensure the image is both aesthetically pleasing and informative.`,
       providerOptions: {
         google: {
-          numberOfImages: 4,
           imageConfig: {
           aspectRatio: aspectRatio || AspectRatio2K,
           imageSize: resolution || resolution1K,
           },
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },

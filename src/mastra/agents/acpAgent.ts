@@ -123,7 +123,7 @@ export const acpAgent = new Agent({
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT', 'IMAGE'],
-        },
+        } satisfies GoogleGenerativeAIProviderOptions,
       },
     };
   },

@@ -1,4 +1,4 @@
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
@@ -164,14 +164,13 @@ export const researchAgent = new Agent({
         `,
       providerOptions: {
         google: {
-          structuredOutput: true,
           responseModalities: ['TEXT', 'IMAGE'],
           thinkingConfig: {
             thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
@@ -218,12 +217,6 @@ export const researchAgent = new Agent({
     finnhubCompanyTool,
     finnhubFinancialsTool,
     finnhubTechnicalTool,
-    googleSearch: googleTools.googleSearch({
-      mode: 'MODE_DYNAMIC',
-      dynamicThreshold: 0.7,
-    }),
-    codeExecution: googleTools.codeExecution({}),
-    urlContext: googleTools.urlContext({}),
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -258,11 +251,6 @@ export const researchAgent = new Agent({
     }),
   ],
   outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 100,
-      emitOnNonText: true,
-    }),
   ],
 })
 

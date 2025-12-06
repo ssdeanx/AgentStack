@@ -4,6 +4,7 @@ import { RuntimeContext } from '@mastra/core/runtime-context';
 import { googleAI, googleAIFlashLite, googleAIPro, pgMemory } from "../config";
 import * as tools from "../tools/pg-sql-tool";
 import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type SqlAgentRuntimeContext = {
   'user-tier': UserTier
@@ -79,7 +80,7 @@ export const sqlAgent = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           }
-        }
+        } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
