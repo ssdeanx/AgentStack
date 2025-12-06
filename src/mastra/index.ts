@@ -637,6 +637,12 @@ export const mastra = new Mastra({
         }
       }),
     ],
+    cors: {
+      origin: ["*"], // Allow specific origins or '*' for all
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+      credentials: false,
+    },
     middleware: [
       async (c, next) => {
         const runtimeContext = c.get("runtimeContext");
