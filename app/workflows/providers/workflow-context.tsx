@@ -187,8 +187,8 @@ export function WorkflowProvider({
   const { messages, sendMessage, stop, status } = useChat({
     transport: new DefaultChatTransport({
       api: `${MASTRA_API_URL}/workflow/${selectedWorkflow}`,
-      prepareSendMessagesRequest({ messages }) {
-        const last = messages[messages.length - 1]
+      prepareSendMessagesRequest({ messages: msgs }) {
+        const last = msgs[msgs.length - 1]
         const textPart = last?.parts?.find(
           (p): p is { type: "text"; text: string } => p.type === "text"
         )
@@ -237,7 +237,7 @@ export function WorkflowProvider({
 
   const runWorkflow = useCallback(
     (inputData?: Record<string, unknown>) => {
-      if (!workflowConfig) return
+      if (!workflowConfig) {return}
 
       const run: WorkflowRun = {
         id: generateRunId(),
@@ -287,10 +287,10 @@ export function WorkflowProvider({
 
   const runStep = useCallback(
     async (stepId: string) => {
-      if (!workflowConfig) return
+      if (!workflowConfig) {return}
 
       const stepIndex = workflowConfig.steps.findIndex((s) => s.id === stepId)
-      if (stepIndex === -1) return
+      if (stepIndex === -1) {return}
 
       setActiveStepIndex(stepIndex)
 
@@ -346,12 +346,12 @@ export function WorkflowProvider({
   )
 
   const nodes = useMemo(() => {
-    if (!workflowConfig) return []
+    if (!workflowConfig) {return []}
     return generateNodes(workflowConfig, currentRun?.stepProgress ?? {})
   }, [workflowConfig, currentRun?.stepProgress])
 
   const edges = useMemo(() => {
-    if (!workflowConfig) return []
+    if (!workflowConfig) {return []}
     return generateEdges(workflowConfig, currentRun?.stepProgress ?? {})
   }, [workflowConfig, currentRun?.stepProgress])
 

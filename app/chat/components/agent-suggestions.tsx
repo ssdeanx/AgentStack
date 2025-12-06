@@ -16,7 +16,7 @@ export function AgentSuggestions({
   onSelect,
   disabled = false,
 }: AgentSuggestionsProps) {
-  if (suggestions.length === 0) return null
+  if (suggestions.length === 0) {return null}
 
   return (
     <Suggestions className="py-2">

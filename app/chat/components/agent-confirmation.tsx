@@ -29,7 +29,7 @@ export function AgentConfirmation({
   onApprove,
   onReject,
 }: AgentConfirmationProps) {
-  if (!approval) return null
+  if (!approval) {return null}
 
   return (
     <Confirmation approval={approval} state={state}>

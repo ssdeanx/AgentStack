@@ -36,16 +36,16 @@ export function WorkflowInputPanel() {
 
   const handleSubmit = useCallback(
     (message: { text: string; files: unknown[] }) => {
-      if (!message.text.trim() || isDisabled) return
+      if (!message.text.trim() || isDisabled) {return}
       runWorkflow({ input: message.text.trim() })
     },
     [runWorkflow, isDisabled]
   )
 
   const handleQuickRun = useCallback(() => {
-    if (isDisabled) return
+    if (isDisabled) {return}
     const inputText = textareaRef.current?.value?.trim()
-    const defaultInput = inputText || `Run ${workflowConfig?.name}`
+    const defaultInput = inputText ?? `Run ${workflowConfig?.name}`
     runWorkflow({ input: defaultInput })
   }, [runWorkflow, isDisabled, workflowConfig?.name])
 
@@ -57,7 +57,7 @@ export function WorkflowInputPanel() {
   }, [])
 
   const getPlaceholder = () => {
-    if (!workflowConfig) return "Select a workflow..."
+    if (!workflowConfig) {return "Select a workflow..."}
 
     switch (workflowConfig.category) {
       case "content":
@@ -76,7 +76,7 @@ export function WorkflowInputPanel() {
   }
 
   const getExampleInputs = () => {
-    if (!workflowConfig) return []
+    if (!workflowConfig) {return []}
 
     switch (workflowConfig.id) {
       case "weatherWorkflow":
@@ -112,7 +112,7 @@ export function WorkflowInputPanel() {
           <h3 className="font-semibold text-sm">Workflow Input</h3>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {workflowConfig?.description || "Select a workflow to get started"}
+          {workflowConfig?.description ?? "Select a workflow to get started"}
         </p>
       </div>
 

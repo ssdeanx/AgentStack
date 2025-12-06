@@ -11,21 +11,21 @@ import type { ToolInvocationState } from "../providers/chat-context"
 import type { DynamicToolUIPart, ToolUIPart } from "ai"
 
 export interface AgentToolsProps {
-  tools: (ToolInvocationState | DynamicToolUIPart)[]
+  tools: Array<ToolInvocationState | DynamicToolUIPart>
 }
 
 type ToolState = ToolUIPart["state"]
 
 export function AgentTools({ tools }: AgentToolsProps) {
-  if (!tools || tools.length === 0) return null
+  if (!tools || tools.length === 0) {return null}
 
   return (
     <div className="space-y-2 mt-2">
       {tools.map((tool) => {
-        const t = tool as ToolInvocationState
+        const t = tool
         const toolName = t.toolName || "unknown"
-        const toolType = `tool-${toolName}` as ToolUIPart["type"]
-        const toolState = t.state as ToolState
+        const toolType = `tool-${toolName}`
+        const toolState = t.state
 
         const hasOutput = toolState === "output-available" || toolState === "output-error"
         const errorText = toolState === "output-error" ? (t as unknown as { errorText?: string }).errorText : undefined

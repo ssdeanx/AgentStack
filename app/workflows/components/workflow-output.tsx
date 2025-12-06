@@ -23,6 +23,8 @@ export function WorkflowOutput() {
         return <CheckCircle2Icon className="size-3 text-green-500" />
       case "error":
         return <AlertCircleIcon className="size-3 text-red-500" />
+      case "idle": { throw new Error('Not implemented yet: "idle" case') }
+      case "paused": { throw new Error('Not implemented yet: "paused" case') }
       default:
         return <MessageSquareIcon className="size-3 text-muted-foreground" />
     }
@@ -38,6 +40,7 @@ export function WorkflowOutput() {
         return "Error"
       case "paused":
         return "Paused"
+      case "idle": { throw new Error('Not implemented yet: "idle" case') }
       default:
         return "Output"
     }
@@ -68,8 +71,8 @@ export function WorkflowOutput() {
           <div className="space-y-3">
             {messages.map((msg, i) => {
               const textPart = msg.parts?.find((p) => p.type === "text")
-              const content = textPart?.text || ""
-              if (!content) return null
+              const content = textPart?.text ?? ""
+              if (!content) {return null}
 
               return (
                 <div

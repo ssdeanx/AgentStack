@@ -9,28 +9,34 @@ interface ChatRequestBody {
   agentId?: string;
   threadId?: string;
   resourceId?: string;
-  memory?: {
-    thread?: string | { id: string; resourceId?: string };
-    resource?: string;
-    options?: {
-      lastMessages?: number;
-      semanticRecall?: boolean;
-      workingMemory?: { enabled?: boolean };
-    };
+  // legacy: some frontends (network-style) send options nested under `data`.
+  // Accept either top-level fields or nested `data` so the chat route is
+  // compatible with both chat-style and network-style clients.
+  data?: {
+    agentId?: string;
+    threadId?: string;
+    input?: string;
+    memory?: unknown;
+    resourceId?: string;
   };
+
+  // memory shape can vary across versions — treat as unknown and pass through
+  // to the Mastra API rather than tightly typing here to avoid fragile builds.
+  memory?: unknown;
   maxSteps?: number;
 }
 
 export async function POST(req: Request) {
   const body: ChatRequestBody = await req.json();
-  
+
   // Get available agents dynamically from mastra
   const agentsMap = await mastra.getAgents();
   const availableAgents = Object.keys(agentsMap);
-  
-  // Use first available agent if none specified
-  const agentId = body.agentId || availableAgents[0];
-  
+
+  // Prefer explicit top-level agentId, then nested data.agentId (network-style),
+  // otherwise fall back to the first available agent
+  const agentId = (body.agentId ?? body.data?.agentId) ?? availableAgents[0];
+
   if (!agentId || !availableAgents.includes(agentId)) {
     return Response.json(
       { error: `Invalid or missing agentId. Available: ${availableAgents.join(", ")}` },
@@ -41,12 +47,17 @@ export async function POST(req: Request) {
   if (!body.messages?.length) {
     return Response.json({ error: "messages required" }, { status: 400 });
   }
-  
+
   try {
+    // Support both top-level and nested data fields for older/newer client shapes
+    const threadId = body.threadId ?? body.data?.threadId
+    const resourceId = body.resourceId ?? body.data?.resourceId
+    const memory = body.memory ?? body.data?.memory
+
     return await createAgentStreamResponse(mastra as Parameters<typeof createAgentStreamResponse>[0], agentId, body.messages, {
-      threadId: body.threadId,
-      resourceId: body.resourceId,
-      memory: body.memory,
+      threadId,
+      resourceId,
+      memory: memory as any,
       maxSteps: body.maxSteps ?? 50,
     });
   } catch (error) {

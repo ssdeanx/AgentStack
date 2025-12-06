@@ -77,10 +77,10 @@ function CopyButton({ text }: { text: string }) {
 function extractArtifacts(text: string): {
   content: string
   artifacts: ArtifactData[]
-  codeBlocks: { language: string; code: string }[]
+  codeBlocks: Array<{ language: string; code: string }>
 } {
   const artifacts: ArtifactData[] = []
-  const codeBlocks: { language: string; code: string }[] = []
+  const codeBlocks: Array<{ language: string; code: string }> = []
   let cleanContent = text
 
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
@@ -119,7 +119,7 @@ interface MessageItemProps {
   showSources: boolean
   showArtifacts: boolean
   showConfirmation: boolean
-  sources: { url: string; title: string }[]
+  sources: Array<{ url: string; title: string }>
   checkpointIds: string[]
   checkpointMessageIndices: number[]
   onCreateCheckpoint?: (index: number) => void
@@ -159,11 +159,11 @@ function MessageItem({
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
   const messageTools = useMemo(() => {
-    if (!message.parts || message.parts.length === 0) return undefined
+    if (!message.parts || message.parts.length === 0) {return undefined}
     const tools: ToolInvocationState[] = []
 
     for (const p of message.parts) {
-      if (!p) continue
+      if (!p) {continue}
       if (isToolOrDynamicToolUIPart(p)) {
         tools.push(p as ToolInvocationState)
         continue
@@ -172,7 +172,7 @@ function MessageItem({
       if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
         const converted = mapDataToolPartToDynamicToolPart(p)
         if (converted) {
-          tools.push(converted as ToolInvocationState)
+          tools.push(converted)
         }
       }
     }
@@ -213,7 +213,7 @@ function MessageItem({
 
   const renderContentWithCodeBlocks = useCallback(
     (text: string) => {
-      if (codeBlocks.length === 0) return text
+      if (codeBlocks.length === 0) {return text}
 
       const parts = text.split(/__CODE_BLOCK_(\d+)__/)
       return parts.map((part, i) => {
@@ -363,7 +363,7 @@ function MessageItem({
 function WebPreviewPanel() {
   const { webPreview, setWebPreview, agentConfig } = useChatContext()
 
-  if (!webPreview || !agentConfig?.features.webPreview) return null
+  if (!webPreview || !agentConfig?.features.webPreview) {return null}
 
   const handleCodeChange = useCallback((newCode: string) => {
     if (webPreview) {

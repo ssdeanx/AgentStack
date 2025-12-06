@@ -195,40 +195,40 @@ const NETWORK_SUGGESTIONS: Record<string, string[]> = {
 
 // Helper to detect and render code blocks from tool output
 function CodeOutputDisplay({ output }: { output: any }) {
-  if (!output) return null
+  if (!output) {return null}
 
   // Check if output contains code
   const code = output?.code ?? output?.content ?? output?.result
   const language = output?.language ?? "typescript"
-  
+
   if (typeof code === "string" && code.length > 50 && (code.includes("function") || code.includes("const ") || code.includes("import ") || code.includes("export "))) {
     return (
-      <CodeBlock code={code} language={language as any}>
+      <CodeBlock code={code} language={language}>
         <CodeBlockCopyButton />
       </CodeBlock>
     )
   }
-  
+
   return null
 }
 
 // Helper to render artifact for generated content
-function ArtifactDisplay({ 
-  title, 
-  content, 
-  onClose 
-}: { 
+function ArtifactDisplay({
+  title,
+  content,
+  onClose
+}: {
   title: string
   content: string
-  onClose?: () => void 
+  onClose?: () => void
 }) {
   return (
     <Artifact className="my-4">
       <ArtifactHeader>
         <ArtifactTitle>{title}</ArtifactTitle>
         <ArtifactActions>
-          <ArtifactAction 
-            tooltip="Copy" 
+          <ArtifactAction
+            tooltip="Copy"
             icon={CopyIcon}
             onClick={() => navigator.clipboard.writeText(content)}
           />
@@ -246,8 +246,8 @@ function ArtifactDisplay({
 
 // Helper to render web preview for URLs
 function WebPreviewDisplay({ url, title }: { url: string; title?: string }) {
-  if (!url) return null
-  
+  if (!url) {return null}
+
   return (
     <div className="my-4 h-[400px] w-full">
       <WebPreview defaultUrl={url}>
@@ -261,12 +261,12 @@ function WebPreviewDisplay({ url, title }: { url: string; title?: string }) {
 }
 
 // Helper to render plan from structured data
-function PlanDisplay({ 
-  title, 
-  description, 
+function PlanDisplay({
+  title,
+  description,
   steps,
-  isStreaming 
-}: { 
+  isStreaming
+}: {
   title: string
   description?: string
   steps?: string[]
@@ -322,21 +322,21 @@ function TaskListDisplay({ title, tasks }: { title: string; tasks: Array<{ name:
 }
 
 function NetworkToolDisplay({ tools }: { tools: ToolInvocationState[] }) {
-  if (!tools || tools.length === 0) return null
+  if (!tools || tools.length === 0) {return null}
 
   return (
     <div className="space-y-2 mt-2">
       {tools.map((tool) => {
         const toolName = tool.toolName || "unknown"
-        const toolType = `tool-${toolName}` as ToolUIPart["type"]
-        const toolState = tool.state as ToolUIPart["state"]
+        const toolType = `tool-${toolName}`
+        const toolState = tool.state
         const hasOutput = toolState === "output-available" || toolState === "output-error"
 
         return (
           <Tool key={tool.toolCallId} defaultOpen={false}>
             <ToolHeader
               title={toolName}
-              type={toolType}
+              type={toolType as ToolUIPart["type"]}
               state={toolState}
             />
             <ToolContent>
@@ -405,24 +405,24 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
       {/* Main message parts */}
       {message.parts.map((part, i) => {
         const key = `${message.id}-${i}`
-        
+
         switch (part.type) {
           case "text":
-            const {text} = part as TextUIPart
-            
+            { const {text} = part
+
             // Check if text contains structured plan data (e.g., markdown headers with steps)
             const hasPlanStructure = text.includes("## Plan") || text.includes("### Steps")
             const hasTaskStructure = text.includes("- [ ]") || text.includes("- [x]")
             const hasArtifactStructure = text.includes("```") && text.length > 500
-            
+
             // Extract URLs for inline citations
-            const urlMatches = text.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g)
+            const urlMatches = text.match(/\[([^\]]+)\]\((https?:\/\/[^\\)]+)\)/g)
             const extractedCitations = urlMatches?.map(match => {
-              const textMatch = match.match(/\[([^\]]+)\]/)
-              const urlMatch = match.match(/\((https?:\/\/[^\)]+)\)/)
+              const textMatch = /\[([^\]]+)\]/.exec(match)
+              const urlMatch = /\((https?:\/\/[^\\)]+)\)/.exec(match)
               return { text: textMatch?.[1] ?? "", url: urlMatch?.[1] ?? "" }
             })
-            
+
             // Extract tasks from markdown checkboxes
             const taskMatches = text.match(/- \[([ x])\] (.+)/g)
             const extractedTasks = taskMatches?.map(match => {
@@ -430,13 +430,13 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
               const name = match.replace(/- \[[ x]\] /, "")
               return { name, completed }
             })
-            
+
             return (
               <Fragment key={key}>
                 <MessageResponse>
                   {text}
                 </MessageResponse>
-                
+
                 {/* Show inline citations for URLs in text */}
                 {extractedCitations && extractedCitations.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
@@ -456,34 +456,34 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                     ))}
                   </div>
                 )}
-                
+
                 {/* Show TaskListDisplay if we detected task checkboxes */}
                 {hasTaskStructure && extractedTasks && extractedTasks.length > 0 && (
                   <TaskListDisplay title="Tasks" tasks={extractedTasks} />
                 )}
-                
+
                 {/* Show PlanDisplay if we detected plan structure */}
                 {hasPlanStructure && (
-                  <PlanDisplay 
-                    title="Execution Plan" 
+                  <PlanDisplay
+                    title="Execution Plan"
                     description="Generated plan for your request"
-                    steps={text.split("\n").filter(line => line.match(/^\d+\.|^-|^•/)).slice(0, 5)}
+                    steps={text.split("\n").filter(line => /^\d+\.|^-|^•/.exec(line)).slice(0, 5)}
                     isStreaming={isStreaming && isLastMessage}
                   />
                 )}
-                
+
                 {/* Show ArtifactDisplay for long code-heavy content */}
                 {hasArtifactStructure && (
-                  <ArtifactDisplay 
-                    title="Generated Content" 
+                  <ArtifactDisplay
+                    title="Generated Content"
                     content={text}
                   />
                 )}
               </Fragment>
-            )
-          
+            ) }
+
           case "reasoning":
-            const reasoningPart = part as ReasoningUIPart
+            { const reasoningPart = part
             return (
               <Reasoning
                 key={key}
@@ -493,16 +493,16 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                 <ReasoningTrigger />
                 <ReasoningContent>{reasoningPart.text}</ReasoningContent>
               </Reasoning>
-            )
-          
+            ) }
+
           case "source-url":
             // Already handled above
             return null
-          
+
           case "file":
             // Handle file/image parts with AIImage
-            const filePart = part as any
-            if (filePart.mediaType?.startsWith("image/") && filePart.base64) {
+            { const filePart = part as any
+            if ((Boolean((filePart.mediaType?.startsWith("image/")))) && (Boolean(filePart.base64))) {
               return (
                 <AIImage
                   key={key}
@@ -514,22 +514,25 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                 />
               )
             }
-            return null
-          
+            return null }
+
+          case "step-start": { throw new Error('Not implemented yet: "step-start" case') }
+          case "dynamic-tool": { throw new Error('Not implemented yet: "dynamic-tool" case') }
+          case "source-document": { throw new Error('Not implemented yet: "source-document" case') }
           default:
-            // Handle tool invocations - check for dynamic-tool or tool-* patterns
-            if (part.type === "dynamic-tool" || (typeof part.type === "string" && part.type.startsWith("tool-"))) {
-              const toolPart = part as DynamicToolUIPart
+            // Handle tool invocations - check for tool-* patterns
+            if (typeof part.type === "string" && part.type.startsWith("tool-")) {
+              const toolPart = part as unknown as DynamicToolUIPart
               const toolName = toolPart.toolName || "unknown"
-              const toolType = `tool-${toolName}` as ToolUIPart["type"]
-              const toolState = toolPart.state as ToolUIPart["state"]
+              const toolType = `tool-${toolName}`
+              const toolState = toolPart.state
               const hasOutput = toolState === "output-available" || toolState === "output-error"
-              
+
               return (
                 <Tool key={key} defaultOpen={false}>
                   <ToolHeader
                     title={toolName}
-                    type={toolType}
+                     type={toolType as ToolUIPart["type"]}
                     state={toolState}
                   />
                   <ToolContent>
@@ -547,14 +550,14 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                 </Tool>
               )
             }
-            
+
             // Handle Mastra data-tool-* and data-network parts
             if (typeof part.type === "string" && (part.type.startsWith("data-tool") || part.type === "data-network")) {
               const payload = (part as any).data ?? part
               const inner = payload?.data ?? payload
               const toolName = inner?.toolName ?? inner?.name ?? inner?.agentName ?? "network-step"
               const toolState = inner?.output ? "output-available" as const : "input-available" as const
-              
+
               return (
                 <Tool key={key} defaultOpen={false}>
                   <ToolHeader
@@ -564,7 +567,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                   />
                   <ToolContent>
                     <ToolInput input={inner?.input ?? inner?.args} />
-                    {inner?.output && (
+                    {(Boolean((inner?.output))) && (
                       <>
                         <ToolOutput
                           output={inner.output}
@@ -577,7 +580,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                 </Tool>
               )
             }
-            
+
             return null
         }
       })}
@@ -607,7 +610,7 @@ function NetworkMessage({
           />
         </MessageContent>
       </Message>
-      
+
       {message.role === "assistant" && isLastMessage && !isStreaming && textPart && (
         <MessageActions>
           <MessageAction
@@ -699,7 +702,7 @@ export function NetworkChat() {
 
   const isStreaming = networkStatus === "executing" || networkStatus === "routing"
 
-  const networkOptions = useMemo(() => 
+  const networkOptions = useMemo(() =>
     Object.values(NETWORK_CONFIGS).map((config) => ({
       id: config.id,
       name: config.name,
@@ -708,13 +711,13 @@ export function NetworkChat() {
     []
   )
 
-  const suggestions = useMemo(() => 
+  const suggestions = useMemo(() =>
     NETWORK_SUGGESTIONS[selectedNetwork] ?? [],
     [selectedNetwork]
   )
 
   const handleSubmit = (msg: PromptInputMessage) => {
-    if (!msg.text?.trim()) return
+    if (!msg.text?.trim()) {return}
     sendMessage(msg.text.trim())
     setInput("")
   }
@@ -724,7 +727,7 @@ export function NetworkChat() {
   }
 
   const status = useMemo(() => {
-    if (isStreaming) return "streaming" as const
+    if (isStreaming) {return "streaming" as const}
     return "ready" as const
   }, [isStreaming])
 
@@ -752,7 +755,7 @@ export function NetworkChat() {
                   )}
                 </div>
               )}
-              
+
               {/* Suggestions for empty state */}
               {suggestions.length > 0 && (
                 <div className="mt-6">
@@ -805,11 +808,11 @@ export function NetworkChat() {
                       {networkStatus === "routing" ? "Routing request..." : "Processing with agents..."}
                     </ChainOfThoughtHeader>
                     <ChainOfThoughtContent>
-                      <ChainOfThoughtStep 
-                        label="Analyzing request" 
+                      <ChainOfThoughtStep
+                        label="Analyzing request"
                         status="complete"
                       />
-                      <ChainOfThoughtStep 
+                      <ChainOfThoughtStep
                         label={networkStatus === "routing" ? "Selecting best agent..." : "Executing agent task..."}
                         status="active"
                         description="Finding the optimal agent for your query"
@@ -835,7 +838,7 @@ export function NetworkChat() {
             </>
           )}
 
-          {error && (
+          {(Boolean(error)) && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
               {error}
             </div>
@@ -905,8 +908,8 @@ export function NetworkChat() {
       </Conversation>
 
       <div className="border-t p-4">
-        <PromptInput 
-          onSubmit={handleSubmit} 
+        <PromptInput
+          onSubmit={handleSubmit}
           className="mx-auto max-w-4xl"
           accept="image/*,.pdf,.csv,.json,.txt,.md"
           multiple
@@ -944,19 +947,19 @@ export function NetworkChat() {
               </PromptInputSpeechButton>
               <PromptInputButton
                 onClick={() => setShowWebPreview(showWebPreview ? null : "https://mastra.ai")}
-                className={cn(showWebPreview && "bg-accent")}
+                className={cn((Boolean(showWebPreview)) && "bg-accent")}
               >
                 <ExternalLinkIcon className="size-4" />
               </PromptInputButton>
               <PromptInputButton
                 onClick={() => {
-                  if (messages.length > 0) handleCreateCheckpoint(messages.length - 1)
+                  if (messages.length > 0) {handleCreateCheckpoint(messages.length - 1)}
                 }}
                 disabled={messages.length === 0}
               >
                 <ListTodoIcon className="size-4" />
               </PromptInputButton>
-              
+
               {/* Model Selector */}
               <ModelSelector>
                 <ModelSelectorTrigger asChild>
@@ -997,7 +1000,7 @@ export function NetworkChat() {
 
               <PromptInputSelect
                 value={selectedNetwork}
-                onValueChange={(value) => selectNetwork(value as keyof typeof NETWORK_CONFIGS)}
+                onValueChange={(value) => selectNetwork(value)}
               >
                 <PromptInputSelectTrigger className="w-[200px]">
                   <NetworkIcon className="mr-2 size-4" />

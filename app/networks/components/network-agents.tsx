@@ -29,7 +29,7 @@ function getStatusIcon(status: string) {
 export function NetworkAgents() {
   const { networkConfig, networkStatus, routingSteps } = useNetworkContext()
 
-  if (!networkConfig) return null
+  if (!networkConfig) {return null}
 
   return (
     <Card className="h-full">

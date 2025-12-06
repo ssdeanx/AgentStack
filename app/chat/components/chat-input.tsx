@@ -61,7 +61,7 @@ export function ChatInput() {
             </PromptInputAttachments>
           )}
           <PromptInputTextarea
-            placeholder={`Message ${agentConfig?.name || "Agent"}...`}
+            placeholder={`Message ${agentConfig?.name ?? "Agent"}...`}
             disabled={isLoading}
           />
           <PromptInputFooter>

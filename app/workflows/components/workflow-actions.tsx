@@ -18,14 +18,14 @@ export function WorkflowActions() {
   }
 
   const handleExportSvg = useCallback(() => {
-    if (!workflowConfig) return
+    if (!workflowConfig) {return}
     // Use React Flow's built-in export if available
     console.log("Export SVG for:", workflowConfig.id)
     // TODO: Implement actual SVG export
   }, [workflowConfig])
 
   const handleViewCode = useCallback(() => {
-    if (!workflowConfig) return
+    if (!workflowConfig) {return}
     // Open workflow source code
     const workflowPath = `/src/mastra/workflows/${workflowConfig.id.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')}.ts`
     window.open(`vscode://file${workflowPath}`, '_blank')

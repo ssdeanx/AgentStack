@@ -83,8 +83,8 @@ export function AgentWebPreview({
   >([])
 
   // Live editing state
-  const [editedCode, setEditedCode] = useState(preview.code || preview.html || "")
-  const [originalCode] = useState(preview.code || preview.html || "")
+  const [editedCode, setEditedCode] = useState((preview.code ?? preview.html) ?? "")
+  const [originalCode] = useState((preview.code ?? preview.html) ?? "")
   const [isEditing, setIsEditing] = useState(false)
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("idle")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -92,13 +92,13 @@ export function AgentWebPreview({
   const [autoRun, setAutoRun] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const hasCode = Boolean(preview.code || preview.html)
-  const codeLanguage = (preview.language || (preview.html ? "html" : "tsx")) as BundledLanguage
+  const hasCode = Boolean(preview.code ?? preview.html)
+  const codeLanguage = (preview.language ?? ((preview.html) ? "html" : "tsx")) as BundledLanguage
   const hasChanges = editedCode !== originalCode
 
   // Generate preview URL from edited code
   const livePreviewUrl = useMemo(() => {
-    if (!editedCode) return preview.url
+    if (!editedCode) {return preview.url}
 
     const sandboxHtml = generateSandboxHtml(editedCode, codeLanguage, preview.title)
     return `data:text/html;charset=utf-8,${encodeURIComponent(sandboxHtml)}`
@@ -142,7 +142,7 @@ export function AgentWebPreview({
       json: "json",
     }
     const ext = extensions[codeLanguage] || "txt"
-    const filename = `${(preview.title || "generated-component").toLowerCase().replace(/\s+/g, "-")}.${ext}`
+    const filename = `${(preview.title ?? "generated-component").toLowerCase().replace(/\s+/g, "-")}.${ext}`
 
     const blob = new Blob([editedCode], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
@@ -195,12 +195,12 @@ export function AgentWebPreview({
   }, [])
 
   const containerHeight = useMemo(() => {
-    if (isFullscreen) return "calc(100vh - 120px)"
+    if (isFullscreen) {return "calc(100vh - 120px)"}
     return typeof height === "number" ? `${height}px` : height
   }, [height, isFullscreen])
 
   const editorHeight = useMemo(() => {
-    if (isFullscreen) return "calc(100vh - 200px)"
+    if (isFullscreen) {return "calc(100vh - 200px)"}
     return typeof height === "number" ? `${height - 50}px` : height
   }, [height, isFullscreen])
 
@@ -209,7 +209,7 @@ export function AgentWebPreview({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b bg-muted/50 px-4 py-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-sm font-medium">
-            {preview.title || "Generated Preview"}
+            {preview.title ?? "Generated Preview"}
           </CardTitle>
           {hasChanges && (
             <Badge variant="outline" className="h-5 text-xs">
@@ -496,7 +496,7 @@ export function AgentWebPreview({
               </WebPreview>
 
               {/* Error Message */}
-              {errorMessage && (
+              {(Boolean(errorMessage)) && (
                 <div className="border-t bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/20 dark:text-red-400">
                   <div className="flex items-start gap-2">
                     <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
@@ -530,7 +530,7 @@ function generateSandboxHtml(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${title || "Code Preview"}</title>
+  <title>${title ?? "Code Preview"}</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -683,7 +683,7 @@ export function AgentWebPreviewInline({
       </div>
       <iframe
         src={url}
-        title={title || "Preview"}
+        title={title ?? "Preview"}
         className="w-full border-0"
         style={{ height }}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
@@ -725,7 +725,7 @@ export function AgentCodeSandbox({
       preview={{
         id: `sandbox-${Date.now()}`,
         url: dataUrl,
-        title: title || "Code Sandbox",
+        title: title ?? "Code Sandbox",
         code,
         language,
       }}

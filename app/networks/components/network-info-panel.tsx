@@ -58,17 +58,17 @@ function AgentCard({ agent, isActive }: AgentCardProps) {
     <div
       className={cn(
         "group rounded-lg border bg-card p-3 transition-colors",
-        isActive && "border-primary bg-primary/5"
+        (isActive ?? false) && "border-primary bg-primary/5"
       )}
     >
       <div className="flex items-start gap-3">
         <div
           className={cn(
             "flex size-8 shrink-0 items-center justify-center rounded-md bg-muted",
-            isActive && "bg-primary/10"
+            (isActive ?? false) && "bg-primary/10"
           )}
         >
-          <BotIcon className={cn("size-4 text-muted-foreground", isActive && "text-primary")} />
+          <BotIcon className={cn("size-4 text-muted-foreground", (isActive ?? false) && "text-primary")} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ function AgentCard({ agent, isActive }: AgentCardProps) {
 function NetworkOverview() {
   const { networkConfig } = useNetworkContext()
 
-  if (!networkConfig) return null
+  if (!networkConfig) {return null}
 
   return (
     <div className="space-y-4">
@@ -120,7 +120,7 @@ function NetworkOverview() {
           {Object.entries(networkConfig.features).map(([key, enabled]) => (
             <Badge
               key={key}
-              variant={enabled ? "default" : "outline"}
+              variant={(enabled) ? "default" : "outline"}
               className={cn("gap-1 text-xs", !enabled && "opacity-50")}
             >
               {FEATURE_ICONS[key as keyof typeof FEATURE_ICONS]}
@@ -136,7 +136,7 @@ function NetworkOverview() {
 function NetworkAgentsList() {
   const { networkConfig, routingSteps } = useNetworkContext()
 
-  if (!networkConfig) return null
+  if (!networkConfig) {return null}
 
   const activeAgentIds = routingSteps
     .filter((s) => s.status === "active")
@@ -172,7 +172,7 @@ function AllNetworksOverview() {
     <div className="space-y-2">
       {(["routing", "pipeline", "research"] as NetworkCategory[]).map((category) => {
         const networks = networksByCategory[category]
-        if (networks.length === 0) return null
+        if (networks.length === 0) {return null}
 
         const isExpanded = expandedCategories.includes(category)
 

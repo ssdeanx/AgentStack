@@ -10,14 +10,14 @@ import type { DynamicToolUIPart } from "ai";
  * If the part does not look like a Mastra `data-tool-*` part, returns null.
  */
 export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart | null {
-  if (!part || typeof part !== "object") return null;
-  if (typeof part.type !== "string" || !part.type.startsWith("data-tool")) {
+  if (!part || typeof part !== "object") {return null;}
+  if (typeof part.type !== "string" || !(part.type.startsWith("data-tool"))) {
     // Not a Mastra data-tool part
     return null;
   }
 
   // Utility helpers
-  const first = <T>(...xs: (T | undefined | null)[]) => xs.find((x) => x !== undefined && x !== null) as T | undefined;
+  const first = <T>(...xs: Array<T | undefined | null>) => xs.find((x) => x !== undefined && x !== null) as T | undefined;
 
   const toStringIfExists = (v: any) => (v === undefined || v === null ? undefined : String(v));
 
@@ -27,8 +27,8 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
   // the payload in different properties (data, payload, body, call, invocation, etc.)
   const candidates: any[] = [
     part.data,
-    (part as any).payload,
-    (part as any).body,
+    (part).payload,
+    (part).body,
     part,
   ].filter(Boolean);
 
@@ -47,7 +47,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
       payload = candidate.toolInvocation;
       break;
     }
-    if (isObject(candidate?.data) && (isObject(candidate.data?.input) || isObject(candidate.data?.output) || candidate.data.id)) {
+    if ((Boolean(isObject(candidate?.data))) && ((Boolean(isObject(candidate.data?.input))) || (Boolean(isObject(candidate.data?.output))) || (Boolean(candidate.data.id)))) {
           payload = candidate.data;
           break;
     }
@@ -58,15 +58,15 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
 
   // Some nested shapes: payload may itself contain another "payload" or "data"
   let inner = payload;
-  if (!inner || !isObject(inner)) inner = {};
-  if (isObject(inner.payload)) inner = inner.payload;
-  if (isObject(inner.data) && (Object.keys(inner.data).length > 0)) inner = inner.data;
+  if (!(inner) || !(isObject(inner))) {inner = {};}
+  if (isObject(inner.payload)) {inner = inner.payload;}
+  if (isObject(inner.data) && (Object.keys(inner.data).length > 0)) {inner = inner.data;}
 
   // Attempt to find a "call" or "execution" sub-object if present
-  if (isObject(inner.call)) inner = inner.call;
-  else if (isObject(inner.exec)) inner = inner.exec;
-  else if (isObject(inner.execution)) inner = inner.execution;
-  else if (isObject(inner.run)) inner = inner.run;
+  if (isObject(inner.call)) {inner = inner.call;}
+  else if (isObject(inner.exec)) {inner = inner.exec;}
+  else if (isObject(inner.execution)) {inner = inner.execution;}
+  else if (isObject(inner.run)) {inner = inner.run;}
 
   // Now, pick the fields from different possible shapes
   const toolCallId =
@@ -82,7 +82,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
       payload?.id,
       payload?.callId,
       payload?.tool_call_id
-    ) ?? `toolcall-${Date.now()}`) as string;
+    ) ?? `toolcall-${Date.now()}`);
 
   const toolName =
     (first<string>(
@@ -92,7 +92,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
       inner?.toolId,
       inner?.tool_id
     ) ??
-      first<string>(payload?.toolName, payload?.name, payload?.tool, payload?.toolId)) as string | undefined;
+      first<string>(payload?.toolName, payload?.name, payload?.tool, payload?.toolId));
 
   // Input detection: args / parameters / input / params
   const input =
@@ -162,7 +162,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
     }
 
     // fallback: if an output is present consider finished, otherwise input available
-    if (output !== undefined && output !== null) return "output-available";
+    if (output !== undefined && output !== null) {return "output-available";}
     return "input-available";
   }
 

@@ -51,7 +51,7 @@ export function AgentPlan({
           ))}
         </ol>
       </PlanContent>
-      {(onExecute || onDismiss) && (
+      {(onExecute ?? onDismiss) && (
         <PlanFooter>
           <PlanAction>
             {onDismiss && (
@@ -74,8 +74,8 @@ export function AgentPlan({
 }
 
 export function extractPlanFromText(text: string): AgentPlanData | null {
-  const planMatch = text.match(/(?:plan|steps|approach|strategy)[:.]?\s*\n((?:[-•\d.].+\n?)+)/i)
-  if (!planMatch) return null
+  const planMatch = /(?:plan|steps|approach|strategy)[:.]?\s*\n((?:[-•\d.].+\n?)+)/i.exec(text)
+  if (!planMatch) {return null}
 
   const stepsText = planMatch[1]
   const steps = stepsText
@@ -83,7 +83,7 @@ export function extractPlanFromText(text: string): AgentPlanData | null {
     .map((line) => line.replace(/^[-•\d.]+\s*/, "").trim())
     .filter((line) => line.length > 0)
 
-  if (steps.length < 2) return null
+  if (steps.length < 2) {return null}
 
   return {
     title: "Execution Plan",

@@ -69,7 +69,7 @@ export function WorkflowHeader() {
       <div className="flex items-center gap-3">
         <Select
           value={selectedWorkflow}
-          onValueChange={(value) => selectWorkflow(value as WorkflowId)}
+          onValueChange={(value) => selectWorkflow(value)}
           disabled={isWorkflowActive}
         >
           <SelectTrigger className="w-[280px]">
@@ -78,7 +78,7 @@ export function WorkflowHeader() {
           <SelectContent>
             {CATEGORY_ORDER.map((category) => {
               const workflows = workflowsByCategory[category]
-              if (workflows.length === 0) return null
+              if (workflows.length === 0) {return null}
 
               return (
                 <SelectGroup key={category}>

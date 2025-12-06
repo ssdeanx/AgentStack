@@ -26,7 +26,7 @@ function formatDuration(start: Date, end?: Date): string {
 export function WorkflowInfoPanel() {
   const { workflowConfig, workflowStatus, currentRun } = useWorkflowContext()
 
-  if (!workflowConfig) return null
+  if (!workflowConfig) {return null}
 
   const completedSteps = currentRun
     ? Object.values(currentRun.stepProgress).filter((s) => s.status === "completed").length
