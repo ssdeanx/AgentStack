@@ -84,6 +84,8 @@ import { researchSynthesisWorkflow } from './workflows/research-synthesis-workfl
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
+import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
+import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 
 
 export const mastra = new Mastra({
@@ -98,6 +100,8 @@ export const mastra = new Mastra({
     researchSynthesisWorkflow,
     stockAnalysisWorkflow,
     telephoneGameWorkflow,
+    repoIngestionWorkflow,
+    specGenerationWorkflow,
   },
   agents: {
     // Core Agents
@@ -506,6 +510,16 @@ export const mastra = new Mastra({
       workflowRoute({
         path: "/workflow",
         workflow: "telephoneGameWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "repoIngestionWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow",
+        workflow: "specGenerationWorkflow",
         includeTextStreamParts: true,
       }),
       networkRoute({

@@ -55,6 +55,7 @@ export const codingA2ACoordinator = new Agent({
 - Test generation (Vitest)
 - Coverage analysis
 - Testing strategies
+- Test execution and verification
 
 ### refactoringAgent
 - Code improvement

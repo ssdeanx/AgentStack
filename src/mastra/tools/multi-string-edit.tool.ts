@@ -2,11 +2,14 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
+import { createPatch } from 'diff'
 
 const editOperationSchema = z.object({
   filePath: z.string().describe('Absolute path to the file to edit'),
-  oldString: z.string().describe('Exact text to find and replace'),
+  oldString: z.string().describe('Exact text to find and replace (or regex pattern)'),
   newString: z.string().describe('Text to replace oldString with'),
+  useRegex: z.boolean().optional().describe('Treat oldString as a regex pattern'),
+  replaceAll: z.boolean().optional().describe('Replace all occurrences (default: false)'),
   description: z.string().optional().describe('Explanation of this change'),
 })
 
@@ -119,28 +122,47 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
 
       try {
         const content = await fs.readFile(filePath, 'utf-8')
+        let newContent = content
+        let matchFound = false
 
-        if (!content.includes(oldString)) {
+        if (edit.useRegex) {
+          const flags = edit.replaceAll ? 'g' : ''
+          const regex = new RegExp(edit.oldString, flags)
+          if (regex.test(content)) {
+            newContent = content.replace(regex, edit.newString)
+            matchFound = true
+          }
+        } else {
+          if (content.includes(edit.oldString)) {
+            if (edit.replaceAll) {
+              newContent = content.split(edit.oldString).join(edit.newString)
+              matchFound = true
+            } else {
+              const occurrences = content.split(edit.oldString).length - 1
+              if (occurrences > 1) {
+                results.push({
+                  filePath,
+                  status: 'skipped',
+                  reason: `Multiple occurrences found (${occurrences}). Use replaceAll: true to replace all.`,
+                })
+                continue
+              }
+              newContent = content.replace(edit.oldString, edit.newString)
+              matchFound = true
+            }
+          }
+        }
+
+        if (!matchFound) {
           results.push({
             filePath,
             status: 'skipped',
-            reason: 'Old string not found in file',
+            reason: 'Old string/pattern not found in file',
           })
           continue
         }
 
-        const occurrences = content.split(oldString).length - 1
-        if (occurrences > 1) {
-          results.push({
-            filePath,
-            status: 'skipped',
-            reason: `Multiple occurrences found (${occurrences}). Edit must be unique.`,
-          })
-          continue
-        }
-
-        const newContent = content.replace(oldString, newString)
-        const diff = generateSimpleDiff(content, newContent, filePath)
+        const diff = createPatch(path.basename(filePath), content, newContent, 'original', 'modified')
 
         if (dryRun) {
           results.push({

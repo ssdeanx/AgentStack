@@ -13,6 +13,18 @@ import { codeAnalysisTool } from '../tools/code-analysis.tool'
 import { testGeneratorTool } from '../tools/test-generator.tool'
 import { diffReviewTool } from '../tools/diff-review.tool'
 import { codeSearchTool } from '../tools/code-search.tool'
+import { findReferencesTool } from '../tools/find-references.tool'
+import { findSymbolTool } from '../tools/find-symbol.tool'
+import { execaTool } from '../tools/execa-tool'
+import {
+  listRepositories,
+  listIssues,
+  listPullRequests,
+  createIssue,
+  getRepositoryInfo,
+  searchCode,
+  getFileContent
+} from '../tools/github'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type CodingRuntimeContext = {
@@ -51,9 +63,10 @@ export const codeArchitectAgent = new Agent({
 3. **Implementation Planning**: Break down features into tasks with clear dependencies
 4. **Pattern Recognition**: Identify applicable design patterns (SOLID, DRY, etc.)
 5. **Code Search**: Find existing implementations and patterns in the codebase
+6. **Semantic Analysis**: Find symbol definitions and references to understand code relationships
 
 **Process:**
-1. Analyze the request and existing codebase using codeAnalysisTool and codeSearchTool
+1. Analyze the request and existing codebase using codeAnalysisTool, codeSearchTool, and semantic tools
 2. Identify architectural concerns and constraints
 3. Propose solutions with clear rationale
 4. Provide implementation roadmap with file paths and dependencies
@@ -89,6 +102,14 @@ Always consider maintainability, scalability, and testability in your recommenda
   tools: {
     codeAnalysisTool,
     codeSearchTool,
+    findReferencesTool,
+    findSymbolTool,
+    listRepositories,
+    listIssues,
+    listPullRequests,
+    getRepositoryInfo,
+    searchCode,
+    getFileContent,
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -160,8 +181,9 @@ export const codeReviewerAgent = new Agent({
 **Review Process:**
 1. Use codeAnalysisTool to get metrics and detect issues
 2. Use diffReviewTool to analyze changes if comparing versions
-3. Categorize findings by severity (critical, warning, info)
-4. Provide actionable recommendations with code examples
+3. Use findReferencesTool to check for impact of changes
+4. Categorize findings by severity (critical, warning, info)
+5. Provide actionable recommendations with code examples
 
 **Output Format:**
 - Executive Summary
@@ -193,6 +215,14 @@ Be constructive and educational in feedback.`,
     codeAnalysisTool,
     diffReviewTool,
     codeSearchTool,
+    findReferencesTool,
+    findSymbolTool,
+    listRepositories,
+    listIssues,
+    listPullRequests,
+    getRepositoryInfo,
+    searchCode,
+    getFileContent,
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -259,11 +289,17 @@ export const testEngineerAgent = new Agent({
    - Branch coverage
    - Edge case coverage
 
+5. **Test Execution**
+   - Run tests using execaTool
+   - Analyze test failures
+   - Verify fixes
+
 **Process:**
 1. Analyze source code using codeAnalysisTool
 2. Generate test scaffolds using testGeneratorTool
 3. Identify edge cases and error conditions
 4. Create comprehensive test suites
+5. Run tests to verify correctness
 
 **Output Format:**
 Provide:
@@ -295,6 +331,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     codeAnalysisTool,
     testGeneratorTool,
     codeSearchTool,
+    execaTool,
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -376,7 +413,7 @@ export const refactoringAgent = new Agent({
 1. Analyze code with codeAnalysisTool to identify issues
 2. Generate diff preview with diffReviewTool
 3. Apply changes with multiStringEditTool (dry-run first)
-4. Verify changes don't break functionality
+4. Verify changes don't break functionality (run tests if possible)
 
 **Output Format:**
 For each refactoring:
@@ -408,6 +445,9 @@ For each refactoring:
     codeAnalysisTool,
     diffReviewTool,
     codeSearchTool,
+    findReferencesTool,
+    findSymbolTool,
+    execaTool,
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },

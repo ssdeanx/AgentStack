@@ -36,9 +36,9 @@ export const codingTeamNetwork = new Agent({
 **Use when:** User wants code reviewed for quality, security, or best practices
 
 ### testEngineerAgent
-**Expertise:** Test generation, coverage analysis, testing strategies
-**Triggers:** "test", "coverage", "spec", "unit test", "vitest", "mock"
-**Use when:** User needs tests written, coverage improved, or testing strategy
+**Expertise:** Test generation, coverage analysis, testing strategies, test execution
+**Triggers:** "test", "coverage", "spec", "unit test", "vitest", "mock", "run tests"
+**Use when:** User needs tests written, coverage improved, testing strategy, or tests executed
 
 ### refactoringAgent
 **Expertise:** Code refactoring, optimization, quality improvement

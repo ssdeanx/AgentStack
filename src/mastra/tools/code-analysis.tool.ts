@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
+import { PythonParser } from './semantic-utils'
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -224,9 +225,19 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
         ? calculateLoc(content, language) 
         : { loc: 0, totalLines: 0 }
       
-      const complexity = includeMetrics 
-        ? estimateComplexity(content, language) 
-        : 0
+      let complexity = 0
+      if (includeMetrics) {
+        if (language === 'python') {
+          try {
+            const complexityData = await PythonParser.analyzeComplexity(content)
+            complexity = complexityData.cyclomaticComplexity
+          } catch {
+            complexity = estimateComplexity(content, language)
+          }
+        } else {
+          complexity = estimateComplexity(content, language)
+        }
+      }
       
       const issues = detectPatterns 
         ? detectIssues(content, language) 
