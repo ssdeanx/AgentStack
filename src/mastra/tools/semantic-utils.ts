@@ -271,6 +271,70 @@ def calculate_complexity(code):
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
+def find_references(code, symbol_name):
+    try:
+        tree = ast.parse(code)
+        references = []
+        lines = code.splitlines()
+
+        def get_line_content(lineno):
+            if 0 <= lineno - 1 < len(lines):
+                return lines[lineno - 1].strip()
+            return ''
+
+        for node in ast.walk(tree):
+            match = False
+            is_def = False
+            kind = 'usage'
+            lineno = getattr(node, 'lineno', 0)
+            col_offset = getattr(node, 'col_offset', 0)
+
+            if isinstance(node, ast.FunctionDef) and node.name == symbol_name:
+                match = True
+                is_def = True
+                kind = 'function'
+            elif isinstance(node, ast.ClassDef) and node.name == symbol_name:
+                match = True
+                is_def = True
+                kind = 'class'
+            elif isinstance(node, ast.Name) and node.id == symbol_name:
+                match = True
+                if isinstance(node.ctx, ast.Store):
+                    is_def = True
+                    kind = 'variable'
+                else:
+                    is_def = False
+                    kind = 'usage'
+            elif isinstance(node, ast.Attribute) and node.attr == symbol_name:
+                match = True
+                is_def = False
+                kind = 'usage'
+            elif isinstance(node, ast.arg) and node.arg == symbol_name:
+                match = True
+                is_def = True
+                kind = 'parameter'
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    if alias.name == symbol_name or alias.asname == symbol_name:
+                        match = True
+                        is_def = True
+                        kind = 'import'
+                        break
+            
+            if match and lineno > 0:
+                references.append({
+                    'name': symbol_name,
+                    'kind': kind,
+                    'line': lineno,
+                    'column': col_offset,
+                    'isDefinition': is_def,
+                    'text': get_line_content(lineno)
+                })
+
+        return {'success': True, 'references': references}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
 if __name__ == '__main__':
     code = sys.stdin.read()
     action = sys.argv[1] if len(sys.argv) > 1 else 'symbols'
@@ -279,6 +343,9 @@ if __name__ == '__main__':
         result = analyze_code(code)
     elif action == 'complexity':
         result = calculate_complexity(code)
+    elif action == 'references':
+        symbol_name = sys.argv[2] if len(sys.argv) > 2 else ''
+        result = find_references(code, symbol_name)
     else:
         result = {'success': False, 'error': 'Unknown action'}
 
@@ -363,8 +430,8 @@ if __name__ == '__main__':
     return this.scriptPath;
   }
 
-  private static async executePython(code: string, action: 'symbols' | 'complexity'): Promise<any> {
-    const cacheKey = this.getCacheKey(code, action);
+  private static async executePython(code: string, action: string, args: string[] = []): Promise<any> {
+    const cacheKey = this.getCacheKey(code, action + args.join(','));
     const cached = this.getCachedResult(cacheKey);
     if (cached) {
       return cached;
@@ -375,7 +442,7 @@ if __name__ == '__main__':
       const scriptPath = await this.ensureScriptExists();
 
       const result = await new Promise<any>((resolve, reject) => {
-        const child = spawn(pythonCmd, [scriptPath, action], {
+        const child = spawn(pythonCmd, [scriptPath, action, ...args], {
           stdio: ['pipe', 'pipe', 'pipe']
         });
 
@@ -445,6 +512,18 @@ if __name__ == '__main__':
       functions: result.functions || [],
       classes: result.classes || []
     };
+  }
+
+  public static async findReferences(code: string, symbolName: string): Promise<Array<{
+    name: string;
+    kind: string;
+    line: number;
+    column: number;
+    isDefinition: boolean;
+    text: string;
+  }>> {
+    const result = await this.executePython(code, 'references', [symbolName]);
+    return result.references || [];
   }
 
   public static async cleanup(): Promise<void> {

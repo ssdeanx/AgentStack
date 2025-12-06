@@ -141,21 +141,17 @@ export const findReferencesTool = createTool({
         for (const pyFile of pythonFiles) {
           try {
             const content = await readFile(pyFile, 'utf-8');
-            const lines = content.split('\n');
+            const references = await PythonParser.findReferences(content, symbolName);
             
-            // Text-based search for Python (fallback)
-            lines.forEach((lineContent, index) => {
-              if (lineContent.includes(symbolName)) {
-                const column = lineContent.indexOf(symbolName);
-                allReferences.push({
-                  filePath: pyFile,
-                  line: index + 1,
-                  column: column + 1,
-                  text: lineContent.trim().substring(0, 100),
-                  isDefinition: /^(def|class)\s/.test(lineContent.trim())
-                });
-              }
-            });
+            for (const ref of references) {
+              allReferences.push({
+                filePath: pyFile,
+                line: ref.line,
+                column: ref.column + 1, // Convert 0-indexed column to 1-indexed
+                text: ref.text.substring(0, 100),
+                isDefinition: ref.isDefinition
+              });
+            }
           } catch (error) {
             log.warn(`Error parsing Python file ${pyFile}`, { error });
           }
