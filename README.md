@@ -115,6 +115,52 @@ graph TB
     style UI fill:#e8f5e9
 ```
 
+## 📊 **System Flowchart**
+
+```mermaid
+flowchart TD
+    A[app/chat] -->|components|< B[chat-header.tsx]
+    A -->|components|< C[chat-messages.tsx]
+    A -->|components|< D[chat-input.tsx]
+    A -->|config|< E[agents.ts]
+    A -->|providers|< F[chat-context.tsx]
+    
+    G[app/networks] -->|components|< H[network-header.tsx]
+    G -->|components|< I[network-messages.tsx]
+    G -->|config|< J[networks.ts]
+    G -->|providers|< K[network-context.tsx]
+    
+    L[app/workflows] -->|components|< M[workflow-canvas.tsx]
+    L -->|components|< N[workflow-header.tsx]
+    L -->|config|< O[workflows.ts]
+    L -->|providers|< P[workflow-context.tsx]
+    
+    Q[app/dashboard] -->|components|< R[dashboard.tsx]
+    Q -->|components|< S[agent-list.tsx]
+    Q -->|providers|< T[dashboard-context.tsx]
+    
+    U[lib] -->|hooks|< V[use-mastra.ts]
+    U -->|hooks|< W[use-dashboard-queries.ts]
+    U -->|utils|< X[utils.ts]
+    U -->|client|< Y[mastra-client.ts]
+    
+    Z[src/types] -->|api|< AA[mastra-api.ts]
+    
+    AB[src/mastra/index.ts] -->|imports|< AC[agents/*]
+    AB -->|imports|< AD[tools/*]
+    AB -->|imports|< AE[workflows/*]
+    AB -->|imports|< AF[networks/*]
+    AB -->|imports|< AG[config/*]
+    
+    style A fill:#e8f5e9,stroke:#81c784
+    style G fill:#e8f5e9,stroke:#81c784
+    style L fill:#e8f5e9,stroke:#81c784
+    style Q fill:#e8f5e9,stroke:#81c784
+    style U fill:#e3f2fd,stroke:#64b5f6
+    style Z fill:#e3f2fd,stroke:#64b5f6
+    style AB fill:#fff3e0,stroke:#ff9800
+```
+
 ## 🔄 **RAG Pipeline (Production-Grade)**
 
 ```mermaid
@@ -221,6 +267,77 @@ npm run mcp-server  # http://localhost:6969/mcp
 ```bash
 npm run build
 npm run start
+```
+
+## 📊 **System Flowchart**
+
+```mermaid
+flowchart TD
+    A[app/chat] -->|components|< B[chat-header.tsx]
+    A -->|components|< C[chat-messages.tsx]
+    A -->|components|< D[chat-input.tsx]
+    A -->|config|< E[agents.ts]
+    A -->|providers|< F[chat-context.tsx]
+    
+    G[app/networks] -->|components|< H[network-header.tsx]
+    G -->|components|< I[network-messages.tsx]
+    G -->|config|< J[networks.ts]
+    G -->|providers|< K[network-context.tsx]
+    
+    L[app/workflows] -->|components|< M[workflow-canvas.tsx]
+    L -->|components|< N[workflow-header.tsx]
+    L -->|config|< O[workflows.ts]
+    L -->|providers|< P[workflow-context.tsx]
+    
+    Q[app/dashboard] -->|components|< R[dashboard.tsx]
+    Q -->|components|< S[agent-list.tsx]
+    Q -->|providers|< T[dashboard-context.tsx]
+    
+    U[lib] -->|hooks|< V[use-mastra.ts]
+    U -->|hooks|< W[use-dashboard-queries.ts]
+    U -->|utils|< X[utils.ts]
+    U -->|client|< Y[mastra-client.ts]
+    
+    Z[src/types] -->|api|< AA[mastra-api.ts]
+    
+    AB[src/mastra/index.ts] -->|imports|< AC[agents/*]
+    AB -->|imports|< AD[tools/*]
+    AB -->|imports|< AE[workflows/*]
+    AB -->|imports|< AF[networks/*]
+    AB -->|imports|< AG[config/*]
+    
+    style A fill:#e8f5e9,stroke:#81c784
+    style G fill:#e8f5e9,stroke:#81c784
+    style L fill:#e8f5e9,stroke:#81c784
+    style Q fill:#e8f5e9,stroke:#81c784
+    style U fill:#e3f2fd,stroke:#64b5f6
+    style Z fill:#e3f2fd,stroke:#64b5f6
+    style AB fill:#fff3e0,stroke:#ff9800
+```
+
+## 🔄 **RAG Pipeline (Production-Grade)**
+
+```mermaid
+flowchart TD
+    A[Document Input] --> B[Chunking Strategy(recursive/character/token/markdown/etc.)]
+    B --> C[Generate Chunks\n(document-chunking.tool.ts)]
+    C --> D[Embed Each Chunk\nGemini text-embedding-001]
+    D --> E[Store in PgVector\n(pg-storage.ts - indexed as memory_messages_3072)]
+    F[User Query] --> G[Embed Query\nGemini text-embedding-001]
+    G --> H[Vector Search PgVector\nHNSW/Flat Index]
+    H --> I[Retrieve Top-K Chunks]
+    I --> J[Generate Answer with Context\nAnswer Agent]
+    
+    style A fill:#e8f5e9,stroke:#81c784
+    style B fill:#fff3e0,stroke:#ff9800
+    style C fill:#e3f2fd,stroke:#64b5f6
+    style D fill:#e8f5e9,stroke:#81c784
+    style E fill:#c8e6c9,stroke:#4caf50
+    style F fill:#ffebee,stroke:#f44336
+    style G fill:#e8f5e9,stroke:#81c784
+    style H fill:#c8e6c9,stroke:#4caf50
+    style I fill:#e3f2fd,stroke:#64b5f6
+    style J fill:#fff3e0,stroke:#ff9800
 ```
 
 ## 📁 **Structure**
@@ -380,9 +497,7 @@ npm run mcp-server
 
 _Last updated: 2025-12-05 | v3.3.0_
 
-## 📚 **Class Diagram**
-
-- Latest class diagram for core AgentStack agents and tools:
+## 🧠 **Agent/Tool Relationships**
 
 ```mermaid
 classDiagram

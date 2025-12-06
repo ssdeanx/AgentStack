@@ -489,6 +489,70 @@ export const getFileContent = createTool({
   },
 });
 
+export const getRepoFileTree = createTool({
+  id: 'github:getRepoFileTree',
+  description: 'Get the full file tree of a repository recursively',
+  inputSchema: z.object({
+    owner: z.string().describe('Repository owner'),
+    repo: z.string().describe('Repository name'),
+    branch: z.string().optional().default('main').describe('Branch name'),
+    recursive: z.boolean().optional().default(true).describe('Whether to fetch recursively'),
+  }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    tree: z.array(z.object({
+      path: z.string(),
+      mode: z.string(),
+      type: z.string(),
+      sha: z.string(),
+      size: z.number().optional(),
+      url: z.string().optional(),
+    })).optional(),
+    error: z.string().optional(),
+  }),
+  execute: async ({ context, tracingContext, writer }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'github-get-tree',
+      input: { owner: context.owner, repo: context.repo, branch: context.branch },
+      tracingPolicy: { internal: InternalSpans.ALL }
+    });
+
+    await writer?.write({ type: 'progress', data: { message: `🌳 Fetching file tree for ${context.owner}/${context.repo}...` } });
+
+    try {
+      // 1. Get the tree SHA for the branch
+      // We can pass the branch name directly to the trees API in many cases, but let's be robust
+      const treePath = `/repos/${context.owner}/${context.repo}/git/trees/${context.branch}?recursive=${context.recursive ? '1' : '0'}`;
+      
+      const data = await githubFetch<{ tree: Array<Record<string, unknown>>, truncated: boolean }>(treePath);
+
+      const tree = data.tree.map((item) => ({
+        path: item.path as string,
+        mode: item.mode as string,
+        type: item.type as string,
+        sha: item.sha as string,
+        size: item.size as number | undefined,
+        url: item.url as string | undefined,
+      }));
+
+      if (data.truncated) {
+        await writer?.write({ type: 'progress', data: { message: '⚠️ Warning: File tree was truncated by GitHub API limit' } });
+      }
+
+      await writer?.write({ type: 'progress', data: { message: `✅ Found ${tree.length} items` } });
+      span?.end({ output: { success: true, count: tree.length } });
+
+      return { success: true, tree };
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      log.error(`GitHub get tree failed: ${errorMsg}`);
+      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      return { success: false, error: errorMsg };
+    }
+  },
+});
+
 export type GitHubListRepositoriesUITool = InferUITool<typeof listRepositories>;
 export type GitHubListPullRequestsUITool = InferUITool<typeof listPullRequests>;
 export type GitHubListIssuesUITool = InferUITool<typeof listIssues>;
@@ -496,3 +560,4 @@ export type GitHubCreateIssueUITool = InferUITool<typeof createIssue>;
 export type GitHubGetRepositoryInfoUITool = InferUITool<typeof getRepositoryInfo>;
 export type GitHubSearchCodeUITool = InferUITool<typeof searchCode>;
 export type GitHubGetFileContentUITool = InferUITool<typeof getFileContent>;
+export type GitHubGetRepoFileTreeUITool = InferUITool<typeof getRepoFileTree>;

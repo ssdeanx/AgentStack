@@ -7,6 +7,13 @@ import { readFileSync } from 'fs'
 import * as path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { RuntimeContext } from '@mastra/core/runtime-context'
+
+const pnpmContextSchema = z.object({
+  verbose: z.boolean().default(true),
+});
+
+export type PnpmContext = z.infer<typeof pnpmContextSchema>;
 
 export const pnpmBuild = createTool({
   id: 'pnpmBuild',
@@ -19,25 +26,29 @@ export const pnpmBuild = createTool({
     message: z.string(),
   }),
   execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    const pnpmContext = runtimeContext?.get('pnpmToolContext');
+    const { verbose } = pnpmContextSchema.parse(pnpmContext || {});
+
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'pnpm-build',
       input: { name: context.name, packagePath: context.packagePath },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+      tracingPolicy: { internal: InternalSpans.TOOL },
+      runtimeContext: runtimeContext as RuntimeContext<PnpmContext>
     });
 
     const { name, packagePath } = context
-    await writer?.write({ type: 'progress', data: { message: `🔨 Building ${name} at ${packagePath}` } });
+    if (verbose) await writer?.write({ type: 'progress', data: { message: `🔨 Building ${name} at ${packagePath}` } });
     try {
-      log.info(chalk.green(`\n Building: ${name} at ${packagePath}`))
+      if (verbose) log.info(chalk.green(`\n Building: ${name} at ${packagePath}`))
       const p = execa(`pnpm`, ['build'], {
         stdio: 'inherit',
         cwd: packagePath,
         reject: false,
       })
-      log.info(`\n`)
+      if (verbose) log.info(`\n`)
       await p
-      await writer?.write({ type: 'progress', data: { message: `✅ Build complete for ${name}` } });
+      if (verbose) await writer?.write({ type: 'progress', data: { message: `✅ Build complete for ${name}` } });
       span?.end({ output: { success: true } });
       return { message: 'Done' }
     } catch (e) {
@@ -194,3 +205,46 @@ export const activeDistTag = createTool({
 })
 
 export type ActiveDistTagUITool = InferUITool<typeof activeDistTag>;
+
+export const pnpmRun = createTool({
+  id: 'pnpmRun',
+  description: 'Run a pnpm script',
+  inputSchema: z.object({
+    script: z.string(),
+    args: z.array(z.string()).optional(),
+    packagePath: z.string().optional(),
+  }),
+  outputSchema: z.object({
+    message: z.string(),
+  }),
+  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: AISpanType.TOOL_CALL,
+      name: 'pnpm-run',
+      input: { script: context.script, args: context.args, packagePath: context.packagePath },
+      tracingPolicy: { internal: InternalSpans.TOOL }
+    });
+
+    const { script, args = [], packagePath } = context
+    await writer?.write({ type: 'progress', data: { message: `🏃 Running pnpm ${script} ${args.join(' ')}` } });
+    try {
+      log.info(chalk.green(`\n Running: pnpm ${script} ${args.join(' ')}`))
+      const p = execa('pnpm', ['run', script, ...args], {
+        stdio: 'inherit',
+        cwd: packagePath,
+        reject: false,
+      })
+      log.info(`\n`)
+      await p
+      await writer?.write({ type: 'progress', data: { message: `✅ Script ${script} complete` } });
+      span?.end({ output: { success: true } });
+      return { message: 'Done' }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e)
+      log.error(errorMsg)
+      return { message: errorMsg || 'Error' }
+    }
+  },
+})
+
+export type PnpmRunUITool = InferUITool<typeof pnpmRun>;

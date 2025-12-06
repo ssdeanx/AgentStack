@@ -1,16 +1,35 @@
 # AgentStack
 
-> A production-grade multi-agent framework built on Mastra, delivering enterprise tools, specialized agents, and A2A/MCP orchestration for scalable AI systems.
+> Production-grade multi-agent framework (Mastra) with a Next.js frontend. This repository contains the Mastra core (agents, tools, workflows, networks, MCP/A2A servers), frontend UI (Next.js app + shadcn/ui components), documentation, examples, and tests. Use the sections below to quickly find core docs, specs, examples, and configuration.
 
 ## Documentation
 
-- [Main README](README.md): Primary project documentation, architecture overview, and getting started guide
-- [Agents Documentation](src/mastra/agents/AGENTS.md): Detailed documentation for the agent framework, including development workflows and best practices
-- [Tools Documentation](src/mastra/tools/AGENTS.md): Comprehensive guide to available tools, including financial, search, and document processing capabilities
-- [Product Context](memory-bank/productContext.md): Detailed product goals, user problems, and core capabilities
-- [Technical Context](memory-bank/techContext.md): Technical constraints, dependencies, and development environment setup
-- [System Patterns](memory-bank/systemPatterns.md): Architecture patterns, key technical decisions, and design principles
-- [ADR: PgVector and Gemini Embeddings](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): Architecture decision record for vector storage and embedding model choices
+- [Main README](README.md): Primary project documentation, architecture overview, running & development instructions
+- [Root AGENTS](AGENTS.md): Project-level overview and links to subdirectory AGENTS.md files
+- [Frontend (App) Docs](app/AGENTS.md): Next.js App Router layout, pages, and UX patterns for the frontend
+- [Mastra Core Docs](src/mastra/AGENTS.md): Top-level Mastra library overview (agents/tools/workflows/networks)
+- [Agents Documentation](src/mastra/agents/AGENTS.md): Agent development patterns, list of agents and change log
+- [Tools Documentation](src/mastra/tools/AGENTS.md): Tool catalogue (financial, RAG, scraping, PDF, utilities)
+- [Workflows Docs](src/mastra/workflows/AGENTS.md): Multi-step workflow patterns and examples
+- [Config & Provider Docs](src/mastra/config/AGENTS.md): Model provider, storage, and environment configuration guidance
+- [MCP Docs](src/mastra/mcp/AGENTS.md): Model Context Protocol server and client docs
+- [Data Directory Docs](src/mastra/data/AGENTS.md): Static data, examples and test-data descriptions
+- [A2A Coordination](src/mastra/a2a/AGENTS.md): Agent-to-Agent coordination and routing
+- [Scorers Documentation](src/mastra/scorers/AGENTS.md): Custom evaluation metrics and scoring guides
+- [Policy Documentation](src/mastra/policy/AGENTS.md): RBAC policies and access control definitions
+- [Vector Store Docs](src/mastra/config/vector/AGENTS.md): Vector store choices, configuration, and integration
+- [UI Components](ui/): shadcn/ui-based primitives and frontend components (see `ui/` folder)
+ - [AI Elements (components)](src/components/ai-elements/): 30+ specialized UI components (artifact, chain-of-thought, reasoning, message, model-selector, canvas) used by chat/AI pages
+ - [UI Primitives (shadcn)](ui/): shadcn/ui-based primitives and frontend components (see `ui/` folder)
+- [Memory Bank & Project Context](memory-bank/activeContext.md): active context, productContext.md, techContext.md, and usage notes
+- [Copilot & Project Rules](memory-bank/copilot-rules.md): Internal guidance for CI/automation/coding assistant usage
+- [API Reference & Developer Guides](docs/api.md, docs/api-small.md): API and developer-facing documentation
+- [Dashboard AGENTS](app/dashboard/AGENTS.md): Admin dashboard for monitoring and management
+- [Networks AGENTS](app/networks/AGENTS.md): Agent network management and visualization
+- [Chat AGENTS](app/chat/AGENTS.md): Client-side and streaming chat demos using @mastra/client-js
+- [Test AGENTS](app/test/AGENTS.md): Server action and runtime demos
+- [Workflows AGENTS](app/workflows/AGENTS.md): Workflow documentation and execution
+- [Tools AGENTS](app/tools/AGENTS.md): Tool documentation and execution
 
 ## Agents
 
@@ -55,21 +74,11 @@
 
 ## Configuration
 
-- [Configuration Guide](src/mastra/config/AGENTS.md): Guidelines for configuration, storage, and environment variables
+- [Configuration Guide](src/mastra/config/AGENTS.md): Guidelines for configuration, storage, providers and environment variables
 - [Config README](src/mastra/config/README.md): Model registry system and provider configuration overview
-- [Config Index](src/mastra/config/index.ts): Central export for project configuration
-- [OpenAI Config](src/mastra/config/openai.ts): OpenAI model provider client setup
-- [Google Config](src/mastra/config/google.ts): Google AI model provider client setup
-- [Anthropic Config](src/mastra/config/anthropic.ts): Anthropic model provider client setup
-- [OpenRouter Config](src/mastra/config/openrouter.ts): OpenRouter model provider client setup
-- [Vertex Config](src/mastra/config/vertex.ts): Google Vertex AI model provider setup
-- [Gemini CLI Config](src/mastra/config/gemini-cli.ts): Gemini CLI provider setup
-- [Postgres Storage](src/mastra/config/pg-storage.ts): PostgreSQL storage & vector client config with PgVector
-- [Logger Config](src/mastra/config/logger.ts): Structured logging (Pino) configuration
-- [Role Hierarchy](src/mastra/config/role-hierarchy.ts): RBAC inheritance model
-- [Upstash Memory](src/mastra/config/upstashMemory.ts): Upstash memory configuration
-- [Processors](src/mastra/config/processors.ts): Data processors configuration
-- [Vector Stores](src/mastra/config/vector/AGENTS.md): Vector store choices and configuration guide
+- [Example Provider Setup](src/mastra/config/google.ts, src/mastra/config/openai.ts, src/mastra/config/vertex.ts): Provider client examples and notes
+- [Postgres Vector Storage](src/mastra/config/pg-storage.ts): PostgreSQL + PgVector storage client and usage notes
+- [Logging & RBAC](src/mastra/config/logger.ts, src/mastra/config/role-hierarchy.ts): Observability and role model docs
 
 ## Workflows & MCP
 
@@ -82,5 +91,97 @@
 
 ## Networks & Data
 
-- [Networks Documentation](src/mastra/networks/AGENTS.md): Documentation for agent networks
-- [Data Directory](src/mastra/data/AGENTS.md): Documentation for data files and examples
+- [Networks Documentation](src/mastra/networks/AGENTS.md): Documentation for agent networks and routing
+- [Data Directory](src/mastra/data/AGENTS.md): Documentation for data files and example datasets
+
+## Frontend (Next.js)
+
+- [App Router (pages)](app/AGENTS.md): Next.js 16 App Router pages, layouts and examples
+- [Docs Pages](app/docs/): Developer-facing docs rendered in the Next.js app (getting-started, core-concepts, ai-sdk)
+- [Chat AGENTS](app/chat/AGENTS.md): Client-side and streaming chat demos using @mastra/client-js
+- [Example Pages](app/examples/page.tsx, app/blog/hello-world-agentstack/page.mdx): UI examples and tutorials
+- [Frontend shared components](app/components/): Reusable page components (navbar, footer, docs-layout, examples-list, chat components)
+- [Important API routes](app/api/): server routes used by the frontend and demos
+  - [chat API routes](app/api/chat/route.ts, app/api/chat/r.ts): chat streaming and helper endpoints
+  - [completion API](app/api/completion/route.ts): server-side completion demo
+  - [contact API](app/api/contact/route.ts): contact form API route
+- [API Reference](app/api-reference/): API documentation pages (agents, tools, workflows)
+- [Blog](app/blog/): Blog posts and tutorials (e.g., hello-world-agentstack)
+- [Careers](app/careers/): Careers page and job listings
+- [Changelog](app/changelog/): Release notes and updates
+- [Dashboard AGENTS](app/dashboard/AGENTS.md): Admin dashboard for monitoring and management
+- [Login](app/login/): Authentication and login pages
+- [Networks AGENTS](app/networks/AGENTS.md): Agent network management and visualization
+- [Pricing](app/pricing/): Pricing tiers and subscription information
+- [Privacy](app/privacy/): Privacy policy and terms
+- [Test AGENTS](app/test/AGENTS.md): Server action and runtime demos
+- [Tools AGENTS](app/tools/AGENTS.md): Tool documentation and execution
+- [Workflows AGENTS](app/workflows/AGENTS.md): Workflow documentation and execution
+
+## Configuration & Tooling (root)
+
+- [package.json](package.json): Scripts, dependencies, and quick-start commands
+- [next.config.ts](next.config.ts): Next.js configuration including MDX and experimental features
+- [tsconfig.json](tsconfig.json): TypeScript config and path aliases
+- [vitest.config.ts](vitest.config.ts): Test runner configuration and test results output
+- [eslint.config.cjs](eslint.config.cjs): Linting configuration
+- [prettier.config.js](prettier.config.js): Formatting rules
+
+## Tests & CI
+
+- [Vitest config](vitest.config.ts): Local test runner and CI configuration
+- [tests/](tests/): Unit and integration test files
+- [test-results/](tests/test-results/): Test artifacts and coverage reports
+- [globalSetup.ts](globalSetup.ts), [testSetup.ts](testSetup.ts): Test initialization helpers
+
+## Examples & Developer Guides
+
+- [lib/mastra-client.ts](lib/mastra-client.ts): Example usage of the Mastra client SDK
+- [lib/utils.ts](lib/utils.ts): Shared utility functions used across frontend and SDK
+- [lib/client-stream-to-ai-sdk.ts](lib/client-stream-to-ai-sdk.ts): Streaming client integration with AI SDK
+- [lib/hooks/use-mastra.ts](lib/hooks/use-mastra.ts): Core hook for Mastra client integration
+- [lib/hooks/use-dashboard-queries.ts](lib/hooks/use-dashboard-queries.ts): Data-fetching hooks for dashboard
+- [app/chat/](app/chat/): Example streaming chat and client SDK patterns
+- [app/test/](app/test/): Example server action & runtime demos
+- [src/components/ai-elements/message.tsx](src/components/ai-elements/message.tsx): Chat message rendering with markdown/support
+- [src/components/ai-elements/plan.tsx](src/components/ai-elements/plan.tsx): Plan/strategy visualization component
+- [src/components/ai-elements/chain-of-thought.tsx](src/components/ai-elements/chain-of-thought.tsx): Reasoning step visualization
+- [src/components/ai-elements/model-selector.tsx](src/components/ai-elements/model-selector.tsx): Model/provider selection UI
+- [src/components/ai-elements/canvas.tsx](src/components/ai-elements/canvas.tsx): Visual canvas for Excalidraw integration
+- [src/components/ai-elements/artifact.tsx](src/components/ai-elements/artifact.tsx): Artifact display component
+- [src/components/ai-elements/code-block.tsx](src/components/ai-elements/code-block.tsx): Code display with syntax highlighting
+- [src/components/ai-elements/controls.tsx](src/components/ai-elements/controls.tsx): Conversation control buttons
+- [src/components/ai-elements/inline-citation.tsx](src/components/ai-elements/inline-citation.tsx): Inline citation rendering
+- [src/components/ai-elements/loader.tsx](src/components/ai-elements/loader.tsx): Loading state indicator
+- [src/components/ai-elements/node.tsx](src/components/ai-elements/node.tsx): Graph node visualization
+- [src/components/ai-elements/panel.tsx](src/components/ai-elements/panel.tsx): Collapsible panel container
+- [src/components/ai-elements/prompt-input.tsx](src/components/ai-elements/prompt-input.tsx): Prompt input field with enhancements
+- [src/components/ai-elements/queue.tsx](src/components/ai-elements/queue.tsx): Task queue visualization
+- [src/components/ai-elements/reasoning.tsx](src/components/ai-elements/reasoning.tsx): Reasoning step breakdown
+- [src/components/ai-elements/shimmer.tsx](src/components/ai-elements/shimmer.tsx): Shimmer loading animation
+- [src/components/ai-elements/sources.tsx](src/components/ai-elements/sources.tsx): Source citation display
+- [src/components/ai-elements/suggestion.tsx](src/components/ai-elements/suggestion.tsx): Suggestion rendering
+- [src/components/ai-elements/task.tsx](src/components/ai-elements/task.tsx): Task item display
+- [src/components/ai-elements/toolbar.tsx](src/components/ai-elements/toolbar.tsx): Conversation toolbar
+- [src/components/ai-elements/web-preview.tsx](src/components/ai-elements/web-preview.tsx): Web content preview
+- [ui/button.tsx](ui/button.tsx): Core button component with variants
+- [ui/input.tsx](ui/input.tsx): Form input component
+- [ui/card.tsx](ui/card.tsx): Card layout primitive
+- [ui/dialog.tsx](ui/dialog.tsx): Modal dialog component
+- [ui/popover.tsx](ui/popover.tsx): Context menu/popover primitive
+- [ui/tooltip.tsx](ui/tooltip.tsx): Hover tooltip component
+- [ui/layout.tsx](ui/layout.tsx): Page layout wrapper
+
+## Memory Bank & Project Context (developer tooling)
+
+- [memory-bank/activeContext.md](memory-bank/activeContext.md): Active context and project memory
+- [memory-bank/productContext.md](memory-bank/productContext.md): Product brief and goals
+- [memory-bank/techContext.md](memory-bank/techContext.md): Technical constraints and choices
+- [memory-bank/memory-bank-instructions.md](memory-bank/memory-bank-instructions.md): How the memory-bank is used in this repo
+
+## Optional / Misc
+
+- [docs/adr/0001-why-pgvector-and-gemini-embeddings.md](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): ADR for vector/embedding choices
+- [.github/prompts/update-llms.prompt.md](.github/prompts/update-llms.prompt.md): Prompt used to guide updates to this file
+- [docs/runtimeContext.md](docs/runtimeContext.md): Runtime conventions and context documentation
+- [llms.txt](llms.txt): This file — machine-friendly navigation for LLMs and contributors

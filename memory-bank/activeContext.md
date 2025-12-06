@@ -135,6 +135,28 @@ graph TB
 - Implementing and wiring real JWT verification for the `jwt-auth` tool and ensuring RBAC policies in `src/mastra/policy/acl.yaml` are enforced where appropriate.
 - **[Completed]** Implemented and verified data tools (`csv-to-json`, `json-to-csv`, `data-validator`) with `RuntimeContext` integration and comprehensive tests.
 
+## Active Feature: Semantic Code Analysis Tools
+
+**Status:** ✅ Implementation Complete
+**Location:** `/memory-bank/semantic-code-tools/`
+
+**Objective:** Implement high-performance `find-references` and `find-symbol` tools using `ts-morph` and a `ProjectCache` singleton to enable intelligent agent navigation.
+
+**Implemented Components:**
+
+| Component | Path | Status |
+|-----------|------|--------|
+| ProjectCache | `src/mastra/tools/semantic-utils.ts` | ✅ Created |
+| PythonParser | `src/mastra/tools/semantic-utils.ts` | ✅ Created |
+| FindReferencesTool | `src/mastra/tools/find-references.tool.ts` | ✅ Created |
+| FindSymbolTool | `src/mastra/tools/find-symbol.tool.ts` | ✅ Created |
+| Tool Registration | `src/mastra/tools/index.ts` | ✅ Created |
+| Agent Integration | `src/mastra/agents/codingAgents.ts` | ✅ Updated |
+
+**Next Steps:**
+1. Verify tools with manual testing (optional)
+2. Proceed to next feature
+
 ## Active Feature: CSV Agents & Data Pipeline Networks
 
 **Status:** ✅ Implementation Complete  

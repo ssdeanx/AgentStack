@@ -22,6 +22,9 @@ export const execaTool = createTool({
   inputSchema: z.object({
     command: z.string(),
     args: z.array(z.string()),
+    cwd: z.string().optional().describe('Current working directory'),
+    timeout: z.number().optional().describe('Timeout in milliseconds'),
+    env: z.record(z.string(), z.string()).optional().describe('Environment variables'),
   }),
   outputSchema: z.object({
     message: z.string(),
@@ -35,15 +38,19 @@ export const execaTool = createTool({
       tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
-    const { command, args } = context
+    const { command, args, cwd, timeout, env } = context
     await writer?.write({ type: 'progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
     try {
       log.info(
         chalk.green(`Running command: ${command} ${args.join(' ')}`)
       )
+      const optionsEnv: NodeJS.ProcessEnv = { ...process.env, ...(env ?? {}) };
       const result = await execa(command, args, {
         all: true,
         stdio: 'pipe',
+        cwd,
+        timeout,
+        env: optionsEnv,
       })
       const output = result.all ?? ''
       await writer?.write({ type: 'progress', data: { message: '✅ Command executed successfully' } });
