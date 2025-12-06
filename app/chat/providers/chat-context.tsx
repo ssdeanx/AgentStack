@@ -136,7 +136,7 @@ export interface ChatProviderProps {
   defaultResourceId?: string
 }
 
-const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
+const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
 
 export function ChatProvider({
   children,
@@ -168,25 +168,33 @@ export function ChatProvider({
   } = useChat({
     transport: new DefaultChatTransport({
       api: `${MASTRA_API_URL}/chat`,
-      prepareSendMessagesRequest({ messages }) {
+      // Match the network provider's request shape so the server can pick the
+      // correct agent by reading body.data.agentId. Avoid sending extra
+      // top-level fields which can confuse the MAStra chatRoute router.
+      prepareSendMessagesRequest({ messages: outgoingMessages }) {
+        const last = outgoingMessages[outgoingMessages.length - 1]
+        const textPart = last?.parts?.find((p): p is TextUIPart => p.type === "text")
+
         return {
-          id: selectedAgent,
-          messages,
-          memory: {
+              body: {
+                // id at top-level is used by chatRoute to select the agent when
+                // multiple chatRoute handlers are registered at the same path.
+                id: selectedAgent,
+            messages: outgoingMessages,
+            memory: {
             thread: threadId,
             resource: resourceId,
           },
           requestMetadata: {
             agentId: selectedAgent,
-            resourceId: resourceId,
+            resourceId,
           },
-          
-          body: {
-            messages,
-            resourceId: resourceId,
+            // set resourceId so server can use it for tracing/memory if needed
+            resourceId,
             data: {
               agentId: selectedAgent,
-              threadId: threadId,
+              threadId,
+              input: textPart?.text ?? "",
             },
           },
         }
@@ -195,9 +203,9 @@ export function ChatProvider({
   })
 
   const status: ChatStatus = useMemo(() => {
-    if (aiError || chatError) return "error"
-    if (aiStatus === "streaming") return "streaming"
-    if (aiStatus === "submitted") return "submitted"
+    if (aiError || (Boolean(chatError))) {return "error"}
+    if (aiStatus === "streaming") {return "streaming"}
+    if (aiStatus === "submitted") {return "submitted"}
     return "ready"
   }, [aiStatus, aiError, chatError])
 
@@ -225,7 +233,7 @@ export function ChatProvider({
 
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
-    if (!lastMessage || lastMessage.role !== "assistant" || !lastMessage.parts) return []
+    if (lastMessage?.role !== "assistant" || !lastMessage.parts) {return []}
 
     // Iterate parts in order and collect both `dynamic-tool` and
     // Mastra-native `data-tool-*` parts (converted to dynamic-tool).
@@ -241,7 +249,7 @@ export function ChatProvider({
       if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
         const converted = mapDataToolPartToDynamicToolPart(p)
         if (converted) {
-          result.push(converted as ToolInvocationState)
+          result.push(converted)
         }
       }
     }
@@ -259,7 +267,7 @@ export function ChatProvider({
             const src = part as { url: string; title?: string }
             allSources.push({
               url: src.url,
-              title: src.title || src.url,
+              title: src.title ?? src.url,
             })
           }
         }
@@ -292,20 +300,20 @@ export function ChatProvider({
         }
 
         if (output && typeof output === "object") {
-          const out = output as Record<string, unknown>
+          const out = output
 
           // Check for preview URL or generated code
-          if (out.previewUrl && typeof out.previewUrl === "string") {
+          if ((Boolean(out.previewUrl)) && typeof out.previewUrl === "string") {
             setWebPreviewState({
               id: `preview-${Date.now()}`,
               url: out.previewUrl,
               title: (out.title as string) || "Generated Preview",
             })
-          } else if (out.code && typeof out.code === "string") {
+          } else if ((Boolean(out.code)) && typeof out.code === "string") {
             // For code generation (like Recharts), create a data URL or sandbox
             const language = (out.language as string) || "tsx"
-            if (language === "html" || (out as any).html) {
-              const htmlContent = (out as any).html || out.code
+            if (language === "html" || (Boolean((out as any).html))) {
+              const htmlContent = (out as any).html ?? out.code
               const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
               setWebPreviewState({
                 id: `preview-${Date.now()}`,
@@ -323,7 +331,7 @@ export function ChatProvider({
 
   const sendMessage = useCallback(
     (text: string, _files?: File[]) => {
-      if (!text.trim() || isLoading) return
+      if (!text.trim() || isLoading) {return}
       setChatError(null)
       aiSendMessage({ text: text.trim() })
     },
@@ -429,7 +437,7 @@ export function ChatProvider({
   const restoreCheckpoint = useCallback(
     (checkpointId: string) => {
       const checkpoint = checkpoints.find((cp) => cp.id === checkpointId)
-      if (!checkpoint) return
+      if (!checkpoint) {return}
 
       // Try to restore from snapshot first
       const snapshot = messageSnapshotsRef.current.get(checkpointId)

@@ -70,14 +70,14 @@ export interface NetworkProviderProps {
   defaultNetwork?: NetworkId
 }
 
-const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
+const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
 
 /**
  * Convert Mastra `data-tool-*` or `data-network` parts to DynamicToolUIPart
  */
 function mapDataPartToDynamicTool(part: any): DynamicToolUIPart | null {
-  if (!part || typeof part !== "object") return null
-  
+  if (!part || typeof part !== "object") {return null}
+
   const partType = part.type as string
   if (!partType?.startsWith("data-tool") && partType !== "data-network") {
     return null
@@ -94,9 +94,9 @@ function mapDataPartToDynamicTool(part: any): DynamicToolUIPart | null {
   const rawState = (inner?.state ?? inner?.status ?? "").toString().toLowerCase()
 
   let state: DynamicToolUIPart["state"] = "input-available"
-  if (rawState.includes("stream") || rawState.includes("pending")) state = "input-streaming"
-  else if (rawState.includes("success") || rawState.includes("done") || rawState.includes("completed") || output) state = "output-available"
-  else if (rawState.includes("error") || rawState.includes("failed")) state = "output-error"
+  if ((Boolean(rawState.includes("stream"))) || (Boolean(rawState.includes("pending")))) {state = "input-streaming"}
+  else if ((Boolean(rawState.includes("success"))) || (Boolean(rawState.includes("done"))) || (Boolean(rawState.includes("completed"))) || (Boolean(output))) {state = "output-available"}
+  else if ((Boolean(rawState.includes("error"))) || (Boolean(rawState.includes("failed")))) {state = "output-error"}
 
   return {
     type: "dynamic-tool",
@@ -133,15 +133,15 @@ export function NetworkProvider({
   } = useChat({
     transport: new DefaultChatTransport({
       api: `${MASTRA_API_URL}/network`,
-      prepareSendMessagesRequest({ messages }) {
-        const last = messages[messages.length - 1]
+      prepareSendMessagesRequest({ messages: msgs }) {
+        const last = msgs[msgs.length - 1]
         const textPart = last?.parts?.find(
           (p): p is TextUIPart => p.type === "text"
         )
 
         return {
           body: {
-            messages,
+            messages: msgs,
             resourceId: selectedNetwork,
             data: {
               networkId: selectedNetwork,
@@ -154,9 +154,9 @@ export function NetworkProvider({
   })
 
   const networkStatus: NetworkStatus = useMemo(() => {
-    if (aiError || networkError) return "error"
-    if (aiStatus === "streaming") return "executing"
-    if (aiStatus === "submitted") return "routing"
+    if (aiError || (Boolean(networkError))) {return "error"}
+    if (aiStatus === "streaming") {return "executing"}
+    if (aiStatus === "submitted") {return "routing"}
     return "idle"
   }, [aiStatus, aiError, networkError])
 
@@ -185,7 +185,7 @@ export function NetworkProvider({
   // Extract tool invocations from messages
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
-    if (!lastMessage || lastMessage.role !== "assistant" || !lastMessage.parts) return []
+    if (lastMessage?.role !== "assistant" || !lastMessage.parts) {return []}
 
     const result: ToolInvocationState[] = []
     for (const p of lastMessage.parts) {
@@ -197,7 +197,7 @@ export function NetworkProvider({
       // Mastra data-tool-* or data-network parts
       if (typeof p.type === "string" && (p.type.startsWith("data-tool") || p.type === "data-network")) {
         const converted = mapDataPartToDynamicTool(p)
-        if (converted) result.push(converted)
+        if (converted) {result.push(converted)}
       }
     }
     return result
@@ -210,7 +210,7 @@ export function NetworkProvider({
       if (message.role === "assistant" && message.parts) {
         for (const part of message.parts) {
           if (part.type === "source-url") {
-            const src = part as SourceUrlUIPart
+            const src = part
             allSources.push({
               url: src.url,
               title: src.title ?? src.url,
@@ -256,7 +256,7 @@ export function NetworkProvider({
 
   const sendMessage = useCallback(
     (text: string) => {
-      if (!text.trim()) return
+      if (!text.trim()) {return}
       setNetworkError(null)
       setRoutingSteps([])
       aiSendMessage({ text: text.trim() })

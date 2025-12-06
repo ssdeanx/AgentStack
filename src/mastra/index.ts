@@ -134,6 +134,8 @@ export const mastra = new Mastra({
     reportGenerationNetwork,
     researchPipelineNetwork,
     codingTeamNetwork,
+
+    // Utility Agents
     acpAgent,
     daneCommitMessage,
     daneIssueLabeler,
@@ -515,12 +517,12 @@ export const mastra = new Mastra({
       workflowRoute({
         path: "/workflow",
         workflow: "repoIngestionWorkflow",
-        includeTextStreamParts: true,
+
       }),
       workflowRoute({
         path: "/workflow",
         workflow: "specGenerationWorkflow",
-        includeTextStreamParts: true,
+
       }),
       networkRoute({
         path: "/network",
@@ -533,7 +535,7 @@ export const mastra = new Mastra({
             },
             resource: "network",
             options:
-              { semanticRecall: true, }
+              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
           },
           maxSteps: 200,
           telemetry: {
@@ -542,6 +544,7 @@ export const mastra = new Mastra({
             recordOutputs: true,
           },
           includeRawChunks: true,
+          savePerStep: true,
         }
       }),
        networkRoute({
@@ -555,7 +558,7 @@ export const mastra = new Mastra({
             },
             resource: "network",
             options:
-              { semanticRecall: true, }
+              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
           },
           maxSteps: 200,
           telemetry: {
@@ -564,6 +567,7 @@ export const mastra = new Mastra({
             recordOutputs: true,
           },
           includeRawChunks: true,
+          savePerStep: true,
         }
       }),
        networkRoute({
@@ -577,7 +581,7 @@ export const mastra = new Mastra({
             },
             resource: "network",
             options:
-              { semanticRecall: true, }
+              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
           },
           maxSteps: 200,
           telemetry: {
@@ -585,7 +589,7 @@ export const mastra = new Mastra({
             recordInputs: true,
             recordOutputs: true,
           },
-          includeRawChunks: true,
+          includeRawChunks: true
         }
       }),
        networkRoute({
@@ -598,16 +602,15 @@ export const mastra = new Mastra({
               resourceId: 'network',
             },
             resource: "network",
-            options:
-              { semanticRecall: true, }
+           options:
+              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
           },
           maxSteps: 200,
           telemetry: {
             isEnabled: true,
             recordInputs: true,
             recordOutputs: true,
-          },
-          includeRawChunks: true,
+          }
         }
       }),
        networkRoute({
@@ -621,7 +624,7 @@ export const mastra = new Mastra({
             },
             resource: "coding-network",
             options:
-              { semanticRecall: true, }
+              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
           },
           maxSteps: 200,
           telemetry: {
@@ -630,9 +633,16 @@ export const mastra = new Mastra({
             recordOutputs: true,
           },
           includeRawChunks: true,
+          savePerStep: true,
         }
       }),
     ],
+    cors: {
+      origin: ["*"], // Allow specific origins or '*' for all
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+      credentials: false,
+    },
     middleware: [
       async (c, next) => {
         const runtimeContext = c.get("runtimeContext");
@@ -642,8 +652,10 @@ export const mastra = new Mastra({
             const clonedReq = c.req.raw.clone();
             const body = await clonedReq.json();
 
-            if (body?.data) {
-              for (const [key, value] of Object.entries(body.data)) {
+            // Ensure body and body.data are objects before using them
+            if (body !== null && typeof body === 'object' && body.data !== null && typeof body.data === 'object') {
+              const data = body.data as Record<string, unknown>;
+              for (const [key, value] of Object.entries(data)) {
                 runtimeContext.set(key, value);
               }
             }

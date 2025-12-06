@@ -80,7 +80,7 @@ export function AgentArtifact({
 
   const handleDownload = useCallback(() => {
     const extensions: Record<string, string> = {
-      code: artifact.language || "txt",
+      code: artifact.language ?? "txt",
       markdown: "md",
       json: "json",
       text: "txt",
@@ -115,7 +115,7 @@ export function AgentArtifact({
     [artifact.id, onCodeUpdate]
   )
 
-  const language: BundledLanguage = (artifact.language ||
+  const language: BundledLanguage = (artifact.language ??
     (artifact.type === "json"
       ? "json"
       : artifact.type === "html"
@@ -130,7 +130,7 @@ export function AgentArtifact({
         <ArtifactHeader>
           <div className="flex flex-col gap-0.5">
             <ArtifactTitle>{artifact.title}</ArtifactTitle>
-            {artifact.description && (
+            {(Boolean(artifact.description)) && (
               <ArtifactDescription>{artifact.description}</ArtifactDescription>
             )}
           </div>
@@ -182,7 +182,7 @@ export function AgentArtifact({
           <div className="h-full">
             <AgentCodeSandbox
               code={editedCode}
-              language={artifact.language || "tsx"}
+              language={artifact.language ?? "tsx"}
               title={artifact.title}
               onClose={handleCloseEditor}
               onCodeChange={handleCodeChange}
@@ -207,7 +207,7 @@ export function AgentArtifactCompact({
 }: AgentArtifactCompactProps) {
   const isPreviewable =
     artifact.type === "code" &&
-    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() || "")
+    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() ?? "")
 
   return (
     <button
@@ -220,7 +220,7 @@ export function AgentArtifactCompact({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{artifact.title}</p>
         <p className="truncate text-xs text-muted-foreground">
-          {artifact.language || artifact.type} •{" "}
+          {artifact.language ?? artifact.type} •{" "}
           {artifact.content.split("\n").length} lines
         </p>
       </div>
@@ -250,9 +250,9 @@ export function ArtifactEditorFAB({
 
   const isPreviewable =
     artifact.type === "code" &&
-    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() || "")
+    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() ?? "")
 
-  if (!isPreviewable) return null
+  if (!isPreviewable) {return null}
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode)
@@ -278,7 +278,7 @@ export function ArtifactEditorFAB({
           <div className="h-full">
             <AgentCodeSandbox
               code={code}
-              language={artifact.language || "tsx"}
+              language={artifact.language ?? "tsx"}
               title={artifact.title}
               onClose={() => setIsOpen(false)}
               onCodeChange={handleCodeChange}

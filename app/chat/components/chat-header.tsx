@@ -93,7 +93,7 @@ export function ChatHeader() {
   const [tempThreadId, setTempThreadId] = useState(threadId)
   const [tempResourceId, setTempResourceId] = useState(resourceId)
   const [selectedModel, setSelectedModel] = useState<ModelConfig>(
-    MODEL_CONFIGS.find((m) => m.isDefault) || MODEL_CONFIGS[0]
+    MODEL_CONFIGS.find((m) => m.isDefault) ?? MODEL_CONFIGS[0]
   )
 
   const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
@@ -124,7 +124,7 @@ export function ChatHeader() {
         <div className="flex flex-col">
           <span className="font-semibold text-sm">AgentStack Chat</span>
           <span className="text-muted-foreground text-xs">
-            {agentConfig?.description || "AI-powered assistant"}
+            {agentConfig?.description ?? "AI-powered assistant"}
           </span>
         </div>
       </div>
@@ -157,7 +157,7 @@ export function ChatHeader() {
                     >
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {checkpoint.label || `Checkpoint ${checkpoint.messageCount}`}
+                          {checkpoint.label ?? `Checkpoint ${checkpoint.messageCount}`}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {checkpoint.timestamp.toLocaleTimeString()} •{" "}
@@ -214,7 +214,7 @@ export function ChatHeader() {
               <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
               {PROVIDER_ORDER.map((provider) => {
                 const models = modelsByProvider[provider]
-                if (models.length === 0) return null
+                if (models.length === 0) {return null}
                 const providerConfig = PROVIDER_CONFIGS[provider]
 
                 return (
@@ -264,7 +264,7 @@ export function ChatHeader() {
               className="min-w-40 justify-between gap-2"
             >
               <BotIcon className="size-3.5 text-muted-foreground" />
-              <span className="truncate">{agentConfig?.name || selectedAgent}</span>
+              <span className="truncate">{agentConfig?.name ?? selectedAgent}</span>
             </Button>
           </ModelSelectorTrigger>
           <ModelSelectorContent className="w-[320px]">
@@ -273,7 +273,7 @@ export function ChatHeader() {
               <ModelSelectorEmpty>No agents found.</ModelSelectorEmpty>
               {CATEGORY_ORDER.map((category) => {
                 const agents = agentsByCategory[category]
-                if (agents.length === 0) return null
+                if (agents.length === 0) {return null}
 
                 return (
                   <ModelSelectorGroup

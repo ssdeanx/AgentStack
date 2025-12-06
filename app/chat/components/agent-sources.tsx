@@ -13,7 +13,7 @@ export interface AgentSourcesProps {
 }
 
 export function AgentSources({ sources }: AgentSourcesProps) {
-  if (!sources || sources.length === 0) return null
+  if (!sources || sources.length === 0) {return null}
 
   return (
     <Sources>

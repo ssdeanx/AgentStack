@@ -20,11 +20,9 @@ export function AgentCheckpoint({
   label,
   onRestore,
 }: AgentCheckpointProps) {
-  const displayLabel = label
-    ? label
-    : timestamp
+  const displayLabel = label ?? (timestamp
       ? `Restore to ${timestamp.toLocaleTimeString()}`
-      : "Restore checkpoint"
+      : "Restore checkpoint")
 
   return (
     <Checkpoint>

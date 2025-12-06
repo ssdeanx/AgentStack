@@ -30,6 +30,16 @@ const mongoStore = new MongoDBStore({
   url: process.env.MONGODB_URI ?? 'mongodb://localhost:27017',
   dbName: process.env.MONGODB_DATABASE ?? 'AgentStack',
 });
+
+await mongoStore.init();
+//const allIndexes = await mongoStore.listIndexes();
+//console.log(allIndexes);
+//log.info('MongoDB Store initialized with MongoDBVector support, all indexes:', {
+//    indexCount: allIndexes.length,
+//    indexes: allIndexes,
+//});
+
+
 /**
  * Initialize MongoDB Vector store with proper configuration
  */
@@ -38,6 +48,11 @@ const mongoVector = new MongoDBVector({
   dbName: MONGODB_CONFIG.dbName,
 });
 
+// Create a vector index for embeddings
+await mongoVector.createIndex({
+  indexName: "ultra",
+  dimension: 1536,
+});
 
 /**
  * * Memory configuration using MongoDB Vector & Storage
@@ -64,9 +79,12 @@ export const mongoMemory = new Memory({
             scope: 'resource', // 'resource' | 'thread'
             // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
             indexConfig: {
-                type: 'flat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
+                type: 'hnsw', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
-                ivf: {lists: 4000},
+                hnsw: {
+                    m: 16, // Number of bi-directional links created for every new element
+                    efConstruction: 200, // Size of the dynamic candidate list for construction
+                },
                 }
         },
         // Enhanced working memory with supported template

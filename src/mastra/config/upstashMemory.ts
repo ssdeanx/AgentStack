@@ -10,7 +10,7 @@ import { google } from '@ai-sdk/google'
 import { AISpanType } from '@mastra/core/ai-tracing';
 import type { TracingContext } from '@mastra/core/ai-tracing';
 import { log } from './logger';
-import { ExtractParams } from '@mastra/rag';
+import type { ExtractParams } from '@mastra/rag';
 
 /**
  * Redefine CoreMessage to include a metadata property for custom data.

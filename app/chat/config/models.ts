@@ -102,11 +102,11 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
 }
 
 export function getDefaultModel(): ModelConfig {
-  return MODEL_CONFIGS.find((m) => m.isDefault) || MODEL_CONFIGS[0]
+  return MODEL_CONFIGS.find((m) => m.isDefault) ?? MODEL_CONFIGS[0]
 }
 
 export function formatContextWindow(tokens: number): string {
-  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`
-  if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`
+  if (tokens >= 1000000) {return `${(tokens / 1000000).toFixed(1)}M`}
+  if (tokens >= 1000) {return `${(tokens / 1000).toFixed(0)}K`}
   return String(tokens)
 }

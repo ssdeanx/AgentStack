@@ -1,3 +1,4 @@
+
 import { Memory } from '@mastra/memory'
 import { PgVector, PostgresStore } from '@mastra/pg'
 import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag'
@@ -11,7 +12,6 @@ import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core';
 import { z } from 'zod'
-import { MDocument } from "@mastra/rag";
 
 // Use the proper CoreMessage type from @mastra/core
 // This replaces the custom extension that was causing type conflicts
@@ -67,6 +67,14 @@ export const pgStore = new PostgresStore({
     keepAlive: true,
     keepAliveInitialDelayMillis: 0,
 })
+
+await pgStore.init();
+const allIndexes = await pgStore.listIndexes();
+console.log(allIndexes);
+log.info('PostgreSQL Store initialized with PgVector support, all indexes:', {
+    indexCount: allIndexes.length,
+    indexes: allIndexes,
+});
 
 // PgVector configuration for 1568 dimension embeddings (gemini-embedding-002)
 export const pgVector = new PgVector({

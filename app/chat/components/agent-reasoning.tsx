@@ -17,7 +17,7 @@ export function AgentReasoning({
   isStreaming,
   duration,
 }: AgentReasoningProps) {
-  if (!reasoning) return null
+  if (!reasoning) {return null}
 
   return (
     <Reasoning isStreaming={isStreaming} duration={duration}>

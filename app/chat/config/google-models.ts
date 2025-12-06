@@ -3,7 +3,8 @@
  * Centralized configuration for all Google AI models.
  */
 
-import { ModelProvider, ModelCapability, ModelConfig, ProviderConfig } from './models';
+import type { ModelConfig, ProviderConfig } from './models';
+import { ModelProvider, ModelCapability } from './models';
 
 export const GOOGLE_PROVIDER_CONFIG: ProviderConfig = {
   id: "google",

@@ -36,7 +36,7 @@ export function AgentQueue({ tasks, onView, onRetry, onDelete }: AgentQueueProps
   const completed = tasks.filter((t) => t.status === "completed")
   const failed = tasks.filter((t) => t.status === "failed")
 
-  if (tasks.length === 0) return null
+  if (tasks.length === 0) {return null}
 
   return (
     <Queue>
@@ -56,7 +56,7 @@ export function AgentQueue({ tasks, onView, onRetry, onDelete }: AgentQueueProps
                   <QueueItemIndicator completed={false} />
                   <QueueItemContent>
                     {task.title}
-                    {task.description && (
+                    {(Boolean(task.description)) && (
                       <QueueItemDescription>{task.description}</QueueItemDescription>
                     )}
                   </QueueItemContent>
@@ -86,7 +86,7 @@ export function AgentQueue({ tasks, onView, onRetry, onDelete }: AgentQueueProps
                   <QueueItemIndicator completed={false} />
                   <QueueItemContent>
                     {task.title}
-                    {task.description && (
+                    {(Boolean(task.description)) && (
                       <QueueItemDescription>{task.description}</QueueItemDescription>
                     )}
                   </QueueItemContent>
@@ -143,7 +143,7 @@ export function AgentQueue({ tasks, onView, onRetry, onDelete }: AgentQueueProps
                   <QueueItemIndicator completed={false} />
                   <QueueItemContent>
                     <span className="text-destructive">{task.title}</span>
-                    {task.description && (
+                    {(Boolean(task.description)) && (
                       <QueueItemDescription>{task.description}</QueueItemDescription>
                     )}
                   </QueueItemContent>

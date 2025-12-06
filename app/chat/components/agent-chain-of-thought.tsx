@@ -29,7 +29,7 @@ export function AgentChainOfThought({
   isStreaming = false,
   defaultOpen = true,
 }: AgentChainOfThoughtProps) {
-  if (!steps || steps.length === 0) return null
+  if (!steps || steps.length === 0) {return null}
 
   return (
     <ChainOfThought defaultOpen={defaultOpen}>
@@ -69,14 +69,14 @@ export function AgentChainOfThought({
 }
 
 export function parseReasoningToSteps(reasoning: string): ReasoningStep[] {
-  if (!reasoning) return []
+  if (!reasoning) {return []}
 
   const lines = reasoning.split("\n").filter((line) => line.trim())
   const steps: ReasoningStep[] = []
 
   lines.forEach((line, index) => {
     const trimmed = line.trim()
-    if (trimmed.startsWith("-") || trimmed.startsWith("•") || trimmed.match(/^\d+\./)) {
+    if (trimmed.startsWith("-") || trimmed.startsWith("•") || (/^\d+\./.exec(trimmed))) {
       steps.push({
         id: `step-${index}`,
         label: trimmed.replace(/^[-•\d.]+\s*/, ""),

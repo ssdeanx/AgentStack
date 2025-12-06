@@ -23,6 +23,7 @@ function StepStatusIcon({ status }: { status: RoutingStep["status"] }) {
       return <Loader2Icon className="size-4 animate-spin text-blue-500" />
     case "error":
       return <XCircleIcon className="size-4 text-red-500" />
+    case "pending": { throw new Error('Not implemented yet: "pending" case') }
     default:
       return <CircleIcon className="size-4 text-muted-foreground" />
   }
@@ -35,11 +36,11 @@ function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean 
       {!isLast && (
         <div className="absolute left-2 top-6 h-[calc(100%-12px)] w-px bg-border" />
       )}
-      
+
       <div className="relative z-10 mt-0.5">
         <StepStatusIcon status={step.status} />
       </div>
-      
+
       <div className="flex-1 pb-4">
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -50,20 +51,20 @@ function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean 
           )}>
             {step.agentName}
           </span>
-          
+
           {step.status === "active" && (
             <Badge variant="outline" className="text-xs">
               Active
             </Badge>
           )}
         </div>
-        
+
         {step.input && (
           <p className="mt-1 text-muted-foreground text-xs line-clamp-2">
             {step.input}
           </p>
         )}
-        
+
         {step.output && step.status === "completed" && (
           <p className="mt-1 text-muted-foreground text-xs line-clamp-2">
             ✓ {step.output.slice(0, 100)}...
@@ -77,7 +78,7 @@ function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean 
 export function NetworkRoutingPanel() {
   const { networkConfig, networkStatus, routingSteps } = useNetworkContext()
 
-  if (!networkConfig) return null
+  if (!networkConfig) {return null}
 
   const statusLabel = {
     idle: "Ready",

@@ -34,7 +34,7 @@ interface AgentInlineCitationProps {
 
 export function AgentInlineCitation({ citations, text }: AgentInlineCitationProps) {
   const citation = citations[0]
-  if (!citation) return <span>{text}</span>
+  if (!citation) {return <span>{text}</span>}
 
   return (
     <InlineCitation>
@@ -56,7 +56,7 @@ export function AgentInlineCitation({ citations, text }: AgentInlineCitationProp
                     url={c.url}
                     description={c.description}
                   />
-                  {c.quote && (
+                  {(Boolean(c.quote)) && (
                     <InlineCitationQuote>{c.quote}</InlineCitationQuote>
                   )}
                 </InlineCitationCarouselItem>
@@ -71,9 +71,9 @@ export function AgentInlineCitation({ citations, text }: AgentInlineCitationProp
 
 export function parseInlineCitations(
   content: string,
-  sources: { url: string; title: string }[]
+  sources: Array<{ url: string; title: string }>
 ): ReactNode[] {
-  if (!sources.length) return [content]
+  if (!sources.length) {return [content]}
 
   const parts: ReactNode[] = []
   const citationRegex = /\[(\d+)\]/g

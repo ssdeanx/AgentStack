@@ -24,6 +24,11 @@
 | **Mastra Admin Dashboard** | 🔄 70% | **app/dashboard/**: TanStack Query v5 installed, shared components created, loading/error files for all routes. Agents page modularized. See `/memory-bank/dashboard-v2/` for detailed tracking. |
 
 ## What's Next
+
+- **Migration: Mastra v1 - Memory** (🔄 started 2025-12-06)
+- Created `/memory-bank/upgrade-to-v1` with PRD, design, tasks, context and scan-results
+- Next: run codemods, update types (MastraMessageV2→MastraDBMessage), move Memory processors to Agent-level, add tests
+
 - **Mastra Admin Dashboard** (🔄 70% Complete - Priority):
   - ✅ TanStack Query v5 installed and configured
   - ✅ Created `lib/types/mastra-api.ts` with Zod v4 schemas
