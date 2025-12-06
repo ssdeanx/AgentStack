@@ -2,12 +2,17 @@ import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
 
-import { googleAI, googleAIFlashLite } from '../config/google'
+import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 import { taskCompletionScorer } from '../scorers/custom-scorers'
 
 import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
+import { financialReportWorkflow } from '../workflows/financial-report-workflow'
+import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
+import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 
 log.info('Initializing Coding A2A Coordinator...')
 
@@ -130,19 +135,26 @@ For each orchestration:
   - refactoringAgent: Generate improvement plan based on Phase 1
   - testEngineerAgent: Generate tests for proposed changes
 
-CRITICAL: Prefer parallel execution for independent tasks. Only use sequential when results depend on previous agent outputs.`,
+CRITICAL: Prefer parallel execution for independent tasks. Only use sequential when results depend on previous agent outputs.
+
+This coordinator also exposes higher-level workflows (researchSynthesisWorkflow, specGenerationWorkflow, repoIngestionWorkflow, learningExtractionWorkflow, financialReportWorkflow) that handle multi-topic research, spec generation, repo ingestion (RAG ingestion), learning extraction, and financial reports. When a user's request requires prolonged, structured work across multiple subtasks, prefer invoking these workflows and orchestrating agents around them.`,
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
-          }
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT', 'IMAGE'],
+          maxOutputTokens: 64000,
+          temperature: 0.2,
+          topP: 0.95,
+          topK: 40,
         }
       }
     }
   },
-  model: googleAI,
+  model: googleAIFlashLite,
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   agents: {
@@ -151,7 +163,13 @@ CRITICAL: Prefer parallel execution for independent tasks. Only use sequential w
     testEngineerAgent,
     refactoringAgent,
   },
-  workflows: {},
+  workflows: {
+    researchSynthesisWorkflow,
+    financialReportWorkflow,
+    specGenerationWorkflow,
+    repoIngestionWorkflow,
+    learningExtractionWorkflow,
+  },
   tools: {},
   maxRetries: 5,
   scorers: {
@@ -165,7 +183,7 @@ CRITICAL: Prefer parallel execution for independent tasks. Only use sequential w
     },
     taskCompletion: {
       scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.4 },
+      sampling: { type: 'ratio', rate: 0.8 },
     },
   },
 })

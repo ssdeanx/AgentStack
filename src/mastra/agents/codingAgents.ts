@@ -25,6 +25,7 @@ import {
   searchCode,
   getFileContent
 } from '../tools/github'
+import { githubMCP } from '../mcp/mcp-client'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type CodingRuntimeContext = {
@@ -84,13 +85,17 @@ Always consider maintainability, scalability, and testability in your recommenda
         google: {
           structuredOutput: true,
           thinkingConfig: {
-            thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
+            thinkingLevel: userTier === 'enterprise' ? 'high' : 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT'],
-          maxOutputTokens: 32000,
-          temperature: 0.3,
+          mediaResolution: 'MEDIA_RESOLUTION_LOW',
+          responseModalities: ['TEXT', 'IMAGE'],
+          maxOutputTokens: 64000,
+          temperature: 0.2,
+          topP: 0.95,
+          topK: 40,
+          
         }
       }
     }
@@ -110,6 +115,7 @@ Always consider maintainability, scalability, and testability in your recommenda
     getRepositoryInfo,
     searchCode,
     getFileContent,
+    ...githubMCP.getTools(),
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
@@ -332,6 +338,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     testGeneratorTool,
     codeSearchTool,
     execaTool,
+    ...githubMCP.getTools(),
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },

@@ -197,16 +197,14 @@ function extractSymbolInfo(
   }
 
   // Variables
-  if (symbolType === 'all' || symbolType === 'variable') {
-    if (Node.isVariableDeclaration(node)) {
-      const name = node.getName();
-      const initializer = node.getInitializer();
-      if (name && name.includes(symbolName) && 
-           !Node.isArrowFunction(initializer) && 
-           !Node.isFunctionExpression(initializer)) {
-        return { name, kind: 'variable' };
-      }
-    }
+  if ((symbolType === 'all' || symbolType === 'variable') && Node.isVariableDeclaration(node)) {
+        const name = node.getName();
+        const initializer = node.getInitializer();
+        if (name && name.includes(symbolName) && 
+             !Node.isArrowFunction(initializer) && 
+             !Node.isFunctionExpression(initializer)) {
+          return { name, kind: 'variable' };
+        }
   }
 
   return null;

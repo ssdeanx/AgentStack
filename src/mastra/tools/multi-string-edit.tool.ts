@@ -126,32 +126,31 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
         let matchFound = false
 
         if (edit.useRegex) {
-          const flags = edit.replaceAll ? 'g' : ''
-          const regex = new RegExp(edit.oldString, flags)
-          if (regex.test(content)) {
-            newContent = content.replace(regex, edit.newString)
-            matchFound = true
-          }
-        } else {
-          if (content.includes(edit.oldString)) {
-            if (edit.replaceAll) {
-              newContent = content.split(edit.oldString).join(edit.newString)
-              matchFound = true
-            } else {
-              const occurrences = content.split(edit.oldString).length - 1
-              if (occurrences > 1) {
-                results.push({
-                  filePath,
-                  status: 'skipped',
-                  reason: `Multiple occurrences found (${occurrences}). Use replaceAll: true to replace all.`,
-                })
-                continue
-              }
-              newContent = content.replace(edit.oldString, edit.newString)
-              matchFound = true
-            }
-          }
-        }
+                  const flags = edit.replaceAll ? 'g' : ''
+                  const regex = new RegExp(edit.oldString, flags)
+                  if (regex.test(content)) {
+                    newContent = content.replace(regex, edit.newString)
+                    matchFound = true
+                  }
+                }
+        else if (content.includes(edit.oldString)) {
+                    if (edit.replaceAll) {
+                      newContent = content.split(edit.oldString).join(edit.newString)
+                      matchFound = true
+                    } else {
+                      const occurrences = content.split(edit.oldString).length - 1
+                      if (occurrences > 1) {
+                        results.push({
+                          filePath,
+                          status: 'skipped',
+                          reason: `Multiple occurrences found (${occurrences}). Use replaceAll: true to replace all.`,
+                        })
+                        continue
+                      }
+                      newContent = content.replace(edit.oldString, edit.newString)
+                      matchFound = true
+                    }
+                  }
 
         if (!matchFound) {
           results.push({

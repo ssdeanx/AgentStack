@@ -9,7 +9,7 @@ const NEO4J_DATABASE = process.env.NEO4J_DATABASE ?? "neo4j"
 
 const Klavis = process.env.KLAVIS_INSTANCE_ID;
 const strata = process.env.KLAVIS_STRATA;
-
+const github = process.env.GITHUB_API_KEY;
 export const mcpTools = new MCPClient({
   id: "mcp-client",
   servers: {
@@ -64,6 +64,30 @@ export const mcpTools = new MCPClient({
         maxRetries: 5,
       },
     },
+  }
+});
+/*
+ * MCPClient with GitHub MCP Server using HTTP transport & Authorization
+ * https://github.com/microsoft/mcp/blob/main/docs/servers/github.md
+ * Requires GitHub API key with appropriate permissions.
+ * Set GITHUB_API_KEY env variable to use.
+ * See https://github.com/settings/tokens for more information.
+ * 
+ * Example:
+ * 
+ * githubMCP
+ */
+export const githubMCP = new MCPClient({
+  id: "mcp-client",
+  servers: {
+    github: {
+        url: new URL("https://api.githubcopilot.com/mcp/"),
+        requestInit: {
+          headers: {
+            Authorization: `Bearer ${github}`,
+          },
+        },
+      },
   }
 });
 

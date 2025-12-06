@@ -1,11 +1,16 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 
-import { googleAI } from '../config/google'
+import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
+import { financialReportWorkflow } from '../workflows/financial-report-workflow'
+import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
+import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 
 log.info('Initializing Coding Team Network...')
 
@@ -64,7 +69,11 @@ export const codingTeamNetwork = new Agent({
    - Architecture → Implementation: codeArchitectAgent → refactoringAgent
    - Review → Fix: codeReviewerAgent → refactoringAgent
    - Code → Test: refactoringAgent → testEngineerAgent
-   - Full Cycle: codeArchitectAgent → refactoringAgent → codeReviewerAgent → testEngineerAgent
+  - Full Cycle: codeArchitectAgent → refactoringAgent → codeReviewerAgent → testEngineerAgent
+
+  This network also exposes higher-level workflows for common orchestration patterns: researchSynthesisWorkflow (multi-topic research & synthesis), specGenerationWorkflow (design/spec creation), repoIngestionWorkflow (ingest repository content into RAG pipelines), learningExtractionWorkflow (extract learnings with human-in-the-loop), and financialReportWorkflow (financial reports). Prefer invoking these workflows when a single network call should trigger a longer-running, structured process.
+
+  Provider options: networks should not generally require top-level provider overrides; prefer configuring providerOptions at the agent level (inside an agent's instructions) or passing runtime orchestration constraints. Use network-level provider constraints only for shared execution limits or budgets when coordinating agents across a federated workflow.
 
 ## Examples
 
@@ -88,8 +97,9 @@ export const codingTeamNetwork = new Agent({
 - Always explain which agent you're delegating to and why
 - For ambiguous requests, ask for clarification
 - Chain agents when the task requires multiple steps
-- Preserve context when passing between agents`,
-  model: googleAI,
+- Preserve context when passing between agents
+`,
+  model: googleAIFlashLite,
   memory: pgMemory,
   options: {
     tracingPolicy: { internal: InternalSpans.ALL },
@@ -101,7 +111,13 @@ export const codingTeamNetwork = new Agent({
     refactoringAgent,
   },
   tools: {},
-  workflows: {},
+  workflows: {
+    researchSynthesisWorkflow,
+    specGenerationWorkflow,
+    repoIngestionWorkflow,
+    learningExtractionWorkflow,
+    financialReportWorkflow,
+  },
   scorers: {},
 })
 
