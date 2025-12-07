@@ -32,16 +32,16 @@ import { cn } from "@/lib/utils"
 
 export default function LogsPage() {
   const { data: transports, loading: transportsLoading } = useLogTransports()
-  const [selectedTransport, setSelectedTransport] = useState<string>("")
+  const [selectedTransport, setSelectedTransport] = useState<string>("all")
   const [runIdFilter, setRunIdFilter] = useState("")
-  const { data: logs, loading, error, refetch } = useLogs(selectedTransport || undefined)
+  const { data: logs, loading, error, refetch } = useLogs(selectedTransport === "all" ? undefined : selectedTransport)
   const { data: runLogs, loading: runLogsLoading } = useRunLogs(
     runIdFilter || null,
-    selectedTransport || undefined
+    selectedTransport === "all" ? undefined : selectedTransport
   )
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [levelFilter, setLevelFilter] = useState<string>("")
+  const [levelFilter, setLevelFilter] = useState<string>("all")
 
   const logsArray = Array.isArray(logs) ? logs : (logs as unknown as { logs?: unknown[] })?.logs ?? []
   const filteredLogs = logsArray.filter((log: Record<string, unknown>) => {
@@ -50,7 +50,7 @@ export default function LogsPage() {
       (log.message as string)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       JSON.stringify(log).toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesLevel = !levelFilter || log.level === levelFilter
+    const matchesLevel = levelFilter === "all" || log.level === levelFilter
 
     return matchesSearch && matchesLevel
   })
@@ -80,7 +80,7 @@ export default function LogsPage() {
                 <SelectValue placeholder="Select transport" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Transports</SelectItem>
+                <SelectItem value="all">All Transports</SelectItem>
                 {((transports as unknown as { transports?: string[] })?.transports ?? []).map((t) => (
                   <SelectItem key={t} value={t}>
                     {t}
@@ -97,7 +97,7 @@ export default function LogsPage() {
                 <SelectValue placeholder="All Levels" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Levels</SelectItem>
+                <SelectItem value="all">All Levels</SelectItem>
                 <SelectItem value="error">Error</SelectItem>
                 <SelectItem value="warn">Warning</SelectItem>
                 <SelectItem value="info">Info</SelectItem>
@@ -145,7 +145,7 @@ export default function LogsPage() {
             ) : filteredLogs && filteredLogs.length > 0 ? (
               <div className="p-4 space-y-2">
                 {filteredLogs.map((log: any, index: number) => (
-                  <LogEntry key={log.id || index} log={log} />
+                  <LogEntry key={log.id ?? index} log={log} />
                 ))}
               </div>
             ) : (
@@ -190,7 +190,7 @@ export default function LogsPage() {
               <div className="p-4 space-y-2">
                 {Array.isArray(runLogs) ? (
                   runLogs.map((log: any, index: number) => (
-                    <LogEntry key={log.id || index} log={log} />
+                    <LogEntry key={log.id ?? index} log={log} />
                   ))
                 ) : (
                   <LogEntry log={runLogs} />
@@ -216,12 +216,12 @@ function LogEntry({ log }: { log: any }) {
 
   const levelConfig: Record<string, { icon: typeof Info; color: string; bg: string }> = {
     error: { icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
-    warn: { icon: AlertTriangle, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-    info: { icon: Info, color: "text-blue-500", bg: "bg-blue-500/10" },
+    warn: { icon: AlertTriangle, color: "text-secondary dark:text-secondary-foreground", bg: "bg-secondary/10 dark:bg-secondary/30" },
+    info: { icon: Info, color: "text-primary dark:text-primary-foreground", bg: "bg-primary/10 dark:bg-primary/30" },
     debug: { icon: Bug, color: "text-muted-foreground", bg: "bg-muted" },
   }
 
-  const level = log.level?.toLowerCase() || "info"
+  const level = log.level?.toLowerCase() ?? "info"
   const config = levelConfig[level] || levelConfig.info
   const Icon = config.icon
 
@@ -249,7 +249,7 @@ function LogEntry({ log }: { log: any }) {
                 </Badge>
               )}
             </div>
-            <p className="mt-1 text-sm truncate">{log.message || JSON.stringify(log)}</p>
+            <p className="mt-1 text-sm truncate">{log.message ?? JSON.stringify(log)}</p>
           </div>
           {expanded ? (
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />

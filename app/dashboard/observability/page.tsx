@@ -42,16 +42,19 @@ export default function ObservabilityPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [nameFilter, setNameFilter] = useState("")
-  const [spanTypeFilter, setSpanTypeFilter] = useState<string>("")
-  const [entityTypeFilter, setEntityTypeFilter] = useState<string>("")
+  const [spanTypeFilter, setSpanTypeFilter] = useState<string>("all")
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>("all")
 
   const { data: traces, loading, error, refetch } = useAITraces({
     page,
     perPage,
     filters: {
       name: nameFilter || undefined,
-      spanType: spanTypeFilter || undefined,
-      entityType: (entityTypeFilter || undefined) as "agent" | "workflow" | undefined,
+      spanType: spanTypeFilter === "all" ? undefined : spanTypeFilter,
+      entityType: (entityTypeFilter === "all" ? undefined : entityTypeFilter) as
+        | "agent"
+        | "workflow"
+        | undefined,
     },
   })
 
@@ -86,7 +89,7 @@ export default function ObservabilityPage() {
                   <SelectValue placeholder="Span Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="agent">Agent</SelectItem>
                   <SelectItem value="tool">Tool</SelectItem>
                   <SelectItem value="workflow">Workflow</SelectItem>
@@ -98,7 +101,7 @@ export default function ObservabilityPage() {
                   <SelectValue placeholder="Entity Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Entities</SelectItem>
+                  <SelectItem value="all">All Entities</SelectItem>
                   <SelectItem value="agent">Agent</SelectItem>
                   <SelectItem value="tool">Tool</SelectItem>
                   <SelectItem value="workflow">Workflow</SelectItem>
@@ -132,12 +135,12 @@ export default function ObservabilityPage() {
                   <div className="flex items-start gap-3">
                     <Activity className="h-5 w-5 mt-0.5 text-muted-foreground" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{span.name || span.traceId}</div>
+                      <div className="font-medium truncate">{span.name ?? span.traceId}</div>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="text-xs">
-                          {span.spanType || "unknown"}
+                          {span.spanType ?? "unknown"}
                         </Badge>
-                        {span.duration && (
+                        {(Boolean(span.duration)) && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {span.duration}ms
@@ -145,14 +148,14 @@ export default function ObservabilityPage() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {span.startTime ? new Date(span.startTime).toLocaleString() : "No timestamp"}
+                        {(span.startTime) ? new Date(span.startTime).toLocaleString() : "No timestamp"}
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                 </button>
               ))}
-              {(!traces || !(traces as any)?.spans?.length) && (
+              {(!traces || !((traces as any)?.spans?.length)) && (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   No traces found
                 </div>
@@ -191,7 +194,7 @@ export default function ObservabilityPage() {
 
       {/* Trace Details */}
       <div className="flex-1 overflow-auto">
-        {selectedTraceId ? (
+        {(selectedTraceId) ? (
           <TraceDetails traceId={selectedTraceId} />
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -250,7 +253,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{traceData?.name || traceId}</h1>
+          <h1 className="text-2xl font-bold">{traceData?.name ?? traceId}</h1>
           <p className="text-muted-foreground mt-1">
             Trace ID: <code className="text-xs bg-muted px-1 py-0.5 rounded">{traceId}</code>
           </p>
@@ -279,7 +282,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
                   className="mt-1"
                 />
               </div>
-              {scoreResult && (
+              {(Boolean(scoreResult)) && (
                 <div className="space-y-2">
                   <Label>Result</Label>
                   <pre className="text-sm bg-muted p-3 rounded-md overflow-auto max-h-48">
@@ -312,7 +315,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {traceData?.duration ? `${traceData.duration}ms` : "N/A"}
+              {(traceData?.duration) ? `${traceData.duration}ms` : "N/A"}
             </div>
           </CardContent>
         </Card>
@@ -338,7 +341,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
           </CardHeader>
           <CardContent>
             <Badge variant="secondary">
-              {traceData?.spanType || "Unknown"}
+              {traceData?.spanType ?? "Unknown"}
             </Badge>
           </CardContent>
         </Card>
@@ -353,7 +356,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
             <Badge
               variant={traceData?.status === "ok" || traceData?.status === "success" ? "default" : "destructive"}
             >
-              {traceData?.status || "Unknown"}
+              {traceData?.status ?? "Unknown"}
             </Badge>
           </CardContent>
         </Card>
@@ -381,29 +384,29 @@ function TraceDetails({ traceId }: { traceId: string }) {
                   <div className="space-y-2">
                     {traceData.spans.map((span: any, index: number) => (
                       <div
-                        key={span.spanId || index}
+                        key={span.spanId ?? index}
                         className="p-4 bg-muted rounded-md"
-                        style={{ marginLeft: `${(span.depth || 0) * 20}px` }}
+                        style={{ marginLeft: `${(span.depth ?? 0) * 20}px` }}
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <div className="font-medium">{span.name || `Span ${index + 1}`}</div>
+                            <div className="font-medium">{span.name ?? `Span ${index + 1}`}</div>
                             <div className="text-sm text-muted-foreground">
                               {span.spanId}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {span.duration && (
+                            {(Boolean(span.duration)) && (
                               <span className="text-xs text-muted-foreground">
                                 {span.duration}ms
                               </span>
                             )}
                             <Badge variant="outline" className="text-xs">
-                              {span.spanType || span.kind || "unknown"}
+                              {(span.spanType ?? span.kind) ?? "unknown"}
                             </Badge>
                           </div>
                         </div>
-                        {span.attributes && Object.keys(span.attributes).length > 0 && (
+                        {(Boolean(span.attributes)) && Object.keys(span.attributes).length > 0 && (
                           <details className="mt-2">
                             <summary className="text-xs text-muted-foreground cursor-pointer">
                               Attributes
@@ -433,7 +436,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {traceData?.attributes ? (
+              {(traceData?.attributes) ? (
                 <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md overflow-auto max-h-96">
                   {JSON.stringify(traceData.attributes, null, 2)}
                 </pre>

@@ -34,7 +34,7 @@ export function AgentTools({ tools }: AgentToolsProps) {
           <Tool key={t.toolCallId} defaultOpen={false}>
             <ToolHeader
               title={toolName}
-              type={toolType}
+              type={toolType as `tool-${string}`}
               state={toolState}
             />
             <ToolContent>

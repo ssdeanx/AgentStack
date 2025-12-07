@@ -52,9 +52,9 @@ export function AgentEvalsTab({ agentId }: AgentEvalsTabProps) {
               >
                 <div className="flex items-center gap-3">
                   {evaluation.passed ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-accent" />
                   ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <XCircle className="h-4 w-4 text-destructive" />
                   )}
                   <span className="font-medium">{evaluation.name || `Eval ${index + 1}`}</span>
                 </div>
