@@ -640,33 +640,35 @@ export const mastra = new Mastra({
     cors: {
       origin: ["*"], // Allow specific origins or '*' for all
       allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", 'x-mastra-client-type'],
+      exposeHeaders: ["Content-Length", "X-Requested-With"],
       credentials: false,
     },
     middleware: [
-      async (c, next) => {
-        const runtimeContext = c.get("runtimeContext");
-
-        if (c.req.method === "POST") {
-          try {
-            const clonedReq = c.req.raw.clone();
-            const body = await clonedReq.json();
-
+      // Middleware to extract data from the request body
+//      async (c, next) => {
+//        const runtimeContext = c.get("runtimeContext");
+//
+//        if (c.req.method === "POST") {
+//          try {
+//            const clonedReq = c.req.raw.clone();
+///            const body = await clonedReq.json();
+//
             // Ensure body and body.data are objects before using them
-            if (body !== null && typeof body === 'object' && body.data !== null && typeof body.data === 'object') {
-              const data = body.data as Record<string, unknown>;
-              for (const [key, value] of Object.entries(data)) {
-                runtimeContext.set(key, value);
-              }
-            }
-          } catch {
-            log.error("Failed to parse request body for middleware");
-          }
-        }
-        await next();
-      },
-    ],
-  }
+//            if (body !== null && typeof body === 'object' && body.data !== null && typeof body.data === 'object') {
+//              const data = body.data as Record<string, unknown>;
+//              for (const [key, value] of Object.entries(data)) {
+//                runtimeContext.set(key, value);
+//              }
+//            }
+//          } catch {
+//            log.error("Failed to parse request body for middleware");
+//          }
+//        }
+//        await next();
+//      },
+          ],
+    }
 });
 
 log.info("Mastra instance created");

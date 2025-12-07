@@ -190,8 +190,8 @@ export default function DashboardPage() {
             <CardHeader className="bg-muted/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                    <Workflow className="h-4 w-4 text-blue-500" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary-foreground">
+                    <Workflow className="h-4 w-4" />
                   </div>
                   <div>
                     <CardTitle className="text-base">Workflows</CardTitle>
@@ -258,8 +258,8 @@ export default function DashboardPage() {
           <CardHeader className="bg-muted/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10">
-                  <Activity className="h-4 w-4 text-green-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent-foreground">
+                  <Activity className="h-4 w-4" />
                 </div>
                 <div>
                   <CardTitle className="text-base">Recent Traces</CardTitle>
@@ -374,10 +374,10 @@ export default function DashboardPage() {
 }
 
 const colorVariants = {
-  purple: "bg-purple-500/10 text-purple-500",
-  pink: "bg-pink-500/10 text-pink-500",
-  orange: "bg-orange-500/10 text-orange-500",
-  cyan: "bg-cyan-500/10 text-cyan-500",
+  purple: "bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary-foreground",
+  pink: "bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent-foreground",
+  orange: "bg-secondary/10 text-secondary dark:bg-secondary/30 dark:text-secondary-foreground",
+  cyan: "bg-muted/10 text-muted-foreground dark:bg-muted/30 dark:text-muted-foreground",
 }
 
 function QuickLinkCard({
