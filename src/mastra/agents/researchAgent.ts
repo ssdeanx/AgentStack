@@ -1,9 +1,10 @@
-import { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -32,7 +33,7 @@ import {
   webScraperTool,
 } from '../tools/web-scraper-tool';
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type ResearchRuntimeContext = {
+export interface ResearchRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }
@@ -126,13 +127,12 @@ export const researchAgent = new Agent({
         <process_phases>
         **PHASE 1: Initial Research**
         1. Deconstruct the main topic into 2 specific, focused search queries.
-        2. For each query, use the \`webSearchTool\` to find information.
-        3. For each result, use the \`evaluateResultTool\` to determine relevance.
+        2. For each query, use the \`webScraperTool\` to find information. Make sure \`siteMapExtractorTool\`,\`linkExtractorTool\`, \`htmlToMarkdownTool\`, \`contentCleanerTool\`,
         4. For all relevant results, use the \`extractLearningsTool\` to get key insights and generate follow-up questions.
 
         **PHASE 2: Follow-up Research**
         1. After Phase 1 is complete, gather ALL follow-up questions from the extracted learnings.
-        2. For each follow-up question, execute a new search with \`webSearchTool\`.
+        2. For each follow-up question, execute a new search with \`webScraperTool\` or \`batchWebScraperTool\`.
         3. Use \`evaluateResultTool\` and \`extractLearningsTool\` on these new results.
         4. **CRITICAL: STOP after this phase. Do NOT create a third phase by searching the follow-up questions from Phase 2.**
         </process_phases>
@@ -228,19 +228,7 @@ export const researchAgent = new Agent({
     safety: {
       scorer: createToxicityScorer({ model: googleAIFlashLite }),
       sampling: { type: "ratio", rate: 0.3 }
-    },
-    sourceDiversity: {
-      scorer: sourceDiversityScorer,
-      sampling: { type: "ratio", rate: 0.5 }
-    },
-    researchCompleteness: {
-      scorer: researchCompletenessScorer,
-      sampling: { type: "ratio", rate: 0.7 }
-    },
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: "ratio", rate: 0.6 }
-    },
+    }
   },
   maxRetries: 5,
   //voice: gvoice,
@@ -254,13 +242,4 @@ export const researchAgent = new Agent({
   ],
 })
 
-// access the grounding metadata. Casting to the provider metadata type
-// is optional but provides autocomplete and type safety.
-type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
 
-const providerMetadata: ProviderMetadataMap | undefined =
-  ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
-  ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
-
-const metadata = providerMetadata?.google;  // Access .google here
-const groundingMetadata = metadata?.groundingMetadata;

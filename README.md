@@ -272,96 +272,274 @@ npm run build
 npm run start
 ```
 
-## 📊 **System Flowchart**
-
-```mermaid
-flowchart TD
-    A[app/chat] -->|components|< B[chat-header.tsx]
-    A -->|components|< C[chat-messages.tsx]
-    A -->|components|< D[chat-input.tsx]
-    A -->|config|< E[agents.ts]
-    A -->|providers|< F[chat-context.tsx]
-    
-    G[app/networks] -->|components|< H[network-header.tsx]
-    G -->|components|< I[network-messages.tsx]
-    G -->|config|< J[networks.ts]
-    G -->|providers|< K[network-context.tsx]
-    
-    L[app/workflows] -->|components|< M[workflow-canvas.tsx]
-    L -->|components|< N[workflow-header.tsx]
-    L -->|config|< O[workflows.ts]
-    L -->|providers|< P[workflow-context.tsx]
-    
-    Q[app/dashboard] -->|components|< R[dashboard.tsx]
-    Q -->|components|< S[agent-list.tsx]
-    Q -->|providers|< T[dashboard-context.tsx]
-    
-    U[lib] -->|hooks|< V[use-mastra.ts]
-    U -->|hooks|< W[use-dashboard-queries.ts]
-    U -->|utils|< X[utils.ts]
-    U -->|client|< Y[mastra-client.ts]
-    
-    Z[src/types] -->|api|< AA[mastra-api.ts]
-    
-    AB[src/mastra/index.ts] -->|imports|< AC[agents/*]
-    AB -->|imports|< AD[tools/*]
-    AB -->|imports|< AE[workflows/*]
-    AB -->|imports|< AF[networks/*]
-    AB -->|imports|< AG[config/*]
-    
-    style A fill:#e8f5e9,stroke:#81c784
-    style G fill:#e8f5e9,stroke:#81c784
-    style L fill:#e8f5e9,stroke:#81c784
-    style Q fill:#e8f5e9,stroke:#81c784
-    style U fill:#e3f2fd,stroke:#64b5f6
-    style Z fill:#e3f2fd,stroke:#64b5f6
-    style AB fill:#fff3e0,stroke:#ff9800
-```
-
-## 🔄 **RAG Pipeline (Production-Grade)**
-
-```mermaid
-flowchart TD
-    A[Document Input] --> B[Chunking Strategy(recursive/character/token/markdown/etc.)]
-    B --> C[Generate Chunks\n(document-chunking.tool.ts)]
-    C --> D[Embed Each Chunk\nGemini text-embedding-001]
-    D --> E[Store in PgVector\n(pg-storage.ts - indexed as memory_messages_3072)]
-    F[User Query] --> G[Embed Query\nGemini text-embedding-001]
-    G --> H[Vector Search PgVector\nHNSW/Flat Index]
-    H --> I[Retrieve Top-K Chunks]
-    I --> J[Generate Answer with Context\nAnswer Agent]
-    
-    style A fill:#e8f5e9,stroke:#81c784
-    style B fill:#fff3e0,stroke:#ff9800
-    style C fill:#e3f2fd,stroke:#64b5f6
-    style D fill:#e8f5e9,stroke:#81c784
-    style E fill:#c8e6c9,stroke:#4caf50
-    style F fill:#ffebee,stroke:#f44336
-    style G fill:#e8f5e9,stroke:#81c784
-    style H fill:#c8e6c9,stroke:#4caf50
-    style I fill:#e3f2fd,stroke:#64b5f6
-    style J fill:#fff3e0,stroke:#ff9800
-```
-
 ## 📁 **Structure**
 
 ```bash
-# Frontend
-app/                      # 📱 Next.js 16 App Router (layouts, pages)
-ui/                       # 🎨 shadcn/ui base components (34 primitives)
-src/components/ai-elements/  # 🤖 AI Elements (30 chat/reasoning/canvas components)
+╭─────────────────────────────── AgentStack ───────────────────────────────╮
+│ Files: 574 | Size: 6.3MB                                                 │
+│ Top Extensions: .tsx (197), .ts (190), .md (138), .mdx (15), .json (8)   │
+╰──────────────────────────────────────────────────────────────────────────╯
+AgentStack
 
-# Backend
-src/mastra/
-├── index.ts              # 🎯 Mastra bootstrap (38 agents, 10 workflows, 4 networks, MCP)
-├── agents/               # 🤖 38 agents (research/stock/copywriter/report/data pipeline/business-legal/charting...)
-├── tools/                # 🔧 34+ tools (financial/RAG/scrape/PDF/SerpAPI...)
-├── workflows/            # 📋 10 workflows (weather, content, financial, document, research)
-├── networks/             # 🌐 4 agent networks (routing/coordination)
-├── config/               # ⚙️ Models/PgVector/Logging/Auth
-├── scorers/              # 📊 10+ evals (diversity/quality/completeness...)
-├── mcp/                  # 🔌 MCP server (A2A coordination)
-└── a2a/                  # 🤝 Agent-to-Agent coordinator
+├──   app/ (173 files, 878.7KB)
+│   ├──   about/ (410.0B)
+│   │   └── page.tsx
+│   ├──   api/ (6 files, 6.6KB)
+│   │   ├──   chat/
+│   │   │   └── route.ts
+│   │   ├──   chat-extra/ (581.0B)
+│   │   │   └── route.ts
+│   │   ├──   completion/ (449.0B)
+│   │   │   └── route.ts
+│   │   ├──   contact/ (2.2KB)
+│   │   │   └── route.ts
+│   │   └──   v0/ (445.0B)
+│   │       └── route.ts
+│   ├──   api-reference/ (5 files, 38.0KB)
+│   │   ├──   agents/ (8.2KB)
+│   │   │   └── page.mdx
+│   │   ├──   openapi-schema/ (13.6KB)
+│   │   │   └── page.mdx
+│   │   ├──   tools/ (7.1KB)
+│   │   │   └── page.mdx
+│   │   ├──   workflows/ (8.8KB)
+│   │   │   └── page.mdx
+│   │   └── page.tsx
+│   ├──   blog/ (4 files, 13.4KB, all .tsx)
+│   │   ├──   hello-world-agentstack/ (9.1KB)
+│   │   │   └── page.mdx
+│   │   ├──   session-summary/ (2.1KB)
+│   │   │   └── page.tsx
+│   │   └── layout page
+│   ├──   careers/ (418.0B)
+│   │   └── page.tsx
+│   ├──   changelog/ (417.0B)
+│   │   └── page.tsx
+│   ├──   chat/ (27 files, 175.7KB)
+│   │   ├──   components/ (16 files, 93.5KB, all .tsx)
+│   │   │   └── agent-artifact         agent-inline-citation  agent-sources          agent-web-preview
+│   │   │       agent-chain-of-thought agent-plan             agent-suggestions      chat-header
+│   │   │       agent-checkpoint       agent-queue            agent-task             chat-input
+│   │   │       agent-confirmation     agent-reasoning        agent-tools            chat-messages
+│   │   ├──   config/ (7 files, 50.4KB, all .ts)
+│   │   │   └── agents            google-models     ollama-models     openrouter-models
+│   │   │       anthropic-models  models            openai-models
+│   │   ├──   helpers/ (6.6KB)
+│   │   │   └── tool-part-transform.ts
+│   │   ├──   providers/ (16.8KB)
+│   │   │   └── chat-context.tsx
+│   │   └── AGENTS.md page.tsx
+│   ├──   components/ (30 files, 218.5KB, all .tsx)
+│   │   └── about-content         contact-form          landing-hero          privacy-content
+│   │       api-components        docs-layout           landing-stats         sidebar
+│   │       api-reference-content docs-nav              landing-testimonials  strip-frontmatter
+│   │       blog-data             examples-list         landing-trust         terms-content
+│   │       blog-layout           footer                navbar                tools-list
+│   │       blog-list             landing-agents        networks-list         workflows-list
+│   │       careers-content       landing-cta           page-header
+│   │       changelog-list        landing-features      pricing-tiers
+│   ├──   contact/ (409.0B)
+│   │   └── page.tsx
+│   ├──   dashboard/ (44 files, 162.4KB)
+│   │   ├──   _components/ (8 files, 26.9KB)
+│   │   │   └── data-table.tsx       empty-state.tsx      index.ts             sidebar.tsx
+│   │   │       detail-panel.tsx     error-fallback.tsx   loading-skeleton.tsx stat-card.tsx
+│   │   ├──   agents/ (9 files, 15.2KB, all .tsx)
+│   │   │   ├──   _components/ (6 files, 11.9KB)
+│   │   │   │   └── agent-details.tsx   agent-list-item.tsx agent-tools-tab.tsx
+│   │   │   │       agent-evals-tab.tsx agent-list.tsx      index.ts
+│   │   │   └── error   loading page
+│   │   ├──   logs/ (3 files, 11.2KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   memory/ (3 files, 17.2KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   observability/ (3 files, 18.1KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   telemetry/ (3 files, 11.1KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   tools/ (3 files, 11.1KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   vectors/ (3 files, 15.0KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   ├──   workflows/ (3 files, 14.1KB, all .tsx)
+│   │   │   └── error   loading page
+│   │   └── AGENTS.md     error.tsx     layout.tsx    loading.tsx   page.tsx      providers.tsx
+│   ├──   docs/ (13 files, 90.5KB, all .tsx)
+│   │   ├──   ai-sdk/ (13.5KB)
+│   │   │   └── page.mdx
+│   │   ├──   components/ (8.1KB)
+│   │   │   └── page.mdx
+│   │   ├──   configuration/ (8.6KB)
+│   │   │   └── page.mdx
+│   │   ├──   core-concepts/ (7.6KB)
+│   │   │   └── page.mdx
+│   │   ├──   getting-started/ (2 files, 7.5KB)
+│   │   │   └── 1.tsx    page.mdx
+│   │   ├──   prompts/kiro-lite/ (9.8KB)
+│   │   │   └── page.mdx
+│   │   ├──   rag/ (8.3KB)
+│   │   │   └── page.mdx
+│   │   ├──   runtime-context/ (9.9KB)
+│   │   │   └── page.mdx
+│   │   ├──   security/ (9.1KB)
+│   │   │   └── page.mdx
+│   │   ├──   ui/ (6.8KB)
+│   │   │   └── page.mdx
+│   │   └── layout page
+│   ├──   examples/ (413.0B)
+│   │   └── page.tsx
+│   ├──   login/ (6.4KB)
+│   │   └── page.tsx
+│   ├──   networks/ (11 files, 82.1KB)
+│   │   ├──   components/ (7 files, 63.8KB, all .tsx)
+│   │   │   └── network-agents        network-header        network-input         network-routing-panel
+│   │   │       network-chat          network-info-panel    network-messages
+│   │   ├──   config/ (4.4KB)
+│   │   │   └── networks.ts
+│   │   ├──   providers/ (9.2KB)
+│   │   │   └── network-context.tsx
+│   │   └── AGENTS.md page.tsx
+│   ├──   pricing/ (412.0B)
+│   │   └── page.tsx
+│   ├──   privacy/ (418.0B)
+│   │   └── page.tsx
+│   ├──   terms/ (410.0B)
+│   │   └── page.tsx
+│   ├──   test/ (7 files, 4.1KB)
+│   │   └── AGENTS.md      chat-extra.tsx completion.tsx page.tsx
+│   │       action.ts      chat.tsx       form.tsx
+│   ├──   tools/ (401.0B)
+│   │   └── page.tsx
+│   ├──   workflows/ (12 files, 60.7KB)
+│   │   ├──   components/ (8 files, 28.8KB, all .tsx)
+│   │   │   └── workflow-actions     workflow-header      workflow-input-panel workflow-node
+│   │   │       workflow-canvas      workflow-info-panel  workflow-legend      workflow-output
+│   │   ├──   config/ (13.0KB)
+│   │   │   └── workflows.ts
+│   │   ├──   providers/ (10.8KB)
+│   │   │   └── workflow-context.tsx
+│   │   └── AGENTS.md page.tsx
+│   └── AGENTS.md   globals.css layout.tsx  page.tsx
+├──   docs/ (12 files, 339.7KB)
+│   ├──   adr/ (1.6KB)
+│   │   └── 0001-why-pgvector-and-gemini-embeddings.md
+│   ├──   components/ (5 files, 36.5KB, all .md)
+│   │   └── app-chat-documentation      app-networks-documentation  lib-documentation
+│   │       app-dashboard-documentation app-workflows-documentation
+│   └── ai-elements_aisk-urls.md                   kiro-lite.prompt.md
+│       api-small.md                               runtimeContext.md
+│       ⭐️ api.md
+├──   hooks/ (6 files, 5.6KB, all .ts)
+│   └── index             use-debounce      use-local-storage use-media-query   use-mounted       use-utils
+├──   lib/ (7 files, 34.6KB, all .ts)
+│   ├──   hooks/ (2 files, 24.2KB, all .ts)
+│   │   └── use-dashboard-queries use-mastra
+│   ├──   types/ (5.4KB)
+│   │   └── mastra-api.ts
+│   └── auth                    client-stream-to-ai-sdk mastra-client           utils
+├──   src/ (206 files, 2.7MB)
+│   ├──   components/ai-elements/ (30 files, 153.5KB, all .tsx)
+│   │   └── artifact         confirmation     edge             model-selector   prompt-input     suggestion
+│   │       canvas           connection       image            node             queue            task
+│   │       chain-of-thought context          inline-citation  open-in-chat     reasoning        tool
+│   │       checkpoint       controls         loader           panel            shimmer          toolbar
+│   │       code-block       conversation     message          plan             sources          web-preview
+│   └──   mastra/ (176 files, 2.5MB)
+│       ├──   a2a/ (3 files, 13.4KB)
+│       │   └── AGENTS.md               a2aCoordinatorAgent.ts  codingA2ACoordinator.ts
+│       ├──   agents/ (30 files, 192.5KB)
+│       │   └── AGENTS.md                          excalidraw_validator.ts
+│       │       acpAgent.ts                        for await (const part of result.md
+│       │       businessLegalAgents.ts             image.ts
+│       │       calendarAgent.ts                   image_to_csv.ts
+│       │       codingAgents.ts                    knowledgeIndexingAgent.ts
+│       │       contentStrategistAgent.ts          learningExtractionAgent.ts
+│       │       copywriterAgent.ts                 package-publisher.ts
+│       │       csv_to_excalidraw.ts               recharts.ts
+│       │       dane.ts                            reportAgent.ts
+│       │       dataExportAgent.ts                 researchAgent.ts
+│       │       dataIngestionAgent.ts              researchPaperAgent.ts
+│       │       dataTransformationAgent.ts         scriptWriterAgent.ts
+│       │       documentProcessingAgent.ts         sql.ts
+│       │       editorAgent.ts                     stockAnalysisAgent.ts
+│       │       evaluationAgent.ts                 weather-agent.ts
+│       ├──   config/ (29 files, 252.4KB)
+│       │   ├──   vector/ (11 files, 108.0KB)
+│       │   │   └── AGENTS.md     chroma.ts     couchbase.ts  opensearch.ts qdrant.ts     s3vectors.ts
+│       │   │       astra.ts      cloudflare.ts lance.ts      pinecone.ts   registry.ts
+│       │   └── AGENTS.md         gemini-cli.ts     mongodb.ts        processors.ts     upstashMemory.ts
+│       │       README.md         google.ts         openai.ts         role-hierarchy.ts vertex.ts
+│       │       anthropic.ts      index.ts          openrouter.ts     tracing.ts
+│       │       copilot.ts        logger.ts         pg-storage.ts     upstash.ts
+│       ├──   data/ (10 files, 1020.7KB)
+│       │   └── AGENTS.md                      diamond.excalidraw             sample_dataset.csv
+│       │       circle.excalidraw              example-text-arrows.excalidraw ⭐️ test.excalidraw
+│       │       diagram (5).json               pencil.excalidraw
+│       │       diagram.excalidraw             relationship.excalidraw
+│       ├──   experiments/ (8.6KB)
+│       │   └── agent-experiments.ts
+│       ├──   mcp/ (6 files, 34.6KB)
+│       │   └── AGENTS.md     index.ts      mcp-client.ts prompts.ts    resources.ts  server.ts
+│       ├──   networks/ (6 files, 27.6KB)
+│       │   └── AGENTS.md                  dataPipelineNetwork.ts     reportGenerationNetwork.ts
+│       │       codingTeamNetwork.ts       index.ts                   researchPipelineNetwork.ts
+│       ├──   policy/ (2 files, 7.0KB)
+│       │   └── AGENTS.md acl.yaml
+│       ├──   scorers/ (11 files, 52.3KB)
+│       │   └── AGENTS.md                  financial-scorers.ts       structure.scorer.ts
+│       │       csv-validity.scorer.ts     index.ts                   tone-consistency.scorer.ts
+│       │       custom-scorers.ts          script-scorers.ts          weather-scorer.ts
+│       │       factuality.scorer.ts       sql-validity.scorer.ts
+│       ├──   tools/ (60 files, 753.7KB)
+│       │   ├──   tests/ (15 files, 145.8KB, all .ts)
+│       │   │   └── copywriter-agent-tool.test       json-to-csv.tool.test
+│       │   │       csv-to-json.tool.test            serpapi-academic-local.tool.test
+│       │   │       data-file-manager.test           serpapi-news-trends.tool.test
+│       │   │       data-validator.tool.test         serpapi-search.tool.test
+│       │   │       document-chunking.tool.test      serpapi-shopping.tool.test
+│       │   │       editor-agent-tool.test           weather-tool.test
+│       │   │       evaluateResultTool.test          web-scraper-tool.test
+│       │   │       extractLearningsTool.test
+│       │   └── AGENTS.md                      document-chunking.tool.ts      pdf-data-conversion.tool.ts
+│       │       AGENTS.md.bak                  editor-agent-tool.ts           pdf.ts
+│       │       alpha-vantage.tool.ts          evaluateResultTool.ts          pg-sql-tool.ts
+│       │       arxiv.tool.ts                  execa-tool.ts                  pnpm-tool.ts
+│       │       browser-tool.ts                extractLearningsTool.ts        polygon-tools.ts
+│       │       calendar-tool.ts               financial-chart-tools.ts       semantic-utils.ts
+│       │       code-analysis.tool.ts          find-references.tool.ts        serpapi-academic-local.tool.ts
+│       │       code-chunking.ts               find-symbol.tool.ts            serpapi-config.ts
+│       │       code-search.tool.ts            finnhub-tools.ts               serpapi-news-trends.tool.ts
+│       │       copywriter-agent-tool.ts       fs.ts                          serpapi-search.tool.ts
+│       │       csv-to-json.tool.ts            github.ts                      serpapi-shopping.tool.ts
+│       │       data-file-manager.ts           index.ts                       test-generator.tool.ts
+│       │       data-processing-tools.ts       json-to-csv.tool.ts            weather-tool.ts
+│       │       data-validator.tool.ts         jwt-auth.tool.ts               ⭐️ web-scraper-tool.ts
+│       │       diff-review.tool.ts            multi-string-edit.tool.ts      write-note.ts
+│       ├──   types/ (2 files, 1.2KB, all .ts)
+│       │   └── excalidraw-to-svg.d svgjson.d
+│       ├──   workflows/ (14 files, 180.8KB)
+│       │   └── AGENTS.md                       financial-report-workflow.ts    spec-generation-workflow.ts
+│       │       changelog.ts                    learning-extraction-workflow.ts stock-analysis-workflow.ts
+│       │       content-review-workflow.ts      new-contributor.ts              telephone-game.ts
+│       │       content-studio-workflow.ts      repo-ingestion-workflow.ts      weather-workflow.ts
+│       │       document-processing-workflow.ts research-synthesis-workflow.ts
+│       └── AGENTS.md index.ts
+├──   tests/ (3 files, 2.5KB, all .ts)
+│   ├──   test-results/ (1.0KB)
+│   │   └── test-results.json
+│   └── api-chat-r.test       docs-hello-world.test
+├──   ui/ (34 files, 91.4KB, all .tsx)
+│   └── accordion     button        command       input-group   popover       separator     textarea
+│       alert         card          dialog        input         progress      sheet         theme-toggle
+│       avatar        carousel      dropdown-menu label         radio-group   skeleton      tooltip
+│       badge         checkbox      helpers       layout        scroll-area   switch        typography
+│       button-group  collapsible   hover-card    link          select        tabs
+└── .blackboxrules           components.json          networksCustomToolv1.png prettier.config.js
+    .env.example             eslint.config.cjs        networksv1.png           read_pdf_parse.js
+    .gitignore               globalSetup.ts           next.config.ts           testSetup.ts
+    .markdownlint.json       instrumentation.ts       ⭐️ package-lock.json     tsconfig.json
+    AGENTS.md                llms.txt                 package.json             vitest.config.ts
+    README.md                mdx-components.tsx       postcss.config.mjs
 ```
 
 ## 🛠️ **Development**

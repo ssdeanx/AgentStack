@@ -4,10 +4,10 @@ import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type LearningExtractionAgentContext = {
+export interface LearningExtractionAgentContext {
   userId?: string
   researchPhase?: string
   'user-tier': UserTier
@@ -17,7 +17,7 @@ export type LearningExtractionAgentContext = {
 log.info('Initializing Learning Extraction Agent...')
 
 export const learningExtractionAgent = new Agent({
-  id: 'learning',
+  id: 'learningExtraction',
   name: 'Learning Extraction Agent',
   description:
     'An expert at analyzing search results and extracting key insights to deepen research understanding.',

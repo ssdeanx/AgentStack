@@ -111,7 +111,7 @@ function mapDataPartToDynamicTool(part: any): DynamicToolUIPart | null {
 
 export function NetworkProvider({
   children,
-  defaultNetwork = "agentNetwork",
+  defaultNetwork = "agent-network",
 }: NetworkProviderProps) {
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(defaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
@@ -132,7 +132,7 @@ export function NetworkProvider({
     error: aiError,
   } = useChat({
     transport: new DefaultChatTransport({
-      api: `${MASTRA_API_URL}/network`,
+      api: `${MASTRA_API_URL}/network/${selectedNetwork}`,
       prepareSendMessagesRequest({ messages: msgs }) {
         const last = msgs[msgs.length - 1]
         const textPart = last?.parts?.find(

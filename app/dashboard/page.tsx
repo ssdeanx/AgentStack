@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { StatCard, EmptyState } from "./_components"
 import { useQueryClient } from "@tanstack/react-query"
+import { LineWidget, AreaWidget, PieWidget, BarWidget } from "@/app/components/charts"
 
 export default function DashboardPage() {
   const queryClient = useQueryClient()
@@ -40,6 +41,33 @@ export default function DashboardPage() {
   const refetchAll = () => {
     queryClient.invalidateQueries()
   }
+
+  const agentsCount = agents?.length ?? 0
+  const workflowsCount = workflows?.length ?? 0
+  const toolsCount = tools?.length ?? 0
+  const tracesCount = traces?.spans?.length ?? 0
+
+  const trafficData = [
+    { label: "Agents", a: agentsCount, b: toolsCount },
+    { label: "Workflows", a: workflowsCount, b: tracesCount },
+  ]
+
+  const engagementData = [
+    { label: "Ops", a: agentsCount + toolsCount, b: workflowsCount },
+    { label: "Observability", a: tracesCount, b: toolsCount },
+  ]
+
+  const shareData = [
+    { name: "Agents", value: agentsCount, fill: "#6366f1" },
+    { name: "Workflows", value: workflowsCount, fill: "#22c55e" },
+    { name: "Tools", value: toolsCount, fill: "#f97316" },
+    { name: "Traces", value: tracesCount, fill: "#06b6d4" },
+  ]
+
+  const barData = [
+    { label: "Catalog", value: agentsCount + workflowsCount + toolsCount },
+    { label: "Recent Traces", value: tracesCount },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -114,6 +142,85 @@ export default function DashboardPage() {
             href="/dashboard/observability"
             description="Last 24 hours"
           />
+        </div>
+
+        {/* Charts Grid */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Traffic</CardTitle>
+                    <CardDescription className="text-xs">Agents vs. Tools / Traces</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <LineWidget data={trafficData} />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Activity className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Engagement</CardTitle>
+                    <CardDescription className="text-xs">Ops vs. Observability mix</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <AreaWidget data={engagementData} />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Brain className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Composition</CardTitle>
+                    <CardDescription className="text-xs">Resource share</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <PieWidget data={shareData} />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Volume</CardTitle>
+                    <CardDescription className="text-xs">Catalog vs. traces</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <BarWidget data={barData} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content Grid */}

@@ -4,10 +4,10 @@ import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type EvaluationContext = {
+export interface EvaluationContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }
@@ -20,7 +20,7 @@ export const evaluationAgent = new Agent({
   description:
     'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
   instructions: ({ runtimeContext }) => {
-    const UserTier = runtimeContext.get('user-tier') as UserTier;
+    const UserTier = runtimeContext.get('user-tier');
 
     return {
       role: 'system',

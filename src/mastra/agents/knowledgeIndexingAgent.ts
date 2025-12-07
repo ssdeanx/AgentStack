@@ -7,7 +7,7 @@ import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
 import { documentRerankerTool, mdocumentChunker } from '../tools/document-chunking.tool'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type KnowledgeIndexingContext = {
+export interface KnowledgeIndexingContext {
   userId?: string
   indexName?: string
   chunkSize?: number

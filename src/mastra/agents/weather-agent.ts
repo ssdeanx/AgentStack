@@ -1,15 +1,15 @@
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { scorers } from '../scorers/weather-scorer';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type WeatherRuntimeContext = {
+export interface WeatherRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }

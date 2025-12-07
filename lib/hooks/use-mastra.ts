@@ -43,7 +43,7 @@ export function useAgents() {
 export function useAgent(agentId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!agentId) return null
+      if (!agentId) {return null}
       const agent = mastraClient.getAgent(agentId)
       const details = await agent.details()
       return { id: agentId, ...details }
@@ -55,7 +55,7 @@ export function useAgent(agentId: string | null) {
 export function useAgentEvals(agentId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!agentId) return { ci: [], live: [] }
+      if (!agentId) {return { ci: [], live: [] }}
       const agent = mastraClient.getAgent(agentId)
       const [ci, live] = await Promise.all([agent.evals(), agent.liveEvals()])
       return { ci, live }
@@ -74,7 +74,7 @@ export function useWorkflows() {
 export function useWorkflow(workflowId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!workflowId) return null
+      if (!workflowId) {return null}
       const workflow = mastraClient.getWorkflow(workflowId)
       const details = await workflow.details()
       return { id: workflowId, ...details }
@@ -87,9 +87,9 @@ export function useWorkflow(workflowId: string | null) {
 export function useTools() {
   return useMastraFetch(async () => {
     const tools = await mastraClient.getTools()
-    return Object.entries(tools).map(([toolId, tool]) => ({ 
+    return Object.entries(tools).map(([toolId, tool]) => ({
       ...(tool as unknown as Record<string, unknown>),
-      id: toolId 
+      id: toolId
     }))
   }, [])
 }
@@ -97,12 +97,12 @@ export function useTools() {
 export function useTool(toolId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!toolId) return null
+      if (!toolId) {return null}
       const tool = mastraClient.getTool(toolId)
       const details = await tool.details()
-      return { 
+      return {
         ...(details as unknown as Record<string, unknown>),
-        id: toolId 
+        id: toolId
       }
     },
     [toolId]
@@ -120,7 +120,7 @@ export function useVectorIndexes(vectorName: string) {
 export function useVectorDetails(vectorName: string, indexName: string | null) {
   return useMastraFetch(
     async () => {
-      if (!indexName) return null
+      if (indexName === null) {return null}
       const vector = mastraClient.getVector(vectorName)
       return await vector.details(indexName);
     },
@@ -143,14 +143,14 @@ export function useMemoryThread(threadId: string | null, agentId: string) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const fetchMessages = useCallback(
+   const fetchMessages = useCallback(
     async (limit = 50) => {
-      if (!threadId) return
+      if (threadId === null) { return }
       setLoading(true)
       try {
         const thread = mastraClient.getMemoryThread(threadId, agentId)
         const result = await thread.getMessages({ limit })
-        setMessages(result.messages || [])
+        setMessages(result.messages ?? [])
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)))
       } finally {
@@ -219,7 +219,7 @@ export function useAITraces(params?: {
 export function useAITrace(traceId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!traceId) return null
+      if (!traceId) {return null}
       return await mastraClient.getAITrace(traceId);
     },
     [traceId]
@@ -239,7 +239,7 @@ export function useLogs(transportId?: string) {
 export function useRunLogs(runId: string | null, transportId?: string) {
   return useMastraFetch(
     async () => {
-      if (!runId) return null
+      if (!runId) {return null}
       return await mastraClient.getLogForRun({ runId, transportId: transportId ?? "" })
     },
     [runId, transportId]
@@ -284,9 +284,9 @@ export function useExecuteTool() {
         setResult(res)
         return res
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        setError(error)
-        throw error
+        const errorInstance = err instanceof Error ? err : new Error(String(err))
+        setError(errorInstance)
+        throw errorInstance
       } finally {
         setLoading(false)
       }
@@ -313,9 +313,9 @@ export function useCreateMemoryThread() {
       try {
         return await mastraClient.createMemoryThread(params);
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        setError(error)
-        throw error
+        const errorInstance = err instanceof Error ? err : new Error(String(err))
+        setError(errorInstance)
+        throw errorInstance
       } finally {
         setLoading(false)
       }
@@ -342,9 +342,9 @@ export function useUpdateWorkingMemory() {
       try {
         await mastraClient.updateWorkingMemory(params)
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        setError(error)
-        throw error
+        const errorInstance = err instanceof Error ? err : new Error(String(err))
+        setError(errorInstance)
+        throw errorInstance
       } finally {
         setLoading(false)
       }
@@ -376,13 +376,13 @@ export function useVectorQuery() {
       try {
         const vector = mastraClient.getVector(vectorName)
         const res = await vector.query(params)
-        const results = Array.isArray(res) ? res : []
-        setResults(results)
+        const queryResults = Array.isArray(res) ? res : []
+        setResults(queryResults)
         return res
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        setError(error)
-        throw error
+        const errorInstance = err instanceof Error ? err : new Error(String(err))
+        setError(errorInstance)
+        throw errorInstance
       } finally {
         setLoading(false)
       }
@@ -407,9 +407,9 @@ export function useScoreTraces() {
       try {
         return await mastraClient.score(params);
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        setError(error)
-        throw error
+        const errorInstance = err instanceof Error ? err : new Error(String(err))
+        setError(errorInstance)
+        throw errorInstance
       } finally {
         setLoading(false)
       }

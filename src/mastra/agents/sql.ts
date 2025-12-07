@@ -1,12 +1,12 @@
 import { Agent } from "@mastra/core/agent";
 import { InternalSpans } from '@mastra/core/ai-tracing';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 import { googleAI, googleAIFlashLite, googleAIPro, pgMemory } from "../config";
 import * as tools from "../tools/pg-sql-tool";
 import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
-import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type SqlAgentRuntimeContext = {
+export interface SqlAgentRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }

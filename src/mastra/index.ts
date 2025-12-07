@@ -525,8 +525,7 @@ export const mastra = new Mastra({
 
       }),
       networkRoute({
-        path: "/network",
-        agent: "agentNetwork",
+        path: "/network/:agentId",
         defaultOptions: {
           memory: {
             thread: {
@@ -534,97 +533,12 @@ export const mastra = new Mastra({
               resourceId: 'network',
             },
             resource: "network",
-            options:
-              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
-          },
-          maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          },
-          includeRawChunks: true,
-          savePerStep: true,
-        }
-      }),
-       networkRoute({
-        path: "/network",
-        agent: "dataPipelineNetwork",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'network',
-              resourceId: 'network',
-            },
-            resource: "network",
-            options:
-              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
-          },
-          maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          },
-          includeRawChunks: true,
-          savePerStep: true,
-        }
-      }),
-       networkRoute({
-        path: "/network",
-        agent: "reportGenerationNetwork",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'network',
-              resourceId: 'network',
-            },
-            resource: "network",
-            options:
-              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
-          },
-          maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          },
-          includeRawChunks: true
-        }
-      }),
-       networkRoute({
-        path: "/network",
-        agent: "researchPipelineNetwork",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'network',
-              resourceId: 'network',
-            },
-            resource: "network",
-           options:
-              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
-          },
-          maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          }
-        }
-      }),
-       networkRoute({
-        path: "/network",
-        agent: "codingTeamNetwork",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'coding-network',
-              resourceId: 'coding-network',
-            },
-            resource: "coding-network",
-            options:
-              { lastMessages: 500,  semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true,  } }
+            options: {
+              lastMessages: 500,
+              semanticRecall: true,
+              workingMemory: { enabled: true },
+              threads: { generateTitle: true }
+            }
           },
           maxSteps: 200,
           telemetry: {
@@ -637,14 +551,14 @@ export const mastra = new Mastra({
         }
       }),
     ],
-    cors: {
-      origin: ["*"], // Allow specific origins or '*' for all
-      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowHeaders: ["Content-Type", "Authorization", 'x-mastra-client-type'],
-      exposeHeaders: ["Content-Length", "X-Requested-With"],
-      credentials: false,
-    },
-    middleware: [
+//    cors: {
+//      origin: ["*"], // Allow specific origins or '*' for all
+//      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//      allowHeaders: ["Content-Type", "Authorization"],
+//      exposeHeaders: ["Content-Length", "X-Requested-With"],
+//      credentials: false,
+//    },
+//    middleware: [
       // Middleware to extract data from the request body
 //      async (c, next) => {
 //        const runtimeContext = c.get("runtimeContext");
@@ -667,7 +581,7 @@ export const mastra = new Mastra({
 //        }
 //        await next();
 //      },
-          ],
+//0          ],
     }
 });
 

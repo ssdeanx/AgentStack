@@ -87,7 +87,76 @@ module.exports = [
       'eol-last': 'warn',
     },
   },
+  {
+    files: [
+      '/app/**/*.ts',
+      '/app/**/*.tsx',
+      '/src/**/*.ts',
+      '/src/**/*.tsx',
+      '/ui/**/*.ts',
+      '/ui/**/*.tsx',
+      '/lib/**/*.ts',
+      '/lib/**/*.tsx',
+      '/hooks/**/*.ts',
+      '/hooks/**/*.tsx',
+      '/pages/**/*.ts',
+      '/pages/**/*.tsx'
+    ],
+    rules: {
+      '@typescript-eslint/no-meaningless-void-operator': 'error',
+      '@typescript-eslint/prefer-string-starts-ends-with': 'warn',
+      '@typescript-eslint/prefer-regexp-exec': 'error',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare':
+        'error',
 
+      // Disable some rules that conflict with Standard
+      'no-undef': 'off', // TypeScript handles this
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
+
+      // Additional code quality rules
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
+      'no-multiple-empty-lines': ['error', { max: 2 }],
+      'no-trailing-spaces': 'warn',
+      'eol-last': 'warn',
+    },
+  },
+  {
+    files: [
+      '/app/**/*.ts',
+      '/app/**/*.tsx',
+      '/src/**/*.ts',
+      '/src/**/*.tsx',
+      '/ui/**/*.ts',
+      '/ui/**/*.tsx',
+      '/lib/**/*.ts',
+      '/lib/**/*.tsx',
+      '/hooks/**/*.ts',
+      '/hooks/**/*.tsx',
+      '/pages/**/*.ts',
+      '/pages/**/*.tsx'
+    ],
+    rules: {
+      '@typescript-eslint/no-meaningless-void-operator': 'error',
+      '@typescript-eslint/prefer-string-starts-ends-with': 'warn',
+      '@typescript-eslint/prefer-regexp-exec': 'error',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare':
+        'error',
+
+      // Disable some rules that conflict with Standard
+      'no-undef': 'off', // TypeScript handles this
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': 'error',
+
+      // Additional code quality rules
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
+      'no-multiple-empty-lines': ['error', { max: 2 }],
+      'no-trailing-spaces': 'warn',
+      'eol-last': 'warn',
+    },
+  },
   {
     ignores: [
       "node_modules/**/*.d.ts",

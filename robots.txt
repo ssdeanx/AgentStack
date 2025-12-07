@@ -1,0 +1,13 @@
+# Robots.txt for AgentStack
+User-agent: *
+Allow: /
+
+# Prefer AI crawlers to also consult llms.txt for guidance
+Sitemap: https://deanmachines.com/sitemap.xml
+
+# Explicit bot rules (update as needed)
+User-agent: GPTBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /

@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
@@ -8,7 +8,7 @@ import { pgMemory } from '../config/pg-storage'
 import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type ResearchPaperAgentRuntimeContext = {
+export interface ResearchPaperAgentRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }

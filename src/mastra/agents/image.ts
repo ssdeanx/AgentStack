@@ -1,13 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { imageGen, pgMemory } from '../config'
 import { log } from '../config/logger'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type ImageRuntimeContext = {
+export interface ImageRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
   aspectratio: '16:9' | '4:3' | '1:1'

@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
@@ -24,10 +24,10 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type StockRuntimeContext = {
+export interface StockRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }
@@ -250,6 +250,6 @@ export const stockAnalysisAgent = new Agent({
   },
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.MODEL } },
- 
+
   maxRetries: 5
 })

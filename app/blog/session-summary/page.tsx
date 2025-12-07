@@ -5,7 +5,7 @@ export default function SessionSummary() {
   const date = "2025-12-06"
   const readTime = "4 min read"
   return (
-    <BlogLayout title={title} date={date} readTime={readTime} category="Dev Diary">
+    <BlogLayout title={title} date={date} readTime={readTime} category="Dev Diary" slug="session-summary-2025-12-06">
       <section className="prose max-w-none mdx-content">
         <p>
           This development session implemented a number of fixes and improvements across the repo —
