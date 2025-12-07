@@ -61,7 +61,7 @@ export function useAgentQuery(agentId: string | null) {
   return useQuery({
     queryKey: queryKeys.agent(agentId ?? ""),
     queryFn: async (): Promise<Agent | null> => {
-      if (!agentId) return null
+      if (!agentId) {return null}
       const agent = mastraClient.getAgent(agentId)
       const details = await agent.details()
       return {
@@ -69,15 +69,15 @@ export function useAgentQuery(agentId: string | null) {
         name: details.name,
         description: details.description,
         model: (details as unknown as Record<string, unknown>).model as string | undefined,
-        instructions: typeof details.instructions === 'string' 
-          ? details.instructions 
+        instructions: typeof details.instructions === 'string'
+          ? details.instructions
           : JSON.stringify(details.instructions),
-        tools: details.tools 
+        tools: details.tools
           ? Object.keys(details.tools).map(id => ({ id, name: id }))
           : [],
       } as Agent
     },
-    enabled: !!agentId,
+    enabled: !(!agentId),
   })
 }
 
@@ -85,7 +85,7 @@ export function useAgentEvalsQuery(agentId: string | null) {
   return useQuery({
     queryKey: queryKeys.agentEvals(agentId ?? ""),
     queryFn: async () => {
-      if (!agentId) return { ci: [], live: [] }
+      if (!agentId) {return { ci: [], live: [] }}
       const agent = mastraClient.getAgent(agentId)
       const [ciResult, liveResult] = await Promise.all([
         agent.evals(),
@@ -119,14 +119,14 @@ export function useWorkflowQuery(workflowId: string | null) {
   return useQuery({
     queryKey: queryKeys.workflow(workflowId ?? ""),
     queryFn: async (): Promise<Workflow | null> => {
-      if (!workflowId) return null
+      if (!workflowId) {return null}
       const workflow = mastraClient.getWorkflow(workflowId)
       const details = await workflow.details()
       return {
         id: workflowId,
         name: details.name,
         description: details.description,
-        steps: details.steps 
+        steps: details.steps
           ? Object.entries(details.steps).map(([stepId, step]) => ({
               id: stepId,
               name: (step as Record<string, unknown>).name as string | undefined,
@@ -158,7 +158,7 @@ export function useToolQuery(toolId: string | null) {
   return useQuery({
     queryKey: queryKeys.tool(toolId ?? ""),
     queryFn: async (): Promise<Tool | null> => {
-      if (!toolId) return null
+      if (!toolId) {return null}
       const tool = mastraClient.getTool(toolId)
       const details = await tool.details()
       return {
@@ -204,7 +204,7 @@ export function useTraceQuery(traceId: string | null) {
   return useQuery({
     queryKey: queryKeys.trace(traceId ?? ""),
     queryFn: async () => {
-      if (!traceId) return null
+      if (!traceId) {return null}
       return await mastraClient.getAITrace(traceId)
     },
     enabled: !!traceId,
@@ -238,7 +238,7 @@ export function useMemoryMessagesQuery(
   return useQuery({
     queryKey: queryKeys.messages(threadId ?? "", agentId),
     queryFn: async (): Promise<Message[]> => {
-      if (!threadId) return []
+      if (!threadId) {return []}
       const thread = mastraClient.getMemoryThread(threadId, agentId)
       const result = await thread.getMessages({ limit })
       return (result.messages ?? []) as Message[]
@@ -288,7 +288,7 @@ export function useRunLogsQuery(runId: string | null, transportId?: string) {
   return useQuery({
     queryKey: queryKeys.runLogs(runId ?? "", transportId),
     queryFn: async () => {
-      if (!runId) return null
+      if (!runId) {return null}
       return await mastraClient.getLogForRun({ runId, transportId: transportId ?? "" })
     },
     enabled: !!runId,
@@ -338,7 +338,7 @@ export function useVectorDetailsQuery(vectorName: string, indexName: string | nu
   return useQuery({
     queryKey: queryKeys.vectorDetails(vectorName, indexName ?? ""),
     queryFn: async () => {
-      if (!indexName) return null
+      if (!indexName) {return null}
       const vector = mastraClient.getVector(vectorName)
       return await vector.details(indexName)
     },

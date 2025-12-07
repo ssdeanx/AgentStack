@@ -8,11 +8,22 @@ export const metadata = {
 }
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "AgentStack Docs",
+    description: "Technical documentation for AgentStack (Mastra)",
+    url: "https://deanmachines.com/docs",
+    publisher: { "@type": "Organization", name: "AgentStack", url: "https://deanmachines.com" },
+    mainEntityOfPage: "https://deanmachines.com/docs",
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
       <div className="container mx-auto flex w-full flex-1 gap-6 px-4 py-8 lg:py-12 lg:px-6">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
         {/* Sidebar on large screens */}
         <Sidebar />
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { NetworkProvider } from "./providers/network-context"
 import { NetworkHeader } from "./components/network-header"
 import { NetworkChat } from "./components/network-chat"
@@ -7,6 +8,7 @@ import { NetworkRoutingPanel } from "./components/network-routing-panel"
 
 export default function NetworksPage() {
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <NetworkProvider defaultNetwork="agentNetwork">
       <main className="flex h-screen flex-col bg-background">
         <NetworkHeader />
@@ -23,5 +25,6 @@ export default function NetworksPage() {
         </div>
       </main>
     </NetworkProvider>
+    </Suspense>
   )
 }

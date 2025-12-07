@@ -36,8 +36,8 @@ export const extractLearningsTool = createTool({
       if (!mastra) {
         throw new Error('Mastra instance not found')
       }
-      // The Learning Extraction Agent's id is 'learning' (see agents/learningExtractionAgent.ts)
-      const learningExtractionAgent = mastra.getAgent('learning')
+      // The Learning Extraction Agent's id is 'learningExtraction' (see agents/learningExtractionAgent.ts)
+      const learningExtractionAgent = mastra.getAgent('learningExtraction')
       // Validate the agent exists and exposes the expected API
       if (
         learningExtractionAgent === null ||

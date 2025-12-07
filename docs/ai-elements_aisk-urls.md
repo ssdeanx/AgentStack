@@ -67,3 +67,116 @@ Location `C:/Users/ssdsk/mastra/ui` & `C:/Users/ssdsk/mastra/src/components/ai-e
 - [Code Block](https://ai-sdk.dev/elements/components/code-block)
 - [Image](https://ai-sdk.dev/elements/components/image)
 - [Loader](https://ai-sdk.dev/elements/components/loader)
+
+
+---
+
+# Mastra Event Types and Templates
+
+- The following TypeScript code defines event types and templates for Mastra workflow streaming.
+- This is what the event stream looks like when a workflow is executed.
+- This might be useful for building custom UIs or debugging workflows.  Ai-SDK integration uses similar event structures for streaming data.  These events can be adapted for various frontend components.
+
+```ts
+/**
+ * Event types for Mastra workflow streaming
+ */
+export type MastraEventType =
+    | 'start'
+    | 'step-start'
+    | 'tool-call'
+    | 'tool-result'
+    | 'step-finish'
+    | 'tool-output'
+    | 'step-result'
+    | 'step-output'
+    | 'finish'
+
+// Event templates
+const mastraEventTemplates: Record<MastraEventType, Record<string, unknown>> = {
+    start: {
+        type: 'start',
+        from: 'WORKFLOW',
+        payload: { workflowId: 'name-goes-here' },
+    },
+    'step-start': {
+        type: 'step-start',
+        from: 'WORKFLOW',
+        payload: {
+            stepName: 'callAgent',
+            startedAt: Date.now(),
+        },
+    },
+    'tool-call': {
+        type: 'tool-call',
+        from: 'AGENT',
+        payload: {
+            toolCallId: 'tc_' + Date.now(),
+            args: {},
+            toolName: 'chatAgent',
+        },
+    },
+    'tool-result': {
+        type: 'tool-result',
+        from: 'AGENT',
+        payload: {
+            toolCallId: 'tc_' + Date.now(),
+            toolName: 'chatAgent',
+            result: { success: true },
+        },
+    },
+    'step-finish': {
+        type: 'step-finish',
+        from: 'WORKFLOW',
+        payload: {
+            reason: 'completed',
+            usage: {
+                promptTokens: 0,
+                completionTokens: 0,
+                totalTokens: 0,
+            },
+            response: { text: '' },
+            endedAt: Date.now(),
+        },
+    },
+    'tool-output': {
+        type: 'tool-output',
+        from: 'AGENT',
+        payload: {
+            output: { text: '' },
+            toolCallId: 'tc_' + Date.now(),
+            toolName: 'chatAgent',
+        },
+    },
+    'step-result': {
+        type: 'step-result',
+        from: 'WORKFLOW',
+        payload: {
+            stepName: 'callAgent',
+            result: { content: '' },
+            status: 'success',
+            endedAt: Date.now(),
+        },
+    },
+    'step-output': {
+        type: 'step-output',
+        from: 'AGENT',
+        payload: {
+            output: { text: '' },
+            toolCallId: 'tc_' + Date.now(),
+            toolName: 'chatAgent',
+        },
+    },
+    finish: {
+        type: 'finish',
+        from: 'WORKFLOW',
+        payload: {
+            totalUsage: {
+                promptTokens: 0,
+                completionTokens: 0,
+                totalTokens: 0,
+            },
+        },
+    },
+}
+```

@@ -1,9 +1,9 @@
-"use client"
 
 import { ReactNode } from "react"
+import BlogShare from "./blog-share.client"
 import Link from "next/link"
 import { Badge } from "@/ui/badge"
-import { CalendarIcon, ClockIcon, ArrowLeftIcon, ShareIcon } from "lucide-react"
+import { CalendarIcon, ClockIcon, ArrowLeftIcon } from "lucide-react"
 import { Button } from "@/ui/button"
 
 interface BlogLayoutProps {
@@ -14,6 +14,7 @@ interface BlogLayoutProps {
   category: string
   author?: string
   tags?: string[]
+  slug?: string
 }
 
 export function BlogLayout({ 
@@ -23,17 +24,20 @@ export function BlogLayout({
   readTime, 
   category,
   author = "AgentStack Team",
-  tags = []
+  tags = [],
+  slug,
 }: BlogLayoutProps) {
-  const handleShare = async () => {
-    if (typeof window === "undefined") return
-    if (navigator.share) {
-      await navigator.share({ title, url: window.location.href })
-    } else {
-      await navigator.clipboard.writeText(window.location.href)
-    }
-  }
-
+  const canonical = slug ? `https://deanmachines.com/blog/${slug}` : "https://deanmachines.com/blog";
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    datePublished: date,
+    author: { "@type": "Person", name: author },
+    publisher: { "@type": "Organization", name: "AgentStack", url: "https://deanmachines.com" },
+    url: canonical,
+    mainEntityOfPage: canonical,
+  };
   return (
     <article className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-3xl">
@@ -43,9 +47,7 @@ export function BlogLayout({
               <ArrowLeftIcon className="mr-2 size-4" /> Back to Blog
             </Link>
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleShare}>
-            <ShareIcon className="mr-2 size-4" /> Share
-          </Button>
+          <BlogShare />
         </div>
         
         <header className="mb-12">
@@ -82,6 +84,7 @@ export function BlogLayout({
         </header>
 
         <div className="mdx-content">
+           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
           {children}
         </div>
       </div>

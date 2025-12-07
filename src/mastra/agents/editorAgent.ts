@@ -2,14 +2,14 @@ import type { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOpti
 import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { responseQualityScorer, structureScorer, summaryQualityScorer, toneConsistencyScorer } from '../scorers';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type EditorRuntimeContext = {
+export interface EditorRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }

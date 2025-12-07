@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useEffect, useState } from "react"
+import { ReactNode, useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/ui/button"
 import { Badge } from "@/ui/badge"
@@ -31,6 +31,18 @@ export function DocsLayout({
   nextPage,
   showToc = true
 }: DocsLayoutProps) {
+  const ld = useMemo(() => {
+    const url = typeof window !== "undefined" ? window.location.href : "https://deanmachines.com";
+    return {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: title,
+      description: description ?? '',
+      publisher: { "@type": "Organization", name: "AgentStack", url: "https://deanmachines.com" },
+      url,
+      mainEntityOfPage: url,
+    };
+  }, [title, description]);
   const [toc, setToc] = useState<TocItem[]>([])
   const [activeId, setActiveId] = useState<string>("")
 

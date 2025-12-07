@@ -1,7 +1,7 @@
 ---
 description: "Expert assistant for developing Model Context Protocol (MCP) servers in TypeScript"
 name: "TypeScript MCP Server Expert"
-model: GPT-4.1
+
 ---
 
 # TypeScript MCP Server Expert

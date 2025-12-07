@@ -2,8 +2,6 @@
 description: 'Expert at designing and creating VS Code custom agents with optimal configurations'
 name: Custom Agent Foundry
 argument-hint: Describe the agent role, purpose, and required capabilities
-model: Claude Sonnet 4.5
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'github/*', 'todo']
 ---
 
 # Custom Agent Foundry - Expert Agent Designer

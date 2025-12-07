@@ -2,11 +2,11 @@ import { Agent } from "@mastra/core/agent";
 import { InternalSpans } from "@mastra/core/ai-tracing";
 import { googleAI, pgMemory } from "../config";
 import { csvValidityScorer } from "../scorers";
-import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type KnowledgeIndexingContext = {
+export interface KnowledgeIndexingContext {
   userId?: string
   indexName?: string
   chunkSize?: number

@@ -34,8 +34,8 @@ const defaultFeatures: NetworkFeatures = {
 }
 
 export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
-  agentNetwork: {
-    id: "agentNetwork",
+  "agent-network": {
+    id: "agent-network",
     name: "Agent Network",
     description: "Routes requests to specialized agents based on query analysis",
     category: "routing",
@@ -48,8 +48,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       { id: "weatherAgent", name: "Weather Agent", description: "Weather forecasts", role: "utility" },
     ],
   },
-  dataPipelineNetwork: {
-    id: "dataPipelineNetwork",
+  "data-pipeline-network": {
+    id: "data-pipeline-network",
     name: "Data Pipeline Network",
     description: "Orchestrates data ingestion, transformation, and export",
     category: "pipeline",
@@ -60,8 +60,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       { id: "dataExportAgent", name: "Data Export", description: "File writing and backup", role: "export" },
     ],
   },
-  reportGenerationNetwork: {
-    id: "reportGenerationNetwork",
+  "report-generation-network": {
+    id: "report-generation-network",
     name: "Report Generation Network",
     description: "Coordinates research, analysis, and report compilation",
     category: "pipeline",
@@ -72,8 +72,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       { id: "reportAgent", name: "Report Agent", description: "Generate formatted reports", role: "output" },
     ],
   },
-  researchPipelineNetwork: {
-    id: "researchPipelineNetwork",
+  "research-pipeline-network": {
+    id: "research-pipeline-network",
     name: "Research Pipeline Network",
     description: "Multi-source research aggregation and synthesis",
     category: "research",
