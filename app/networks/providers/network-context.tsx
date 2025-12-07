@@ -75,15 +75,44 @@ const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localho
 /**
  * Convert Mastra `data-tool-*` or `data-network` parts to DynamicToolUIPart
  */
-function mapDataPartToDynamicTool(part: any): DynamicToolUIPart | null {
-  if (!part || typeof part !== "object") {return null}
+interface MastraPart {
+  [key: string]: unknown
+  type: string
+  data?: unknown
+  payload?: unknown
 
-  const partType = part.type as string
+}
+
+interface ToolData {
+  toolCallId?: string
+  id?: string
+  callId?: string
+  toolName?: string
+  name?: string
+  tool?: string
+  agentName?: string
+  input?: unknown
+  args?: unknown
+  params?: unknown
+  output?: unknown
+  result?: unknown
+  value?: unknown
+  errorText?: string
+  error?: string
+  state?: string
+  status?: string
+  data?: ToolData
+}
+
+function mapDataPartToDynamicTool(part: MastraPart): DynamicToolUIPart | null {
+  if (part === null || typeof part !== "object") {return null}
+
+  const partType = part.type
   if (!partType?.startsWith("data-tool") && partType !== "data-network") {
     return null
   }
 
-  const payload = part.data ?? part.payload ?? part
+  const payload = (part.data ?? part.payload ?? part) as ToolData
   const inner = payload?.data ?? payload
 
   const toolCallId = inner?.toolCallId ?? inner?.id ?? inner?.callId ?? `tool-${Date.now()}`
@@ -113,13 +142,15 @@ export function NetworkProvider({
   children,
   defaultNetwork = "agent-network",
 }: NetworkProviderProps) {
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(defaultNetwork)
+  // Validate default network exists
+  const validDefaultNetwork = NETWORK_CONFIGS[defaultNetwork] !== undefined ? defaultNetwork : Object.keys(NETWORK_CONFIGS)[0]
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(validDefaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
   const [sources, setSources] = useState<Source[]>([])
 
   const networkConfig = useMemo(
-    () => getNetworkConfig(selectedNetwork),
+    () => NETWORK_CONFIGS[selectedNetwork],
     [selectedNetwork]
   )
 
@@ -185,7 +216,7 @@ export function NetworkProvider({
   // Extract tool invocations from messages
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role !== "assistant" || !lastMessage.parts) {return []}
+    if (lastMessage?.role !== "assistant" || !lastMessage.parts?.length) {return []}
 
     const result: ToolInvocationState[] = []
     for (const p of lastMessage.parts) {
@@ -207,10 +238,10 @@ export function NetworkProvider({
   useEffect(() => {
     const allSources: Source[] = []
     for (const message of messages) {
-      if (message.role === "assistant" && message.parts) {
+      if (message.role === "assistant" && message.parts !== null) {
         for (const part of message.parts) {
           if (part.type === "source-url") {
-            const src = part
+            const src: SourceUrlUIPart = part
             allSources.push({
               url: src.url,
               title: src.title ?? src.url,
@@ -225,7 +256,7 @@ export function NetworkProvider({
   // Extract routing steps from data-network parts
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant" && networkConfig) {
+    if (lastMessage?.role === "assistant") {
       const dataParts = lastMessage.parts?.filter(
         (p) =>
           p.type === "data-network" ||
@@ -233,7 +264,7 @@ export function NetworkProvider({
           (typeof p.type === "string" && p.type.startsWith("data-tool-"))
       )
 
-      if (dataParts && dataParts.length > 0) {
+      if (dataParts.length > 0) {
         const steps: RoutingStep[] = networkConfig.agents.map((agent, index) => ({
           agentId: agent.id,
           agentName: agent.name,
@@ -246,7 +277,8 @@ export function NetworkProvider({
   }, [messages, networkConfig, aiStatus])
 
   const selectNetwork = useCallback((networkId: NetworkId) => {
-    if (NETWORK_CONFIGS[networkId]) {
+    const config = getNetworkConfig(networkId)
+    if (config) {
       setSelectedNetwork(networkId)
       setRoutingSteps([])
       setNetworkError(null)

@@ -23,7 +23,8 @@ function StepStatusIcon({ status }: { status: RoutingStep["status"] }) {
       return <Loader2Icon className="size-4 animate-spin text-blue-500" />
     case "error":
       return <XCircleIcon className="size-4 text-red-500" />
-    case "pending": { throw new Error('Not implemented yet: "pending" case') }
+    case "pending":
+      return <CircleIcon className="size-4 text-muted-foreground" />
     default:
       return <CircleIcon className="size-4 text-muted-foreground" />
   }
@@ -65,7 +66,7 @@ function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean 
           </p>
         )}
 
-        {step.output && step.status === "completed" && (
+        {step.output && step.output.length > 0 && step.status === "completed" && (
           <p className="mt-1 text-muted-foreground text-xs line-clamp-2">
             ✓ {step.output.slice(0, 100)}...
           </p>

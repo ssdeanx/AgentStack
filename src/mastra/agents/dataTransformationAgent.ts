@@ -84,7 +84,7 @@ export const dataTransformationAgent = new Agent({
 
 ### Nested JSON to Flat CSV
 1. Use jsonToCsvTool with flattening enabled
-2. Nested objects become column prefixes: \`parent.child.value\`
+2. Nested objects become column prefixes: 'parent.child.value'
 
 ### CSV with Mixed Types to JSON
 1. Use csvToJsonTool with type inference

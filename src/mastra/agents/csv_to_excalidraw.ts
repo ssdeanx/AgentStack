@@ -2,7 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
 import { InternalSpans } from "@mastra/core/ai-tracing";
 import { structureScorer } from "../scorers";
-import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 export const csvToExcalidrawAgent = new Agent({
