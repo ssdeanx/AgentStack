@@ -313,7 +313,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/api/researchAgent",
+        path: "/custom/researchAgent",
         agent: "researchAgent",
         defaultOptions: {
           format: "aisdk",
