@@ -656,7 +656,7 @@ export function AgentWebPreviewInline({
     <div className="my-2 overflow-hidden rounded-lg border bg-background">
       <div className="flex items-center justify-between border-b bg-muted/50 px-3 py-1.5">
         <span className="text-xs font-medium text-muted-foreground">
-          {title || "Preview"}
+          {title ?? "Preview"}
         </span>
         <div className="flex items-center gap-1">
           {onExpand && (

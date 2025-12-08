@@ -46,7 +46,7 @@ function getStatusIcon(status: StepStatus) {
       return <AlertCircleIcon className="size-3 text-red-500" />
     case "skipped":
       return <SkipForwardIcon className="size-3 text-muted-foreground" />
-    case "pending": { throw new Error('Not implemented yet: "pending" case') }
+    case "pending":
     default:
       return <CircleIcon className="size-3 text-muted-foreground" />
   }
@@ -60,8 +60,8 @@ function getStatusBadgeVariant(status: StepStatus): "default" | "secondary" | "d
       return "secondary"
     case "error":
       return "destructive"
-    case "pending": { throw new Error('Not implemented yet: "pending" case') }
-    case "skipped": { throw new Error('Not implemented yet: "skipped" case') }
+    case "skipped":
+    case "pending":
     default:
       return "outline"
   }

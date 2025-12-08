@@ -412,6 +412,66 @@ export const WORKFLOW_CONFIGS: Record<string, WorkflowConfig> = {
       },
     ],
   },
+  repoIngestionWorkflow: {
+    id: "repoIngestionWorkflow",
+    name: "Repository Ingestion",
+    description: "Scan and ingest repository files into knowledge base",
+    category: "data",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "scan-repo",
+        label: "Scan Repository",
+        description: "Find files matching pattern",
+        content: "Supports local and GitHub repos",
+        footer: "Tool: glob/GitHub API",
+      },
+      {
+        id: "ingest-files",
+        label: "Ingest Files",
+        description: "Chunk and embed documents",
+        content: "Batch processing with RAG pipeline",
+        footer: "Tool: mdocumentChunker",
+      },
+    ],
+  },
+  specGenerationWorkflow: {
+    id: "specGenerationWorkflow",
+    name: "Spec Generation",
+    description: "Generate PRD, architecture, and tasks from requirements",
+    category: "research",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "create-plan",
+        label: "Create Plan",
+        description: "Orchestrate documentation flow",
+        content: "SPARC framework planning",
+        footer: "Agent: codeArchitectAgent",
+      },
+      {
+        id: "generate-prd",
+        label: "Generate PRD",
+        description: "Product requirements document",
+        content: "User stories, acceptance criteria",
+        footer: "Agent: codeArchitectAgent",
+      },
+      {
+        id: "generate-architecture",
+        label: "Architect System",
+        description: "Technical design document",
+        content: "Components, patterns, tech stack",
+        footer: "Agent: codeArchitectAgent",
+      },
+      {
+        id: "generate-tasks",
+        label: "Generate Tasks",
+        description: "Phased development tasks",
+        content: "Actionable tickets with DoD",
+        footer: "Agent: codeArchitectAgent",
+      },
+    ],
+  },
 }
 
 export const CATEGORY_LABELS: Record<WorkflowCategory, string> = {

@@ -139,7 +139,7 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateForm()) return
+    if (!validateForm()) {return}
 
     setStatus("loading")
 
@@ -153,7 +153,7 @@ export function ContactForm() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to send message")
+        throw new Error(result.error ?? "Failed to send message")
       }
 
       setStatus("success")
@@ -167,6 +167,7 @@ export function ContactForm() {
         message: "",
       })
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Contact form error:", error)
       setStatus("error")
       setTimeout(() => setStatus("idle"), 3000)
@@ -347,7 +348,7 @@ export function ContactForm() {
                         className={errors.firstName ? "border-destructive" : ""}
                         disabled={status === "loading"}
                       />
-                      {errors.firstName && (
+                      {(Boolean(errors.firstName)) && (
                         <p className="text-sm text-destructive">{errors.firstName}</p>
                       )}
                     </div>
@@ -363,7 +364,7 @@ export function ContactForm() {
                         className={errors.lastName ? "border-destructive" : ""}
                         disabled={status === "loading"}
                       />
-                      {errors.lastName && (
+                      {(Boolean(errors.lastName)) && (
                         <p className="text-sm text-destructive">{errors.lastName}</p>
                       )}
                     </div>
@@ -384,7 +385,7 @@ export function ContactForm() {
                         className={errors.email ? "border-destructive" : ""}
                         disabled={status === "loading"}
                       />
-                      {errors.email && (
+                      {(Boolean(errors.email)) && (
                         <p className="text-sm text-destructive">{errors.email}</p>
                       )}
                     </div>
@@ -436,7 +437,7 @@ export function ContactForm() {
                       className={errors.subject ? "border-destructive" : ""}
                       disabled={status === "loading"}
                     />
-                    {errors.subject && (
+                    {(Boolean(errors.subject)) && (
                       <p className="text-sm text-destructive">{errors.subject}</p>
                     )}
                   </div>
@@ -449,12 +450,12 @@ export function ContactForm() {
                     <Textarea
                       id="message"
                       placeholder="Tell us more about your project or question..."
-                      className={`min-h-[150px] resize-none ${errors.message ? "border-destructive" : ""}`}
+                      className={`min-h-[150px] resize-none ${(errors.message) ? "border-destructive" : ""}`}
                       value={formData.message}
                       onChange={handleChange}
                       disabled={status === "loading"}
                     />
-                    {errors.message && (
+                    {(Boolean(errors.message)) && (
                       <p className="text-sm text-destructive">{errors.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground">

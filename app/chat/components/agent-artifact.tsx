@@ -66,7 +66,7 @@ export function AgentArtifact({
 
   const isPreviewable =
     artifact.type === "code" &&
-    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() || "")
+    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() ?? "")
 
   const handleCopy = useCallback(async () => {
     try {

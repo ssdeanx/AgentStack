@@ -10,14 +10,22 @@ import {
   PlanFooter,
   PlanAction,
 } from "@/src/components/ai-elements/plan"
+import { Badge } from "@/ui/badge"
 import { Button } from "@/ui/button"
-import { PlayIcon, XIcon } from "lucide-react"
+import { PlayIcon, XIcon, CheckIcon, CircleIcon } from "lucide-react"
+import { useMemo } from "react"
+
+export interface PlanStep {
+  text: string
+  completed?: boolean
+}
 
 export interface AgentPlanData {
   title: string
   description: string
-  steps: string[]
+  steps: PlanStep[] | string[]
   isStreaming?: boolean
+  currentStep?: number
 }
 
 interface AgentPlanProps {
@@ -25,6 +33,13 @@ interface AgentPlanProps {
   onExecute?: () => void
   onDismiss?: () => void
   defaultOpen?: boolean
+  className?: string
+}
+
+function normalizeSteps(steps: PlanStep[] | string[]): PlanStep[] {
+  return steps.map((step) =>
+    typeof step === "string" ? { text: step, completed: false } : step
+  )
 }
 
 export function AgentPlan({
@@ -32,24 +47,63 @@ export function AgentPlan({
   onExecute,
   onDismiss,
   defaultOpen = true,
+  className,
 }: AgentPlanProps) {
+  const normalizedSteps = useMemo(() => normalizeSteps(plan.steps), [plan.steps])
+  const completedCount = normalizedSteps.filter((s) => s.completed ?? false).length
+  const progress = normalizedSteps.length > 0
+    ? Math.round((completedCount / normalizedSteps.length) * 100)
+    : 0
+
   return (
-    <Plan isStreaming={plan.isStreaming} defaultOpen={defaultOpen}>
+    <Plan isStreaming={plan.isStreaming} defaultOpen={defaultOpen} className={className}>
       <PlanHeader>
         <div className="flex-1">
-          <PlanTitle>{plan.title}</PlanTitle>
+          <div className="flex items-center gap-2">
+            <PlanTitle>{plan.title}</PlanTitle>
+            {completedCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {completedCount}/{normalizedSteps.length}
+              </Badge>
+            )}
+          </div>
           <PlanDescription>{plan.description}</PlanDescription>
         </div>
         <PlanTrigger />
       </PlanHeader>
       <PlanContent>
-        <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-          {plan.steps.map((step, index) => (
-            <li key={index} className="leading-relaxed">
-              {step}
-            </li>
-          ))}
+        <ol className="space-y-2 text-sm">
+          {normalizedSteps.map((step, index) => {
+            const isCurrentStep = plan.currentStep === index
+            const isCompleted = step.completed
+
+            return (
+              <li
+                key={index}
+                className={`flex items-start gap-2 leading-relaxed ${
+                  (isCompleted ?? false) ? "text-muted-foreground line-through" : ""
+                } ${isCurrentStep ? "font-medium text-foreground" : "text-muted-foreground"}`}
+              >
+                <span className="shrink-0 mt-0.5">
+                  {(isCompleted ?? false) ? (
+                    <CheckIcon className="size-4 text-green-500" />
+                  ) : (
+                    <CircleIcon className={`size-4 ${isCurrentStep ? "text-primary" : "text-muted-foreground/50"}`} />
+                  )}
+                </span>
+                <span>{step.text}</span>
+              </li>
+            )
+          })}
         </ol>
+        {progress > 0 && progress < 100 && (
+          <div className="mt-3 h-1 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
       </PlanContent>
       {(onExecute ?? onDismiss) && (
         <PlanFooter>
@@ -74,21 +128,31 @@ export function AgentPlan({
 }
 
 export function extractPlanFromText(text: string): AgentPlanData | null {
-  const planMatch = /(?:plan|steps|approach|strategy)[:.]?\s*\n((?:[-•\d.].+\n?)+)/i.exec(text)
-  if (!planMatch) {return null}
+  const planPatterns = [
+    /(?:plan|steps|approach|strategy|roadmap|outline)[:\s]*\n((?:[-•\d].+\n?)+)/i,
+    /(?:here's|here is|my|the) (?:plan|approach|strategy)[:\s]*\n((?:[-•\d].+\n?)+)/i,
+    /(?:i will|let me|first,)[:\s]*((?:[-•\d].+\n?)+)/i,
+  ]
 
-  const stepsText = planMatch[1]
-  const steps = stepsText
-    .split("\n")
-    .map((line) => line.replace(/^[-•\d.]+\s*/, "").trim())
-    .filter((line) => line.length > 0)
+  for (const pattern of planPatterns) {
+    const match = pattern.exec(text)
+    if (match) {
+      const stepsText = match[1]
+      const steps = stepsText
+        .split("\n")
+        .map((line) => line.replace(/^[-•\d.]+\s*/, "").trim())
+        .filter((line) => line.length > 0)
 
-  if (steps.length < 2) {return null}
-
-  return {
-    title: "Execution Plan",
-    description: `${steps.length} steps to complete this task`,
-    steps,
-    isStreaming: false,
+      if (steps.length >= 2) {
+        return {
+          title: "Execution Plan",
+          description: `${steps.length} steps to complete this task`,
+          steps: steps.map((stepText) => ({ text: stepText, completed: false })),
+          isStreaming: false,
+        }
+      }
+    }
   }
+
+  return null
 }

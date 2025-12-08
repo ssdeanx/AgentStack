@@ -49,7 +49,7 @@ export function Footer() {
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    if (!email) {return}
 
     setStatus("loading")
     // Simulate API call

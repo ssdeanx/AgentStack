@@ -12,43 +12,40 @@ import {
   CodeIcon,
 } from "lucide-react"
 import { Badge } from "@/ui/badge"
+import { BentoGrid, BentoGridItem } from "@/ui/effects/bento-grid"
 
 const FEATURES = [
   {
     title: "Multi-Agent Orchestration",
     description:
-      "Coordinate complex workflows with 22+ specialized agents working together seamlessly. Define hierarchies, communication protocols, and fallback strategies.",
-    icon: BotIcon,
-    gradient: "from-blue-500 to-cyan-500",
+      "Coordinate complex workflows with 22+ specialized agents working together seamlessly.",
+    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    icon: <BotIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-2",
-    highlights: ["Agent Networks", "Task Routing", "Parallel Execution"],
   },
   {
     title: "RAG Pipelines",
     description:
-      "Built-in retrieval-augmented generation with PgVector, document processing, and semantic search capabilities.",
-    icon: DatabaseIcon,
-    gradient: "from-purple-500 to-pink-500",
+      "Built-in retrieval-augmented generation with PgVector and semantic search.",
+    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    icon: <DatabaseIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-1",
-    highlights: ["Vector Search", "Embeddings"],
   },
   {
     title: "Enterprise Tools",
     description:
-      "30+ production-ready tools for financial data, research, content creation, and system operations.",
-    icon: WrenchIcon,
-    gradient: "from-orange-500 to-red-500",
+      "30+ production-ready tools for financial data and research.",
+    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    icon: <WrenchIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-1",
-    highlights: ["API Integrations", "Custom Tools"],
   },
   {
     title: "Observability",
     description:
-      "Full tracing and monitoring with Arize/Phoenix integration. Debug agent reasoning and optimize performance in real-time.",
-    icon: ActivityIcon,
-    gradient: "from-green-500 to-emerald-500",
+      "Full tracing and monitoring with Arize/Phoenix integration.",
+    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    icon: <ActivityIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-2",
-    highlights: ["Tracing", "Metrics", "Debugging"],
   },
 ]
 
@@ -97,8 +94,8 @@ const itemVariants = {
 export function LandingFeatures() {
   return (
     <section className="relative overflow-hidden py-24 lg:py-32">
-      {/* Background decoration */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
+       {/* Background decoration - heavily reduced opacity for subtle feel */}
+       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-30" />
 
       <div className="container mx-auto px-4">
         <motion.div
@@ -119,62 +116,19 @@ export function LandingFeatures() {
           </p>
         </motion.div>
 
-        {/* Main feature grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="mb-16 grid gap-6 md:grid-cols-3"
-        >
-          {FEATURES.map((feature) => (
-            <motion.div
-              key={feature.title}
-              variants={itemVariants}
-              className={`card-3d group relative overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 ${feature.className}`}
-            >
-              <div className="card-3d-inner preserve-3d">
-              {/* Gradient background on hover */}
-              <div
-                className={`absolute inset-0 -z-10 bg-linear-to-br ${feature.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
-              />
-
-              {/* Icon */}
-              <div
-                className={`mb-6 inline-flex size-12 items-center justify-center rounded-xl bg-linear-to-br ${feature.gradient} text-white shadow-lg`}
-              >
-                <feature.icon className="size-6" />
-              </div>
-
-              {/* Content */}
-              <h3 className="mb-3 text-xl font-bold text-foreground lg:text-2xl">
-                {feature.title}
-              </h3>
-              <p className="mb-6 text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
-
-              {/* Highlights */}
-              <div className="flex flex-wrap gap-2">
-                {feature.highlights.map((highlight) => (
-                  <Badge
-                    key={highlight}
-                    variant="secondary"
-                    className="text-xs font-normal"
-                  >
-                    {highlight}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Decorative corner */}
-              <div
-                className={`absolute -right-8 -top-8 size-24 rounded-full bg-linear-to-br ${feature.gradient} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
-              />
-              </div>
-            </motion.div>
+        {/* Main feature grid (Bento) */}
+        <BentoGrid className="mb-24">
+          {FEATURES.map((feature, i) => (
+            <BentoGridItem
+              key={i}
+              title={feature.title}
+              description={feature.description}
+              header={feature.header}
+              icon={feature.icon}
+              className={feature.className}
+            />
           ))}
-        </motion.div>
+        </BentoGrid>
 
         {/* Additional features */}
         <motion.div
@@ -188,10 +142,10 @@ export function LandingFeatures() {
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className="perspective group rounded-xl border border-border bg-card/50 p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:bg-card hover:-translate-y-1 hover:shadow-lg"
+              className="group rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
             >
-              <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <feature.icon className="size-5" />
+              <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
+                <feature.icon className="size-5" strokeWidth={1.5} />
               </div>
               <h3 className="mb-2 font-semibold text-foreground">
                 {feature.title}
@@ -209,23 +163,23 @@ export function LandingFeatures() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           viewport={{ once: true }}
-          className="mt-16 rounded-2xl border border-border bg-muted/30 p-8"
+          className="mt-24 rounded-2xl border border-border/50 bg-muted/20 p-8 backdrop-blur-sm"
         >
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground lg:text-4xl">22+</div>
+            <div className="text-center group">
+              <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">22+</div>
               <div className="mt-1 text-sm text-muted-foreground">Specialized Agents</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground lg:text-4xl">30+</div>
+            <div className="text-center group">
+              <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">30+</div>
               <div className="mt-1 text-sm text-muted-foreground">Enterprise Tools</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground lg:text-4xl">10</div>
+            <div className="text-center group">
+              <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">10</div>
               <div className="mt-1 text-sm text-muted-foreground">Workflow Templates</div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground lg:text-4xl">99.9%</div>
+            <div className="text-center group">
+              <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">99.9%</div>
               <div className="mt-1 text-sm text-muted-foreground">Uptime SLA</div>
             </div>
           </div>

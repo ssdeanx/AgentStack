@@ -252,13 +252,11 @@ function MessageItem({
             </MessageAttachments>
           )}
 
-          {/* Chain of Thought / Reasoning */}
-          {isAssistant && showChainOfThought && reasoningSteps.length > 0 && (
-            <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
-          )}
-
-          {isAssistant && showReasoning && !showChainOfThought && messageReasoning && (
-            <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
+          {/* Chain of Thought / Reasoning - mutually exclusive display */}
+          {isAssistant && messageReasoning && (showChainOfThought || showReasoning) && (
+            showChainOfThought && reasoningSteps.length > 0
+              ? <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
+              : <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
           )}
 
           {/* Plan */}
@@ -278,7 +276,7 @@ function MessageItem({
                     uint8Array={new Uint8Array()}
                     mediaType={img.mediaType || "image/png"}
                     className="max-w-md rounded-lg"
-                    alt={img.filename || `Generated image ${idx + 1}`}
+                    alt={img.filename ?? `Generated image ${idx + 1}`}
                   />
                 )
               })}
@@ -482,7 +480,7 @@ export function ChatMessages() {
           <ConversationEmptyState
             icon={<MessageSquareIcon className="size-8" />}
             title="Start a conversation"
-            description={`Chat with ${agentConfig?.name || selectedAgent} to get started`}
+            description={`Chat with ${agentConfig?.name ?? selectedAgent} to get started`}
           />
         ) : (
           <>
@@ -501,7 +499,7 @@ export function ChatMessages() {
 
             {messages.map((message, index) => (
               <MessageItem
-                key={message.id}
+                key={`${message.id}-${index}`}
                 message={message}
                 messageIndex={index}
                 showReasoning={showReasoning}

@@ -6,7 +6,7 @@ import { ShareIcon } from "lucide-react"
 
 export default function BlogShare() {
   const handleShare = async (title?: string) => {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined") {return}
     const url = window.location.href
     try {
       if (navigator.share) {
@@ -14,7 +14,7 @@ export default function BlogShare() {
       } else {
         await navigator.clipboard.writeText(url)
         // fallback: notify copied
-        try { window.alert("Link copied to clipboard") } catch {}
+        try { window.alert("Link copied to clipboard") } catch { /* empty */ }
       }
     } catch (err) {
       // ignore

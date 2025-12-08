@@ -46,7 +46,8 @@ function StepIcon({ status }: { status: TaskStepStatus }) {
       return <CircleDotIcon className="size-4 text-yellow-500 animate-pulse shrink-0" />
     case "error":
       return <AlertCircleIcon className="size-4 text-red-500 shrink-0" />
-    case "pending": { throw new Error('Not implemented yet: "pending" case') }
+    case "pending":
+      return <CircleIcon className="size-4 text-muted-foreground/50 shrink-0" />
     default:
       return <CircleIcon className="size-4 text-muted-foreground shrink-0" />
   }

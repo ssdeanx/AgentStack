@@ -76,11 +76,8 @@ const itemVariants = {
 export function LandingTrust() {
   return (
     <section className="relative overflow-hidden border-b border-border bg-muted/30">
-      {/* Background decoration */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-0 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[100px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[300px] translate-x-1/2 translate-y-1/2 rounded-full bg-blue-500/5 blur-[100px]" />
-      </div>
+      {/* Background decoration - Clean */}
+      <div className="absolute inset-0 -z-10" />
 
       <div className="container mx-auto px-4 py-20 lg:py-28">
         {/* Section header */}
@@ -114,18 +111,11 @@ export function LandingTrust() {
             <motion.div
               key={signal.title}
               variants={itemVariants}
-              className="card-3d group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
             >
-              {/* Gradient background on hover */}
-              <div
-                className={`absolute inset-0 -z-10 bg-linear-to-br ${signal.color} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
-              />
-
               {/* Icon */}
-              <div
-                className={`mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-linear-to-br ${signal.color} text-white shadow-lg transition-transform duration-200 ease-spring group-hover:scale-105`}
-              >
-                <signal.icon className="size-6" />
+              <div className="mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-background border border-border shadow-sm text-foreground transition-transform duration-200 group-hover:scale-105 group-hover:border-primary/30 group-hover:text-primary">
+                <signal.icon className="size-6" strokeWidth={1.5} />
               </div>
 
               {/* Content */}
@@ -135,11 +125,6 @@ export function LandingTrust() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {signal.description}
               </p>
-
-              {/* Decorative corner */}
-              <div
-                className={`absolute -right-8 -top-8 size-24 rounded-full bg-linear-to-br ${signal.color} opacity-10 blur-2xl transition-all duration-300 group-hover:opacity-20`}
-              />
             </motion.div>
           ))}
         </motion.div>
