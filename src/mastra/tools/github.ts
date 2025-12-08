@@ -1,19 +1,20 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { GithubIntegration } from "@mastra/github";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
 export const github = new GithubIntegration({
   config: {
-    PERSONAL_ACCESS_TOKEN: process.env.GITHUB_API_KEY || process.env.GITHUB_PERSONAL_ACCESS_TOKEN!,
+    PERSONAL_ACCESS_TOKEN: process.env.GITHUB_API_KEY ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN!,
   }
 });
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
 async function githubFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = process.env.GITHUB_API_KEY || process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+  const token = process.env.GITHUB_API_KEY ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
 
   const response = await fetch(`${GITHUB_API_BASE}${path}`, {
     ...options,
@@ -65,10 +66,10 @@ export const listRepositories = createTool({
       tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '📚 Fetching repositories...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📚 Fetching repositories...' } });
 
     try {
-      const path = context.org
+      const path = context.org !== undefined
         ? `/orgs/${context.org}/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`
         : `/user/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`;
 
@@ -86,7 +87,7 @@ export const listRepositories = createTool({
         updatedAt: repo.updated_at as string,
       }));
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${repositories.length} repositories` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${repositories.length} repositories` } });
       span?.end({ output: { success: true, count: repositories.length } });
 
       return { success: true, repositories };
@@ -133,7 +134,7 @@ export const listPullRequests = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📋 Fetching PRs for ${context.owner}/${context.repo}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Fetching PRs for ${context.owner}/${context.repo}...` } });
 
     try {
       const path = `/repos/${context.owner}/${context.repo}/pulls?state=${context.state}&sort=${context.sort}&direction=${context.direction}&per_page=${context.perPage}`;
@@ -151,7 +152,7 @@ export const listPullRequests = createTool({
         labels: ((pr.labels as Array<Record<string, unknown>>) ?? []).map((l) => l.name as string),
       }));
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${pullRequests.length} pull requests` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${pullRequests.length} pull requests` } });
       span?.end({ output: { success: true, count: pullRequests.length } });
 
       return { success: true, pullRequests };
@@ -199,17 +200,17 @@ export const listIssues = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🐛 Fetching issues for ${context.owner}/${context.repo}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🐛 Fetching issues for ${context.owner}/${context.repo}...` } });
 
     try {
       let path = `/repos/${context.owner}/${context.repo}/issues?state=${context.state}&sort=${context.sort}&direction=${context.direction}&per_page=${context.perPage}`;
-      if (context.labels) path += `&labels=${context.labels}`;
+      if (context.labels !== null) {path += `&labels=${context.labels}`;}
 
       const data = await githubFetch<Array<Record<string, unknown>>>(path);
 
       // Filter out pull requests (GitHub API returns PRs as issues too)
       const issues = data
-        .filter((issue) => !issue.pull_request)
+        .filter((issue) => issue.pull_request === null)
         .map((issue) => ({
           number: issue.number as number,
           title: issue.title as string,
@@ -222,7 +223,7 @@ export const listIssues = createTool({
           comments: issue.comments as number,
         }));
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${issues.length} issues` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${issues.length} issues` } });
       span?.end({ output: { success: true, count: issues.length } });
 
       return { success: true, issues };
@@ -263,7 +264,7 @@ export const createIssue = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📝 Creating issue in ${context.owner}/${context.repo}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Creating issue in ${context.owner}/${context.repo}...` } });
 
     try {
       const data = await githubFetch<Record<string, unknown>>(`/repos/${context.owner}/${context.repo}/issues`, {
@@ -283,7 +284,7 @@ export const createIssue = createTool({
         title: data.title as string,
       };
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Created issue #${issue.number}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Created issue #${issue.number}` } });
       span?.end({ output: { success: true, issueNumber: issue.number } });
 
       return { success: true, issue };
@@ -332,7 +333,7 @@ export const getRepositoryInfo = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📊 Fetching repository info for ${context.owner}/${context.repo}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Fetching repository info for ${context.owner}/${context.repo}...` } });
 
     try {
       const repo = await githubFetch<Record<string, unknown>>(`/repos/${context.owner}/${context.repo}`);
@@ -355,7 +356,7 @@ export const getRepositoryInfo = createTool({
         pushedAt: repo.pushed_at as string,
       };
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Repository info retrieved' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Repository info retrieved' } });
       span?.end({ output: { success: true } });
 
       return { success: true, repository };
@@ -397,12 +398,12 @@ export const searchCode = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🔍 Searching code for "${context.query}"...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching code for "${context.query}"...` } });
 
     try {
       let q = context.query;
-      if (context.repo) q += ` repo:${context.repo}`;
-      if (context.language) q += ` language:${context.language}`;
+      if (context.repo) {q += ` repo:${context.repo}`;}
+      if (context.language) {q += ` language:${context.language}`;}
 
       const data = await githubFetch<{ total_count: number; items: Array<Record<string, unknown>> }>(
         `/search/code?q=${encodeURIComponent(q)}&per_page=${context.perPage}`
@@ -416,7 +417,7 @@ export const searchCode = createTool({
         sha: item.sha as string,
       }));
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${data.total_count} results` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${data.total_count} results` } });
       span?.end({ output: { success: true, totalCount: data.total_count } });
 
       return { success: true, results, totalCount: data.total_count };
@@ -454,11 +455,11 @@ export const getFileContent = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📄 Fetching file ${context.path}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Fetching file ${context.path}...` } });
 
     try {
       let apiPath = `/repos/${context.owner}/${context.repo}/contents/${context.path}`;
-      if (context.ref) apiPath += `?ref=${context.ref}`;
+      if (context.ref !== null) {apiPath += `?ref=${context.ref}`;}
 
       const data = await githubFetch<Record<string, unknown>>(apiPath);
 
@@ -470,7 +471,7 @@ export const getFileContent = createTool({
         ? Buffer.from(data.content as string, 'base64').toString('utf-8')
         : data.content as string;
 
-      await writer?.write({ type: 'progress', data: { message: '✅ File content retrieved' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File content retrieved' } });
       span?.end({ output: { success: true, size: data.size } });
 
       return {
@@ -518,13 +519,13 @@ export const getRepoFileTree = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🌳 Fetching file tree for ${context.owner}/${context.repo}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌳 Fetching file tree for ${context.owner}/${context.repo}...` } });
 
     try {
       // 1. Get the tree SHA for the branch
       // We can pass the branch name directly to the trees API in many cases, but let's be robust
       const treePath = `/repos/${context.owner}/${context.repo}/git/trees/${context.branch}?recursive=${context.recursive ? '1' : '0'}`;
-      
+
       const data = await githubFetch<{ tree: Array<Record<string, unknown>>, truncated: boolean }>(treePath);
 
       const tree = data.tree.map((item) => ({
@@ -537,10 +538,10 @@ export const getRepoFileTree = createTool({
       }));
 
       if (data.truncated) {
-        await writer?.write({ type: 'progress', data: { message: '⚠️ Warning: File tree was truncated by GitHub API limit' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ Warning: File tree was truncated by GitHub API limit' } });
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${tree.length} items` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${tree.length} items` } });
       span?.end({ output: { success: true, count: tree.length } });
 
       return { success: true, tree };

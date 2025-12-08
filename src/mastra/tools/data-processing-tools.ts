@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DOMParser } from 'xmldom';
@@ -233,7 +234,7 @@ export const csvToExcalidrawTool = createTool({
       name: 'csv-to-excalidraw',
       input: { layoutType: context.layoutType, hasHeaders: context.hasHeaders },
       tracingPolicy: { internal: InternalSpans.TOOL },
-      runtimeContext: runtimeContext,
+      runtimeContext,
     });
 
     await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });

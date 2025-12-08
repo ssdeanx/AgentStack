@@ -7,7 +7,8 @@
  */
 
 import { AISpanType } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { getJson } from 'serpapi';
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -54,8 +55,8 @@ export const googleScholarTool = createTool({
       input: { query: context.query, yearRange: `${context.yearStart}-${context.yearEnd}` },
     })
     log.info('Executing Google Scholar search', { query: context.query })
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
         message: `Searching Google Scholar for: ${context.query}`
       }
@@ -154,8 +155,8 @@ export const googleFinanceTool = createTool({
       input: { query: context.query },
     })
     log.info('Executing Google Finance search', { query: context.query })
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
         message: `Searching Google Finance for: ${context.query}`
       }
@@ -246,8 +247,8 @@ export const yelpSearchTool = createTool({
       input: { query: context.query, location: context.location },
     })
     log.info('Executing Yelp search', { query: context.query, location: context.location })
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
         message: `Searching Yelp for: ${context.query} in ${context.location}`
       }

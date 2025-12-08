@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -126,7 +127,7 @@ Please:
       let parsedResult
       try {
         const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
-        if (jsonMatch !== null && jsonMatch[1] !== undefined) {
+        if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
           parsedResult = JSON.parse(result.text)
@@ -277,7 +278,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
       let parsedResult
       try {
         const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
-        if (jsonMatch !== null && jsonMatch[1] !== undefined) {
+        if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
           parsedResult = JSON.parse(result.text)
@@ -286,7 +287,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
         const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(result.text)
         parsedResult = {
           componentName,
-          code: codeMatch !== null && codeMatch[1] !== undefined ? codeMatch[1] : result.text,
+          code: codeMatch?.[1] !== undefined ? codeMatch[1] : result.text,
           usage: `<${componentName} data={data} />`,
           props: { data: `${componentName}Data[]` },
           dependencies: ['recharts', 'react'],
@@ -419,7 +420,7 @@ Return JSON with:
       let parsedResult
       try {
         const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
-        if (jsonMatch !== null && jsonMatch[1] !== undefined) {
+        if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
           parsedResult = JSON.parse(result.text)
@@ -578,7 +579,7 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
       let parsedResult
       try {
         const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
-        if (jsonMatch !== null && jsonMatch[1] !== undefined) {
+        if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
           parsedResult = JSON.parse(result.text)

@@ -14,7 +14,8 @@
 // approvalDate: 10/18
 
 import { AISpanType } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { marked } from 'marked';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';

@@ -39,7 +39,7 @@ async function* asyncIterableFromReadableStream<T>(
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {break;}
       yield value;
     }
   } finally {
@@ -49,16 +49,16 @@ async function* asyncIterableFromReadableStream<T>(
 
 /**
  * Creates a streaming Response for Next.js API routes using server-side Mastra agent.
- * 
+ *
  * IMPORTANT: This should be used in API 5stra instance,
  * not the client SDK. The client SDK (MastraClient) is for frontend use only.
- * 
+ *
  * @example
  * ```ts
  * // app/api/chat/route.ts
  * import { mastra } from "@/src/mastra";
  * import { createAgentStreamResponse } from "@/lib/server/agent-stream";
- * 
+ *
  * export async function POST(req: Request) {
  *   const { messages, agentId, threadId, resourceId, memory } = await req.json();
  *   return createAgentStreamResponse(mastra, agentId, messages, {
@@ -68,7 +68,7 @@ async function* asyncIterableFromReadableStream<T>(
  *   });
  * }
  * ```
- * 
+ *
  * @see https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk
  */
 export async function createAgentStreamResponse(
@@ -78,7 +78,7 @@ export async function createAgentStreamResponse(
   options?: AgentStreamOptions
 ): Promise<Response> {
   const agent = mastra.getAgent(agentId);
-  
+
   const streamOptions = {
     format: options?.format ?? "aisdk",
     threadId: options?.threadId,
@@ -100,12 +100,12 @@ export async function createAgentStreamResponse(
   const uiMessageStream = createUIMessageStream({
     execute: async ({ writer }) => {
       const aiSdkResult = toAISdkFormat(stream, { from: "agent" });
-      
+
       // Handle both ReadableStream and AsyncIterable
       const iterable: AsyncIterable<unknown> = isReadableStream(aiSdkResult)
         ? asyncIterableFromReadableStream(aiSdkResult)
         : aiSdkResult;
-      
+
       for await (const value of iterable) {
         writer.write(value as Parameters<typeof writer.write>[0]);
       }
@@ -120,8 +120,8 @@ export async function createAgentStreamResponse(
  * This export exists for backward compatibility only.
  */
 export async function createMastraStreamResponse(
-  _client: unknown,
-  _options: StreamToAISdkOptions
+  client: unknown,
+  options: StreamToAISdkOptions
 ): Promise<Response> {
   throw new Error(
     "createMastraStreamResponse is deprecated. Use createAgentStreamResponse with " +

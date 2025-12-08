@@ -37,7 +37,7 @@ export class ProjectCache {
   private cache = new Map<string, CachedProject>();
   private totalHits = 0;
   private totalMisses = 0;
-  
+
   // Configuration
   private readonly MAX_PROJECT_MEMORY_MB = 2048; // 2GB limit per project
   private readonly MAX_TOTAL_MEMORY_MB = 4096;   // 4GB total cache limit
@@ -47,16 +47,14 @@ export class ProjectCache {
   private constructor() {}
 
   public static getInstance(): ProjectCache {
-    if (!ProjectCache.instance) {
-      ProjectCache.instance = new ProjectCache();
-    }
+    ProjectCache.instance ??= new ProjectCache();
     return ProjectCache.instance;
   }
 
   public getOrCreate(projectPath: string): Project {
     const normalizedPath = path.normalize(projectPath);
     const now = Date.now();
-    
+
     // Check cache
     const cached = this.cache.get(normalizedPath);
     if (cached) {
@@ -67,7 +65,7 @@ export class ProjectCache {
     }
 
     this.totalMisses++;
-    
+
     // Create new project
     log.info(`Initializing new ts-morph project for ${normalizedPath}`);
     const project = new Project({
@@ -83,7 +81,7 @@ export class ProjectCache {
     if (estimatedMemoryMB <= this.MAX_PROJECT_MEMORY_MB) {
       // Evict if needed
       this.ensureCapacity(estimatedMemoryMB);
-      
+
       this.cache.set(normalizedPath, {
         project,
         lastAccess: now,
@@ -100,7 +98,7 @@ export class ProjectCache {
 
   private ensureCapacity(requiredMB: number): void {
     let currentUsage = this.getTotalMemoryUsage();
-    
+
     if (currentUsage + requiredMB <= this.MAX_TOTAL_MEMORY_MB) {
       return;
     }
@@ -465,7 +463,7 @@ if __name__ == '__main__':
           try {
             const parsed = JSON.parse(stdout);
             if (!parsed.success) {
-              reject(new Error(parsed.error || `Python ${action} analysis failed`));
+              reject(new Error(parsed.error ?? `Python ${action} analysis failed`));
             } else {
               resolve(parsed);
             }
@@ -502,15 +500,15 @@ if __name__ == '__main__':
 
   public static async findSymbols(code: string): Promise<PythonSymbol[]> {
     const result = await this.executePython(code, 'symbols');
-    return result.symbols || [];
+    return result.symbols ?? [];
   }
 
   public static async analyzeComplexity(code: string): Promise<PythonComplexity> {
     const result = await this.executePython(code, 'complexity');
     return {
-      cyclomaticComplexity: result.cyclomaticComplexity || 1,
-      functions: result.functions || [],
-      classes: result.classes || []
+      cyclomaticComplexity: result.cyclomaticComplexity ?? 1,
+      functions: result.functions ?? [],
+      classes: result.classes ?? []
     };
   }
 
@@ -523,7 +521,7 @@ if __name__ == '__main__':
     text: string;
   }>> {
     const result = await this.executePython(code, 'references', [symbolName]);
-    return result.references || [];
+    return result.references ?? [];
   }
 
   public static async cleanup(): Promise<void> {

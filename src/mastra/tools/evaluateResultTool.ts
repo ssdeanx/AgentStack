@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -22,7 +23,7 @@ export const evaluateResultTool = createTool({
       .optional(),
   }),
   execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🤔 Evaluating relevance of result: ' + context.result.title } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🤔 Evaluating relevance of result: ' + context.result.title } });
     const evalSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'evaluate_result',
@@ -111,7 +112,7 @@ export const evaluateResultTool = createTool({
           reason: parsed.data.reason,
         },
       })
-      await writer?.write({ type: 'progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
       return parsed.data
     } catch (error) {
       log.error('Error evaluating result:', {

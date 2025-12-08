@@ -1,4 +1,5 @@
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AISpanType } from "@mastra/core/ai-tracing";
 import type { RuntimeContext } from "@mastra/core/runtime-context";

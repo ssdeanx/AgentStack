@@ -64,7 +64,7 @@ export const googleNewsTool = createTool({
     inputSchema: googleNewsInputSchema,
     outputSchema: googleNewsOutputSchema,
     execute: async ({ context, writer = undefined, tracingContext = undefined }) => {
-        await writer?.write({ type: 'progress', data: { message: '📰 Starting Google News search for "' + context.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📰 Starting Google News search for "' + context.query + '"' } });
         validateSerpApiKey()
         const newsSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
@@ -75,7 +75,7 @@ export const googleNewsTool = createTool({
                 topic: context.topic,
             },
         })
-        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Google News search', { query: context.query })
         try {
             const params: Record<string, string | number> = {
@@ -118,7 +118,7 @@ export const googleNewsTool = createTool({
                 newsArticles,
                 totalResults: response.search_information?.total_results,
             }
-            await writer?.write({ type: 'progress', data: { message: '✅ Google News search complete: ' + newsArticles.length + ' articles' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google News search complete: ' + newsArticles.length + ' articles' } });
             newsSpan?.end({ output: result })
             log.info('Google News search completed', {
                 query: context.query,
@@ -158,14 +158,14 @@ export const googleNewsLiteTool = createTool({
     }),
     execute: async (executionContext) => {
         const { context, writer, tracingContext } = executionContext;
-        await writer?.write({ type: 'progress', data: { message: '📰 Starting Google News Lite search for "' + context.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📰 Starting Google News Lite search for "' + context.query + '"' } });
         validateSerpApiKey()
         const newsLiteSpan = tracingContext?.currentSpan?.createChildSpan({
             type: AISpanType.TOOL_CALL,
             name: 'google-news-lite-tool',
             input: { query: context.query },
         })
-        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Google News Lite search', { query: context.query })
         try {
             const params: Record<string, string | number> = {
@@ -183,7 +183,7 @@ export const googleNewsLiteTool = createTool({
                     })
                 ) ?? []
             const result = { newsArticles }
-            await writer?.write({ type: 'progress', data: { message: '✅ Google News Lite search complete: ' + newsArticles.length + ' articles' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google News Lite search complete: ' + newsArticles.length + ' articles' } });
             newsLiteSpan?.end({ output: result })
             log.info('Google News Lite search completed', { query: context.query, resultCount: newsArticles.length })
             return result
@@ -240,7 +240,7 @@ export const googleTrendsTool = createTool({
     outputSchema: googleTrendsOutputSchema,
     execute: async (executionContext) => {
         const { context, writer, tracingContext } = executionContext;
-        await writer?.write({ type: 'progress', data: { message: '📈 Starting Google Trends analysis for "' + context.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📈 Starting Google Trends analysis for "' + context.query + '"' } });
         validateSerpApiKey()
 
         const trendsSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -252,7 +252,7 @@ export const googleTrendsTool = createTool({
             },
         })
 
-        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Google Trends search', { query: context.query })
 
         try {
@@ -295,7 +295,7 @@ export const googleTrendsTool = createTool({
                 averageInterest,
             }
 
-            await writer?.write({ type: 'progress', data: { message: '✅ Google Trends analysis complete' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google Trends analysis complete' } });
             trendsSpan?.end({ output: result })
             log.info('Google Trends search completed', { query: context.query, dataPoints: interestOverTime.length })
 
@@ -338,7 +338,7 @@ export const googleAutocompleteTool = createTool({
     outputSchema: googleAutocompleteOutputSchema,
     execute: async (executionContext) => {
         const { context, writer, tracingContext } = executionContext;
-        await writer?.write({ type: 'progress', data: { message: '🔍 Getting autocomplete suggestions for "' + context.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Getting autocomplete suggestions for "' + context.query + '"' } });
         validateSerpApiKey()
 
         const autocompleteSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -347,7 +347,7 @@ export const googleAutocompleteTool = createTool({
             input: { query: context.query },
         })
 
-        await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
         log.info('Executing Google Autocomplete search', { query: context.query })
 
         try {
@@ -366,7 +366,7 @@ export const googleAutocompleteTool = createTool({
 
             const result = { suggestions }
 
-            await writer?.write({ type: 'progress', data: { message: '✅ Autocomplete complete: ' + suggestions.length + ' suggestions' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Autocomplete complete: ' + suggestions.length + ' suggestions' } });
             autocompleteSpan?.end({ output: result })
             log.info('Google Autocomplete completed', { query: context.query, suggestionCount: suggestions.length })
 

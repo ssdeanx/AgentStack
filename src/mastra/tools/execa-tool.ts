@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { createTool, InferUITool } from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import chalk from 'chalk';
 import execa from 'execa';
 import type { ExecaError as ExecaErrorType } from 'execa';
@@ -39,7 +40,7 @@ export const execaTool = createTool({
     });
 
     const { command, args, cwd, timeout, env } = context
-    await writer?.write({ type: 'progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
     try {
       log.info(
         chalk.green(`Running command: ${command} ${args.join(' ')}`)
@@ -53,7 +54,7 @@ export const execaTool = createTool({
         env: optionsEnv,
       })
       const output = result.all ?? ''
-      await writer?.write({ type: 'progress', data: { message: '✅ Command executed successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Command executed successfully' } });
       span?.end({ output: { success: true, outputLength: output.length } });
       return { message: chalk.green(output) }
     } catch (e) {

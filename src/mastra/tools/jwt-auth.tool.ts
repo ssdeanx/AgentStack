@@ -1,4 +1,4 @@
-import { AISpanType } from '@mastra/core/ai-tracing'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
 import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
@@ -24,7 +24,7 @@ export const jwtAuthTool = createTool({
     iat: z.number().optional(),
   }),
   execute: async ({ runtimeContext, tracingContext, writer, context }) => {
-    await writer?.write({ type: 'progress', data: { message: '🔐 Verifying JWT authentication' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔐 Verifying JWT authentication' } });
     const jwt = (runtimeContext as RuntimeContext<JwtAuthContext>).get(
       'jwt'
     )
@@ -34,9 +34,7 @@ export const jwtAuthTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'jwt-auth-tool',
       input: { hasJwt: !!jwt },
-      tracingContext: {},
-      context: {},
-      metadata: {}
+      tracingPolicy: { internal: InternalSpans.TOOL }
     })
 
     if (!jwt) {

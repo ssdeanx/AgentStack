@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -18,7 +19,7 @@ export const extractLearningsTool = createTool({
       .describe('The search result to process'),
   }),
   execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🧠 Extracting learnings from search result' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🧠 Extracting learnings from search result' } });
     const extractSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'extract_learnings',
@@ -51,7 +52,7 @@ export const extractLearningsTool = createTool({
         title: result.title,
         url: result.url,
       })
-      await writer?.write({ type: 'progress', data: { message: '🤖 Generating insights with learning agent' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '🤖 Generating insights with learning agent' } });
       const response = await learningExtractionAgent.generate([
         {
           role: 'user',
@@ -112,7 +113,7 @@ export const extractLearningsTool = createTool({
           },
           metadata: { invalidResponse: true },
         })
-        await writer?.write({ type: 'progress', data: { message: '⚠️ Invalid response format from agent' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ Invalid response format from agent' } });
         return {
           learning:
             'Invalid response format from learning extraction agent',
@@ -127,7 +128,7 @@ export const extractLearningsTool = createTool({
             parsed.data.followUpQuestions.length,
         },
       })
-      await writer?.write({ type: 'progress', data: { message: '✅ Learnings extracted successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Learnings extracted successfully' } });
       return parsed.data
     } catch (error) {
       log.error('Error extracting learnings', {

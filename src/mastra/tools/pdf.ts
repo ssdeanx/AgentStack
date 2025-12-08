@@ -12,7 +12,7 @@ type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: nu
 let pdfParse: PdfParseFunction | null = null
 
 async function getPdfParse(): Promise<PdfParseFunction> {
-  if (pdfParse) return pdfParse
+  if (pdfParse) {return pdfParse}
   try {
     const mod = await import('pdf-parse') as unknown as { default?: PdfParseFunction }
     pdfParse = (mod.default ?? mod) as unknown as PdfParseFunction
@@ -40,7 +40,7 @@ export const readPDF = createTool({
     });
 
     const { pdfPath } = context
-    await writer?.write({ type: 'progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
     try {
       // Check if file exists
       if (!existsSync(pdfPath)) {

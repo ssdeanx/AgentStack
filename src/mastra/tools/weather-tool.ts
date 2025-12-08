@@ -1,8 +1,9 @@
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 import type { TracingContext } from '@mastra/core/ai-tracing';
 
 // Define the Zod schema for the runtime context
@@ -49,7 +50,7 @@ export const weatherTool = createTool({
         unit: z.string(), // Add unit to output schema
     }),
     execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-        await writer?.write({ type: 'progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
 
         const { temperatureUnit } = weatherToolContextSchema.parse(
             runtimeContext.get('weatherToolContext')
@@ -68,21 +69,21 @@ export const weatherTool = createTool({
         })
 
         try {
-            await writer?.write({ type: 'progress', data: { message: '📍 Geocoding location...' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...' } });
             const result = await getWeather(context.location, temperatureUnit)
-            await writer?.write({ type: 'progress', data: { message: '🌤️ Processing weather data...' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...' } });
             weatherSpan?.end({ output: result })
             log.info(`Weather fetched successfully for ${context.location}`)
             const finalResult = {
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
             };
-            await writer?.write({ type: 'progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
             return finalResult;
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            await writer?.write({ type: 'progress', data: { message: `❌ Weather error: ${errorMessage}` } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}` } });
             weatherSpan?.end({ metadata: { error: errorMessage } })
             log.error(
                 `Failed to fetch weather for ${context.location}: ${errorMessage}`

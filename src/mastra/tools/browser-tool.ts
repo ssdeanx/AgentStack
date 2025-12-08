@@ -2,9 +2,11 @@
  * Not working
 */
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { MDocument } from '@mastra/rag';
-import { Browser, chromium } from 'playwright-core';
+import type { Browser} from 'playwright-core';
+import { chromium } from 'playwright-core';
 import { z } from 'zod';
 import { log } from '../config/logger';
 
@@ -12,7 +14,7 @@ import { log } from '../config/logger';
 let browserInstance: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
-  if (!browserInstance || !browserInstance.isConnected()) {
+  if (!browserInstance?.isConnected()) {
     browserInstance = await chromium.launch({
       headless: true,
       chromiumSandbox: false,
@@ -423,7 +425,7 @@ export const extractTablesTool = createTool({
           bodyRows.forEach(row => {
             const rowData: string[] = [];
             row.querySelectorAll('td').forEach(cell => rowData.push(cell.textContent?.trim() ?? ''));
-            if (rowData.length > 0) rows.push(rowData);
+            if (rowData.length > 0) {rows.push(rowData);}
           });
 
           result.push({ headers, rows });
@@ -480,7 +482,7 @@ export const monitorPageTool = createTool({
       const selector = context.selector ?? 'body';
 
       await page.goto(context.url, { waitUntil: 'domcontentloaded' });
-      let previousContent = await page.$eval(selector, el => el.textContent ?? '');
+      const previousContent = await page.$eval(selector, el => el.textContent ?? '');
 
       let checkCount = 0;
       let changed = false;

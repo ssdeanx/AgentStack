@@ -86,7 +86,8 @@ import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
-
+import { ResearchRuntimeContext } from './agents/index';
+import { metadata } from '../../app/docs/layout';
 
 export const mastra = new Mastra({
   workflows: {
@@ -223,6 +224,36 @@ export const mastra = new Mastra({
   },
   server: {
     apiRoutes: [
+      workflowRoute({
+        path: "/workflow/:workflowId",
+        includeTextStreamParts: true,
+      }),
+      networkRoute({
+        path: "/network/:agentId",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: 'network',
+              resourceId: 'network',
+              metadata: { agentId: ':agentId' }
+            },
+            resource: "network",
+            options: {
+              lastMessages: 500,
+              semanticRecall: true,
+              workingMemory: { enabled: true },
+              threads: { generateTitle: true }
+            }
+          },
+          maxSteps: 200,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
+          includeRawChunks: true,
+        }
+      }),
       chatRoute({
         path: "/chat/:agentId",
         defaultOptions: {
@@ -499,97 +530,6 @@ export const mastra = new Mastra({
         sendFinish: true,
         sendReasoning: true,
         sendSources: true,
-      }),
-      workflowRoute({
-        path: "/workflow/:agentId",
-        workflow: "specGenerationWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/weatherWorkflow",
-        workflow: "weatherWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/contentStudioWorkflow",
-        workflow: "contentStudioWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/contentlogWorkflow",
-        workflow: "changelogWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/contentReviewWorkflow",
-        workflow: "contentReviewWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/documentProcessingWorkflow",
-        workflow: "documentProcessingWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/financialReportWorkflow",
-        workflow: "financialReportWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/learningExtractionWorkflow",
-        workflow: "learningExtractionWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/researchSynthesisWorkflow",
-        workflow: "researchSynthesisWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/stockAnalysisWorkflow",
-        workflow: "stockAnalysisWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/telephoneGameWorkflow",
-        workflow: "telephoneGameWorkflow",
-        includeTextStreamParts: true,
-      }),
-      workflowRoute({
-        path: "/workflow/repoIngestionWorkflow",
-        workflow: "repoIngestionWorkflow",
-
-      }),
-      workflowRoute({
-        path: "/workflow/specGenerationWorkflow",
-        workflow: "specGenerationWorkflow",
-
-      }),
-      networkRoute({
-        path: "/network/:agentId",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'network',
-              resourceId: 'network',
-            },
-            resource: "network",
-            options: {
-              lastMessages: 500,
-              semanticRecall: true,
-              workingMemory: { enabled: true },
-              threads: { generateTitle: true }
-            }
-          },
-          maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          },
-          includeRawChunks: true,
-          savePerStep: true,
-        }
       }),
     ],
 //    cors: {
