@@ -136,7 +136,7 @@ const MastraDocumentChunkingOutputSchema = z.object({
  * Use this tool when you need advanced document processing with metadata extraction.
  */
 export const mastraChunker = createTool({
-  id: 'mastra-chunker',
+  id: 'mastra:chunker',
   description: `
 Mastra Document Chunker Tool with Metadata Extraction
 
@@ -402,7 +402,7 @@ Use this tool when you need advanced document processing with metadata extractio
  * content indexing, or semantic search capabilities.
  */
 export const mdocumentChunker = createTool({
-  id: 'mdocument-chunker',
+  id: 'mdocument:chunker',
   description: `
 Custom Document Chunking Tool with PgVector Integration
 
@@ -702,7 +702,7 @@ content indexing, or semantic search capabilities.
  * - Comprehensive error handling and logging
  */
 export const documentRerankerTool = createTool({
-  id: 'document-reranker',
+  id: 'document:reranker',
   description: `
 Document Reranking Tool with Semantic Relevance Scoring
 

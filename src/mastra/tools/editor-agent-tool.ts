@@ -39,7 +39,7 @@ export const editorTool = createTool({
 
     // Create a span for tracing
     const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
+      type: AISpanType.AGENT_RUN,
       name: 'editor-agent-tool',
       input: {
         contentType,
@@ -49,7 +49,7 @@ export const editorTool = createTool({
           instructions.trim().length > 0,
         tone: tone ?? 'not-specified',
       },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+      tracingPolicy: { internal: InternalSpans.AGENT }
     })
 
     try {
