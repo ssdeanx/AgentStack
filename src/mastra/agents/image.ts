@@ -27,7 +27,7 @@ const resolution1K = '1K';
  * Recommends optimal chart types based on financial data characteristics
  */
 export const imageAgent = new Agent({
-  id: 'image',
+  id: 'imageAgent',
   name: 'Image Generator',
   description: 'Expert in generating images based on user requirements.',
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ImageRuntimeContext> }) => {

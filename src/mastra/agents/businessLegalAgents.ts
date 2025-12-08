@@ -53,7 +53,7 @@ export interface BusinessRuntimeContext {
 log.info('Initializing Business Legal Team Agents...')
 
 export const legalResearchAgent = new Agent({
-  id: 'legal-research',
+  id: 'legalResearchAgent',
   name: 'Legal Research Agent',
   description:
     'An expert legal research agent that conducts thorough research using authoritative legal sources.',
@@ -161,7 +161,7 @@ ${PGVECTOR_PROMPT}
 })
 
 export const contractAnalysisAgent = new Agent({
-  id: 'contract-analysis',
+  id: 'contractAnalysisAgent',
   name: 'Contract Analysis Agent',
   description:
     'An expert contract analysis agent that reviews and analyzes legal documents for risks and compliance.',
@@ -245,7 +245,7 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
 })
 
 export const complianceMonitoringAgent = new Agent({
-  id: 'compliance-monitor',
+  id: 'complianceMonitoringAgent',
   name: 'Compliance Monitoring Agent',
   description:
     'An expert compliance agent that monitors regulatory compliance and identifies compliance risks.',
@@ -336,7 +336,7 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
 })
 
 export const businessStrategyAgent = new Agent({
-  id: 'business-strategy',
+  id: 'businessStrategyAgent',
   name: 'Business Strategy Agent',
   description:
     'A strategic business agent that coordinates legal compliance with business objectives and oversees the legal team.',

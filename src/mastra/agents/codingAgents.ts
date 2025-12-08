@@ -47,7 +47,7 @@ log.info('Initializing Coding Team Agents...')
  * Specializes in code architecture, design patterns, and implementation planning.
  */
 export const codeArchitectAgent = new Agent({
-  id: 'code-architect',
+  id: 'codeArchitectAgent',
   name: 'Code Architect Agent',
   description: 'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
@@ -145,7 +145,7 @@ Always consider maintainability, scalability, and testability in your recommenda
  * Specializes in code quality, security analysis, and best practices review.
  */
 export const codeReviewerAgent = new Agent({
-  id: 'code-reviewer',
+  id: 'codeReviewerAgent',
   name: 'Code Reviewer Agent',
   description: 'Expert code reviewer focusing on quality, security, performance, and best practices.',
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
@@ -255,7 +255,7 @@ Be constructive and educational in feedback.`,
  * Specializes in test generation, coverage analysis, and testing strategies.
  */
 export const testEngineerAgent = new Agent({
-  id: 'test-engineer',
+  id: 'testEngineerAgent',
   name: 'Test Engineer Agent',
   description: 'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
@@ -362,7 +362,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
  * Specializes in code refactoring, optimization, and quality improvement.
  */
 export const refactoringAgent = new Agent({
-  id: 'refactoring',
+  id: 'refactoringAgent',
   name: 'Refactoring Agent',
   description: 'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {

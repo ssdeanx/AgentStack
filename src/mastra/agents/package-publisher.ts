@@ -143,7 +143,7 @@ export const PUBLISH_PACKAGES_PROMPT = `
 `;
 
 export const danePackagePublisher = new Agent({
-  id: 'dane-package-publisher',
+  id: 'danePackagePublisher',
   name: 'DanePackagePublisher',
   instructions: ({ runtimeContext }) => {
     const userId = runtimeContext.get('userId');

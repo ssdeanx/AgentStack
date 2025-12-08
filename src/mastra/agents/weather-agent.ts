@@ -16,7 +16,7 @@ export interface WeatherRuntimeContext {
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
-  id: 'weather-agent',
+  id: 'weatherAgent',
   description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
   instructions: ({ runtimeContext }) => {
     const userId = runtimeContext.get('userId');

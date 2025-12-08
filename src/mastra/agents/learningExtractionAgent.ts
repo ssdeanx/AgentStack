@@ -17,7 +17,7 @@ export interface LearningExtractionAgentContext {
 log.info('Initializing Learning Extraction Agent...')
 
 export const learningExtractionAgent = new Agent({
-  id: 'learningExtraction',
+  id: 'learningExtractionAgent',
   name: 'Learning Extraction Agent',
   description:
     'An expert at analyzing search results and extracting key insights to deepen research understanding.',
@@ -58,17 +58,9 @@ export const learningExtractionAgent = new Agent({
   memory: pgMemory,
   options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
-    researchCompleteness: {
-      scorer: researchCompletenessScorer,
-      sampling: { type: 'ratio', rate: 0.6 },
-    },
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: 'ratio', rate: 0.7 },
-    },
     structure: {
       scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.7 },
     },
   },
   workflows: {},

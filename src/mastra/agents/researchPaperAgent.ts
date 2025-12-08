@@ -16,7 +16,7 @@ export interface ResearchPaperAgentRuntimeContext {
 log.info('Initializing Research Paper Agent...')
 
 export const researchPaperAgent = new Agent({
-  id: 'research-paper-agent',
+  id: 'researchPaperAgent',
   name: 'Research Paper Agent',
   description:
     'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',

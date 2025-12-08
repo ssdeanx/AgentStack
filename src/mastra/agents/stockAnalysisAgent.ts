@@ -35,7 +35,7 @@ export interface StockRuntimeContext {
 log.info('Initializing Stock Analysis Agent...')
 
 export const stockAnalysisAgent = new Agent({
-  id: 'stock-analysis',
+  id: 'stockAnalysisAgent',
   name: 'Stock Analysis Agent',
   description:
     'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',

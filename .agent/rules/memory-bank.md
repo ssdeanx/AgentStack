@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: my memory resets completely between sessions. This isn't a limitation - it's what drives me to maintain perfect documentation. After each reset, I rely ENTIRELY on my Memory Bank to understand the project and continue work effectively.
 ---
 
 # Memory Bank

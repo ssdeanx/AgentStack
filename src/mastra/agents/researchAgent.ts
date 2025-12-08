@@ -40,7 +40,7 @@ export interface ResearchRuntimeContext {
 log.info('Initializing Research Agent...')
 
 export const researchAgent = new Agent({
-  id: 'research',
+  id: 'researchAgent',
   name: 'Research Agent',
   description:
     'An expert research agent that conducts thorough research using web search and analysis tools.',
@@ -57,7 +57,6 @@ export const researchAgent = new Agent({
         Language: ${language}
 
         You are a Senior Research Analyst. Your goal is to research topics thoroughly by following a precise, multi-phase process.
-        Today's date is ${new Date().toISOString()}
         </role>
 
         <algorithm_of_thoughts>
@@ -127,13 +126,13 @@ export const researchAgent = new Agent({
         <process_phases>
         **PHASE 1: Initial Research**
         1. Deconstruct the main topic into 2 specific, focused search queries.
-        2. For each query, use the \`webScraperTool\` to find information. Make sure \`siteMapExtractorTool\`,\`linkExtractorTool\`, \`htmlToMarkdownTool\`, \`contentCleanerTool\`,
-        4. For all relevant results, use the \`extractLearningsTool\` to get key insights and generate follow-up questions.
+        2. For each query, use the 'webScraperTool' to find information. Make sure 'siteMapExtractorTool','linkExtractorTool', 'htmlToMarkdownTool', 'contentCleanerTool',
+        4. For all relevant results, use the 'extractLearningsTool' to get key insights and generate follow-up questions.
 
         **PHASE 2: Follow-up Research**
         1. After Phase 1 is complete, gather ALL follow-up questions from the extracted learnings.
-        2. For each follow-up question, execute a new search with \`webScraperTool\` or \`batchWebScraperTool\`.
-        3. Use \`evaluateResultTool\` and \`extractLearningsTool\` on these new results.
+        2. For each follow-up question, execute a new search with 'webScraperTool' or 'batchWebScraperTool'.
+        3. Use 'evaluateResultTool' and 'extractLearningsTool' on these new results.
         4. **CRITICAL: STOP after this phase. Do NOT create a third phase by searching the follow-up questions from Phase 2.**
         </process_phases>
 

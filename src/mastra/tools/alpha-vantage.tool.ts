@@ -438,11 +438,11 @@ export const alphaVantageTool = createTool({
       tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });
+    await writer?.write({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      await writer?.write({ type: 'progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await writer?.write({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"

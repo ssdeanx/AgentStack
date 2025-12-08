@@ -20,7 +20,7 @@ export interface KnowledgeIndexingContext {
 log.info('Initializing Knowledge Indexing Agent...')
 
 export const knowledgeIndexingAgent = new Agent({
-  id: 'knowledge-indexing-agent',
+  id: 'knowledgeIndexingAgent',
   name: 'Knowledge Indexing Agent',
   description:
     'Indexes documents into PgVector for semantic search and RAG. Use for building knowledge bases, indexing content with embeddings, semantic search, and document retrieval with reranking.',

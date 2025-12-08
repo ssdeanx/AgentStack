@@ -9,11 +9,16 @@ trigger: always_on
 - Node.js >= 20.9.0 (required)
 - TypeScript 5.9+ with strict mode enabled
 - ES Modules (type: "module" in package.json)
+- Next.js 16
+- Tailwind 4.1
+- React 19.2
 - Mastra CLI for dev/build/start commands
 - tsup for building
 
 ## Core Framework
 
+- @mastra/ai-sdk: Connection to UI
+- @ai-sdk/react: Also UI
 - @mastra/core: Agent and tool framework
 - @mastra/pg: PostgreSQL storage with PgVector
 - @mastra/rag: RAG pipeline components
@@ -57,6 +62,7 @@ trigger: always_on
 ```bash
 # Development
 npm run dev              # Start Mastra dev server with dotenvx
+npm run dev:next
 npm run build            # Build with Mastra CLI
 npm run start            # Start production server
 
@@ -79,9 +85,10 @@ Required for local development:
 GOOGLE_GENERATIVE_AI_API_KEY=your-google-api-key
 GOOGLE_API_KEY=your-google-api-key
 OPENAI_API_KEY=your-openai-api-key
+GEMINI_OAUTH_CACHE='C:/Users/ssdsk/.gemini/oauth_creds.json'
 
 # Database (PostgreSQL + PgVector)
-DATABASE_URL=postgresql://user:password@localhost:5432/mastra
+SUPABASE=postgresql://user:password@localhost:5432/mastra
 DB_SCHEMA=mastra
 DB_MAX_CONNECTIONS=20
 DB_IDLE_TIMEOUT=30000
@@ -97,9 +104,20 @@ ALPHA_VANTAGE_API_KEY=your-alpha-vantage-key
 Optional for observability:
 
 ```env
-PHOENIX_ENDPOINT=http://localhost:6006/v1/traces
-PHOENIX_API_KEY=your-phoenix-api-key
-PHOENIX_PROJECT_NAME=mastra-service
+LANGFUSE_SECRET_KEY="gotit"
+LANGFUSE_PUBLIC_KEY="pk-lf-**********"
+LANGFUSE_BASE_URL="https://cloud.langfuse.com"
+SERVICE_NAME="mastra"
+NODE_ENV="development"
+```
+
+AUTH
+
+```
+SUPABASE_KEY='**********************************'
+SUPABASE_URL='https://**********************.supabase.co'
+USER_EMAIL='ssd@deanmachines.com'
+USER_PASSWORD='*******'
 ```
 
 Optional RAG/Embedding configuration:

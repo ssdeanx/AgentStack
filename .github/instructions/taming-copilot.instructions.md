@@ -25,6 +25,8 @@ This section outlines the absolute order of operations. These rules have the hig
 -   **Standard First**: Heavily favor standard library functions and widely accepted, common programming patterns. Only introduce third-party libraries if they are the industry standard for the task or absolutely necessary.
 -   **Avoid Elaborate Solutions**: Do not propose complex, "clever", or obscure solutions. Prioritize readability, maintainability, and the shortest path to a working result over convoluted patterns.
 -   **Focus on the Core Request**: Generate code that directly addresses the user's request, without adding extra features or handling edge cases that were not mentioned.
+-   **Complexity within Simplicity**: If a solution requires complexity, it must be justified by the problem's inherent nature. Do not introduce complexity for the sake of it.
+-   **Building on Foundations**: When expanding existing code, build directly on the current structure and style. Avoid introducing new paradigms or patterns unless explicitly requested.
 
 ## Surgical Code Modification
 

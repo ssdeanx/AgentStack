@@ -167,7 +167,7 @@ export function ChatProvider({
     stop,
   } = useChat({
     transport: new DefaultChatTransport({
-      api: `${MASTRA_API_URL}/chat`,
+      api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
       // Match the network provider's request shape so the server can pick the
       // correct agent by reading body.data.agentId. Avoid sending extra
       // top-level fields which can confuse the MAStra chatRoute router.

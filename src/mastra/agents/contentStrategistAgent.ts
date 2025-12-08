@@ -8,7 +8,7 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export const contentStrategistAgent = new Agent({
-  id: 'content-strategist',
+  id: 'contentStrategistAgent',
   name: 'Content Strategist',
   description: 'Elite content strategist specializing in high-impact, data-driven content planning.',
   instructions: ({ runtimeContext }) => {

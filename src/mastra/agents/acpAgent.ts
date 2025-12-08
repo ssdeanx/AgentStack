@@ -18,7 +18,7 @@ import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
 import { batchWebScraperTool, contentCleanerTool, htmlToMarkdownTool, linkExtractorTool, webScraperTool } from '../tools/web-scraper-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 export const acpAgent = new Agent({
-  id: 'acp-agent',
+  id: 'acpAgent',
   name: 'ACP Agent',
   description: 'A ACP assistant that can help manage ACP-related tasks',
   instructions: ({ runtimeContext }) => {
