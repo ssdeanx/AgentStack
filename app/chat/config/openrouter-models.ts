@@ -294,6 +294,14 @@ export const OPENROUTER_MODELS: ModelConfig[] = [
 
   // OpenAI via OpenRouter
   {
+    id: "openrouter/openai/gpt-oss-20b:free",
+    name: "GPT OSS 20B (Free)",
+    provider: "openrouter",
+    contextWindow: 8000,
+    capabilities: ["chat", "code"],
+    description: "Open-source GPT via OR",
+  },
+  {
     id: "openrouter/openai/gpt-4.1",
     name: "GPT-4.1 (OR)",
     provider: "openrouter",

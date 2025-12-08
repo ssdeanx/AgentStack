@@ -12,7 +12,10 @@ const gemini = createGeminiProvider({
     cacheDir: process.env.GEMINI_OAUTH_CACHE ?? os.homedir() + '/.gemini/oauth-cache', // directory to store cached tokens
 })
 
-export const geminiAI = gemini('gemini-2.5-pro', {
+// Gemini CLI Models organized by capabilities
+export const geminiCliModels = {
+  // Pro models with full features
+  gemini25Pro: gemini('gemini-2.5-pro', {
     contextWindow: 1048576, // 1MB
     maxTokens: 65536,
     supportsStreaming: true,
@@ -22,11 +25,8 @@ export const geminiAI = gemini('gemini-2.5-pro', {
     structuredOutput: true,
     functionCalling: true,
     urlContext: true
-});
-
-
-
-export const gemini3Pro = gemini('gemini-3-pro-preview', {
+  }),
+  gemini3Pro: gemini('gemini-3-pro-preview', {
     contextWindow: 1048576, // 1MB
     maxTokens: 65536,
     supportsStreaming: true,
@@ -36,16 +36,10 @@ export const gemini3Pro = gemini('gemini-3-pro-preview', {
     structuredOutput: true,
     functionCalling: true,
     urlContext: true
-});
+  }),
 
-export const googleWithMemory = withSupermemory(gemini3Pro, "geminiCLI", {
-   conversationId: "geminiCLI-conversation",
-   verbose: true,
-   mode: "full",
-   addMemory: "always"
-});
-
-export const geminiAIFlash = gemini('gemini-2.5-flash', {
+  // Flash models for speed
+  gemini25Flash: gemini('gemini-2.5-flash', {
     contextWindow: 1048576, // 1MB
     maxTokens: 65536,
     supportsStreaming: true,
@@ -56,8 +50,8 @@ export const geminiAIFlash = gemini('gemini-2.5-flash', {
     grounding: true,
     functionCalling: true,
     urlContext: true
-});
-export const geminiAIFlashLite = gemini('gemini-2.5-flash-lite', {
+  }),
+  gemini25FlashLite: gemini('gemini-2.5-flash-lite', {
     contextWindow: 1048576, // 1MB
     maxTokens: 64000,
     supportsStreaming: true,
@@ -66,31 +60,51 @@ export const geminiAIFlashLite = gemini('gemini-2.5-flash-lite', {
     //codeexecution: true,
     structuredOutput: true,
     grounding: true,
-    //functionCalling: true,
+    functionCalling: true,
     urlContext: true
-})
+  }),
 
-export const geminiAIFlashimg = gemini('gemini-2.5-flash-image-preview', {
+  // Image generation models
+  gemini25FlashImage: gemini('gemini-2.5-flash-image-preview', {
     maxTokens: 8192,
     supportsStreaming: true,
-})
+  }),
 
-export const geminiAIv = gemini(
-    'gemini-2.5-flash-preview-native-audio-dialog',
-    {
-        maxTokens: 8192,
-        supportsStreaming: true,
-})
-
-export const geminiAIv2 = gemini('gemini-2.5-flash-preview-tts', {
+  // Audio/Video models
+  gemini25FlashAudioDialog: gemini('gemini-2.5-flash-preview-native-audio-dialog', {
     maxTokens: 8192,
     supportsStreaming: true,
-})
+  }),
+  gemini25FlashTTS: gemini('gemini-2.5-flash-preview-tts', {
+    maxTokens: 8192,
+    supportsStreaming: true,
+  }),
+  gemini25FlashAudioThinking: gemini('gemini-2.5-flash-exp-native-audio-thinking-dialog', {
+    maxTokens: 8192,
+    supportsStreaming: true,
+  }),
+};
 
-export const geminiAIv3 = gemini(
-    'gemini-2.5-flash-exp-native-audio-thinking-dialog',
-    {
-        maxTokens: 8192,
-        supportsStreaming: true,
-})
-export default gemini
+// Model selector function
+export function getGeminiCliModel(modelId: keyof typeof geminiCliModels) {
+  return geminiCliModels[modelId];
+}
+
+// Enhanced models with memory
+export const googleWithMemory = withSupermemory(geminiCliModels.gemini3Pro, "geminiCLI", {
+   conversationId: "geminiCLI-conversation",
+   verbose: true,
+   mode: "full",
+   addMemory: "always"
+});
+
+// Backward compatibility exports
+export const geminiAI = geminiCliModels.gemini25Pro;
+export const {gemini3Pro} = geminiCliModels;
+export const geminiAIFlash = geminiCliModels.gemini25Flash;
+export const geminiAIFlashLite = geminiCliModels.gemini25FlashLite;
+export const geminiAIFlashimg = geminiCliModels.gemini25FlashImage;
+export const geminiAIv = geminiCliModels.gemini25FlashAudioDialog;
+export const geminiAIv2 = geminiCliModels.gemini25FlashTTS;
+export const geminiAIv3 = geminiCliModels.gemini25FlashAudioThinking;
+
