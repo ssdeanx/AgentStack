@@ -106,54 +106,54 @@ graph TB
     end
 
     subgraph "📊 Observability"
-        Agents --> Arize[Arize/Phoenix<br/>• 97% Traced<br/>• 10+ Scorers]
-        Postgres --> Arize
+        Agents --> Langfuse[Langfuse Traces<br/>• 97% Traced<br/>• 10+ Scorers]
+        Postgres --> Langfuse
     end
 
     UI --> App
     App --> Agents
 
-    style Client fill:#e1f5fe
-    style Arize fill:#f3e5f5
-    style UI fill:#e8f5e9
+    style Client fill:#e8f5e9,stroke:#ff9800
+    style Langfuse fill:#e8f5e9,stroke:#ff9800
+    style UI fill:#e8f5e9,stroke:#64b5f6
 ```
 
 ## 📊 **System Flowchart**
 
 ```mermaid
 flowchart TD
-    A[app/chat] -->|components|< B[chat-header.tsx]
-    A -->|components|< C[chat-messages.tsx]
-    A -->|components|< D[chat-input.tsx]
-    A -->|config|< E[agents.ts]
-    A -->|providers|< F[chat-context.tsx]
+    A[app/chat] -->|components| B[chat-header.tsx]
+    A -->|components| C[chat-messages.tsx]
+    A -->|components| D[chat-input.tsx]
+    A -->|config| E[agents.ts]
+    A -->|providers| F[chat-context.tsx]
     
-    G[app/networks] -->|components|< H[network-header.tsx]
-    G -->|components|< I[network-messages.tsx]
-    G -->|config|< J[networks.ts]
-    G -->|providers|< K[network-context.tsx]
+    G[app/networks] -->|components| H[network-header.tsx]
+    G -->|components| I[network-messages.tsx]
+    G -->|config| J[networks.ts]
+    G -->|providers| K[network-context.tsx]
     
-    L[app/workflows] -->|components|< M[workflow-canvas.tsx]
-    L -->|components|< N[workflow-header.tsx]
-    L -->|config|< O[workflows.ts]
-    L -->|providers|< P[workflow-context.tsx]
+    L[app/workflows] -->|components| M[workflow-canvas.tsx]
+    L -->|components| N[workflow-header.tsx]
+    L -->|config| O[workflows.ts]
+    L -->|providers| P[workflow-context.tsx]
     
-    Q[app/dashboard] -->|components|< R[dashboard.tsx]
-    Q -->|components|< S[agent-list.tsx]
-    Q -->|providers|< T[dashboard-context.tsx]
+    Q[app/dashboard] -->|components| R[dashboard.tsx]
+    Q -->|components| S[agent-list.tsx]
+    Q -->|providers| T[dashboard-context.tsx]
     
-    U[lib] -->|hooks|< V[use-mastra.ts]
-    U -->|hooks|< W[use-dashboard-queries.ts]
-    U -->|utils|< X[utils.ts]
-    U -->|client|< Y[mastra-client.ts]
+    U[lib] -->|hooks| V[use-mastra.ts]
+    U -->|hooks| W[use-dashboard-queries.ts]
+    U -->|utils| X[utils.ts]
+    U -->|client| Y[mastra-client.ts]
     
-    Z[src/types] -->|api|< AA[mastra-api.ts]
+    Z[src/types] -->|api| AA[mastra-api.ts]
     
-    AB[src/mastra/index.ts] -->|imports|< AC[agents/*]
-    AB -->|imports|< AD[tools/*]
-    AB -->|imports|< AE[workflows/*]
-    AB -->|imports|< AF[networks/*]
-    AB -->|imports|< AG[config/*]
+    AB[src/mastra/index.ts] -->|imports| AC[agents/*]
+    AB -->|imports| AD[tools/*]
+    AB -->|imports| AE[workflows/*]
+    AB -->|imports| AF[networks/*]
+    AB -->|imports| AG[config/*]
     
     style A fill:#e8f5e9,stroke:#81c784
     style G fill:#e8f5e9,stroke:#81c784
@@ -161,7 +161,7 @@ flowchart TD
     style Q fill:#e8f5e9,stroke:#81c784
     style U fill:#e3f2fd,stroke:#64b5f6
     style Z fill:#e3f2fd,stroke:#64b5f6
-    style AB fill:#fff3e0,stroke:#ff9800
+    style AB fill:#000000,stroke:#ff9800
 ```
 
 ## 🔄 **RAG Pipeline (Production-Grade)**
@@ -553,11 +553,11 @@ AgentStack
 
 | Env Var                        | Purpose                               | Required      |
 | ------------------------------ | ------------------------------------- | ------------- |
-| `PG_CONNECTION`                | Postgres + PgVector RAG               | ✅            |
+| `SUPABASE`                     | Postgres + PgVector RAG               | ✅            |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini LLM/Embeddings                 | ✅            |
 | `SERPAPI_API_KEY`              | Search/News/Shopping (10+ tools)      | ✅            |
 | `POLYGON_API_KEY`              | Stock/Crypto quotes/aggs/fundamentals | ✅            |
-| `PHOENIX_ENDPOINT`             | Arize/Phoenix tracing                 | Observability |
+| `LANGFUSE_BASE_URL`            | Langfuse tracing                      | Observability |
 
 **Full**: `.env.example` + `src/mastra/config/AGENTS.md`
 
@@ -583,7 +583,7 @@ npx vitest -t "polygon"     # Filter (e.g., financial tools)
 ## 📊 **Observability (Production-Ready)**
 
 ```bash
-Arize/Phoenix Exporters:
+Langfuse Exporters:
 ├── Traces: 100% (spans/tools/agents)
 ├── Scorers: 10+ (diversity/quality/task-completion)
 ├── Metrics: Latency/errors/tool-calls
