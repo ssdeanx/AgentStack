@@ -13,8 +13,8 @@
 // approvedBy: sam
 // approvalDate: 10/18
 
-import { AISpanType } from '@mastra/core/ai-tracing';
-import type { InferUITool} from "@mastra/core/tools";
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { marked } from 'marked';
 import * as fs from 'node:fs/promises';
@@ -470,7 +470,7 @@ const PdfToMarkdownOutputSchema = z.object({
 })
 
 export const pdfToMarkdownTool = createTool({
-  id: 'pdf-to-markdown',
+  id: 'pdfToMarkdown:Tool',
   description: `
 PDF to Markdown Data Conversion Tool
 
@@ -507,7 +507,8 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       type: 'progress',
       data: {
         message: `📄 Converting PDF to Markdown: ${context.pdfPath}`
-      }
+      },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
     // Create root tracing span
@@ -519,6 +520,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         maxPages: context.maxPages,
         normalization: context.normalizeText,
       },
+      tracingPolicy: { internal: InternalSpans.TOOL }
     })
 
     const warnings: string[] = []
@@ -554,6 +556,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         type: AISpanType.TOOL_CALL,
         name: 'read-pdf-file',
         input: { filePath: absolutePath, sizeBytes: fileStats.size },
+        tracingPolicy: { internal: InternalSpans.TOOL }
       })
 
       const readStart = Date.now()
@@ -570,6 +573,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         type: AISpanType.TOOL_CALL,
         name: 'extract-pdf-text',
         input: { maxPages: context.maxPages },
+        tracingPolicy: { internal: InternalSpans.TOOL }
       })
 
       const pdfContent = await extractPdfText(pdfBuffer, {
@@ -583,6 +587,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       const metadataSpan = rootSpan?.createChildSpan({
         type: AISpanType.TOOL_CALL,
         name: 'extract-metadata',
+        tracingPolicy: { internal: InternalSpans.TOOL }
       })
 
       const metadata = await extractPdfMetadata(pdfContent)
@@ -595,6 +600,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
           type: AISpanType.TOOL_CALL,
           name: 'normalize-text',
           input: { textLength: processedText.length },
+          tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         processedText = normalizePdfText(processedText)
@@ -607,6 +613,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       const markdownSpan = rootSpan?.createChildSpan({
         type: AISpanType.TOOL_CALL,
         name: 'convert-to-markdown',
+        tracingPolicy: { internal: InternalSpans.TOOL }
       })
 
       const markdownResult = convertToMarkdown(processedText)
@@ -623,6 +630,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         const tableSpan = rootSpan?.createChildSpan({
           type: AISpanType.TOOL_CALL,
           name: 'extract-tables',
+          tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         tableResult = extractTables(processedText)
@@ -635,6 +643,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         const imageSpan = rootSpan?.createChildSpan({
           type: AISpanType.TOOL_CALL,
           name: 'extract-images',
+          tracingPolicy: { internal: InternalSpans.TOOL }
         })
 
         imageResult = extractImageReferences(pdfBuffer)

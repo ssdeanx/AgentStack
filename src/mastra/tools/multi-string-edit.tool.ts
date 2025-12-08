@@ -60,9 +60,9 @@ function isPathWithinBoundary(filePath: string, boundary: string): boolean {
 function generateSimpleDiff(original: string, modified: string, filePath: string): string {
   const originalLines = original.split('\n')
   const modifiedLines = modified.split('\n')
-  
+
   const diffLines: string[] = [`--- a/${path.basename(filePath)}`, `+++ b/${path.basename(filePath)}`]
-  
+
   let i = 0, j = 0
   while (i < originalLines.length || j < modifiedLines.length) {
     if (i < originalLines.length && j < modifiedLines.length && originalLines[i] === modifiedLines[j]) {
@@ -77,7 +77,7 @@ function generateSimpleDiff(original: string, modified: string, filePath: string
       j++
     }
   }
-  
+
   return diffLines.join('\n')
 }
 

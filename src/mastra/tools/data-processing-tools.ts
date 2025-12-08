@@ -134,7 +134,7 @@ const CSVRowSchema = z.record(z.string(), z.string())
  * Reads and parses CSV data from a file
  */
 export const readCSVDataTool = createTool({
-  id: 'read-csv-data',
+  id: 'read:CSVdata',
   description: 'Reads and parses CSV data from a file in the data directory',
   inputSchema: z.object({
     fileName: z.string().describe('The name of the CSV file (relative to data directory)'),

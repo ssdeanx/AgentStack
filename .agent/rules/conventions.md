@@ -1,54 +1,97 @@
 ---
 trigger: model_decision
 description: Mastra Conventions
+name: conventions
+title: Mastra Code Conventions
+tags:
+  - conventions
+  - coding-standards
+  - best-practices
 ---
-
-# Code Conventions
+Code Conventions
 
 ## Tool Implementation Pattern
 
 All tools follow this structure:
 
 ```typescript
+import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
+import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import type { RuntimeContext } from "@mastra/core/runtime-context";
 import { log } from "../config/logger";
+import type { RuntimeContext } from '@mastra/core/runtime-context'
+import type { TracingContext } from '@mastra/core/ai-tracing';
 
-export const myTool = createTool({
-  id: "my-tool",
-  description: "Clear description of what the tool does",
-  inputSchema: z.object({
-    param: z.string().describe("Parameter description")
-  }),
-  outputSchema: z.object({
-    data: z.any().describe("Result data"),
-    error: z.string().optional()
-  }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
-    const startTime = Date.now();
-    
-    // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'my-tool',
-      input: context,
-    });
+// Define the Zod schema for the runtime context
+const weatherToolContextSchema = z.object({
+    temperatureUnit: z.enum(['celsius', 'fahrenheit']).default('celsius'),
+})
 
-    try {
-      // Tool logic here
-      log.info('my-tool executed', { context });
-      
-      rootSpan?.end({ output: result });
-      return result;
-    } catch (error) {
-      log.error('my-tool error', { error, context });
-      rootSpan?.error({ error });
-      return { data: null, error: errorMessage };
-    }
-  }
-});
+// Infer the TypeScript type from the Zod schema
+export type WeatherToolContext = z.infer<typeof weatherToolContextSchema>
+
+export const weatherTool = createTool({
+    id: 'get-weather',
+    description: 'Get current weather for a location',
+    inputSchema: z.object({
+        location: z.string().describe('City name'),
+    }),
+    outputSchema: z.object({
+        temperature: z.number(),
+        feelsLike: z.number(),
+        humidity: z.number(),
+        windSpeed: z.number(),
+        windGust: z.number(),
+        conditions: z.string(),
+        location: z.string(),
+        unit: z.string(), // Add unit to output schema
+    }),
+    execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
+
+        const { temperatureUnit } = weatherToolContextSchema.parse(
+            runtimeContext.get('weatherToolContext')
+        )
+
+        log.info(
+            `Fetching weather for location: ${context.location} in ${temperatureUnit}`
+        )
+
+        const weatherSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'weather-tool',
+            input: { location: context.location, temperatureUnit },
+            tracingPolicy: { internal: InternalSpans.ALL },
+            runtimeContext: runtimeContext as RuntimeContext<WeatherToolContext>,
+        })
+
+        try {
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...' } });
+            const result = await getWeather(context.location, temperatureUnit)
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...' } });
+            weatherSpan?.end({ output: result })
+            log.info(`Weather fetched successfully for ${context.location}`)
+            const finalResult = {
+                ...result,
+                unit: temperatureUnit === 'celsius' ? '°C' : '°F',
+            };
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
+            return finalResult;
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error)
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}` } });
+            weatherSpan?.end({ metadata: { error: errorMessage } })
+            log.error(
+                `Failed to fetch weather for ${context.location}: ${errorMessage}`
+            )
+            throw error
+        }
+    },
+})
+export type WeatherUITool = InferUITool<typeof weatherTool>;
 ```
 
 ## Key Patterns
