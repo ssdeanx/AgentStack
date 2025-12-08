@@ -10,7 +10,6 @@ import {
     getValidTraceId,
     getOrCreateSpan,
     SensitiveDataFilter,
-    BaseAISpan,
     DefaultAISpan,
     NoOpAISpan,
 } from '@mastra/core/ai-tracing'
@@ -60,7 +59,8 @@ import type {
     EndSpanOptions,
     UpdateSpanOptions,
     ErrorSpanOptions,
-} from '@mastra/core/ai-tracing'
+
+    BaseAISpan} from '@mastra/core/ai-tracing'
 import { InstrumentClass } from "@mastra/core";
 import { ConsoleLogger } from '@mastra/core/logger'
 import { RuntimeContext } from '@mastra/core/runtime-context'
@@ -90,7 +90,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
         super(config)
         this.customLogger = new ConsoleLogger({ level: config.logLevel ?? 'warn' })
         this.sensitiveDataFilter = new SensitiveDataFilter()
-        
+
         this.tracingConfig = {
             name: 'ai',
             serviceName: 'langfuse-exporter',
@@ -281,7 +281,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
         // Access the parent's traceMap via the inherited property
         // @ts-expect-error - traceMap is protected in base class but we need to check it
         const traceMap = this.traceMap as Map<string, unknown> | undefined
-        if (!traceMap || !span.traceId) return
+        if (!traceMap || !span.traceId) {return}
 
         if (!traceMap.has(span.traceId)) {
             this.customLogger.debug('Creating synthetic trace for orphan span', {
@@ -291,7 +291,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
                 spanType: span.type,
                 parentSpanId: span.parentSpanId,
             })
-            
+
             // Create a synthetic root span to initialize the trace
             // Use the original span's traceId and derive a meaningful name
             const syntheticRootSpan = {
@@ -301,7 +301,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
                 parentSpanId: undefined,
                 name: this.deriveSyntheticTraceName(span),
             }
-            
+
             // @ts-expect-error - initTrace is protected but we need to call it
             this.initTrace?.(syntheticRootSpan)
         }
@@ -338,8 +338,8 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             this.ensureTraceExists(span)
         }
 
-        this.customLogger.debug('Exporting event', { 
-            type: event.type, 
+        this.customLogger.debug('Exporting event', {
+            type: event.type,
             spanId: span.id,
             traceId: span.traceId,
             spanType: span.type,
@@ -370,7 +370,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
         switch (span.type) {
             case AISpanType.AGENT_RUN: {
                 const attrs = span.attributes as AgentRunAttributes | undefined
-                this.customLogger.debug('Agent run', { 
+                this.customLogger.debug('Agent run', {
                     agentId: attrs?.agentId,
                     instructions: attrs?.instructions,
                     prompt: attrs?.prompt,
@@ -381,7 +381,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.MODEL_GENERATION: {
                 const attrs = span.attributes as ModelGenerationAttributes | undefined
-                this.customLogger.debug('Model generation', { 
+                this.customLogger.debug('Model generation', {
                     model: attrs?.model,
                     provider: attrs?.provider,
                     resultType: attrs?.resultType,
@@ -394,7 +394,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.MODEL_STEP: {
                 const attrs = span.attributes as ModelStepAttributes | undefined
-                this.customLogger.debug('Model step', { 
+                this.customLogger.debug('Model step', {
                     stepIndex: attrs?.stepIndex,
                     usage: attrs?.usage,
                     finishReason: attrs?.finishReason,
@@ -405,7 +405,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.MODEL_CHUNK: {
                 const attrs = span.attributes as ModelChunkAttributes | undefined
-                this.customLogger.debug('Model chunk', { 
+                this.customLogger.debug('Model chunk', {
                     chunkType: attrs?.chunkType,
                     sequenceNumber: attrs?.sequenceNumber,
                 })
@@ -413,7 +413,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.TOOL_CALL: {
                 const attrs = span.attributes as ToolCallAttributes | undefined
-                this.customLogger.debug('Tool call', { 
+                this.customLogger.debug('Tool call', {
                     toolId: attrs?.toolId,
                     toolType: attrs?.toolType,
                     toolDescription: attrs?.toolDescription,
@@ -423,7 +423,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.MCP_TOOL_CALL: {
                 const attrs = span.attributes as MCPToolCallAttributes | undefined
-                this.customLogger.debug('MCP tool call', { 
+                this.customLogger.debug('MCP tool call', {
                     toolId: attrs?.toolId,
                     mcpServer: attrs?.mcpServer,
                     serverVersion: attrs?.serverVersion,
@@ -433,7 +433,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.PROCESSOR_RUN: {
                 const attrs = span.attributes as ProcessorRunAttributes | undefined
-                this.customLogger.debug('Processor run', { 
+                this.customLogger.debug('Processor run', {
                     processorName: attrs?.processorName,
                     processorType: attrs?.processorType,
                     processorIndex: attrs?.processorIndex,
@@ -442,7 +442,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_RUN: {
                 const attrs = span.attributes as WorkflowRunAttributes | undefined
-                this.customLogger.debug('Workflow run', { 
+                this.customLogger.debug('Workflow run', {
                     workflowId: attrs?.workflowId,
                     status: attrs?.status,
                 })
@@ -450,7 +450,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_STEP: {
                 const attrs = span.attributes as WorkflowStepAttributes | undefined
-                this.customLogger.debug('Workflow step', { 
+                this.customLogger.debug('Workflow step', {
                     stepId: attrs?.stepId,
                     status: attrs?.status,
                 })
@@ -458,7 +458,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_CONDITIONAL: {
                 const attrs = span.attributes as WorkflowConditionalAttributes | undefined
-                this.customLogger.debug('Workflow conditional', { 
+                this.customLogger.debug('Workflow conditional', {
                     conditionCount: attrs?.conditionCount,
                     truthyIndexes: attrs?.truthyIndexes,
                     selectedSteps: attrs?.selectedSteps,
@@ -467,7 +467,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_CONDITIONAL_EVAL: {
                 const attrs = span.attributes as WorkflowConditionalEvalAttributes | undefined
-                this.customLogger.debug('Workflow conditional eval', { 
+                this.customLogger.debug('Workflow conditional eval', {
                     conditionIndex: attrs?.conditionIndex,
                     result: attrs?.result,
                 })
@@ -475,7 +475,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_PARALLEL: {
                 const attrs = span.attributes as WorkflowParallelAttributes | undefined
-                this.customLogger.debug('Workflow parallel', { 
+                this.customLogger.debug('Workflow parallel', {
                     branchCount: attrs?.branchCount,
                     parallelSteps: attrs?.parallelSteps,
                 })
@@ -483,7 +483,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_LOOP: {
                 const attrs = span.attributes as WorkflowLoopAttributes | undefined
-                this.customLogger.debug('Workflow loop', { 
+                this.customLogger.debug('Workflow loop', {
                     loopType: attrs?.loopType,
                     iteration: attrs?.iteration,
                     totalIterations: attrs?.totalIterations,
@@ -493,7 +493,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_SLEEP: {
                 const attrs = span.attributes as WorkflowSleepAttributes | undefined
-                this.customLogger.debug('Workflow sleep', { 
+                this.customLogger.debug('Workflow sleep', {
                     durationMs: attrs?.durationMs,
                     untilDate: attrs?.untilDate,
                     sleepType: attrs?.sleepType,
@@ -502,7 +502,7 @@ export class LangfuseExporter extends BaseLangfuseExporter {
             }
             case AISpanType.WORKFLOW_WAIT_EVENT: {
                 const attrs = span.attributes as WorkflowWaitEventAttributes | undefined
-                this.customLogger.debug('Workflow wait event', { 
+                this.customLogger.debug('Workflow wait event', {
                     eventName: attrs?.eventName,
                     timeoutMs: attrs?.timeoutMs,
                     eventReceived: attrs?.eventReceived,

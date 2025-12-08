@@ -1,87 +1,70 @@
 /**
- * Role Hierarchy Configuration
+ * Supabase-Compatible Role Hierarchy Configuration
  *
- * Defines the hierarchical relationships between roles where higher-level roles
- * automatically inherit access permissions from lower-level roles.
- *
- * Structure: { role: [inherited_roles...] }
- * - Each role inherits access from all roles listed in its array
- * - Higher privilege roles should include lower privilege roles
- * - 'public' is the base level accessible to everyone
+ * Designed to work with Supabase Auth and Row Level Security (RLS)
+ * Roles are typically stored in user metadata or a profiles table
  */
+
+export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
+
+export type SupabaseRole = 'anon' | 'authenticated' | 'admin' | 'moderator' | 'user'
 
 export interface RoleHierarchy {
     [role: string]: string[]
 }
 
 export const ROLE_HIERARCHY: RoleHierarchy = {
-    // Super admin - access to everything
-    admin: [
-        'hr.admin',
-        'hr.viewer',
-        'finance.admin',
-        'finance.viewer',
-        'engineering.admin',
-        'engineering.viewer',
-        'employee',
-        'reader',
-        'public',
-    ],
+    // Supabase service role - highest access
+    'service_role': ['admin', 'authenticated', 'anon'],
 
-    // Department admin roles - full access to their department + general access
-    'hr.admin': ['hr.viewer', 'employee', 'reader', 'public'],
-    'finance.admin': ['finance.viewer', 'employee', 'reader', 'public'],
-    'engineering.admin': ['engineering.viewer', 'employee', 'reader', 'public'],
+    // Application admin - full access
+    admin: ['moderator', 'authenticated', 'anon'],
 
-    // Department viewer roles - read access to their department + general access
-    'hr.viewer': ['employee', 'reader', 'public'],
-    'finance.viewer': ['employee', 'reader', 'public'],
-    'engineering.viewer': ['employee', 'reader', 'public'],
+    // Content moderator
+    moderator: ['authenticated', 'anon'],
 
-    // Added reader role (inherits employee + public)
-    reader: ['employee', 'public'],
+    // Authenticated users
+    authenticated: ['anon'],
 
-    // Base employee role - access to general company documents
-    employee: ['public'],
+    // Anonymous/public access
+    anon: [],
 
-    // Public role - no additional inheritance (base level)
-    public: [],
-
-    // Tier-aligned roles for SaaS subscription model
-    free_user: ['public'],
-    pro_user: ['free_user', 'employee', 'public'],
-    pro_viewer: ['pro_user', 'free_user', 'public'],
-    pro_dept_viewer: ['pro_viewer', 'pro_user', 'free_user', 'public'],
-    enterprise_user: ['pro_user', 'pro_viewer', 'free_user', 'employee', 'public'],
-    enterprise_dept_admin: ['pro_dept_viewer', 'hr.viewer', 'finance.viewer', 'engineering.viewer', 'enterprise_user', 'pro_user', 'employee', 'public'],
-    enterprise_admin: ['enterprise_dept_admin', 'hr.admin', 'finance.admin', 'engineering.admin', 'enterprise_user', 'pro_user', 'employee', 'reader', 'public'],
+    // Subscription-based roles (can be stored in user metadata)
+    enterprise: ['pro', 'free', 'authenticated'],
+    pro: ['free', 'authenticated'],
+    free: ['authenticated'],
 }
 
 /**
- * Role privilege levels for sorting and comparison
- * Higher numbers indicate higher privilege levels
+ * Role privilege levels (higher = more access)
  */
 export const ROLE_LEVELS: Record<string, number> = {
-    // Legacy roles
-    admin: 100,
-    'hr.admin': 80,
-    'finance.admin': 80,
-    'engineering.admin': 80,
-    'hr.viewer': 60,
-    'finance.viewer': 60,
-    'engineering.viewer': 60,
-    employee: 40,
-    reader: 35,
-    public: 10,
-    anonymous: 10,
-    // Tier-aligned roles
-    free_user: 15,
-    pro_user: 50,
-    pro_viewer: 55,
-    pro_dept_viewer: 58,
-    enterprise_user: 75,
-    enterprise_dept_admin: 85,
-    enterprise_admin: 100,
+    'service_role': 1000,
+    admin: 800,
+    enterprise: 600,
+    moderator: 400,
+    pro: 300,
+    authenticated: 200,
+    free: 100,
+    anon: 0,
+}
+
+/**
+ * Supabase RLS Policy Helpers
+ */
+export const RLS_POLICIES = {
+    // Public read access
+    publicRead: 'anon',
+    // Authenticated user access
+    userAccess: 'authenticated',
+    // Pro subscriber features
+    proFeatures: 'pro',
+    // Enterprise features
+    enterpriseFeatures: 'enterprise',
+    // Admin only
+    adminOnly: 'admin',
+    // Service role (migrations, etc.)
+    serviceOnly: 'service_role',
 }
 
 /**
@@ -99,9 +82,23 @@ export function isValidRole(role: string): boolean {
 }
 
 /**
- * Get all roles that inherit from a specific role
- * @param targetRole The role to find inheritors for
- * @returns Array of roles that can access the target role
+ * Check if a user role has access to a required role
+ */
+export function hasRoleAccess(userRole: string, requiredRole: string): boolean {
+    if (userRole === requiredRole) {
+        return true
+    }
+
+    if (!(userRole in ROLE_HIERARCHY)) {
+        return false
+    }
+
+    const inheritedRoles = ROLE_HIERARCHY[userRole]
+    return inheritedRoles.includes(requiredRole)
+}
+
+/**
+ * Get all roles that can access a specific role
  */
 export function getInheritorRoles(targetRole: string): string[] {
     const inheritors: string[] = []
@@ -116,177 +113,77 @@ export function getInheritorRoles(targetRole: string): string[] {
 }
 
 /**
- * Subscription Tier Configuration
- * Defines quotas and feature access for each tier
+ * Supabase-compatible tier configuration
  */
-export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
-
-export interface TierQuota {
-    maxDocuments: number // -1 = unlimited
-    maxApiRequestsPerDay: number
-    maxUsersPerTenant: number
+export interface TierConfig {
+    maxRequests: number
     features: string[]
-    supportLevel: 'community' | 'email' | 'priority' | 'phone_24x7'
-    customIntegrations: boolean
-    advancedAnalytics: boolean
-    whiteLabel: boolean
-    onPremise: boolean
+    rlsPolicy: string
 }
 
-export const TIER_QUOTAS: Record<SubscriptionTier, TierQuota> = {
+export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     free: {
-        maxDocuments: 500,
-        maxApiRequestsPerDay: 50,
-        maxUsersPerTenant: 1,
-        features: ['basic-rag', 'basic-search', 'public-docs'],
-        supportLevel: 'community',
-        customIntegrations: false,
-        advancedAnalytics: false,
-        whiteLabel: false,
-        onPremise: false,
+        maxRequests: 100,
+        features: ['basic-chat', 'public-docs'],
+        rlsPolicy: RLS_POLICIES.publicRead,
     },
     pro: {
-        maxDocuments: 50000,
-        maxApiRequestsPerDay: 10000,
-        maxUsersPerTenant: -1, // unlimited
-        features: [
-            'basic-rag',
-            'basic-search',
-            'advanced-search',
-            'public-docs',
-            'internal-docs',
-            'ai-insights',
-            'advanced-analytics',
-            'custom-integrations',
-            'api-access',
-            'priority-support',
-        ],
-        supportLevel: 'priority',
-        customIntegrations: true,
-        advancedAnalytics: true,
-        whiteLabel: false,
-        onPremise: false,
+        maxRequests: 10000,
+        features: ['advanced-chat', 'private-docs', 'api-access'],
+        rlsPolicy: RLS_POLICIES.proFeatures,
     },
     enterprise: {
-        maxDocuments: -1, // unlimited
-        maxApiRequestsPerDay: -1, // unlimited
-        maxUsersPerTenant: -1, // unlimited
-        features: [
-            'basic-rag',
-            'basic-search',
-            'advanced-search',
-            'public-docs',
-            'internal-docs',
-            'confidential-docs',
-            'ai-insights',
-            'advanced-analytics',
-            'custom-workflows',
-            'custom-integrations',
-            'api-access',
-            'white-label',
-            'on-premise',
-            'phone-support',
-            'dedicated-account-manager',
-        ],
-        supportLevel: 'phone_24x7',
-        customIntegrations: true,
-        advancedAnalytics: true,
-        whiteLabel: true,
-        onPremise: true,
+        maxRequests: -1, // unlimited
+        features: ['unlimited-chat', 'all-docs', 'custom-models', 'admin-panel'],
+        rlsPolicy: RLS_POLICIES.enterpriseFeatures,
     },
 }
 
 /**
- * Get quota configuration for a tier
+ * Get tier configuration
  */
-export function getTierQuota(tier: SubscriptionTier): TierQuota {
-    return TIER_QUOTAS[tier]
+export function getTierConfig(tier: SubscriptionTier): TierConfig {
+    return TIER_CONFIGS[tier]
 }
 
 /**
  * Check if a feature is available in a tier
  */
-export function isTierFeatureEnabled(
-    tier: SubscriptionTier,
-    feature: string
-): boolean {
-    return TIER_QUOTAS[tier].features.includes(feature)
-}
-
-/**
- * Get the minimum tier required for a classification level
- */
-export function getMinimumTierForClassification(
-    classification: 'public' | 'internal' | 'confidential'
-): SubscriptionTier {
-    switch (classification) {
-        case 'public':
-            return 'free'
-        case 'internal':
-            return 'pro'
-        case 'confidential':
-            return 'enterprise'
-        default:
-            return 'free'
-    }
-}
-
-/**
- * Get all roles available in a subscription tier
- */
-export function getRolesByTier(tier: SubscriptionTier): string[] {
-    switch (tier) {
-        case 'free':
-            return ['free_user', 'public']
-        case 'pro':
-            return ['pro_user', 'pro_viewer', 'pro_dept_viewer', 'free_user', 'employee', 'reader', 'public']
-        case 'enterprise':
-            return ['enterprise_admin', 'enterprise_dept_admin', 'enterprise_user', 'admin', 'hr.admin', 'finance.admin', 'engineering.admin', 'pro_user', 'pro_viewer', 'employee', 'reader', 'public']
-        default:
-            return ['public']
-    }
+export function hasFeature(tier: SubscriptionTier, feature: string): boolean {
+    return TIER_CONFIGS[tier].features.includes(feature)
 }
 
 /**
  * Get the minimum tier required for a role
  */
 export function getTierForRole(role: string): SubscriptionTier {
-    if (role === 'public') {
-        return 'free'
+    if (role === 'enterprise') {
+        return 'enterprise'
     }
-    if (role === 'free_user') {
-        return 'free'
-    }
-    if (role.startsWith('pro_') || role === 'employee' || role === 'reader') {
+    if (role === 'pro') {
         return 'pro'
     }
-    if (role.startsWith('enterprise_') || role === 'admin' || role.endsWith('.admin') || role.endsWith('.viewer')) {
-        return 'enterprise'
+    if (role === 'free') {
+        return 'free'
     }
     return 'free'
 }
 
 /**
- * Check if a role can access a specific tier
+ * Supabase RLS Policy Generator
+ * Returns the appropriate policy for a given role
  */
-export function canRoleAccessTier(role: string, tier: SubscriptionTier): boolean {
-    const roleLevel = getRoleLevel(role)
-    const tierRoles = getRolesByTier(tier)
+export function getRLSPolicyForRole(role: string): string {
+    const tier = getTierForRole(role)
+    return TIER_CONFIGS[tier].rlsPolicy
+}
 
-    // Check if role is directly in tier or has sufficient privilege level
-    if (tierRoles.includes(role)) {
-        return true
-    }
+/**
+ * Check if a user can access a resource based on their role
+ */
+export function canAccessResource(userRole: string, resourcePolicy: string): boolean {
+    const userLevel = getRoleLevel(userRole)
+    const requiredLevel = getRoleLevel(resourcePolicy)
 
-    // Check based on role level
-    switch (tier) {
-        case 'free':
-            return roleLevel >= 10
-        case 'pro':
-            return roleLevel >= 50
-        case 'enterprise':
-            return roleLevel >= 75
-        default:
-            return false
-    }
+    return userLevel >= requiredLevel
 }
