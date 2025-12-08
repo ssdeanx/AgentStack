@@ -70,13 +70,14 @@ export const pgStore = new PostgresStore({
 
 await pgStore.init();
 const allIndexes = await pgStore.listIndexes();
+// eslint-disable-next-line no-console
 console.log(allIndexes);
 log.info('PostgreSQL Store initialized with PgVector support, all indexes:', {
     indexCount: allIndexes.length,
     indexes: allIndexes,
 });
 
-// PgVector configuration for 1568 dimension embeddings (gemini-embedding-002)
+// PgVector configuration for 3072 dimension embeddings (gemini-embedding-001)
 export const pgVector = new PgVector({
     connectionString:
         process.env.SUPABASE ??
@@ -105,7 +106,7 @@ export const pgMemory = new Memory({
             indexConfig: {
                 type: 'flat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
-                ivf: {lists: 4000},
+                ivf: {lists: parseInt(process.env.LISTS ?? '3072')}, // IVF configuration for flat index
                 }
         },
         // Enhanced working memory with supported template
@@ -149,7 +150,7 @@ log.info('PG Store and Memory initialized with PgVector support', {
             indexConfig: {
                 type: 'flat',
                 metric: 'cosine',
-                ivf: { lists: 4000 }, // Adjust list count based on your needs
+                ivf: { lists: parseInt(process.env.LISTS ?? '3072') }, // Adjust list count based on your needs
             }
         },
         workingMemory: {
@@ -174,9 +175,9 @@ export const graphQueryTool = createGraphRAGTool({
     vectorStoreName: 'pgVector',
     indexName: 'memory_messages_3072',
     model: google.textEmbedding('gemini-embedding-001'),
-    // Supported graph options (updated for 1568 dimensions)
+    // Supported graph options (updated for 3072 dimensions)
     graphOptions: {
-        dimension: 3072, // gemini-embedding-001 dimension (1568)
+        dimension: 3072, // gemini-embedding-001 dimension (3072)
         threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
         randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
         restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
