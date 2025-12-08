@@ -106,7 +106,6 @@ export const mastra = new Mastra({
   agents: {
     // Core Agents
     weatherAgent,
-    a2aCoordinatorAgent,
     csvToExcalidrawAgent,
     imageToCsvAgent,
     copywriterAgent,
@@ -128,13 +127,6 @@ export const mastra = new Mastra({
     researchPaperAgent,
     documentProcessingAgent,
     knowledgeIndexingAgent,
-    // Networks (Agent-based routing)
-    agentNetwork,
-    dataPipelineNetwork,
-    reportGenerationNetwork,
-    researchPipelineNetwork,
-    codingTeamNetwork,
-
     // Utility Agents
     acpAgent,
     daneCommitMessage,
@@ -159,6 +151,16 @@ export const mastra = new Mastra({
     codeReviewerAgent,
     testEngineerAgent,
     refactoringAgent,
+
+    // Networks (Agent-based routing)
+    agentNetwork,
+    dataPipelineNetwork,
+    reportGenerationNetwork,
+    researchPipelineNetwork,
+    codingTeamNetwork,
+
+    // A2A Agents (Coordinator)
+    a2aCoordinatorAgent,
     codingA2ACoordinator,
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
@@ -198,7 +200,7 @@ export const mastra = new Mastra({
             baseUrl: process.env.LANGFUSE_BASE_URL,
             logger: log,
             options: {
-              tracer: trace.getTracer("ai"),
+              tracer: trace.getTracer("ALL"),
             }
           }),
           //          new CloudExporter({
@@ -222,26 +224,57 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       chatRoute({
-        path: "/chat",
+        path: "/chat/:agentId",
+        defaultOptions: {
+          memory: {
+            thread: {
+              id: ':agentIdChat',
+              resourceId: 'chat',
+              metadata: { agent: ':agentId' }
+            },
+            resource: "chat",
+            options:
+              { lastMessages: 500, semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true } },
+            readOnly: false,
+          },
+          maxSteps: 50,
+          includeRawChunks: true,
+          telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+            functionId: "chat-api",
+          },
+        },
+        sendStart: true,
+        sendFinish: true,
+        sendReasoning: true,
+        sendSources: true,
+      }),
+      chatRoute({
+        path: "/chat/weatherAgent",
         agent: "weatherAgent",
         defaultOptions: {
+          format: "aisdk",
           memory: {
             thread: {
-              id: 'chat',
+              id: "weatherAgentChat",
               resourceId: 'chat',
+              metadata: { agent: 'weatherAgent' }
             },
             resource: "chat",
             options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
+              { lastMessages: 500, semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true } },
+            readOnly: false,
           },
           maxSteps: 50,
-          includeRawChunks: true,
           telemetry: {
             isEnabled: true,
             recordInputs: true,
             recordOutputs: true,
             functionId: "chat-api",
           },
+          includeRawChunks: true,
         },
         sendStart: true,
         sendFinish: true,
@@ -249,26 +282,29 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/api/researchAgent",
         agent: "researchAgent",
         defaultOptions: {
+          format: "aisdk",
           memory: {
             thread: {
-              id: 'chat',
+              id: "researchAgentChat",
               resourceId: 'chat',
+              metadata: { agent: 'researchAgent' }
             },
             resource: "chat",
             options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
+              { lastMessages: 500, semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true } },
+            readOnly: false,
           },
           maxSteps: 50,
-          includeRawChunks: true,
           telemetry: {
             isEnabled: true,
             recordInputs: true,
             recordOutputs: true,
             functionId: "chat-api",
           },
+          includeRawChunks: true,
         },
         sendStart: true,
         sendFinish: true,
@@ -276,12 +312,12 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/reportAgent",
         agent: "reportAgent",
         defaultOptions: {
           memory: {
             thread: {
-              id: 'chat',
+              id: 'reportAgentChat',
               resourceId: 'chat',
             },
             resource: "chat",
@@ -303,7 +339,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/excalidrawValidatorAgent",
         agent: "excalidrawValidatorAgent",
         defaultOptions: {
           memory: {
@@ -330,7 +366,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/editorAgent",
         agent: "editorAgent",
         defaultOptions: {
           memory: {
@@ -357,7 +393,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/copywriterAgent",
         agent: "copywriterAgent",
         defaultOptions: {
           memory: {
@@ -384,7 +420,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/scriptWriterAgent",
         agent: "scriptWriterAgent",
         defaultOptions: {
           memory: {
@@ -411,7 +447,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/knowledgeIndexingAgent",
         agent: "knowledgeIndexingAgent",
         defaultOptions: {
           memory: {
@@ -438,7 +474,7 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat",
+        path: "/chat/documentProcessingAgent",
         agent: "documentProcessingAgent",
         defaultOptions: {
           memory: {
@@ -465,62 +501,67 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/:agentId",
+        workflow: "specGenerationWorkflow",
+        includeTextStreamParts: true,
+      }),
+      workflowRoute({
+        path: "/workflow/weatherWorkflow",
         workflow: "weatherWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/contentStudioWorkflow",
         workflow: "contentStudioWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/contentlogWorkflow",
         workflow: "changelogWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/contentReviewWorkflow",
         workflow: "contentReviewWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/documentProcessingWorkflow",
         workflow: "documentProcessingWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/financialReportWorkflow",
         workflow: "financialReportWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/learningExtractionWorkflow",
         workflow: "learningExtractionWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/researchSynthesisWorkflow",
         workflow: "researchSynthesisWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/stockAnalysisWorkflow",
         workflow: "stockAnalysisWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/telephoneGameWorkflow",
         workflow: "telephoneGameWorkflow",
         includeTextStreamParts: true,
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/repoIngestionWorkflow",
         workflow: "repoIngestionWorkflow",
 
       }),
       workflowRoute({
-        path: "/workflow",
+        path: "/workflow/specGenerationWorkflow",
         workflow: "specGenerationWorkflow",
 
       }),

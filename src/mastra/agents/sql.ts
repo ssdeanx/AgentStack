@@ -12,7 +12,9 @@ export interface SqlAgentRuntimeContext {
 }
 
 export const sqlAgent = new Agent({
+  id: "sqlAgent",
   name: "SQL Agent",
+  description: `A SQL agent that generates and executes SQL queries on a PostgreSQL database containing city data.`,
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<SqlAgentRuntimeContext> }) => {
     // runtimeContext is read at invocation time
     const userTier = runtimeContext.get('user-tier') ?? 'free'

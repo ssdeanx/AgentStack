@@ -15,7 +15,7 @@ export interface ScriptWriterRuntimeContext {
 }
 
 export const scriptWriterAgent = new Agent({
-  id: 'script-writer',
+  id: 'scriptWriterAgent',
   name: 'Script Writer',
   description: 'Master scriptwriter focused on retention, pacing, and psychological engagement.',
   instructions: ({ runtimeContext }) => {

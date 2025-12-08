@@ -20,7 +20,7 @@ export interface DocumentProcessingContext {
 log.info('Initializing Document Processing Agent...')
 
 export const documentProcessingAgent = new Agent({
-    id: 'document-processing-agent',
+  id: 'documentProcessingAgent',
     name: 'Document Processing Agent',
     description:
         'Converts PDFs to markdown, chunks documents for RAG, and prepares content for indexing. Use for PDF conversion, document chunking, text extraction, and content preprocessing for knowledge bases.',

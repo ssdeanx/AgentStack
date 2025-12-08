@@ -522,14 +522,14 @@ const toolCallCounters = new Map<string, number>()
 
 
 export const webScraperTool = createTool({
-  id: 'web-scraper',
+  id: 'web:scraper',
   description:
     'Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.',
   inputSchema: webScraperInputSchema,
   outputSchema: webScraperOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { url: string; selector?: string; extractAttributes?: string[]; saveMarkdown?: boolean; markdownFileName?: string; depth?: number; maxPages?: number; followLinks?: boolean; includeImages?: boolean; extractMetadata?: boolean; contentType?: 'text' | 'links' | 'images' | 'metadata' | 'structured' | 'all'; timeout?: number; userAgent?: string; headers?: Record<string, string>; retryAttempts?: number; delayBetweenRequests?: number; respectRobotsTxt?: boolean; extractStructuredData?: boolean; languageDetection?: boolean; contentFiltering?: { minLength?: number; maxLength?: number; keywords?: string[]; excludePatterns?: string[] }; outputFormat?: 'json' | 'markdown' | 'html' | 'text'; compression?: boolean; cookies?: Record<string, string> }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `🌐 Starting web scrape for ${context.url}` } });
-    toolCallCounters.set('web-scraper', (toolCallCounters.get('web-scraper') ?? 0) + 1)
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Starting web scrape for ${context.url}` } });
+    toolCallCounters.set('web:scraper', (toolCallCounters.get('web:scraper') ?? 0) + 1)
     const scrapeSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'web_scrape',
@@ -542,7 +542,7 @@ export const webScraperTool = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     })
 
-    await writer?.write({ type: 'progress', data: { message: '🐛 Initializing crawler...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🐛 Initializing crawler...' } });
     log.info('Starting enhanced web scraping with JSDOM', {
       url: context.url,
       selector: context.selector,
@@ -664,8 +664,8 @@ export const webScraperTool = createTool({
               const dom = new JSDOM(rawContent, { includeNodeLocations: false })
               const { document } = dom.window
               detectedLanguage = document.documentElement.getAttribute('lang') ??
-                               document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ??
-                               document.querySelector('meta[name="language"]')?.getAttribute('content') ?? undefined
+                              document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ??
+                              document.querySelector('meta[name="language"]')?.getAttribute('content') ?? undefined
             }
 
             if (
@@ -746,7 +746,7 @@ export const webScraperTool = createTool({
         },
       })
 
-      await writer?.write({ type: 'progress', data: { message: '📥 Fetching and parsing page...' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Fetching and parsing page...' } });
       await crawler.run([new Request({ url: context.url })])
 
       // Enhanced HTML to markdown conversion using JSDOM
@@ -784,7 +784,7 @@ export const webScraperTool = createTool({
           }
         }
 
-        await writer?.write({ type: 'progress', data: { message: '✂️ Converting to markdown...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: '✂️ Converting to markdown...' } });
         if (
           context.saveMarkdown === true &&
           typeof markdownContent === 'string' &&
@@ -838,7 +838,7 @@ export const webScraperTool = createTool({
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}` } });
       scrapeSpan?.end({
         output: {
           status,
@@ -950,7 +950,7 @@ export const batchWebScraperTool = createTool({
   inputSchema: batchWebScraperInputSchema,
   outputSchema: batchWebScraperOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { urls: string[]; selector?: string; maxConcurrent?: number; saveResults?: boolean; baseFileName?: string }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `🌐 Batch scraping ${context.urls.length} URLs` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Batch scraping ${context.urls.length} URLs` } });
     toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
     const batchSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -964,7 +964,7 @@ export const batchWebScraperTool = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     })
 
-    await writer?.write({ type: 'progress', data: { message: '🐛 Initializing batch crawlers...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🐛 Initializing batch crawlers...' } });
     log.info('Starting enhanced batch web scraping with JSDOM', {
       urlCount: context.urls.length,
       maxConcurrent: context.maxConcurrent ?? 3,
@@ -1122,7 +1122,7 @@ export const batchWebScraperTool = createTool({
 
       const successful = results.filter((r) => r.success).length
       const failed = results.length - successful
-      await writer?.write({ type: 'progress', data: { message: `✅ Batch complete: ${successful}/${results.length} successful` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Batch complete: ${successful}/${results.length} successful` } });
 
       batchSpan?.end({
         output: {

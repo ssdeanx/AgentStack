@@ -40,7 +40,7 @@ log.info('Initializing Financial Chart Agents...')
  * Recommends optimal chart types based on financial data characteristics
  */
 export const chartTypeAdvisorAgent = new Agent({
-  id: 'chart-type-advisor',
+  id: 'chartTypeAdvisorAgent',
   name: 'Chart Type Advisor',
   description: 'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
   instructions: ({ runtimeContext }) => {
@@ -128,7 +128,7 @@ Return recommendations as JSON:
  * Transforms raw financial data into Recharts-compatible format
  */
 export const chartDataProcessorAgent = new Agent({
-  id: 'chart-data-processor',
+  id: 'chartDataProcessorAgent',
   name: 'Chart Data Processor',
   description: 'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
   instructions: ({ runtimeContext }) => {
@@ -232,7 +232,7 @@ Return processed data as JSON:
  * Generates complete Recharts React component code
  */
 export const chartGeneratorAgent = new Agent({
-  id: 'chart-generator',
+  id: 'chartGeneratorAgent',
   name: 'Chart Generator',
   description: 'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
   instructions: ({ runtimeContext }) => {
@@ -373,7 +373,7 @@ Return complete component code:
  * Orchestrates the chart creation pipeline from data to component
  */
 export const chartSupervisorAgent = new Agent({
-  id: 'chart-supervisor',
+  id: 'chartSupervisorAgent',
   name: 'Chart Supervisor',
   description: 'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
   instructions: ({ runtimeContext }) => {

@@ -7,7 +7,7 @@ import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export const daneCommitMessage = new Agent({
-  id: 'dane-commit-message',
+  id: 'daneCommitMessage',
   name: 'Dane Commit Message',
   description: 'Generate commit messages for engineers',
   instructions: ({ runtimeContext }) => {
@@ -39,7 +39,7 @@ export const daneCommitMessage = new Agent({
 })
 
 export const daneIssueLabeler = new Agent({
-  id: 'dane-issue-labeler',
+  id: 'daneIssueLabeler',
   name: 'Dane Issue Labeler',
   description: 'Label issues based on their content',
   instructions: ({ runtimeContext }) => {
@@ -68,7 +68,7 @@ export const daneIssueLabeler = new Agent({
 })
 
 export const daneLinkChecker = new Agent({
-  id: 'dane-link-checker',
+  id: 'daneLinkChecker',
   name: 'Dane Link Checker',
   description: 'Check links for broken links',
   instructions: ({ runtimeContext }) => {
@@ -103,7 +103,7 @@ export const daneLinkChecker = new Agent({
 })
 
 export const daneChangeLog = new Agent({
-  id: 'dane-package-publisher',
+  id: 'daneChangeLog',
   name: 'Dane Package Publisher',
   description: 'Publish packages to npm',
   instructions: ({ runtimeContext }) => {

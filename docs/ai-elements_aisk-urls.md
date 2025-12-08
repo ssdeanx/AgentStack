@@ -4,8 +4,10 @@
 
 Using Vercel AI SDK
 Mastra integrates with Vercel's AI SDK to support model routing, React Hooks, and data streaming methods.
-https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk)
-- [AI-SDK Framework](
+
+https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk
+
+- [AI-SDK Framework]
 
 - [Next.js Framework](https://mastra.ai/docs/frameworks/web-frameworks/next-js)
 - [Custom API Routes](https://mastra.ai/docs/server-db/custom-api-routes)
@@ -19,12 +21,10 @@ Location `C:/Users/ssdsk/mastra/ui` & `C:/Users/ssdsk/mastra/src/components/ai-e
 - [AI Elements](https://ai-sdk.dev/elements)
 - [Usage](https://ai-sdk.dev/elements/usage)
 
-- [Examples Chatbot](https://ai-sdk.dev/elements/examples/chatbot)
-- [Examples v0](https://ai-sdk.dev/elements/examples/v0)
-- [Workflow Examples](https://ai-sdk.dev/elements/examples/workflow)
-
 # Chatbot Components
 
+- [Examples Chatbot](https://ai-sdk.dev/elements/examples/chatbot)
+- [Examples v0](https://ai-sdk.dev/elements/examples/v0)
 - [Chain of Thought](https://ai-sdk.dev/elements/components/chain-of-thought)
 - [Checkpoint](https://ai-sdk.dev/elements/components/checkpoint)
 - [Confirmation](https://ai-sdk.dev/elements/components/confirmation)
@@ -45,6 +45,7 @@ Location `C:/Users/ssdsk/mastra/ui` & `C:/Users/ssdsk/mastra/src/components/ai-e
 
 # Workflow Components
 
+- [Workflow Examples](https://ai-sdk.dev/elements/examples/workflow)
 - [Canvas](https://ai-sdk.dev/elements/components/canvas)
 - [Connection](https://ai-sdk.dev/elements/components/connection)
 - [Controls](https://ai-sdk.dev/elements/components/controls)

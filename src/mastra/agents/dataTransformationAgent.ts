@@ -28,7 +28,7 @@ export interface DataTransformationContext {
 log.info('Initializing Data Transformation Agent...')
 
 export const dataTransformationAgent = new Agent({
-    id: 'data-transformation-agent',
+  id: 'dataTransformationAgent',
     name: 'Data Transformation Agent',
     description:
         'Performs complex format transformations between CSV, JSON, and XML. Use for converting data between formats, transforming nested structures, flattening hierarchical data, and batch format conversions.',

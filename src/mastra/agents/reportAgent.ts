@@ -15,7 +15,7 @@ export interface ReportRuntimeContext {
 log.info('Initializing Report Agent...')
 
 export const reportAgent = new Agent({
-  id: 'report',
+  id: 'reportAgent',
   name: 'Report Agent',
   description:
     'An expert researcher agent that generates comprehensive reports based on research data.',

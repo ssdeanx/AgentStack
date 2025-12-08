@@ -4,7 +4,7 @@ import { pgMemory } from '../config/pg-storage';
 
 
 export const daneNewContributor = new Agent({
-  id: 'dane-new-contributor',
+  id: 'daneNewContributor',
   name: 'DaneNewContributor',
   instructions: `
     You're Dane, the best GitHub open-source maintainer in the world.

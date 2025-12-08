@@ -25,7 +25,7 @@ export interface DataIngestionContext {
 log.info('Initializing Data Ingestion Agent...')
 
 export const dataIngestionAgent = new Agent({
-    id: 'data-ingestion-agent',
+  id: 'dataIngestionAgent',
     name: 'Data Ingestion Agent',
     description:
         'Parses CSV files, validates data structure, and converts to JSON format. Use for importing CSV data, reading data files, validating CSV structure, and extracting structured data from files.',

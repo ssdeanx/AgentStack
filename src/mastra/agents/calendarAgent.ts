@@ -5,7 +5,7 @@ import { googleAIFlashLite, pgMemory } from '../config';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export const calendarAgent = new Agent({
-  id: 'calendar-agent',
+  id: 'calendarAgent',
   name: 'Calendar Agent',
   description: 'A helpful calendar assistant that can view, analyze, and help manage your schedule',
   instructions: ({ runtimeContext }) => {

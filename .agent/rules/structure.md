@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Mastra Structure this is my backend
 ---
 
 # Project Structure

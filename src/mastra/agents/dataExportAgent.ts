@@ -23,7 +23,7 @@ export interface DataExportContext {
 log.info('Initializing Data Export Agent...')
 
 export const dataExportAgent = new Agent({
-    id: 'data-export-agent',
+  id: 'dataExportAgent',
     name: 'Data Export Agent',
     description:
         'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',

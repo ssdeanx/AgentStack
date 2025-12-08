@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Mastra Conventions
 ---
 
 # Code Conventions
