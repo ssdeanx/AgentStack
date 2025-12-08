@@ -7,7 +7,7 @@ import { glob } from 'glob';
 import { readFile } from 'fs/promises';
 import { log } from '../config/logger';
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 
 const referenceContextSchema = z.object({
   maxReferences: z.number().default(500),
@@ -53,7 +53,7 @@ export const findReferencesTool = createTool({
   outputSchema: findReferencesOutputSchema,
   execute: async ({ context, tracingContext, runtimeContext }) => {
     const { symbolName, projectPath, filePath, line } = context;
-    
+
     const refContext = runtimeContext?.get('semanticAnalysisContext');
     const { maxReferences } = referenceContextSchema.parse(refContext || {});
 
@@ -108,14 +108,14 @@ export const findReferencesTool = createTool({
         // Name-based search
         for (const sourceFile of project.getSourceFiles()) {
           const sourceFilePath = sourceFile.getFilePath();
-          if (sourceFilePath.includes('node_modules') || sourceFilePath.includes('.git')) continue;
+          if (sourceFilePath.includes('node_modules') || sourceFilePath.includes('.git')) {continue;}
 
           sourceFile.forEachDescendant((node) => {
             if (Node.isIdentifier(node) && node.getText() === symbolName) {
               const start = node.getStartLinePos();
               const pos = sourceFile.getLineAndColumnAtPos(start);
               const parent = node.getParent();
-              
+
               // Simple heuristic for definition
               const isDefinition = isSymbolDefinition(node);
 
@@ -142,7 +142,7 @@ export const findReferencesTool = createTool({
           try {
             const content = await readFile(pyFile, 'utf-8');
             const references = await PythonParser.findReferences(content, symbolName);
-            
+
             for (const ref of references) {
               allReferences.push({
                 filePath: pyFile,
@@ -193,7 +193,7 @@ export const findReferencesTool = createTool({
 
 function isSymbolDefinition(node: Node): boolean {
   const parent = node.getParent();
-  if (!parent) return false;
+  if (!parent) {return false;}
 
   return Node.isFunctionDeclaration(parent) ||
          Node.isClassDeclaration(parent) ||

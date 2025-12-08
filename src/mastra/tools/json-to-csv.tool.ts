@@ -1,4 +1,5 @@
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AISpanType } from "@mastra/core/ai-tracing";
 
@@ -27,7 +28,7 @@ export const jsonToCsvTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `📊 Converting ${context.data.length} JSON records to CSV` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Converting ${context.data.length} JSON records to CSV` } });
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: "json-to-csv",
@@ -82,7 +83,7 @@ export const jsonToCsvTool = createTool({
 
       for (const record of data) {
         const typedRecord = record as Record<string, unknown>;
-        const row = headers.map((header) => escapeValue(typedRecord[header as string]));
+        const row = headers.map((header) => escapeValue(typedRecord[header]));
         rows.push(row.join(delimiter));
       }
 

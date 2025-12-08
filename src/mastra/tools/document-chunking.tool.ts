@@ -1,5 +1,6 @@
 import { AISpanType } from '@mastra/core/ai-tracing';
-import { createTool, InferUITool } from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import {
   MastraAgentRelevanceScorer,
   MDocument,

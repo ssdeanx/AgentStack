@@ -54,7 +54,7 @@ interface ParsedFunction {
 
 function parseTypeScriptFunctions(content: string): ParsedFunction[] {
   const functions: ParsedFunction[] = []
-  
+
   // Match exported functions: export function name(params): type
   const exportFuncRegex = /export\s+(async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{]+))?/g
   let match: RegExpExecArray | null
@@ -67,7 +67,7 @@ function parseTypeScriptFunctions(content: string): ParsedFunction[] {
       returnType: match[4]?.trim(),
     })
   }
-  
+
   // Match exported const arrow functions: export const name = (params) =>
   const exportConstRegex = /export\s+const\s+(\w+)\s*=\s*(async\s+)?\(([^)]*)\)(?:\s*:\s*([^=]+))?\s*=>/g
   while ((match = exportConstRegex.exec(content)) !== null) {
@@ -79,7 +79,7 @@ function parseTypeScriptFunctions(content: string): ParsedFunction[] {
       returnType: match[4]?.trim(),
     })
   }
-  
+
   // Match regular functions (not exported)
   const funcRegex = /(?<!export\s+)(async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{]+))?/g
   while ((match = funcRegex.exec(content)) !== null) {
@@ -94,25 +94,25 @@ function parseTypeScriptFunctions(content: string): ParsedFunction[] {
       })
     }
   }
-  
+
   return functions
 }
 
 function parseExports(content: string): string[] {
   const exports: string[] = []
-  
+
   const namedExportRegex = /export\s+(?:const|let|var|function|class|type|interface)\s+(\w+)/g
   let exportMatch: RegExpExecArray | null
   while ((exportMatch = namedExportRegex.exec(content)) !== null) {
     exports.push(exportMatch[1])
   }
-  
+
   const defaultExportRegex = /export\s+default\s+(?:function\s+)?(\w+)?/g
   while ((exportMatch = defaultExportRegex.exec(content)) !== null) {
-    if (exportMatch[1]) exports.push(`default (${exportMatch[1]})`)
-    else exports.push('default')
+    if (exportMatch[1]) {exports.push(`default (${exportMatch[1]})`)}
+    else {exports.push('default')}
   }
-  
+
   return [...new Set(exports)]
 }
 
@@ -120,14 +120,14 @@ function generateTestCase(
   func: ParsedFunction,
   sourceFile: string,
   options: { includeEdgeCases?: boolean; testStyle?: string }
-): z.infer<typeof testCaseSchema>[] {
-  const tests: z.infer<typeof testCaseSchema>[] = []
+): Array<z.infer<typeof testCaseSchema>> {
+  const tests: Array<z.infer<typeof testCaseSchema>> = []
   const moduleName = path.basename(sourceFile, path.extname(sourceFile))
-  
+
   // Basic unit test
   const asyncPrefix = func.isAsync ? 'async ' : ''
   const awaitPrefix = func.isAsync ? 'await ' : ''
-  
+
   tests.push({
     name: `${func.name} - should work correctly`,
     type: 'unit',
@@ -142,7 +142,7 @@ function generateTestCase(
     expect(result).toBeDefined()
   })`,
   })
-  
+
   // Edge case tests
   if (options.includeEdgeCases !== false) {
     if (func.params.length > 0) {
@@ -155,7 +155,7 @@ function generateTestCase(
   })`,
       })
     }
-    
+
     if (func.isAsync) {
       tests.push({
         name: `${func.name} - should handle async errors`,
@@ -168,7 +168,7 @@ function generateTestCase(
       })
     }
   }
-  
+
   return tests
 }
 
@@ -177,13 +177,13 @@ function generateTestFile(
   functions: ParsedFunction[],
   exports: string[],
   options: { testStyle?: string; mockExternals?: boolean; includeEdgeCases?: boolean }
-): { content: string; tests: z.infer<typeof testCaseSchema>[] } {
+): { content: string; tests: Array<z.infer<typeof testCaseSchema>> } {
   const moduleName = path.basename(sourceFile, path.extname(sourceFile))
-  const allTests: z.infer<typeof testCaseSchema>[] = []
-  
+  const allTests: Array<z.infer<typeof testCaseSchema>> = []
+
   const exportedFuncs = functions.filter(f => f.isExported)
   const importNames = exportedFuncs.map(f => f.name).join(', ')
-  
+
   let content = `import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ${importNames || moduleName} } from './${moduleName}'
 
@@ -203,7 +203,7 @@ beforeEach(() => {
   for (const func of exportedFuncs) {
     const testCases = generateTestCase(func, sourceFile, options)
     allTests.push(...testCases)
-    
+
     if (options.testStyle === 'describe-it') {
       content += `describe('${func.name}', () => {
 ${testCases.map(t => t.code).join('\n\n')}
@@ -213,7 +213,7 @@ ${testCases.map(t => t.code).join('\n\n')}
     } else {
       for (const test of testCases) {
         content += `test('${func.name} - ${test.name}', ${func.isAsync ? 'async ' : ''}() => {
-${test.code.replace(/^  /gm, '')}
+${test.code.replace(/^ {2}/gm, '')}
 })
 
 `
@@ -235,26 +235,26 @@ Use for increasing test coverage and establishing testing patterns.`,
   execute: async ({ context }): Promise<TestGeneratorOutput> => {
     const { sourceFile, outputPath, options } = context
     const { includeEdgeCases, mockExternals, testStyle } = options || {}
-    
+
     if (!await fileExists(sourceFile)) {
       throw new Error(`Source file not found: ${sourceFile}`)
     }
-    
+
     const content = await fs.readFile(sourceFile, 'utf-8')
     const functions = parseTypeScriptFunctions(content)
     const exports = parseExports(content)
-    
+
     const { content: testContent, tests } = generateTestFile(
       sourceFile,
       functions,
       exports,
       { testStyle, mockExternals, includeEdgeCases }
     )
-    
+
     const sourceDir = path.dirname(sourceFile)
     const sourceName = path.basename(sourceFile, path.extname(sourceFile))
     const testFile = outputPath || path.join(sourceDir, '__tests__', `${sourceName}.test.ts`)
-    
+
     return {
       testFile,
       sourceFile,

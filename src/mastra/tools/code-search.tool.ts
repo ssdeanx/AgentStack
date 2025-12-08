@@ -66,10 +66,10 @@ Use for finding usages, identifying patterns, and code exploration.`,
     const maxResults = options?.maxResults ?? 100
     const includeContext = options?.includeContext ?? true
     const contextLines = options?.contextLines ?? 2
-    
+
     let filePaths: string[] = []
     const targets = Array.isArray(target) ? target : [target]
-    
+
     for (const t of targets) {
       if (t.includes('*')) {
         const matches = await glob(t, { nodir: true })
@@ -84,45 +84,45 @@ Use for finding usages, identifying patterns, and code exploration.`,
         }
       }
     }
-    
+
     filePaths = [...new Set(filePaths)]
-    
-    const matches: z.infer<typeof matchSchema>[] = []
+
+    const matches: Array<z.infer<typeof matchSchema>> = []
     const filesWithMatches = new Set<string>()
     let truncated = false
-    
-    const searchRegex = isRegex 
+
+    const searchRegex = isRegex
       ? new RegExp(pattern, caseSensitive ? 'g' : 'gi')
       : new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi')
-    
+
     for (const filePath of filePaths) {
       if (matches.length >= maxResults) {
         truncated = true
         break
       }
-      
+
       try {
         const content = await fs.readFile(filePath, 'utf-8')
         const lines = content.split('\n')
-        
+
         for (let i = 0; i < lines.length; i++) {
           if (matches.length >= maxResults) {
             truncated = true
             break
           }
-          
+
           const line = lines[i]
           searchRegex.lastIndex = 0
           let match
-          
+
           while ((match = searchRegex.exec(line)) !== null) {
             filesWithMatches.add(filePath)
-            
+
             const contextObj = includeContext ? {
               before: lines.slice(Math.max(0, i - contextLines), i),
               after: lines.slice(i + 1, i + 1 + contextLines),
             } : undefined
-            
+
             matches.push({
               file: filePath,
               line: i + 1,
@@ -130,15 +130,15 @@ Use for finding usages, identifying patterns, and code exploration.`,
               content: line,
               context: contextObj,
             })
-            
-            if (!isRegex) break
+
+            if (!isRegex) {break}
           }
         }
       } catch {
         // Skip binary or unreadable files
       }
     }
-    
+
     return {
       matches,
       stats: {

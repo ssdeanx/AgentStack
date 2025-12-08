@@ -86,38 +86,38 @@ function detectLanguage(filePath: string): string {
 function calculateLoc(content: string, language: string): { loc: number; totalLines: number } {
   const lines = content.split('\n')
   const totalLines = lines.length
-  
+
   let loc = 0
   let inBlockComment = false
-  
+
   for (const line of lines) {
     const trimmed = line.trim()
-    
-    if (!trimmed) continue
-    
+
+    if (!trimmed) {continue}
+
     if (language === 'typescript' || language === 'javascript' || language === 'java' || language === 'cpp' || language === 'c' || language === 'csharp') {
       if (inBlockComment) {
-        if (trimmed.includes('*/')) inBlockComment = false
+        if (trimmed.includes('*/')) {inBlockComment = false}
         continue
       }
       if (trimmed.startsWith('/*')) {
         inBlockComment = !trimmed.includes('*/')
         continue
       }
-      if (trimmed.startsWith('//')) continue
+      if (trimmed.startsWith('//')) {continue}
     } else if (language === 'python' || language === 'ruby') {
-      if (trimmed.startsWith('#')) continue
+      if (trimmed.startsWith('#')) {continue}
     }
-    
+
     loc++
   }
-  
+
   return { loc, totalLines }
 }
 
 function estimateComplexity(content: string, language: string): number {
   let complexity = 1
-  
+
   const patterns = [
     /\bif\b/g,
     /\belse\s+if\b/g,
@@ -129,19 +129,19 @@ function estimateComplexity(content: string, language: string): number {
     /&&/g,
     /\|\|/g,
   ]
-  
+
   for (const pattern of patterns) {
     const matches = content.match(pattern)
-    if (matches) complexity += matches.length
+    if (matches) {complexity += matches.length}
   }
-  
+
   return complexity
 }
 
-function detectIssues(content: string, language: string): z.infer<typeof issueSchema>[] {
-  const issues: z.infer<typeof issueSchema>[] = []
+function detectIssues(content: string, language: string): Array<z.infer<typeof issueSchema>> {
+  const issues: Array<z.infer<typeof issueSchema>> = []
   const lines = content.split('\n')
-  
+
   const patterns = [
     { regex: /console\.log\(/g, message: 'Console statement found', rule: 'no-console', type: 'warning' as const },
     { regex: /debugger/g, message: 'Debugger statement found', rule: 'no-debugger', type: 'error' as const },
@@ -152,10 +152,10 @@ function detectIssues(content: string, language: string): z.infer<typeof issueSc
     { regex: /==(?!=)/g, message: 'Loose equality used', rule: 'eqeqeq', type: 'warning' as const },
     { regex: /\bvar\b/g, message: 'var keyword used (prefer const/let)', rule: 'no-var', type: 'info' as const },
   ]
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    
+
     for (const pattern of patterns) {
       if ((language === 'typescript' || language === 'javascript') || pattern.rule === 'no-todo' || pattern.rule === 'no-fixme' || pattern.rule === 'no-hack') {
         if (pattern.regex.test(line)) {
@@ -169,7 +169,7 @@ function detectIssues(content: string, language: string): z.infer<typeof issueSc
         pattern.regex.lastIndex = 0
       }
     }
-    
+
     if (line.length > 120) {
       issues.push({
         type: 'info',
@@ -179,7 +179,7 @@ function detectIssues(content: string, language: string): z.infer<typeof issueSc
       })
     }
   }
-  
+
   return issues
 }
 
@@ -196,9 +196,9 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
     const includeMetrics = options?.includeMetrics ?? true
     const detectPatterns = options?.detectPatterns ?? true
     const maxFileSize = options?.maxFileSize ?? 100000
-    
+
     let filePaths: string[] = []
-    
+
     if (typeof target === 'string') {
       if (target.includes('*')) {
         filePaths = await glob(target, { nodir: true })
@@ -208,23 +208,23 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
     } else {
       filePaths = target
     }
-    
-    const fileAnalyses: z.infer<typeof fileAnalysisSchema>[] = []
-    
+
+    const fileAnalyses: Array<z.infer<typeof fileAnalysisSchema>> = []
+
     for (const filePath of filePaths) {
-      if (!await fileExists(filePath)) continue
-      
+      if (!await fileExists(filePath)) {continue}
+
       const stats = await fs.stat(filePath)
-      if (stats.size > maxFileSize) continue
-      if (stats.isDirectory()) continue
-      
+      if (stats.size > maxFileSize) {continue}
+      if (stats.isDirectory()) {continue}
+
       const content = await fs.readFile(filePath, 'utf-8')
       const language = detectLanguage(filePath)
-      
-      const { loc, totalLines } = includeMetrics 
-        ? calculateLoc(content, language) 
+
+      const { loc, totalLines } = includeMetrics
+        ? calculateLoc(content, language)
         : { loc: 0, totalLines: 0 }
-      
+
       let complexity = 0
       if (includeMetrics) {
         if (language === 'python') {
@@ -238,11 +238,11 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
           complexity = estimateComplexity(content, language)
         }
       }
-      
-      const issues = detectPatterns 
-        ? detectIssues(content, language) 
+
+      const issues = detectPatterns
+        ? detectIssues(content, language)
         : []
-      
+
       fileAnalyses.push({
         path: filePath,
         language,
@@ -252,19 +252,19 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
         issues,
       })
     }
-    
+
     const totalLoc = fileAnalyses.reduce((sum, f) => sum + f.loc, 0)
-    const avgComplexity = fileAnalyses.length > 0 
-      ? fileAnalyses.reduce((sum, f) => sum + f.complexity, 0) / fileAnalyses.length 
+    const avgComplexity = fileAnalyses.length > 0
+      ? fileAnalyses.reduce((sum, f) => sum + f.complexity, 0) / fileAnalyses.length
       : 0
-    
+
     const issueCount: Record<string, number> = {}
     for (const file of fileAnalyses) {
       for (const issue of file.issues) {
         issueCount[issue.type] = (issueCount[issue.type] || 0) + 1
       }
     }
-    
+
     return {
       files: fileAnalyses,
       summary: {

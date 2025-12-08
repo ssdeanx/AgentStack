@@ -1,4 +1,5 @@
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { AISpanType } from "@mastra/core/ai-tracing";
 import { z } from "zod";
 import * as path from "node:path";
@@ -35,8 +36,8 @@ export const writeNoteTool = createTool({
       const filePath = path.join(NOTES_DIR, `${title}.md`);
       await fs.mkdir(NOTES_DIR, { recursive: true });
       await fs.writeFile(filePath, content, "utf-8");
-      
-      const result = `Successfully wrote to note \"${title}\".`;
+
+      const result = `Successfully wrote to note "${title}".`;
       span?.end({
         output: { success: true, filePath, processingTimeMs: Date.now() - startTime },
       });

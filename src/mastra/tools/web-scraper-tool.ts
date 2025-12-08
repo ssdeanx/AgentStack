@@ -1209,7 +1209,7 @@ export const siteMapExtractorTool = createTool({
   inputSchema: siteMapExtractorInputSchema,
   outputSchema: siteMapExtractorOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { url: string; maxDepth?: number; maxPages?: number; includeExternal?: boolean; saveMap?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `🗺️ Starting site map extraction for ${context.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🗺️ Starting site map extraction for ${context.url}` } });
     toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
     const mapSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -1223,7 +1223,7 @@ export const siteMapExtractorTool = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     })
 
-    await writer?.write({ type: 'progress', data: { message: '🔍 Crawling internal links...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Crawling internal links...' } });
     log.info('Starting enhanced site map extraction with JSDOM', {
       url: context.url,
       maxDepth: context.maxDepth ?? 2,
@@ -1392,7 +1392,7 @@ export const siteMapExtractorTool = createTool({
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Site map complete: ${pages.length} pages discovered` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Site map complete: ${pages.length} pages discovered` } });
       mapSpan?.end({
         output: {
           totalPages: pages.length,
@@ -1468,7 +1468,7 @@ export const linkExtractorTool = createTool({
   inputSchema: linkExtractorInputSchema,
   outputSchema: linkExtractorOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { url: string; linkTypes?: Array<'internal' | 'external' | 'all'>; includeAnchors?: boolean; filterPatterns?: string[] }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `🔗 Extracting links from ${context.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔗 Extracting links from ${context.url}` } });
     toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
     const linkSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -1698,7 +1698,7 @@ export const htmlToMarkdownTool = createTool({
   inputSchema: htmlToMarkdownInputSchema,
   outputSchema: htmlToMarkdownOutputSchema,
   execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🔄 Converting HTML to markdown...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Converting HTML to markdown...' } });
     toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
     const convertSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -1711,7 +1711,7 @@ export const htmlToMarkdownTool = createTool({
       tracingPolicy: { internal: InternalSpans.ALL }
     })
 
-    await writer?.write({ type: 'progress', data: { message: '🧹 Sanitizing HTML...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🧹 Sanitizing HTML...' } });
     log.info('Converting HTML to markdown with enhanced JSDOM processing', {
       htmlLength: context.html.length,
       saveToFile: context.saveToFile,
@@ -1830,7 +1830,7 @@ export const listScrapedContentTool = createTool({
   inputSchema: listScrapedContentInputSchema,
   outputSchema: listScrapedContentOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { pattern?: string; includeMetadata?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📂 Listing scraped content files...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing scraped content files...' } });
     toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
     const listSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -2021,7 +2021,7 @@ export const contentCleanerTool = createTool({
   inputSchema: contentCleanerInputSchema,
   outputSchema: contentCleanerOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { html: string; removeScripts?: boolean; removeStyles?: boolean; removeComments?: boolean; preserveStructure?: boolean }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🧹 Starting content cleaning...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🧹 Starting content cleaning...' } });
     toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
     const cleanSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -2150,7 +2150,7 @@ export const apiDataFetcherTool = createTool({
   inputSchema: apiDataFetcherInputSchema,
   outputSchema: apiDataFetcherOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { url: string; method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; headers?: Record<string, string>; body?: any; auth?: { type: 'bearer' | 'basic' | 'api-key'; token: string; headerName?: string }; timeout?: number }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `🌐 Fetching data from ${context.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Fetching data from ${context.url}` } });
     toolCallCounters.set('api-data-fetcher', (toolCallCounters.get('api-data-fetcher') ?? 0) + 1)
     const fetchSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -2268,7 +2268,7 @@ export const scrapingSchedulerTool = createTool({
   inputSchema: scrapingSchedulerInputSchema,
   outputSchema: scrapingSchedulerOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { urls: string[]; schedule: string; config?: Record<string, any>; maxRuns?: number }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `⏰ Scheduling scraping for ${context.urls.length} URLs` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `⏰ Scheduling scraping for ${context.urls.length} URLs` } });
     toolCallCounters.set('scraping-scheduler', (toolCallCounters.get('scraping-scheduler') ?? 0) + 1)
     const scheduleSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
@@ -2354,7 +2354,7 @@ export const dataExporterTool = createTool({
   inputSchema: dataExporterInputSchema,
   outputSchema: dataExporterOutputSchema,
   execute: async ({ context, writer, tracingContext }: { context: { data: Array<Record<string, unknown>>; format: 'json' | 'csv' | 'xml' | 'database'; destination: string; options?: Record<string, unknown> }, writer?: any, tracingContext?: TracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: `📤 Exporting ${context.data.length} records to ${context.format}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📤 Exporting ${context.data.length} records to ${context.format}...` } });
     toolCallCounters.set('data-exporter', (toolCallCounters.get('data-exporter') ?? 0) + 1)
     const exportSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,

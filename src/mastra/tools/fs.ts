@@ -24,7 +24,7 @@ export const fsTool = createTool({
     });
 
     const { action, file, data } = context
-    await writer?.write({ type: 'progress', data: { message: `💾 FS ${action} on ${file}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 FS ${action} on ${file}` } });
     try {
       switch (action) {
         case 'write':
@@ -38,7 +38,7 @@ export const fsTool = createTool({
         default:
           return { message: 'Invalid action' }
       }
-      await writer?.write({ type: 'progress', data: { message: '✅ FS operation complete' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ FS operation complete' } });
       span?.end({ output: { success: true } });
       return { message: 'Success' }
     } catch (e) {

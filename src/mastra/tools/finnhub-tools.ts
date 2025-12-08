@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import {
   logError,

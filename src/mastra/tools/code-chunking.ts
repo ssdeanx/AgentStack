@@ -45,14 +45,14 @@ export const codeChunkerTool = createTool({
         sourceFile.forEachChild(node => {
           const kind = node.getKind();
           let name: string | undefined;
-          
-          if (node.isKind(SyntaxKind.FunctionDeclaration) || 
-              node.isKind(SyntaxKind.ClassDeclaration) || 
+
+          if (node.isKind(SyntaxKind.FunctionDeclaration) ||
+              node.isKind(SyntaxKind.ClassDeclaration) ||
               node.isKind(SyntaxKind.InterfaceDeclaration) ||
               node.isKind(SyntaxKind.TypeAliasDeclaration) ||
               node.isKind(SyntaxKind.EnumDeclaration) ||
               node.isKind(SyntaxKind.VariableStatement)) {
-            
+
             if ('getName' in node && typeof (node as any).getName === 'function') {
               name = (node as any).getName();
             }
@@ -76,8 +76,8 @@ export const codeChunkerTool = createTool({
         } else {
             return { chunks };
         }
-      } 
-      
+      }
+
       if (ext === 'py') {
         // Python Chunking
         try {
@@ -98,7 +98,7 @@ export const codeChunkerTool = createTool({
                   });
             }
           }
-          
+
           if (chunks.length > 0) {
             return { chunks };
           }

@@ -7,7 +7,7 @@ import { glob } from 'glob';
 import { readFile } from 'fs/promises';
 import { log } from '../config/logger';
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 
 const symbolContextSchema = z.object({
   maxResults: z.number().default(100),
@@ -50,7 +50,7 @@ export const findSymbolTool = createTool({
   outputSchema: findSymbolOutputSchema,
   execute: async ({ context, tracingContext, runtimeContext }) => {
     const { symbolName, projectPath, symbolType } = context;
-    
+
     const symbolContext = runtimeContext?.get('semanticAnalysisContext');
     const { maxResults, excludePatterns } = symbolContextSchema.parse(symbolContext || {});
 
@@ -71,21 +71,21 @@ export const findSymbolTool = createTool({
 
       for (const sourceFile of project.getSourceFiles()) {
         const filePath = sourceFile.getFilePath();
-        if (filePath.includes('node_modules') || filePath.includes('.git')) continue;
-        if (excludePatterns.some(pattern => filePath.includes(pattern))) continue;
+        if (filePath.includes('node_modules') || filePath.includes('.git')) {continue;}
+        if (excludePatterns.some(pattern => filePath.includes(pattern))) {continue;}
 
         sourceFile.forEachDescendant((node) => {
-          if (symbols.length >= maxResults) return;
-          
+          if (symbols.length >= maxResults) {return;}
+
           const nodeSymbol = extractSymbolInfo(node, symbolName, symbolType);
           if (nodeSymbol) {
             const start = node.getStartLinePos();
             const pos = sourceFile.getLineAndColumnAtPos(start);
-            
+
             symbols.push({
               name: nodeSymbol.name,
               kind: nodeSymbol.kind,
-              filePath: filePath,
+              filePath,
               line: pos.line,
               column: pos.column,
               preview: node.getText().substring(0, 100)
@@ -105,9 +105,9 @@ export const findSymbolTool = createTool({
           try {
             const content = await readFile(pyFile, 'utf-8');
             const pythonSymbols = await PythonParser.findSymbols(content);
-            
+
             for (const pySymbol of pythonSymbols) {
-              if (pySymbol.name.includes(symbolName) && 
+              if (pySymbol.name.includes(symbolName) &&
                   (symbolType === 'all' || symbolType === pySymbol.kind)) {
                 symbols.push({
                   name: pySymbol.name,
@@ -158,14 +158,14 @@ function extractSymbolInfo(
   if (symbolType === 'all' || symbolType === 'function') {
     if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
       const name = node.getName();
-      if (name && name.includes(symbolName)) {
+      if (name?.includes(symbolName)) {
         return { name, kind: 'function' };
       }
     }
     if (Node.isVariableDeclaration(node)) {
       const name = node.getName();
       const initializer = node.getInitializer();
-      if (name && name.includes(symbolName) && 
+      if (name && name.includes(symbolName) &&
           (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))) {
         return { name, kind: 'function' };
       }
@@ -175,7 +175,7 @@ function extractSymbolInfo(
   // Class declarations
   if ((symbolType === 'all' || symbolType === 'class') && Node.isClassDeclaration(node)) {
     const name = node.getName();
-    if (name && name.includes(symbolName)) {
+    if (name?.includes(symbolName)) {
       return { name, kind: 'class' };
     }
   }
@@ -183,7 +183,7 @@ function extractSymbolInfo(
   // Interface declarations
   if ((symbolType === 'all' || symbolType === 'interface') && Node.isInterfaceDeclaration(node)) {
     const name = node.getName();
-    if (name && name.includes(symbolName)) {
+    if (name?.includes(symbolName)) {
       return { name, kind: 'interface' };
     }
   }
@@ -191,7 +191,7 @@ function extractSymbolInfo(
   // Type aliases
   if ((symbolType === 'all' || symbolType === 'type') && Node.isTypeAliasDeclaration(node)) {
     const name = node.getName();
-    if (name && name.includes(symbolName)) {
+    if (name?.includes(symbolName)) {
       return { name, kind: 'type' };
     }
   }
@@ -200,8 +200,8 @@ function extractSymbolInfo(
   if ((symbolType === 'all' || symbolType === 'variable') && Node.isVariableDeclaration(node)) {
         const name = node.getName();
         const initializer = node.getInitializer();
-        if (name && name.includes(symbolName) && 
-             !Node.isArrowFunction(initializer) && 
+        if (name && name.includes(symbolName) &&
+             !Node.isArrowFunction(initializer) &&
              !Node.isFunctionExpression(initializer)) {
           return { name, kind: 'variable' };
         }

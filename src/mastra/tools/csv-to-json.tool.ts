@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { parse } from "csv-parse/sync";
 import * as fs from "node:fs/promises";
 import { z } from "zod";
@@ -39,7 +40,7 @@ export const csvToJsonTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: "csv-to-json",
       input: context,
-      runtimeContext: runtimeContext,
+      runtimeContext,
       tracingPolicy: { internal: InternalSpans.TOOL }
     });
 

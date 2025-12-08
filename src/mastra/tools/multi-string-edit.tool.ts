@@ -91,11 +91,11 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
   outputSchema: multiStringEditOutputSchema,
   execute: async ({ context }): Promise<MultiStringEditOutput> => {
     const { edits, dryRun = false, createBackup = true, projectRoot } = context
-    const results: z.infer<typeof editResultSchema>[] = []
+    const results: Array<z.infer<typeof editResultSchema>> = []
     const appliedBackups: Map<string, string> = new Map()
     let hasFailure = false
 
-    const defaultBoundary = projectRoot || process.cwd()
+    const defaultBoundary = projectRoot ?? process.cwd()
 
     for (const edit of edits) {
       const { filePath, oldString, newString, description } = edit

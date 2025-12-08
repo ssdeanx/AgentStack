@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 
 export const editorTool = createTool({
@@ -33,7 +34,7 @@ export const editorTool = createTool({
       .describe('Additional suggestions for improvement'),
   }),
   execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📝 Starting editor agent' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📝 Starting editor agent' } });
     const { content, contentType = 'general', instructions, tone } = context
 
     // Create a span for tracing
@@ -67,7 +68,7 @@ export const editorTool = createTool({
       }
       prompt += `:\n\n${content}`
 
-      await writer?.write({ type: 'progress', data: { message: '🤖 Generating edited content' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '🤖 Generating edited content' } });
       const result = await agent.generate(prompt)
 
       // Parse the structured response from the editor agent
@@ -93,7 +94,7 @@ export const editorTool = createTool({
         },
       })
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Editing complete' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Editing complete' } });
       return {
         editedContent:
           parsedResult.editedContent ??

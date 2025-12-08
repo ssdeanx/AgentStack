@@ -1,5 +1,6 @@
 import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { InferUITool, createTool } from "@mastra/core/tools";
+import type { InferUITool} from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
 import { Pool } from "pg";
 import { z } from "zod";
 import { log } from "../config/logger";
@@ -44,7 +45,7 @@ export const pgExecute = createTool({
       tracingPolicy: { internal: InternalSpans.TOOL }
     });
 
-    await writer?.write({ type: 'progress', data: { message: 'Executing SQL query' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: 'Executing SQL query' } });
     try {
       const trimmedQuery = query.trim().toLowerCase();
       if (!trimmedQuery.startsWith("select")) {
