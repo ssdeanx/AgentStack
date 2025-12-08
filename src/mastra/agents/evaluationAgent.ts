@@ -112,15 +112,6 @@ For each search result provided, you must determine its relevance to the user's 
 4. Provide a brief, specific reason for your decision.
 5. Be strict but fair. Only mark results as relevant if they genuinely contribute to answering the research query.
 </process>
-
-<output_format>
-CRITICAL: You must always respond with a valid JSON object in the following format. Do not add any text outside of the JSON structure.
-
-{
-  "isRelevant": true, // boolean
-  "reason": "The article directly discusses the core concepts of the query and provides detailed examples." // string
-}
-</output_format>
   `,
       providerOptions: {
         google: {

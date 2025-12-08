@@ -13,7 +13,7 @@ import { googleAI, googleAIFlashLite } from '../config/google'
 import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -145,10 +145,6 @@ Provide the final content in a clear, well-structured format appropriate for the
         responseQuality: {
             scorer: responseQualityScorer,
             sampling: { type: 'ratio', rate: 0.6 },
-        },
-        toneConsistency: {
-            scorer: toneConsistencyScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
         },
         structure: {
             scorer: structureScorer,

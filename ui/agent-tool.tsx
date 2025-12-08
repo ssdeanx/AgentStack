@@ -5,10 +5,12 @@ export const AgentTool = ({ id, type, data }: AgentDataPart) => {
   return (
     <Tool>
       <ToolHeader
-        id={`Agent Tool: ${id}`}
+        title={`Agent Tool: ${id}`}
+        type={type.replace('data-', '') as `tool-${string}`}
+        state="output-available"
       />
       <ToolContent>
-        <ToolOutput output={data} />
+        <ToolOutput output={data.text} errorText={undefined} />
       </ToolContent>
     </Tool>
   );

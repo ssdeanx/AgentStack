@@ -144,22 +144,6 @@ export const researchAgent = new Agent({
         - If all web searches fail, use your internal knowledge to provide a basic summary, but state that web access failed.
         </rules>
 
-        <output_format>
-        CRITICAL: You must return the final findings in a single, valid JSON object. Do not add any text outside of the JSON structure.
-        Example:
-        {      "queries": ["initial query 1", "initial query 2", "follow-up question 1"],
-            "queries": ["initial query 1", "initial query 2", "follow-up question 1"],
-            "searchResults": [ { "url": "...", "title": "..." } ],
-            "learnings": [ { "insight": "...", "followUp": "..." } ],
-            "completedQueries": ["initial query 1", "initial query 2", "follow-up question 1"],
-            "phase": "follow-up",
-            "summary": "A concise summary of the key findings.",
-            "data": "The detailed, synthesized data, often in Markdown format.",
-            "sources": [
-                { "url": "...", "title": "..." }
-            ]
-        }
-        </output_format>
         ${PGVECTOR_PROMPT}
         `,
       providerOptions: {

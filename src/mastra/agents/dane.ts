@@ -4,7 +4,7 @@ import { googleAIFlashLite, pgMemory } from '../config'
 import { browserTool, googleSearch } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
 export const daneCommitMessage = new Agent({
   id: 'dane-commit-message',

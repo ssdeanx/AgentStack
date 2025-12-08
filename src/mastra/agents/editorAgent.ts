@@ -95,17 +95,6 @@ Tailor your editing style to the content type:
 5. Provide edited content that meets professional standards
 6. Optionally suggest structural improvements or additional enhancements
 </process>
-
-<output_format>
-You must respond with a JSON object in the following format:
-{
-  "editedContent": "The full, edited version of the text.",
-  "contentType": "Identified content type (e.g., 'technical', 'business', 'creative', 'general')",
-  "summaryOfChanges": "A brief, bulleted list of the most significant changes made.",
-  "improvementSuggestions": "Optional suggestions for further improvement or structural changes."
-}
-</output_format>
-
   `,
       providerOptions: {
         google: {
@@ -165,5 +154,3 @@ const providerMetadata: ProviderMetadataMap | undefined =
   ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
   ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
 
-const metadata = providerMetadata?.google;
-const groundingMetadata = metadata?.groundingMetadata;

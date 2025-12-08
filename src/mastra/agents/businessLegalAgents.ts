@@ -1,10 +1,11 @@
 
-import { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RuntimeContext } from '@mastra/core/runtime-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
@@ -30,13 +31,12 @@ import {
 } from '../tools/web-scraper-tool';
 
 
-
 export type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
 
 export type AnalysisConfig = 'summary' | 'detailed' | 'extensive' | 'full'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type BusinessRuntimeContext = {
+export interface BusinessRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
   responseFormat: 'json' | 'markdown'
@@ -149,19 +149,7 @@ ${PGVECTOR_PROMPT}
     safety: {
       scorer: createToxicityScorer({ model: googleAIFlashLite }),
       sampling: { type: "ratio", rate: 0.3 }
-    },
-    sourceDiversity: {
-      scorer: sourceDiversityScorer,
-      sampling: { type: "ratio", rate: 0.5 }
-    },
-    researchCompleteness: {
-      scorer: researchCompletenessScorer,
-      sampling: { type: "ratio", rate: 0.7 }
-    },
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: "ratio", rate: 0.6 }
-    },
+    }
   },
   maxRetries: 5,
   inputProcessors: [
@@ -169,14 +157,7 @@ ${PGVECTOR_PROMPT}
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ],
-  outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 100,
-      emitOnNonText: true,
-    }),
-  ],
+  ]
 })
 
 export const contractAnalysisAgent = new Agent({
@@ -260,14 +241,7 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ],
-  outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 100,
-      emitOnNonText: true,
-    }),
-  ],
+  ]
 })
 
 export const complianceMonitoringAgent = new Agent({
@@ -358,14 +332,7 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ],
-  outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 100,
-      emitOnNonText: true,
-    }),
-  ],
+  ]
 })
 
 export const businessStrategyAgent = new Agent({
@@ -439,23 +406,7 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
       sampling: { type: "ratio", rate: 0.5 }
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: "ratio", rate: 0.3 }
-    },
-    sourceDiversity: {
-      scorer: sourceDiversityScorer,
-      sampling: { type: "ratio", rate: 0.5 }
-    },
-    researchCompleteness: {
-      scorer: researchCompletenessScorer,
-      sampling: { type: "ratio", rate: 0.7 }
-    },
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: "ratio", rate: 0.6 }
-    },
+    }
   },
   maxRetries: 5,
   inputProcessors: [
@@ -463,14 +414,7 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ],
-  outputProcessors: [
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 100,
-      emitOnNonText: true,
-    }),
-  ],
+  ]
 })
 
 

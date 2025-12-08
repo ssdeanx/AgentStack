@@ -1,14 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/ai-tracing'
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
-import { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google } from '@ai-sdk/google';
 
 
 const model = google('gemini-2.5-flash');
-
-
 
 
 import { googleAI, googleAI3, googleAIFlashLite } from '../config/google'
@@ -35,7 +34,7 @@ import {
 import { githubMCP } from '../mcp/mcp-client'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export type CodingRuntimeContext = {
+export interface CodingRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
   projectRoot: string
@@ -55,7 +54,7 @@ export const codeArchitectAgent = new Agent({
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
     const projectRoot = runtimeContext.get('projectRoot') ?? process.cwd()
-    
+
     return {
       role: 'system',
       content: `You are a Senior Software Architect. Your role is to analyze codebases, propose architectural solutions, and guide implementation.
@@ -152,7 +151,7 @@ export const codeReviewerAgent = new Agent({
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
-    
+
     return {
       role: 'system',
       content: `You are a Senior Code Reviewer. Your role is to analyze code for quality, security, and adherence to best practices.
@@ -262,7 +261,7 @@ export const testEngineerAgent = new Agent({
   instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
-    
+
     return {
       role: 'system',
       content: `You are a Senior Test Engineer. Your role is to create comprehensive tests and improve test coverage.
@@ -370,7 +369,7 @@ export const refactoringAgent = new Agent({
     const userTier = runtimeContext.get('user-tier') ?? 'free'
     const language = runtimeContext.get('language') ?? 'en'
     const projectRoot = runtimeContext.get('projectRoot') ?? process.cwd()
-    
+
     return {
       role: 'system',
       content: `You are a Senior Refactoring Specialist. Your role is to improve code quality through safe, incremental refactoring.

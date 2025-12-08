@@ -2,7 +2,9 @@
 
 import { Fragment, useCallback, useMemo, useRef, useState } from "react"
 import { useNetworkContext, type ToolInvocationState } from "@/app/networks/providers/network-context"
-import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, ToolUIPart, SourceUrlUIPart } from "ai"
+import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, ToolUIPart, SourceUrlUIPart, FileUIPart } from "ai"
+import { AgentTool } from "@/ui/agent-tool"
+import type { AgentDataPart } from "@mastra/ai-sdk"
 import {
   NetworkIcon,
   CopyIcon,
@@ -18,6 +20,7 @@ import {
   MicIcon,
   PaperclipIcon,
 } from "lucide-react"
+import type { BundledLanguage } from "shiki"
 import {
   Conversation,
   ConversationContent,
@@ -194,7 +197,14 @@ const NETWORK_SUGGESTIONS: Record<string, string[]> = {
 }
 
 // Helper to detect and render code blocks from tool output
-function CodeOutputDisplay({ output }: { output: any }) {
+interface CodeOutput {
+  code?: string
+  content?: string
+  result?: string
+  language?: string
+}
+
+function CodeOutputDisplay({ output }: { output?: CodeOutput }) {
   if (!output) {return null}
 
   // Check if output contains code
@@ -203,7 +213,7 @@ function CodeOutputDisplay({ output }: { output: any }) {
 
   if (typeof code === "string" && code.length > 50 && (code.includes("function") || code.includes("const ") || code.includes("import ") || code.includes("export "))) {
     return (
-      <CodeBlock code={code} language={language}>
+      <CodeBlock code={code} language={language as BundledLanguage}>
         <CodeBlockCopyButton />
       </CodeBlock>
     )
@@ -250,6 +260,7 @@ function WebPreviewDisplay({ url, title }: { url: string; title?: string }) {
 
   return (
     <div className="my-4 h-[400px] w-full">
+      {title && <div className="text-sm font-medium mb-2">{title}</div>}
       <WebPreview defaultUrl={url}>
         <WebPreviewNavigation>
           <WebPreviewUrl />
@@ -277,7 +288,7 @@ function PlanDisplay({
       <PlanHeader>
         <div>
           <PlanTitle>{title}</PlanTitle>
-          {description && <PlanDescription>{description}</PlanDescription>}
+          {description?.trim() && <PlanDescription>{description}</PlanDescription>}
         </div>
         <PlanAction>
           <PlanTrigger />
@@ -311,7 +322,7 @@ function TaskListDisplay({ title, tasks }: { title: string; tasks: Array<{ name:
       <TaskContent>
         {tasks.map((task, i) => (
           <TaskItem key={i}>
-            <span className={task.completed ? "line-through text-muted-foreground" : ""}>
+            <span className={task.completed === true ? "line-through text-muted-foreground" : ""}>
               {task.name}
             </span>
           </TaskItem>
@@ -321,8 +332,8 @@ function TaskListDisplay({ title, tasks }: { title: string; tasks: Array<{ name:
   )
 }
 
-function NetworkToolDisplay({ tools }: { tools: ToolInvocationState[] }) {
-  if (!tools || tools.length === 0) {return null}
+function NetworkToolDisplay({ tools, setPendingToolConfirmation }: { tools: ToolInvocationState[], setPendingToolConfirmation: React.Dispatch<React.SetStateAction<{ toolName: string; input: any; onAccept: () => void; onReject: () => void } | null>> }) {
+  if (!tools.length) {return null}
 
   return (
     <div className="space-y-2 mt-2">
@@ -331,6 +342,15 @@ function NetworkToolDisplay({ tools }: { tools: ToolInvocationState[] }) {
         const toolType = `tool-${toolName}`
         const toolState = tool.state
         const hasOutput = toolState === "output-available" || toolState === "output-error"
+
+        if (toolState === "input-available") {
+          setPendingToolConfirmation({
+            toolName,
+            input: tool.input,
+            onAccept: () => {},
+            onReject: () => setPendingToolConfirmation(null)
+          })
+        }
 
         return (
           <Tool key={tool.toolCallId} defaultOpen={false}>
@@ -360,7 +380,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
   isLastMessage: boolean
   isStreaming: boolean
 }) {
-  if (!message.parts || message.parts.length === 0) {
+  if (!message.parts?.length) {
     return null
   }
 
@@ -409,6 +429,8 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
         switch (part.type) {
           case "text":
             { const {text} = part
+
+            if (!text) { return null }
 
             // Check if text contains structured plan data (e.g., markdown headers with steps)
             const hasPlanStructure = text.includes("## Plan") || text.includes("### Steps")
@@ -483,7 +505,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
             ) }
 
           case "reasoning":
-            { const reasoningPart = part
+            { const reasoningPart: ReasoningUIPart = part
             return (
               <Reasoning
                 key={key}
@@ -501,15 +523,18 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
 
           case "file":
             // Handle file/image parts with AIImage
-            { const filePart = part as any
-            if ((Boolean((filePart.mediaType?.startsWith("image/")))) && (Boolean(filePart.base64))) {
+            { const filePart: FileUIPart = part
+            const fileData = filePart as { mediaType?: string; uint8Array?: Uint8Array; filename?: string };
+            if (fileData.mediaType?.startsWith("image/") && Boolean(fileData.uint8Array)) {
+              const uint8Array = fileData.uint8Array ?? new Uint8Array()
+              const base64 = btoa(String.fromCharCode(...uint8Array))
               return (
                 <AIImage
                   key={key}
-                  base64={filePart.base64}
-                  uint8Array={filePart.uint8Array ?? new Uint8Array()}
-                  mediaType={filePart.mediaType}
-                  alt={filePart.filename ?? "Generated image"}
+                  uint8Array={uint8Array}
+                  base64={base64}
+                  mediaType={fileData.mediaType}
+                  alt={fileData.filename ?? "Generated image"}
                   className="max-w-md rounded-lg"
                 />
               )
@@ -519,6 +544,9 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
           case "step-start": { throw new Error('Not implemented yet: "step-start" case') }
           case "dynamic-tool": { throw new Error('Not implemented yet: "dynamic-tool" case') }
           case "source-document": { throw new Error('Not implemented yet: "source-document" case') }
+          case "data-tool-agent":
+            // Handle agent tool executions specifically
+            return <AgentTool key={key} {...(part as { data: AgentDataPart }).data} />
           default:
             // Handle tool invocations - check for tool-* patterns
             if (typeof part.type === "string" && part.type.startsWith("tool-")) {
@@ -543,7 +571,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
                           output={toolPart.output}
                           errorText={toolPart.errorText}
                         />
-                        <CodeOutputDisplay output={toolPart.output} />
+                        <CodeOutputDisplay output={toolPart.output as CodeOutput} />
                       </>
                     )}
                   </ToolContent>
@@ -553,27 +581,27 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
 
             // Handle Mastra data-tool-* and data-network parts
             if (typeof part.type === "string" && (part.type.startsWith("data-tool") || part.type === "data-network")) {
-              const payload = (part as any).data ?? part
-              const inner = payload?.data ?? payload
-              const toolName = inner?.toolName ?? inner?.name ?? inner?.agentName ?? "network-step"
-              const toolState = inner?.output ? "output-available" as const : "input-available" as const
+              const payload = ((part as Record<string, unknown>).data) ?? part
+              const inner = ((payload as Record<string, unknown>).data) ?? payload
+              const toolName = (inner as Record<string, unknown>)?.toolName as string ?? (inner as Record<string, unknown>)?.name as string ?? (inner as Record<string, unknown>)?.agentName as string ?? "network-step"
+              const toolState = ((inner as Record<string, unknown>)?.output !== null) ? "output-available" as const : "input-available" as const
 
               return (
                 <Tool key={key} defaultOpen={false}>
                   <ToolHeader
                     title={toolName}
-                    type={`tool-${toolName}` as ToolUIPart["type"]}
+                    type={`tool-${toolName}`}
                     state={toolState}
                   />
                   <ToolContent>
-                    <ToolInput input={inner?.input ?? inner?.args} />
-                    {(Boolean((inner?.output))) && (
+                    <ToolInput input={(inner as Record<string, unknown>)?.input ?? (inner as Record<string, unknown>)?.args} />
+                    {(Boolean(((inner as Record<string, unknown>)?.output))) && (
                       <>
                         <ToolOutput
-                          output={inner.output}
-                          errorText={inner?.errorText}
+                          output={(inner as Record<string, unknown>).output}
+                          errorText={(inner as Record<string, unknown>)?.errorText as string | undefined}
                         />
-                        <CodeOutputDisplay output={inner.output} />
+                        <CodeOutputDisplay output={(inner as Record<string, unknown>).output as CodeOutput} />
                       </>
                     )}
                   </ToolContent>
@@ -677,7 +705,7 @@ export function NetworkChat() {
   const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash")
   const [pendingToolConfirmation, setPendingToolConfirmation] = useState<{
     toolName: string
-    input: any
+    input: Record<string, unknown>
     onAccept: () => void
     onReject: () => void
   } | null>(null)
@@ -686,8 +714,13 @@ export function NetworkChat() {
 
   // Available models for selection
   const availableModels = useMemo(() => [
-    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "Google" },
-    { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI" },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", provider: "google" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "google" },
+    { id: "gemini-2.5-pro-latest", name: "Gemini 2.5 Flash", provider: "gemini" },
+    { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
+    { id: "gpt-5-mini", name: "GPT-4o Mini", provider: "OpenAI" },
+    { id: "gpt-5", name: "GPT-5", provider: "OpenAI" },
+    { id: "claude-4-5-sonnet-20240229", name: "Claude 3.5 Sonnet", provider: "Anthropic" },
     { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "Anthropic" },
     { id: "deepseek-r1", name: "DeepSeek R1", provider: "DeepSeek" },
   ], [])
@@ -720,6 +753,7 @@ export function NetworkChat() {
     if (!msg.text?.trim()) {return}
     sendMessage(msg.text.trim())
     setInput("")
+    setTokenUsage(prev => ({ ...prev, input: prev.input + msg.text.length }))
   }
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -796,8 +830,8 @@ export function NetworkChat() {
               ))}
 
               {/* Show tool invocations from context */}
-              {toolInvocations && toolInvocations.length > 0 && (
-                <NetworkToolDisplay tools={toolInvocations} />
+              {toolInvocations?.length > 0 && (
+                <NetworkToolDisplay tools={toolInvocations} setPendingToolConfirmation={setPendingToolConfirmation} />
               )}
 
               {isStreaming && messages.length > 0 && !messages[messages.length - 1]?.parts?.some(p => p.type === "text") && (
@@ -845,7 +879,7 @@ export function NetworkChat() {
           )}
 
           {/* Show sources from network context in a QueueSection */}
-          {sources && sources.length > 0 && (
+          {sources.length > 0 && (
             <QueueSection defaultOpen>
               <QueueSectionTrigger>
                 <QueueSectionLabel label="Sources" count={sources.length} icon={<ExternalLinkIcon className="size-4" />} />
@@ -868,8 +902,8 @@ export function NetworkChat() {
           )}
 
           {/* Show WebPreview when enabled */}
-          {showWebPreview && (
-            <WebPreviewDisplay url={showWebPreview} />
+          {(Boolean(showWebPreview)) && (
+            <WebPreviewDisplay url={showWebPreview!} />
           )}
 
           {/* Pending tool confirmation dialog */}
@@ -946,7 +980,7 @@ export function NetworkChat() {
                 <MicIcon className="size-4" />
               </PromptInputSpeechButton>
               <PromptInputButton
-                onClick={() => setShowWebPreview(showWebPreview ? null : "https://mastra.ai")}
+                onClick={() => setShowWebPreview(showWebPreview === null || showWebPreview === "" ? "https://mastra.ai" : null)}
                 className={cn((Boolean(showWebPreview)) && "bg-accent")}
               >
                 <ExternalLinkIcon className="size-4" />

@@ -4,10 +4,10 @@ import { loader } from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
 
 const themeLoaders = {
-  github: () => import('monaco-themes/themes/GitHub.json', { assert: { type: 'json' } }),
-  monokai: () => import('monaco-themes/themes/Monokai.json', { assert: { type: 'json' } }),
-  dracula: () => import('monaco-themes/themes/Dracula.json', { assert: { type: 'json' } }),
-  solarizedDark: () => import('monaco-themes/themes/Solarized-dark.json', { assert: { type: 'json' } }),
+  github: () => import('./themes/GitHub.json', { assert: { type: 'json' } }),
+  monokai: () => import('./themes/Monokai.json', { assert: { type: 'json' } }),
+  dracula: () => import('./themes/Dracula.json', { assert: { type: 'json' } }),
+  solarizedDark: () => import('./themes/Solarized-dark.json', { assert: { type: 'json' } }),
 } satisfies Record<string, () => Promise<unknown>>
 
 const registeredThemes = new Set<string>()

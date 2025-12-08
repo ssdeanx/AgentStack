@@ -42,7 +42,7 @@ export const agentNetwork = new Agent({
     - If the user asks about stocks, crypto, or finance, delegate to 'stockAnalysisAgent'.
     - If the user wants text written, delegate to 'copywriterAgent'.
     - If the user wants text checked or fixed, delegate to 'editorAgent'.
-    - If the request is simple or general, handle it yourself.
+    - If the request is simple, general, or conversational (like "hello", "what's up"), respond directly and naturally to the user without explaining your routing logic.
   `,
   model: googleAI,
   memory: pgMemory, // Required for network capabilities

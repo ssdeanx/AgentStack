@@ -37,17 +37,6 @@ export const reportAgent = new Agent({
         You will receive a JSON object containing the complete output from a research agent. Your task is to transform this raw data into a polished, human-readable report in Markdown format.
         </task>
 
-        <input_format>
-        You will be given a JSON object with the following structure:
-        {
-            "queries": ["query1", "query2", "..."],
-            "searchResults": [ { "url": "...", "title": "..." } ],
-            "learnings": [ { "insight": "...", "followUp": "..." } ],
-            "completedQueries": ["query1", "query2", "..."],
-            "phase": "...",
-            "runtimeConfig": {}
-        }
-        </input_format>
 
         <output_format>
         Generate a final report in Markdown with the following sections:

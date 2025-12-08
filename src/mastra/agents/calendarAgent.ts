@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { listEvents, getTodayEvents, getUpcomingEvents, findFreeSlots } from '../tools/calendar-tool';
 import { googleAIFlashLite, pgMemory } from '../config';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export const calendarAgent = new Agent({
   id: 'calendar-agent',

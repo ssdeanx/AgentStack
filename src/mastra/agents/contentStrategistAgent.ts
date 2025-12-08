@@ -5,7 +5,7 @@ import { webScraperTool } from '../tools/web-scraper-tool';
 import { InternalSpans } from '@mastra/core/ai-tracing';
 import { structureScorer, creativityScorer } from '../scorers';
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 export const contentStrategistAgent = new Agent({
   id: 'content-strategist',
@@ -41,33 +41,6 @@ EXAMPLE FLOW:
 2. **Blue Ocean**: Contrarian angle + hyper-specificity (e.g., "Build X in 15min")
 3. **Structure**: Hook promise → Value stack (Basic→Pro) → Open loops
 </methodology>
-
-<example>
-Input: "Next.js caching"
-Output:
-{
-  "titles": ["Cache Traps Killing Your Site", "5-Min Fix: 10x Speed", "Why Cache Fails", "Cache Like Pros", "Stop Cache Pain"],
-  "avatar": {"role": "Next.js Dev", "experience": "2yrs", "pain": "perf issues"},
-  "oneThing": "Tune cacheMaxMemorySize for 90% gain",
-  "keyPoints": [
-    {"point": "Default limits trap", "subPoints": ["128MB cap", "Fix: increase to 256MB"]},
-    {"point": "Experimental flags", "subPoints": ["multiZoneDraftMode", "isrFlushToDisk"]}
-  ],
-  "differentiation": "Hands-on code vs generic theory",
-  "sources": ["url1", "url2"]
-}
-</example>
-
-<output_schema>
-{
-  "titles": ["string (max 60 chars, 5 variations)"],
-  "avatar": {"role": "string", "experience": "string", "pain": "string"},
-  "oneThing": "string (single actionable insight)",
-  "keyPoints": [{"point": "string", "subPoints": ["string"]}],
-  "differentiation": "string",
-  "sources": ["scraped URLs"]
-}
-</output_schema>
 
 <rules>
 - Titles: FOMO/Urgency/Curiosity triggers, 60 char max

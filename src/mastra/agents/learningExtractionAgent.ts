@@ -42,14 +42,6 @@ export const learningExtractionAgent = new Agent({
         - Consider the original research query context when extracting insights.
         </rules>
 
-        <output_format>
-        CRITICAL: You must always respond with a valid JSON object in the following format. Do not add any text outside of the JSON structure.
-        Example:
-        {
-            "learning": "The most critical factor for success is X, as it directly impacts Y.",
-            "followUpQuestion": "What are the specific metrics to measure the impact of X on Y?"
-        }
-        </output_format>
         `,
       providerOptions: {
         google: {
