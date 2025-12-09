@@ -1,9 +1,6 @@
 "use client"
 
-import Link from "next/link"
 import { motion } from "framer-motion"
-import { Button } from "@/ui/button"
-import { MessageSquareIcon, NetworkIcon, GitBranchIcon, ArrowRightIcon } from "lucide-react"
 import { NetworkBackground } from "./network-background"
 
 export function LandingHero() {

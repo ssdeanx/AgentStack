@@ -143,7 +143,7 @@ export const ToolExecutionCard = ({
         animate={{ opacity: 1, y: 0 }}
         className={cn(
           "overflow-hidden rounded-xl border backdrop-blur-sm transition-all",
-          "bg-gradient-to-r",
+          "bg-linear-to-r",
           config.bgGradient,
           config.borderColor,
           "hover:shadow-lg hover:shadow-black/5"
@@ -154,7 +154,7 @@ export const ToolExecutionCard = ({
             <div
               className={cn(
                 "flex size-8 items-center justify-center rounded-lg",
-                "bg-gradient-to-br text-white shadow-sm",
+                "bg-linear-to-br text-white shadow-sm",
                 config.gradient
               )}
             >
@@ -175,7 +175,7 @@ export const ToolExecutionCard = ({
               variant="secondary"
               className={cn(
                 "gap-1.5 rounded-full border-0 px-2.5 py-0.5",
-                "bg-gradient-to-r text-white shadow-sm",
+                "bg-linear-to-r text-white shadow-sm",
                 config.gradient
               )}
             >
@@ -203,7 +203,7 @@ export const ToolExecutionCard = ({
                 <div className="px-4 pt-3">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                     <motion.div
-                      className={cn("h-full bg-gradient-to-r", config.gradient)}
+                      className={cn("h-full bg-linear-to-r", config.gradient)}
                       animate={{ x: ["-100%", "100%"] }}
                       transition={{
                         duration: 1.5,
@@ -309,7 +309,7 @@ export type ToolExecutionListProps = ComponentProps<"div"> & {
     output?: unknown;
     error?: string;
   }>;
-  onRetry?: (_toolId: string) => void;
+  onRetry?: (toolId: string) => void;
 };
 
 export const ToolExecutionList = ({

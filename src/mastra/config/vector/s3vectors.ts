@@ -234,7 +234,7 @@ export async function querySimilarDocuments(
     });
 
     // Ensure metadata is always defined
-    return results.map(result => ({
+    return results.map((result: any) => ({
       ...result,
       metadata: result.metadata ?? {}
     }));

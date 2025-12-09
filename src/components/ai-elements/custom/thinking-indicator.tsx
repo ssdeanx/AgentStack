@@ -35,9 +35,9 @@ function GradientOrbs({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
           className={cn(
             orbSizes[size],
             "rounded-full",
-            i === 0 && "bg-gradient-to-br from-violet-500 to-purple-600",
-            i === 1 && "bg-gradient-to-br from-cyan-400 to-blue-500",
-            i === 2 && "bg-gradient-to-br from-pink-500 to-rose-500"
+            i === 0 && "bg-linear-to-br from-violet-500 to-purple-600",
+            i === 1 && "bg-linear-to-br from-cyan-400 to-blue-500",
+            i === 2 && "bg-linear-to-br from-pink-500 to-rose-500"
           )}
           animate={{
             scale: [1, 1.3, 1],
@@ -89,7 +89,7 @@ function PulseRings({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       ))}
       <motion.div
         className={cn(
-          "rounded-full bg-gradient-to-br from-primary to-primary/60",
+          "rounded-full bg-linear-to-br from-primary to-primary/60",
           size === "sm" ? "size-3" : size === "md" ? "size-4" : "size-5"
         )}
         animate={{ scale: [1, 1.1, 1] }}

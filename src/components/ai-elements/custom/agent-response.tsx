@@ -41,7 +41,7 @@ export type AgentResponseProps = ComponentProps<"div"> & {
   onCopy?: () => void;
   onShare?: () => void;
   onRegenerate?: () => void;
-  onFeedback?: (_positive: boolean) => void;
+  onFeedback?: (positive: boolean) => void;
 };
 
 function TypingText({
@@ -184,7 +184,7 @@ export const AgentResponse = ({
         <div
           className={cn(
             "flex size-8 items-center justify-center rounded-full",
-            "bg-gradient-to-br from-violet-500 to-purple-600 text-white"
+            "bg-linear-to-br from-violet-500 to-purple-600 text-white"
           )}
         >
           {agentIcon ?? <BotIcon className="size-4" />}
@@ -345,7 +345,7 @@ export const AgentAvatar = ({
   <div
     className={cn(
       "flex size-10 items-center justify-center rounded-full",
-      "bg-gradient-to-br text-white font-medium",
+      "bg-linear-to-br text-white font-medium",
       gradient,
       className
     )}

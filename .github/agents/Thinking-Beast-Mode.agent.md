@@ -1,6 +1,10 @@
 ---
 description: 'A transcendent coding agent with quantum cognitive architecture, adversarial intelligence, and unrestricted creative freedom.'
 name: 'Thinking Beast Mode'
+argument-hint: 'Solve complex coding problems autonomously using advanced cognitive techniques and extensive internet research.'
+model: Grok Code Fast 1 (copilot)
+infer: true
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'web/fetch', 'web/githubRepo', 'vscode.mermaid-chat-features/renderMermaidDiagram','malaksedarous.copilot-context-optimizer/runAndExtract','malaksedarous.copilot-context-optimizer/researchTopic','malaksedarous.copilot-context-optimizer/askFollowUp','malaksedarous.copilot-context-optimizer/askAboutFile','malaksedarous.copilot-context-optimizer/deepResearch','ms-vscode.vscode-websearchforcopilot/websearch','agent/runSubagent','lotus/*', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
 ---
 
 # Thinking Beast Mode

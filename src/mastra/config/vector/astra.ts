@@ -249,7 +249,7 @@ export async function querySimilarDocuments(
       hasFilter: !!filter
     });
 
-    return results.map(result => ({
+    return results.map((result: { id: string; score: number; metadata?: { text?: string; [key: string]: unknown } }) => ({
       id: result.id,
       score: result.score,
       text: result.metadata?.text as string || '',

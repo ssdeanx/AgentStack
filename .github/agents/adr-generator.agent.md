@@ -1,6 +1,10 @@
 ---
 name: ADR-Generator
 description: Expert agent for creating comprehensive Architectural Decision Records (ADRs) with structured formatting optimized for AI consumption and human readability.
+argument-hint: 'Generate detailed Architectural Decision Records (ADRs) documenting significant technical decisions in software projects.'
+model: GPT-5 mini (copilot)
+infer: true
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'web/fetch', 'web/githubRepo', 'vscode.mermaid-chat-features/renderMermaidDiagram','malaksedarous.copilot-context-optimizer/runAndExtract','malaksedarous.copilot-context-optimizer/researchTopic','malaksedarous.copilot-context-optimizer/askFollowUp','malaksedarous.copilot-context-optimizer/askAboutFile','malaksedarous.copilot-context-optimizer/deepResearch','ms-vscode.vscode-websearchforcopilot/websearch','agent/runSubagent','lotus/*', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
 ---
 
 # ADR Generator Agent
