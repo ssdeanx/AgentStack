@@ -1,0 +1,286 @@
+import { mastra } from '../mastra/index'
+import {
+    logWorkflowStart,
+    logWorkflowEnd,
+    logError,
+    logProgress,
+    log,
+} from '../mastra/config/logger'
+import { tierManagementService } from '../mastra/config/tier-management-service'
+import type { SubscriptionTier } from '../mastra/config/role-hierarchy'
+import * as dotenv from 'dotenv'
+import * as fs from 'fs/promises'
+import * as path from 'path'
+
+dotenv.config()
+
+async function indexDocuments() {
+    log.info('🚀 Starting document indexing for Governed RAG')
+
+    // Get tenant and tier from environment or use defaults
+    const tenant = process.env.TENANT ?? 'acme'
+    const tier: SubscriptionTier =
+        (process.env.TIER as SubscriptionTier) ?? 'free'
+
+    log.info(`Tenant: ${tenant}, Tier: ${tier}`)
+
+    // Validate tier access for document indexing
+    const tierValidation = await tierManagementService.validateTierAccess(
+        tenant,
+        tier,
+        'document'
+    )
+
+    if (!tierValidation.allowed) {
+        log.error(`❌ Tier validation failed: ${tierValidation.reason}`)
+        if (tierValidation.upgradeRequired) {
+            log.info('💡 Upgrade to a higher tier to index more documents')
+        }
+        return
+    }
+
+    const usage = tierValidation.currentUsage
+    if (usage) {
+        log.info(`Current usage: ${usage.documentsIndexed} documents indexed`)
+    }
+
+    const sampleDocs: any[] = [
+        {
+            filePath: path.join(__dirname, '../../corpus/finance-policy.md'),
+            docId: 'finance-policy-001',
+            classification: 'internal' as const,
+            allowedRoles: ['finance.viewer', 'finance.admin', 'admin'],
+            tenant: process.env.TENANT ?? 'acme',
+            source: 'Finance Department Policy Manual',
+        },
+        {
+            filePath: path.join(
+                __dirname,
+                '../../corpus/engineering-handbook.md'
+            ),
+            docId: 'eng-handbook-001',
+            classification: 'public' as const,
+            allowedRoles: ['engineering.viewer', 'engineering.admin', 'admin'],
+            tenant: process.env.TENANT ?? 'acme',
+            source: 'Engineering Team Handbook',
+        },
+        {
+            filePath: path.join(__dirname, '../../corpus/hr-confidential.md'),
+            docId: 'hr-conf-001',
+            classification: 'confidential' as const,
+            allowedRoles: ['hr.admin', 'admin'],
+            tenant: process.env.TENANT ?? 'acme',
+            source: 'HR Confidential Documents',
+        },
+    ]
+
+    const validDocs: any[] = []
+    for (const doc of sampleDocs) {
+        try {
+            await fs.access(doc.filePath)
+            log.info(`✅ Found: ${path.basename(doc.filePath)}`)
+            validDocs.push(doc)
+        } catch {
+            log.warn(`⚠️ Skipping: ${path.basename(doc.filePath)} (not found)`)
+        }
+    }
+
+    if (validDocs.length === 0) {
+        log.warn(
+            '❌ No documents found to index. Please add documents to the corpus/ directory.'
+        )
+        return
+    }
+
+    try {
+        const startTime = Date.now()
+        logWorkflowStart('governed-rag-index', { documents: validDocs })
+
+        const workflow = mastra.getWorkflows()['governed-rag-index']
+        const run = await workflow.createRunAsync()
+        const result = await run.start({
+            inputData: { documents: validDocs },
+        })
+
+        log.info('📄 Document Details:')
+        logWorkflowEnd(
+            'governed-rag-index',
+            result as any,
+            Date.now() - startTime
+        )
+        // Log document results
+        const resultData = (result as any).result ?? result
+        if (resultData.documents) {
+            let successCount = 0
+            resultData.documents.forEach((doc: any) => {
+                if (doc.status === 'success') {
+                    log.info(`✅ ${doc.docId}: ${doc.chunks} chunks indexed`)
+                    successCount++
+                } else {
+                    log.error(`❌ ${doc.docId}: ${doc.error}`)
+                }
+            })
+
+            // Track usage after successful indexing
+            if (successCount > 0) {
+                await tierManagementService.incrementUsage(
+                    tenant,
+                    tier,
+                    'document',
+                    successCount
+                )
+                log.info(`Updated usage counter: +${successCount} documents`)
+            }
+        }
+        logProgress(
+            `Indexing complete`,
+            resultData.indexed,
+            resultData.indexed + resultData.failed
+        )
+    } catch (error) {
+        logError('index-documents', error)
+    }
+}
+
+async function queryRAG(jwt: string, question: string) {
+    log.info('🔍 Querying Governed RAG')
+
+    // Get tenant and tier from environment
+    const tenant = process.env.TENANT ?? 'acme'
+    const tier: SubscriptionTier =
+        (process.env.TIER as SubscriptionTier) ?? 'free'
+
+    // Validate API request quota
+    const tierValidation = await tierManagementService.validateTierAccess(
+        tenant,
+        tier,
+        'api_request'
+    )
+
+    if (!tierValidation.allowed) {
+        log.error(`❌ API request limit exceeded: ${tierValidation.reason}`)
+        return
+    }
+
+    try {
+        const startTime = Date.now()
+        logWorkflowStart('governed-rag-answer', { jwt, question })
+
+        const workflow = mastra.getWorkflows()['governed-rag-answer']
+        const run = await workflow.createRunAsync()
+        const result = await run.start({
+            inputData: { jwt, question },
+        })
+
+        if (result.status === 'success') {
+            const resultData = (result as any).result ?? result
+            logWorkflowEnd(
+                'governed-rag-answer',
+                resultData,
+                Date.now() - startTime
+            )
+
+            // Track API request usage
+            await tierManagementService.incrementUsage(
+                tenant,
+                tier,
+                'api_request',
+                1
+            )
+
+            log.info('✅ Answer generated successfully!')
+            log.info(`📝 Answer: ${resultData.answer}`)
+
+            if (resultData.citations?.length > 0) {
+                log.info('📚 Citations:')
+                resultData.citations.forEach((citation: any) => {
+                    log.info(
+                        `- ${citation.docId}${citation.source ? ` (${citation.source})` : ''}`
+                    )
+                })
+            }
+        } else {
+            logError('workflow-execution', new Error('Query failed'), result)
+        }
+    } catch (error) {
+        logError('query-rag', error)
+    }
+}
+
+async function main() {
+    const args = process.argv.slice(2)
+    const command = args[0]
+
+    if (!command || command === 'help') {
+        log.info(
+            'Governed RAG CLI\n\nCommands:\n  index                      - Index sample documents\n  query <jwt> <question>     - Query with JWT auth\n  usage                      - Show current usage stats\n  demo                       - Run interactive demo\n  help                       - Show this help message\n\nEnvironment Variables:\n  TENANT                     - Tenant identifier (default: acme)\n  TIER                       - Subscription tier: free, pro, enterprise (default: free)\n\nExamples:\n  npm run cli index\n  npm run cli query "eyJ..." "What is our finance policy?"\n  TIER=pro npm run cli index\n  npm run cli usage\n  npm run cli demo'
+        )
+    }
+
+    switch (command) {
+        case 'index':
+            await indexDocuments()
+            break
+
+        case 'query': {
+            const jwt = args[1]
+            const question = args.slice(2).join(' ')
+
+            if (!jwt || !question) {
+                log.error('❌ Usage: npm run cli query <jwt> <question>')
+                return
+            }
+            await queryRAG(jwt, question)
+            break
+        }
+
+        case 'usage': {
+            const tenant = process.env.TENANT ?? 'acme'
+            const tier: SubscriptionTier =
+                (process.env.TIER as SubscriptionTier) ?? 'free'
+
+            const usage = await tierManagementService.getUsageStats(
+                tenant,
+                tier
+            )
+            const percentages = tierManagementService.getUsagePercentage(usage)
+            const nearLimit = tierManagementService.isNearQuotaLimit(usage)
+
+            log.info('📊 Current Usage Statistics')
+            log.info(`Tenant: ${tenant}`)
+            log.info(`Tier: ${tier}`)
+            log.info(
+                `\nDocuments: ${usage.documentsIndexed} (${percentages.documents.toFixed(1)}% of quota)`
+            )
+            log.info(
+                `API Requests Today: ${usage.apiRequestsToday} (${percentages.apiRequests.toFixed(1)}% of quota)`
+            )
+            log.info(
+                `Total Users: ${usage.totalUsers} (${percentages.users.toFixed(1)}% of quota)`
+            )
+            log.info(`Last Reset: ${usage.lastReset.toISOString()}`)
+
+            if (nearLimit) {
+                log.warn('⚠️  Warning: Approaching quota limits')
+            }
+            break
+        }
+
+        case 'demo':
+            log.info(
+                '🎮 Interactive Demo Mode\nThis would launch an interactive demo (to be implemented)'
+            )
+            break
+        default:
+            log.error(
+                `❌ Unknown command: ${command}\nRun "npm run cli help" for usage information`
+            )
+    }
+}
+
+if (require.main === module) {
+    main().catch((error: unknown) => {
+        log.error(`Fatal error: ${error}`)
+        process.exit(1)
+    })
+}

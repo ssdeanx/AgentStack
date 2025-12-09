@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 "use client"
 
 import {
@@ -32,7 +33,7 @@ import { AgentSources } from "./agent-sources"
 import { AgentArtifact, type ArtifactData } from "./agent-artifact"
 import { AgentPlan, extractPlanFromText } from "./agent-plan"
 import { AgentCheckpoint } from "./agent-checkpoint"
-import { AgentTask, type AgentTaskData } from "./agent-task"
+import { AgentTask, type AgentTaskData, type TaskStep } from "./agent-task"
 import { AgentQueue } from "./agent-queue"
 import { AgentConfirmation } from "./agent-confirmation"
 import { parseInlineCitations } from "./agent-inline-citation"
@@ -53,6 +54,56 @@ import {
 import { mapDataToolPartToDynamicToolPart } from "../helpers/tool-part-transform"
 import type { BundledLanguage } from "shiki"
 import { Button } from "@/ui/button"
+
+// Extract extractTasksFromText to module level to fix scope issues
+function extractTasksFromText(content: string): AgentTaskData[] {
+  const taskSections: AgentTaskData[] = []
+  const sectionRegex = /(?:tasks?|checklist|todo)[:\s]*\n((?:[-•\d[\]xX\s].+\n?)+)/gi
+  let match: RegExpExecArray | null
+  let sectionIndex = 0
+
+  while ((match = sectionRegex.exec(content)) !== null) {
+    const sectionBody = match[1]
+    const lines = sectionBody
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+
+    if (lines.length === 0) {continue}
+
+    const steps: TaskStep[] = lines.map((line, idx) => {
+      const statusMatch = /\[([ xX-])\]/.exec(line)
+      let status: TaskStep["status"] = "pending"
+      if (statusMatch) {
+        const symbol = statusMatch[1].toLowerCase()
+        if (symbol === "x") {
+          status = "completed"
+        } else if (symbol === "-") {
+          status = "running"
+        } else {
+          status = "pending"
+        }
+      }
+
+      const sanitized = line.replace(/\[[ xX-]\]\s*/, "").replace(/^[-•\d.]+\s*/, "")
+
+      return {
+        id: `task-${sectionIndex}-${idx}`,
+        text: sanitized,
+        status,
+      }
+    })
+
+    taskSections.push({
+      title: `Task Group ${taskSections.length + 1}`,
+      steps,
+    })
+
+    sectionIndex += 1
+  }
+
+  return taskSections
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -148,7 +199,13 @@ function MessageItem({
   const isAssistant = message.role === "assistant"
   const isUser = message.role === "user"
   const textPart = message.parts?.find(isTextUIPart)
-  const rawContent = textPart?.text || ""
+  const rawContent = textPart?.text ?? ""
+  const [inlinePreview, setInlinePreview] = useState<WebPreviewData | null>(null)
+  const [sandboxPreview, setSandboxPreview] = useState<{
+    code: string
+    language: string
+    title: string
+  } | null>(null)
 
   const { content, artifacts, codeBlocks } = useMemo(() => {
     if (isAssistant && showArtifacts) {
@@ -185,11 +242,15 @@ function MessageItem({
   const otherFileParts = fileParts?.filter((f) => !f.mediaType?.startsWith("image/"))
 
   const reasoningSteps = useMemo(() => {
-    if (showChainOfThought && messageReasoning?.text) {
+    if (messageReasoning?.text) {
       return parseReasoningToSteps(messageReasoning.text)
     }
     return []
-  }, [showChainOfThought, messageReasoning])
+  }, [messageReasoning])
+
+  const hasChainOfThoughtSteps = showChainOfThought && reasoningSteps.length > 0
+  const shouldShowReasoningFallback =
+    showReasoning && (!showChainOfThought || !hasChainOfThoughtSteps) && !!messageReasoning?.text
 
   const plan = useMemo(() => {
     if (isAssistant) {
@@ -205,6 +266,8 @@ function MessageItem({
     }
     return null
   }, [hasCitations, content, sources])
+
+  const extractedTasks = useMemo(() => extractTasksFromText(rawContent), [rawContent])
 
   // Find checkpoint for this message
   const checkpointIndex = checkpointMessageIndices.indexOf(messageIndex)
@@ -252,11 +315,67 @@ function MessageItem({
             </MessageAttachments>
           )}
 
+          {/* Non-image files with inline preview controls */}
+          {otherFileParts && otherFileParts.length > 0 && (
+            <div className="my-2 space-y-2 rounded-lg border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Attachments</p>
+              {otherFileParts.map((file, idx) => (
+                <div key={`other-file-${idx}`} className="flex items-center justify-between text-sm">
+                  <span className="truncate">{file.filename ?? file.mediaType ?? `File ${idx + 1}`}</span>
+                  <div className="flex items-center gap-2">
+                    {file.url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() =>
+                          setInlinePreview({
+                            id: (file as { id?: string }).id ?? `file-${idx}`,
+                            url: file.url,
+                            title: file.filename ?? "Preview",
+                          })
+                        }
+                      >
+                        Preview
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => {
+                        if (file.url) {
+                          window.open(file.url, "_blank")
+                        }
+                      }}
+                    >
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {inlinePreview && (
+            <div className="my-3">
+              <AgentWebPreview
+                preview={inlinePreview}
+                onClose={() => setInlinePreview(null)}
+                defaultTab="preview"
+                height={360}
+                editable={false}
+              />
+            </div>
+          )}
+
           {/* Chain of Thought / Reasoning - mutually exclusive display */}
-          {isAssistant && messageReasoning && (showChainOfThought || showReasoning) && (
-            showChainOfThought && reasoningSteps.length > 0
-              ? <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
-              : <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
+          {isAssistant && messageReasoning && (hasChainOfThoughtSteps || shouldShowReasoningFallback) && (
+            hasChainOfThoughtSteps ? (
+              <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
+            ) : (
+              <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
+            )
           )}
 
           {/* Plan */}
@@ -289,9 +408,35 @@ function MessageItem({
           ) : codeBlocks.length > 0 ? (
             <div className="prose prose-sm max-w-none dark:prose-invert">
               {renderContentWithCodeBlocks(content)}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 gap-1 text-sm"
+                onClick={() =>
+                  setSandboxPreview({
+                    code: codeBlocks[0].code,
+                    language: codeBlocks[0].language,
+                    title: messageReasoning?.text ? "Reasoning Snippet" : "Code Snippet",
+                  })
+                }
+              >
+                Open first snippet in sandbox
+              </Button>
             </div>
           ) : (
             <MessageResponse>{content}</MessageResponse>
+          )}
+
+          {sandboxPreview && (
+            <div className="my-3">
+              <AgentCodeSandbox
+                code={sandboxPreview.code}
+                language={sandboxPreview.language}
+                title={sandboxPreview.title}
+                onClose={() => setSandboxPreview(null)}
+                onCodeChange={(code) => setSandboxPreview((prev) => (prev ? { ...prev, code } : prev))}
+              />
+            </div>
           )}
 
           {/* Artifacts */}
@@ -299,6 +444,15 @@ function MessageItem({
             <div className="mt-3 space-y-3">
               {artifacts.map((artifact) => (
                 <AgentArtifact key={artifact.id} artifact={artifact} />
+              ))}
+            </div>
+          )}
+
+          {/* Parsed Tasks */}
+          {isAssistant && extractedTasks && extractedTasks.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {extractedTasks.map((task, idx: number) => (
+                <AgentTask key={`task-${idx}`} task={task} defaultOpen={false} />
               ))}
             </div>
           )}
@@ -358,35 +512,36 @@ function MessageItem({
   )
 }
 
-function WebPreviewPanel() {
-  const { webPreview, setWebPreview, agentConfig } = useChatContext()
+function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
+  const { setWebPreview, agentConfig } = useChatContext()
 
-  if (!webPreview || !agentConfig?.features.webPreview) {return null}
+  if (!preview || !agentConfig?.features.webPreview) {return null}
 
   const handleCodeChange = useCallback((newCode: string) => {
-    if (webPreview) {
+    if (preview) {
       setWebPreview({
-        ...webPreview,
+        ...preview,
         code: newCode,
       })
     }
-  }, [webPreview, setWebPreview])
+  }, [preview, setWebPreview])
 
   const handleClose = useCallback(() => {
     setWebPreview(null)
   }, [setWebPreview])
 
   // If we have code, use the enhanced preview with live editing
-  if (webPreview.code) {
+  if (preview.code) {
     return (
       <div className="mx-auto mb-4 max-w-4xl">
         <AgentWebPreview
           preview={{
-            id: webPreview.id,
-            url: webPreview.url,
-            title: webPreview.title,
-            code: webPreview.code,
-            language: webPreview.language,
+            id: preview.id,
+            url: preview.url,
+            title: preview.title,
+            code: preview.code,
+            language: preview.language,
+//            html: preview.html
           }}
           onClose={handleClose}
           onCodeChange={handleCodeChange}
@@ -404,13 +559,15 @@ function WebPreviewPanel() {
     <div className="mx-auto mb-4 max-w-4xl">
       <AgentWebPreview
         preview={{
-          id: webPreview.id,
-          url: webPreview.url,
-          title: webPreview.title,
+          id: preview.id,
+          url: preview.url,
+          title: preview.title,
         }}
         onClose={handleClose}
+//        onCodeChange={handleCodeChange}
         defaultTab="preview"
-        height={400}
+        showConsole={false}
+        height={450}
         editable={false}
       />
     </div>
@@ -460,11 +617,17 @@ export function ChatMessages() {
   )
 
   const streamingReasoningSteps = useMemo(() => {
-    if (showChainOfThought && streamingReasoning) {
+    if (streamingReasoning) {
       return parseReasoningToSteps(streamingReasoning)
     }
     return []
-  }, [showChainOfThought, streamingReasoning])
+  }, [streamingReasoning])
+
+  const hasStreamingChainOfThought = showChainOfThought && streamingReasoningSteps.length > 0
+  const shouldShowStreamingReasoningFallback =
+    showReasoning &&
+    (!showChainOfThought || !hasStreamingChainOfThought) &&
+    !!streamingReasoning
 
   // Get checkpoint data for message items
   const checkpointIds = useMemo(() => checkpoints.map((cp) => cp.id), [checkpoints])
@@ -495,7 +658,7 @@ export function ChatMessages() {
             )}
 
             {/* Web Preview Panel */}
-            <WebPreviewPanel />
+            <WebPreviewPanel preview={webPreview} />
 
             {messages.map((message, index) => (
               <MessageItem
@@ -521,11 +684,11 @@ export function ChatMessages() {
             {isLoading && (
               <Message from="assistant">
                 <MessageContent>
-                  {showChainOfThought && streamingReasoningSteps.length > 0 && (
+                  {hasStreamingChainOfThought && (
                     <AgentChainOfThought steps={streamingReasoningSteps} isStreaming={true} />
                   )}
 
-                  {showReasoning && !showChainOfThought && streamingReasoning && (
+                  {shouldShowStreamingReasoningFallback && (
                     <AgentReasoning reasoning={streamingReasoning} isStreaming={true} />
                   )}
 

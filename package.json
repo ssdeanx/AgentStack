@@ -19,7 +19,10 @@
     "test": "dotenvx run -- vitest",
     "coverage": "dotenvx run -- vitest run --coverage",
     "mcp": "dotenvx run -- src/mastra/mcp/index.ts",
-    "format": "dotenvx run -- prettier -w ."
+    "format": "dotenvx run -- prettier -w .",
+    "build-cli": "tsc -p tsconfig.cli.json",
+    "cli": "node dist/index.js",
+    "generate-index": "node dist/cli/index.js"
   },
   "keywords": [
     "ai",
