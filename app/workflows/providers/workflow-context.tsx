@@ -41,6 +41,7 @@ export interface WorkflowRun {
   error?: string
 }
 
+/* eslint-disable no-unused-vars */
 export interface WorkflowContextValue {
   selectedWorkflow: WorkflowId
   workflowConfig: WorkflowConfig | undefined
@@ -59,6 +60,7 @@ export interface WorkflowContextValue {
   messages: ReturnType<typeof useChat>["messages"]
   streamingOutput: string
 }
+/* eslint-enable no-unused-vars */
 
 export interface WorkflowNode {
   id: string
@@ -96,7 +98,7 @@ export interface WorkflowProviderProps {
 }
 
 const NODE_SPACING = 350
-const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111"
+const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
 
 function buildWorkflowInputData(workflowId: string, inputText: string): Record<string, unknown> {
   // Map workflow IDs to their expected input schemas
@@ -227,7 +229,7 @@ export function WorkflowProvider({
   }, [status, workflowStatus])
 
   const selectWorkflow = useCallback((workflowId: WorkflowId) => {
-    if (WORKFLOW_CONFIGS[workflowId]) {
+    if (WORKFLOW_CONFIGS[workflowId] !== undefined) {
       setSelectedWorkflow(workflowId)
       setWorkflowStatus("idle")
       setCurrentRun(null)

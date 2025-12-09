@@ -78,7 +78,7 @@ export function ChangelogList() {
               <div className="absolute -left-[41px] flex size-5 items-center justify-center rounded-full border-2 border-primary bg-background">
                 <div className="size-2 rounded-full bg-primary" />
               </div>
-              
+
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Badge variant="default" className="text-sm font-semibold">
                   v{entry.version}
@@ -87,7 +87,7 @@ export function ChangelogList() {
                   {new Date(entry.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                 </span>
               </div>
-              
+
               <div className="rounded-xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-md">
                 <ul className="space-y-4">
                   {entry.changes.map((change, changeIndex) => {

@@ -55,6 +55,8 @@ const PREVIEWABLE_LANGUAGES = [
   "react",
 ]
 
+const normalizeLanguage = (lang?: string): string => lang?.toLowerCase() ?? ""
+
 export function AgentArtifact({
   artifact,
   onClose,
@@ -66,7 +68,7 @@ export function AgentArtifact({
 
   const isPreviewable =
     artifact.type === "code" &&
-    PREVIEWABLE_LANGUAGES.includes(artifact.language?.toLowerCase() || "")
+    PREVIEWABLE_LANGUAGES.includes(normalizeLanguage(artifact.language))
 
   const handleCopy = useCallback(async () => {
     try {

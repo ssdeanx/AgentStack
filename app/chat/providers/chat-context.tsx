@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { getAgentConfig, AGENT_CONFIGS } from "../config/agents"
+import { getDefaultModel, getModelConfig, type ModelConfig } from "../config/models"
 import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart, ToolUIPart } from "ai"
 import {
   createContext,
@@ -75,6 +76,7 @@ export interface ChatContextValue {
   usage: TokenUsage | null
   error: string | null
   agentConfig: ReturnType<typeof getAgentConfig>
+  selectedModel: ModelConfig
 
   // Queue & Tasks
   queuedTasks: QueuedTask[]
@@ -95,6 +97,7 @@ export interface ChatContextValue {
   stopGeneration: () => void
   clearMessages: () => void
   selectAgent: (agentId: string) => void
+  selectModel: (modelId: string) => void
   dismissError: () => void
 
   // Task management
@@ -154,6 +157,7 @@ export function ChatProvider({
   const [webPreview, setWebPreviewState] = useState<WebPreviewData | null>(null)
   const [threadId, setThreadIdState] = useState(defaultThreadId)
   const [resourceId, setResourceIdState] = useState(defaultResourceId)
+  const [selectedModel, setSelectedModel] = useState<ModelConfig>(getDefaultModel())
 
   // Ref to track message snapshots for checkpoint restore
   const messageSnapshotsRef = useRef<Map<string, UIMessage[]>>(new Map())
@@ -330,7 +334,7 @@ export function ChatProvider({
   }, [messages])
 
   const sendMessage = useCallback(
-    (text: string, _files?: File[]) => {
+    (text: string, files?: File[]) => {
       if (!text.trim() || isLoading) {return}
       setChatError(null)
       aiSendMessage({ text: text.trim() })
@@ -361,6 +365,16 @@ export function ChatProvider({
         setSources([])
         setChatError(null)
         setWebPreviewState(null)
+      }
+    },
+    []
+  )
+
+  const selectModel = useCallback(
+    (modelId: string) => {
+      const model = getModelConfig(modelId)
+      if (model) {
+        setSelectedModel(model)
       }
     },
     []
@@ -489,6 +503,28 @@ export function ChatProvider({
     [selectedAgent]
   )
 
+  // Extract usage data from completed messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === "assistant" && lastMessage.parts && aiStatus === "ready") {
+      for (const part of lastMessage.parts) {
+        // Look for step-finish part with usage data (from Mastra server)
+        const partAny = part as Record<string, unknown>
+        if (partAny.type === "step-finish" || partAny.type === "finish") {
+          const usageData = partAny.usage as Record<string, number> | undefined
+          if (usageData) {
+            setUsage({
+              inputTokens: usageData.promptTokens ?? usageData.inputTokens ?? 0,
+              outputTokens: usageData.completionTokens ?? usageData.outputTokens ?? 0,
+              totalTokens: usageData.totalTokens ?? 0,
+            })
+            break
+          }
+        }
+      }
+    }
+  }, [messages, aiStatus])
+
   const error = aiError?.message ?? chatError
 
   const value = useMemo<ChatContextValue>(
@@ -504,6 +540,7 @@ export function ChatProvider({
       usage,
       error,
       agentConfig,
+      selectedModel,
       queuedTasks,
       pendingConfirmations,
       checkpoints,
@@ -514,6 +551,7 @@ export function ChatProvider({
       stopGeneration,
       clearMessages,
       selectAgent,
+      selectModel,
       dismissError,
       addTask,
       updateTask,
@@ -539,6 +577,7 @@ export function ChatProvider({
       usage,
       error,
       agentConfig,
+      selectedModel,
       queuedTasks,
       pendingConfirmations,
       checkpoints,
@@ -549,6 +588,7 @@ export function ChatProvider({
       stopGeneration,
       clearMessages,
       selectAgent,
+      selectModel,
       dismissError,
       addTask,
       updateTask,

@@ -2,378 +2,236 @@
 
 import Link from "next/link"
 import type { Route } from "next"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/ui/button"
 import { ThemeToggle } from "@/ui/theme-toggle"
+import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   MenuIcon,
-  XIcon,
-  ChevronDownIcon,
-  BotIcon,
-  GitBranchIcon,
-  NetworkIcon,
-  WrenchIcon,
-  BookOpenIcon,
-  CodeIcon,
-  NewspaperIcon,
-  SparklesIcon,
+  XIcon
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/ui/dropdown-menu"
-
-const NAV_LINKS = [
-  {
-    label: "Products",
-    href: "#",
-    items: [
-      {
-        label: "Agents",
-        href: "/chat",
-        description: "22+ AI agents",
-        icon: BotIcon,
-      },
-      {
-        label: "Workflows",
-        href: "/workflows",
-        description: "10 automated workflows",
-        icon: GitBranchIcon,
-      },
-      {
-        label: "Networks",
-        href: "/networks",
-        description: "4 agent networks",
-        icon: NetworkIcon,
-      },
-      {
-        label: "Tools",
-        href: "/tools",
-        description: "30+ enterprise tools",
-        icon: WrenchIcon,
-      },
-    ],
-  },
-  {
-    label: "Resources",
-    href: "#",
-    items: [
-      {
-        label: "Documentation",
-        href: "/docs",
-        description: "Guides & API reference",
-        icon: BookOpenIcon,
-      },
-      {
-        label: "Examples",
-        href: "/examples",
-        description: "Code samples",
-        icon: CodeIcon,
-      },
-      {
-        label: "Blog",
-        href: "/blog",
-        description: "Latest updates",
-        icon: NewspaperIcon,
-      },
-      {
-        label: "Changelog",
-        href: "/changelog",
-        description: "What's new",
-        icon: SparklesIcon,
-      },
-    ],
-  },
-  { label: "Pricing", href: "/pricing" },
-]
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  const prevPathnameRef = useRef(pathname)
 
-  // Handle scroll effect
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10)
-    }
+    const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Close mobile menu on route change
   useEffect(() => {
-    setMobileOpen(false)
+    if (prevPathnameRef.current !== pathname) {
+      setMobileOpen(false)
+      prevPathnameRef.current = pathname
+    }
   }, [pathname])
-
-  // Handle escape key to close mobile menu
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && mobileOpen) {
-        setMobileOpen(false)
-      }
-    }
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
-  }, [mobileOpen])
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-    }
-  }, [mobileOpen])
-
-  const isActiveLink = useCallback(
-    (href: string) => {
-      if (href === "/") return pathname === "/"
-      return pathname?.startsWith(href)
-    },
-    [pathname]
-  )
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ease-smooth ${scrolled
-          ? "border-border/40 bg-background/80 backdrop-blur-lg shadow-sm"
-          : "border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60"
-        }`}
+      className={cn(
+        "fixed top-0 z-50 w-full transition-all duration-300 border-b",
+        scrolled
+          ? "border-border/40 bg-background/80 backdrop-blur-xl supports-backdrop-filter:bg-background/60 shadow-sm"
+          : "border-transparent bg-transparent"
+      )}
     >
-      <nav className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            className="group flex items-center gap-2.5 transition-all duration-200 ease-spring hover:opacity-80"
-            aria-label="AgentStack Home"
-          >
-            <div className="flex size-9 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-sm transition-all duration-200 ease-spring group-hover:scale-105 group-hover:shadow-md">
-              <span className="font-bold text-primary-foreground text-sm">A</span>
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2 group mr-8">
+            <div className="relative flex size-9 items-center justify-center rounded-xl bg-foreground text-background shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/20">
+                <span className="font-bold text-lg">A</span>
             </div>
-            <span className="font-semibold text-foreground text-lg">AgentStack</span>
-          </Link>
+            <span className="font-bold text-xl tracking-tight">AgentStack</span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden items-center gap-1 lg:flex">
-            {NAV_LINKS.map((link) =>
-              link.items ? (
-                <DropdownMenu key={link.label}>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
-                    >
-                      {link.label}
-                      <ChevronDownIcon className="size-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    className="w-72"
-                    sideOffset={8}
-                  >
-                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {link.label}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {link.items.map((item) => (
-                      <DropdownMenuItem key={item.label} asChild>
-                        <Link
-                          href={item.href as Route}
-                          className={`flex items-start gap-3 rounded-md p-2 transition-colors ${isActiveLink(item.href)
-                              ? "bg-primary/10 text-primary"
-                              : ""
-                            }`}
-                        >
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                            <item.icon className="size-4" />
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-medium text-sm">{item.label}</span>
-                            <span className="text-muted-foreground text-xs">
-                              {item.description}
-                            </span>
-                          </div>
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button
-                  key={link.label}
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className={`transition-colors ${isActiveLink(link.href)
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                  <Link href={link.href as Route}>{link.label}</Link>
+        {/* Desktop Nav - Action Oriented */}
+        <nav className="hidden md:flex items-center gap-2">
+             <Link href="/chat">
+                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-primary/5 transition-all duration-200 ${pathname === "/chat" ? "bg-primary/10 shadow-sm" : ""}`}>
+                    <svg className="mr-2 size-5 text-primary group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <circle cx="9" cy="10" r="1"/>
+                        <circle cx="12" cy="10" r="1"/>
+                        <circle cx="15" cy="10" r="1"/>
+                    </svg>
+                    <span className="font-medium">Chat</span>
+                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === "/chat" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
                 </Button>
-              )
-            )}
-          </div>
+             </Link>
+
+             <Link href="/networks">
+                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-blue-500/5 transition-all duration-200 ${pathname === "/networks" ? "bg-blue-500/10 shadow-sm" : ""}`}>
+                    <svg className="mr-2 size-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="2" r="1"/>
+                        <circle cx="5" cy="7" r="1"/>
+                        <circle cx="19" cy="7" r="1"/>
+                        <circle cx="3" cy="12" r="1"/>
+                        <circle cx="12" cy="12" r="1"/>
+                        <circle cx="21" cy="12" r="1"/>
+                        <circle cx="5" cy="17" r="1"/>
+                        <circle cx="19" cy="17" r="1"/>
+                        <circle cx="12" cy="22" r="1"/>
+                        <path d="M7 7h10"/>
+                        <path d="M5 12h14"/>
+                        <path d="M7 17h10"/>
+                        <path d="M12 2v4"/>
+                        <path d="M12 18v4"/>
+                        <path d="M5 7v5"/>
+                        <path d="M19 7v5"/>
+                        <path d="M5 17v-5"/>
+                        <path d="M19 17v-5"/>
+                        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.2"/>
+                    </svg>
+                    <span className="font-medium">Networks</span>
+                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 transition-transform duration-200 ${pathname === "/networks" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
+                </Button>
+             </Link>
+
+             <Link href="/workflows">
+                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-red-500/5 transition-all duration-200 ${pathname === "/workflows" ? "bg-red-500/10 shadow-sm" : ""}`}>
+                    <svg className="mr-2 size-5 text-red-500 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="6" height="6" rx="2"/>
+                        <path d="M7 9V21"/>
+                        <rect x="15" y="3" width="6" height="6" rx="2"/>
+                        <path d="M17 9V21"/>
+                        <path d="M7 15h10"/>
+                        <path d="M9 12l2-2 2 2"/>
+                        <path d="M15 12l2-2 2 2"/>
+                    </svg>
+                    <span className="font-medium">Workflows</span>
+                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-orange-500 transition-transform duration-200 ${pathname === "/workflows" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
+                </Button>
+             </Link>
+        </nav>
+
+        <div className="hidden md:flex flex-1" />
+
+        {/* Actions */}
+        <div className="hidden md:flex items-center gap-3">
+             <Link href="/docs" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mr-2">Docs</Link>
+             <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mr-2">Pricing</Link>
+
+            <ThemeToggle />
+            <div className="h-6 w-px bg-border/50 mx-2" />
+
+            <Button variant="ghost" size="sm" asChild>
+                <Link href={"/login" as Route}>Sign In</Link>
+            </Button>
+            <Button size="sm" className="rounded-full px-6 bg-foreground text-background shadow-lg hover:bg-foreground/90 hover:shadow-xl transition-all hover:-translate-y-0.5" asChild>
+                <Link href="/chat">
+                    <svg className="mr-2 size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                        <path d="M20 3v4"/>
+                        <path d="M22 5h-4"/>
+                        <path d="M4 17v2"/>
+                        <path d="M5 18H3"/>
+                    </svg>
+                    Get Started
+                </Link>
+            </Button>
         </div>
 
-        {/* Desktop Actions */}
-        <div className="hidden items-center gap-3 lg:flex">
-          <ThemeToggle />
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/networks">Networks</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={"/login" as Route}>Login</Link>
-          </Button>
-          <Button
-            size="sm"
-            asChild
-            className="bg-linear-to-r from-primary to-primary/90 shadow-sm transition-all duration-200 ease-spring hover:shadow-md hover:-translate-y-px"
-          >
-            <Link href="/chat">Get Started</Link>
-          </Button>
-        </div>
-
-        {/* Mobile Actions */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-menu"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            className="relative"
-          >
-            <span className="sr-only">{mobileOpen ? "Close menu" : "Open menu"}</span>
-            <MenuIcon
-              className={`size-5 transition-all duration-200 ${mobileOpen ? "rotate-90 opacity-0" : "rotate-0 opacity-100"
-                }`}
-            />
-            <XIcon
-              className={`absolute size-5 transition-all duration-200 ${mobileOpen ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"
-                }`}
-            />
-          </Button>
-        </div>
-      </nav>
-
-      {/* Mobile Menu */}
-      <div
-        id="mobile-menu"
-        data-state={mobileOpen ? "open" : "closed"}
-        className="mobile-menu fixed inset-x-0 top-16 z-40 h-[calc(100vh-4rem)] overflow-y-auto border-t border-border bg-background lg:hidden"
-        {...(!mobileOpen && { "aria-hidden": true })}
-      >
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col gap-6">
-            {NAV_LINKS.map((link) =>
-              link.items ? (
-                <div key={link.label} className="space-y-3">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {link.label}
-                  </span>
-                  <div className="grid gap-2">
-                    {link.items.map((item) => (
-                      <Link
-                        key={item.label}
-                        href={item.href as Route}
-                        className={`flex items-center gap-3 rounded-lg p-3 transition-colors ${isActiveLink(item.href)
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-accent"
-                          }`}
-                        onClick={() => setMobileOpen(false)}
-                        tabIndex={mobileOpen ? 0 : -1}
-                      >
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                          <item.icon className="size-5" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{item.label}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {item.description}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <Link
-                  key={link.label}
-                  href={link.href as Route}
-                  className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${isActiveLink(link.href)
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-accent"
-                    }`}
-                  onClick={() => setMobileOpen(false)}
-                  tabIndex={mobileOpen ? 0 : -1}
-                >
-                  {link.label}
-                </Link>
-              )
-            )}
-
-            {/* Mobile CTA */}
-            <div className="mt-4 flex flex-col gap-3 border-t border-border pt-6">
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="w-full"
-                tabIndex={mobileOpen ? 0 : -1}
-              >
-                <Link href="/networks" onClick={() => setMobileOpen(false)}>
-                  View Networks
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                asChild
-                className="w-full"
-                tabIndex={mobileOpen ? 0 : -1}
-              >
-                <Link href={"/login" as Route} onClick={() => setMobileOpen(false)}>
-                  Login
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                asChild
-                className="w-full bg-linear-to-r from-primary to-primary/90"
-                tabIndex={mobileOpen ? 0 : -1}
-              >
-                <Link href="/chat" onClick={() => setMobileOpen(false)}>
-                  Get Started
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* Mobile Toggle */}
+        <button
+          type="button"
+          className="md:hidden"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-haspopup="menu"
+          aria-controls="mobile-menu"
+        >
+            {mobileOpen ? <XIcon /> : <MenuIcon />}
+        </button>
       </div>
 
-      {/* Mobile menu backdrop */}
-      {mobileOpen && (
-        <div
-          className="backdrop-animate fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+       <AnimatePresence>
+         {mobileOpen && (
+           <motion.div
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             exit={{ opacity: 0, y: -20 }}
+             transition={{ duration: 0.2 }}
+             id="mobile-menu"
+             className="fixed inset-0 top-16 z-40 bg-background/95 backdrop-blur-3xl border-t p-6 md:hidden flex flex-col gap-4"
+           >
+             <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Products</div>
+
+             <Link href="/chat" className={`flex items-center gap-4 p-3 rounded-xl hover:bg-primary/5 transition-colors group ${pathname === "/chat" ? "bg-primary/10" : ""}`} onClick={() => setMobileOpen(false)}>
+                <div className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === "/chat" ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"} group-hover:bg-primary group-hover:text-primary-foreground`}>
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <circle cx="9" cy="10" r="1"/>
+                        <circle cx="12" cy="10" r="1"/>
+                        <circle cx="15" cy="10" r="1"/>
+                    </svg>
+                </div>
+                <div className="font-semibold text-lg">Chat Agents</div>
+             </Link>
+
+             <Link href="/networks" className={`flex items-center gap-4 p-3 rounded-xl hover:bg-blue-500/5 transition-colors group ${pathname === "/networks" ? "bg-muted" : ""}`} onClick={() => setMobileOpen(false)}>
+                <div className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === "/networks" ? "bg-blue-500 text-white" : "bg-blue-500/10 text-blue-500"} group-hover:bg-blue-500 group-hover:text-white`}>
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="2" r="1"/>
+                        <circle cx="5" cy="7" r="1"/>
+                        <circle cx="19" cy="7" r="1"/>
+                        <circle cx="3" cy="12" r="1"/>
+                        <circle cx="12" cy="12" r="1"/>
+                        <circle cx="21" cy="12" r="1"/>
+                        <circle cx="5" cy="17" r="1"/>
+                        <circle cx="19" cy="17" r="1"/>
+                        <circle cx="12" cy="22" r="1"/>
+                        <path d="M7 7h10"/>
+                        <path d="M5 12h14"/>
+                        <path d="M7 17h10"/>
+                        <path d="M12 2v4"/>
+                        <path d="M12 18v4"/>
+                        <path d="M5 7v5"/>
+                        <path d="M19 7v5"/>
+                        <path d="M5 17v-5"/>
+                        <path d="M19 17v-5"/>
+                        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.2"/>
+                    </svg>
+                </div>
+                <div className="font-semibold text-lg">Agent Networks</div>
+             </Link>
+
+             <Link href="/workflows" className={`flex items-center gap-4 p-3 rounded-xl hover:bg-red-500/5 transition-colors group ${pathname === "/workflows" ? "bg-muted" : ""}`} onClick={() => setMobileOpen(false)}>
+                <div className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === "/workflows" ? "bg-purple-500 text-white" : "bg-purple-500/10 text-purple-500"} group-hover:bg-purple-500 group-hover:text-white`}>
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="6" height="6" rx="2"/>
+                        <path d="M7 9V21"/>
+                        <rect x="15" y="3" width="6" height="6" rx="2"/>
+                        <path d="M17 9V21"/>
+                        <path d="M7 15h10"/>
+                        <path d="M9 12l2-2 2 2"/>
+                        <path d="M15 12l2-2 2 2"/>
+                    </svg>
+                </div>
+                <div className="font-semibold text-lg">Workflow Studio</div>
+             </Link>
+
+             <div className="h-px bg-border my-2" />
+
+             <Link href="/docs" className="text-lg font-medium p-2" onClick={() => setMobileOpen(false)}>Documentation</Link>
+             <Link href="/pricing" className="text-lg font-medium p-2" onClick={() => setMobileOpen(false)}>Pricing</Link>
+
+             <div className="mt-auto flex flex-col gap-3">
+                 <Button className="w-full h-12 text-base rounded-xl" asChild>
+                    <Link href="/chat">Get Started Now</Link>
+                 </Button>
+                 <Button variant="outline" className="w-full h-12 text-base rounded-xl" asChild>
+                    <Link href="/login">Sign In</Link>
+                 </Button>
+             </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
     </header>
   )
 }

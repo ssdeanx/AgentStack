@@ -43,12 +43,9 @@ const QUICK_LINKS = [
 export function LandingCTA() {
   return (
     <section className="relative overflow-hidden border-t border-border">
-      {/* Background gradients */}
+      {/* Background gradients - subtler */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-linear-to-t from-primary/5 via-transparent to-transparent" />
-        <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/2 translate-y-1/2 rounded-full bg-blue-500/10 blur-[100px]" />
-        <div className="absolute bottom-0 right-0 h-[400px] w-[400px] translate-x-1/2 translate-y-1/2 rounded-full bg-purple-500/10 blur-[100px]" />
       </div>
 
       <div className="container mx-auto px-4 py-24 lg:py-32">
@@ -66,9 +63,9 @@ export function LandingCTA() {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             viewport={{ once: true }}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm backdrop-blur-sm"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm backdrop-blur-sm"
           >
-            <SparklesIcon className="size-4 text-primary" />
+            <SparklesIcon className="size-4 text-foreground" />
             <span className="font-medium text-foreground">
               Start building in minutes
             </span>
@@ -83,10 +80,8 @@ export function LandingCTA() {
             className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl"
           >
             Ready to Build{" "}
-            <span className="relative">
-              <span className="relative z-10 bg-linear-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                Something Amazing?
-              </span>
+            <span className="text-muted-foreground">
+              Something Amazing?
             </span>
           </motion.h2>
 
@@ -113,7 +108,7 @@ export function LandingCTA() {
             <Button
               size="lg"
               asChild
-              className="group h-14 min-w-[200px] bg-linear-to-r from-primary to-primary/90 px-8 text-base shadow-lg shadow-primary/25 transition-all duration-300 ease-spring hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 hover:animate-pulse-glow"
+              className="group h-14 min-w-[200px] bg-foreground text-background px-8 text-base transition-all duration-300 ease-spring hover:bg-foreground/90 hover:-translate-y-0.5"
             >
               <Link href="/chat">
                 <RocketIcon className="mr-2 size-5" />
@@ -125,7 +120,7 @@ export function LandingCTA() {
               size="lg"
               variant="outline"
               asChild
-              className="group h-14 min-w-[200px] border-2 px-8 text-base backdrop-blur-sm transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-lg"
+              className="group h-14 min-w-[200px] border px-8 text-base backdrop-blur-sm transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:bg-muted"
             >
               <Link
                 href="https://github.com/ssdeanx/agentstack"
@@ -180,7 +175,7 @@ export function LandingCTA() {
                 viewport={{ once: true }}
               >
                 <Link
-                  href={link.href as any}
+                  href={link.href}
                   className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-all duration-300 ease-spring hover:border-primary/50 hover:bg-card hover:shadow-lg hover:-translate-y-1"
                 >
                   <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110">

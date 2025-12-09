@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react"
+import type { ReactNode } from "react"
 import BlogShare from "./blog-share.client"
 import Link from "next/link"
 import { Badge } from "@/ui/badge"
@@ -17,11 +17,11 @@ interface BlogLayoutProps {
   slug?: string
 }
 
-export function BlogLayout({ 
-  children, 
-  title, 
-  date, 
-  readTime, 
+export function BlogLayout({
+  children,
+  title,
+  date,
+  readTime,
   category,
   author = "AgentStack Team",
   tags = [],
@@ -49,17 +49,17 @@ export function BlogLayout({
           </Button>
           <BlogShare />
         </div>
-        
+
         <header className="mb-12">
           <div className="mb-4 flex flex-wrap items-center gap-4">
             <Badge variant="secondary">{category}</Badge>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <CalendarIcon className="size-4" />
-                {new Date(date).toLocaleDateString("en-US", { 
-                  month: "long", 
-                  day: "numeric", 
-                  year: "numeric" 
+                {new Date(date).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric"
                 })}
               </span>
               <span className="flex items-center gap-1">

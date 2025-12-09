@@ -12,15 +12,26 @@ import {
 } from "@/src/components/ai-elements/prompt-input"
 import { useChatContext } from "@/app/chat/providers/chat-context"
 import { AgentSuggestions, getSuggestionsForAgent } from "./agent-suggestions"
-import { PaperclipIcon, SquareIcon } from "lucide-react"
+import { Badge } from "@/ui/badge"
+import { PaperclipIcon, SquareIcon, BotIcon, CpuIcon } from "lucide-react"
 import { useMemo } from "react"
 
 export function ChatInput() {
-  const { sendMessage, stopGeneration, isLoading, status, agentConfig, selectedAgent, messages } =
-    useChatContext()
+  const {
+    sendMessage,
+    stopGeneration,
+    isLoading,
+    status,
+    agentConfig,
+    selectedAgent,
+    selectedModel,
+    messages,
+    usage,
+  } = useChatContext()
 
   const supportsFiles = agentConfig?.features.fileUpload ?? false
   const showSuggestions = messages.length === 0 && !isLoading
+  const totalTokens = usage ? usage.inputTokens + usage.outputTokens : 0
 
   const suggestions = useMemo(
     () => getSuggestionsForAgent(selectedAgent),
@@ -47,6 +58,26 @@ export function ChatInput() {
             disabled={isLoading}
           />
         )}
+
+        {/* Compact status bar */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <BotIcon className="size-3" />
+              {agentConfig?.name ?? selectedAgent}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CpuIcon className="size-3" />
+              {selectedModel.name}
+            </span>
+          </div>
+          {totalTokens > 0 && (
+            <Badge variant="secondary" className="text-xs font-normal">
+              {totalTokens.toLocaleString()} tokens
+            </Badge>
+          )}
+        </div>
+
         <PromptInput
           onSubmit={handleSubmit}
           className="rounded-lg border shadow-sm"

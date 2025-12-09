@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react"
+import type { ReactNode } from "react"
 import { motion } from "framer-motion"
 import { Badge } from "@/ui/badge"
 
@@ -76,7 +76,7 @@ export function PageHeader({
           className={`mx-auto max-w-4xl ${centered ? "text-center" : ""}`}
         >
           {/* Badge */}
-          {badge && (
+          {(Boolean(badge)) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -114,7 +114,7 @@ export function PageHeader({
           </motion.div>
 
           {/* Optional children content */}
-          {children && (
+          {Boolean(children) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

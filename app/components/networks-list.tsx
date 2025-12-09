@@ -93,14 +93,14 @@ export function NetworksList() {
                 </div>
                 <Badge variant="secondary">{network.category}</Badge>
               </div>
-              
+
               <h2 className="mb-2 text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
                 {network.name}
               </h2>
               <p className="mb-6 flex-1 text-muted-foreground leading-relaxed">
                 {network.description}
               </p>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
                   {network.agents} agents

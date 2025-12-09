@@ -87,8 +87,8 @@ import { weatherWorkflow } from './workflows/weather-workflow';
 import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 import { ResearchRuntimeContext } from './agents/index';
-import { metadata } from '../../app/docs/layout';
 
+import type { TracingContext } from '@mastra/core/ai-tracing';
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -275,6 +275,7 @@ export const mastra = new Mastra({
             recordInputs: true,
             recordOutputs: true,
             functionId: "chat-api",
+            tracer: trace.getTracer("TracingContext.agentId"),
           },
         },
         sendStart: true,
@@ -334,6 +335,7 @@ export const mastra = new Mastra({
             recordInputs: true,
             recordOutputs: true,
             functionId: "chat-api",
+            tracer: trace.getTracer("researchAgent"),
           },
           includeRawChunks: true,
         },

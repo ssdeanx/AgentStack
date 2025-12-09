@@ -289,7 +289,6 @@ export function LandingAgents() {
         ))}
       </motion.div>
 
-      {/* Agents grid */}
       <div className="@container grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-3 @xl:grid-cols-4">
         <AnimatePresence mode="popLayout">
           {displayedAgents.map((agent, index) => (
@@ -303,25 +302,25 @@ export function LandingAgents() {
             >
               <Link
                 href={`/chat?agent=${agent.id}`}
-                className="perspective group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1"
+                className="perspective group flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 ease-spring hover:border-primary/20 hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
               >
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                    <agent.icon className="size-5" />
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary">
+                    <agent.icon className="size-5" strokeWidth={1.5} />
                   </div>
                   <div className="flex items-center gap-2">
                     {agent.popular && (
-                      <Badge className="bg-linear-to-r from-amber-500 to-orange-500 text-white text-xs">
+                      <Badge variant="secondary" className="bg-foreground/10 text-foreground text-xs hover:bg-foreground/20">
                         Popular
                       </Badge>
                     )}
-                    <Badge variant="secondary" className="text-xs font-normal">
+                    <Badge variant="outline" className="text-xs font-normal">
                       {agent.category}
                     </Badge>
                   </div>
                 </div>
 
-                <h3 className="mb-1.5 font-semibold text-foreground transition-colors group-hover:text-primary">
+                <h3 className="mb-1.5 font-semibold text-foreground">
                   {agent.name}
                 </h3>
                 <p className="mb-3 flex-1 text-sm text-muted-foreground line-clamp-2">
@@ -330,7 +329,7 @@ export function LandingAgents() {
 
                 <div className="flex items-center justify-between border-t border-border pt-3">
                   <code className="text-xs text-muted-foreground/70">{agent.id}</code>
-                  <span className="flex items-center text-xs font-medium text-muted-foreground transition-colors group-hover:text-primary">
+                  <span className="flex items-center text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
                     Try Agent
                     <ArrowRightIcon className="ml-1 size-3 transition-transform group-hover:translate-x-1" />
                   </span>

@@ -10,13 +10,13 @@ export default function StripFrontmatter() {
   useEffect(() => {
     try {
       const main = document.querySelector("main")
-      if (!main) return
+      if (!main) {return}
 
       // look at the first few block children
       const candidates = Array.from(main.children).slice(0, 3)
       for (const el of candidates) {
         const text = (el.textContent || "").trim().toLowerCase()
-        if (!text) continue
+        if (!text) {continue}
         // common YAML frontmatter markers
         if (text.startsWith("title:") || text.includes("title:") && text.includes("description:")) {
           el.remove()

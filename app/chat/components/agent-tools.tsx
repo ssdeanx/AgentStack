@@ -8,40 +8,63 @@ import {
   ToolOutput,
 } from "@/src/components/ai-elements/tool"
 import type { ToolInvocationState } from "../providers/chat-context"
-import type { DynamicToolUIPart, ToolUIPart } from "ai"
+import type { DynamicToolUIPart } from "ai"
+import { cn } from "@/lib/utils"
 
 export interface AgentToolsProps {
   tools: Array<ToolInvocationState | DynamicToolUIPart>
+  className?: string
 }
 
-type ToolState = ToolUIPart["state"]
+const toolDisplayNames: Record<string, string> = {
+  weatherTool: "Weather",
+  webScraperTool: "Web Scraper",
+  googleNewsTool: "Google News",
+  googleScholarTool: "Google Scholar",
+  arxivTool: "arXiv Search",
+  polygonStockQuotesTool: "Stock Quotes",
+  finnhubAnalysisTool: "Analyst Ratings",
+  pdfToMarkdownTool: "PDF Parser",
+}
 
-export function AgentTools({ tools }: AgentToolsProps) {
+function formatToolName(toolName: string): string {
+  if (toolDisplayNames[toolName]) {return toolDisplayNames[toolName]}
+  return toolName
+    .replace(/Tool$/, "")
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim()
+}
+
+export function AgentTools({ tools, className }: AgentToolsProps) {
   if (!tools || tools.length === 0) {return null}
 
   return (
-    <div className="space-y-2 mt-2">
+    <div className={cn("space-y-2 mt-2", className)}>
       {tools.map((tool) => {
-        const t = tool
-        const toolName = t.toolName || "unknown"
-        const toolType = `tool-${toolName}`
-        const toolState = t.state
-
+        const toolName = tool.toolName ?? "unknown"
+        const displayName = formatToolName(toolName)
+        const toolState = tool.state
         const hasOutput = toolState === "output-available" || toolState === "output-error"
-        const errorText = toolState === "output-error" ? (t as unknown as { errorText?: string }).errorText : undefined
+        const errorText = toolState === "output-error"
+          ? (tool as unknown as { errorText?: string }).errorText
+          : undefined
 
         return (
-          <Tool key={t.toolCallId} defaultOpen={false}>
+          <Tool
+            key={tool.toolCallId}
+            defaultOpen={toolState === "output-error"}
+          >
             <ToolHeader
-              title={toolName}
-              type={toolType as `tool-${string}`}
+              title={displayName}
+              type={`tool-${toolName}`}
               state={toolState}
             />
             <ToolContent>
-              <ToolInput input={t.input} />
+              <ToolInput input={tool.input} />
               {hasOutput && (
                 <ToolOutput
-                  output={toolState === "output-available" ? t.output : undefined}
+                  output={toolState === "output-available" ? tool.output : undefined}
                   errorText={errorText}
                 />
               )}

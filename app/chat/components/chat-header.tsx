@@ -47,7 +47,6 @@ import {
   type AgentConfig,
 } from "@/app/chat/config/agents"
 import {
-  MODEL_CONFIGS,
   PROVIDER_CONFIGS,
   PROVIDER_ORDER,
   getModelsByProvider,
@@ -85,6 +84,8 @@ export function ChatHeader() {
     setThreadId,
     setResourceId,
     restoreCheckpoint,
+    selectedModel,
+    selectModel,
   } = useChatContext()
 
   const [agentSelectorOpen, setAgentSelectorOpen] = useState(false)
@@ -92,9 +93,6 @@ export function ChatHeader() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tempThreadId, setTempThreadId] = useState(threadId)
   const [tempResourceId, setTempResourceId] = useState(resourceId)
-  const [selectedModel, setSelectedModel] = useState<ModelConfig>(
-    MODEL_CONFIGS.find((m) => m.isDefault) ?? MODEL_CONFIGS[0]
-  )
 
   const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
   const modelsByProvider = useMemo(() => getModelsByProvider(), [])
@@ -105,7 +103,7 @@ export function ChatHeader() {
   }
 
   const handleSelectModel = (model: ModelConfig) => {
-    setSelectedModel(model)
+    selectModel(model.id)
     setModelSelectorOpen(false)
   }
 
@@ -177,7 +175,8 @@ export function ChatHeader() {
         {usage && usedTokens > 0 && (
           <Context
             usedTokens={usedTokens}
-            maxTokens={DEFAULT_MAX_TOKENS}
+            maxTokens={selectedModel.contextWindow ?? DEFAULT_MAX_TOKENS}
+            modelId={selectedModel.id}
             usage={{
               inputTokens: usage.inputTokens,
               outputTokens: usage.outputTokens,

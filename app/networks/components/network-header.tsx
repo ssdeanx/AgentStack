@@ -110,7 +110,7 @@ export function NetworkHeader() {
               <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
               {PROVIDER_ORDER.map((provider) => {
                 const models = modelsByProvider[provider]
-                if (models.length === 0) return null
+                if (models.length === 0) {return null}
                 const providerConfig = PROVIDER_CONFIGS[provider]
 
                 return (
@@ -154,7 +154,7 @@ export function NetworkHeader() {
         {/* Network Selector */}
         <Select
           value={selectedNetwork}
-          onValueChange={(value) => selectNetwork(value as NetworkId)}
+          onValueChange={(value) => selectNetwork(value)}
         >
           <SelectTrigger className="w-[180px] md:w-[260px]">
             <SelectValue />
@@ -162,7 +162,7 @@ export function NetworkHeader() {
           <SelectContent>
             {CATEGORY_ORDER.map((category) => {
               const networks = networksByCategory[category]
-              if (networks.length === 0) return null
+              if (networks.length === 0) {return null}
 
               return (
                 <SelectGroup key={category}>

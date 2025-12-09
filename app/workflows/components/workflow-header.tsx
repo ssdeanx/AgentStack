@@ -18,7 +18,6 @@ import {
   CATEGORY_ORDER,
   CATEGORY_LABELS,
   getWorkflowsByCategory,
-  type WorkflowId,
 } from "@/app/workflows/config/workflows"
 import {
   ArrowLeftIcon,

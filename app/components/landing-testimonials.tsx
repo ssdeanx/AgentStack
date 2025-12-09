@@ -109,9 +109,9 @@ export function LandingTestimonials() {
   return (
     <section className="relative overflow-hidden bg-muted/30 py-24 lg:py-32">
       {/* Background decoration */}
+      {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute left-1/4 top-0 h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]" />
-        <div className="absolute bottom-0 right-1/4 h-[300px] w-[300px] rounded-full bg-blue-500/5 blur-[100px]" />
+        {/* Removed colored blobs */}
       </div>
 
       <div className="container mx-auto px-4">
@@ -140,10 +140,10 @@ export function LandingTestimonials() {
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
         >
-          <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-8 shadow-xl md:p-12">
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-8 shadow-sm md:p-12">
             {/* Quote icon */}
             <div className="absolute right-8 top-8 opacity-10">
-              <QuoteIcon className="size-24 text-primary" />
+              <QuoteIcon className="size-24 text-muted-foreground" />
             </div>
 
             <AnimatePresence mode="wait">
@@ -161,7 +161,7 @@ export function LandingTestimonials() {
                     {[...Array(TESTIMONIALS[activeIndex].rating)].map((_, i) => (
                       <StarIcon
                         key={i}
-                        className="size-5 fill-yellow-400 text-yellow-400"
+                        className="size-5 fill-foreground text-foreground"
                       />
                     ))}
                   </div>
@@ -177,14 +177,14 @@ export function LandingTestimonials() {
 
                 {/* Highlight badge */}
                 <div className="mb-8">
-                  <Badge className="bg-linear-to-r from-primary to-blue-500 text-primary-foreground">
+                  <Badge className="bg-muted text-foreground hover:bg-muted/80">
                     ✨ {TESTIMONIALS[activeIndex].highlight}
                   </Badge>
                 </div>
 
                 {/* Author */}
                 <div className="flex items-center gap-4">
-                  <div className="flex size-14 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/70 text-lg font-bold text-primary-foreground shadow-lg">
+                  <div className="flex size-14 items-center justify-center rounded-full bg-muted text-lg font-bold text-foreground">
                     {TESTIMONIALS[activeIndex].avatar}
                   </div>
                   <div>

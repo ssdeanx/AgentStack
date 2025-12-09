@@ -1,6 +1,7 @@
 "use client"
 
-import { ReactNode, useEffect, useState, useMemo } from "react"
+import type { ReactNode} from "react";
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/ui/button"
 import { Badge } from "@/ui/badge"
@@ -22,9 +23,9 @@ interface DocsLayoutProps {
   showToc?: boolean
 }
 
-export function DocsLayout({ 
-  children, 
-  title, 
+export function DocsLayout({
+  children,
+  title,
   description,
   section,
   prevPage,
@@ -49,17 +50,17 @@ export function DocsLayout({
   useEffect(() => {
     const headings = document.querySelectorAll(".mdx-content h2, .mdx-content h3")
     const items: TocItem[] = []
-    
+
     headings.forEach((heading) => {
       const id = heading.id || heading.textContent?.toLowerCase().replace(/\s+/g, "-") || ""
-      if (!heading.id) heading.id = id
+      if (!heading.id) {heading.id = id}
       items.push({
         id,
         text: heading.textContent || "",
         level: heading.tagName === "H2" ? 2 : 3,
       })
     })
-    
+
     setToc(items)
   }, [children])
 
@@ -77,7 +78,7 @@ export function DocsLayout({
 
     toc.forEach(({ id }) => {
       const el = document.getElementById(id)
-      if (el) observer.observe(el)
+      if (el) {observer.observe(el)}
     })
 
     return () => observer.disconnect()
