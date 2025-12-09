@@ -18,7 +18,7 @@ export function NetworkBackground({ className }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [nodes, setNodes] = useState<Node[]>([])
-  const requestRef = useRef<number>()
+  const requestRef = useRef<number | null>(null)
   const mouseRef = useRef<{ x: number; y: number }>({ x: -1000, y: -1000 })
 
   // Initialize nodes

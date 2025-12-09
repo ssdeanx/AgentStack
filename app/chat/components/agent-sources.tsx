@@ -38,9 +38,10 @@ export function AgentSources({
   className,
   maxVisible = 10,
 }: AgentSourcesProps) {
-  if (!sources || sources.length === 0) {return null}
-
   const uniqueSources = useMemo(() => {
+    if (sources.length === 0) {
+      return []
+    }
     const seen = new Set<string>()
     return sources.filter((source) => {
       if (seen.has(source.url)) {return false}

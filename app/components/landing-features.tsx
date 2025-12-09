@@ -14,12 +14,16 @@ import {
 import { Badge } from "@/ui/badge"
 import { BentoGrid, BentoGridItem } from "@/ui/effects/bento-grid"
 
+const FeatureHeader = () => (
+  <div className="flex flex-1 w-full h-full min-h-24 rounded-xl bg-linear-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />
+);
+
 const FEATURES = [
   {
     title: "Multi-Agent Orchestration",
     description:
       "Coordinate complex workflows with 22+ specialized agents working together seamlessly.",
-    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    header: <FeatureHeader />,
     icon: <BotIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-2",
   },
@@ -27,7 +31,7 @@ const FEATURES = [
     title: "RAG Pipelines",
     description:
       "Built-in retrieval-augmented generation with PgVector and semantic search.",
-    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    header: <FeatureHeader />,
     icon: <DatabaseIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-1",
   },
@@ -35,7 +39,7 @@ const FEATURES = [
     title: "Enterprise Tools",
     description:
       "30+ production-ready tools for financial data and research.",
-    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    header: <FeatureHeader />,
     icon: <WrenchIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-1",
   },
@@ -43,7 +47,7 @@ const FEATURES = [
     title: "Observability",
     description:
       "Full tracing and monitoring with Arize/Phoenix integration.",
-    header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />,
+    header: <FeatureHeader />,
     icon: <ActivityIcon className="h-4 w-4 text-neutral-500" />,
     className: "md:col-span-2",
   },

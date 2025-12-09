@@ -175,7 +175,7 @@ export function LandingCTA() {
                 viewport={{ once: true }}
               >
                 <Link
-                  href={link.href as any}
+                  href={link.href}
                   className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-all duration-300 ease-spring hover:border-primary/50 hover:bg-card hover:shadow-lg hover:-translate-y-1"
                 >
                   <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-110">

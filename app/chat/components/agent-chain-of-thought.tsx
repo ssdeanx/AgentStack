@@ -36,8 +36,8 @@ export function AgentChainOfThought({
 }: AgentChainOfThoughtProps) {
   if (!steps || steps.length === 0) {return null}
 
-  const completedCount = steps.filter((s) => s.status === "complete").length
-  const activeStep = steps.find((s) => s.status === "active")
+  const completedCount = useMemo(() => steps.filter((s) => s.status === "complete").length, [steps])
+  const activeStep = useMemo(() => steps.find((s) => s.status === "active"), [steps])
 
   return (
     <ChainOfThought defaultOpen={defaultOpen} className={className}>
@@ -90,13 +90,9 @@ export function AgentChainOfThought({
   )
 }
 
-interface ParsedStep {
-  type: "step" | "search" | "analysis" | "decision"
-  content: string
-  searchTerms?: string[]
-}
+type StepType = "step" | "search" | "analysis" | "decision"
 
-function categorizeStep(text: string): ParsedStep["type"] {
+function categorizeStep(text: string): StepType {
   const lower = text.toLowerCase()
   if (lower.includes("search") || lower.includes("looking for") || lower.includes("finding")) {
     return "search"
@@ -142,12 +138,11 @@ export function parseReasoningToSteps(reasoning: string): ReasoningStep[] {
         label: content.length > 80 ? content.slice(0, 77) + "..." : content,
         description: content.length > 80 ? content : undefined,
         status: "complete",
-        searchResults: stepType === "search" ? currentSearchTerms : undefined,
+        searchResults: stepType === "search" ? [...currentSearchTerms] : undefined,
       })
 
-      if (stepType !== "search") {
-        currentSearchTerms = []
-      }
+      // Reset after each step to prevent accumulation
+      currentSearchTerms = []
     }
   })
 

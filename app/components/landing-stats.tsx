@@ -17,7 +17,7 @@ interface StatItem {
   label: string
   value: number
   suffix: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
   description: string
 }
 

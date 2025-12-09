@@ -155,7 +155,7 @@ export function Footer() {
               {FOOTER_LINKS.product.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href as any}
+                    href={link.href}
                     className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
@@ -172,7 +172,7 @@ export function Footer() {
               {FOOTER_LINKS.resources.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href as any}
+                    href={link.href}
                     className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
@@ -189,7 +189,7 @@ export function Footer() {
               {FOOTER_LINKS.company.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href as any}
+                    href={link.href}
                     className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}
@@ -206,7 +206,7 @@ export function Footer() {
               {FOOTER_LINKS.legal.map((link) => (
                 <li key={link.label}>
                   <Link
-                    href={link.href as any}
+                    href={link.href}
                     className="text-sm text-muted-foreground transition-all duration-200 ease-smooth hover:text-foreground hover:translate-x-0.5"
                   >
                     {link.label}

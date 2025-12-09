@@ -59,12 +59,25 @@ const severityConfig: Record<ConfirmationSeverity, {
   },
 }
 
+// Explicit severity mapping for precise control over specific tools
+const toolSeverityMap: Record<string, ConfirmationSeverity> = {
+  // Add tool-specific severities here, e.g., 'deleteFile': 'danger'
+}
+
 function inferSeverity(toolName: string, description: string): ConfirmationSeverity {
+  // Check explicit mapping first
+  if (toolSeverityMap[toolName]) {
+    return toolSeverityMap[toolName]
+  }
+
+  // Use word-boundary regex to reduce false positives
   const lower = (toolName + description).toLowerCase()
-  if (lower.includes("delete") || lower.includes("remove") || lower.includes("destroy")) {
+  const dangerPattern = /\b(delete|remove|destroy|drop)\b/i
+  const warningPattern = /\b(modify|update|write|create|insert)\b/i
+  if (dangerPattern.test(lower)) {
     return "danger"
   }
-  if (lower.includes("modify") || lower.includes("update") || lower.includes("write")) {
+  if (warningPattern.test(lower)) {
     return "warning"
   }
   return "info"

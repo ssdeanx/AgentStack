@@ -46,8 +46,10 @@ interface AgentQueueProps {
 }
 
 function formatRelativeTime(date: Date): string {
+  if (date === null || isNaN(date.getTime())) { return "unknown" }
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
+  if (diffMs < 0) { return "in the future" }
   const diffMins = Math.floor(diffMs / 60000)
 
   if (diffMins < 1) {return "just now"}
@@ -93,48 +95,50 @@ function TaskSection({
         <QueueList>
           {tasks.map((task) => (
             <QueueItem key={task.id}>
-              <QueueItemIndicator
-                completed={task.status === "completed"}
-              />
-              <QueueItemContent
-                completed={task.status === "completed"}
-                className={cn(
-                  variant === "error" && "text-destructive"
-                )}
-              >
-                <span>{task.title}</span>
-                {task.description && (
-                  <QueueItemDescription>{task.description}</QueueItemDescription>
-                )}
-                {task.error && (
-                  <QueueItemDescription className="text-destructive">
-                    {task.error}
-                  </QueueItemDescription>
-                )}
-                {task.createdAt && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <ClockIcon className="size-3" />
-                    {formatRelativeTime(task.createdAt)}
-                  </span>
-                )}
-              </QueueItemContent>
-              <QueueItemActions>
-                {onView && (
-                  <QueueItemAction onClick={() => onView(task.id)}>
-                    <EyeIcon className="size-3" />
-                  </QueueItemAction>
-                )}
-                {onRetry && task.status === "failed" && (
-                  <QueueItemAction onClick={() => onRetry(task.id)}>
-                    <RefreshCwIcon className="size-3" />
-                  </QueueItemAction>
-                )}
-                {onDelete && (
-                  <QueueItemAction onClick={() => onDelete(task.id)}>
-                    <TrashIcon className="size-3" />
-                  </QueueItemAction>
-                )}
-              </QueueItemActions>
+              <div className="flex items-start gap-2">
+                <QueueItemIndicator
+                  completed={task.status === "completed"}
+                />
+                <QueueItemContent
+                  completed={task.status === "completed"}
+                  className={cn(
+                    variant === "error" && "text-destructive"
+                  )}
+                >
+                  {task.title}
+                </QueueItemContent>
+                <QueueItemActions>
+                  {onView && (
+                    <QueueItemAction onClick={() => onView(task.id)}>
+                      <EyeIcon className="size-3" />
+                    </QueueItemAction>
+                  )}
+                  {onRetry && task.status === "failed" && (
+                    <QueueItemAction onClick={() => onRetry(task.id)}>
+                      <RefreshCwIcon className="size-3" />
+                    </QueueItemAction>
+                  )}
+                  {onDelete && (
+                    <QueueItemAction onClick={() => onDelete(task.id)}>
+                      <TrashIcon className="size-3" />
+                    </QueueItemAction>
+                  )}
+                </QueueItemActions>
+              </div>
+              {task.description && (
+                <QueueItemDescription>{task.description}</QueueItemDescription>
+              )}
+              {task.error && (
+                <QueueItemDescription className="text-destructive">
+                  {task.error}
+                </QueueItemDescription>
+              )}
+              {task.createdAt && (
+                <div className="ml-6 text-xs text-muted-foreground flex items-center gap-1">
+                  <ClockIcon className="size-3" />
+                  {formatRelativeTime(task.createdAt)}
+                </div>
+              )}
             </QueueItem>
           ))}
         </QueueList>
@@ -167,7 +171,7 @@ export function AgentQueue({
           {tasks.length} total
         </Badge>
         {running.length > 0 && (
-          <Badge className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+          <Badge variant="secondary" className="text-xs">
             {running.length} running
           </Badge>
         )}
