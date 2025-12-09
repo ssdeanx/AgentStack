@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
+
 import { AnimatedBeam } from "@/ui/effects/animated-beam";
 import { cn } from "@/lib/utils";
 import { FileTextIcon, GitBranchIcon, GlobeIcon, DatabaseIcon, BotIcon } from "lucide-react";
@@ -25,14 +26,14 @@ const Circle = React.forwardRef<
 Circle.displayName = "Circle";
 
 export function WorkflowVisualizer({ className }: { className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const div1Ref = useRef<HTMLDivElement>(null);
-  const div2Ref = useRef<HTMLDivElement>(null);
-  const div3Ref = useRef<HTMLDivElement>(null);
-  const div4Ref = useRef<HTMLDivElement>(null);
-  const div5Ref = useRef<HTMLDivElement>(null);
-  const div6Ref = useRef<HTMLDivElement>(null);
-  const div7Ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const div1Ref = useRef<HTMLDivElement | null>(null);
+  const div2Ref = useRef<HTMLDivElement | null>(null);
+  const div3Ref = useRef<HTMLDivElement | null>(null);
+  const div4Ref = useRef<HTMLDivElement | null>(null);
+  const div5Ref = useRef<HTMLDivElement | null>(null);
+  const div6Ref = useRef<HTMLDivElement | null>(null);
+  const div7Ref = useRef<HTMLDivElement | null>(null);
 
   return (
     <div
@@ -73,34 +74,34 @@ export function WorkflowVisualizer({ className }: { className?: string }) {
       </div>
 
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div1Ref}
-        toRef={div6Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div1Ref as React.RefObject<HTMLElement>}
+        toRef={div6Ref as React.RefObject<HTMLElement>}
       />
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div2Ref}
-        toRef={div6Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div2Ref as React.RefObject<HTMLElement>}
+        toRef={div6Ref as React.RefObject<HTMLElement>}
       />
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div3Ref}
-        toRef={div6Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div3Ref as React.RefObject<HTMLElement>}
+        toRef={div6Ref as React.RefObject<HTMLElement>}
       />
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div4Ref}
-        toRef={div6Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div4Ref as React.RefObject<HTMLElement>}
+        toRef={div6Ref as React.RefObject<HTMLElement>}
       />
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div5Ref}
-        toRef={div6Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div5Ref as React.RefObject<HTMLElement>}
+        toRef={div6Ref as React.RefObject<HTMLElement>}
       />
       <AnimatedBeam
-        containerRef={containerRef}
-        fromRef={div6Ref}
-        toRef={div7Ref}
+        containerRef={containerRef as React.RefObject<HTMLElement>}
+        fromRef={div6Ref as React.RefObject<HTMLElement>}
+        toRef={div7Ref as React.RefObject<HTMLElement>}
       />
     </div>
   );

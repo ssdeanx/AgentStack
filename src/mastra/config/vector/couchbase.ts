@@ -257,7 +257,7 @@ export async function querySimilarDocuments(
       hasFilter: !!filter
     });
 
-    return results.map(result => ({
+    return results.map((result: any) => ({
       id: result.id,
       score: result.score,
       text: result.metadata?.text as string || '',

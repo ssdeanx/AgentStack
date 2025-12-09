@@ -143,7 +143,7 @@ export function PricingTiers() {
               </tr>
             </thead>
             <tbody>
-              {COMPARISON_FEATURES.map((item, index) => (
+              {COMPARISON_FEATURES.map((item) => (
                 <tr key={item.feature} className="border-b border-border/50">
                   <td className="p-4 font-medium text-foreground">{item.feature}</td>
                   <td className="p-4 text-center text-muted-foreground">

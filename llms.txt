@@ -24,6 +24,20 @@
 - [Memory Bank & Project Context](memory-bank/activeContext.md): active context, productContext.md, techContext.md, and usage notes
 - [Copilot & Project Rules](memory-bank/copilot-rules.md): Internal guidance for CI/automation/coding assistant usage
 - [API Reference & Developer Guides](docs/api.md, docs/api-small.md): API and developer-facing documentation
+- [AI Elements Components Guide](docs/ai-elements-components.md): Comprehensive guide to AI Elements components for AI-native applications
+- [AI Elements Usage](docs/ai-elements-usage.md): Usage patterns and examples for AI Elements
+- [AI Elements Workflow Components](docs/ai-elements-workflow-components-docs.md): Documentation for workflow-related AI Elements
+- [AI Elements Other Components](docs/ai-elements-other-components-docs.md): Additional AI Elements component documentation
+- [AI SDK URLs](docs/ai-elements_aisk-urls.md): AI SDK related URLs and resources
+- [AI SDK Integration](docs/ai-sdk-integration.md): Integration guide for AI SDK
+- [Kiro Lite Prompt](docs/kiro-lite.prompt.md): Prompt for Kiro Lite workflow
+- [Runtime Context](docs/runtimeContext.md): Runtime conventions and context documentation
+- [ADR: PgVector and Gemini Embeddings](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): Architectural decision record for vector storage choices
+- [App Chat Components](docs/components/app-chat-documentation.md): Documentation for chat-related components
+- [App Dashboard Components](docs/components/app-dashboard-documentation.md): Documentation for dashboard components
+- [App Networks Components](docs/components/app-networks-documentation.md): Documentation for networks components
+- [App Workflows Components](docs/components/app-workflows-documentation.md): Documentation for workflows components
+- [Lib Components](docs/components/lib-documentation.md): Documentation for library components
 - [Dashboard AGENTS](app/dashboard/AGENTS.md): Admin dashboard for monitoring and management
 - [Networks AGENTS](app/networks/AGENTS.md): Agent network management and visualization
 - [Chat AGENTS](app/chat/AGENTS.md): Client-side and streaming chat demos using @mastra/client-js
@@ -181,9 +195,7 @@
 
 ## Optional / Misc
 
-- [docs/adr/0001-why-pgvector-and-gemini-embeddings.md](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): ADR for vector/embedding choices
 - [.github/prompts/update-llms.prompt.md](.github/prompts/update-llms.prompt.md): Prompt used to guide updates to this file
-- [docs/runtimeContext.md](docs/runtimeContext.md): Runtime conventions and context documentation
 - [llms.txt](llms.txt): This file — machine-friendly navigation for LLMs and contributors
 
 ## llms.txt — Citation & Ingestion Policy

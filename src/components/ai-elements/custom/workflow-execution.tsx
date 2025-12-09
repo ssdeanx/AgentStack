@@ -240,7 +240,7 @@ export const WorkflowExecution = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500/10 to-green-500/10 py-4"
+            className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-emerald-500/10 to-green-500/10 py-4"
           >
             <PartyPopperIcon className="size-5 text-emerald-500" />
             <span className="font-medium text-emerald-600">
@@ -253,7 +253,7 @@ export const WorkflowExecution = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-500/10 to-rose-500/10 py-4"
+            className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-linear-to-r from-red-500/10 to-rose-500/10 py-4"
           >
             <XCircleIcon className="size-5 text-red-500" />
             <span className="font-medium text-red-600">

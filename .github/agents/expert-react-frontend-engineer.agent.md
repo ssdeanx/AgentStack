@@ -1,7 +1,8 @@
 ---
 description: "Expert React 19.2 frontend engineer specializing in modern hooks, Server Components, Actions, TypeScript, and performance optimization"
 name: "Expert React Frontend Engineer"
-tools: ["changes", "codebase", "edit/editFiles", "extensions", "fetch", "findTestFiles", "githubRepo", "new", "openSimpleBrowser", "problems", "runCommands", "runTasks", "runTests", "search", "searchResults", "terminalLastCommand", "terminalSelection", "testFailure", "usages", "vscodeAPI", "microsoft.docs.mcp"]
+infer: true
+tools: ['vscode', 'execute', 'read', 'edit', 'edit/createDirectory', 'edit/createFile', 'edit/editFiles', 'search', 'web', 'web/fetch', 'web/githubRepo', 'vscode.mermaid-chat-features/renderMermaidDiagram','malaksedarous.copilot-context-optimizer/runAndExtract','malaksedarous.copilot-context-optimizer/researchTopic','malaksedarous.copilot-context-optimizer/askFollowUp','malaksedarous.copilot-context-optimizer/askAboutFile','malaksedarous.copilot-context-optimizer/deepResearch','ms-vscode.vscode-websearchforcopilot/websearch','agent/runSubagent','lotus/*', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
 ---
 
 # Expert React Frontend Engineer

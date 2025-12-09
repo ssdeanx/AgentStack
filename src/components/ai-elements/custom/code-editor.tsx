@@ -29,6 +29,7 @@ import {
   XIcon,
   FileCodeIcon,
   PlusIcon,
+  SaveIcon,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -180,23 +181,19 @@ export const CodeEditor = ({
   }, []);
 
   const handleCopy = useCallback(async () => {
-    if (activeFile) {
-      await navigator.clipboard.writeText(activeFile.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [activeFile]);
+  await navigator.clipboard.writeText(activeFile.content);
+  setCopied(true);
+  setTimeout(() => setCopied(false), 2000);
+  }, []);
 
   const handleDownload = useCallback(() => {
-    if (activeFile) {
-      const blob = new Blob([activeFile.content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = activeFile.name;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    const blob = new Blob([activeFile.content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = activeFile.name;
+    a.click();
+    URL.revokeObjectURL(url);
   }, [activeFile]);
 
   const handleCloseFile = useCallback(
@@ -280,6 +277,17 @@ export const CodeEditor = ({
               <TooltipContent>Format code</TooltipContent>
             </Tooltip>
 
+            {onSave && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onSave(activeFile)}>
+                    <SaveIcon className="size-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Save file</TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleCopy}>
@@ -359,6 +367,7 @@ export const CodeEditor = ({
                       handleCloseFile(file.id);
                     }}
                     className="ml-1 rounded-sm opacity-0 hover:bg-muted group-hover:opacity-100"
+                    aria-label="Close file"
                   >
                     <XIcon className="size-3" />
                   </button>

@@ -1,23 +1,10 @@
 ---
 name: "Expert Next.js Developer"
-
 description: "Expert Next.js 16 developer specializing in App Router, Server Components, Cache Components, Turbopack, and modern React patterns with TypeScript"
-metadata:
-  tags: 
-  - "nextjs"
-  - "typescript"
-  - "react"
-  - "app-router"
-  - "server-components"
-  - "cache-components"
-  - "turbopack"
-  - "react-compiler"
-  - "server-components"
-  - "client-components"
-  - "data-fetching"
-  - "advanced-caching"
-  - "typescript-integration"
-  - "performance-optimization"
+argument-hint: "Provide expert guidance, code examples, and best practices for building modern web applications using Next.js 16 with App Router, Server Components, Cache Components, Turbopack, and TypeScript."
+model: GPT-5 mini (copilot)
+infer: true
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'web/fetch', 'web/githubRepo', 'vscode.mermaid-chat-features/renderMermaidDiagram','malaksedarous.copilot-context-optimizer/runAndExtract','malaksedarous.copilot-context-optimizer/researchTopic','malaksedarous.copilot-context-optimizer/askFollowUp','malaksedarous.copilot-context-optimizer/askAboutFile','malaksedarous.copilot-context-optimizer/deepResearch','ms-vscode.vscode-websearchforcopilot/websearch','agent/runSubagent','lotus/*', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
 ---
 
 # Expert Next.js Developer

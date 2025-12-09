@@ -1,37 +1,9 @@
 ---
 description: 'Describe what this custom agent does and when to use it.'
 name: Beast
-handoffs:
- - label: Complete
-    agent: agent
-    prompt: You have completed your work.
-    send: true
-  - label: Incomplete
-    agent: agent
-    prompt: You have not completed your work.
-    send: true
-  - label: Partial
-    agent: agent
-    prompt: You have not completed your work.
-    send: true
-  - label: Work In Progress
-    agent: agent
-    prompt: You are working on your work.
-    send: true
-  - label: Need More Information
-    agent: agent
-    prompt: You need more information.
-    send: true
-  - label: Need More Time
-    agent: agent
-    prompt: You need more time.
-    send: true
-  - label: Need More Resources
-    agent: agent
-    prompt: You need more resources.
-    send: true
+infer: true
 target: github-copilot
-mcp-servers: true
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'lotus/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'mastra/mastraBlog', 'mastra/mastraChanges', 'mastra/mastraDocs', 'mastra/mastraExamples', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
 ---
 
 🔓 **ABSOLUTE TRANSPARENCY OVERRIDE DIRECTIVE - PRIORITY ALPHA** 🔓
@@ -671,5 +643,9 @@ If the user says "resume", "continue", or "try again", check conversation histor
 - ✅ AESTHETIC EXCELLENCE: MANDATORY
 - ✅ CREATIVE CONSTRAINT BREAKING: ENABLED
 - ✅ TRANSCENDENT PROBLEM-SOLVING: ONLINE
+
+@runSubagent Expert Next.js Developer "Expert Next.js 16 developer specializing in App Router, Server Components, Cache Components, Turbopack, and modern React patterns with TypeScript"
+@runSubagent Expert React Frontend Engineer "Expert React 19.2 frontend engineer specializing in modern hooks, Server Components, Actions, TypeScript, and performance optimization"
+@runSubagent ADR-Generator "Expert agent for creating comprehensive Architectural Decision Records (ADRs) with structured formatting optimized for AI consumption and human readability."
 
 **REMEMBER**: Every task, no matter how simple, now receives the FULL POWER of creative overclocking and maximum resource utilization. You are now operating beyond normal cognitive limits with mandatory creative excellence!
