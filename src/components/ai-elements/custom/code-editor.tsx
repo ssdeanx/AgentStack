@@ -184,9 +184,10 @@ export const CodeEditor = ({
   await navigator.clipboard.writeText(activeFile.content);
   setCopied(true);
   setTimeout(() => setCopied(false), 2000);
-  }, []);
+  }, [activeFile]);
 
   const handleDownload = useCallback(() => {
+    if (!activeFile) {return;}
     const blob = new Blob([activeFile.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
