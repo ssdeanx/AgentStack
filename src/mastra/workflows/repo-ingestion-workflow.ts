@@ -3,7 +3,7 @@ import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { readFile } from 'fs/promises';
 import { glob } from 'glob';
 import * as path from 'path';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 import { log } from '../config/logger';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { getFileContent, getRepoFileTree } from '../tools/github';
@@ -48,7 +48,8 @@ const scanStep = createStep({
   inputSchema: scanInputSchema,
   outputSchema: scanOutputSchema,
   execute: async ({ inputData, mastra, requestContext }) => {
-    let { repoPath, githubRepo, githubBranch, globPattern, limit } = inputData;
+    const { repoPath, githubRepo, githubBranch, globPattern } = inputData;
+    let { limit } = inputData;
 
     // Apply runtime context limits
     const context = requestContext as RequestContext<IngestionRuntimeContext> | undefined;
@@ -69,14 +70,14 @@ const scanStep = createStep({
       log.info(`Scanning GitHub repo ${githubRepo} branch ${githubBranch}`);
       const [owner, repo] = githubRepo.split('/');
 
-      type GitTreeItem = {
+      interface GitTreeItem {
         path: string;
         mode?: string;
         type: string;
         sha?: string;
         size?: number;
         url?: string;
-      };
+      }
 
       const scanResultRaw = await getRepoFileTree.execute(
         { owner, repo, branch: githubBranch, recursive: true },
@@ -85,7 +86,7 @@ const scanStep = createStep({
 
       // Type guard to narrow to the success shape
       const isScanSuccess = (r: any): r is { success: boolean; tree?: GitTreeItem[]; error?: string } =>
-        r && typeof r === 'object' && 'success' in r;
+        (Boolean(r)) && typeof r === 'object' && 'success' in r;
 
       if (!isScanSuccess(scanResultRaw) || !scanResultRaw.success || !scanResultRaw.tree) {
         throw new Error(`Failed to scan GitHub repo: ${(scanResultRaw as any)?.error ?? 'unknown error'}`);
@@ -150,16 +151,20 @@ const ingestStep = createStep({
 
           if (githubRepo) {
             const [owner, repo] = githubRepo.split('/');
-            const result = await getFileContent.execute({
-              context: { owner, repo, path: filePath, ref: githubBranch },
-              mastra,
-              requestContext
-            });
+            const result = await getFileContent.execute(
+              { owner, repo, path: filePath, ref: githubBranch },
+              { mastra, requestContext }
+            );
 
-            if (!result.success || !result.content) {
-              throw new Error(`Failed to fetch file from GitHub: ${result.error}`);
+            if (result instanceof ZodError) {
+              throw new Error(`Validation error fetching file: ${result.message}`);
             }
-            content = result.content;
+
+            const successResult = result as { success: boolean; content?: string; encoding?: string; sha?: string; size?: number; error?: string };
+            if (!successResult.success || !successResult.content) {
+              throw new Error(`Failed to fetch file from GitHub: ${successResult.error}`);
+            }
+            content = successResult.content;
           } else if (repoPath) {
             content = await readFile(filePath, 'utf-8');
           }
@@ -171,26 +176,30 @@ const ingestStep = createStep({
           if (ext === '.json') { strategy = 'json'; }
 
           const result = await mdocumentChunker.execute({
-            context: {
-              documentContent: content,
-              documentMetadata: { filePath, source: githubRepo ? 'github' : 'local' },
-              chunkingStrategy: strategy,
-              indexName: 'memory_messages_3072',
-              generateEmbeddings: true,
-              chunkSize: 512,
-              chunkOverlap: 50,
-              chunkSeparator: '\n'
-            },
-            writer,
-            requestContext
-          });
+            documentContent: content,
+            documentMetadata: { filePath, source: githubRepo ? 'github' : 'local' },
+            chunkingStrategy: strategy,
+            indexName: 'memory_messages_3072',
+            generateEmbeddings: true,
+            chunkSize: 512,
+            chunkOverlap: 50,
+            chunkSeparator: '\n'
+          }, { writer, requestContext });
 
-          if (result.success) {
-            processedFiles++;
-            totalChunks += result.chunkCount;
-          } else {
-            throw new Error(result.error || 'Unknown error in chunking');
-          }
+          if (result && typeof result === 'object' && 'success' in result && result.success) {
+                      processedFiles++;
+                      totalChunks += result.chunkCount;
+                    }
+          else if (result instanceof ZodError) {
+                        throw new Error(result.message);
+                      }
+          else if (result instanceof Error) {
+                        throw result;
+                      } else if (result && typeof result === 'object' && 'error' in result) {
+                        throw new Error(typeof result.error === 'string' ? result.error : 'Unknown error in chunking');
+                      } else {
+                        throw new Error('Unknown error in chunking');
+                      }
 
         } catch (error) {
           const errorObj = error instanceof Error ? error : new Error(String(error));

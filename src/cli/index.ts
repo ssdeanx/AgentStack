@@ -96,8 +96,8 @@ async function indexDocuments() {
         const startTime = Date.now()
         logWorkflowStart('governed-rag-index', { documents: validDocs })
 
-        const workflow = mastra.getWorkflows()['governed-rag-index']
-        const run = await workflow.createRunAsync()
+        const workflow = mastra.listWorkflows()['governed-rag-index']
+        const run = await workflow.createRun()
         const result = await run.start({
             inputData: { documents: validDocs },
         })
@@ -166,8 +166,8 @@ async function queryRAG(jwt: string, question: string) {
         const startTime = Date.now()
         logWorkflowStart('governed-rag-answer', { jwt, question })
 
-        const workflow = mastra.getWorkflows()['governed-rag-answer']
-        const run = await workflow.createRunAsync()
+        const workflow = mastra.listWorkflows()['governed-rag-answer']
+        const run = await workflow.createRun()
         const result = await run.start({
             inputData: { jwt, question },
         })

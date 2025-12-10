@@ -94,14 +94,44 @@ const analysisResultSchema = z.object({
   metadata: mergedDataSchema.shape.metadata,
 });
 
+const analysisOutputSchema = z.object({
+  recommendations: z.array(z.object({
+    symbol: z.string(),
+    action: z.enum(['buy', 'hold', 'sell']),
+    reason: z.string(),
+  })),
+});
+
+const reportOutputSchema = z.object({
+  summary: z.string(),
+  report: z.string(),
+});
+
 const finalReportSchema = z.object({
   reportId: z.string(),
   generatedAt: z.string(),
   summary: z.string(),
   report: z.string(),
   data: z.object({
-    stocks: analysisResultSchema.shape.stocks,
-    analysis: analysisResultSchema.shape.analysis,
+    stocks: z.array(z.object({
+      symbol: z.string(),
+      price: priceDataSchema,
+      metrics: companyMetricsSchema,
+      sentiment: newsSentimentSchema,
+    })),
+    analysis: z.object({
+      topPerformers: z.array(z.string()),
+      worstPerformers: z.array(z.string()),
+      bullishStocks: z.array(z.string()),
+      bearishStocks: z.array(z.string()),
+      averageChange: z.number(),
+      marketTrend: z.enum(['bullish', 'bearish', 'neutral']),
+      recommendations: z.array(z.object({
+        symbol: z.string(),
+        action: z.enum(['buy', 'hold', 'sell']),
+        reason: z.string(),
+      })),
+    }),
   }),
   metadata: z.object({
     symbols: z.array(z.string()),

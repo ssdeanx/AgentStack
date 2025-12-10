@@ -570,7 +570,7 @@ export const getFileContent = createTool({
 
       span.setAttributes({
         'tool.output.success': true,
-        'tool.output.size': data.size
+        'tool.output.size': data.size as number
       });
       span.end();
 
