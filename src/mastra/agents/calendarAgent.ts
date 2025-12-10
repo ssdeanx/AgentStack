@@ -1,19 +1,23 @@
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
 import { listEvents, getTodayEvents, getUpcomingEvents, findFreeSlots } from '../tools/calendar-tool';
 import { googleAIFlashLite, pgMemory } from '../config';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { RequestContext } from '@mastra/core/request-context';
+
+export interface CalendarContext {
+    userId?: string
+}
 
 export const calendarAgent = new Agent({
   id: 'calendarAgent',
   name: 'Calendar Agent',
   description: 'A helpful calendar assistant that can view, analyze, and help manage your schedule',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext?.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<CalendarContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `You are a helpful calendar assistant. You help users manage their schedule efficiently.
-
+user: ${userId}
 Your capabilities:
 - View all calendar events
 - Show today's events
@@ -51,5 +55,5 @@ Current user: ${userId ?? 'anonymous'}`,
     getUpcomingEvents,
     findFreeSlots,
   },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
 });

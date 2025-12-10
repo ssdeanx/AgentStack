@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { RuntimeContext } from '@mastra/core/runtime-context'
-import type { TracingContext } from '@mastra/core/ai-tracing'
+import type { TracingContext } from '@mastra/observability'
 import type { Stats } from 'fs'
 
 // Mock Node.js modules that logger depends on

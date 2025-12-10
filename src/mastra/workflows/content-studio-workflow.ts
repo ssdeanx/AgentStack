@@ -1,12 +1,12 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { researchAgent } from '../agents/researchAgent';
-import { learningExtractionAgent } from '../agents/learningExtractionAgent';
-import { evaluationAgent } from '../agents/evaluationAgent';
 import { contentStrategistAgent } from '../agents/contentStrategistAgent';
-import { scriptWriterAgent } from '../agents/scriptWriterAgent';
 import { editorAgent } from '../agents/editorAgent';
-import { logStepStart, logStepEnd } from '../config/logger';
+import { evaluationAgent } from '../agents/evaluationAgent';
+import { learningExtractionAgent } from '../agents/learningExtractionAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { scriptWriterAgent } from '../agents/scriptWriterAgent';
+import { logStepEnd, logStepStart } from '../config/logger';
 
 // --- Schemas ---
 
@@ -98,64 +98,118 @@ const researchStep = createStep({
   id: 'research-step',
   inputSchema: z.object({ topic: z.string() }),
   outputSchema: researchStepOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('research-step', inputData);
 
     const prompt = `Research the topic: "${inputData.topic}".
-    Focus on finding unique angles, trending discussions, and key facts.
-    Return JSON with summary, data, and sources.`;
-    const res = await researchAgent.generate(prompt, { output: researchAgentOutputSchema });
+Focus on finding unique angles, trending discussions, and key facts.
+Return JSON with summary, data, and sources.`;
 
-    const output = { topic: inputData.topic, researchData: res.object };
+    const stream = await researchAgent.stream(prompt, {
+      output: researchAgentOutputSchema,
+    } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+
+    // Ensure we always return a valid object matching the schema
+    let researchData: z.infer<typeof researchAgentOutputSchema> = {
+      summary: '',
+      data: '',
+    };
+    try {
+      const parsed = JSON.parse(finalText);
+      // Validate parsed data against the schema (runtime safety)
+      researchData = researchAgentOutputSchema.parse(parsed);
+    } catch {
+      // If parsing or validation fails, keep the default empty object
+    }
+
+    const output = { topic: inputData.topic, researchData };
     logStepEnd('research-step', output, Date.now() - start);
     return output;
   },
-});
+});;
 
 const evaluationStep = createStep({
   id: 'evaluation-step',
   inputSchema: researchStepOutputSchema,
   outputSchema: evaluationStepOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('evaluation-step', inputData);
 
     const prompt = `Evaluate the relevance of this research to the topic "${inputData.topic}".
-    Research Summary: ${inputData.researchData.summary}
-    Return JSON with isRelevant and reason.`;
-    const res = await evaluationAgent.generate(prompt, { output: evaluationAgentOutputSchema });
+Research Summary: ${inputData.researchData.summary}
+Return JSON with isRelevant and reason.`;
 
-    const output = { ...inputData, evaluation: res.object };
+    const stream = await evaluationAgent.stream(prompt, {
+      output: evaluationAgentOutputSchema,
+    } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+
+    // Default evaluation in case parsing/validation fails
+    let evaluation: z.infer<typeof evaluationAgentOutputSchema> = {
+      isRelevant: false,
+      reason: '',
+    };
+
+    try {
+      const parsed = JSON.parse(finalText);
+      // Validate against the schema for runtime safety
+      evaluation = evaluationAgentOutputSchema.parse(parsed);
+    } catch {
+      // Keep the default evaluation object
+    }
+
+    const output = { ...inputData, evaluation };
     logStepEnd('evaluation-step', output, Date.now() - start);
     return output;
   },
-});
+});;
 
 const learningStep = createStep({
   id: 'learning-step',
   inputSchema: evaluationStepOutputSchema,
   outputSchema: learningStepOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('learning-step', inputData);
 
     const prompt = `Extract the single most important learning from this research data:
-    ${inputData.researchData.data}
-    Return JSON with learning and followUpQuestion.`;
-    const res = await learningExtractionAgent.generate(prompt, { output: learningAgentOutputSchema });
+${inputData.researchData.data}
+Return JSON with learning and followUpQuestion.`;
 
-    const output = { ...inputData, learning: res.object };
+    const stream = await learningExtractionAgent.stream(prompt, {
+      output: learningAgentOutputSchema,
+    } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+
+    // Default learning object to satisfy schema if parsing fails
+    let learning: z.infer<typeof learningAgentOutputSchema> = {
+      learning: '',
+      followUpQuestion: '',
+    };
+    try {
+      const parsed = JSON.parse(finalText);
+      learning = learningAgentOutputSchema.parse(parsed);
+    } catch {
+      // Keep default learning object on error
+    }
+
+    const output = { ...inputData, learning };
     logStepEnd('learning-step', output, Date.now() - start);
     return output;
   },
-});
+});;
 
 const strategyStep = createStep({
   id: 'strategy-step',
   inputSchema: strategyInputSchema,
   outputSchema: strategyOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('strategy-step', inputData);
 
@@ -168,31 +222,69 @@ const strategyStep = createStep({
     `;
 
     const prompt = `Create a content plan for topic: "${inputData.topic}".
-    Use the following research context to inform your strategy:
-    ${researchContext}
+Use the following research context to inform your strategy:
+${researchContext}
 
-    Return JSON with title, targetAudience, angle, and keyPoints.`;
-    const res = await contentStrategistAgent.generate(prompt, { output: strategyOutputSchema.shape.plan });
+Return JSON with title, targetAudience, angle, and keyPoints.`;
 
-    const output = { plan: res.object };
+    const stream = await contentStrategistAgent.stream(prompt, {
+      output: strategyOutputSchema.shape.plan,
+    } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+
+    // Default plan to satisfy the schema if parsing/validation fails
+    const defaultPlan: z.infer<typeof strategyOutputSchema>['plan'] = {
+      title: '',
+      targetAudience: '',
+      angle: '',
+      keyPoints: [],
+    };
+
+    let plan: z.infer<typeof strategyOutputSchema>['plan'] = defaultPlan;
+    try {
+      const parsed = JSON.parse(finalText);
+      plan = strategyOutputSchema.shape.plan.parse(parsed);
+    } catch {
+      // Keep defaultPlan on error
+    }
+
+    const output = { plan };
     logStepEnd('strategy-step', output, Date.now() - start);
     return output;
   },
-});
+});;
 
 const hookStep = createStep({
   id: 'hook-step',
   inputSchema: hookInputSchema,
   outputSchema: hookOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('hook-step', inputData);
 
-    const prompt = `Write 3 distinct hooks for this plan: ${JSON.stringify(inputData.plan)}.
-    Return JSON with an array of strings named 'hooks'.`;
-    const res = await scriptWriterAgent.generate(prompt, { output: z.object({ hooks: z.array(z.string()) }) });
+    const prompt = `Write 3 distinct hooks for this plan: ${JSON.stringify(
+      inputData.plan,
+    )}.
+  Return JSON with an array of strings named 'hooks'.`;
 
-    const output = { hooks: res.object.hooks, plan: inputData.plan };
+    const stream = await scriptWriterAgent.stream(prompt, {
+      output: z.object({ hooks: z.array(z.string()) }),
+    } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+
+    // Default to an empty hooks array if parsing or validation fails
+    let hooks: string[] = [];
+    try {
+      const parsed = JSON.parse(finalText);
+      const validated = hookOutputSchema.shape.hooks.parse(parsed);
+      hooks = validated;
+    } catch {
+      // Keep hooks as empty array on error
+    }
+
+    const output = { hooks, plan: inputData.plan };
     logStepEnd('hook-step', output, Date.now() - start);
     return output;
   },
@@ -202,15 +294,22 @@ const bodyStep = createStep({
   id: 'body-step',
   inputSchema: bodyInputSchema,
   outputSchema: bodyOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('body-step', inputData);
 
     const prompt = `Write the main body script for this plan: ${JSON.stringify(inputData.plan)}.
     Do not include hooks. Return JSON with 'bodyScript'.`;
-    const res = await scriptWriterAgent.generate(prompt, { output: z.object({ bodyScript: z.string() }) });
-
-    const output = { bodyScript: res.object.bodyScript, plan: inputData.plan, hooks: inputData.hooks };
+    const stream = await scriptWriterAgent.stream(prompt, { output: z.object({ bodyScript: z.string() }) } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
+    let bodyResult: z.infer<typeof bodyOutputSchema> | null = null;
+    try {
+      bodyResult = JSON.parse(finalText) as z.infer<typeof bodyOutputSchema>;
+    } catch {
+      bodyResult = null;
+    }
+    const output = { bodyScript: bodyResult?.bodyScript ?? '', plan: inputData.plan, hooks: inputData.hooks };
     logStepEnd('body-step', output, Date.now() - start);
     return output;
   },
@@ -220,48 +319,98 @@ const reviewStep = createStep({
   id: 'review-step',
   inputSchema: reviewInputSchema,
   outputSchema: reviewOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('review-step', inputData);
 
     const fullScript = `HOOKS:\n${inputData.hooks.join('\n---\n')}\n\nBODY:\n${inputData.bodyScript}`;
 
-    const prompt = `Review this script based on the plan: ${JSON.stringify(inputData.plan)}.
-    Rate 0-100. If < 80, give feedback.
-    Return JSON with score, feedback, approved, and finalScript (which is just the input script for now).`;
+    const prompt = `Review this script based on the plan: ${JSON.stringify(
+      inputData.plan,
+    )}.
+Rate 0-100. If < 80, give feedback.
+Return JSON with score, feedback, approved, and finalScript (which is just the input script for now).`;
 
-    const res = await editorAgent.generate(prompt, { output: reviewOutputSchema });
+    const stream = await editorAgent.stream(prompt, { output: reviewOutputSchema } as any);
+    await stream.textStream.pipeTo(writer);
+    const finalText = await stream.text;
 
-    const output = { ...res.object, finalScript: fullScript };
-    logStepEnd('review-step', output, Date.now() - start);
-    return output;
+    // Default values that satisfy the schema
+    const defaultReview: z.infer<typeof reviewOutputSchema> = {
+      score: 0,
+      feedback: '',
+      approved: false,
+      finalScript: fullScript,
+    };
+
+    let review: z.infer<typeof reviewOutputSchema> = defaultReview;
+    try {
+      const parsed = JSON.parse(finalText);
+      // Validate parsed data against the schema; will throw if invalid
+      review = reviewOutputSchema.parse(parsed);
+    } catch {
+      // Keep defaultReview on error
+    }
+
+    // Ensure the finalScript always contains the full script
+    review.finalScript = fullScript;
+
+    logStepEnd('review-step', review, Date.now() - start);
+    return review;
   },
-});
+});;
 
 const refineStep = createStep({
   id: 'refine-step',
   inputSchema: refineInputSchema,
   outputSchema: refineOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('refine-step', inputData);
 
-    // 1. Refine
+    // 1. Refine the script based on feedback
     const refinePrompt = `Refine this script based on feedback: "${inputData.feedback}".
-    Script: ${inputData.finalScript}`;
-    const refinedRes = await scriptWriterAgent.generate(refinePrompt);
-    const refinedScript = refinedRes.text;
+Script: ${inputData.finalScript}`;
+    const refineStream = await scriptWriterAgent.stream(refinePrompt);
+    await refineStream.textStream.pipeTo(writer);
+    const refinedScript = await refineStream.text;
 
-    // 2. Re-evaluate
+    if (!refinedScript) {
+      throw new Error('scriptWriterAgent.stream returned an empty text for refine-step');
+    }
+
+    // 2. Re‑evaluate the refined script
     const evalPrompt = `Evaluate this refined script. Rate 0-100.
-    Script: ${refinedScript}`;
-    const evalRes = await editorAgent.generate(evalPrompt, { output: reviewOutputSchema });
+Script: ${refinedScript}`;
+    const evalStream = await editorAgent.stream(evalPrompt, {
+      output: reviewOutputSchema,
+    } as any);
+    await evalStream.textStream.pipeTo(writer);
+    const evalFinalText = await evalStream.text;
 
-    const output = { ...evalRes.object, finalScript: refinedScript };
-    logStepEnd('refine-step', output, Date.now() - start);
-    return output;
+    // Default review values that satisfy the schema
+    const defaultReview: z.infer<typeof reviewOutputSchema> = {
+      score: 0,
+      feedback: '',
+      approved: false,
+      finalScript: refinedScript,
+    };
+
+    let review: z.infer<typeof reviewOutputSchema>;
+    try {
+      const parsed = JSON.parse(evalFinalText);
+      review = reviewOutputSchema.parse(parsed);
+    } catch {
+      review = defaultReview;
+    }
+
+    // Ensure the finalScript is always the refined version
+    review.finalScript = refinedScript;
+
+    logStepEnd('refine-step', review, Date.now() - start);
+    return review;
   },
-});
+});;
 
 // --- Workflow ---
 

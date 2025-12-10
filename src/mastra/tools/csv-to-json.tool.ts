@@ -1,9 +1,10 @@
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { parse } from "csv-parse/sync";
+import { trace } from "@opentelemetry/api";
 import * as fs from "node:fs/promises";
 import { z } from "zod";
+import type { RequestContext } from '@mastra/core/request-context';
 
 const csvToolContextSchema = z.object({
   maxRows: z.number().optional(),
@@ -34,27 +35,29 @@ export const csvToJsonTool = createTool({
     data: z.array(z.any()).describe("Parsed JSON data"),
     error: z.string().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📊 Starting CSV to JSON conversion' } });
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: "csv-to-json",
-      input: context,
-      runtimeContext,
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📊 Starting CSV to JSON conversion' } });
+    const tracer = trace.getTracer('csv-to-json', '1.0.0');
+    const rootSpan = tracer.startSpan('csv-to-json', {
+      attributes: {
+        'tool.id': 'csv-to-json',
+      }
     });
 
     try {
-      const config = runtimeContext?.get("csvToolContext");
+      const config = requestContext?.get("csvToolContext");
       const { maxRows } = config !== undefined ? csvToolContextSchema.parse(config) : { maxRows: undefined };
 
-      let contentToParse = context.csvData;
+      let contentToParse = inputData.csvData;
 
-      if (context.filePath !== undefined && context.filePath !== null) {
+      if (inputData.filePath !== undefined && inputData.filePath !== null) {
         try {
-          contentToParse = await fs.readFile(context.filePath, "utf-8");
+          contentToParse = await fs.readFile(inputData.filePath, "utf-8");
         } catch (err) {
-          throw new Error(`Failed to read file at ${context.filePath}: ${(err as Error).message}`);
+          throw new Error(`Failed to read file at ${inputData.filePath}: ${(err as Error).message}`);
         }
       }
 
@@ -62,7 +65,7 @@ export const csvToJsonTool = createTool({
         throw new Error("Either csvData or filePath must be provided");
       }
 
-      const options = context.options ?? {
+      const options = inputData.options ?? {
         delimiter: ",",
         columns: true,
         trim: true,
@@ -81,11 +84,14 @@ export const csvToJsonTool = createTool({
       }
 
       await writer?.write({ type: 'progress', data: { message: `✅ Converted ${records.length} records` } });
-      rootSpan?.end({ output: { recordCount: records.length } });
+      rootSpan.setAttributes({ 'tool.output.recordCount': records.length });
+      rootSpan.end();
       return { data: records };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error parsing CSV";
-      rootSpan?.error({ error: error instanceof Error ? error : new Error(errorMessage) });
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: 2, message: errorMessage });
+      rootSpan.end();
       return { data: [], error: errorMessage };
     }
   },

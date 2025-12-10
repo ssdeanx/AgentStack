@@ -1,13 +1,18 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import type { InferUITool} from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
-// Define runtime context for this tool
-export interface CopywriterToolContext {
-  userId?: string
-  contentType?: string
-}
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
+
+// Define the Zod schema for the runtime context
+const copywriterToolContextSchema = z.object({
+  userId: z.string().optional(),
+  contentType: z.string().optional(),
+})
+
+// Infer the TypeScript type from the Zod schema
+export type CopywriterToolContext = z.infer<typeof copywriterToolContextSchema>
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
 
@@ -70,7 +75,14 @@ export const copywriterTool = createTool({
       .optional()
       .describe('Approximate word count of the content'),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
+  execute: async (inputData, context) => {
+   const writer = context?.writer;
+    const mastra = context?.mastra;
+    const requestContext: RequestContext<CopywriterToolContext> | undefined = context?.requestContext;
+
+    const userId = copywriterToolContextSchema.parse(
+      context?.requestContext?.get('userId') ?? 'anonymous'
+    )
     const {
       topic,
       contentType = 'blog',
@@ -78,30 +90,30 @@ export const copywriterTool = createTool({
       tone,
       length = 'medium',
       specificRequirements,
-    } = context
+    } = inputData
 
-    await writer?.write({ type: 'progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` } });
 
-    // Create a span for tracing
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'copywriter-agent-tool',
-      input: {
-        topic,
-        contentType,
-        targetAudience: targetAudience ?? 'general',
-        tone: tone ?? 'engaging',
-        length,
-        hasRequirements: (specificRequirements?.length ?? 0) > 0,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+    const span = trace.getTracer('copywriter-agent-tool', '1.0.0').startSpan('copywriter-generate', {
+      attributes: {
+        'tool.id': 'copywriter-agent',
+        'tool.input.topic': topic,
+        'tool.input.contentType': contentType,
+        'tool.input.targetAudience': targetAudience,
+        'tool.input.tone': tone,
+        'tool.input.length': length,
+      }
+    });
 
     try {
-      const agent = mastra!.getAgent('copywriterAgent')
+      const agentInstance = mastra!.getAgent('copywriterAgent')
 
       // Build the prompt with context
       let prompt = `Create ${length} ${contentType} content about: ${topic}`
+
+      if (userId !== undefined) {
+        prompt += `\n\nUser: ${userId}`
+      }
 
       if (typeof targetAudience === 'string' && targetAudience.trim().length > 0) {
         prompt += `\n\nTarget audience: ${targetAudience}`
@@ -150,7 +162,7 @@ export const copywriterTool = createTool({
       }
 
       await writer?.write({ type: 'progress', data: { message: '🤖 Generating content...' } });
-      const result = await agent.generate(prompt)
+      const result = await agentInstance.generate(prompt)
 
       // Parse and structure the response
       const content = result.text
@@ -162,23 +174,16 @@ export const copywriterTool = createTool({
 
       // Create a simple summary from the first paragraph or first few sentences
       const firstParagraph =
-        content.split('\n\n')[0] || content.split('\n')[0] || ''
+        content.split('\n\n')[0] ?? content.split('\n')[0] ?? ''
       const summary =
         firstParagraph.length > 200
           ? firstParagraph.substring(0, 200) + '...'
           : firstParagraph
 
-      span?.end({
-        output: {
-          success: true,
-          contentType,
-          wordCount,
-          hasTitle: typeof title === 'string' && title.trim().length > 0,
-          contentLength: content.length,
-        },
-      })
-
-      await writer?.write({ type: 'progress', data: { message: `✅ Content generated: ${wordCount} words` } });
+      span.setAttribute('tool.output.success', true);
+      span.setAttribute('tool.output.wordCount', wordCount);
+      span.setAttribute('tool.output.contentLength', content.length);
+      span.end();
 
       return {
         content,
@@ -196,14 +201,9 @@ export const copywriterTool = createTool({
         topic,
         contentType,
       })
-      span?.end({
-        metadata: {
-          success: false,
-          error: errorMsg,
-          topic,
-          contentType,
-        },
-      })
+      span?.setAttribute('tool.output.success', false);
+      span?.setAttribute('tool.output.error', errorMsg);
+      span?.end();
       throw new Error(`Failed to generate content: ${errorMsg}`)
     }
   },

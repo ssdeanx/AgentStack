@@ -6,8 +6,8 @@
  *
  * @module serpapi-search-tool
  */
-
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
+import type { RequestContext } from '@mastra/core/request-context';
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -86,48 +86,40 @@ export const googleSearchTool = createTool({
     'Search Google to find current information, websites, and answers to factual questions. Returns organic search results, knowledge graph data, and related searches. Best for general web search queries.',
   inputSchema: googleSearchInputSchema,
   outputSchema: googleSearchOutputSchema,
-  execute: async ({ context, writer, tracingContext, runtimeContext }) => {
+  execute: async (input, context) => {
     // Validate API key
     validateSerpApiKey()
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching Google for "${context.query}" (${context.numResults} results)` } });
-    const searchSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'google-search-tool',
-      input: {
-        query: context.query,
-        numResults: context.numResults,
-        location: context.location,
-      },
-      runtimeContext,
-      metadata: {
-        location: context.location,
-        query: context.query,
-        numResults: context.numResults,
-        runtimeContext,
-      },
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
-    })
+    const { writer, requestContext } = context;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching Google for "${input.query}" (${input.numResults} results)` } });
+
+    const tracer = trace.getTracer('serpapi-search');
+    const searchSpan = tracer.startSpan('google-search-tool', {
+        attributes: {
+            query: input.query,
+            numResults: input.numResults,
+            location: input.location,
+            operation: 'google-search'
+        }
+    });
     log.info('Executing Google search', {
-      query: context.query,
-      numResults: context.numResults,
-      location: context.location,
+      query: input.query,
+      numResults: input.numResults,
+      location: input.location,
     })
     try {
       const params: Record<string, string | number> = {
         engine: 'google',
-        q: context.query,
-        num: context.numResults,
+        q: input.query,
+        num: input.numResults,
       }
-      if (typeof context.location === 'string' && context.location.length > 0) {
-        params.location = context.location
+      if (typeof input.location === 'string' && input.location.length > 0) {
+        params.location = input.location
       }
-      if (typeof context.language === 'string' && context.language.length > 0) {
-        params.hl = context.language
+      if (typeof input.language === 'string' && input.language.length > 0) {
+        params.hl = input.language
       }
-      if (context.device) {
-        params.device = context.device
+      if (input.device) {
+        params.device = input.device
       }
       await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
       const response = await getJson(params)
@@ -174,20 +166,22 @@ export const googleSearchTool = createTool({
         relatedSearches,
         searchInfo,
       }
-      searchSpan?.end({ output: result })
+
+      searchSpan.end();
       log.info('Google search completed successfully', {
-        query: context.query,
+        query: input.query,
         resultCount: organicResults.length,
       })
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Search complete: ${organicResults.length} organic results` } });
       return result
     } catch (error) {
-      const errorMessage =
         error instanceof Error ? error.message : String(error)
       await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Search failed: ${errorMessage}` } });
-      searchSpan?.end({ metadata: { error: errorMessage } })
+      searchSpan.recordException(new Error(errorMessage));
+      searchSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      searchSpan.end();
       log.error('Google search failed', {
-        query: context.query,
+        query: input.query,
         error: errorMessage,
       })
       throw new Error(`Google search failed: ${errorMessage}`)
@@ -243,32 +237,33 @@ export const googleAiOverviewTool = createTool({
     'Get AI-generated overviews from Google that synthesize information from multiple sources. Best for queries that need comprehensive answers combining multiple perspectives. Returns overview text and source citations.',
   inputSchema: googleAiOverviewInputSchema,
   outputSchema: googleAiOverviewOutputSchema,
-  execute: async ({ context, writer, tracingContext, runtimeContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🤖 Generating AI overview for "${context.query}"` } });
+  execute: async (input, context) => {
+    const { writer, requestContext } = context;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🤖 Generating AI overview for "${input.query}"` } });
     // Validate API key
     validateSerpApiKey()
-    const overviewSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'google-ai-overview-tool',
-      input: {
-        query: context.query,
-        location: context.location,
-        includeScrapedContent: context.includeScrapedContent,
-      },
-      runtimeContext
-    })
+
+    const tracer = trace.getTracer('serpapi-search');
+    const overviewSpan = tracer.startSpan('google-ai-overview-tool', {
+        attributes: {
+            query: input.query,
+            location: input.location,
+            includeScrapedContent: input.includeScrapedContent,
+            operation: 'google-ai-overview'
+        }
+    });
     await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI for AI overview...' } });
     log.info('Executing Google AI Overview search', {
-      query: context.query,
-      location: context.location,
+      query: input.query,
+      location: input.location,
     })
     try {
       const params: Record<string, string> = {
         engine: 'google',
-        q: context.query,
+        q: input.query,
       }
-      if (typeof context.location === 'string' && context.location.length > 0) {
-        params.location = context.location
+      if (typeof input.location === 'string' && input.location.length > 0) {
+        params.location = input.location
       }
       const response = await getJson(params)
       // Check if AI overview is available
@@ -285,15 +280,15 @@ export const googleAiOverviewTool = createTool({
       const result = {
         aiOverview: aiOverviewData?.text,
         sources,
-        scrapedContent: context.includeScrapedContent
+        scrapedContent: input.includeScrapedContent
           ? aiOverviewData?.scraped_content
           : undefined,
         available,
       }
-      overviewSpan?.end({ output: result })
+      overviewSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ AI overview ready: ${available ? 'Available' : 'Not available'} (${sources.length} sources)` } });
       log.info('Google AI Overview completed', {
-        query: context.query,
+        query: input.query,
         available,
         sourcesCount: sources.length,
       })
@@ -302,9 +297,11 @@ export const googleAiOverviewTool = createTool({
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ AI overview failed: ${errorMessage}` } });
-      overviewSpan?.end({ metadata: { error: errorMessage } })
+      overviewSpan.recordException(new Error(errorMessage));
+      overviewSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      overviewSpan.end();
       log.error('Google AI Overview failed', {
-        query: context.query,
+        query: input.query,
         error: errorMessage,
       })
       throw new Error(`Google AI Overview failed: ${errorMessage}`)

@@ -1,8 +1,7 @@
 import type { GoogleGenerativeAIProviderMetadata, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
@@ -20,10 +19,10 @@ export const editorAgent = new Agent({
   name: 'Editor',
   description:
     'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<EditorRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<EditorRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -108,8 +107,8 @@ Tailor your editing style to the content type:
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<EditorRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<EditorRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return google.chat('gemini-3-pro-preview')
@@ -121,25 +120,12 @@ Tailor your editing style to the content type:
     return google.chat('gemini-2.5-flash-preview-09-2025')
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   tools: [],
   scorers: {
-    responseQuality: {
-      scorer: responseQualityScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
     summaryQuality: {
       scorer: summaryQualityScorer,
       sampling: { type: 'ratio', rate: 0.6 },
-    },
-    toneConsistency: {
-      scorer: toneConsistencyScorer,
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
+    }
   },
   workflows: {},
   maxRetries: 5
@@ -148,9 +134,9 @@ Tailor your editing style to the content type:
 // Attempt to resolve provider metadata from available SDK objects
 // Some SDKs expose provider metadata on the model instance (googleAI) or on the provider (google)
 // Define a lightweight type for provider metadata to avoid using `any`.
-type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
+export type ProviderMetadataMap = { google?: GoogleGenerativeAIProviderMetadata } & Record<string, unknown>;
 
-const providerMetadata: ProviderMetadataMap | undefined =
+export const providerMetadata: ProviderMetadataMap | undefined =
   ((googleAI as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata ??
   ((google as unknown) as { providerMetadata?: ProviderMetadataMap })?.providerMetadata;
 

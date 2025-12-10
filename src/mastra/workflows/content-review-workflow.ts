@@ -1,8 +1,8 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { z } from 'zod';
-import { AISpanType, InternalSpans, TracingContext } from '@mastra/core/ai-tracing';
-import { logStepStart, logStepEnd, logError } from '../config/logger';
 
+import { logError, logStepEnd, logStepStart } from '../config/logger';
 
 const MAX_ITERATIONS = 10;
 const DEFAULT_QUALITY_THRESHOLD = 80;
@@ -76,7 +76,7 @@ const researchTopicStep = createStep({
   description: 'Researches the topic using researchAgent',
   inputSchema: contentInputSchema,
   outputSchema: researchOutputSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('research-topic', { topic: inputData.topic });
 
@@ -86,11 +86,9 @@ const researchTopicStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'research-agent-call',
-      input: { topic: inputData.topic },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('content-review');
+    const span = tracer.startSpan('research-agent-call', {
+      attributes: { topic: inputData.topic },
     });
 
     try {
@@ -101,7 +99,7 @@ const researchTopicStep = createStep({
       });
 
       const agent = mastra?.getAgent('researchAgent');
-      let research = {
+      const research = {
         summary: `Research summary for ${inputData.topic}`,
         keyPoints: [`Key point 1 about ${inputData.topic}`, `Key point 2 about ${inputData.topic}`],
         sources: [] as string[],
@@ -115,25 +113,37 @@ const researchTopicStep = createStep({
           message: 'AI researching topic...',
         });
 
-        const prompt = `Research the topic "${inputData.topic}" for a ${inputData.contentType} 
+        const prompt = `Research the topic "${inputData.topic}" for a ${inputData.contentType}
         ${inputData.targetAudience ? `targeting ${inputData.targetAudience}` : ''}.
         Provide a summary, key points, relevant sources, and interesting facts.`;
 
-        const response = await agent.generate(prompt, {
+        const stream = await agent.stream(prompt, {
           output: z.object({
             summary: z.string(),
             keyPoints: z.array(z.string()),
             sources: z.array(z.string()).optional(),
             facts: z.array(z.string()).optional(),
           }),
-        });
+        } as any);
 
-        research = {
-          summary: response.object.summary,
-          keyPoints: response.object.keyPoints,
-          sources: response.object.sources ?? [],
-          facts: response.object.facts ?? [],
-        };
+        // Stream partial output to the workflow writer so clients see progress.
+        await stream.textStream.pipeTo(writer);
+
+        // Wait for final text and attempt to parse JSON; fall back to defaults if parse fails.
+        const finalText = await stream.text;
+        let parsedResearch: z.infer<typeof researchOutputSchema>['research'] | null = null;
+        try {
+          parsedResearch = JSON.parse(finalText) as z.infer<typeof researchOutputSchema>['research'];
+        } catch {
+          parsedResearch = null;
+        }
+
+        if (parsedResearch) {
+          research.summary = parsedResearch.summary;
+          research.keyPoints = parsedResearch.keyPoints;
+          research.sources = parsedResearch.sources ?? [];
+          research.facts = parsedResearch.facts ?? [];
+        }
       }
 
       await writer?.write({
@@ -150,10 +160,10 @@ const researchTopicStep = createStep({
         research,
       };
 
-      span?.end({
-        output: { keyPointsCount: research.keyPoints.length, hasAgent: !!agent },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('keyPointsCount', research.keyPoints.length);
+      span.setAttribute('hasAgent', Boolean(agent));
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -165,7 +175,9 @@ const researchTopicStep = createStep({
       logStepEnd('research-topic', { keyPointsCount: research.keyPoints.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('research-topic', error, { topic: inputData.topic });
 
       await writer?.write({
@@ -184,7 +196,7 @@ const draftContentStep = createStep({
   description: 'Creates initial content draft using copywriterAgent',
   inputSchema: researchOutputSchema,
   outputSchema: draftOutputSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('draft-content', { topic: inputData.topic, contentType: inputData.contentType });
 
@@ -194,11 +206,12 @@ const draftContentStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'copywriter-agent-call',
-      input: { topic: inputData.topic, contentType: inputData.contentType },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('content-review');
+    const span = tracer.startSpan('copywriter-agent-call', {
+      attributes: {
+        topic: inputData.topic,
+        contentType: inputData.contentType,
+      },
     });
 
     try {
@@ -220,22 +233,32 @@ const draftContentStep = createStep({
         });
 
         const prompt = `Write a ${inputData.contentType} about "${inputData.topic}".
-        
+
         Research Summary: ${inputData.research.summary}
         Key Points to Cover: ${inputData.research.keyPoints.join(', ')}
         ${inputData.targetAudience ? `Target Audience: ${inputData.targetAudience}` : ''}
-        
+
         Create engaging, well-structured content.`;
 
-        const response = await agent.generate(prompt, {
+        const stream = await agent.stream(prompt, {
           output: z.object({
             content: z.string(),
             structure: z.array(z.string()).optional(),
           }),
-        });
+        } as any);
 
-        content = response.object.content;
-        structure = response.object.structure ?? [];
+        await stream.textStream.pipeTo(writer);
+        const finalText = await stream.text;
+        let draftResult: z.infer<typeof draftOutputSchema>['draft'] | null = null;
+        try {
+          draftResult = JSON.parse(finalText) as z.infer<typeof draftOutputSchema>['draft'];
+        } catch {
+          draftResult = null;
+        }
+        if (draftResult) {
+          content = draftResult.content;
+          structure = draftResult.structure ?? [];
+        }
       } else {
         content = `# ${inputData.topic}\n\n${inputData.research.summary}\n\n## Key Points\n\n${inputData.research.keyPoints.map(p => `- ${p}`).join('\n')}`;
         structure = ['Introduction', 'Key Points', 'Conclusion'];
@@ -258,10 +281,10 @@ const draftContentStep = createStep({
         draft: { content, wordCount, structure },
       };
 
-      span?.end({
-        output: { wordCount, hasAgent: !!agent },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('wordCount', wordCount);
+      span.setAttribute('hasAgent', Boolean(agent));
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -273,7 +296,9 @@ const draftContentStep = createStep({
       logStepEnd('draft-content', { wordCount }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('draft-content', error, { topic: inputData.topic });
 
       await writer?.write({
@@ -292,7 +317,7 @@ const initialReviewStep = createStep({
   description: 'Performs initial review of the draft',
   inputSchema: draftOutputSchema,
   outputSchema: reviewOutputSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('initial-review', { topic: inputData.topic });
 
@@ -302,11 +327,9 @@ const initialReviewStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'editor-agent-review',
-      input: { wordCount: inputData.draft.wordCount },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('content-review');
+    const span = tracer.startSpan('editor-agent-review', {
+      attributes: { wordCount: inputData.draft.wordCount },
     });
 
     try {
@@ -323,29 +346,51 @@ const initialReviewStep = createStep({
       let feedback: string[] = [];
 
       if (evaluationAgent) {
-        const evalResponse = await evaluationAgent.generate(
+        const stream = await evaluationAgent.stream(
           `Evaluate this ${inputData.contentType} about "${inputData.topic}". Rate it 0-100 and provide specific feedback.\n\nContent:\n${inputData.draft.content}`,
           {
             output: z.object({
               score: z.number().min(0).max(100),
               feedback: z.array(z.string()),
             }),
-          }
+          } as any
         );
-        score = evalResponse.object.score;
-        feedback = evalResponse.object.feedback;
+
+        await stream.textStream.pipeTo(writer);
+        const finalText = await stream.text;
+        let parsedEval: { score: number; feedback: string[] } | null = null;
+        try {
+          parsedEval = JSON.parse(finalText) as { score: number; feedback: string[] };
+        } catch {
+          parsedEval = null;
+        }
+        if (parsedEval) {
+          score = parsedEval.score;
+          feedback = parsedEval.feedback;
+        }
       } else if (editorAgent) {
-        const editResponse = await editorAgent.generate(
+        const stream = await editorAgent.stream(
           `Review this ${inputData.contentType}. Rate quality 0-100 and list improvements.\n\nContent:\n${inputData.draft.content}`,
           {
             output: z.object({
               score: z.number().min(0).max(100),
               feedback: z.array(z.string()),
             }),
-          }
+          } as any
         );
-        score = editResponse.object.score;
-        feedback = editResponse.object.feedback;
+
+        await stream.textStream.pipeTo(writer);
+        const finalTextEdit = await stream.text;
+        let parsedEdit: { score: number; feedback: string[] } | null = null;
+        try {
+          parsedEdit = JSON.parse(finalTextEdit) as { score: number; feedback: string[] };
+        } catch {
+          parsedEdit = null;
+        }
+        if (parsedEdit) {
+          score = parsedEdit.score;
+          feedback = parsedEdit.feedback;
+        }
       } else {
         feedback = ['Consider adding more detail', 'Improve transitions between sections'];
       }
@@ -373,10 +418,11 @@ const initialReviewStep = createStep({
         scoreHistory: [score],
       };
 
-      span?.end({
-        output: { score, approved, feedbackCount: feedback.length },
-        metadata: { responseTime: Date.now() - startTime, iteration: 1 },
-      });
+      span.setAttribute('score', score);
+      span.setAttribute('approved', approved);
+      span.setAttribute('feedbackCount', feedback.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'iteration',
@@ -396,7 +442,9 @@ const initialReviewStep = createStep({
       logStepEnd('initial-review', { score, approved, iteration: 1 }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('initial-review', error, { topic: inputData.topic });
 
       await writer?.write({
@@ -415,7 +463,7 @@ const refineContentStep = createStep({
   description: 'Refines content based on feedback and re-evaluates',
   inputSchema: reviewOutputSchema,
   outputSchema: reviewOutputSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     const nextIteration = inputData.iteration + 1;
     logStepStart('refine-content', { topic: inputData.topic, iteration: nextIteration });
@@ -432,12 +480,12 @@ const refineContentStep = createStep({
       throw error;
     }
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'content-refinement',
-      input: { iteration: nextIteration, previousScore: inputData.score },
-      tracingPolicy: { internal: InternalSpans.ALL },
-      metadata: { iteration: nextIteration },
+    const tracer = trace.getTracer('content-review');
+    const span = tracer.startSpan('content-refinement', {
+      attributes: {
+        iteration: nextIteration,
+        previousScore: inputData.score,
+      },
     });
 
     try {
@@ -463,6 +511,9 @@ const refineContentStep = createStep({
 
       if (copywriterAgent || editorAgent) {
         const agent = copywriterAgent ?? editorAgent;
+        if (!agent) {
+          throw new Error('No copywriter/editor agent available');
+        }
         const refinePrompt = `Improve this ${inputData.contentType} based on feedback:
 
 Feedback:
@@ -473,8 +524,11 @@ ${inputData.content}
 
 Rewrite with improvements.`;
 
-        const response = await agent!.generate(refinePrompt);
-        refinedContent = response.text;
+        const stream = await agent.stream(refinePrompt);
+        // Stream partial rewrite progress
+        await stream.textStream.pipeTo(writer);
+        const rewrittenText = await stream.text;
+        refinedContent = rewrittenText;
       }
 
       await writer?.write({
@@ -487,29 +541,45 @@ Rewrite with improvements.`;
       let newFeedback: string[] = [];
 
       if (evaluationAgent) {
-        const evalResponse = await evaluationAgent.generate(
-          `Re-evaluate this improved ${inputData.contentType}. Rate 0-100 and provide remaining feedback.\n\nContent:\n${refinedContent}`,
-          {
-            output: z.object({
-              score: z.number().min(0).max(100),
-              feedback: z.array(z.string()),
-            }),
-          }
+        const evalStream = await evaluationAgent.stream(
+          `Re-evaluate this improved ${inputData.contentType}. Rate 0-100 and provide remaining feedback.\n\nContent:\n${refinedContent}`
         );
-        newScore = evalResponse.object.score;
-        newFeedback = evalResponse.object.feedback;
+
+        await evalStream.textStream.pipeTo(writer);
+        const evalFinalText = await evalStream.text;
+
+        const parsedEval = (() => {
+          try {
+            return JSON.parse(evalFinalText || '');
+          } catch {
+            return null;
+          }
+        })();
+
+        if (parsedEval && typeof parsedEval.score === 'number' && Array.isArray(parsedEval.feedback)) {
+          newScore = parsedEval.score;
+          newFeedback = parsedEval.feedback;
+        }
       } else if (editorAgent) {
-        const editResponse = await editorAgent.generate(
-          `Review this refined content. Rate 0-100.\n\nContent:\n${refinedContent}`,
-          {
-            output: z.object({
-              score: z.number().min(0).max(100),
-              feedback: z.array(z.string()),
-            }),
-          }
+        const editStream = await editorAgent.stream(
+          `Review this refined content. Rate 0-100.\n\nContent:\n${refinedContent}`
         );
-        newScore = editResponse.object.score;
-        newFeedback = editResponse.object.feedback;
+
+        await editStream.textStream.pipeTo(writer);
+        const editFinalText = await editStream.text;
+
+        const parsedEdit = (() => {
+          try {
+            return JSON.parse(editFinalText || '');
+          } catch {
+            return null;
+          }
+        })();
+
+        if (parsedEdit && typeof parsedEdit.score === 'number' && Array.isArray(parsedEdit.feedback)) {
+          newScore = parsedEdit.score;
+          newFeedback = parsedEdit.feedback;
+        }
       } else {
         newScore = Math.min(100, inputData.score + Math.floor(Math.random() * 10) + 5);
         newFeedback = newScore >= inputData.qualityThreshold ? [] : ['Minor improvements still possible'];
@@ -539,10 +609,12 @@ Rewrite with improvements.`;
         scoreHistory: [...inputData.scoreHistory, newScore],
       };
 
-      span?.end({
-        output: { score: newScore, approved, iteration: nextIteration, improvement: newScore - inputData.score },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('score', newScore);
+      span.setAttribute('approved', approved);
+      span.setAttribute('iteration', nextIteration);
+      span.setAttribute('improvement', newScore - inputData.score);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'iteration',
@@ -562,7 +634,9 @@ Rewrite with improvements.`;
       logStepEnd('refine-content', { score: newScore, approved, iteration: nextIteration }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('refine-content', error, { iteration: nextIteration });
 
       await writer?.write({
@@ -634,10 +708,9 @@ export const contentReviewWorkflow = createWorkflow({
   .then(researchTopicStep)
   .then(draftContentStep)
   .then(initialReviewStep)
-  .dowhile(refineContentStep, async ({ inputData }) => {
-    const data = inputData as z.infer<typeof reviewOutputSchema>;
-    return !data.approved && data.iteration < MAX_ITERATIONS;
-  })
+  .dowhile(refineContentStep, async ({ inputData }: { inputData: z.infer<typeof reviewOutputSchema> }) =>
+    !inputData.approved && inputData.iteration < MAX_ITERATIONS
+  )
   .then(finalizeContentStep);
 
 contentReviewWorkflow.commit();

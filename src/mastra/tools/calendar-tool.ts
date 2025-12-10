@@ -1,8 +1,9 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import { createTool } from "@mastra/core/tools";
 import { execSync } from 'child_process';
 import { z } from 'zod';
+import { trace } from "@opentelemetry/api";
 import { log } from '../config/logger';
+import type { RequestContext } from '@mastra/core/request-context';
 
 interface CalendarEvent {
   title: string;
@@ -123,15 +124,16 @@ export const listEvents = createTool({
     })).optional(),
     count: z.number().optional(),
   }),
-  execute: async ({ tracingContext, writer, runtimeContext, context }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'list-calendar-events',
-      input: context,
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('calendar-tool', '1.0.0');
+    const span = tracer.startSpan('list-calendar-events', {
+      attributes: {
+        'tool.id': 'list-calendar-events',
+        'tool.input.startDate': inputData.startDate,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '📅 Reading local calendar events...' } });
+    await context?.writer?.write({ type: 'progress', data: { message: '📅 Reading local calendar events...' } });
     try {
       const events = await reader.getEvents();
 
@@ -145,8 +147,9 @@ export const listEvents = createTool({
 
       log.info(`Found ${events.length} calendar events`);
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${events.length} events` } });
-      span?.end({ output: { success: true, eventCount: events.length } });
+      await context?.writer?.write({ type: 'progress', data: { message: `✅ Found ${events.length} events` } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.eventCount': events.length });
+      span.end();
 
       return {
         content: JSON.stringify(formattedEvents, null, 2),
@@ -156,7 +159,11 @@ export const listEvents = createTool({
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Calendar read failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { content: `Error: ${errorMsg}` };
     }
   },
@@ -176,15 +183,15 @@ export const getTodayEvents = createTool({
     })),
     count: z.number(),
   }),
-  execute: async ({ tracingContext, writer, context, runtimeContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'get-today-events',
-      input: context,
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('calendar-tool', '1.0.0');
+    const span = tracer.startSpan('get-today-events', {
+      attributes: {
+        'tool.id': 'get-today-events',
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '📅 Getting today\'s events...' } });
+    await context?.writer?.write({ type: 'progress', data: { message: '📅 Getting today\'s events...' } });
 
     try {
       const allEvents = await reader.getEvents();
@@ -206,14 +213,19 @@ export const getTodayEvents = createTool({
         description: event.description,
       }));
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${todayEvents.length} events for today` } });
-      span?.end({ output: { success: true, eventCount: todayEvents.length } });
+      await context?.writer?.write({ type: 'progress', data: { message: `✅ Found ${todayEvents.length} events for today` } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.eventCount': todayEvents.length });
+      span.end();
 
       return { events: formattedEvents, count: todayEvents.length };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Today events read failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { events: [], count: 0 };
     }
   },
@@ -237,29 +249,30 @@ export const getUpcomingEvents = createTool({
     })),
     count: z.number(),
   }),
-  execute: async ({ context, tracingContext, writer, runtimeContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'get-upcoming-events',
-      input: { days: context.days, limit: context.limit },
-      tracingPolicy: { internal: InternalSpans.ALL },
-      runtimeContext,
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('calendar-tool', '1.0.0');
+    const span = tracer.startSpan('get-upcoming-events', {
+      attributes: {
+        'tool.id': 'get-upcoming-events',
+        'tool.input.days': inputData.days,
+        'tool.input.limit': inputData.limit,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📅 Getting events for next ${context.days} days...` } });
+    await context?.writer?.write({ type: 'progress', data: { message: `📅 Getting events for next ${inputData.days} days...` } });
 
     try {
       const allEvents = await reader.getEvents();
       const now = new Date();
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + (context.days ?? 7));
+      futureDate.setDate(futureDate.getDate() + (inputData.days ?? 7));
 
       const upcomingEvents = allEvents
         .filter(event => {
           const eventStart = new Date(event.startDate);
           return eventStart >= now && eventStart <= futureDate;
         })
-        .slice(0, context.limit ?? 10);
+        .slice(0, inputData.limit ?? 10);
 
       const formattedEvents = upcomingEvents.map(event => {
         const eventDate = new Date(event.startDate);
@@ -276,14 +289,19 @@ export const getUpcomingEvents = createTool({
         };
       });
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${upcomingEvents.length} upcoming events` } });
-      span?.end({ output: { success: true, eventCount: upcomingEvents.length } });
+      await context?.writer?.write({ type: 'progress', data: { message: `✅ Found ${upcomingEvents.length} upcoming events` } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.eventCount': upcomingEvents.length });
+      span.end();
 
       return { events: formattedEvents, count: upcomingEvents.length };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Upcoming events read failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { events: [], count: 0 };
     }
   },
@@ -310,20 +328,20 @@ export const findFreeSlots = createTool({
       end: z.string(),
     })),
   }),
-  execute: async ({ context, tracingContext, writer, runtimeContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'find-free-slots',
-      input: { date: context.date },
-      tracingPolicy: { internal: InternalSpans.ALL },
-      runtimeContext,
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('calendar-tool', '1.0.0');
+    const span = tracer.startSpan('find-free-slots', {
+      attributes: {
+        'tool.id': 'find-free-slots',
+        'tool.input.date': inputData.date,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '📅 Finding free time slots...' } });
+    await context?.writer?.write({ type: 'progress', data: { message: '📅 Finding free time slots...' } });
 
     try {
       const allEvents = await reader.getEvents();
-      const targetDate = new Date(context.date);
+      const targetDate = new Date(inputData.date);
       targetDate.setHours(0, 0, 0, 0);
 
       const nextDay = new Date(targetDate);
@@ -335,10 +353,10 @@ export const findFreeSlots = createTool({
       }).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
       const workStart = new Date(targetDate);
-      workStart.setHours(context.workdayStart ?? 9, 0, 0, 0);
+      workStart.setHours(inputData.workdayStart ?? 9, 0, 0, 0);
 
       const workEnd = new Date(targetDate);
-      workEnd.setHours(context.workdayEnd ?? 17, 0, 0, 0);
+      workEnd.setHours(inputData.workdayEnd ?? 17, 0, 0, 0);
 
       const freeSlots: Array<{ start: string; end: string; durationMinutes: number }> = [];
       const busyPeriods: Array<{ title: string; start: string; end: string }> = [];
@@ -351,7 +369,7 @@ export const findFreeSlots = createTool({
 
         if (eventStart > currentTime) {
           const slotDuration = (eventStart.getTime() - currentTime.getTime()) / (1000 * 60);
-          if (slotDuration >= (context.minimumSlotMinutes ?? 30)) {
+          if (slotDuration >= (inputData.minimumSlotMinutes ?? 30)) {
             freeSlots.push({
               start: currentTime.toISOString(),
               end: eventStart.toISOString(),
@@ -373,7 +391,7 @@ export const findFreeSlots = createTool({
 
       if (currentTime < workEnd) {
         const slotDuration = (workEnd.getTime() - currentTime.getTime()) / (1000 * 60);
-        if (slotDuration >= (context.minimumSlotMinutes ?? 30)) {
+        if (slotDuration >= (inputData.minimumSlotMinutes ?? 30)) {
           freeSlots.push({
             start: currentTime.toISOString(),
             end: workEnd.toISOString(),
@@ -382,14 +400,19 @@ export const findFreeSlots = createTool({
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Found ${freeSlots.length} free slots` } });
-      span?.end({ output: { success: true, freeSlotCount: freeSlots.length } });
+      await context?.writer?.write({ type: 'progress', data: { message: `✅ Found ${freeSlots.length} free slots` } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.freeSlotCount': freeSlots.length });
+      span.end();
 
       return { freeSlots, busyPeriods };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Free slots search failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { freeSlots: [], busyPeriods: [] };
     }
   },

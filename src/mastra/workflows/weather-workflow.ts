@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace, SpanStatusCode } from '@opentelemetry/api';
 
 const forecastSchema = z.object({
   date: z.string(),
@@ -40,12 +40,12 @@ const fetchWeather = createStep({
     city: z.string().describe('The city to get the weather for'),
   }),
   outputSchema: forecastSchema,
-  execute: async ({ inputData, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'fetch-weather',
-      input: inputData,
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async ({ inputData }) => {
+    const tracer = trace.getTracer('weather-workflow');
+    const span = tracer.startSpan('fetch-weather', {
+      attributes: {
+        city: inputData.city,
+      },
     });
 
     try {
@@ -91,10 +91,14 @@ const fetchWeather = createStep({
       location: name,
     };
 
-    span?.end({ output: forecast });
+    span.setAttribute('precipitationChance', forecast.precipitationChance);
+    span.setAttribute('condition', forecast.condition);
+    span.end();
     return forecast;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       throw error;
     }
   },
@@ -107,12 +111,13 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'plan-activities',
-      input: inputData,
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async ({ inputData, mastra }) => {
+    const tracer = trace.getTracer('weather-workflow');
+    const span = tracer.startSpan('plan-activities', {
+      attributes: {
+        location: inputData.location,
+        condition: inputData.condition,
+      },
     });
 
     try {
@@ -186,10 +191,13 @@ const planActivities = createStep({
     const result = {
       activities: activitiesText,
     };
-    span?.end({ output: result });
+    span.setAttribute('activitiesLength', activitiesText.length);
+    span.end();
     return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       throw error;
     }
   },

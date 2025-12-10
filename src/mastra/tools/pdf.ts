@@ -1,12 +1,14 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
+
 import { createTool } from '@mastra/core/tools'
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'fs'
 import  * as path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 
-type PdfParseFunction = (buffer: Buffer) => Promise<{ text: string; numpages: number }>
+type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{ numpages: number; text: string }>
 
 // Lazy-loaded pdf-parse to avoid ESM export issues
 let pdfParse: PdfParseFunction | null = null
@@ -31,15 +33,17 @@ export const readPDF = createTool({
   outputSchema: z.object({
     content: z.string(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
+
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'read-pdf',
-      input: { pdfPath: context.pdfPath },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+      input: { pdfPath: inputData.pdfPath },
     });
 
-    const { pdfPath } = context
+    const { pdfPath } = inputData
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
     try {
       // Check if file exists

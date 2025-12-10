@@ -1,8 +1,10 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 import { z } from 'zod'
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const toneConsistencyScorer = createScorer({
+    id: 'tone:consistencyscorer',
     name: 'Tone Consistency',
     description: 'Evaluates if the content matches the requested tone (professional, casual, technical, etc.)',
     judge: {
@@ -20,16 +22,16 @@ export const toneConsistencyScorer = createScorer({
     }
 
     // Try to extract the requested tone from the input instructions if available
-    // This assumes the input follows a structure where we can find the tone, 
+    // This assumes the input follows a structure where we can find the tone,
     // or we default to checking for consistency within the text itself.
     // For this scorer, we'll look for a 'tone' property in the input context or instructions.
     let requestedTone = 'consistent'
     const {input} = run
     if (input && typeof input === 'object') {
-        if ('tone' in input) requestedTone = (input as any).tone
-        else if ('instructions' in input && typeof (input as any).instructions === 'string') {
-            const match = (input as any).instructions.match(/tone:?\s*(\w+)/i)
-            if (match) requestedTone = match[1]
+        if ('tone' in input) {requestedTone = (input).tone}
+        else if ('instructions' in input && typeof (input).instructions === 'string') {
+            const match = (input).instructions.match(/tone:?\s*(\w+)/i)
+            if (match) {requestedTone = match[1]}
         }
     }
 
@@ -80,8 +82,8 @@ export const toneConsistencyScorer = createScorer({
 .generateReason(({ results, score }) => {
     const { detectedTone, matchesRequested, explanation } = results.analyzeStepResult
     const requested = results.preprocessStepResult.requestedTone
-    
+
     return `Score: ${score.toFixed(2)}. Detected tone: "${detectedTone}". ` +
            (requested !== 'consistent' ? `Requested: "${requested}". Match: ${matchesRequested}. ` : '') +
            `${explanation}`
-})
+});

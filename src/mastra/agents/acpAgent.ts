@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm';
+
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt';
 import { MONGODB_PROMPT } from "@mastra/mongodb";
 import { googleAIFlashLite } from '../config';
 import { mongoGraphTool, mongoMemory, mongoQueryTool } from '../config/mongodb';
@@ -17,13 +17,20 @@ import { jsonToCsvTool } from '../tools/json-to-csv.tool';
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
 import { batchWebScraperTool, contentCleanerTool, htmlToMarkdownTool, linkExtractorTool, webScraperTool } from '../tools/web-scraper-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { RequestContext } from '@mastra/core/request-context';
+
+export interface ACPContext {
+    userId?: string
+    userRole?: string
+}
+
 export const acpAgent = new Agent({
   id: 'acpAgent',
   name: 'ACP Agent',
   description: 'A ACP assistant that can help manage ACP-related tasks',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext?.get('userId') ?? 'anonymous'
-    const roleConstraint = runtimeContext?.get('userRole') ?? 'user'
+  instructions: ({ requestContext }: { requestContext: RequestContext<ACPContext> }) => {
+    const userId = requestContext.get('userId') ?? 'anonymous'
+    const roleConstraint = requestContext.get('userRole') ?? 'user'
 
     return {
       role: 'system',
@@ -124,7 +131,7 @@ export const acpAgent = new Agent({
     //		containerTags: ['acp-agent']
     //	}),
   },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   workflows: {},
   scorers: {
     relevancy: {

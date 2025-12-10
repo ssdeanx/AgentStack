@@ -3,7 +3,7 @@ import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
-  serverExternalPackages: ["@mastra/*", "cheerio", "jsdom", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
+  serverExternalPackages: ["@mastra/*", "cheerio", "pdf-parse", "svgjson", "convert-csv-to-json", "csv-parse", "jose", "marked", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: false,
   reactStrictMode: true,
@@ -17,9 +17,7 @@ const nextConfig: NextConfig = {
   compiler: {
     emotion: true,
     styledComponents: true,
-    styledJsx: {
-//      useLightningcss: true,
-    }
+    styledJsx: true,
   },
   // TODO: enable this when we have a proper domain
   compress: true,
@@ -67,6 +65,10 @@ const nextConfig: NextConfig = {
     ppr: false,
   },
 };
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+module.exports = withBundleAnalyzer({})
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,

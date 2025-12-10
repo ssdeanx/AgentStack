@@ -1,4 +1,4 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 
 // Typings for parsed outputs
@@ -6,7 +6,9 @@ interface Source {  [key: string]: unknown; url: string; title?: string;}
 interface Learning { [key: string]: unknown; insight?: string; followUp?: string;}
 
 // Source Diversity Scorer - evaluates if sources come from different domains
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const sourceDiversityScorer = createScorer({
+    id: 'source-diversity-scorer',
     name: 'Source Diversity',
     description: 'Evaluates if research sources come from diverse domains and avoid single-source bias',
     judge: {
@@ -107,10 +109,12 @@ export const sourceDiversityScorer = createScorer({
     }
 
     return reason
-})
+});
 
 // Research Completeness Scorer - evaluates if research covers multiple aspects
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const researchCompletenessScorer = createScorer({
+    id: 'research-completeness-scorer',
     name: 'Research Completeness',
     description: 'Evaluates if the research comprehensively covers the topic from multiple angles',
     judge: {
@@ -214,10 +218,12 @@ export const researchCompletenessScorer = createScorer({
     }
 
     return reason
-})
+});
 
 // Summary Quality Scorer - evaluates if summary adequately captures key findings
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const summaryQualityScorer = createScorer({
+    id: 'summary-quality-scorer',
     name: 'Summary Quality',
     description: 'Evaluates if the research summary adequately captures key findings and insights',
     judge: {
@@ -331,10 +337,12 @@ export const summaryQualityScorer = createScorer({
     }
 
     return reason
-})
+});
 
 // Task Completion Scorer - evaluates if agent completed assigned tasks
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const taskCompletionScorer = createScorer({
+    id: 'task-completion-scorer',
     name: 'Task Completion',
     description: 'Evaluates if the agent successfully completed its assigned tasks and objectives',
     judge: {
@@ -424,10 +432,12 @@ export const taskCompletionScorer = createScorer({
     }
 
     return reason
-})
+});
 
 // Response Quality Scorer - evaluates overall quality of agent responses
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const responseQualityScorer = createScorer({
+    id: 'response-quality-scorer',
     name: 'Response Quality',
     description: 'Evaluates the overall quality, clarity, and usefulness of agent responses',
     judge: {
@@ -508,10 +518,12 @@ export const responseQualityScorer = createScorer({
     }
 
     return reason
-})
+});
 
 // Creativity Scorer - evaluates creative and innovative aspects of responses
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const creativityScorer = createScorer({
+    id: 'creativity-scorer',
     name: 'Creativity',
     description: 'Evaluates the creativity, originality, and innovative thinking in agent responses',
     judge: {
@@ -603,4 +615,4 @@ export const creativityScorer = createScorer({
     }
 
     return reason
-})
+});

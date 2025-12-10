@@ -2,6 +2,8 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -122,7 +124,7 @@ function generateTestCase(
   options: { includeEdgeCases?: boolean; testStyle?: string }
 ): Array<z.infer<typeof testCaseSchema>> {
   const tests: Array<z.infer<typeof testCaseSchema>> = []
-  const moduleName = path.basename(sourceFile, path.extname(sourceFile))
+
 
   // Basic unit test
   const asyncPrefix = func.isAsync ? 'async ' : ''
@@ -232,13 +234,28 @@ Supports edge case generation and mock setup for external dependencies.
 Use for increasing test coverage and establishing testing patterns.`,
   inputSchema: testGeneratorInputSchema,
   outputSchema: testGeneratorOutputSchema,
-  execute: async ({ context }): Promise<TestGeneratorOutput> => {
-    const { sourceFile, outputPath, options } = context
-    const { includeEdgeCases, mockExternals, testStyle } = options || {}
+  execute: async (inputData, context) => {
+    const { sourceFile, outputPath, options } = inputData
+    const { includeEdgeCases, mockExternals, testStyle } = options ?? {}
 
-    if (!await fileExists(sourceFile)) {
-      throw new Error(`Source file not found: ${sourceFile}`)
-    }
+    const tracer = trace.getTracer('test-generator-tool');
+    const span = tracer.startSpan('test-generator', {
+        attributes: {
+            sourceFile,
+            testStyle,
+            operation: 'generate-tests'
+        }
+    });
+
+    try {
+        if (!await fileExists(sourceFile)) {
+          throw new Error(`Source file not found: ${sourceFile}`)
+        }
+
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: { message: `🧪 Generating tests for: ${sourceFile}` }
+        });
 
     const content = await fs.readFile(sourceFile, 'utf-8')
     const functions = parseTypeScriptFunctions(content)
@@ -253,8 +270,9 @@ Use for increasing test coverage and establishing testing patterns.`,
 
     const sourceDir = path.dirname(sourceFile)
     const sourceName = path.basename(sourceFile, path.extname(sourceFile))
-    const testFile = outputPath || path.join(sourceDir, '__tests__', `${sourceName}.test.ts`)
+    const testFile = outputPath ?? path.join(sourceDir, '__tests__', `${sourceName}.test.ts`)
 
+    span.end();
     return {
       testFile,
       sourceFile,
@@ -267,5 +285,12 @@ Use for increasing test coverage and establishing testing patterns.`,
       },
       runCommand: `npx vitest ${testFile}`,
     }
+  } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span.end();
+      throw error;
+  }
   },
 })

@@ -1,7 +1,12 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { z } from 'zod';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { logStepStart, logStepEnd, logError } from '../config/logger';
+
+import { logError, logStepEnd, logStepStart } from '../config/logger';
+
+// Stream-first approach: inline JSON parsing is performed where needed in step code.
+// We removed the centralized `parseAgentResponse` helper; streaming parsers are now done inline
+// in each step to ensure consistent behavior with `agent.stream(...)` and `stream.text`.
 
 const sourceSchema = z.object({
   type: z.enum(['url', 'path', 'content']),
@@ -103,7 +108,7 @@ const loadDocumentStep = createStep({
   inputSchema: documentInputSchema,
   outputSchema: loadedContentSchema,
   retries: 2,
-  execute: async ({ inputData, tracingContext, writer }) => {
+  execute: async ({ inputData,  writer }) => {
     const startTime = Date.now();
     logStepStart('load-document', { sourceType: inputData.source.type });
 
@@ -113,11 +118,9 @@ const loadDocumentStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'document-loader',
-      input: { sourceType: inputData.source.type },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('document-processing');
+    const span = tracer.startSpan('document-loader', {
+      attributes: { sourceType: inputData.source.type },
     });
 
     try {
@@ -205,10 +208,10 @@ const loadDocumentStep = createStep({
         },
       };
 
-      span?.end({
-        output: { contentType, wordCount },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('contentType', contentType);
+      span.setAttribute('wordCount', wordCount);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -220,7 +223,9 @@ const loadDocumentStep = createStep({
       logStepEnd('load-document', { contentType, wordCount }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('load-document', error, { source: inputData.source });
 
       await writer?.write({
@@ -240,7 +245,7 @@ const convertPdfToMarkdownStep = createStep({
   inputSchema: loadedContentSchema,
   outputSchema: markdownContentSchema,
   retries: 2,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('convert-pdf-to-markdown', { contentType: inputData.contentType });
 
@@ -250,11 +255,9 @@ const convertPdfToMarkdownStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'pdf-to-markdown-converter',
-      input: { contentType: inputData.contentType },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('document-processing');
+    const span = tracer.startSpan('pdf-to-markdown-converter', {
+      attributes: { contentType: inputData.contentType },
     });
 
     try {
@@ -270,12 +273,27 @@ const convertPdfToMarkdownStep = createStep({
       if (inputData.contentType === 'pdf') {
         const agent = mastra?.getAgent('documentProcessingAgent');
         if (agent) {
-          const response = await agent.generate(
+          const stream = await agent.stream(
             `Convert the PDF at "${inputData.content}" to markdown format. Extract all text content while preserving structure.`,
-            { output: z.object({ markdown: z.string(), pageCount: z.number().optional() }) }
+            { output: z.object({ markdown: z.string(), pageCount: z.number().optional() }) } as any
           );
-          markdownContent = response.object.markdown;
-          pageCount = response.object.pageCount;
+          // Pipe partial text deltas to the workflow writer (if present)
+          await stream.textStream?.pipeTo?.(writer);
+          // Wait for final aggregated text and attempt to parse JSON
+          const finalText = await stream.text;
+          let parsed: { markdown: string; pageCount?: number } | null = null;
+          try {
+            parsed = JSON.parse(finalText) as { markdown: string; pageCount?: number };
+          } catch {
+            parsed = null;
+          }
+          if (parsed) {
+            markdownContent = parsed.markdown;
+            pageCount = parsed.pageCount;
+          } else {
+            // Preserve fallback behavior if parsing fails
+            markdownContent = `# Document\n\nPDF content from: ${inputData.content}\n\n(PDF parsing requires documentProcessingAgent)`;
+          }
         } else {
           markdownContent = `# Document\n\nPDF content from: ${inputData.content}\n\n(PDF parsing requires documentProcessingAgent)`;
         }
@@ -306,10 +324,10 @@ const convertPdfToMarkdownStep = createStep({
         settings: inputData.settings,
       };
 
-      span?.end({
-        output: { wordCount: result.metadata.wordCount, convertedFrom: inputData.contentType },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('wordCount', result.metadata.wordCount ?? 0);
+      span.setAttribute('convertedFrom', inputData.contentType);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -321,7 +339,10 @@ const convertPdfToMarkdownStep = createStep({
       logStepEnd('convert-pdf-to-markdown', { wordCount: result.metadata.wordCount }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      // Convert Mastra-specific `span.error` to OpenTelemetry patterns
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('convert-pdf-to-markdown', error, { contentType: inputData.contentType });
 
       await writer?.write({
@@ -381,7 +402,7 @@ const chunkDocumentStep = createStep({
   description: 'Chunks document for RAG using configured strategy',
   inputSchema: markdownContentSchema,
   outputSchema: chunkedContentSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
     logStepStart('chunk-document', { strategy: inputData.settings.chunkStrategy });
 
@@ -391,16 +412,17 @@ const chunkDocumentStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'document-chunker',
-      input: { strategy: inputData.settings.chunkStrategy, contentLength: inputData.content.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('document-processing');
+    const span = tracer.startSpan('document-chunker', {
+      attributes: {
+        strategy: inputData.settings.chunkStrategy,
+        contentLength: inputData.content.length,
+      },
     });
 
     try {
       const { chunkSize, chunkOverlap, chunkStrategy } = inputData.settings;
-      const content = inputData.content;
+      const {content} = inputData;
 
       await writer?.write({
         type: 'progress',
@@ -408,7 +430,7 @@ const chunkDocumentStep = createStep({
         message: `Chunking with ${chunkStrategy} strategy...`,
       });
 
-      const chunks: z.infer<typeof chunkSchema>[] = [];
+      const chunks: Array<z.infer<typeof chunkSchema>> = [];
       let position = 0;
       let chunkIndex = 0;
 
@@ -496,7 +518,9 @@ const chunkDocumentStep = createStep({
           });
           chunkIndex++;
           position = end - chunkOverlap;
-          if (position >= content.length) break;
+          if (position >= content.length) {
+            break;
+          }
         }
       }
 
@@ -521,10 +545,10 @@ const chunkDocumentStep = createStep({
         settings: { indexName: inputData.settings.indexName },
       };
 
-      span?.end({
-        output: { totalChunks: chunks.length, avgChunkSize: Math.round(avgChunkSize) },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('totalChunks', chunks.length);
+      span.setAttribute('avgChunkSize', Math.round(avgChunkSize));
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -533,10 +557,16 @@ const chunkDocumentStep = createStep({
         duration: Date.now() - startTime,
       });
 
-      logStepEnd('chunk-document', { totalChunks: chunks.length, avgChunkSize: Math.round(avgChunkSize) }, Date.now() - startTime);
+      logStepEnd(
+        'chunk-document',
+        { totalChunks: chunks.length, avgChunkSize: Math.round(avgChunkSize) },
+        Date.now() - startTime
+      );
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('chunk-document', error, { strategy: inputData.settings.chunkStrategy });
 
       await writer?.write({
@@ -555,7 +585,7 @@ const indexChunksStep = createStep({
   description: 'Indexes chunks into vector store',
   inputSchema: chunkedContentSchema,
   outputSchema: indexedDocumentSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('index-chunks', { totalChunks: inputData.totalChunks });
 
@@ -565,11 +595,12 @@ const indexChunksStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'vector-indexer',
-      input: { totalChunks: inputData.totalChunks, indexName: inputData.settings.indexName },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('document-processing');
+    const span = tracer.startSpan('vector-indexer', {
+      attributes: {
+        totalChunks: inputData.totalChunks,
+        indexName: inputData.settings.indexName,
+      },
     });
 
     try {
@@ -583,7 +614,7 @@ const indexChunksStep = createStep({
       const vectorIds: string[] = [];
 
       const agent = mastra?.getAgent('knowledgeIndexingAgent');
-      if (agent) {
+      if (agent !== undefined) {
         for (let i = 0; i < inputData.chunks.length; i++) {
           vectorIds.push(`vec-${documentId}-${i}`);
 
@@ -625,10 +656,11 @@ const indexChunksStep = createStep({
         },
       };
 
-      span?.end({
-        output: { documentId, chunksCount: inputData.totalChunks, indexed: true },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('documentId', documentId);
+      span.setAttribute('chunksCount', inputData.totalChunks);
+      span.setAttribute('indexed', true);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -640,7 +672,9 @@ const indexChunksStep = createStep({
       logStepEnd('index-chunks', { documentId, chunksCount: inputData.totalChunks }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('index-chunks', error, { totalChunks: inputData.totalChunks });
 
       await writer?.write({
@@ -663,17 +697,13 @@ export const documentProcessingWorkflow = createWorkflow({
   .then(loadDocumentStep)
   .branch([
     [
-      async ({ inputData }) => {
-        const data = inputData as z.infer<typeof loadedContentSchema>;
-        return data.contentType === 'pdf' || data.contentType === 'html';
-      },
+      async ({ inputData }: { inputData: z.infer<typeof loadedContentSchema> }) =>
+        inputData.contentType === 'pdf' || inputData.contentType === 'html',
       convertPdfToMarkdownStep,
     ],
     [
-      async ({ inputData }) => {
-        const data = inputData as z.infer<typeof loadedContentSchema>;
-        return data.contentType === 'text' || data.contentType === 'markdown';
-      },
+      async ({ inputData }: { inputData: z.infer<typeof loadedContentSchema> }) =>
+        inputData.contentType === 'text' || inputData.contentType === 'markdown',
       passTextThroughStep,
     ],
   ])

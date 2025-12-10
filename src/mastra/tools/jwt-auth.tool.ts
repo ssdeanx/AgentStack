@@ -1,8 +1,9 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context';
 
 // Define the expected shape of the runtime context for this tool
 export interface JwtAuthContext {
@@ -23,9 +24,13 @@ export const jwtAuthTool = createTool({
     exp: z.number().optional(),
     iat: z.number().optional(),
   }),
-  execute: async ({ runtimeContext, tracingContext, writer, context }) => {
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    const tracingContext = context?.tracingContext;
+
     await writer?.custom({ type: 'data-tool-progress', data: { message: '🔐 Verifying JWT authentication' } });
-    const jwt = (runtimeContext as RuntimeContext<JwtAuthContext>).get(
+    const jwt = (requestContext as RequestContext<JwtAuthContext>)?.get(
       'jwt'
     )
 
@@ -34,7 +39,6 @@ export const jwtAuthTool = createTool({
       type: AISpanType.TOOL_CALL,
       name: 'jwt-auth-tool',
       input: { hasJwt: !!jwt },
-      tracingPolicy: { internal: InternalSpans.TOOL }
     })
 
     if (!jwt) {

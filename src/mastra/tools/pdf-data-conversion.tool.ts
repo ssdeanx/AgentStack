@@ -13,7 +13,6 @@
 // approvedBy: sam
 // approvalDate: 10/18
 
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { marked } from 'marked';
@@ -26,12 +25,13 @@ import {
   logStepStart,
   logToolExecution,
 } from '../config/logger';
+import { trace, SpanStatusCode, context as otelContext } from "@opentelemetry/api";
 
 // Lazy-loaded pdf-parse to avoid demo parsing errors
 let pdfParse: unknown = null
 let pdfParseError: Error | null = null
 
-type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{
+type PdfParseFunction = (_buffer: Buffer, _options?: { max?: number; version?: string }) => Promise<{
   text: string;
   numpages: number;
   metadata?: unknown;
@@ -499,37 +499,38 @@ Perfect for RAG indexing, documentation conversion, and content processing.
   `,
   inputSchema: PdfToMarkdownInputSchema,
   outputSchema: PdfToMarkdownOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (inputData, context) => {
     const startTime = Date.now()
-    logToolExecution('pdf-to-markdown', { input: context })
+    logToolExecution('pdf-to-markdown', { input: inputData })
 
-    await writer?.write({
-      type: 'progress',
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `📄 Converting PDF to Markdown: ${context.pdfPath}`
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+        message: `📄 Converting PDF to Markdown: ${inputData.pdfPath}`
+      }
     });
 
     // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'pdf-to-markdown-tool',
-      input: {
-        pdfPath: context.pdfPath,
-        maxPages: context.maxPages,
-        normalization: context.normalizeText,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+    const tracer = trace.getTracer('pdf-tools');
+    const rootSpan = tracer.startSpan('pdf-to-markdown-tool', {
+      attributes: {
+        pdfPath: inputData.pdfPath,
+        maxPages: inputData.maxPages,
+        normalization: inputData.normalizeText,
+        operation: 'pdf-to-markdown'
+      }
+    });
+    
+    // Create context with root span
+    const ctx = trace.setSpan(otelContext.active(), rootSpan);
 
     const warnings: string[] = []
 
     try {
       // Validate file path
-      const absolutePath = path.isAbsolute(context.pdfPath)
-        ? context.pdfPath
-        : path.resolve(process.cwd(), context.pdfPath)
+      const absolutePath = path.isAbsolute(inputData.pdfPath)
+        ? inputData.pdfPath
+        : path.resolve(process.cwd(), inputData.pdfPath)
 
       logStepStart('pdf-file-validation', { path: absolutePath })
 
@@ -552,109 +553,77 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       }
 
       // Read PDF file
-      const readSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'read-pdf-file',
-        input: { filePath: absolutePath, sizeBytes: fileStats.size },
-        tracingPolicy: { internal: InternalSpans.TOOL }
-      })
+      const readSpan = tracer.startSpan('read-pdf-file', {
+        attributes: {
+           filePath: absolutePath,
+           sizeBytes: fileStats.size
+        }
+      }, ctx);
 
       const readStart = Date.now()
       const pdfBuffer = await fs.readFile(absolutePath)
       const readDuration = Date.now() - readStart
 
-      readSpan?.end({ output: { bytesRead: pdfBuffer.length } })
+      readSpan.end();
 
       // Provide size and read duration to match logger signature (name, payload, durationMs)
       logStepEnd('pdf-file-read', { size: pdfBuffer.length }, readDuration)
 
       // Extract text using sideloaded pdf-parse
-      const extractSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'extract-pdf-text',
-        input: { maxPages: context.maxPages },
-        tracingPolicy: { internal: InternalSpans.TOOL }
-      })
+      const extractSpan = tracer.startSpan('extract-pdf-text', {
+        attributes: { maxPages: inputData.maxPages }
+      }, ctx);
 
       const pdfContent = await extractPdfText(pdfBuffer, {
-        maxPages: context.maxPages,
+        maxPages: inputData.maxPages,
       })
-      extractSpan?.end({
-        output: { pages: pdfContent.numpages, textLength: pdfContent.text.length },
-      })
+      extractSpan.end();
 
       // Extract metadata
-      const metadataSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'extract-metadata',
-        tracingPolicy: { internal: InternalSpans.TOOL }
-      })
+      const metadataSpan = tracer.startSpan('extract-metadata', {}, ctx);
 
       const metadata = await extractPdfMetadata(pdfContent)
-      metadataSpan?.end({ output: metadata })
+      metadataSpan.end();
 
       // Normalize text if requested
       let processedText = pdfContent.text
-      if (context.normalizeText) {
-        const normalizeSpan = rootSpan?.createChildSpan({
-          type: AISpanType.TOOL_CALL,
-          name: 'normalize-text',
-          input: { textLength: processedText.length },
-          tracingPolicy: { internal: InternalSpans.TOOL }
-        })
+      if (inputData.normalizeText) {
+        const normalizeSpan = tracer.startSpan('normalize-text', {
+          attributes: { textLength: processedText.length }
+        }, ctx);
 
         processedText = normalizePdfText(processedText)
-        normalizeSpan?.end({
-          output: { normalizedLength: processedText.length },
-        })
+        normalizeSpan.end();
       }
 
       // Convert to markdown
-      const markdownSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'convert-to-markdown',
-        tracingPolicy: { internal: InternalSpans.TOOL }
-      })
-
+      const markdownSpan = tracer.startSpan('convert-to-markdown', {}, ctx);
       const markdownResult = convertToMarkdown(processedText)
-      markdownSpan?.end({
-        output: {
-          lines: markdownResult.lineCount,
-          headings: markdownResult.headingCount,
-        },
-      })
+      markdownSpan.end();
 
       // Extract tables if requested
       let tableResult: TableExtractionResult = { tableCount: 0, tables: [] }
-      if (context.includeTables) {
-        const tableSpan = rootSpan?.createChildSpan({
-          type: AISpanType.TOOL_CALL,
-          name: 'extract-tables',
-          tracingPolicy: { internal: InternalSpans.TOOL }
-        })
+      if (inputData.includeTables) {
+        const tableSpan = tracer.startSpan('extract-tables', {}, ctx);
 
         tableResult = extractTables(processedText)
-        tableSpan?.end({ output: { tableCount: tableResult.tableCount } })
+        tableSpan.end();
       }
 
       // Extract images if requested
       let imageResult: ImageExtractionResult = { imageCount: 0, images: [] }
-      if (context.includeImages) {
-        const imageSpan = rootSpan?.createChildSpan({
-          type: AISpanType.TOOL_CALL,
-          name: 'extract-images',
-          tracingPolicy: { internal: InternalSpans.TOOL }
-        })
+      if (inputData.includeImages) {
+        const imageSpan = tracer.startSpan('extract-images', {}, ctx);
 
         imageResult = extractImageReferences(pdfBuffer)
-        imageSpan?.end({ output: { imageCount: imageResult.imageCount } })
+        imageSpan.end();
       }
 
       // Build final content based on format
       let finalContent = ''
       const outputMetadata: Record<string, unknown> = {}
 
-      if (context.includeMetadata) {
+      if (inputData.includeMetadata) {
         // Add YAML frontmatter
         const frontmatter = {
           title: metadata.title,
@@ -669,7 +638,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         outputMetadata['metadata'] = metadata
         outputMetadata['frontmatter'] = frontmatter
 
-        if (context.outputFormat === 'markdown') {
+        if (inputData.outputFormat === 'markdown') {
           finalContent = `---\n${Object.entries(frontmatter)
             .map(
               ([k, v]) =>
@@ -680,7 +649,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       }
 
       // Add main content based on format
-      switch (context.outputFormat) {
+      switch (inputData.outputFormat) {
         case 'html': {
           // Convert markdown to HTML using marked
           finalContent += await marked(markdownResult.markdown)
@@ -731,9 +700,9 @@ Perfect for RAG indexing, documentation conversion, and content processing.
 
       const output = {
         success: true,
-        format: context.outputFormat,
+        format: inputData.outputFormat,
         content: finalContent,
-        metadata: context.includeMetadata ? outputMetadata : undefined,
+        metadata: inputData.includeMetadata ? outputMetadata : undefined,
         statistics: {
           pageCount: pdfContent.numpages,
           lineCount: markdownResult.lineCount,
@@ -750,15 +719,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       logStepEnd('pdf-to-markdown', output, totalProcessingTime)
 
       // End root tracing span
-      rootSpan?.end({
-        output: {
-          success: true,
-          pages: pdfContent.numpages,
-          lines: markdownResult.lineCount,
-          format: context.outputFormat,
-          processingTimeMs: totalProcessingTime,
-        },
-      })
+      rootSpan.end();
 
       return output
     } catch (error) {
@@ -767,23 +728,19 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         error instanceof Error ? error.message : 'Unknown error occurred'
 
       logError('pdf-to-markdown', error, {
-        context,
+        inputData,
         processingTimeMs: processingTime,
       })
 
       // Record error in tracing span
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'pdf-to-markdown',
-          pdfPath: context.pdfPath,
-          processingTimeMs: processingTime,
-        },
-      })
+      // Record error in tracing span
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
 
       return {
         success: false,
-        format: context.outputFormat || 'markdown',
+        format: inputData.outputFormat ?? 'markdown',
         content: '',
         statistics: {
           pageCount: 0,

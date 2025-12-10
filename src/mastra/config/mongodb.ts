@@ -7,8 +7,8 @@ import { log } from './logger';
 import { TokenLimiter } from "@mastra/memory/processors";
 import z from "zod";
 import { Memory } from "@mastra/memory";
-import { AISpanType } from '@mastra/core/ai-tracing'
-import type { TracingContext } from '@mastra/core/ai-tracing'
+import { AISpanType } from '@mastra/observability'
+import type { TracingContext } from '@mastra/observability'
 
 /**
  * MongoDB Vector configuration for the Governed RAG system
@@ -26,7 +26,9 @@ const MONGODB_CONFIG = {
   embeddingModel: google.textEmbedding("gemini-embedding-001"),
 } as const;
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 const mongoStore = new MongoDBStore({
+  id: 'mongo:store',
   url: process.env.MONGODB_URI ?? 'mongodb://localhost:27017',
   dbName: process.env.MONGODB_DATABASE ?? 'AgentStack',
 });
@@ -44,6 +46,7 @@ await mongoStore.init();
  * Initialize MongoDB Vector store with proper configuration
  */
 const mongoVector = new MongoDBVector({
+  id: 'mongo:vector',
   uri: MONGODB_CONFIG.uri,
   dbName: MONGODB_CONFIG.dbName,
 });

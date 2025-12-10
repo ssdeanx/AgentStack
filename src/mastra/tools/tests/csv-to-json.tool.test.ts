@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { csvToJsonTool } from "../csv-to-json.tool";
 import * as fs from "node:fs/promises";
 import type { RuntimeContext } from "@mastra/core/runtime-context";
-import type { TracingContext } from "@mastra/core/ai-tracing";
+import type { TracingContext } from "@mastra/observability";
 
 vi.mock("node:fs/promises");
 

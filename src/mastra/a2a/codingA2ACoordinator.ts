@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
+import type { RequestContext } from '@mastra/core/request-context';
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 
 import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
@@ -31,8 +31,8 @@ export const codingA2ACoordinator = new Agent({
   id: 'codingA2ACoordinator',
   name: 'Coding A2A Coordinator',
   description: 'A2A Coordinator that orchestrates multiple coding agents in parallel for complex development tasks like full feature development, comprehensive reviews, and refactoring with tests.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
+  instructions: ({ requestContext }) => {
+    const userId = requestContext.get('userId')
     return {
       role: 'system',
       content: `You are a Coding A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent coding workflows.
@@ -156,7 +156,7 @@ This coordinator also exposes higher-level workflows (researchSynthesisWorkflow,
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: {},
   agents: {
     codeArchitectAgent,
     codeReviewerAgent,

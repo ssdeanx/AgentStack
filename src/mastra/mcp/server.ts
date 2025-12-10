@@ -4,6 +4,7 @@ import { promptHandlers } from "./prompts";
 import { resourceHandlers } from "./resources";
 
 export const notesMCP = new MCPServer({
+  id: "mcp:notes",
   name: "notes",
   version: "0.1.2",
   resources: resourceHandlers,

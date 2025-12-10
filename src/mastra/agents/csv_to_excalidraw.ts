@@ -1,20 +1,23 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
-import { InternalSpans } from "@mastra/core/ai-tracing";
 import { structureScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { RequestContext } from '@mastra/core/request-context'
 
+export interface DaneContext {
+    userId?: string
+}
 
 export const csvToExcalidrawAgent = new Agent({
   id: "csvToExcalidrawAgent",
   name: "CSV to Excalidraw Converter",
   description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
-  instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+        const userId = requestContext.get('userId');
         return {
             role: 'system',
             content: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
-
+user: ${userId}
 Your response MUST be a JSON object with two fields:
 1. "filename": A string ending in .excalidraw
 2. "contents": An object matching the Excalidraw schema
@@ -172,12 +175,11 @@ Structure:
     },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   tools: {},
   scorers: {
     structure: {
       scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.3 },
     },
   },
   workflows: {},

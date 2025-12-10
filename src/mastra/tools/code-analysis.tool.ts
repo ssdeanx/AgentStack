@@ -3,7 +3,9 @@ import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
+import { trace } from "@opentelemetry/api";
 import { PythonParser } from './semantic-utils'
+import type { RequestContext } from '@mastra/core/request-context';
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -191,8 +193,16 @@ Supports TypeScript, JavaScript, Python, and other languages.
 Use for code review preparation, quality assessment, and refactoring planning.`,
   inputSchema: codeAnalysisInputSchema,
   outputSchema: codeAnalysisOutputSchema,
-  execute: async ({ context }): Promise<CodeAnalysisOutput> => {
-    const { target, options } = context
+  execute: async (inputData, context): Promise<CodeAnalysisOutput> => {
+    const tracer = trace.getTracer('code-analysis-tool', '1.0.0');
+    const span = tracer.startSpan('code-analysis', {
+      attributes: {
+        'tool.id': 'code-analysis',
+        'tool.input.target': Array.isArray(inputData.target) ? inputData.target.join(',') : inputData.target,
+      }
+    });
+
+    const { target, options } = inputData
     const includeMetrics = options?.includeMetrics ?? true
     const detectPatterns = options?.detectPatterns ?? true
     const maxFileSize = options?.maxFileSize ?? 100000
@@ -264,6 +274,13 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
         issueCount[issue.type] = (issueCount[issue.type] || 0) + 1
       }
     }
+
+    span.setAttributes({
+      'tool.output.totalFiles': fileAnalyses.length,
+      'tool.output.totalLoc': totalLoc,
+      'tool.output.avgComplexity': avgComplexity,
+    });
+    span.end();
 
     return {
       files: fileAnalyses,

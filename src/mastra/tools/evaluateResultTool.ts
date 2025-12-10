@@ -1,8 +1,9 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
+import { evaluationAgent } from '../agents/evaluationAgent';
 
 export const evaluateResultTool = createTool({
   id: 'evaluate-result',
@@ -22,50 +23,31 @@ export const evaluateResultTool = createTool({
       .describe('URLs that have already been processed')
       .optional(),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🤔 Evaluating relevance of result: ' + context.result.title } });
-    const evalSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'evaluate_result',
-      input: {
-        query: context.query,
-        url: context.result.url,
-        existingUrlsCount: context.existingUrls?.length ?? 0,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
-    // Check if URL already exists (only if existingUrls was provided)
+  execute: async (inputData, context) => {
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🤔 Evaluating relevance of result: ' + inputData.result.title } });
+
+    const tracer = trace.getTracer('evaluate-result');
+    const evalSpan = tracer.startSpan('evaluate_result', {
+      attributes: {
+        query: inputData.query,
+        url: inputData.result.url,
+        existingUrlsCount: inputData.existingUrls?.length ?? 0,
+        operation: 'evaluate_result'
+      }
+    });
 
     try {
-      const { query, result, existingUrls = [] } = context
-      log.info('Evaluating result', { context })
+      const { query, result, existingUrls = [] } = inputData;
+      log.info('Evaluating result', { inputData })
 
       // Check if URL already exists (only if existingUrls was provided)
       if (existingUrls?.includes(result.url)) {
-        evalSpan?.end({
-          output: {
-            isRelevant: false,
-            reason: 'URL already processed',
-          },
-        })
+        evalSpan.end();
         return {
           isRelevant: false,
           reason: 'URL already processed',
         }
       }
-
-      // Ensure mastra is available at runtime instead of using a non-null assertion
-      if (!mastra) {
-        const msg = 'Mastra instance is not available'
-        log.error(msg)
-        evalSpan?.end({ metadata: { error: msg } })
-        return {
-          isRelevant: false,
-          reason: 'Internal error: mastra not available',
-        }
-      }
-
-      const evaluationAgent = mastra.getAgent('evaluationAgent')
 
       const response = await evaluationAgent.generate([
         {
@@ -94,25 +76,18 @@ export const evaluateResultTool = createTool({
         log.warn('Evaluation agent returned unexpected shape', {
           response: response.object,
         })
-        evalSpan?.end({
-          output: {
-            isRelevant: false,
-            reason: 'Invalid response format from evaluation agent',
-          },
-        })
+        const error = 'Invalid response format from evaluation agent';
+        evalSpan.recordException(new Error(error));
+        evalSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+        evalSpan.end();
         return {
           isRelevant: false,
-          reason: 'Invalid response format from evaluation agent',
+          reason: error,
         }
       }
 
-      evalSpan?.end({
-        output: {
-          isRelevant: parsed.data.isRelevant,
-          reason: parsed.data.reason,
-        },
-      })
-      await writer?.custom({ type: 'data-tool-progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
+      evalSpan.end();
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
       return parsed.data
     } catch (error) {
       log.error('Error evaluating result:', {
@@ -121,7 +96,11 @@ export const evaluateResultTool = createTool({
       })
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      evalSpan?.end({ metadata: { error: errorMessage } })
+
+      evalSpan.recordException(new Error(errorMessage));
+      evalSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      evalSpan.end();
+
       return {
         isRelevant: false,
         reason: 'Error in evaluation',

@@ -1,14 +1,12 @@
-/*
- * Not working
-*/
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { MDocument } from '@mastra/rag';
 import type { Browser} from 'playwright-core';
 import { chromium } from 'playwright-core';
 import { z } from 'zod';
+import { trace } from "@opentelemetry/api";
 import { log } from '../config/logger';
+import type { RequestContext } from '@mastra/core/request-context';
 
 // Browser instance cache for reuse
 let browserInstance: Browser | null = null;
@@ -32,20 +30,21 @@ export const browserTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-scrape',
-      input: { url: context.url },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('browser-tool', '1.0.0');
+    const span = tracer.startSpan('browser-scrape', {
+      attributes: {
+        'tool.id': 'browser-scrape',
+        'tool.input.url': inputData.url,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🌐 Launching browser for ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Launching browser for ${inputData.url}` } });
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
 
-      await page.goto(context.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(inputData.url, { waitUntil: 'domcontentloaded' });
 
       const docs = MDocument.fromHTML(await page.content());
 
@@ -66,19 +65,25 @@ export const browserTool = createTool({
       await page.close();
 
       if (!docs.getText().length) {
-        await writer?.write({ type: 'progress', data: { message: '⚠️ No content found' } });
-        span?.end({ output: { success: false, reason: 'No content' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ No content found' } });
+        span.setAttributes({ 'tool.output.success': false, 'tool.output.reason': 'No content' });
+        span.end();
         return { message: 'No content' };
       }
 
       const result = docs.getText().join('\n');
-      await writer?.write({ type: 'progress', data: { message: '✅ Content extracted successfully' } });
-      span?.end({ output: { success: true, contentLength: result.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Content extracted successfully' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.contentLength': result.length });
+      span.end();
       return { message: result };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Browser scrape failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { message: `Error: ${errorMsg}` };
     }
   },
@@ -98,38 +103,45 @@ export const screenshotTool = createTool({
     screenshot: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-screenshot',
-      input: { url: context.url, fullPage: context.fullPage },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('screenshot-tool', '1.0.0');
+    const span = tracer.startSpan('browser-screenshot', {
+      attributes: {
+        'tool.id': 'browser-screenshot',
+        'tool.input.url': inputData.url,
+        'tool.input.fullPage': inputData.fullPage,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📸 Taking screenshot of ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📸 Taking screenshot of ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.setViewportSize({ width: context.width ?? 1280, height: context.height ?? 720 });
-      await page.goto(context.url, { waitUntil: 'networkidle' });
+      await page.setViewportSize({ width: inputData.width ?? 1280, height: inputData.height ?? 720 });
+      await page.goto(inputData.url, { waitUntil: 'networkidle' });
 
       const screenshot = await page.screenshot({
-        fullPage: context.fullPage ?? false,
+        fullPage: inputData.fullPage ?? false,
         type: 'png',
       });
 
       await page.close();
 
       const base64 = screenshot.toString('base64');
-      await writer?.write({ type: 'progress', data: { message: '✅ Screenshot captured' } });
-      span?.end({ output: { success: true, size: screenshot.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Screenshot captured' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.size': screenshot.length });
+      span.end();
 
       return { success: true, screenshot: base64 };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Screenshot failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, error: errorMsg };
     }
   },
@@ -149,38 +161,45 @@ export const pdfGeneratorTool = createTool({
     pdf: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-pdf-generate',
-      input: { url: context.url, format: context.format },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('pdf-generator-tool', '1.0.0');
+    const span = tracer.startSpan('browser-pdf-generate', {
+      attributes: {
+        'tool.id': 'browser-pdf-generate',
+        'tool.input.url': inputData.url,
+        'tool.input.format': inputData.format,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📄 Generating PDF from ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Generating PDF from ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.goto(context.url, { waitUntil: 'networkidle' });
+      await page.goto(inputData.url, { waitUntil: 'networkidle' });
 
       const pdf = await page.pdf({
-        format: context.format ?? 'A4',
-        landscape: context.landscape ?? false,
-        printBackground: context.printBackground ?? true,
+        format: inputData.format ?? 'A4',
+        landscape: inputData.landscape ?? false,
+        printBackground: inputData.printBackground ?? true,
       });
 
       await page.close();
 
       const base64 = pdf.toString('base64');
-      await writer?.write({ type: 'progress', data: { message: '✅ PDF generated' } });
-      span?.end({ output: { success: true, size: pdf.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ PDF generated' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.size': pdf.length });
+      span.end();
 
       return { success: true, pdf: base64 };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`PDF generation failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, error: errorMsg };
     }
   },
@@ -201,44 +220,51 @@ export const clickAndExtractTool = createTool({
     content: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-click-extract',
-      input: { url: context.url, clickSelector: context.clickSelector },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('click-extract-tool', '1.0.0');
+    const span = tracer.startSpan('browser-click-extract', {
+      attributes: {
+        'tool.id': 'browser-click-extract',
+        'tool.input.url': inputData.url,
+        'tool.input.clickSelector': inputData.clickSelector,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🖱️ Navigating to ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `🖱️ Navigating to ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.goto(context.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(inputData.url, { waitUntil: 'domcontentloaded' });
 
-      if (context.clickSelector) {
-        await writer?.write({ type: 'progress', data: { message: `🖱️ Clicking ${context.clickSelector}` } });
-        await page.click(context.clickSelector, { timeout: context.timeout });
+      if (inputData.clickSelector !== undefined && inputData.clickSelector !== null) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `🖱️ Clicking ${inputData.clickSelector}` } });
+        await page.click(inputData.clickSelector, { timeout: inputData.timeout });
       }
 
-      if (context.waitForSelector) {
-        await writer?.write({ type: 'progress', data: { message: `⏳ Waiting for ${context.waitForSelector}` } });
-        await page.waitForSelector(context.waitForSelector, { timeout: context.timeout });
+      if (inputData.waitForSelector !== undefined && inputData.waitForSelector !== null) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `⏳ Waiting for ${inputData.waitForSelector}` } });
+        await page.waitForSelector(inputData.waitForSelector, { timeout: inputData.timeout });
       }
 
-      const selector = context.extractSelector ?? 'body';
+      const selector = inputData.extractSelector ?? 'body';
       const content = await page.$eval(selector, el => el.textContent ?? '');
 
       await page.close();
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Content extracted' } });
-      span?.end({ output: { success: true, contentLength: content.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Content extracted' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.contentLength': content.length });
+      span.end();
 
       return { success: true, content: content.trim() };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Click and extract failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, error: errorMsg };
     }
   },
@@ -261,48 +287,55 @@ export const fillFormTool = createTool({
     finalUrl: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-fill-form',
-      input: { url: context.url, fieldCount: context.fields.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('fill-form-tool', '1.0.0');
+    const span = tracer.startSpan('browser-fill-form', {
+      attributes: {
+        'tool.id': 'browser-fill-form',
+        'tool.input.url': inputData.url,
+        'tool.input.fieldCount': inputData.fields.length,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📝 Filling form on ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Filling form on ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.goto(context.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(inputData.url, { waitUntil: 'domcontentloaded' });
 
-      for (const field of context.fields) {
+      for (const field of inputData.fields) {
         await page.fill(field.selector, field.value);
       }
 
-      if (context.submitSelector) {
-        await writer?.write({ type: 'progress', data: { message: '📤 Submitting form...' } });
-        if (context.waitForNavigation) {
+      if (inputData.submitSelector !== undefined && inputData.submitSelector !== null) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📤 Submitting form...' } });
+        if (inputData.waitForNavigation) {
           await Promise.all([
             page.waitForNavigation(),
-            page.click(context.submitSelector),
+            page.click(inputData.submitSelector),
           ]);
         } else {
-          await page.click(context.submitSelector);
+          await page.click(inputData.submitSelector);
         }
       }
 
       const finalUrl = page.url();
       await page.close();
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Form submitted' } });
-      span?.end({ output: { success: true, finalUrl } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Form submitted' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.finalUrl': finalUrl });
+      span.end();
 
       return { success: true, finalUrl };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Form fill failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, error: errorMsg };
     }
   },
@@ -317,22 +350,23 @@ export const googleSearch = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'google-search',
-      input: { query: context.query },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('google-search-tool', '1.0.0');
+    const span = tracer.startSpan('google-search', {
+      attributes: {
+        'tool.id': 'google-search',
+        'tool.input.query': inputData.query,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🔍 Starting Google search for "' + context.query + '"' } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Starting Google search for "' + inputData.query + '"' } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.goto(`https://www.google.com/search?q=${encodeURIComponent(context.query)}`);
+      await page.goto(`https://www.google.com/search?q=${encodeURIComponent(inputData.query)}`);
 
-      await writer?.write({ type: 'progress', data: { message: '⏳ Waiting for search results...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '⏳ Waiting for search results...' } });
 
       try {
         await page.click('button:has-text("Accept all")', { timeout: 5000 });
@@ -359,18 +393,24 @@ export const googleSearch = createTool({
       await page.close();
 
       if (!text.length) {
-        await writer?.write({ type: 'progress', data: { message: '⚠️ No results found' } });
-        span?.end({ output: { success: false, reason: 'No results' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ No results found' } });
+        span.setAttributes({ 'tool.output.success': false, 'tool.output.reason': 'No results' });
+        span.end();
         return { message: 'No results' };
       }
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Found ' + text.length + ' results' } });
-      span?.end({ output: { success: true, resultCount: text.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Found ' + text.length + ' results' } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.resultCount': text.length });
+      span.end();
       return { message: text.join('\n') };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Google search failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { message: `Error: ${errorMsg}` };
     }
   },
@@ -391,20 +431,21 @@ export const extractTablesTool = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-extract-tables',
-      input: { url: context.url },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('extract-tables-tool', '1.0.0');
+    const span = tracer.startSpan('browser-extract-tables', {
+      attributes: {
+        'tool.id': 'browser-extract-tables',
+        'tool.input.url': inputData.url,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📊 Extracting tables from ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Extracting tables from ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      await page.goto(context.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(inputData.url, { waitUntil: 'domcontentloaded' });
 
       const tables = await page.evaluate((tableIndex) => {
         const allTables = document.querySelectorAll('table');
@@ -432,18 +473,23 @@ export const extractTablesTool = createTool({
         }
 
         return result;
-      }, context.tableIndex);
+      }, inputData.tableIndex);
 
       await page.close();
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Extracted ${tables.length} table(s)` } });
-      span?.end({ output: { success: true, tableCount: tables.length } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Extracted ${tables.length} table(s)` } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.tableCount': tables.length });
+      span.end();
 
       return { success: true, tables };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Table extraction failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, error: errorMsg };
     }
   },
@@ -466,30 +512,32 @@ export const monitorPageTool = createTool({
     checkCount: z.number(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, runtimeContext, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'browser-monitor-page',
-      input: { url: context.url, selector: context.selector },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('monitor-page-tool', '1.0.0');
+    const span = tracer.startSpan('browser-monitor-page', {
+      attributes: {
+        'tool.id': 'browser-monitor-page',
+        'tool.input.url': inputData.url,
+        'tool.input.selector': inputData.selector,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `👁️ Monitoring ${context.url}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `👁️ Monitoring ${inputData.url}` } });
 
     try {
       const browser = await getBrowser();
       const page = await browser.newPage();
-      const selector = context.selector ?? 'body';
+      const selector = inputData.selector ?? 'body';
 
-      await page.goto(context.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(inputData.url, { waitUntil: 'domcontentloaded' });
       const previousContent = await page.$eval(selector, el => el.textContent ?? '');
 
       let checkCount = 0;
       let changed = false;
       let currentContent = previousContent;
 
-      while (checkCount < (context.maxChecks ?? 10) && !changed) {
-        await new Promise(resolve => setTimeout(resolve, context.checkInterval ?? 5000));
+      while (checkCount < (inputData.maxChecks ?? 10) && !changed) {
+        await new Promise(resolve => setTimeout(resolve, inputData.checkInterval ?? 5000));
         await page.reload({ waitUntil: 'domcontentloaded' });
 
         currentContent = await page.$eval(selector, el => el.textContent ?? '');
@@ -497,18 +545,23 @@ export const monitorPageTool = createTool({
 
         if (currentContent !== previousContent) {
           changed = true;
-          await writer?.write({ type: 'progress', data: { message: `🔔 Change detected after ${checkCount} checks` } });
+          await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `🔔 Change detected after ${checkCount} checks` } });
         }
       }
 
       await page.close();
 
-      span?.end({ output: { success: true, changed, checkCount } });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.changed': changed, 'tool.output.checkCount': checkCount });
+      span.end();
       return { success: true, changed, previousContent, currentContent, checkCount };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`Page monitoring failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       return { success: false, changed: false, checkCount: 0, error: errorMsg };
     }
   },

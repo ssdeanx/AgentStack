@@ -1,8 +1,10 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 import { z } from 'zod'
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const sqlValidityScorer = createScorer({
+    id: 'sql-validity-scorer',
     name: 'SQL Validity',
     description: 'Evaluates if the output contains a valid SQL query and follows the requested format',
     judge: {
@@ -53,20 +55,20 @@ export const sqlValidityScorer = createScorer({
 })
 .generateScore(({ results }) => {
     const { hasSqlQuery, isValidSyntax, hasExplanation, safetyCheck } = results.analyzeStepResult
-    
-    if (!hasSqlQuery) return 0
-    if (!safetyCheck) return 0 // Unsafe queries get 0
-    
+
+    if (!hasSqlQuery) {return 0}
+    if (!safetyCheck) {return 0} // Unsafe queries get 0
+
     let score = 0
-    if (hasSqlQuery) score += 0.4
-    if (isValidSyntax) score += 0.4
-    if (hasExplanation) score += 0.2
-    
+    if (hasSqlQuery) {score += 0.4}
+    if (isValidSyntax) {score += 0.4}
+    if (hasExplanation) {score += 0.2}
+
     return score
 })
 .generateReason(({ results, score }) => {
     const { issues, safetyCheck } = results.analyzeStepResult
-    if (!safetyCheck) return `Score: 0. Safety violation detected: ${issues.join(', ')}`
-    
+    if (!safetyCheck) {return `Score: 0. Safety violation detected: ${issues.join(', ')}`}
+
     return `Score: ${score.toFixed(2)}. ${issues.length > 0 ? 'Issues: ' + issues.join(', ') : 'Valid SQL query with explanation.'}`
-})
+});

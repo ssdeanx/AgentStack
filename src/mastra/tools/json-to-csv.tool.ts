@@ -1,7 +1,8 @@
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 
 const csvToolContextSchema = z.object({
   maxRows: z.number().optional(),
@@ -27,21 +28,28 @@ export const jsonToCsvTool = createTool({
     csv: z.string().describe("Generated CSV string"),
     error: z.string().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Converting ${context.data.length} JSON records to CSV` } });
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: "json-to-csv",
-      input: { recordCount: context.data.length },
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext as RequestContext<{ csvToolContext: unknown }>;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Converting ${inputData.data.length} JSON records to CSV` } });
+
+    const tracer = trace.getTracer('json-to-csv', '1.0.0');
+    const rootSpan = tracer.startSpan('json-to-csv', {
+      attributes: {
+        'tool.id': 'json-to-csv',
+        'tool.input.recordCount': inputData.data.length,
+      }
     });
 
     try {
-      const { data, options } = context;
+      const { data, options } = inputData;
       if (data === undefined || data === null || data.length === 0) {
+        rootSpan.end();
         return { csv: "" };
       }
 
-      const config = runtimeContext?.get("csvToolContext");
+      const config = requestContext?.get("csvToolContext");
       const { maxRows } = config !== undefined ? csvToolContextSchema.parse(config) : { maxRows: undefined };
 
       if (maxRows !== undefined && data.length > maxRows) {
@@ -89,11 +97,14 @@ export const jsonToCsvTool = createTool({
 
       const csvOutput = rows.join("\n");
 
-      rootSpan?.end({ output: { csvLength: csvOutput.length } });
+      rootSpan.setAttributes({ 'tool.output.csvLength': csvOutput.length });
+      rootSpan.end();
       return { csv: csvOutput };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error converting to CSV";
-      rootSpan?.error({ error: error instanceof Error ? error : new Error(errorMessage) });
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: 2, message: errorMessage });
+      rootSpan.end();
       return { csv: "", error: errorMessage };
     }
   },

@@ -1,8 +1,8 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
+
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
+import type { RequestContext } from '@mastra/core/request-context'
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { google } from '@ai-sdk/google';
 
@@ -50,10 +50,10 @@ export const codeArchitectAgent = new Agent({
   id: 'codeArchitectAgent',
   name: 'Code Architect Agent',
   description: 'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
-    const projectRoot = runtimeContext.get('projectRoot') ?? process.cwd()
+  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
     return {
       role: 'system',
@@ -101,8 +101,8 @@ Always consider maintainability, scalability, and testability in your recommenda
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
   tools: {
@@ -119,15 +119,10 @@ Always consider maintainability, scalability, and testability in your recommenda
 //    ...githubMCP.getTools(),
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
       sampling: { type: 'ratio', rate: 0.5 }
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 }
     },
   },
   maxRetries: 3,
@@ -148,9 +143,9 @@ export const codeReviewerAgent = new Agent({
   id: 'codeReviewerAgent',
   name: 'Code Reviewer Agent',
   description: 'Expert code reviewer focusing on quality, security, performance, and best practices.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
 
     return {
       role: 'system',
@@ -212,8 +207,8 @@ Be constructive and educational in feedback.`,
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
   tools: {
@@ -230,7 +225,7 @@ Be constructive and educational in feedback.`,
     getFileContent,
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -245,9 +240,6 @@ Be constructive and educational in feedback.`,
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-  outputProcessors: [
-    new BatchPartsProcessor({ batchSize: 5, maxWaitTime: 100, emitOnNonText: true }),
-  ],
 })
 
 /**
@@ -258,9 +250,9 @@ export const testEngineerAgent = new Agent({
   id: 'testEngineerAgent',
   name: 'Test Engineer Agent',
   description: 'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
 
     return {
       role: 'system',
@@ -325,8 +317,8 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
   tools: {
@@ -334,27 +326,22 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     testGeneratorTool,
     codeSearchTool,
     execaTool,
-    ...githubMCP.getTools(),
+//    ...githubMCP.getTools(),
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
       sampling: { type: 'ratio', rate: 0.5 }
     },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 }
-    },
+
   },
   maxRetries: 3,
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-  outputProcessors: [
-    new BatchPartsProcessor({ batchSize: 5, maxWaitTime: 100, emitOnNonText: true }),
-  ],
+
 })
 
 /**
@@ -365,10 +352,10 @@ export const refactoringAgent = new Agent({
   id: 'refactoringAgent',
   name: 'Refactoring Agent',
   description: 'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
-    const projectRoot = runtimeContext.get('projectRoot') ?? process.cwd()
+  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
     return {
       role: 'system',
@@ -436,8 +423,8 @@ For each refactoring:
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<CodingRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
   tools: {
@@ -450,24 +437,19 @@ For each refactoring:
     execaTool,
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
       sampling: { type: 'ratio', rate: 0.5 }
     },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 }
-    },
+
   },
   maxRetries: 3,
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-  outputProcessors: [
-    new BatchPartsProcessor({ batchSize: 5, maxWaitTime: 100, emitOnNonText: true }),
-  ],
+
 })
 
 log.info('Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent')

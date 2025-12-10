@@ -1,9 +1,10 @@
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
+import { trace } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { Pool } from "pg";
 import { z } from "zod";
 import { log } from "../config/logger";
+
 
 const pool = new Pool({
   max: 20,
@@ -37,12 +38,17 @@ export const pgExecute = createTool({
       .describe("SQL query to execute against the cities database"),
   }),
   description: `Executes a SQL query against the cities database and returns the results`,
-  execute: async ({ context: { query }, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'pg-execute',
-      input: { query },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const { query } = inputData;
+    const writer = context?.writer;
+
+    // Get tracer from OpenTelemetry API
+    const tracer = trace.getTracer('pg-sql-tool');
+    const span = tracer.startSpan('pg-execute', {
+      attributes: {
+        'tool.id': 'Execute SQL Query',
+        'tool.input.query': query,
+      }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: 'Executing SQL query' } });
@@ -53,11 +59,22 @@ export const pgExecute = createTool({
       }
 
       const result = await executeQuery(query);
-      span?.end({ output: { rowCount: result.length } });
+
+      span.setAttributes({
+        'tool.output.rowCount': result.length
+      });
+      span.end();
+
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
+
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMsg }); // ERROR status
+      span.end();
+
       throw new Error(
         `Failed to execute SQL query: ${errorMsg}`
       );

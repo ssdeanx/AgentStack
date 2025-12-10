@@ -1,7 +1,10 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { z } from 'zod';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { logStepStart, logStepEnd, logError } from '../config/logger';
+import { logError, logStepEnd, logStepStart } from '../config/logger';
+
+// NOTE: Stream-first approach is used; inline parse helper removed.
+// When parsing is required we parse stream.text directly in steps and handle parsing errors inline.
 
 const learningInputSchema = z.object({
   content: z.string().describe('Content to extract learnings from'),
@@ -110,7 +113,7 @@ const extractLearningsStep = createStep({
   description: 'Extracts learnings from content using learningExtractionAgent',
   inputSchema: learningInputSchema,
   outputSchema: extractionResultSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('extract-learnings', { contentType: inputData.contentType, depth: inputData.extractionDepth });
 
@@ -120,11 +123,12 @@ const extractLearningsStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'learning-extraction',
-      input: { contentType: inputData.contentType, contentLength: inputData.content.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('learning-extraction');
+    const span = tracer.startSpan('learning-extraction', {
+      attributes: {
+        contentType: inputData.contentType,
+        contentLength: inputData.content.length,
+      },
     });
 
     try {
@@ -135,7 +139,7 @@ const extractLearningsStep = createStep({
       });
 
       const agent = mastra?.getAgent('learningExtractionAgent');
-      let learnings: z.infer<typeof extractedLearningSchema>[] = [];
+      let learnings: Array<z.infer<typeof extractedLearningSchema>> = [];
       let summary = '';
 
       if (agent) {
@@ -171,15 +175,29 @@ For each learning, provide:
 
 Also provide an overall summary.`;
 
-        const response = await agent.generate(prompt, {
+        const stream = await agent.stream(prompt, {
           output: z.object({
             learnings: z.array(extractedLearningSchema),
             summary: z.string(),
           }),
-        });
+        } as any);
 
-        learnings = response.object.learnings;
-        summary = response.object.summary;
+        // Pipe streaming partial output to the workflow writer for progress (if present)
+        await stream.textStream?.pipeTo?.(writer);
+
+        // Wait for final text and attempt to parse as JSON; fallback to no-op if parse fails
+        const finalText = await stream.text;
+        let parsed: { learnings: Array<z.infer<typeof extractedLearningSchema>>; summary: string } | null = null;
+        try {
+          parsed = JSON.parse(finalText) as { learnings: Array<z.infer<typeof extractedLearningSchema>>; summary: string };
+        } catch {
+          parsed = null;
+        }
+
+        if (parsed) {
+          learnings = parsed.learnings;
+          summary = parsed.summary;
+        }
       } else {
         learnings = [
           {
@@ -229,10 +247,11 @@ Also provide an overall summary.`;
         },
       };
 
-      span?.end({
-        output: { learningsCount: learnings.length, criticalCount, actionableCount },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      if (typeof learnings?.length === 'number') {span.setAttribute('learningsCount', learnings.length);}
+      if (typeof criticalCount === 'number') {span.setAttribute('criticalCount', criticalCount);}
+      if (typeof actionableCount === 'number') {span.setAttribute('actionableCount', actionableCount);}
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -244,7 +263,9 @@ Also provide an overall summary.`;
       logStepEnd('extract-learnings', { learningsCount: learnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('extract-learnings', error, { contentType: inputData.contentType });
 
       await writer?.write({
@@ -265,7 +286,7 @@ const humanApprovalStep = createStep({
   outputSchema: approvalResultSchema,
   suspendSchema: suspendDataSchema,
   resumeSchema: resumeDataSchema,
-  execute: async ({ inputData, resumeData, suspend, tracingContext, writer }) => {
+  execute: async ({ inputData, resumeData, suspend, writer }) => {
     const startTime = Date.now();
     logStepStart('human-approval', { learningsCount: inputData.learnings.length, hasResumeData: !!resumeData });
 
@@ -275,11 +296,9 @@ const humanApprovalStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.WORKFLOW_RUN,
-      name: 'human-approval-check',
-      input: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('learning-extraction');
+    const span = tracer.startSpan('human-approval-check', {
+      attributes: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
     });
 
     try {
@@ -304,7 +323,10 @@ const humanApprovalStep = createStep({
           },
         };
 
-        span?.end({ output: { autoApproved: true, learningsCount: inputData.learnings.length } });
+        span.setAttribute('autoApproved', true);
+        span.setAttribute('learningsCount', inputData.learnings.length);
+        span.setAttribute('responseTimeMs', Date.now() - startTime);
+        span.end();
 
         await writer?.write({
           type: 'step-complete',
@@ -324,7 +346,10 @@ const humanApprovalStep = createStep({
           learningsCount: inputData.learnings.length,
         });
 
-        span?.end({ output: { suspended: true, awaitingApproval: true } });
+        span.setAttribute('suspended', true);
+        span.setAttribute('awaitingApproval', true);
+        span.setAttribute('responseTimeMs', Date.now() - startTime);
+        span.end();
 
         logStepEnd('human-approval', { status: 'suspended' }, Date.now() - startTime);
 
@@ -386,15 +411,11 @@ const humanApprovalStep = createStep({
         },
       };
 
-      span?.end({
-        output: {
-          approved: resumeData.approved,
-          approvedCount: approvedLearnings.length,
-          rejectedCount,
-          approvalRate,
-        },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      if (typeof resumeData?.approved === 'boolean') {span.setAttribute('approved', resumeData.approved);}
+      if (Array.isArray(resumeData?.approvedLearnings)) {span.setAttribute('approvedLearningsCount', resumeData.approvedLearnings.length);}
+      if (Array.isArray(resumeData?.rejectedLearnings)) {span.setAttribute('rejectedLearningsCount', resumeData.rejectedLearnings.length);}
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -406,7 +427,9 @@ const humanApprovalStep = createStep({
       logStepEnd('human-approval', { approved: resumeData.approved, approvedCount: approvedLearnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('human-approval', error);
 
       await writer?.write({
@@ -425,7 +448,7 @@ const validateLearningsStep = createStep({
   description: 'Validates approved learnings using evaluationAgent',
   inputSchema: approvalResultSchema,
   outputSchema: validatedLearningsSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('validate-learnings', { learningsCount: inputData.learnings.length });
 
@@ -435,11 +458,12 @@ const validateLearningsStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'learning-validation',
-      input: { learningsCount: inputData.learnings.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    // Use OpenTelemetry directly; don't rely on Mastra tracing shims.
+    const tracer = trace.getTracer('learning-extraction');
+    const span = tracer.startSpan('learning-validation', {
+      attributes: {
+        learningsCount: inputData.learnings.length,
+      },
     });
 
     try {
@@ -459,26 +483,39 @@ const validateLearningsStep = createStep({
         let validationNotes = '';
 
         if (agent) {
-          const response = await agent.generate(
+          const stream = await agent.stream(
             `Validate this learning extraction:
-            Title: ${learning.title}
-            Description: ${learning.description}
-            Category: ${learning.category}
-            Importance: ${learning.importance}
-            
-            Rate quality 0-100 and note any issues.`,
+              Title: ${learning.title}
+              Description: ${learning.description}
+              Category: ${learning.category}
+              Importance: ${learning.importance}
+
+              Rate quality 0-100 and note any issues.`,
             {
               output: z.object({
                 qualityScore: z.number().min(0).max(100),
                 validated: z.boolean(),
                 notes: z.string().optional(),
               }),
-            }
+            } as any
           );
 
-          validated = response.object.validated;
-          qualityScore = response.object.qualityScore;
-          validationNotes = response.object.notes ?? '';
+          // Stream deltas to the workflow writer if available
+          await stream.textStream?.pipeTo?.(writer);
+
+          const finalText = await stream.text;
+          let parsed: { validated: boolean; qualityScore: number; notes?: string } | null = null;
+          try {
+            parsed = JSON.parse(finalText) as { validated: boolean; qualityScore: number; notes?: string };
+          } catch {
+            parsed = null;
+          }
+
+          if (parsed) {
+            validated = parsed.validated;
+            qualityScore = parsed.qualityScore;
+            validationNotes = parsed.notes ?? '';
+          }
         } else {
           qualityScore = 70 + Math.floor(Math.random() * 25);
           validated = qualityScore >= 60;
@@ -521,14 +558,12 @@ const validateLearningsStep = createStep({
         },
       };
 
-      span?.end({
-        output: {
-          totalValidated: result.validationSummary.totalValidated,
-          highQuality,
-          needsReview,
-        },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      // Record result metrics on the span
+      span.setAttribute('totalValidated', result.validationSummary.totalValidated);
+      span.setAttribute('highQuality', highQuality);
+      span.setAttribute('needsReview', needsReview);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -540,7 +575,10 @@ const validateLearningsStep = createStep({
       logStepEnd('validate-learnings', result.validationSummary, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
+
       logError('validate-learnings', error);
 
       await writer?.write({
@@ -559,7 +597,7 @@ const generateLearningReportStep = createStep({
   description: 'Generates final learning extraction report',
   inputSchema: validatedLearningsSchema,
   outputSchema: finalOutputSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('generate-learning-report', { learningsCount: inputData.learnings.length });
 
@@ -569,11 +607,12 @@ const generateLearningReportStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'learning-report-generation',
-      input: { learningsCount: inputData.learnings.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    // Use OpenTelemetry directly; avoid Mastra-specific tracing shims.
+    const tracer = trace.getTracer('learning-extraction');
+    const span = tracer.startSpan('learning-report-generation', {
+      attributes: {
+        learningsCount: inputData.learnings.length,
+      },
     });
 
     try {
@@ -593,60 +632,76 @@ const generateLearningReportStep = createStep({
       if (agent) {
         const prompt = `Generate a learning extraction report:
 
-Learnings (${inputData.learnings.length} total):
-${inputData.learnings.map(l => 
-  `- [${l.importance.toUpperCase()}] ${l.title}: ${l.description} (Quality: ${l.qualityScore}%)`
-).join('\n')}
+  Learnings (${inputData.learnings.length} total):
+  ${inputData.learnings
+            .map(
+              l =>
+                `- [${l.importance.toUpperCase()}] ${l.title}: ${l.description} (Quality: ${l.qualityScore ?? 0}%)`,
+            )
+            .join('\n')}
 
-Validation Summary:
-- Validated: ${inputData.validationSummary.totalValidated}
-- High Quality: ${inputData.validationSummary.highQuality}
-- Needs Review: ${inputData.validationSummary.needsReview}
+  Validation Summary:
+  - Validated: ${inputData.validationSummary.totalValidated}
+  - High Quality: ${inputData.validationSummary.highQuality}
+  - Needs Review: ${inputData.validationSummary.needsReview}
 
-Create a comprehensive report with summary, categorized learnings, action items, and recommendations.`;
+  Create a comprehensive report with summary, categorized learnings, action items, and recommendations.`;
 
-        const response = await agent.generate(prompt, {
-          output: z.object({
-            report: z.string(),
-            summary: z.string(),
-          }),
-        });
+        // Call the agent without the unsupported `output` option.
+        const response: any = await agent.generate(prompt);
 
-        report = response.object.report;
-        summary = response.object.summary;
+        // Guard against undefined or unexpected shapes.
+        if (response && typeof response === 'object') {
+          report = response.report ?? '';
+          summary = response.summary ?? '';
+        } else {
+          // Fallback: treat the raw response as the report.
+          report = String(response);
+          summary = '';
+        }
       } else {
         summary = `Extracted and validated ${inputData.learnings.length} learnings: ${criticalLearnings.length} critical, ${actionableItems.length} actionable.`;
         report = `# Learning Extraction Report
 
-## Summary
-${summary}
+  ## Summary
+  ${summary}
 
-## Critical Learnings
-${criticalLearnings.length > 0
-  ? criticalLearnings.map(l => `### ${l.title}\n${l.description}\n- Quality Score: ${l.qualityScore}%`).join('\n\n')
-  : 'No critical learnings identified.'}
+  ## Critical Learnings
+  ${criticalLearnings.length > 0
+            ? criticalLearnings
+              .map(l => `### ${l.title}\n${l.description}\n- Quality Score: ${l.qualityScore ?? 0}%`)
+              .join('\n\n')
+            : 'No critical learnings identified.'}
 
-## All Learnings by Category
+  ## All Learnings by Category
 
-${['concept', 'technique', 'insight', 'fact', 'principle', 'pattern'].map(cat => {
-  const catLearnings = inputData.learnings.filter(l => l.category === cat);
-  if (catLearnings.length === 0) return '';
-  return `### ${cat.charAt(0).toUpperCase() + cat.slice(1)}s
-${catLearnings.map(l => `- **${l.title}** [${l.importance}]: ${l.description}`).join('\n')}`;
-}).filter(Boolean).join('\n\n')}
+  ${['concept', 'technique', 'insight', 'fact', 'principle', 'pattern']
+            .map(cat => {
+              const catLearnings = inputData.learnings.filter(l => l.category === cat);
+              if (catLearnings.length === 0) {return '';}
+              return `### ${cat.charAt(0).toUpperCase() + cat.slice(1)}s
+  ${catLearnings
+                  .map(l => `- **${l.title}** [${l.importance}]: ${l.description}`)
+                  .join('\n')}`;
+            })
+            .filter(Boolean)
+            .join('\n\n')}
 
-## Action Items
-${actionableItems.length > 0
-  ? actionableItems.flatMap(l => l.actionItems ?? []).map(a => `- ${a}`).join('\n')
-  : 'No action items identified.'}
+  ## Action Items
+  ${actionableItems.length > 0
+            ? actionableItems
+              .flatMap(l => l.actionItems ?? [])
+              .map(a => `- ${a}`)
+              .join('\n')
+            : 'No action items identified.'}
 
-## Validation Summary
-- Total Validated: ${inputData.validationSummary.totalValidated}
-- High Quality (80%+): ${inputData.validationSummary.highQuality}
-- Needs Review: ${inputData.validationSummary.needsReview}
+  ## Validation Summary
+  - Total Validated: ${inputData.validationSummary.totalValidated}
+  - High Quality (80%+): ${inputData.validationSummary.highQuality}
+  - Needs Review: ${inputData.validationSummary.needsReview}
 
----
-*Report generated: ${new Date().toISOString()}*`;
+  ---
+  *Report generated: ${new Date().toISOString()}*`;
       }
 
       await writer?.write({
@@ -670,10 +725,10 @@ ${actionableItems.length > 0
         },
       };
 
-      span?.end({
-        output: { reportLength: report.length, learningsCount: inputData.learnings.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      // Record useful metrics on the span.
+      span.setAttribute('reportLength', report.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -685,7 +740,10 @@ ${actionableItems.length > 0
       logStepEnd('generate-learning-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
+
       logError('generate-learning-report', error);
 
       await writer?.write({

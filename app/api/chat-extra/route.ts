@@ -1,20 +1,20 @@
 import { mastra } from "../../../src/mastra";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { RequestContext } from '@mastra/core/request-context';
 
 export async function POST(req: Request) {
   const { messages, data } = await req.json();
   const myAgent = mastra.getAgent("weatherAgent");
 
-  const runtimeContext = new RuntimeContext();
+  const requestContext = new RequestContext();
 
   if (data) {
     for (const [key, value] of Object.entries(data)) {
-      runtimeContext.set(key, value);
+      requestContext.set(key, value);
     }
   }
 
   const stream = await myAgent.stream(messages, {
-    runtimeContext,
+    requestContext,
     format: "aisdk",
   });
   return stream.toUIMessageStreamResponse();

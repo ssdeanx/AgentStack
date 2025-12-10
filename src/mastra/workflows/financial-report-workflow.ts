@@ -1,7 +1,8 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { z } from 'zod';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import { logStepStart, logStepEnd, logError } from '../config/logger';
+
+import { logError, logStepEnd, logStepStart } from '../config/logger';
 
 const financialInputSchema = z.object({
   symbols: z.array(z.string()).min(1).describe('Stock ticker symbols'),
@@ -123,7 +124,7 @@ const fetchPriceDataStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData, tracingContext, writer }) => {
+  execute: async ({ inputData,  writer }) => {
     const startTime = Date.now();
     logStepStart('fetch-price-data', { symbols: inputData.symbols });
 
@@ -133,14 +134,13 @@ const fetchPriceDataStep = createStep({
       timestamp: Date.now(),
     });
 
-    const parentSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'parallel-price-fetch',
-      input: { symbols: inputData.symbols },
+    const tracer = trace.getTracer('financial-report');
+    const parentSpan = tracer.startSpan('parallel-price-fetch', {
+      attributes: { symbols: inputData.symbols },
     });
 
     try {
-      const priceData: z.infer<typeof priceDataSchema>[] = [];
+      const priceData: Array<z.infer<typeof priceDataSchema>> = [];
       const apiKey = process.env.POLYGON_API_KEY;
 
       await writer?.write({
@@ -154,12 +154,8 @@ const fetchPriceDataStep = createStep({
       for (let i = 0; i < inputData.symbols.length; i++) {
         const symbol = inputData.symbols[i];
 
-        const symbolSpan = parentSpan?.createChildSpan({
-          type: AISpanType.TOOL_CALL,
-          name: `price-fetch-${symbol}`,
-          input: { symbol },
-          metadata: { service: 'polygon' },
-          tracingPolicy: { internal: InternalSpans.ALL }
+        const symbolSpan = tracer.startSpan(`price-fetch-${symbol}`, {
+          attributes: { symbol, service: 'polygon' },
         });
 
         try {
@@ -193,9 +189,14 @@ const fetchPriceDataStep = createStep({
             });
           }
 
-          symbolSpan?.end({ output: { symbol, fetched: true } });
+          symbolSpan.setAttribute('symbol', symbol);
+          symbolSpan.setAttribute('fetched', true);
+          symbolSpan.setAttribute('responseTimeMs', Date.now() - startTime);
+          symbolSpan.end();
         } catch (error) {
-          symbolSpan?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+          symbolSpan.recordException(error instanceof Error ? error : new Error(String(error)));
+          symbolSpan.setStatus({ code: SpanStatusCode.ERROR });
+          symbolSpan.end();
           priceData.push({ symbol, timestamp: new Date().toISOString() });
         }
 
@@ -208,10 +209,9 @@ const fetchPriceDataStep = createStep({
         });
       }
 
-      parentSpan?.end({
-        output: { symbolsCount: priceData.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      parentSpan.setAttribute('symbolsCount', priceData.length);
+      parentSpan.setAttribute('responseTimeMs', Date.now() - startTime);
+      parentSpan.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -232,7 +232,9 @@ const fetchPriceDataStep = createStep({
         },
       };
     } catch (error) {
-      parentSpan?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      parentSpan.recordException(error instanceof Error ? error : new Error(String(error)));
+      parentSpan.setStatus({ code: SpanStatusCode.ERROR });
+      parentSpan.end();
       logError('fetch-price-data', error, { symbols: inputData.symbols });
 
       await writer?.write({
@@ -260,7 +262,7 @@ const fetchCompanyMetricsStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData, tracingContext, writer }) => {
+  execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
     logStepStart('fetch-company-metrics', { symbols: inputData.symbols });
 
@@ -270,15 +272,13 @@ const fetchCompanyMetricsStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'parallel-metrics-fetch',
-      input: { symbols: inputData.symbols },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('financial-report');
+    const span = tracer.startSpan('parallel-metrics-fetch', {
+      attributes: { symbols: inputData.symbols },
     });
 
     try {
-      const companyMetrics: z.infer<typeof companyMetricsSchema>[] = [];
+      const companyMetrics: Array<z.infer<typeof companyMetricsSchema>> = [];
       const apiKey = process.env.FINNHUB_API_KEY;
 
       await writer?.write({
@@ -332,10 +332,9 @@ const fetchCompanyMetricsStep = createStep({
         });
       }
 
-      span?.end({
-        output: { symbolsCount: companyMetrics.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('symbolsCount', companyMetrics.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -356,7 +355,9 @@ const fetchCompanyMetricsStep = createStep({
         },
       };
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('fetch-company-metrics', error, { symbols: inputData.symbols });
 
       await writer?.write({
@@ -384,7 +385,7 @@ const fetchNewsSentimentStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData, tracingContext, writer }) => {
+  execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
     logStepStart('fetch-news-sentiment', { symbols: inputData.symbols });
 
@@ -394,15 +395,13 @@ const fetchNewsSentimentStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'parallel-news-fetch',
-      input: { symbols: inputData.symbols },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('financial-report');
+    const span = tracer.startSpan('parallel-news-fetch', {
+      attributes: { symbols: inputData.symbols },
     });
 
     try {
-      const newsSentiment: z.infer<typeof newsSentimentSchema>[] = [];
+      const newsSentiment: Array<z.infer<typeof newsSentimentSchema>> = [];
       const apiKey = process.env.FINNHUB_API_KEY;
 
       if (!inputData.includeNews) {
@@ -410,7 +409,10 @@ const fetchNewsSentimentStep = createStep({
           newsSentiment.push({ symbol, articles: [], overallSentiment: 'neutral' });
         });
 
-        span?.end({ output: { skipped: true, reason: 'includeNews=false' } });
+        span.setAttribute('skipped', true);
+        span.setAttribute('skipReason', 'includeNews=false');
+        span.setAttribute('responseTimeMs', Date.now() - startTime);
+        span.end();
 
         await writer?.write({
           type: 'step-complete',
@@ -452,11 +454,11 @@ const fetchNewsSentimentStep = createStep({
 
             const formattedArticles = Array.isArray(articles)
               ? articles.slice(0, 5).map((a: { headline?: string; source?: string; datetime?: number }) => ({
-                  headline: a.headline ?? '',
-                  source: a.source,
-                  sentiment: 'neutral' as const,
-                  publishedAt: a.datetime ? new Date(a.datetime * 1000).toISOString() : undefined,
-                }))
+                headline: a.headline ?? '',
+                source: a.source,
+                sentiment: 'neutral' as const,
+                publishedAt: (a.datetime) ? new Date(a.datetime * 1000).toISOString() : undefined,
+              }))
               : [];
 
             newsSentiment.push({
@@ -486,10 +488,9 @@ const fetchNewsSentimentStep = createStep({
         });
       }
 
-      span?.end({
-        output: { symbolsCount: newsSentiment.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('symbolsCount', newsSentiment.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -510,7 +511,9 @@ const fetchNewsSentimentStep = createStep({
         },
       };
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('fetch-news-sentiment', error, { symbols: inputData.symbols });
 
       await writer?.write({
@@ -529,7 +532,7 @@ const mergeDataStep = createStep({
   description: 'Merges parallel fetch results into unified structure',
   inputSchema: parallelResultsSchema,
   outputSchema: mergedDataSchema,
-  execute: async ({ inputData, tracingContext, writer }) => {
+  execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
     logStepStart('merge-data', { symbolsCount: inputData.metadata.symbols.length });
 
@@ -539,11 +542,9 @@ const mergeDataStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'data-merge',
-      input: { symbolsCount: inputData.metadata.symbols.length },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('financial-report');
+    const span = tracer.startSpan('data-merge', {
+      attributes: { symbolsCount: inputData.metadata.symbols.length },
     });
 
     try {
@@ -577,10 +578,9 @@ const mergeDataStep = createStep({
         },
       };
 
-      span?.end({
-        output: { totalSymbols: stocks.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('totalSymbols', stocks.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -592,7 +592,9 @@ const mergeDataStep = createStep({
       logStepEnd('merge-data', { totalSymbols: stocks.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('merge-data', error);
 
       await writer?.write({
@@ -611,7 +613,7 @@ const analyzeDataStep = createStep({
   description: 'Analyzes merged data using stockAnalysisAgent',
   inputSchema: mergedDataSchema,
   outputSchema: analysisResultSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('analyze-data', { totalSymbols: inputData.metadata.totalSymbols });
 
@@ -621,11 +623,9 @@ const analyzeDataStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'stock-analysis',
-      input: { symbols: inputData.metadata.symbols },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('financial-report');
+    const span = tracer.startSpan('stock-analysis', {
+      attributes: { symbols: inputData.metadata.symbols },
     });
 
     try {
@@ -635,7 +635,7 @@ const analyzeDataStep = createStep({
         message: 'Analyzing stock data...',
       });
 
-      const sortedByChange = [...inputData.stocks].sort((a, b) => 
+      const sortedByChange = [...inputData.stocks].sort((a, b) =>
         (b.price.changePercent ?? 0) - (a.price.changePercent ?? 0)
       );
 
@@ -651,7 +651,7 @@ const analyzeDataStep = createStep({
         .map(s => s.symbol);
 
       const averageChange = inputData.stocks.reduce((sum, s) => sum + (s.price.changePercent ?? 0), 0) / inputData.stocks.length;
-      const marketTrend: 'bullish' | 'bearish' | 'neutral' = 
+      const marketTrend: 'bullish' | 'bearish' | 'neutral' =
         averageChange > 1 ? 'bullish' : averageChange < -1 ? 'bearish' : 'neutral';
 
       await writer?.write({
@@ -665,11 +665,11 @@ const analyzeDataStep = createStep({
 
       if (agent) {
         const analysisPrompt = `Analyze these stocks and provide buy/hold/sell recommendations:
-        ${inputData.stocks.map(s => 
+        ${inputData.stocks.map(s =>
           `${s.symbol}: Price $${s.price.currentPrice}, Change ${s.price.changePercent}%, P/E ${s.metrics.peRatio}, Sentiment ${s.sentiment.overallSentiment}`
         ).join('\n')}`;
 
-        const response = await agent.generate(analysisPrompt, {
+        const stream = await agent.stream(analysisPrompt, {
           output: z.object({
             recommendations: z.array(z.object({
               symbol: z.string(),
@@ -677,9 +677,20 @@ const analyzeDataStep = createStep({
               reason: z.string(),
             })),
           }),
-        });
+        } as any);
 
-        recommendations = response.object.recommendations;
+        // Pipe streaming partial output to the workflow writer so clients see progress
+        await stream.textStream.pipeTo(writer);
+        // Wait for final text and parse it as structured JSON; fallback to empty array if needed
+        const finalText = await stream.text;
+        let parsedAnalysis: any = null;
+        try {
+          parsedAnalysis = JSON.parse(finalText);
+        } catch {
+          parsedAnalysis = null;
+        }
+        // Assign to the existing `recommendations` variable rather than shadowing it.
+        recommendations = parsedAnalysis?.recommendations ?? [];
       } else {
         recommendations = inputData.stocks.map(s => ({
           symbol: s.symbol,
@@ -708,10 +719,10 @@ const analyzeDataStep = createStep({
         metadata: inputData.metadata,
       };
 
-      span?.end({
-        output: { marketTrend, recommendationsCount: recommendations.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('marketTrend', marketTrend);
+      span.setAttribute('recommendationsCount', recommendations.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -723,7 +734,9 @@ const analyzeDataStep = createStep({
       logStepEnd('analyze-data', { marketTrend, recommendationsCount: recommendations.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('analyze-data', error);
 
       await writer?.write({
@@ -742,7 +755,7 @@ const generateReportStep = createStep({
   description: 'Generates comprehensive financial report using reportAgent',
   inputSchema: analysisResultSchema,
   outputSchema: finalReportSchema,
-  execute: async ({ inputData, mastra, tracingContext, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
     logStepStart('generate-report', { symbols: inputData.metadata.symbols });
 
@@ -752,11 +765,9 @@ const generateReportStep = createStep({
       timestamp: Date.now(),
     });
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'report-generation',
-      input: { symbolsCount: inputData.metadata.totalSymbols },
-      tracingPolicy: { internal: InternalSpans.ALL }
+    const tracer = trace.getTracer('financial-report');
+    const span = tracer.startSpan('report-generation', {
+      attributes: { symbolsCount: inputData.metadata.totalSymbols },
     });
 
     try {
@@ -789,32 +800,43 @@ Top Performers: ${inputData.analysis.topPerformers.join(', ')}
 Underperformers: ${inputData.analysis.worstPerformers.join(', ')}
 
 Stock Details:
-${inputData.stocks.map(s => 
-  `${s.symbol}: $${s.price.currentPrice} (${s.price.changePercent?.toFixed(2)}%), P/E: ${s.metrics.peRatio?.toFixed(2)}`
-).join('\n')}
+${inputData.stocks.map(s =>
+          `${s.symbol}: $${s.price.currentPrice} (${s.price.changePercent?.toFixed(2)}%), P/E: ${s.metrics.peRatio?.toFixed(2)}`
+        ).join('\n')}
 
 Recommendations:
 ${inputData.analysis.recommendations.map(r => `${r.symbol}: ${r.action} - ${r.reason}`).join('\n')}
 
 Provide a concise summary and detailed report.`;
 
-        const response = await agent.generate(prompt, {
+        const stream = await agent.stream(prompt, {
           output: z.object({
             summary: z.string(),
             report: z.string(),
           }),
-        });
+        } as any);
 
-        summary = response.object.summary;
-        report = response.object.report;
+        // Pipe text deltas into the workflow writer to surface partial report progress to callers
+        await stream.textStream.pipeTo(writer);
+        // Wait for the final aggregated text
+        const finalText = await stream.text;
+        try {
+          const parsed = JSON.parse(finalText);
+          report = parsed.report ?? finalText;
+          summary = parsed.summary ?? finalText;
+        } catch {
+          // If parsing fails assume the LLM returned plain text
+          report = finalText;
+          summary = finalText;
+        }
+
       } else {
         summary = `${inputData.metadata.reportType.charAt(0).toUpperCase() + inputData.metadata.reportType.slice(1)} Report: Market ${inputData.analysis.marketTrend} with ${inputData.analysis.averageChange.toFixed(2)}% average change. Top: ${inputData.analysis.topPerformers.join(', ')}.`;
-        
-        report = `# Financial Report\n\n## Market Overview\n\nTrend: ${inputData.analysis.marketTrend}\nAverage Change: ${inputData.analysis.averageChange.toFixed(2)}%\n\n## Stock Analysis\n\n${
-          inputData.stocks.map(s => 
-            `### ${s.symbol}\n- Price: $${s.price.currentPrice}\n- Change: ${s.price.changePercent?.toFixed(2)}%`
-          ).join('\n\n')
-        }\n\n## Recommendations\n\n${inputData.analysis.recommendations.map(r => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`;
+
+        report = `# Financial Report\n\n## Market Overview\n\nTrend: ${inputData.analysis.marketTrend}\nAverage Change: ${inputData.analysis.averageChange.toFixed(2)}%\n\n## Stock Analysis\n\n${inputData.stocks.map(s =>
+          `### ${s.symbol}\n- Price: $${s.price.currentPrice}\n- Change: ${s.price.changePercent?.toFixed(2)}%`
+        ).join('\n\n')
+          }\n\n## Recommendations\n\n${inputData.analysis.recommendations.map(r => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`;
       }
 
       await writer?.write({
@@ -839,10 +861,10 @@ Provide a concise summary and detailed report.`;
         },
       };
 
-      span?.end({
-        output: { reportId, summaryLength: summary.length },
-        metadata: { responseTime: Date.now() - startTime },
-      });
+      span.setAttribute('reportId', reportId);
+      span.setAttribute('summaryLength', summary.length);
+      span.setAttribute('responseTimeMs', Date.now() - startTime);
+      span.end();
 
       await writer?.write({
         type: 'step-complete',
@@ -854,7 +876,9 @@ Provide a concise summary and detailed report.`;
       logStepEnd('generate-report', { reportId }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.end();
       logError('generate-report', error);
 
       await writer?.write({

@@ -3,13 +3,13 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
+
 import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RequestContext } from '@mastra/core/request-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
-} from "@mastra/evals/scorers/llm";
+} from '@mastra/evals/scorers/prebuilt';
 import { PGVECTOR_PROMPT } from "@mastra/pg";
 import { google, googleAI, googleAI3, googleAIFlashLite } from '../config/google';
 import { log } from '../config/logger';
@@ -57,13 +57,13 @@ export const legalResearchAgent = new Agent({
   name: 'Legal Research Agent',
   description:
     'An expert legal research agent that conducts thorough research using authoritative legal sources.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<BusinessRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
-    const responseFormat = runtimeContext.get('responseFormat') ?? 'json'
-    const research = runtimeContext.get('research') ?? { depth: 'extensive', scope: 'full' }
-    const analysis = runtimeContext.get('analysis') ?? { depth: 'extensive', scope: 'full' }
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const responseFormat = requestContext.get('responseFormat') ?? 'json'
+    const research = requestContext.get('research') ?? { depth: 'extensive', scope: 'full' }
+    const analysis = requestContext.get('analysis') ?? { depth: 'extensive', scope: 'full' }
     return {
       role: 'system',
       content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
@@ -109,8 +109,8 @@ ${PGVECTOR_PROMPT}
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<BusinessRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAI3
@@ -140,7 +140,7 @@ ${PGVECTOR_PROMPT}
     pdfToMarkdownTool
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -165,10 +165,10 @@ export const contractAnalysisAgent = new Agent({
   name: 'Contract Analysis Agent',
   description:
     'An expert contract analysis agent that reviews and analyzes legal documents for risks and compliance.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<BusinessRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -224,7 +224,7 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
     googleScholarTool
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -249,10 +249,10 @@ export const complianceMonitoringAgent = new Agent({
   name: 'Compliance Monitoring Agent',
   description:
     'An expert compliance agent that monitors regulatory compliance and identifies compliance risks.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<BusinessRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -315,7 +315,7 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
     }),
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -340,10 +340,10 @@ export const businessStrategyAgent = new Agent({
   name: 'Business Strategy Agent',
   description:
     'A strategic business agent that coordinates legal compliance with business objectives and oversees the legal team.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<BusinessRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<BusinessRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -401,7 +401,7 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
     // Integration tools for coordinating other agents would be added here
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),

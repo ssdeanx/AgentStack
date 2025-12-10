@@ -1,8 +1,8 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
-
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { editorAgent } from '../agents/editorAgent';
 export const editorTool = createTool({
   id: 'editor-agent',
   description:
@@ -33,27 +33,24 @@ export const editorTool = createTool({
       .optional()
       .describe('Additional suggestions for improvement'),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📝 Starting editor agent' } });
-    const { content, contentType = 'general', instructions, tone } = context
+  execute: async (inputData, context) => {
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📝 Starting editor agent' } });
+    const { content, contentType = 'general', instructions, tone } = inputData
+    const writer = context?.writer;
 
-    // Create a span for tracing
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.AGENT_RUN,
-      name: 'editor-agent-tool',
-      input: {
+    const tracer = trace.getTracer('editor-agent-tool');
+    const span = tracer.startSpan('editor-agent', {
+      attributes: {
         contentType,
         contentLength: content.length,
-        hasInstructions:
-          typeof instructions === 'string' &&
-          instructions.trim().length > 0,
+        hasInstructions: typeof instructions === 'string' && instructions.trim().length > 0,
         tone: tone ?? 'not-specified',
-      },
-      tracingPolicy: { internal: InternalSpans.AGENT }
-    })
+        operation: 'editor-agent-run'
+      }
+    });
 
     try {
-      const agent = mastra!.getAgent('editorAgent')
+      // Direct agent usage
 
       // Build the prompt with context
       let prompt = `Edit the following content`
@@ -69,7 +66,7 @@ export const editorTool = createTool({
       prompt += `:\n\n${content}`
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '🤖 Generating edited content' } });
-      const result = await agent.generate(prompt)
+      const result = await editorAgent.generate(prompt)
 
       // Parse the structured response from the editor agent
       let parsedResult
@@ -85,14 +82,7 @@ export const editorTool = createTool({
         }
       }
 
-      span?.end({
-        output: {
-          success: true,
-          outputLength: parsedResult.editedContent?.length ?? 0,
-          changesCount: parsedResult.changes?.length ?? 0,
-          contentType: parsedResult.contentType ?? contentType,
-        },
-      })
+      span.end();
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Editing complete' } });
       return {
@@ -107,14 +97,10 @@ export const editorTool = createTool({
         suggestions: parsedResult.suggestions ?? [],
       }
     } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Unknown error'
-      span?.end({
-        metadata: {
-          success: false,
-          error: errorMsg,
-        },
-      })
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      span.recordException(error instanceof Error ? error : new Error(errorMsg));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
+      span.end();
       throw new Error(`Failed to edit content: ${errorMsg}`)
     }
   },

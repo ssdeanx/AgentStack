@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { RuntimeContext } from '@mastra/core/runtime-context'
-import type { TracingContext } from '@mastra/core/ai-tracing'
+import type { TracingContext } from '@mastra/observability'
 import { googleSearchTool, googleAiOverviewTool } from '../serpapi-search.tool'
 
 // Mock the serpapi package

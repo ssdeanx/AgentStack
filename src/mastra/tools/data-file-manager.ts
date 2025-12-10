@@ -12,8 +12,7 @@
 // outputSchema: src/mastra/schemas/tool-schemas.ts::ToolOutput
 // approvedBy: sam
 // approvalDate: 9/22
-
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises';
@@ -22,6 +21,7 @@ import { pipeline } from 'stream/promises';
 import * as zlib from 'zlib';
 import { z } from 'zod';
 import { log } from '../config/logger';
+import { trace } from "@opentelemetry/api";
 
 
 // Define runtime context for these tools
@@ -60,17 +60,20 @@ export const readDataFileTool = createTool({
       ),
   }),
   outputSchema: z.string().describe('The content of the file as a string.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📖 Reading file: ' + context.fileName } });
-    const readSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'read:file',
-      input: { fileName: context.fileName },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📖 Reading file: ' + inputData.fileName } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const readSpan = tracer.startSpan('read:file', {
+      attributes: {
+        'tool.id': 'read:file',
+        'tool.input.fileName': inputData.fileName,
+      }
+    });
 
     try {
-      const { fileName } = context
+      const { fileName } = inputData
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -81,13 +84,20 @@ export const readDataFileTool = createTool({
       }
       const content = await fs.readFile(realFullPath, 'utf-8')
       log.info(`Read file: ${fileName}`)
-      readSpan?.end({ output: { fileSize: content.length } })
+      readSpan.setAttributes({
+        'tool.output.fileSize': content.length
+      });
+      readSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File read successfully' } });
       return content
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      readSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        readSpan.recordException(error);
+      }
+      readSpan.setStatus({ code: 2, message: errorMessage });
+      readSpan.end();
       throw error
     }
   },
@@ -110,20 +120,21 @@ export const writeDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Writing to file: ' + context.fileName } });
-    const writeSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'write:file',
-      input: {
-        fileName: context.fileName,
-        contentLength: context.content.length,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Writing to file: ' + inputData.fileName } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const writeSpan = tracer.startSpan('write:file', {
+      attributes: {
+        'tool.id': 'write:file',
+        'tool.input.fileName': inputData.fileName,
+        'tool.input.contentLength': inputData.content.length,
+      }
+    });
 
     try {
-      const { fileName, content } = context
+      const { fileName, content } = inputData
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -142,13 +153,20 @@ export const writeDataFileTool = createTool({
       await fs.mkdir(realDirPath, { recursive: true })
       await fs.writeFile(realFullPath, content, 'utf-8')
       log.info(`Written to file: ${fileName}`)
-      writeSpan?.end({ output: { success: true } })
+      writeSpan.setAttributes({
+        'tool.output.success': true
+      });
+      writeSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File written successfully' } });
       return `File ${fileName} written successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      writeSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        writeSpan.recordException(error);
+      }
+      writeSpan.setStatus({ code: 2, message: errorMessage });
+      writeSpan.end();
       throw error
     }
   },
@@ -169,17 +187,20 @@ export const deleteDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Deleting file: ' + context.fileName } });
-    const deleteSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'delete:file',
-      input: { fileName: context.fileName },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Deleting file: ' + inputData.fileName } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const deleteSpan = tracer.startSpan('delete:file', {
+      attributes: {
+        'tool.id': 'delete:file',
+        'tool.input.fileName': inputData.fileName,
+      }
+    });
 
     try {
-      const { fileName } = context
+      const { fileName } = inputData
       const fullPath = validateDataPath(fileName)
       // Defensive: Ensure fullPath is within DATA_DIR before deleting
       if (!fullPath.startsWith(DATA_DIR)) {
@@ -189,13 +210,20 @@ export const deleteDataFileTool = createTool({
       }
       await fs.unlink(fullPath)
       log.info(`Deleted file: ${fileName}`)
-      deleteSpan?.end({ output: { success: true } })
+      deleteSpan.setAttributes({
+        'tool.output.success': true
+      });
+      deleteSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File deleted successfully' } });
       return `File ${fileName} deleted successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      deleteSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        deleteSpan.recordException(error);
+      }
+      deleteSpan.setStatus({ code: 2, message: errorMessage });
+      deleteSpan.end();
       throw error
     }
   },
@@ -218,17 +246,20 @@ export const listDataDirTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of file and directory names.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing directory: ' + (context.dirPath ?? 'docs/data') } });
-    const listSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'list:directory',
-      input: { dirPath: context.dirPath ?? 'docs/data' },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing directory: ' + (inputData.dirPath ?? 'docs/data') } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const listSpan = tracer.startSpan('list:directory', {
+      attributes: {
+        'tool.id': 'list:directory',
+        'tool.input.dirPath': inputData.dirPath ?? 'docs/data',
+      }
+    });
 
     try {
-      const { dirPath = 'docs/data' } = context
+      const { dirPath = 'docs/data' } = inputData
       const fullPath = validateDataPath(dirPath)
       // Defensive: Ensure fullPath is within DATA_DIR before reading directory
       if (!fullPath.startsWith(DATA_DIR)) {
@@ -238,13 +269,20 @@ export const listDataDirTool = createTool({
       }
       const contents = await fs.readdir(fullPath)
       log.info(`Listed directory: ${dirPath}`)
-      listSpan?.end({ output: { count: contents.length } })
+      listSpan.setAttributes({
+        'tool.output.count': contents.length
+      });
+      listSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory listed successfully' } });
       return contents
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      listSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        listSpan.recordException(error);
+      }
+      listSpan.setStatus({ code: 2, message: errorMessage });
+      listSpan.end();
       throw error
     }
   },
@@ -270,20 +308,21 @@ export const copyDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Copying file: ${context.sourceFile} to ${context.destFile}` } });
-    const copySpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'copy:file',
-      input: {
-        sourceFile: context.sourceFile,
-        destFile: context.destFile,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Copying file: ${inputData.sourceFile} to ${inputData.destFile}` } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const copySpan = tracer.startSpan('copy:file', {
+      attributes: {
+        'tool.id': 'copy:file',
+        'tool.input.sourceFile': inputData.sourceFile,
+        'tool.input.destFile': inputData.destFile,
+      }
+    });
 
     try {
-      const { sourceFile, destFile } = context
+      const { sourceFile, destFile } = inputData
       const sourcePath = validateDataPath(sourceFile)
       const destPath = validateDataPath(destFile)
       // Defensive: Ensure both paths are within DATA_DIR
@@ -299,13 +338,20 @@ export const copyDataFileTool = createTool({
       await fs.mkdir(destDir, { recursive: true })
       await fs.copyFile(sourcePath, destPath)
       log.info(`Copied file: ${sourceFile} to ${destFile}`)
-      copySpan?.end({ output: { success: true } })
+      copySpan.setAttributes({
+        'tool.output.success': true
+      });
+      copySpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File copied successfully' } });
       return `File ${sourceFile} copied to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      copySpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        copySpan.recordException(error);
+      }
+      copySpan.setStatus({ code: 2, message: errorMessage });
+      copySpan.end();
       throw error
     }
   },
@@ -331,20 +377,21 @@ export const moveDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🚚 Moving file: ${context.sourceFile} to ${context.destFile}` } });
-    const moveSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'move:file',
-      input: {
-        sourceFile: context.sourceFile,
-        destFile: context.destFile,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🚚 Moving file: ${inputData.sourceFile} to ${inputData.destFile}` } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const moveSpan = tracer.startSpan('move:file', {
+      attributes: {
+        'tool.id': 'move:file',
+        'tool.input.sourceFile': inputData.sourceFile,
+        'tool.input.destFile': inputData.destFile,
+      }
+    });
 
     try {
-      const { sourceFile, destFile } = context
+      const { sourceFile, destFile } = inputData
       const sourcePath = validateDataPath(sourceFile)
       const destPath = validateDataPath(destFile)
       // Defensive: Ensure both paths are within DATA_DIR
@@ -360,13 +407,20 @@ export const moveDataFileTool = createTool({
       await fs.mkdir(destDir, { recursive: true })
       await fs.rename(sourcePath, destPath)
       log.info(`Moved file: ${sourceFile} to ${destFile}`)
-      moveSpan?.end({ output: { success: true } })
+      moveSpan.setAttributes({
+        'tool.output.success': true
+      });
+      moveSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File moved successfully' } });
       return `File ${sourceFile} moved to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      moveSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        moveSpan.recordException(error);
+      }
+      moveSpan.setStatus({ code: 2, message: errorMessage });
+      moveSpan.end();
       throw error
     }
   },
@@ -398,25 +452,26 @@ export const searchDataFilesTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of matching file paths.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching for pattern: "${context.pattern}"` } });
-    const searchSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'search:files',
-      input: {
-        pattern: context.pattern,
-        searchContent: context.searchContent,
-        dirPath: context.dirPath,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching for pattern: "${inputData.pattern}"` } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const searchSpan = tracer.startSpan('search:files', {
+      attributes: {
+        'tool.id': 'search:files',
+        'tool.input.pattern': inputData.pattern,
+        'tool.input.searchContent': inputData.searchContent,
+        'tool.input.dirPath': inputData.dirPath,
+      }
+    });
 
     try {
       const {
         pattern,
         searchContent = false,
         dirPath = 'docs/data',
-      } = context
+      } = inputData
       const searchPath = validateDataPath(dirPath)
       if (!searchPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -466,13 +521,20 @@ export const searchDataFilesTool = createTool({
 
       await searchDir(searchPath)
       log.info(`Searched for pattern: ${pattern} in ${dirPath}`)
-      searchSpan?.end({ output: { resultCount: results.length } })
+      searchSpan.setAttributes({
+        'tool.output.resultCount': results.length
+      });
+      searchSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${results.length} matches` } });
       return results
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      searchSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        searchSpan.recordException(error);
+      }
+      searchSpan.setStatus({ code: 2, message: errorMessage });
+      searchSpan.end();
       throw error
     }
   },
@@ -500,17 +562,20 @@ export const getDataFileInfoTool = createTool({
       isDirectory: z.boolean(),
     })
     .describe('File metadata information.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: 'ℹ️ Getting info for file: ' + context.fileName } });
-    const infoSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'get:fileinfo',
-      input: { fileName: context.fileName },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: 'ℹ️ Getting info for file: ' + inputData.fileName } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const infoSpan = tracer.startSpan('get:fileinfo', {
+      attributes: {
+        'tool.id': 'get:fileinfo',
+        'tool.input.fileName': inputData.fileName,
+      }
+    });
 
     try {
-      const { fileName } = context
+      const { fileName } = inputData
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -528,15 +593,21 @@ export const getDataFileInfoTool = createTool({
         isFile: stats.isFile(),
         isDirectory: stats.isDirectory(),
       }
-      infoSpan?.end({
-        output: { fileSize: stats.size, isFile: stats.isFile() },
-      })
+      infoSpan.setAttributes({
+        'tool.output.fileSize': stats.size,
+        'tool.output.isFile': stats.isFile(),
+      });
+      infoSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File info retrieved' } });
       return result
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      infoSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        infoSpan.recordException(error);
+      }
+      infoSpan.setStatus({ code: 2, message: errorMessage });
+      infoSpan.end();
       throw error
     }
   },
@@ -556,16 +627,20 @@ export const createDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📁 Creating directory: ' + context.dirPath } });
-    const createDirSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'create:directory',
-      input: { dirPath: context.dirPath },
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '📁 Creating directory: ' + inputData.dirPath } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const createDirSpan = tracer.startSpan('create:directory', {
+      attributes: {
+        'tool.id': 'create:directory',
+        'tool.input.dirPath': inputData.dirPath,
+      }
+    });
 
     try {
-      const { dirPath } = context
+      const { dirPath } = inputData
       const fullPath = validateDataPath(dirPath)
       if (!fullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -574,13 +649,20 @@ export const createDataDirTool = createTool({
       }
       await fs.mkdir(fullPath, { recursive: true })
       log.info(`Created directory: ${dirPath}`)
-      createDirSpan?.end({ output: { success: true } })
+      createDirSpan.setAttributes({
+        'tool.output.success': true
+      });
+      createDirSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory created successfully' } });
       return `Directory ${dirPath} created successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      createDirSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        createDirSpan.recordException(error);
+      }
+      createDirSpan.setStatus({ code: 2, message: errorMessage });
+      createDirSpan.end();
       throw error
     }
   },
@@ -601,17 +683,20 @@ export const removeDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Removing directory: ' + context.dirPath } });
-    const removeDirSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'remove:directory',
-      input: { dirPath: context.dirPath },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Removing directory: ' + inputData.dirPath } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const removeDirSpan = tracer.startSpan('remove:directory', {
+      attributes: {
+        'tool.id': 'remove:directory',
+        'tool.input.dirPath': inputData.dirPath,
+      }
+    });
 
     try {
-      const { dirPath } = context
+      const { dirPath } = inputData
       const fullPath = validateDataPath(dirPath)
       if (!fullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -625,13 +710,20 @@ export const removeDataDirTool = createTool({
       }
       await fs.rmdir(fullPath)
       log.info(`Removed directory: ${dirPath}`)
-      removeDirSpan?.end({ output: { success: true } })
+      removeDirSpan.setAttributes({
+        'tool.output.success': true
+      });
+      removeDirSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory removed successfully' } });
       return `Directory ${dirPath} removed successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      removeDirSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        removeDirSpan.recordException(error);
+      }
+      removeDirSpan.setStatus({ code: 2, message: errorMessage });
+      removeDirSpan.end();
       throw error
     }
   },
@@ -658,20 +750,21 @@ export const archiveDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📦 Archiving: ${context.sourcePath} to ${context.archiveName}.gz` } });
-    const archiveSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'archive:data',
-      input: {
-        sourcePath: context.sourcePath,
-        archiveName: context.archiveName,
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📦 Archiving: ${inputData.sourcePath} to ${inputData.archiveName}.gz` } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const archiveSpan = tracer.startSpan('archive:data', {
+      attributes: {
+        'tool.id': 'archive:data',
+        'tool.input.sourcePath': inputData.sourcePath,
+        'tool.input.archiveName': inputData.archiveName,
+      }
+    });
 
     try {
-      const { sourcePath, archiveName } = context
+      const { sourcePath, archiveName } = inputData
       const sourceFullPath = validateDataPath(sourcePath)
       const archiveFullPath = validateDataPath(archiveName + '.gz')
       if (
@@ -692,13 +785,20 @@ export const archiveDataTool = createTool({
 
       await pipeline(sourceStream, gzip, archiveStream)
       log.info(`Archived: ${sourcePath} to ${archiveName}.gz`)
-      archiveSpan?.end({ output: { success: true } })
+      archiveSpan.setAttributes({
+        'tool.output.success': true
+      });
+      archiveSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Archive created successfully' } });
       return `File ${sourcePath} archived to ${archiveName}.gz successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      archiveSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        archiveSpan.recordException(error);
+      }
+      archiveSpan.setStatus({ code: 2, message: errorMessage });
+      archiveSpan.end();
       throw error
     }
   },
@@ -726,20 +826,21 @@ export const backupDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success with backup path.'),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 Creating backup for: ${context.sourcePath}` } });
-    const backupSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'backup:data',
-      input: {
-        sourcePath: context.sourcePath,
-        backupDir: context.backupDir ?? 'backups',
-      },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 Creating backup for: ${inputData.sourcePath}` } });
+    const tracer = trace.getTracer('data-file-manager', '1.0.0');
+    const backupSpan = tracer.startSpan('backup:data', {
+      attributes: {
+        'tool.id': 'backup:data',
+        'tool.input.sourcePath': inputData.sourcePath,
+        'tool.input.backupDir': inputData.backupDir ?? 'backups',
+      }
+    });
 
     try {
-      const { sourcePath, backupDir = 'backups' } = context
+      const { sourcePath, backupDir = 'backups' } = inputData
       const sourceFullPath = validateDataPath(sourcePath)
       if (!sourceFullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -762,13 +863,20 @@ export const backupDataTool = createTool({
       await fs.cp(sourceFullPath, backupFullPath, { recursive: true })
       const relativeBackupPath = path.relative(DATA_DIR, backupFullPath)
       log.info(`Backed up: ${sourcePath} to ${relativeBackupPath}`)
-      backupSpan?.end({ output: { backupPath: relativeBackupPath } })
+      backupSpan.setAttributes({
+        'tool.output.backupPath': relativeBackupPath
+      });
+      backupSpan.end();
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Backup created successfully' } });
       return `Backup created: ${sourcePath} → ${relativeBackupPath}`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      backupSpan?.end({ metadata: { error: errorMessage } })
+      if (error instanceof Error) {
+        backupSpan.recordException(error);
+      }
+      backupSpan.setStatus({ code: 2, message: errorMessage });
+      backupSpan.end();
       throw error
     }
   },

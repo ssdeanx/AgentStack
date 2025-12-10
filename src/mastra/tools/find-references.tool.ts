@@ -6,8 +6,8 @@ import * as path from 'path';
 import { glob } from 'glob';
 import { readFile } from 'fs/promises';
 import { log } from '../config/logger';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 const referenceContextSchema = z.object({
   maxReferences: z.number().default(500),
@@ -51,20 +51,25 @@ export const findReferencesTool = createTool({
   description: 'Find all references to a symbol (function, class, variable) across the codebase using semantic analysis.',
   inputSchema: findReferencesInputSchema,
   outputSchema: findReferencesOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext }) => {
-    const { symbolName, projectPath, filePath, line } = context;
+  execute: async (inputData, context) => {
+    const { symbolName, projectPath, filePath, line } = inputData;
 
-    const refContext = runtimeContext?.get('semanticAnalysisContext');
-    const { maxReferences } = referenceContextSchema.parse(refContext || {});
+    const requestContext = context?.requestContext;
+    const refContext = requestContext?.get('semanticAnalysisContext');
+    const { maxReferences } = referenceContextSchema.parse(refContext ?? {});
 
     const allReferences: ReferenceInfo[] = [];
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'find_references',
-      input: { symbolName, projectPath, filePath, line, maxReferences },
-      tracingPolicy: { internal: InternalSpans.ALL },
-      runtimeContext: runtimeContext as RuntimeContext<ReferenceContext>
+    const tracer = trace.getTracer('semantic-analysis');
+    const span = tracer.startSpan('find_references', {
+      attributes: {
+        symbolName,
+        projectPath,
+        filePath,
+        line,
+        maxReferences,
+        operation: 'find_references'
+      }
     });
 
     try {
@@ -95,8 +100,8 @@ export const findReferencesTool = createTool({
                       filePath: refSourceFile.getFilePath(),
                       line: pos.line,
                       column: pos.column,
-                      text: refNode.getParent()?.getText().substring(0, 100) || refNode.getText(),
-                      isDefinition: reference.isDefinition() || false
+                      text: refNode.getParent()?.getText().substring(0, 100) ?? refNode.getText(),
+                      isDefinition: reference.isDefinition() ?? false
                     });
                   }
                 }
@@ -164,14 +169,7 @@ export const findReferencesTool = createTool({
       const usages = allReferences.filter(r => !r.isDefinition);
       const filesCount = new Set(allReferences.map(r => r.filePath)).size;
 
-      span?.end({
-        output: {
-          totalReferences: allReferences.length,
-          filesCount,
-          definitions: definitions.length,
-          usages: usages.length
-        }
-      });
+      span.end();
 
       return {
         references: allReferences,
@@ -185,7 +183,9 @@ export const findReferencesTool = createTool({
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span?.end({ metadata: { error: errorMessage } });
+      span.recordException(new Error(errorMessage));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span.end();
       throw error;
     }
   }

@@ -1,5 +1,4 @@
- import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
+import { Agent } from '@mastra/core/agent'
 
 import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
@@ -14,6 +13,7 @@ import {
 } from '../tools/data-file-manager'
 import { readCSVDataTool } from '../tools/data-processing-tools'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export interface DataIngestionContext {
     userId?: string
@@ -29,10 +29,10 @@ export const dataIngestionAgent = new Agent({
     name: 'Data Ingestion Agent',
     description:
         'Parses CSV files, validates data structure, and converts to JSON format. Use for importing CSV data, reading data files, validating CSV structure, and extracting structured data from files.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const sourceDirectory = runtimeContext?.get('sourceDirectory') ?? './data'
-        const maxRows = runtimeContext?.get('maxRows') ?? 10000
+    instructions: ({ requestContext }: { requestContext: RequestContext<DataIngestionContext> }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const sourceDirectory = requestContext.get('sourceDirectory') ?? './data'
+        const maxRows = requestContext.get('maxRows') ?? 10000
 
         return `You are a Data Ingestion Specialist. Your role is to safely import and validate CSV data.
 
@@ -99,8 +99,7 @@ export const dataIngestionAgent = new Agent({
         listDataDirTool,
         getDataFileInfoTool,
         chartSupervisorTool
-    },
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    }
 })
 
 log.info('Data Ingestion Agent initialized')

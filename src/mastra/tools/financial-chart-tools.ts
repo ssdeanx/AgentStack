@@ -1,8 +1,9 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
+
 
 log.info('Initializing Financial Chart Tools...')
 
@@ -78,7 +79,7 @@ export const chartSupervisorTool = createTool({
     })),
     error: z.string().optional(),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
+  execute: async (inputData, context) => {
     const {
       symbols,
       chartType = 'auto',
@@ -87,22 +88,26 @@ export const chartSupervisorTool = createTool({
       theme = 'light',
       responsive = true,
       includeCode = true,
-    } = context
+    } = inputData
 
-    await writer?.write({
-      type: 'progress',
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
       data: { message: `📊 Starting chart pipeline for ${symbols.join(', ')}` },
     })
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'chart-supervisor-tool',
-      input: { symbols, chartType, timeRange, metrics, theme },
-      tracingPolicy: { internal: InternalSpans.TOOL },
+    const tracer = trace.getTracer('chart-supervisor-tool')
+    const span = tracer.startSpan('chart-supervisor-tool', {
+      attributes: {
+        'tool.id': 'chart-supervisor',
+        'tool.input.symbols': symbols.join(','),
+        'tool.input.chartType': chartType,
+        'tool.input.timeRange': timeRange,
+      }
     })
 
     try {
-      const agent = mastra!.getAgent('chartSupervisorAgent')
+      const agent = context?.mastra?.getAgent('chartSupervisorAgent')
+      if (!agent) {throw new Error('Agent chartSupervisorAgent not found');}
 
       const prompt = `Create a financial chart visualization with the following requirements:
 
@@ -121,7 +126,7 @@ Please:
 4. ${includeCode ? 'Generate the complete React TypeScript component code' : 'Skip component code generation'}
 5. Include all data sources used with timestamps`
 
-      await writer?.write({ type: 'progress', data: { message: '🔄 Fetching financial data...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Fetching financial data...' } })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -145,16 +150,14 @@ Please:
         }
       }
 
-      span?.end({
-        output: {
-          success: true,
-          symbols,
-          chartType: parsedResult.chartRecommendation?.type ?? chartType,
-          dataPoints: parsedResult.data?.metadata?.dataPoints ?? 0,
-        },
+      span.setAttributes({
+          'tool.output.success': true,
+          'tool.output.chartType': parsedResult.chartRecommendation?.type ?? chartType,
+          'tool.output.dataPoints': parsedResult.data?.metadata?.dataPoints ?? 0,
       })
+      span.end()
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Chart generation complete' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Chart generation complete' } })
 
       return {
         success: true,
@@ -168,7 +171,9 @@ Please:
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart supervisor tool error:', { error: errorMsg, symbols })
-      span?.end({ metadata: { success: false, error: errorMsg } })
+      span.recordException(error instanceof Error ? error : new Error(errorMsg))
+      span.setStatus({ code: 2, message: errorMsg })
+      span.end()
       return {
         success: false,
         sources: [],
@@ -224,7 +229,7 @@ export const chartGeneratorTool = createTool({
     props: z.record(z.string(), z.unknown()),
     dependencies: z.array(z.string()),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
+  execute: async (inputData, context) => {
     const {
       chartType,
       data,
@@ -234,22 +239,25 @@ export const chartGeneratorTool = createTool({
       features = ['tooltip', 'legend', 'grid', 'responsive'],
       xAxisKey = 'name',
       height = 400,
-    } = context
+    } = inputData
 
-    await writer?.write({
-      type: 'progress',
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
       data: { message: `⚛️ Generating ${chartType} component: ${componentName}` },
     })
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'chart-generator-tool',
-      input: { chartType, componentName, dataKeysCount: dataKeys.length, theme },
-      tracingPolicy: { internal: InternalSpans.TOOL },
+    const tracer = trace.getTracer('chart-generator-tool')
+    const span = tracer.startSpan('chart-generator-tool', {
+      attributes: {
+        'tool.id': 'chart-generator',
+        'tool.input.chartType': chartType,
+        'tool.input.componentName': componentName,
+      }
     })
 
     try {
-      const agent = mastra!.getAgent('chartGeneratorAgent')
+      const agent = context?.mastra?.getAgent('chartGeneratorAgent')
+      if (!agent) {throw new Error('Agent chartGeneratorAgent not found');}
 
       const prompt = `Generate a production-ready Recharts React component with these specifications:
 
@@ -272,7 +280,7 @@ Requirements:
 
 Return JSON with: componentName, code, usage, props, dependencies`
 
-      await writer?.write({ type: 'progress', data: { message: '🎨 Generating component code...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🎨 Generating component code...' } })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -294,15 +302,14 @@ Return JSON with: componentName, code, usage, props, dependencies`
         }
       }
 
-      span?.end({
-        output: {
-          success: true,
-          componentName: parsedResult.componentName,
-          codeLength: parsedResult.code?.length ?? 0,
-        },
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.componentName': parsedResult.componentName,
+        'tool.output.codeLength': parsedResult.code?.length ?? 0,
       })
+      span.end()
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Component generated' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Component generated' } })
 
       return {
         componentName: parsedResult.componentName ?? componentName,
@@ -314,7 +321,9 @@ Return JSON with: componentName, code, usage, props, dependencies`
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart generator tool error:', { error: errorMsg, chartType })
-      span?.end({ metadata: { success: false, error: errorMsg } })
+      span.recordException(error instanceof Error ? error : new Error(errorMsg))
+      span.setStatus({ code: 2, message: errorMsg })
+      span.end()
       throw new Error(`Failed to generate chart component: ${errorMsg}`)
     }
   },
@@ -367,29 +376,32 @@ export const chartDataProcessorTool = createTool({
     calculations: z.record(z.string(), z.unknown()).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
+  execute: async (inputData, context) => {
     const {
       symbols,
       timeRange = '1M',
       metrics = ['price', 'volume'],
       aggregation = 'daily',
       calculations = [],
-    } = context
+    } = inputData
 
-    await writer?.write({
-      type: 'progress',
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
       data: { message: `📈 Processing data for ${symbols.join(', ')}` },
     })
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'chart-data-processor-tool',
-      input: { symbols, timeRange, metrics, aggregation },
-      tracingPolicy: { internal: InternalSpans.TOOL },
+    const tracer = trace.getTracer('chart-data-processor-tool')
+    const span = tracer.startSpan('chart-data-processor-tool', {
+      attributes: {
+        'tool.id': 'chart-data-processor',
+        'tool.input.symbols': symbols.join(','),
+        'tool.input.aggregation': aggregation,
+      }
     })
 
     try {
-      const agent = mastra!.getAgent('chartDataProcessorAgent')
+      const agent = context?.mastra?.getAgent('chartDataProcessorAgent')
+      if (!agent) {throw new Error('Agent chartDataProcessorAgent not found');}
 
       const prompt = `Fetch and process financial data for Recharts visualization:
 
@@ -414,7 +426,7 @@ Return JSON with:
 - metadata: { symbols, timeRange, dataPoints, lastUpdated, interval }
 - calculations: Object with any calculated values`
 
-      await writer?.write({ type: 'progress', data: { message: '🔄 Fetching from financial APIs...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Fetching from financial APIs...' } })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -441,16 +453,15 @@ Return JSON with:
         }
       }
 
-      span?.end({
-        output: {
-          success: true,
-          dataPoints: parsedResult.chartData?.length ?? 0,
-          symbols,
-        },
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.dataPoints': parsedResult.chartData?.length ?? 0,
+        'tool.output.symbols': symbols.join(','),
       })
+      span.end()
 
-      await writer?.write({
-        type: 'progress',
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
         data: { message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points` },
       })
 
@@ -470,7 +481,9 @@ Return JSON with:
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart data processor tool error:', { error: errorMsg, symbols })
-      span?.end({ metadata: { success: false, error: errorMsg } })
+      span.recordException(error instanceof Error ? error : new Error(errorMsg))
+      span.setStatus({ code: 2, message: errorMsg })
+      span.end()
       return {
         chartData: [],
         dataKeys: [],
@@ -539,23 +552,25 @@ export const chartTypeAdvisorTool = createTool({
       suggestedHeight: z.number(),
     }),
   }),
-  execute: async ({ context, mastra, writer, runtimeContext, tracingContext }) => {
-    const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = context
+  execute: async (inputData, context) => {
+    const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
 
-    await writer?.write({
-      type: 'progress',
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
       data: { message: `🎯 Analyzing visualization requirements...` },
     })
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'chart-type-advisor-tool',
-      input: { visualizationGoal, dataCharacteristics },
-      tracingPolicy: { internal: InternalSpans.TOOL },
+    const tracer = trace.getTracer('chart-type-advisor-tool')
+    const span = tracer.startSpan('chart-type-advisor-tool', {
+      attributes: {
+        'tool.id': 'chart-type-advisor',
+        'tool.input.visualizationGoal': visualizationGoal,
+      }
     })
 
     try {
-      const agent = mastra!.getAgent('chartTypeAdvisorAgent')
+      const agent = context?.mastra?.getAgent('chartTypeAdvisorAgent')
+      if (!agent) {throw new Error('Agent chartTypeAdvisorAgent not found');}
 
       const prompt = `Recommend the optimal Recharts chart type:
 
@@ -604,15 +619,14 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
         }
       }
 
-      span?.end({
-        output: {
-          success: true,
-          recommendedType: parsedResult.primaryRecommendation?.chartType,
-        },
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.recommendedType': parsedResult.primaryRecommendation?.chartType,
       })
+      span.end()
 
-      await writer?.write({
-        type: 'progress',
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
         data: { message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}` },
       })
 
@@ -633,7 +647,9 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart type advisor tool error:', { error: errorMsg })
-      span?.end({ metadata: { success: false, error: errorMsg } })
+      span.recordException(error instanceof Error ? error : new Error(errorMsg))
+      span.setStatus({ code: 2, message: errorMsg })
+      span.end()
       throw new Error(`Failed to recommend chart type: ${errorMsg}`)
     }
   },

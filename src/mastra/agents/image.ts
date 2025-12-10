@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RequestContext } from '@mastra/core/request-context'
 import { imageGen, pgMemory } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
@@ -30,12 +29,12 @@ export const imageAgent = new Agent({
   id: 'imageAgent',
   name: 'Image Generator',
   description: 'Expert in generating images based on user requirements.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ImageRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ImageRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
-    const aspectratioX = runtimeContext.get('aspectratio') ?? '16:9'
-    const resolutionY = runtimeContext.get('resolution') ?? '2K'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const aspectratioX = requestContext.get('aspectratio') ?? '16:9'
+    const resolutionY = requestContext.get('resolution') ?? '2K'
     return {
       role: 'system',
       content: `You are an expert in generating images based on user requirements.
@@ -56,6 +55,5 @@ export const imageAgent = new Agent({
   },
   model: imageGen,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   maxRetries: 3
 })

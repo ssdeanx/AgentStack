@@ -1,8 +1,9 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace } from "@opentelemetry/api";
 import { createTool } from "@mastra/core/tools";
 import { readFileSync, writeFileSync } from 'fs';
 import { z } from 'zod';
 import { log } from '../config/logger';
+import type { RequestContext } from '@mastra/core/request-context';
 
 export const fsTool = createTool({
   id: 'fsTool',
@@ -15,15 +16,17 @@ export const fsTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ context, writer, tracingContext, runtimeContext }) => {
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
+
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'fs-tool',
-      input: { action: context.action, file: context.file },
-      tracingPolicy: { internal: InternalSpans.ALL }
+      input: { action: inputData.action, file: inputData.file },
     });
 
-    const { action, file, data } = context
+    const { action, file, data } = inputData
     await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 FS ${action} on ${file}` } });
     try {
       switch (action) {
@@ -43,7 +46,7 @@ export const fsTool = createTool({
       return { message: 'Success' }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      await writer?.write({ type: 'progress', data: { message: `❌ FS error: ${errorMsg}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ FS error: ${errorMsg}` } });
       log.error(
         `FS operation failed: ${errorMsg}`
       );

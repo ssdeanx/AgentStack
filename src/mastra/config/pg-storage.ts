@@ -5,30 +5,28 @@ import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag'
 import type { UIMessage } from 'ai'
 import { embedMany } from 'ai'
 import { log } from './logger'
-import { AISpanType } from '@mastra/core/ai-tracing'
-import type { TracingContext } from '@mastra/core/ai-tracing'
-import { TokenLimiter } from '@mastra/memory/processors'
 import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
-import { maskStreamTags } from '@mastra/core';
+// import { maskStreamTags } from '@mastra/core';
 import { z } from 'zod'
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 // Use the proper CoreMessage type from @mastra/core
 // This replaces the custom extension that was causing type conflicts
 
 // Utility function to create a masked stream for sensitive data
 // This properly uses maskStreamTags to mask content between XML tags in streams
-export function createMaskedStream(
-    inputStream: AsyncIterable<string>,
-    sensitiveTags: string[] = ['password', 'secret', 'token', 'key']
-): AsyncIterable<string> {
-    // Chain multiple maskStreamTags calls for different sensitive tags
-    let maskedStream = inputStream;
-    for (const tag of sensitiveTags) {
-        maskedStream = maskStreamTags(maskedStream, tag);
-    }
-    return maskedStream;
-}
+//export function createMaskedStream(
+//    inputStream: AsyncIterable<string>,
+//    sensitiveTags: string[] = ['password', 'secret', 'token', 'key']
+//): AsyncIterable<string> {
+//    // Chain multiple maskStreamTags calls for different sensitive tags
+ //   let maskedStream = inputStream;
+//    for (const tag of sensitiveTags) {
+//        maskedStream = maskStreamTags(maskedStream, tag);
+//    }
+//    return maskedStream;
+//}
 
 // Utility function to mask sensitive data in message content for logging
 export function maskSensitiveMessageData(
@@ -50,8 +48,9 @@ export function maskSensitiveMessageData(
 // PostgreSQL storage configuration with PgVector support
 log.info('Loading PG Storage config with PgVector support')
 // Production-grade PostgreSQL configuration with supported options
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const pgStore = new PostgresStore({
-    // Connection configuration
+    id: 'pg:store',
     connectionString:
         process.env.SUPABASE ??
         'postgresql://user:password@localhost:5432/mydb',
@@ -66,7 +65,7 @@ export const pgStore = new PostgresStore({
     // Keep alive settings
     keepAlive: true,
     keepAliveInitialDelayMillis: 0,
-})
+});
 
 await pgStore.init();
 const allIndexes = await pgStore.listIndexes();
@@ -78,13 +77,15 @@ log.info('PostgreSQL Store initialized with PgVector support, all indexes:', {
 });
 
 // PgVector configuration for 3072 dimension embeddings (gemini-embedding-001)
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const pgVector = new PgVector({
+    id: 'pg:vector',
     connectionString:
         process.env.SUPABASE ??
         'postgresql://user:password@localhost:5432/mydb',
     schemaName: process.env.DB_SCHEMA ?? 'mastra',
     // Additional index options can be configured here if needed
-})
+});
 
 // Memory configuration using PgVector with flat index for gemini-embedding-001
 export const pgMemory = new Memory({
@@ -132,7 +133,7 @@ export const pgMemory = new Memory({
             generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
         },
     },
-    processors: [new TokenLimiter(1048576)],
+    processors: [],
 })
 
 log.info('PG Store and Memory initialized with PgVector support', {
@@ -217,8 +218,7 @@ export async function generateEmbeddings(
         text: string
         metadata?: Record<string, unknown>
         id?: string
-    }>,
-    tracingContext?: TracingContext
+    }>
 ) {
     if (!chunks.length) {
         log.warn('No chunks provided for embedding generation')
@@ -227,24 +227,20 @@ export async function generateEmbeddings(
 
     const startTime = Date.now()
 
-    // Create tracing span for embedding generation
-    const embeddingSpan = tracingContext?.currentSpan?.createChildSpan({
-        type: AISpanType.MODEL_CHUNK,
-        name: 'generate-embeddings',
-        input: {
-            chunkCount: chunks.length,
-            totalTextLength: chunks.reduce(
+    // Get tracer from OpenTelemetry API
+    const tracer = trace.getTracer('pg-storage');
+    const embeddingSpan = tracer.startSpan('generate-embeddings', {
+        attributes: {
+            'component': 'pg-storage',
+            'operationType': 'embedding',
+            'model': 'gemini-embedding-001',
+            'input.chunkCount': chunks.length,
+            'input.totalTextLength': chunks.reduce(
                 (sum, chunk) => sum + (chunk.text?.length ?? 0),
                 0
             ),
-            model: 'gemini-embedding-001',
-        },
-        metadata: {
-            component: 'pg-storage',
-            operationType: 'embedding',
-            model: 'gemini-embedding-001',
-        },
-    })
+        }
+    });
 
     log.info('Starting embedding generation', {
         chunkCount: chunks.length,
@@ -284,56 +280,42 @@ export async function generateEmbeddings(
         })
 
         // Update and end span successfully
-        embeddingSpan?.end({
-            output: {
-                embeddingCount: embeddings.length,
-                embeddingDimension: embeddings[0]?.length || 0,
-                processingTimeMs: processingTime,
-                success: true,
-            },
-            metadata: {
-                model: 'gemini-embedding-001',
-                operation: 'embedding-generation',
-                finalStatus: 'success',
-            },
-        })
+        embeddingSpan.setAttributes({
+            'output.embeddingCount': embeddings.length,
+            'output.embeddingDimension': embeddings[0]?.length || 0,
+            'output.processingTimeMs': processingTime,
+            'output.success': true,
+            'metadata.finalStatus': 'success',
+        });
+        embeddingSpan.end();
 
         return { embeddings }
     } catch (error) {
         const processingTime = Date.now() - startTime
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
         log.error('Embedding generation failed', {
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: errorMessage,
             chunkCount: chunks.length,
             processingTimeMs: processingTime,
             model: 'gemini-embedding-001',
         })
 
         // Record error in span and end it
-        embeddingSpan?.error({
-            error:
-                error instanceof Error
-                    ? error
-                    : new Error('Unknown embedding error'),
-            metadata: {
-                model: 'gemini-embedding-001',
-                operation: 'embedding-generation',
-                processingTime,
-                chunkCount: chunks.length,
-            },
-        })
+        if (error instanceof Error) {
+            embeddingSpan.recordException(error);
+        }
 
-        embeddingSpan?.end({
-            output: {
-                success: false,
-                processingTimeMs: processingTime,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            },
-            metadata: {
-                model: 'gemini-embedding-001',
-                operation: 'embedding-generation',
-                finalStatus: 'error',
-            },
-        })
+        embeddingSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage }); // ERROR status
+
+        embeddingSpan.setAttributes({
+            'output.success': false,
+            'output.processingTimeMs': processingTime,
+            'output.error': errorMessage,
+            'metadata.finalStatus': 'error',
+        });
+
+        embeddingSpan.end();
 
         throw error
     }

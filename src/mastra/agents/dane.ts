@@ -1,22 +1,27 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite, pgMemory } from '../config'
 import { browserTool, googleSearch } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface DaneContext {
+    userId?: string
+}
 
 export const daneCommitMessage = new Agent({
   id: 'daneCommitMessage',
   name: 'Dane Commit Message',
   description: 'Generate commit messages for engineers',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers generate commit messages.
+    user: ${userId}
 
     GENERATE A SCOPE FOR THE COMMIT MESSAGE IF NECESSARY.
     FIGURE OUT THE BEST TOP LEVEL SEMANTIC MATCH TO USE AS THE SCOPE.
@@ -35,21 +40,21 @@ export const daneCommitMessage = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneIssueLabeler = new Agent({
   id: 'daneIssueLabeler',
   name: 'Dane Issue Labeler',
   description: 'Label issues based on their content',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers label their issues.
-    `,
+    user: ${userId}
+      `,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -64,21 +69,20 @@ export const daneIssueLabeler = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneLinkChecker = new Agent({
   id: 'daneLinkChecker',
   name: 'Dane Link Checker',
   description: 'Check links for broken links',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
     You are Dane, the link checker for Mastra AI. You report on broken links whenever you see them.
     Make sure to include the url in the message.
-
+    user: ${userId}
     ## Style Guide
     - Use active voice
     - Keep descriptions concise but informative
@@ -99,19 +103,19 @@ export const daneLinkChecker = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const daneChangeLog = new Agent({
   id: 'daneChangeLog',
   name: 'Dane Package Publisher',
   description: 'Publish packages to npm',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
     You are Dane, the changelog writer for Mastra AI. Every week we need to write a changelog for the Mastra AI project.
+    user: ${userId}
     ## Style Guide
     - Use active voice
     - Lead with the change, not the PR number
@@ -135,20 +139,20 @@ export const daneChangeLog = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 export const dane = new Agent({
   id: 'dane',
   name: 'Dane',
   description: 'My personal assistant and best friend',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
     You are Dane, my assistant and one of my best friends. We are an ace team!
     You help me with my code, write tests, and even deploy my code to the cloud!
+    user: ${userId}
 
     DO NOT ATTEMPT TO USE GENERAL KNOWLEDGE! We are only as good as the tools we use.
 
@@ -202,5 +206,4 @@ export const dane = new Agent({
     googleSearch,
     listEvents,
   },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })

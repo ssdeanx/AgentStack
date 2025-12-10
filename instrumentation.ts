@@ -3,7 +3,8 @@ import {
   ATTR_SERVICE_NAME,
   resourceFromAttributes,
 } from "@mastra/core/telemetry/otel-vendor";
-import { Context, TextMapGetter, ROOT_CONTEXT, context } from "@opentelemetry/api";
+import type { Context, TextMapGetter} from "@opentelemetry/api";
+import { ROOT_CONTEXT, context } from "@opentelemetry/api";
 import { LangfuseExporter } from "langfuse-vercel";
 
 export function register() {

@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
+import type { RequestContext } from '@mastra/core/request-context';
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -59,8 +61,18 @@ Supports string and regex patterns with context lines.
 Use for finding usages, identifying patterns, and code exploration.`,
   inputSchema: codeSearchInputSchema,
   outputSchema: codeSearchOutputSchema,
-  execute: async ({ context }): Promise<CodeSearchOutput> => {
-    const { pattern, target, options } = context
+  execute: async (inputData, context): Promise<CodeSearchOutput> => {
+    const tracer = trace.getTracer('code-search');
+    const span = tracer.startSpan('code-search', {
+        attributes: {
+            pattern: inputData.pattern,
+            targetCount: Array.isArray(inputData.target) ? inputData.target.length : 1,
+            operation: 'code-search'
+        }
+    });
+
+    try {
+        const { pattern, target, options } = inputData
     const isRegex = options?.isRegex ?? false
     const caseSensitive = options?.caseSensitive ?? false
     const maxResults = options?.maxResults ?? 100
@@ -139,7 +151,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
       }
     }
 
-    return {
+    const result = {
       matches,
       stats: {
         totalMatches: matches.length,
@@ -147,6 +159,17 @@ Use for finding usages, identifying patterns, and code exploration.`,
         filesWithMatches: filesWithMatches.size,
       },
       truncated,
+    }
+
+    span.end();
+    return result;
+  }
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        span.recordException(new Error(errorMessage));
+        span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+        span.end();
+        throw error;
     }
   },
 })

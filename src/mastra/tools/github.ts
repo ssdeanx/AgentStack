@@ -1,9 +1,10 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { GithubIntegration } from "@mastra/github";
 import { z } from 'zod';
 import { log } from '../config/logger';
+
 
 export const github = new GithubIntegration({
   config: {
@@ -58,20 +59,24 @@ export const listRepositories = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-list-repos',
-      input: { org: context.org },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-list-repos', {
+      attributes: {
+        'tool.id': 'github:listRepositories',
+        'tool.input.org': inputData.org,
+        'tool.input.type': inputData.type,
+      }
     });
+
+    const writer = context?.writer;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📚 Fetching repositories...' } });
 
     try {
-      const path = context.org !== undefined
-        ? `/orgs/${context.org}/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`
-        : `/user/repos?type=${context.type}&sort=${context.sort}&per_page=${context.perPage}`;
+      const path = inputData.org !== undefined
+        ? `/orgs/${inputData.org}/repos?type=${inputData.type}&sort=${inputData.sort}&per_page=${inputData.perPage}`
+        : `/user/repos?type=${inputData.type}&sort=${inputData.sort}&per_page=${inputData.perPage}`;
 
       const data = await githubFetch<Array<Record<string, unknown>>>(path);
 
@@ -88,13 +93,24 @@ export const listRepositories = createTool({
       }));
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${repositories.length} repositories` } });
-      span?.end({ output: { success: true, count: repositories.length } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.count': repositories.length
+      });
+      span.end();
 
       return { success: true, repositories };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub list repos failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -126,18 +142,22 @@ export const listPullRequests = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-list-prs',
-      input: { owner: context.owner, repo: context.repo, state: context.state },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-list-prs', {
+      attributes: {
+        'tool.id': 'github:listPullRequests',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Fetching PRs for ${context.owner}/${context.repo}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Fetching PRs for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const path = `/repos/${context.owner}/${context.repo}/pulls?state=${context.state}&sort=${context.sort}&direction=${context.direction}&per_page=${context.perPage}`;
+      const path = `/repos/${inputData.owner}/${inputData.repo}/pulls?state=${inputData.state}&sort=${inputData.sort}&direction=${inputData.direction}&per_page=${inputData.perPage}`;
       const data = await githubFetch<Array<Record<string, unknown>>>(path);
 
       const pullRequests = data.map((pr) => ({
@@ -153,13 +173,24 @@ export const listPullRequests = createTool({
       }));
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${pullRequests.length} pull requests` } });
-      span?.end({ output: { success: true, count: pullRequests.length } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.count': pullRequests.length
+      });
+      span.end();
 
       return { success: true, pullRequests };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub list PRs failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -192,25 +223,29 @@ export const listIssues = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-list-issues',
-      input: { owner: context.owner, repo: context.repo, state: context.state },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-list-issues', {
+      attributes: {
+        'tool.id': 'github:listIssues',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🐛 Fetching issues for ${context.owner}/${context.repo}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🐛 Fetching issues for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      let path = `/repos/${context.owner}/${context.repo}/issues?state=${context.state}&sort=${context.sort}&direction=${context.direction}&per_page=${context.perPage}`;
-      if (context.labels !== null) {path += `&labels=${context.labels}`;}
+      let path = `/repos/${inputData.owner}/${inputData.repo}/issues?state=${inputData.state}&sort=${inputData.sort}&direction=${inputData.direction}&per_page=${inputData.perPage}`;
+      if (inputData.labels !== undefined && inputData.labels !== null) {path += `&labels=${inputData.labels}`;}
 
       const data = await githubFetch<Array<Record<string, unknown>>>(path);
 
       // Filter out pull requests (GitHub API returns PRs as issues too)
       const issues = data
-        .filter((issue) => issue.pull_request === null)
+        .filter((issue) => issue.pull_request === undefined || issue.pull_request === null)
         .map((issue) => ({
           number: issue.number as number,
           title: issue.title as string,
@@ -224,13 +259,24 @@ export const listIssues = createTool({
         }));
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${issues.length} issues` } });
-      span?.end({ output: { success: true, count: issues.length } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.count': issues.length
+      });
+      span.end();
 
       return { success: true, issues };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub list issues failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -256,25 +302,30 @@ export const createIssue = createTool({
     }).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-create-issue',
-      input: { owner: context.owner, repo: context.repo, title: context.title },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-create-issue', {
+      attributes: {
+        'tool.id': 'github:createIssue',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+        'tool.input.title': inputData.title,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Creating issue in ${context.owner}/${context.repo}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Creating issue in ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const data = await githubFetch<Record<string, unknown>>(`/repos/${context.owner}/${context.repo}/issues`, {
+      const data = await githubFetch<Record<string, unknown>>(`/repos/${inputData.owner}/${inputData.repo}/issues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: context.title,
-          body: context.body,
-          labels: context.labels,
-          assignees: context.assignees,
+          title: inputData.title,
+          body: inputData.body,
+          labels: inputData.labels,
+          assignees: inputData.assignees,
         }),
       });
 
@@ -285,13 +336,24 @@ export const createIssue = createTool({
       };
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Created issue #${issue.number}` } });
-      span?.end({ output: { success: true, issueNumber: issue.number } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.issueNumber': issue.number
+      });
+      span.end();
 
       return { success: true, issue };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub create issue failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -325,18 +387,22 @@ export const getRepositoryInfo = createTool({
     }).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-get-repo-info',
-      input: { owner: context.owner, repo: context.repo },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-get-repo-info', {
+      attributes: {
+        'tool.id': 'github:getRepositoryInfo',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Fetching repository info for ${context.owner}/${context.repo}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Fetching repository info for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const repo = await githubFetch<Record<string, unknown>>(`/repos/${context.owner}/${context.repo}`);
+      const repo = await githubFetch<Record<string, unknown>>(`/repos/${inputData.owner}/${inputData.repo}`);
 
       const repository = {
         name: repo.name as string,
@@ -357,13 +423,23 @@ export const getRepositoryInfo = createTool({
       };
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Repository info retrieved' } });
-      span?.end({ output: { success: true } });
+
+      span.setAttributes({
+        'tool.output.success': true
+      });
+      span.end();
 
       return { success: true, repository };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub get repo info failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -390,23 +466,26 @@ export const searchCode = createTool({
     totalCount: z.number().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-search-code',
-      input: { query: context.query, repo: context.repo },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-search-code', {
+      attributes: {
+        'tool.id': 'github:searchCode',
+        'tool.input.query': inputData.query,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching code for "${context.query}"...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching code for "${inputData.query}"...` } });
 
     try {
-      let q = context.query;
-      if (context.repo) {q += ` repo:${context.repo}`;}
-      if (context.language) {q += ` language:${context.language}`;}
+      let q = inputData.query;
+      if (inputData.repo) {q += ` repo:${inputData.repo}`;}
+      if (inputData.language) {q += ` language:${inputData.language}`;}
 
       const data = await githubFetch<{ total_count: number; items: Array<Record<string, unknown>> }>(
-        `/search/code?q=${encodeURIComponent(q)}&per_page=${context.perPage}`
+        `/search/code?q=${encodeURIComponent(q)}&per_page=${inputData.perPage}`
       );
 
       const results = data.items.map((item) => ({
@@ -418,13 +497,24 @@ export const searchCode = createTool({
       }));
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${data.total_count} results` } });
-      span?.end({ output: { success: true, totalCount: data.total_count } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.totalCount': data.total_count
+      });
+      span.end();
 
       return { success: true, results, totalCount: data.total_count };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub search code failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -447,19 +537,24 @@ export const getFileContent = createTool({
     size: z.number().optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-get-file',
-      input: { owner: context.owner, repo: context.repo, path: context.path },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-get-file', {
+      attributes: {
+        'tool.id': 'github:getFileContent',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+        'tool.input.path': inputData.path,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Fetching file ${context.path}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Fetching file ${inputData.path}...` } });
 
     try {
-      let apiPath = `/repos/${context.owner}/${context.repo}/contents/${context.path}`;
-      if (context.ref !== null) {apiPath += `?ref=${context.ref}`;}
+      let apiPath = `/repos/${inputData.owner}/${inputData.repo}/contents/${inputData.path}`;
+      if (inputData.ref !== undefined && inputData.ref !== null) {apiPath += `?ref=${inputData.ref}`;}
 
       const data = await githubFetch<Record<string, unknown>>(apiPath);
 
@@ -472,7 +567,12 @@ export const getFileContent = createTool({
         : data.content as string;
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File content retrieved' } });
-      span?.end({ output: { success: true, size: data.size } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.size': data.size
+      });
+      span.end();
 
       return {
         success: true,
@@ -484,7 +584,13 @@ export const getFileContent = createTool({
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub get file failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },
@@ -511,20 +617,25 @@ export const getRepoFileTree = createTool({
     })).optional(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, tracingContext, writer }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'github-get-tree',
-      input: { owner: context.owner, repo: context.repo, branch: context.branch },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const tracer = trace.getTracer('github-tool');
+    const span = tracer.startSpan('github-get-tree', {
+      attributes: {
+        'tool.id': 'github:getRepoFileTree',
+        'tool.input.owner': inputData.owner,
+        'tool.input.repo': inputData.repo,
+        'tool.input.branch': inputData.branch,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌳 Fetching file tree for ${context.owner}/${context.repo}...` } });
+    const writer = context?.writer;
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌳 Fetching file tree for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
       // 1. Get the tree SHA for the branch
       // We can pass the branch name directly to the trees API in many cases, but let's be robust
-      const treePath = `/repos/${context.owner}/${context.repo}/git/trees/${context.branch}?recursive=${context.recursive ? '1' : '0'}`;
+      const treePath = `/repos/${inputData.owner}/${inputData.repo}/git/trees/${inputData.branch}?recursive=${inputData.recursive ? '1' : '0'}`;
 
       const data = await githubFetch<{ tree: Array<Record<string, unknown>>, truncated: boolean }>(treePath);
 
@@ -542,13 +653,24 @@ export const getRepoFileTree = createTool({
       }
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${tree.length} items` } });
-      span?.end({ output: { success: true, count: tree.length } });
+
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.count': tree.length
+      });
+      span.end();
 
       return { success: true, tree };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub get tree failed: ${errorMsg}`);
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+
+      if (e instanceof Error) {
+        span.recordException(e);
+      }
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
+
       return { success: false, error: errorMsg };
     }
   },

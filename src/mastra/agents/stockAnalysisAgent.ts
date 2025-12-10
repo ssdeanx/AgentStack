@@ -1,15 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
+
+import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import {
-  financialDataScorer,
-  responseQualityScorer,
-  sourceDiversityScorer,
-  taskCompletionScorer,
-} from '../scorers'
+
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
   finnhubAnalysisTool,
@@ -39,15 +34,15 @@ export const stockAnalysisAgent = new Agent({
   name: 'Stock Analysis Agent',
   description:
     'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<StockRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<StockRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
         <role>
-        User: ${runtimeContext.get('user-tier') ?? 'pro'}
+        Tier: ${userTier}
 
         Language: ${language}
 
@@ -224,8 +219,8 @@ export const stockAnalysisAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<StockRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<StockRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAIPro
@@ -249,7 +244,7 @@ export const stockAnalysisAgent = new Agent({
     googleFinanceTool,
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
+  options: {},
 
   maxRetries: 5
 })

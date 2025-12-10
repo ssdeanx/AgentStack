@@ -61,12 +61,13 @@ export async function initializeCloudflareStorage(): Promise<void> {
 
       // In Workers runtime, the binding would be provided by the environment
       // For now, we'll use the REST API pattern for consistency
+      /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
       cloudflareStorage = new D1Store({
         accountId: CLOUDFLARE_STORAGE_CONFIG.accountId!,
         databaseId: CLOUDFLARE_STORAGE_CONFIG.databaseId!,
         apiToken: CLOUDFLARE_STORAGE_CONFIG.apiToken!,
         tablePrefix: CLOUDFLARE_STORAGE_CONFIG.tablePrefix,
-      })
+      });
     } else {
       // REST API pattern (for external access)
       log.info('Initializing Cloudflare storage with REST API', {
@@ -75,12 +76,13 @@ export async function initializeCloudflareStorage(): Promise<void> {
         tablePrefix: CLOUDFLARE_STORAGE_CONFIG.tablePrefix
       })
 
+      /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
       cloudflareStorage = new D1Store({
         accountId: CLOUDFLARE_STORAGE_CONFIG.accountId!,
         databaseId: CLOUDFLARE_STORAGE_CONFIG.databaseId!,
         apiToken: CLOUDFLARE_STORAGE_CONFIG.apiToken!,
         tablePrefix: CLOUDFLARE_STORAGE_CONFIG.tablePrefix,
-      })
+      });
     }
 
     log.info('Cloudflare storage initialized successfully')
@@ -104,6 +106,7 @@ export async function getCloudflareStorage(): Promise<D1Store> {
  * Memory instance configured for Cloudflare storage with comprehensive settings
  */
 export const cloudflareMemory = new Memory({
+  /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
   storage: new D1Store({
     accountId: CLOUDFLARE_STORAGE_CONFIG.accountId!,
     databaseId: CLOUDFLARE_STORAGE_CONFIG.databaseId!,

@@ -2,18 +2,16 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import { UnicodeNormalizer } from '@mastra/core/processors';
+import type { RequestContext } from '@mastra/core/request-context';
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer
-} from "@mastra/evals/scorers/llm";
+} from '@mastra/evals/scorers/prebuilt';
 import { PGVECTOR_PROMPT } from "@mastra/pg";
 import { google, googleAI, googleAIFlashLite } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory, pgQueryTool } from '../config/pg-storage';
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers';
 import { alphaVantageCryptoTool, alphaVantageStockTool } from '../tools/alpha-vantage.tool';
 import { arxivTool } from '../tools/arxiv.tool';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
@@ -44,10 +42,10 @@ export const researchAgent = new Agent({
   name: 'Research Agent',
   description:
     'An expert research agent that conducts thorough research using web search and analysis tools.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ResearchRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -157,8 +155,8 @@ export const researchAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<ResearchRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return google.chat('gemini-3-pro-preview')
@@ -202,7 +200,6 @@ export const researchAgent = new Agent({
     finnhubTechnicalTool,
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
