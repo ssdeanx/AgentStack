@@ -39,7 +39,7 @@ export const codeChunkerTool = createTool({
     const chunks: any[] = [];
 
     try {
-      if (['ts', 'tsx', 'js', 'jsx'].includes(ext || '')) {
+      if (['ts', 'tsx', 'js', 'jsx'].includes(ext ?? '')) {
         // TypeScript/JavaScript Chunking
         const project = new Project({ useInMemoryFileSystem: true });
         const sourceFile = project.createSourceFile(filePath, content);

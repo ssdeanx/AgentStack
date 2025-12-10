@@ -89,7 +89,7 @@ export const googleSearchTool = createTool({
   execute: async (input, context) => {
     // Validate API key
     validateSerpApiKey()
-    const { writer, requestContext } = context;
+    const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching Google for "${input.query}" (${input.numResults} results)` } });
 
     const tracer = trace.getTracer('serpapi-search');
@@ -238,7 +238,7 @@ export const googleAiOverviewTool = createTool({
   inputSchema: googleAiOverviewInputSchema,
   outputSchema: googleAiOverviewOutputSchema,
   execute: async (input, context) => {
-    const { writer, requestContext } = context;
+    const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🤖 Generating AI overview for "${input.query}"` } });
     // Validate API key
     validateSerpApiKey()

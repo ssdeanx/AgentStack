@@ -44,10 +44,10 @@ export const amazonSearchTool = createTool({
     'Search Amazon for products. Filter by price range, sort by relevance/price/rating, and show only Prime eligible items. Returns product title, ASIN, price, rating, review count, and Prime status.',
   inputSchema: amazonSearchInputSchema,
   outputSchema: amazonSearchOutputSchema,
-  execute: async (input, context) => {
+  execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Amazon search for "' + input.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Amazon search for "' + inputData.query + '"' } });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -55,41 +55,41 @@ export const amazonSearchTool = createTool({
     const amazonSpan = tracer.startSpan('amazon-search', {
       attributes: {
         'tool.id': 'amazon-search',
-        'tool.input.query': input.query,
-        'tool.input.sortBy': input.sortBy,
-        'tool.input.numResults': input.numResults,
+        'tool.input.query': inputData.query,
+        'tool.input.sortBy': inputData.sortBy,
+        'tool.input.numResults': inputData.numResults,
       }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
-    log.info('Executing Amazon search', { query: input.query })
+    log.info('Executing Amazon search', { query: inputData.query })
 
     try {
       const params: Record<string, string | number | boolean> = {
         engine: 'amazon',
-        query: input.query,
-        num: input.numResults,
+        query: inputData.query,
+        num: inputData.numResults,
       }
 
-      if (input.sortBy !== 'relevance') {
+      if (inputData.sortBy !== 'relevance') {
         const sortMap: Record<string, string> = {
           'price-asc': 'price-asc-rank',
           'price-desc': 'price-desc-rank',
           rating: 'review-rank',
         }
-        const sortValue = sortMap[input.sortBy]
+        const sortValue = sortMap[inputData.sortBy]
         if (sortValue) {
           params.sort_by = sortValue
         }
       }
 
-      if (typeof input.minPrice === 'number') {
-        params.min_price = input.minPrice
+      if (typeof inputData.minPrice === 'number') {
+        params.min_price = inputData.minPrice
       }
-      if (typeof input.maxPrice === 'number') {
-        params.max_price = input.maxPrice
+      if (typeof inputData.maxPrice === 'number') {
+        params.max_price = inputData.maxPrice
       }
-      if (input.primeOnly) {
+      if (inputData.primeOnly) {
         params.prime = 'true'
       }
 
@@ -123,7 +123,7 @@ export const amazonSearchTool = createTool({
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Amazon search complete: ' + products.length + ' products' } });
       amazonSpan.setAttribute('tool.output.productCount', products.length);
       amazonSpan.end();
-      log.info('Amazon search completed', { query: input.query, productCount: products.length })
+      log.info('Amazon search completed', { query: inputData.query, productCount: products.length })
 
       return result
     } catch (error) {
@@ -133,7 +133,7 @@ export const amazonSearchTool = createTool({
       }
       amazonSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
       amazonSpan.end();
-      log.error('Amazon search failed', { query: input.query, error: errorMessage })
+      log.error('Amazon search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Amazon search failed: ${errorMessage}`)
     }
   },
@@ -167,10 +167,10 @@ export const walmartSearchTool = createTool({
     'Search Walmart for products. Filter by price range and sort by relevance, price, or rating. Returns product information including title, price, rating, and links.',
   inputSchema: walmartSearchInputSchema,
   outputSchema: walmartSearchOutputSchema,
-  execute: async (input, context) => {
+  execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Walmart search for "' + input.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Walmart search for "' + inputData.query + '"' } });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -178,30 +178,30 @@ export const walmartSearchTool = createTool({
     const walmartSpan = tracer.startSpan('walmart-search', {
       attributes: {
         'tool.id': 'walmart-search',
-        'tool.input.query': input.query,
-        'tool.input.sortBy': input.sortBy,
-        'tool.input.numResults': input.numResults,
+        'tool.input.query': inputData.query,
+        'tool.input.sortBy': inputData.sortBy,
+        'tool.input.numResults': inputData.numResults,
       }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
-    log.info('Executing Walmart search', { query: input.query })
+    log.info('Executing Walmart search', { query: inputData.query })
 
     try {
       const params: Record<string, string | number> = {
         engine: 'walmart',
-        query: input.query,
-        num: input.numResults,
+        query: inputData.query,
+        num: inputData.numResults,
       }
 
-      if (input.sortBy !== 'relevance') {
-        params.sort = input.sortBy
+      if (inputData.sortBy !== 'relevance') {
+        params.sort = inputData.sortBy
       }
-      if (typeof input.minPrice === 'number') {
-        params.min_price = input.minPrice
+      if (typeof inputData.minPrice === 'number') {
+        params.min_price = inputData.minPrice
       }
-      if (typeof input.maxPrice === 'number') {
-        params.max_price = input.maxPrice
+      if (typeof inputData.maxPrice === 'number') {
+        params.max_price = inputData.maxPrice
       }
 
       const response = await getJson(params)
@@ -230,7 +230,7 @@ export const walmartSearchTool = createTool({
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Walmart search complete: ' + products.length + ' products' } });
       walmartSpan.setAttribute('tool.output.productCount', products.length);
       walmartSpan.end();
-      log.info('Walmart search completed', { query: input.query, productCount: products.length })
+      log.info('Walmart search completed', { query: inputData.query, productCount: products.length })
 
       return result
     } catch (error) {
@@ -240,7 +240,7 @@ export const walmartSearchTool = createTool({
       }
       walmartSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
       walmartSpan.end();
-      log.error('Walmart search failed', { query: input.query, error: errorMessage })
+      log.error('Walmart search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Walmart search failed: ${errorMessage}`)
     }
   },
@@ -276,10 +276,10 @@ export const ebaySearchTool = createTool({
     'Search eBay for products and listings. Filter by condition (new/used/refurbished), show only Buy It Now items, and sort by relevance or price. Returns item details including price, bids, time left, and condition.',
   inputSchema: ebaySearchInputSchema,
   outputSchema: ebaySearchOutputSchema,
-  execute: async (input, context) => {
+  execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting eBay search for "' + input.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting eBay search for "' + inputData.query + '"' } });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -287,34 +287,34 @@ export const ebaySearchTool = createTool({
     const ebaySpan = tracer.startSpan('ebay-search', {
       attributes: {
         'tool.id': 'ebay-search',
-        'tool.input.query': input.query,
-        'tool.input.condition': input.condition,
-        'tool.input.sortBy': input.sortBy,
-        'tool.input.numResults': input.numResults,
+        'tool.input.query': inputData.query,
+        'tool.input.condition': inputData.condition,
+        'tool.input.sortBy': inputData.sortBy,
+        'tool.input.numResults': inputData.numResults,
       }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
-    log.info('Executing eBay search', { query: input.query })
+    log.info('Executing eBay search', { query: inputData.query })
 
     try {
       const params: Record<string, string | number | boolean> = {
         engine: 'ebay',
-        _nkw: input.query,
-        _ipg: input.numResults,
+        _nkw: inputData.query,
+        _ipg: inputData.numResults,
       }
-      if (input.condition) {
-        params.LH_ItemCondition = input.condition === 'new' ? '1000' : input.condition === 'used' ? '3000' : '2000'
+      if (inputData.condition) {
+        params.LH_ItemCondition = inputData.condition === 'new' ? '1000' : inputData.condition === 'used' ? '3000' : '2000'
       }
-      if (input.buyNowOnly) {
+      if (inputData.buyNowOnly) {
         params.LH_BIN = '1'
       }
-      if (input.sortBy && input.sortBy !== 'relevance') {
+      if (inputData.sortBy && inputData.sortBy !== 'relevance') {
         const sortMap: Record<string, string> = {
           'price-asc': 'PricePlusShippingLowest',
           'price-desc': 'PricePlusShippingHighest',
         }
-        const sortVal = sortMap[input.sortBy]
+        const sortVal = sortMap[inputData.sortBy]
         if (sortVal) {params._sop = sortVal}
       }
 
@@ -345,7 +345,7 @@ export const ebaySearchTool = createTool({
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ eBay search complete: ' + products.length + ' products' } });
       ebaySpan.setAttribute('tool.output.productCount', products.length);
       ebaySpan.end();
-      log.info('eBay search completed', { query: input.query, productCount: products.length })
+      log.info('eBay search completed', { query: inputData.query, productCount: products.length })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -354,7 +354,7 @@ export const ebaySearchTool = createTool({
       }
       ebaySpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
       ebaySpan.end();
-      log.error('eBay search failed', { query: input.query, error: errorMessage })
+      log.error('eBay search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`eBay search failed: ${errorMessage}`)
     }
   },
@@ -388,10 +388,10 @@ export const homeDepotSearchTool = createTool({
     'Search Home Depot for home improvement products. Filter by in-stock availability and sort by relevance, price, or rating. Returns product details including price, rating, availability, and links.',
   inputSchema: homeDepotSearchInputSchema,
   outputSchema: homeDepotSearchOutputSchema,
-  execute: async (input, context) => {
+  execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Home Depot search for "' + input.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Home Depot search for "' + inputData.query + '"' } });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -399,25 +399,25 @@ export const homeDepotSearchTool = createTool({
     const homeDepotSpan = tracer.startSpan('home-depot-search', {
       attributes: {
         'tool.id': 'home-depot-search',
-        'tool.input.query': input.query,
-        'tool.input.sortBy': input.sortBy,
-        'tool.input.numResults': input.numResults,
+        'tool.input.query': inputData.query,
+        'tool.input.sortBy': inputData.sortBy,
+        'tool.input.numResults': inputData.numResults,
       }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
-    log.info('Executing Home Depot search', { query: input.query })
+    log.info('Executing Home Depot search', { query: inputData.query })
 
     try {
       const params: Record<string, string | number | boolean> = {
         engine: 'home_depot',
-        q: input.query,
-        num: input.numResults,
+        q: inputData.query,
+        num: inputData.numResults,
       }
-      if (input.sortBy !== 'relevance') {
-        params.sort_by = input.sortBy
+      if (inputData.sortBy !== 'relevance') {
+        params.sort_by = inputData.sortBy
       }
-      if (input.inStockOnly) {
+      if (inputData.inStockOnly) {
         params.in_stock = 'true'
       }
       const response = await getJson(params)
@@ -445,7 +445,7 @@ export const homeDepotSearchTool = createTool({
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Home Depot search complete: ' + products.length + ' products' } });
       homeDepotSpan.setAttribute('tool.output.productCount', products.length);
       homeDepotSpan.end();
-      log.info('Home Depot search completed', { query: input.query, productCount: products.length })
+      log.info('Home Depot search completed', { query: inputData.query, productCount: products.length })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -454,7 +454,7 @@ export const homeDepotSearchTool = createTool({
       }
       homeDepotSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
       homeDepotSpan.end();
-      log.error('Home Depot search failed', { query: input.query, error: errorMessage })
+      log.error('Home Depot search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Home Depot search failed: ${errorMessage}`)
     }
   },

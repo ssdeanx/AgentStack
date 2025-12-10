@@ -1,5 +1,4 @@
 import { trace } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
