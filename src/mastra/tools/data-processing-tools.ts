@@ -1,10 +1,11 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+import { trace } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DOMParser } from 'xmldom';
 import { z } from 'zod';
+import type { RequestContext } from '@mastra/core/request-context';
 
 // Import data processing libraries
 // svgjson does not ship with TypeScript types. Rather than attempting to
@@ -146,17 +147,21 @@ export const readCSVDataTool = createTool({
     rows: z.array(CSVRowSchema),
     rawCSV: z.string(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📖 Reading CSV file: ' + context.fileName } });
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'read_csv_data',
-      input: { fileName: context.fileName },
-      tracingPolicy: { internal: InternalSpans.TOOL }
-    })
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    await writer?.write({ type: 'progress', data: { message: '📖 Reading CSV file: ' + inputData.fileName } });
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('read_csv_data', {
+      attributes: {
+        'tool.id': 'read:CSVdata',
+        'tool.input.fileName': inputData.fileName,
+      }
+    });
 
     try {
-      const { fileName, hasHeaders = true, delimiter = ',' } = context
+      const { fileName, hasHeaders = true, delimiter = ',' } = inputData
       const fullPath = validateDataPath(fileName)
       const realFullPath = await fs.realpath(fullPath)
 
@@ -195,11 +200,15 @@ export const readCSVDataTool = createTool({
         headers = rows.length > 0 ? Object.keys(rows[0]) : []
       }
 
-      span?.end({ output: { rowCount: rows.length, headerCount: headers.length } })
+      span.setAttributes({ 'tool.output.rowCount': rows.length, 'tool.output.headerCount': headers.length });
+      span.end();
       await writer?.write({ type: 'progress', data: { message: `✅ Read ${rows.length} rows from CSV` } });
       return { headers, rows, rawCSV: content }
     } catch (error) {
-      span?.end({ metadata: { error: String(error) } })
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
       throw error
     }
   },
@@ -228,91 +237,63 @@ export const csvToExcalidrawTool = createTool({
       elementSpacing: z.number(),
     }),
   }),
-  execute: async ({ context, writer, tracingContext, runtimeContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'csv-to-excalidraw',
-      input: { layoutType: context.layoutType, hasHeaders: context.hasHeaders },
-      tracingPolicy: { internal: InternalSpans.TOOL },
-      runtimeContext,
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('csv-to-excalidraw', {
+      attributes: {
+        'tool.id': 'csv-to-excalidraw',
+        'tool.input.layoutType': inputData.layoutType,
+        'tool.input.hasHeaders': inputData.hasHeaders,
+      }
     });
 
     await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });
-    const { csvData, layoutType = 'table', title, hasHeaders = true, delimiter = ',' } = context
+    const { csvData, layoutType = 'table', title, hasHeaders = true, delimiter = ',' } = inputData
 
-    const lines = String(csvData ?? '').trim().length > 0 ? String(csvData).trim().split('\n') : []
-    let headers: string[] = []
-    let dataRows: string[][] = []
+    try {
+      const lines = String(csvData ?? '').trim().length > 0 ? String(csvData).trim().split('\n') : []
+      let headers: string[] = []
+      let dataRows: string[][] = []
 
-    if (hasHeaders && lines.length > 0) {
-      headers = lines[0].split(delimiter).map((h: string) => h.trim().replace(/"/g, ''))
-      dataRows = lines.slice(1).map((line: string) => line.split(delimiter).map((v: string) => v.trim().replace(/"/g, '')))
-    } else {
-      dataRows = lines.map((line: string) => line.split(delimiter).map((v: string) => v.trim().replace(/"/g, '')))
-      headers = dataRows[0]?.map((_, index) => `Field ${index + 1}`) ?? []
-    }
+      if (hasHeaders && lines.length > 0) {
+        headers = lines[0].split(delimiter).map((h: string) => h.trim().replace(/"/g, ''))
+        dataRows = lines.slice(1).map((line: string) => line.split(delimiter).map((v: string) => v.trim().replace(/"/g, '')))
+      } else {
+        dataRows = lines.map((line: string) => line.split(delimiter).map((v: string) => v.trim().replace(/"/g, '')))
+        headers = dataRows[0]?.map((_, index) => `Field ${index + 1}`) ?? []
+      }
 
-    // Typed elements array to avoid 'never' typing issues
-    const elements: ExcalidrawElementType[] = []
-    const spacing = 120
-    const elementWidth = 100
-    const elementHeight = 40
-    const startX = 50
-    const startY = 100
+      // Typed elements array to avoid 'never' typing issues
+      const elements: ExcalidrawElementType[] = []
+      const spacing = 120
+      const elementWidth = 100
+      const elementHeight = 40
+      const startX = 50
+      const startY = 100
 
-    // Generate unique IDs
-    const generateId = (): string => Math.random().toString(36).substring(2, 15)
+      // Generate unique IDs
+      const generateId = (): string => Math.random().toString(36).substring(2, 15)
 
-    // Title
-    const titleText = typeof title === 'string' ? title.trim() : ''
+      // Title
+      const titleText = typeof title === 'string' ? title.trim() : ''
 
-    if (titleText.length > 0) {
-      elements.push({
-        id: generateId(),
-        type: 'text',
-        x: startX,
-        y: startY - 60,
-        width: titleText.length * 10,
-        height: 30,
-        text: titleText,
-        fontSize: 20,
-        fontFamily: 1,
-        textAlign: 'left',
-        verticalAlign: 'top',
-        strokeColor: '#000000',
-        backgroundColor: 'transparent',
-        fillStyle: 'solid',
-        strokeWidth: 2,
-        strokeStyle: 'solid',
-        roughness: 1,
-        opacity: 100,
-        angle: 0,
-        seed: Math.floor(Math.random() * 1000000),
-        version: 1,
-        versionNonce: Math.floor(Math.random() * 1000000),
-        isDeleted: false,
-        boundElements: null,
-        updated: Date.now(),
-        link: null,
-        locked: false,
-      } as ExcalidrawElementType)
-    }
-
-    if (layoutType === 'table') {
-      // Create table layout
-      let currentY = startY
-
-      // Headers row
-      headers.forEach((header: string, index: number) => {
+      if (titleText.length > 0) {
         elements.push({
           id: generateId(),
-          type: 'rectangle',
-          x: startX + (index * (elementWidth + 20)),
-          y: currentY,
-          width: elementWidth,
-          height: elementHeight,
-          strokeColor: '#1976d2',
-          backgroundColor: '#e3f2fd',
+          type: 'text',
+          x: startX,
+          y: startY - 60,
+          width: titleText.length * 10,
+          height: 30,
+          text: titleText,
+          fontSize: 20,
+          fontFamily: 1,
+          textAlign: 'left',
+          verticalAlign: 'top',
+          strokeColor: '#000000',
+          backgroundColor: 'transparent',
           fillStyle: 'solid',
           strokeWidth: 2,
           strokeStyle: 'solid',
@@ -328,56 +309,25 @@ export const csvToExcalidrawTool = createTool({
           link: null,
           locked: false,
         } as ExcalidrawElementType)
+      }
 
-        elements.push({
-          id: generateId(),
-          type: 'text',
-          x: startX + (index * (elementWidth + 20)) + 10,
-          y: currentY + 10,
-          width: elementWidth - 20,
-          height: elementHeight - 20,
-          text: header,
-          fontSize: 12,
-          fontFamily: 1,
-          textAlign: 'center',
-          verticalAlign: 'middle',
-          strokeColor: '#000000',
-          backgroundColor: 'transparent',
-          fillStyle: 'solid',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          roughness: 1,
-          opacity: 100,
-          angle: 0,
-          seed: Math.floor(Math.random() * 1000000),
-          version: 1,
-          versionNonce: Math.floor(Math.random() * 1000000),
-          isDeleted: false,
-          boundElements: null,
-          updated: Date.now(),
-          link: null,
-          locked: false,
-        } as ExcalidrawElementType)
-      })
+      if (layoutType === 'table') {
+        // Create table layout
+        let currentY = startY
 
-      currentY += elementHeight + 20
-
-      // Data rows (limit to first 10 rows to avoid overcrowding)
-      const maxRows = Math.min(dataRows.length, 10)
-      for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
-        const row = dataRows[rowIndex]
-        headers.forEach((_header: string, colIndex: number) => {
+        // Headers row
+        headers.forEach((header: string, index: number) => {
           elements.push({
             id: generateId(),
             type: 'rectangle',
-            x: startX + (colIndex * (elementWidth + 20)),
+            x: startX + (index * (elementWidth + 20)),
             y: currentY,
             width: elementWidth,
             height: elementHeight,
-            strokeColor: '#666666',
-            backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f5f5f5',
+            strokeColor: '#1976d2',
+            backgroundColor: '#e3f2fd',
             fillStyle: 'solid',
-            strokeWidth: 1,
+            strokeWidth: 2,
             strokeStyle: 'solid',
             roughness: 1,
             opacity: 100,
@@ -395,15 +345,15 @@ export const csvToExcalidrawTool = createTool({
           elements.push({
             id: generateId(),
             type: 'text',
-            x: startX + (colIndex * (elementWidth + 20)) + 5,
-            y: currentY + 5,
-            width: elementWidth - 10,
-            height: elementHeight - 10,
-            text: row[colIndex] || '',
-            fontSize: 10,
+            x: startX + (index * (elementWidth + 20)) + 10,
+            y: currentY + 10,
+            width: elementWidth - 20,
+            height: elementHeight - 20,
+            text: header,
+            fontSize: 12,
             fontFamily: 1,
-            textAlign: 'left',
-            verticalAlign: 'top',
+            textAlign: 'center',
+            verticalAlign: 'middle',
             strokeColor: '#000000',
             backgroundColor: 'transparent',
             fillStyle: 'solid',
@@ -422,43 +372,116 @@ export const csvToExcalidrawTool = createTool({
             locked: false,
           } as ExcalidrawElementType)
         })
-        currentY += elementHeight + 10
+
+        currentY += elementHeight + 20
+
+        // Data rows (limit to first 10 rows to avoid overcrowding)
+        const maxRows = Math.min(dataRows.length, 10)
+        for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+          const row = dataRows[rowIndex]
+          headers.forEach((_header: string, colIndex: number) => {
+            elements.push({
+              id: generateId(),
+              type: 'rectangle',
+              x: startX + (colIndex * (elementWidth + 20)),
+              y: currentY,
+              width: elementWidth,
+              height: elementHeight,
+              strokeColor: '#666666',
+              backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f5f5f5',
+              fillStyle: 'solid',
+              strokeWidth: 1,
+              strokeStyle: 'solid',
+              roughness: 1,
+              opacity: 100,
+              angle: 0,
+              seed: Math.floor(Math.random() * 1000000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            } as ExcalidrawElementType)
+
+            elements.push({
+              id: generateId(),
+              type: 'text',
+              x: startX + (colIndex * (elementWidth + 20)) + 5,
+              y: currentY + 5,
+              width: elementWidth - 10,
+              height: elementHeight - 10,
+              text: row[colIndex] || '',
+              fontSize: 10,
+              fontFamily: 1,
+              textAlign: 'left',
+              verticalAlign: 'top',
+              strokeColor: '#000000',
+              backgroundColor: 'transparent',
+              fillStyle: 'solid',
+              strokeWidth: 1,
+              strokeStyle: 'solid',
+              roughness: 1,
+              opacity: 100,
+              angle: 0,
+              seed: Math.floor(Math.random() * 1000000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            } as ExcalidrawElementType)
+          })
+          currentY += elementHeight + 10
+        }
       }
+
+      const totalWidth = headers.length * (elementWidth + 20) + 20
+      const totalHeight = elements.length > 0
+        ? Math.max(...elements.map((el) => (el.y ?? 0) + (el.height ?? 0))) - startY + 100
+        : 400
+
+      const excalidrawData = {
+        type: 'excalidraw' as const,
+        version: 2,
+        source: 'https://excalidraw.com',
+        elements,
+        appState: {
+          gridSize: 20,
+          viewBackgroundColor: '#ffffff',
+        },
+        files: {},
+      }
+
+      const filename = `csv-diagram-${Date.now()}.excalidraw`
+
+      await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
+
+      const result = {
+        filename,
+        contents: excalidrawData,
+        elementCount: elements.length,
+        layoutInfo: {
+          totalWidth,
+          totalHeight,
+          elementSpacing: spacing,
+        },
+      };
+
+      span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.filename': filename });
+      span.end();
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw error;
     }
-
-    const totalWidth = headers.length * (elementWidth + 20) + 20
-    const totalHeight = elements.length > 0
-      ? Math.max(...elements.map((el) => (el.y ?? 0) + (el.height ?? 0))) - startY + 100
-      : 400
-
-    const excalidrawData = {
-      type: 'excalidraw' as const,
-      version: 2,
-      source: 'https://excalidraw.com',
-      elements,
-      appState: {
-        gridSize: 20,
-        viewBackgroundColor: '#ffffff',
-      },
-      files: {},
-    }
-
-    const filename = `csv-diagram-${Date.now()}.excalidraw`
-
-    await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
-
-    const result = {
-      filename,
-      contents: excalidrawData,
-      elementCount: elements.length,
-      layoutInfo: {
-        totalWidth,
-        totalHeight,
-        elementSpacing: spacing,
-      },
-    };
-    span?.end({ output: { elementCount: elements.length, filename } });
-    return result;
   },
 })
 
@@ -489,16 +512,19 @@ export const imageToCSVTool = createTool({
     elementCount: z.number(),
     columns: z.array(z.string()),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'image-to-csv',
-      input: { elementCount: context.elements.length },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('image-to-csv', {
+      attributes: {
+        'tool.id': 'image-to-csv',
+        'tool.input.elementCount': inputData.elements.length,
+      }
     });
 
     await writer?.write({ type: 'progress', data: { message: '🖼️ Converting image analysis to CSV' } });
-    const { elements, filename } = context
+    const { elements, filename } = inputData
 
     const columns = [
       'id', 'type', 'x', 'y', 'width', 'height', 'text',
@@ -529,7 +555,9 @@ export const imageToCSVTool = createTool({
       elementCount: elements.length,
       columns,
     };
-    span?.end({ output: { elementCount: elements.length, filename: outputFilename } });
+
+    span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.filename': outputFilename });
+    span.end();
     return result;
   },
 })
@@ -551,16 +579,19 @@ export const validateExcalidrawTool = createTool({
     warnings: z.array(z.string()),
     elementCount: z.number(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'validate-excalidraw',
-      input: { autoFix: context.autoFix },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('validate-excalidraw', {
+        attributes: {
+            'tool.id': 'validate-excalidraw',
+            'tool.input.autoFix': inputData.autoFix,
+        }
     });
 
     await writer?.write({ type: 'progress', data: { message: '🔍 Validating Excalidraw data' } });
-    const { excalidrawData, autoFix = true } = context
+    const { excalidrawData, autoFix = true } = inputData
     const errors: string[] = []
     const warnings: string[] = []
 
@@ -656,11 +687,15 @@ export const validateExcalidrawTool = createTool({
         warnings,
         elementCount: Array.isArray(fixedData?.elements) ? fixedData.elements.length : 0,
       };
-      span?.end({ output: { isValid: result.isValid, errorCount: errors.length } });
+
+      span.setAttributes({ 'tool.output.isValid': result.isValid, 'tool.output.errorCount': errors.length });
+      span.end();
       return result;
     } catch (error) {
       const errorMsg = String(error);
-      span?.end({ metadata: { error: errorMsg, isValid: false } });
+      span.recordException(error instanceof Error ? error : new Error(errorMsg));
+      span.setAttributes({ 'tool.output.isValid': false });
+      span.end();
       return {
         isValid: false,
         errors: [`Validation failed: ${errorMsg}`],
@@ -695,16 +730,20 @@ export const processSVGTool = createTool({
     }),
     elementCount: z.number(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'process-svg',
-      input: { extractPaths: context.extractPaths, extractText: context.extractText },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('process-svg', {
+      attributes: {
+        'tool.id': 'process-svg',
+        'tool.input.extractPaths': inputData.extractPaths,
+        'tool.input.extractText': inputData.extractText,
+      }
     });
 
     await writer?.write({ type: 'progress', data: { message: '🖼️ Processing SVG content' } });
-    const { svgContent, extractPaths = true, extractText = true, extractStyles = true } = context
+    const { svgContent, extractPaths = true, extractText = true, extractStyles = true } = inputData
 
     try {
       // Use svgjson to parse SVG
@@ -780,11 +819,15 @@ export const processSVGTool = createTool({
       result.elementCount = svgJson.children ? svgJson.children.length : 0
 
       await writer?.write({ type: 'progress', data: { message: `✅ Processed SVG with ${result.elementCount} elements` } });
-      span?.end({ output: { elementCount: result.elementCount } });
+      span.setAttributes({ 'tool.output.elementCount': result.elementCount });
+      span.end();
       return result
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      throw new Error(`SVG processing failed: ${String(error)}`)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw new Error(`SVG processing failed: ${errorMessage}`)
     }
   },
 })
@@ -811,16 +854,19 @@ export const processXMLTool = createTool({
     extractedData: z.any(),
     rootElement: z.string(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'process-xml',
-      input: { extractElements: context.extractElements, extractAttributes: context.extractAttributes },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('process-xml', {
+      attributes: {
+        'tool.id': 'process-xml',
+        'tool.input.extractElements': inputData.extractElements?.join(','),
+      }
     });
 
     await writer?.write({ type: 'progress', data: { message: '📄 Processing XML content' } });
-    const { xmlContent, extractElements = [], extractAttributes = [] } = context
+    const { xmlContent, extractElements = [], extractAttributes = [] } = inputData
 
     try {
       const parser = new DOMParser()
@@ -901,11 +947,16 @@ export const processXMLTool = createTool({
         extractedData,
         rootElement: xmlDoc.documentElement?.tagName ?? 'unknown',
       };
-      span?.end({ output: { elementCount: elements.length, rootElement: result.rootElement } });
+
+      span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.rootElement': result.rootElement });
+      span.end();
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      throw new Error(`XML processing failed: ${String(error)}`)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw new Error(`XML processing failed: ${errorMessage}`)
     }
   },
 })
@@ -931,29 +982,33 @@ export const convertDataFormatTool = createTool({
       conversionType: z.string(),
     }),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'convert-data-format',
-      input: { inputFormat: context.inputFormat, outputFormat: context.outputFormat },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('convert-data-format', {
+      attributes: {
+        'tool.id': 'convert-data-format',
+        'tool.input.inputFormat': inputData.inputFormat,
+        'tool.input.outputFormat': inputData.outputFormat,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${context.inputFormat} to ${context.outputFormat}` } });
-    const { inputData, inputFormat, outputFormat, options = {} } = context
+    await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${inputData.inputFormat} to ${inputData.outputFormat}` } });
+    const { inputData: dataToConvert, inputFormat, outputFormat, options = {} } = inputData
 
     let convertedData: string | Record<string, unknown> | Array<Record<string, unknown>> | undefined
     const metadata = {
       originalFormat: inputFormat,
       targetFormat: outputFormat,
-      conversionType: `${inputFormat}-to-${outputFormat}`,
+      conversionType: `${inputFormat}-${outputFormat}`,
     }
 
     try {
       switch (`${inputFormat}-${outputFormat}`) {
         case 'json-csv':
-          if (Array.isArray(inputData)) {
-            const rows = inputData as Array<Record<string, unknown>>
+          if (Array.isArray(dataToConvert)) {
+            const rows = dataToConvert as Array<Record<string, unknown>>
             const headers = Object.keys(rows[0] ?? {})
             let csv = headers.join(',') + '\n'
             rows.forEach((row: Record<string, unknown>) => {
@@ -974,13 +1029,13 @@ export const convertDataFormatTool = createTool({
             })
             convertedData = csv
           } else {
-            convertedData = JSON.stringify(inputData)
+            convertedData = JSON.stringify(dataToConvert)
           }
           break
 
         case 'csv-json':
           {
-            const lines = String(inputData).trim().split('\n')
+            const lines = String(dataToConvert).trim().split('\n')
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
             convertedData = []
 
@@ -997,7 +1052,7 @@ export const convertDataFormatTool = createTool({
 
         case 'json-xml':
           // Simple JSON to XML conversion
-          convertedData = jsonToXML(inputData, options.rootElement ?? 'root')
+          convertedData = jsonToXML(dataToConvert, options.rootElement ?? 'root')
           break
 
         case 'xml-json':
@@ -1006,10 +1061,10 @@ export const convertDataFormatTool = createTool({
           break
 
         case 'excalidraw-csv':
-          // Ensure inputData is an object with an elements array before proceeding
+          // Ensure dataToConvert is an object with an elements array before proceeding
           {
             type GenericElement = Record<string, unknown>
-            const inputObj = inputData as { elements?: GenericElement[] } | null | undefined
+            const inputObj = dataToConvert as { elements?: GenericElement[] } | null | undefined
             if (inputObj !== null && inputObj !== undefined && Array.isArray(inputObj.elements)) {
               const columns = ['id', 'type', 'x', 'y', 'width', 'height', 'text', 'strokeColor', 'backgroundColor']
               let csv = columns.join(',') + '\n'
@@ -1026,13 +1081,13 @@ export const convertDataFormatTool = createTool({
               })
               convertedData = csv
             } else {
-              convertedData = inputData
+              convertedData = dataToConvert
             }
           }
           break
 
         default:
-          convertedData = inputData
+          convertedData = dataToConvert
           metadata.conversionType = 'no-conversion'
       }
 
@@ -1043,11 +1098,16 @@ export const convertDataFormatTool = createTool({
         format: outputFormat,
         metadata,
       };
-      span?.end({ output: { success: true, format: outputFormat } });
+
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.format': outputFormat });
+      span.end();
       return result;
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      throw new Error(`Data conversion failed: ${String(error)}`)
+       const errorMessage = error instanceof Error ? error.message : String(error);
+       span.recordException(error instanceof Error ? error : new Error(errorMessage));
+       span.setStatus({ code: 2, message: errorMessage });
+       span.end();
+       throw new Error(`Data conversion failed: ${errorMessage}`)
     }
   },
 })
@@ -1069,16 +1129,20 @@ export const validateDataTool = createTool({
     warnings: z.array(z.string()),
     validatedData: z.any().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'validate-data',
-      input: { schemaType: context.schemaType, strict: context.strict },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('validate-data', {
+      attributes: {
+        'tool.id': 'validate-data',
+        'tool.input.schemaType': inputData.schemaType,
+        'tool.input.strict': inputData.strict,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `✅ Validating ${context.schemaType} data` } });
-    const { data, schemaType, strict = true } = context
+    await writer?.write({ type: 'progress', data: { message: `✅ Validating ${inputData.schemaType} data` } });
+    const { data, schemaType, strict = true } = inputData
     const errors: string[] = []
     const warnings: string[] = []
 
@@ -1126,11 +1190,12 @@ export const validateDataTool = createTool({
               for (let i = 1; i < lines.length; i++) {
                 const columns = lines[i].split(',').length
                 if (columns !== headerColumns) {
-                  if (strict) {
-                    errors.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
-                  } else {
-                    warnings.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
-                  }
+                   // Duplicated checking logic in original code, simplifying
+                   if (strict) {
+                     errors.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
+                   } else {
+                     warnings.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
+                   }
                 }
               }
 
@@ -1193,15 +1258,20 @@ export const validateDataTool = createTool({
         warnings,
         validatedData,
       };
-      span?.end({ output: { isValid, errorCount: errors.length } });
+
+      span.setAttributes({ 'tool.output.isValid': isValid, 'tool.output.errorCount': errors.length });
+      span.end();
       return result;
     } catch (error) {
       const errorMsg = String(error);
-      span?.end({ metadata: { error: errorMsg, isValid: false } });
+      span.recordException(error instanceof Error ? error : new Error(errorMsg));
+      span.setAttributes({ 'tool.output.isValid': false });
+      span.end();
       return {
         isValid: false,
         errors: [`Validation failed: ${errorMsg}`],
         warnings,
+        elementCount: 0,
       }
     }
   },

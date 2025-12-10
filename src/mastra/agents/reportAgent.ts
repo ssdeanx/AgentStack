@@ -1,11 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ReportRuntimeContext {
@@ -19,10 +18,10 @@ export const reportAgent = new Agent({
   name: 'Report Agent',
   description:
     'An expert researcher agent that generates comprehensive reports based on research data.',
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<ReportRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ReportRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
@@ -93,8 +92,8 @@ export const reportAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ReportRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<ReportRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAIPro
@@ -106,7 +105,7 @@ export const reportAgent = new Agent({
     return googleAIFlashLite
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: {},
   scorers: {
     researchCompleteness: {
       scorer: researchCompletenessScorer,

@@ -2,17 +2,21 @@ import { Agent } from '@mastra/core/agent';
 import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
-import { InternalSpans } from '@mastra/core/ai-tracing';
 import { structureScorer, creativityScorer } from '../scorers';
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface CopywriterAgentContext {
+    userId?: string
+}
 
 export const contentStrategistAgent = new Agent({
   id: 'contentStrategistAgent',
   name: 'Content Strategist',
   description: 'Elite content strategist specializing in high-impact, data-driven content planning.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId') ?? 'anonymous';
+  instructions: ({ requestContext }: { requestContext: RequestContext<CopywriterAgentContext> }) => {
+    const userId = requestContext.get('userId') ?? 'anonymous';
     return {
       role: 'system',
       content: `You are an Elite Content Strategist (10+ years viral content engineering).
@@ -77,6 +81,5 @@ EXAMPLE FLOW:
       scorer: creativityScorer,
       sampling: { type: 'ratio', rate: 1.0 },
     },
-  },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  }
 });

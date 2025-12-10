@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/code';
-import { createCompletenessScorer } from '@mastra/evals/scorers/code';
-import { createScorer } from '@mastra/core/scores';
+import { createToolCallAccuracyScorerCode } from '@mastra/core/evals/code';
+import { createCompletenessScorer } from '@mastra/core/evals/completeness-scorer';
+import { createScorer, runEvals } from '@mastra/core/evals';
 
 export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({
   expectedTool: 'weatherTool',
@@ -11,7 +11,9 @@ export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({
 export const completenessScorer = createCompletenessScorer();
 
 // Custom LLM-judged scorer: evaluates if non-English locations are translated appropriately
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const translationScorer = createScorer({
+  id: 'translation-scorer',
   name: 'Translation Quality',
   description:
     'Checks that non-English location names are translated and used correctly',
@@ -29,12 +31,12 @@ export const translationScorer = createScorer({
     // UIMessageWithMetadata may not have a `content` property in the type
     // Normalize various possible message shapes into a plain string
     const extractText = (msg: any) => {
-      if (!msg) return '';
-      if (typeof msg === 'string') return msg;
+      if (!msg) {return '';}
+      if (typeof msg === 'string') {return msg;}
       // Common property names for message bodies
       const candidate = msg.content ?? msg.text ?? msg.message ?? msg.body ?? msg.value ?? '';
       if (Array.isArray(candidate))
-        return candidate.map((c) => (typeof c === 'string' ? c : JSON.stringify(c))).join(' ');
+        {return candidate.map((c) => (typeof c === 'string' ? c : JSON.stringify(c))).join(' ');}
       return String(candidate);
     };
 
@@ -75,14 +77,14 @@ export const translationScorer = createScorer({
         `,
   })
   .generateScore(({ results }) => {
-    const r = (results as any)?.analyzeStepResult || {};
-    if (!r.nonEnglish) return 1; // If not applicable, full credit
+    const r = (results as any)?.analyzeStepResult ?? {};
+    if (!r.nonEnglish) {return 1;} // If not applicable, full credit
     if (r.translated)
-      return Math.max(0, Math.min(1, 0.7 + 0.3 * (r.confidence ?? 1)));
+      {return Math.max(0, Math.min(1, 0.7 + 0.3 * (r.confidence ?? 1)));}
     return 0; // Non-English but not translated
   })
   .generateReason(({ results, score }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = (results as any)?.analyzeStepResult ?? {};
     return `Translation scoring: nonEnglish=${r.nonEnglish ?? false}, translated=${r.translated ?? false}, confidence=${r.confidence ?? 0}. Score=${score}. ${r.explanation ?? ''}`;
   });
 

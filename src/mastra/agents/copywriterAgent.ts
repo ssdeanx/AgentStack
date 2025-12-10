@@ -11,9 +11,9 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { creativityScorer, responseQualityScorer, toneConsistencyScorer, structureScorer } from '../scorers'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -28,8 +28,8 @@ export const copywriterAgent = new Agent({
     name: 'copywriter-agent',
     description:
         'An expert copywriter agent that creates engaging, high-quality content across multiple formats including blog posts, marketing copy, social media content, technical writing, and business communications.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId')
+    instructions: ({ requestContext }: { requestContext: RequestContext<CopywriterAgentContext> }) => {
+        const userId = requestContext.get('userId')
         return {
             role: 'system',
             content: `
@@ -127,7 +127,6 @@ Provide the final content in a clear, well-structured format appropriate for the
     },
     model: googleAIFlashLite,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
     tools: {
         webScraperTool,
         //    batchWebScraperTool,
@@ -138,14 +137,6 @@ Provide the final content in a clear, well-structured format appropriate for the
         chartSupervisorTool
     },
     scorers: {
-        creativity: {
-            scorer: creativityScorer,
-            sampling: { type: 'ratio', rate: 0.8 },
-        },
-        responseQuality: {
-            scorer: responseQualityScorer,
-            sampling: { type: 'ratio', rate: 0.6 },
-        },
         structure: {
             scorer: structureScorer,
             sampling: { type: 'ratio', rate: 0.5 },

@@ -3,9 +3,10 @@ import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
 import {
   DefaultExporter,
   SamplingStrategyType,
-  SensitiveDataFilter
-} from "@mastra/core/ai-tracing";
-import { Mastra } from '@mastra/core/mastra';
+  SensitiveDataFilter,
+  Observability
+} from "@mastra/observability";
+import { Mastra } from '@mastra/core';
 import { PostgresStore } from "@mastra/pg";
 import { LangfuseExporter } from "@mastra/langfuse";
 // Config
@@ -88,7 +89,6 @@ import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 import { ResearchRuntimeContext } from './agents/index';
 
-import type { TracingContext } from '@mastra/core/ai-tracing';
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -166,7 +166,9 @@ export const mastra = new Mastra({
   },
   scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
+
   storage: new PostgresStore({
+    id: 'mastra-storage',
     // Connection configuration
     connectionString:
       process.env.SUPABASE ??
@@ -176,17 +178,14 @@ export const mastra = new Mastra({
   }),
   vectors: { pgVector },
   logger: log,
-  //  telemetry: {
-  // Telemetry is deprecated and will be removed in the Nov 4th release
-  //    enabled: true,
-  //  },
-  observability: {
-    default: { enabled: true },
+  observability: new Observability({
+    default: { enabled: false },
     configs: {
       langfuse: {
         serviceName: "ai",
+        requestContextKeys: ["userId", "environment", "tenantId"],
         sampling: { type: SamplingStrategyType.ALWAYS },
-        processors: [new SensitiveDataFilter(
+        spanOutputProcessors: [new SensitiveDataFilter(
           {
             sensitiveFields: ['api-key', 'authorization', 'password', 'token',
               'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
@@ -201,27 +200,14 @@ export const mastra = new Mastra({
             baseUrl: process.env.LANGFUSE_BASE_URL,
             logger: log,
             options: {
-              tracer: trace.getTracer("ALL"),
-            }
+              tracer: trace.getTracer("ai"),
+            },
+            logLevel: 'info',
           }),
-          //          new CloudExporter({
-          //            logger: log,
-          //                logLevel: 'debug',
-          //          }),
-
-          new DefaultExporter(
-            {
-              maxBatchSize: 100,
-              maxBufferSize: 500,
-              maxBatchWaitMs: 75,
-              maxRetries: 3,
-              retryDelayMs: 500,
-              strategy: 'batch-with-updates',
-            }
-          )],
+          ],
       },
     }
-  },
+  }),
   server: {
     apiRoutes: [
       workflowRoute({
@@ -246,11 +232,6 @@ export const mastra = new Mastra({
             }
           },
           maxSteps: 200,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-          },
           includeRawChunks: true,
         }
       }),
@@ -270,13 +251,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-            tracer: trace.getTracer("TracingContext.agentId"),
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -287,7 +261,6 @@ export const mastra = new Mastra({
         path: "/chat/weatherAgent",
         agent: "weatherAgent",
         defaultOptions: {
-          format: "aisdk",
           memory: {
             thread: {
               id: "weatherAgentChat",
@@ -300,12 +273,6 @@ export const mastra = new Mastra({
             readOnly: false,
           },
           maxSteps: 50,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
           includeRawChunks: true,
         },
         sendStart: true,
@@ -317,7 +284,6 @@ export const mastra = new Mastra({
         path: "/custom/researchAgent",
         agent: "researchAgent",
         defaultOptions: {
-          format: "aisdk",
           memory: {
             thread: {
               id: "researchAgentChat",
@@ -330,13 +296,6 @@ export const mastra = new Mastra({
             readOnly: false,
           },
           maxSteps: 50,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-            tracer: trace.getTracer("researchAgent"),
-          },
           includeRawChunks: true,
         },
         sendStart: true,
@@ -359,12 +318,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -386,12 +339,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -413,12 +360,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -440,12 +381,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -467,12 +402,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -494,12 +423,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,
@@ -521,12 +444,6 @@ export const mastra = new Mastra({
           },
           maxSteps: 50,
           includeRawChunks: true,
-          telemetry: {
-            isEnabled: true,
-            recordInputs: true,
-            recordOutputs: true,
-            functionId: "chat-api",
-          },
         },
         sendStart: true,
         sendFinish: true,

@@ -5,8 +5,8 @@
  *
  * @module serpapi-academic-local-tool
  */
-
-import { AISpanType } from '@mastra/core/ai-tracing';
+import type { RequestContext } from '@mastra/core/request-context';
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { getJson } from 'serpapi';
@@ -47,34 +47,39 @@ export const googleScholarTool = createTool({
     'Search Google Scholar for academic papers and citations. Filter by year range, include/exclude patents, and sort by relevance or date. Returns paper title, authors, publication, year, citation count, and PDF links when available. Useful for research and finding academic sources.',
   inputSchema: googleScholarInputSchema,
   outputSchema: googleScholarOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (input, context) => {
     validateSerpApiKey()
-    const scholarSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'google-scholar-tool',
-      input: { query: context.query, yearRange: `${context.yearStart}-${context.yearEnd}` },
-    })
-    log.info('Executing Google Scholar search', { query: context.query })
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('serpapi-academic-local-tool');
+    const scholarSpan = tracer.startSpan('google-scholar-tool', {
+      attributes: {
+        query: input.query,
+        yearRange: `${input.yearStart}-${input.yearEnd}`,
+        operation: 'google-scholar'
+      }
+    });
+    log.info('Executing Google Scholar search', { query: input.query })
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Searching Google Scholar for: ${context.query}`
+        message: `Searching Google Scholar for: ${input.query}`
       }
     });
     try {
       const params: Record<string, string | number> = {
         engine: 'google_scholar',
-        q: context.query,
-        num: context.numResults,
+        q: input.query,
+        num: input.numResults,
       }
-      if (typeof context.yearStart === 'number' && typeof context.yearEnd === 'number') {
-        params.as_ylo = context.yearStart
-        params.as_yhi = context.yearEnd
+      if (typeof input.yearStart === 'number' && typeof input.yearEnd === 'number') {
+        params.as_ylo = input.yearStart
+        params.as_yhi = input.yearEnd
       }
-      if (context.sortBy === 'date') {
+      if (input.sortBy === 'date') {
         params.scisbd = '1'
       }
-      if (!context.includePatents) {
+      if (!input.includePatents) {
         params.as_sdt = '0,5'
       }
       const response = await getJson(params)
@@ -100,13 +105,15 @@ export const googleScholarTool = createTool({
           })
         ) ?? []
       const result = { papers }
-      scholarSpan?.end({ output: { paperCount: papers.length } })
-      log.info('Google Scholar search completed', { query: context.query, paperCount: papers.length })
+      scholarSpan.end();
+      log.info('Google Scholar search completed', { query: input.query, paperCount: papers.length })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      scholarSpan?.end({ metadata: { error: errorMessage } })
-      log.error('Google Scholar search failed', { query: context.query, error: errorMessage })
+      scholarSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      scholarSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      scholarSpan.end();
+      log.error('Google Scholar search failed', { query: input.query, error: errorMessage })
       throw new Error(`Google Scholar search failed: ${errorMessage}`)
     }
   },
@@ -147,27 +154,31 @@ export const googleFinanceTool = createTool({
     'Get stock quotes and financial data from Google Finance. Returns current price, change, market cap, volume, high/low, and recent financial news. Use for real-time stock information and market data.',
   inputSchema: googleFinanceInputSchema,
   outputSchema: googleFinanceOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (input, context) => {
     validateSerpApiKey()
-    const financeSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'google-finance-tool',
-      input: { query: context.query },
-    })
-    log.info('Executing Google Finance search', { query: context.query })
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('serpapi-academic-local-tool');
+    const financeSpan = tracer.startSpan('google-finance-tool', {
+      attributes: {
+        query: input.query,
+        operation: 'google-finance'
+      }
+    });
+    log.info('Executing Google Finance search', { query: input.query })
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Searching Google Finance for: ${context.query}`
+        message: `Searching Google Finance for: ${input.query}`
       }
     });
     try {
       const params: Record<string, string> = {
         engine: 'google_finance',
-        q: context.query,
+        q: input.query,
       }
-      if (typeof context.exchange === 'string' && context.exchange.length > 0) {
-        params.exchange = context.exchange
+      if (typeof input.exchange === 'string' && input.exchange.length > 0) {
+        params.exchange = input.exchange
       }
       const response = await getJson(params)
       const { summary } = response
@@ -180,7 +191,7 @@ export const googleFinanceTool = createTool({
         })
       )
       const result = {
-        symbol: summary?.stock ?? context.query,
+        symbol: summary?.stock ?? input.query,
         price: summary?.price?.value,
         change: summary?.price?.change,
         changePercent: summary?.price?.change_percentage,
@@ -192,13 +203,15 @@ export const googleFinanceTool = createTool({
         previousClose: summary?.previous_close,
         news,
       }
-      financeSpan?.end({ output: result })
-      log.info('Google Finance search completed', { query: context.query, symbol: result.symbol })
+      financeSpan.end();
+      log.info('Google Finance search completed', { query: input.query, symbol: result.symbol })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      financeSpan?.end({ metadata: { error: errorMessage } })
-      log.error('Google Finance search failed', { query: context.query, error: errorMessage })
+      financeSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      financeSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      financeSpan.end();
+      log.error('Google Finance search failed', { query: input.query, error: errorMessage })
       throw new Error(`Google Finance search failed: ${errorMessage}`)
     }
   },
@@ -239,34 +252,39 @@ export const yelpSearchTool = createTool({
     'Search Yelp for local businesses and reviews. Requires location parameter. Filter by price range, open now status, and sort by recommended, rating, or review count. Returns business name, rating, reviews, address, phone, hours, and photos. Best for finding local services and restaurants.',
   inputSchema: yelpSearchInputSchema,
   outputSchema: yelpSearchOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (input, context) => {
     validateSerpApiKey()
-    const yelpSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'yelp-search-tool',
-      input: { query: context.query, location: context.location },
-    })
-    log.info('Executing Yelp search', { query: context.query, location: context.location })
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('serpapi-academic-local-tool');
+    const yelpSpan = tracer.startSpan('yelp-search-tool', {
+      attributes: {
+        query: input.query,
+        location: input.location,
+        operation: 'yelp-search'
+      }
+    });
+    log.info('Executing Yelp search', { query: input.query, location: input.location })
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Searching Yelp for: ${context.query} in ${context.location}`
+        message: `Searching Yelp for: ${input.query} in ${input.location}`
       }
     });
     try {
       const params: Record<string, string | number | boolean> = {
         engine: 'yelp',
-        find_desc: context.query,
-        find_loc: context.location,
-        num: context.numResults,
+        find_desc: input.query,
+        find_loc: input.location,
+        num: input.numResults,
       }
-      if (context.sortBy !== 'recommended') {
-        params.sortby = context.sortBy
+      if (input.sortBy !== 'recommended') {
+        params.sortby = input.sortBy
       }
-      if (context.priceRange) {
-        params.price = context.priceRange
+      if (input.priceRange) {
+        params.price = input.priceRange
       }
-      if (context.openNow) {
+      if (input.openNow) {
         params.open_now = 'true'
       }
       const response = await getJson(params)
@@ -298,17 +316,19 @@ export const yelpSearchTool = createTool({
           })
         ) ?? []
       const result = { businesses }
-      yelpSpan?.end({ output: { businessCount: businesses.length } })
+      yelpSpan.end();
       log.info('Yelp search completed', {
-        query: context.query,
-        location: context.location,
+        query: input.query,
+        location: input.location,
         businessCount: businesses.length,
       })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      yelpSpan?.end({ metadata: { error: errorMessage } })
-      log.error('Yelp search failed', { query: context.query, location: context.location, error: errorMessage })
+      yelpSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      yelpSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      yelpSpan.end();
+      log.error('Yelp search failed', { query: input.query, location: input.location, error: errorMessage })
       throw new Error(`Yelp search failed: ${errorMessage}`)
     }
   },

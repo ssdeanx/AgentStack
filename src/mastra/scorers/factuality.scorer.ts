@@ -1,8 +1,10 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 import { z } from 'zod'
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const factualityScorer = createScorer({
+    id: 'factuality-scorer',
     name: 'Factuality',
     description: 'Evaluates if the claims in the output are factual and supported by evidence',
     judge: {
@@ -18,11 +20,11 @@ export const factualityScorer = createScorer({
     } else if (output && typeof output === 'object') {
         text = JSON.stringify(output)
     }
-    
+
     // Ideally, we would have access to the "ground truth" or "search results" in the run context.
     // If the agent put search results in the output (like researchAgent does), we can use them.
     // Otherwise, the LLM judge will have to rely on its own knowledge base (which is a proxy for factuality).
-    
+
     return { text }
 })
 .analyze({
@@ -61,8 +63,8 @@ export const factualityScorer = createScorer({
 .generateReason(({ results, score }) => {
     const { unsupportedClaims, hallucinations, explanation } = results.analyzeStepResult
     let reason = `Score: ${score.toFixed(2)}. `
-    if (hallucinations.length > 0) reason += `Detected hallucinations: ${hallucinations.join(', ')}. `
-    if (unsupportedClaims.length > 0) reason += `Unsupported claims: ${unsupportedClaims.join(', ')}. `
+    if (hallucinations.length > 0) {reason += `Detected hallucinations: ${hallucinations.join(', ')}. `}
+    if (unsupportedClaims.length > 0) {reason += `Unsupported claims: ${unsupportedClaims.join(', ')}. `}
     reason += explanation
     return reason
-})
+});

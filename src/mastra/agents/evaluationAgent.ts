@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EvaluationContext {
@@ -19,8 +19,8 @@ export const evaluationAgent = new Agent({
   name: 'Evaluation Agent',
   description:
     'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
-  instructions: ({ runtimeContext }) => {
-    const UserTier = runtimeContext.get('user-tier');
+  instructions: ({ requestContext }: { requestContext: RequestContext<EvaluationContext> }) => {
+    const UserTier = requestContext.get('user-tier');
 
     return {
       role: 'system',
@@ -128,20 +128,11 @@ For each search result provided, you must determine its relevance to the user's 
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     responseQuality: {
       scorer: responseQualityScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
-    taskCompletion: {
-      scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.7 },
-    },
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
+      sampling: { type: 'ratio', rate: 0.5 },
+    }
   },
   workflows: {},
   maxRetries: 5

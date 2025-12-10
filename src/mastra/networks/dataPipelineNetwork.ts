@@ -1,6 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-
 import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
@@ -26,7 +24,7 @@ export const dataPipelineNetwork = new Agent({
 **Use for:** Creating CSV files, exporting data, converting JSON to CSV, saving structured data
 **Triggers:** "export", "create csv", "save as csv", "convert to csv", "download data"
 
-### DataIngestionAgent  
+### DataIngestionAgent
 **Use for:** Reading CSV files, parsing CSV data, importing data, validating CSV structure
 **Triggers:** "import", "read csv", "parse csv", "load data", "open file"
 
@@ -83,7 +81,7 @@ For complex requests requiring multiple agents:
     model: googleAI,
     memory: pgMemory,
     options: {
-        tracingPolicy: { internal: InternalSpans.ALL },
+
     },
     agents: {
         dataExportAgent,

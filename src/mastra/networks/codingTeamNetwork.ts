@@ -1,6 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
@@ -16,10 +14,10 @@ log.info('Initializing Coding Team Network...')
 
 /**
  * Coding Team Network
- * 
+ *
  * A routing agent that coordinates specialized coding agents for software development tasks.
  * Uses LLM-based routing to delegate requests to the most appropriate specialist.
- * 
+ *
  * Requires memory for network() capabilities.
  */
 export const codingTeamNetwork = new Agent({
@@ -102,7 +100,7 @@ export const codingTeamNetwork = new Agent({
   model: googleAIFlashLite,
   memory: pgMemory,
   options: {
-    tracingPolicy: { internal: InternalSpans.ALL },
+
   },
   agents: {
     codeArchitectAgent,

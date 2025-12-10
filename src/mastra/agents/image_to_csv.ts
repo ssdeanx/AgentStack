@@ -1,8 +1,8 @@
 import { Agent } from "@mastra/core/agent";
-import { InternalSpans } from "@mastra/core/ai-tracing";
 import { googleAI, pgMemory } from "../config";
 import { csvValidityScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { RequestContext } from "@mastra/core/request-context";
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -20,11 +20,22 @@ export const imageToCsvAgent = new Agent({
   id: "imageToCsvAgent",
   name: "Image to CSV Converter",
   description: `You are an expert at converting images of diagrams into structured CSV data. Your task is to analyze the visual elements in the provided image and represent them in a CSV format that captures all relevant properties and relationships.`,
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<KnowledgeIndexingContext> }) => {
+    const userId = requestContext.get('userId') ?? 'default'
+    const indexName = requestContext.get('indexName') ?? 'governed_rag'
+    const chunkSize = requestContext.get('chunkSize') ?? 512
+    const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
+    const chunkingStrategy = requestContext.get('chunkingStrategy') ?? 'recursive'
+
     return {
       role: 'system',
       content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
+
+User: ${userId}
+Index Name: ${indexName}
+Chunk Size: ${chunkSize}
+Chunk Overlap: ${chunkOverlap}
+Chunking Strategy: ${chunkingStrategy}
 
 When you receive an image, carefully analyze its contents and create a CSV representation that captures:
 
@@ -135,7 +146,6 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
   },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   tools: {},
   scorers: {
     csvValidity: {

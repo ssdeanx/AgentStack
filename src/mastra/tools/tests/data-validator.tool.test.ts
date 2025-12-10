@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { dataValidatorToolJSON } from "../data-validator.tool";
 import type { RuntimeContext } from "@mastra/core/runtime-context";
-import type { TracingContext } from "@mastra/core/ai-tracing";
+import type { TracingContext } from "@mastra/observability";
 
 describe("dataValidatorTool", () => {
   const mockContext = {

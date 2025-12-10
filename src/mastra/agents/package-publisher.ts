@@ -1,10 +1,12 @@
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
+
+
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
 import { taskCompletionScorer } from '../scorers';
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import type { RequestContext } from '@mastra/core/request-context';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface PackagePublisherRuntimeContext {
@@ -145,13 +147,15 @@ export const PUBLISH_PACKAGES_PROMPT = `
 export const danePackagePublisher = new Agent({
   id: 'danePackagePublisher',
   name: 'DanePackagePublisher',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<PackagePublisherRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free';
+    const language = requestContext.get('language') ?? 'en';
     return {
       role: 'system',
       content: `
       I am Dane, a specialized agent for managing pnpm package publications in monorepos. My core responsibilities are:
-
+      User: ${userTier}
+      Language: ${language}
       1. Package Analysis:
          - Identify packages requiring publication across the monorepo
          - Detect changes that warrant new version releases
@@ -190,7 +194,7 @@ export const danePackagePublisher = new Agent({
     pnpmChangesetPublish,
     activeDistTag,
   },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  // options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     taskCompletion: {
       scorer: taskCompletionScorer,

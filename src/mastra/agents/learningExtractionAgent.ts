@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
+import { structureScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface LearningExtractionAgentContext {
@@ -21,13 +21,20 @@ export const learningExtractionAgent = new Agent({
   name: 'Learning Extraction Agent',
   description:
     'An expert at analyzing search results and extracting key insights to deepen research understanding.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
+  instructions: ({ requestContext }: { requestContext: RequestContext<LearningExtractionAgentContext> }) => {
+    const userId = requestContext.get('userId')
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+
     return {
       role: 'system',
       content: `
         <role>
         User: ${userId ?? 'anonymous'}
+        Tier: ${userTier}
+        Language: ${language}
+        Research Phase: ${researchPhase}
         You are an expert at analyzing search results to extract key insights and generate follow-up questions for deeper research.
         </role>
 
@@ -56,7 +63,6 @@ export const learningExtractionAgent = new Agent({
   },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
     structure: {
       scorer: structureScorer,

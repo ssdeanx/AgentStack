@@ -1,20 +1,20 @@
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
-import type { RuntimeContext } from "@mastra/core/runtime-context";
+import type { RequestContext } from '@mastra/core/request-context';
 import {
   logStepStart,
   logStepEnd,
   logError,
   logToolExecution,
 } from "../config/logger";
+import { trace } from "@opentelemetry/api";
 
 /**
  * Governance-aware Runtime Context for Polygon.io tools
  * Includes security, tenant, and access control information
  */
-interface PolygonRuntimeContext extends RuntimeContext {
+interface PolygonRuntimeContext extends RequestContext {
   // API Configuration
   baseUrl?: string;
   timeout?: number;
@@ -76,20 +76,22 @@ export const polygonStockQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (inputData, context) => {
     const startTime = Date.now();
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
 
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `Fetching stock quotes (${context.function}) for ${context.symbol}`
+        message: `Fetching stock quotes (${inputData.function}) for ${inputData.symbol}`
       }
     });
 
   const apiKey = process.env.POLYGON_API_KEY;
 
     // Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
@@ -97,31 +99,26 @@ export const polygonStockQuotesTool = createTool({
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
 
-    logToolExecution('polygon-stock-quotes', { input: context });
+    logToolExecution('polygon-stock-quotes', { input: inputData });
 
     // Create root tracing span with governance context
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-stock-quotes-tool',
-      input: {
-        function: context.function,
-        symbol: context.symbol,
-        limit: context.limit,
-        sort: context.sort,
-        governance: {
-          userId,
-          tenantId,
-          roles,
-          subscriptionTier,
-          classificationLevel,
-          currentTime: currentTime.toISOString(),
-        },
-      },
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-stock-quotes-tool', {
+      attributes: {
+        'tool.id': 'polygon-stock-quotes',
+        'tool.input.function': inputData.function,
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.limit': inputData.limit,
+        'tool.input.sort': inputData.sort,
+        'governance.userId': userId,
+        'governance.tenantId': tenantId,
+        'governance.subscriptionTier': subscriptionTier,
+      }
     });
 
     // Log governance context for audit
     logToolExecution('polygon-stock-quotes', {
-      input: context,
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -137,14 +134,18 @@ export const polygonStockQuotesTool = createTool({
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
       logError('polygon-stock-quotes', new Error(error), {
-        context,
+        input: inputData,
         governance: { userId, tenantId, roles, subscriptionTier }
       });
 
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-stock-quotes', reason: 'missing-api-key' },
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'operation': 'polygon-stock-quotes',
+        'reason': 'missing-api-key'
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -155,27 +156,31 @@ export const polygonStockQuotesTool = createTool({
     try {
       let url: string;
 
-      switch (context.function) {
+      switch (inputData.function) {
         case "QUOTES":
-          url = `https://api.polygon.io/v3/quotes/${context.symbol}`;
+          url = `https://api.polygon.io/v3/quotes/${inputData.symbol}`;
           break;
         case "TRADES":
-          url = `https://api.polygon.io/v3/trades/${context.symbol}`;
+          url = `https://api.polygon.io/v3/trades/${inputData.symbol}`;
           break;
         case "SNAPSHOT":
-          url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${context.symbol}`;
+          url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${inputData.symbol}`;
           break;
         case "PREVIOUS_CLOSE":
-          url = `https://api.polygon.io/v2/aggs/ticker/${context.symbol}/prev`;
+          url = `https://api.polygon.io/v2/aggs/ticker/${inputData.symbol}/prev`;
           break;
         default: {
-          const error = `Unsupported function: ${context.function}`;
-          logError('polygon-stock-quotes', new Error(error), { context });
+          const error = `Unsupported function: ${inputData.function}`;
+          logError('polygon-stock-quotes', new Error(error), { input: inputData });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: { operation: 'polygon-stock-quotes', reason: 'unsupported-function' },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+            'error': true,
+            'error.message': error,
+            'operation': 'polygon-stock-quotes',
+            'reason': 'unsupported-function'
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -188,26 +193,27 @@ export const polygonStockQuotesTool = createTool({
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
-      if (context.sort !== undefined && context.sort !== null) {
-        params.append('sort', context.sort);
+      if (inputData.sort !== undefined && inputData.sort !== null) {
+        params.append('sort', inputData.sort);
       }
 
       const finalUrl = `${url}?${params.toString()}`;
       const redactedUrl = apiKey ? finalUrl.replace(apiKey, '[REDACTED]') : finalUrl;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: redactedUrl, method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': redactedUrl,
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
-        function: context.function,
-        symbol: context.symbol,
+        function: inputData.function,
+        symbol: inputData.symbol,
         url: redactedUrl
       });
 
@@ -216,13 +222,12 @@ export const polygonStockQuotesTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length
-        }
+      apiSpan.setAttributes({
+        'http.status_code': response.status,
+        'http.status_text': response.statusText,
+        'response.size': JSON.stringify(data).length
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -235,18 +240,19 @@ export const polygonStockQuotesTool = createTool({
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
           logError('polygon-stock-quotes', new Error(error), {
-            context,
+            input: inputData,
             responseStatus: response.status
           });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: {
-              operation: 'polygon-stock-quotes',
-              reason: 'api-error',
-              status: response.status
-            },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+            'error': true,
+            'error.message': error,
+            'operation': 'polygon-stock-quotes',
+            'reason': 'api-error',
+            'http.status_code': response.status
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -258,8 +264,8 @@ export const polygonStockQuotesTool = createTool({
       const result = {
         data,
         metadata: {
-          function: context.function,
-          symbol: context.symbol,
+          function: inputData.function,
+          symbol: inputData.symbol,
           status: data.status,
           request_id: data.request_id,
           count: data.count
@@ -270,20 +276,17 @@ export const polygonStockQuotesTool = createTool({
       const totalDuration = Date.now() - startTime;
       logStepEnd('polygon-stock-quotes', {
         success: true,
-        function: context.function,
-        symbol: context.symbol,
+        function: inputData.function,
+        symbol: inputData.symbol,
         dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0
       }, totalDuration);
 
-      rootSpan?.end({
-        output: {
-          success: true,
-          function: context.function,
-          symbol: context.symbol,
-          dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.setAttributes({
+        'success': true,
+        'output.count': (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
+        'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return result;
 
@@ -292,17 +295,18 @@ export const polygonStockQuotesTool = createTool({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       logError('polygon-stock-quotes', error, {
-        context,
+        input: inputData,
         processingTimeMs: totalDuration
       });
 
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'polygon-stock-quotes',
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': errorMessage,
+        'operation': 'polygon-stock-quotes',
+        'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -350,43 +354,45 @@ export const polygonStockAggregatesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (inputData, context) => {
     const startTime = Date.now();
-    logToolExecution('polygon-stock-aggregates', { input: context });
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
 
-    await writer?.write({
-      type: 'progress',
+    logToolExecution('polygon-stock-aggregates', { input: inputData });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `Fetching stock aggregates for ${context.symbol}`
+        message: `Fetching stock aggregates for ${inputData.symbol}`
       }
     });
 
-    // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-stock-aggregates-tool',
-      input: {
-        symbol: context.symbol,
-        multiplier: context.multiplier,
-        timespan: context.timespan,
-        from: context.from,
-        to: context.to,
-        limit: context.limit,
-        sort: context.sort,
-      },
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-stock-aggregates-tool', {
+      attributes: {
+        'tool.id': 'polygon-stock-aggregates',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.multiplier': inputData.multiplier,
+        'tool.input.timespan': inputData.timespan,
+        'tool.input.from': inputData.from,
+        'tool.input.to': inputData.to,
+      }
     });
 
-  const apiKey = process.env.POLYGON_API_KEY;
-// Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const apiKey = process.env.POLYGON_API_KEY;
+
+    // Governance checks
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
     const subscriptionTier = governanceCtx?.subscriptionTier ?? 'free';
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
+
     logToolExecution('polygon-stock-aggregates', {
-      input: context,
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -401,12 +407,15 @@ export const polygonStockAggregatesTool = createTool({
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
-      logError('polygon-stock-aggregates', new Error(error), { context });
+      logError('polygon-stock-aggregates', new Error(error), { input: inputData });
 
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-stock-aggregates', reason: 'missing-api-key' },
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'missing-api-key'
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -414,14 +423,17 @@ export const polygonStockAggregatesTool = createTool({
       };
     }
 
-    if (context.multiplier === undefined || context.multiplier === null || context.multiplier <= 0 || isNaN(context.multiplier)) {
+    if (inputData.multiplier === undefined || inputData.multiplier === null || inputData.multiplier <= 0 || isNaN(inputData.multiplier)) {
       const error = "Multiplier must be a positive number";
-      logError('polygon-stock-aggregates', new Error(error), { context });
+      logError('polygon-stock-aggregates', new Error(error), { input: inputData });
 
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-stock-aggregates', reason: 'invalid-multiplier' },
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+         'error': true,
+         'error.message': error,
+         'reason': 'invalid-multiplier'
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -430,33 +442,34 @@ export const polygonStockAggregatesTool = createTool({
     }
 
     try {
-      const url = `https://api.polygon.io/v2/aggs/ticker/${context.symbol}/range/${context.multiplier}/${context.timespan}/${context.from ?? '2020-01-01'}/${context.to ?? new Date().toISOString().split('T')[0]}`;
+      const url = `https://api.polygon.io/v2/aggs/ticker/${inputData.symbol}/range/${inputData.multiplier}/${inputData.timespan}/${inputData.from ?? '2020-01-01'}/${inputData.to ?? new Date().toISOString().split('T')[0]}`;
 
       // Add API key and optional parameters
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
-      if (context.sort !== undefined && context.sort !== null) {
-        params.append('sort', context.sort);
+      if (inputData.sort !== undefined && inputData.sort !== null) {
+        params.append('sort', inputData.sort);
       }
 
       const finalUrl = `${url}?${params.toString()}`;
       const redactedUrl = apiKey ? finalUrl.replace(apiKey, '[REDACTED]') : finalUrl;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: redactedUrl, method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': redactedUrl,
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
-        symbol: context.symbol,
-        multiplier: context.multiplier,
-        timespan: context.timespan,
+        symbol: inputData.symbol,
+        multiplier: inputData.multiplier,
+        timespan: inputData.timespan,
         url: redactedUrl
       });
 
@@ -465,13 +478,11 @@ export const polygonStockAggregatesTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length
-        }
+      apiSpan.setAttributes({
+         'http.status_code': response.status,
+         'response.size': JSON.stringify(data).length
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -484,18 +495,18 @@ export const polygonStockAggregatesTool = createTool({
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
           logError('polygon-stock-aggregates', new Error(error), {
-            context,
+            input: inputData,
             responseStatus: response.status
           });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: {
-              operation: 'polygon-stock-aggregates',
-              reason: 'api-error',
-              status: response.status
-            },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+             'error': true,
+             'error.message': error,
+             'reason': 'api-error',
+             'http.status_code': response.status
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -507,14 +518,14 @@ export const polygonStockAggregatesTool = createTool({
       const result = {
         data,
         metadata: {
-          symbol: context.symbol,
+          symbol: inputData.symbol,
           status: data.status,
           request_id: data.request_id,
           count: data.count,
-          multiplier: context.multiplier,
-          timespan: context.timespan,
-          from: context.from,
-          to: context.to
+          multiplier: inputData.multiplier,
+          timespan: inputData.timespan,
+          from: inputData.from,
+          to: inputData.to
         },
         error: undefined
       };
@@ -522,18 +533,16 @@ export const polygonStockAggregatesTool = createTool({
       const totalDuration = Date.now() - startTime;
       logStepEnd('polygon-stock-aggregates', {
         success: true,
-        symbol: context.symbol,
+        symbol: inputData.symbol,
         dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0
       }, totalDuration);
 
-      rootSpan?.end({
-        output: {
-          success: true,
-          symbol: context.symbol,
-          dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.setAttributes({
+        'success': true,
+        'output.count': (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
+        'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return result;
 
@@ -542,17 +551,17 @@ export const polygonStockAggregatesTool = createTool({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       logError('polygon-stock-aggregates', error, {
-        context,
+        input: inputData,
         processingTimeMs: totalDuration
       });
 
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'polygon-stock-aggregates',
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+         'error': true,
+         'error.message': errorMessage,
+         'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -600,41 +609,41 @@ export const polygonStockFundamentalsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (inputData, context) => {
     const startTime = Date.now();
-    logToolExecution('polygon-stock-fundamentals', { input: context });
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
 
-    await writer?.write({
-      type: 'progress',
+    logToolExecution('polygon-stock-fundamentals', { input: inputData });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `Fetching stock fundamentals (${context.function})`
+        message: `Fetching stock fundamentals (${inputData.function})`
       }
     });
 
-    // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-stock-fundamentals-tool',
-      input: {
-        function: context.function,
-        symbol: context.symbol,
-        limit: context.limit,
-        sort: context.sort,
-      },
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-stock-fundamentals-tool', {
+      attributes: {
+        'tool.id': 'polygon-stock-fundamentals',
+        'tool.input.function': inputData.function,
+        'tool.input.symbol': inputData.symbol,
+      }
     });
 
-  const apiKey = process.env.POLYGON_API_KEY;
-// Governance checks
+    const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
     const subscriptionTier = governanceCtx?.subscriptionTier ?? 'free';
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
+
     logToolExecution('polygon-stock-fundamentals', {
-      input: context,
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -646,14 +655,18 @@ export const polygonStockFundamentalsTool = createTool({
         correlationId: governanceCtx?.correlationId
       }
     });
+
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
-      logError('polygon-stock-fundamentals', new Error(error), { context });
+      logError('polygon-stock-fundamentals', new Error(error), { input: inputData });
 
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-stock-fundamentals', reason: 'missing-api-key' },
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'missing-api-key'
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -664,23 +677,26 @@ export const polygonStockFundamentalsTool = createTool({
     try {
       let url: string;
 
-      switch (context.function) {
+      switch (inputData.function) {
         case "COMPANY":
-          if (context.symbol === undefined || context.symbol === null || context.symbol.trim() === '') {
+          if (inputData.symbol === undefined || inputData.symbol === null || inputData.symbol.trim() === '') {
             const error = "COMPANY function requires symbol parameter";
-            logError('polygon-stock-fundamentals', new Error(error), { context });
+            logError('polygon-stock-fundamentals', new Error(error), { input: inputData });
 
-            rootSpan?.error({
-              error: new Error(error),
-              metadata: { operation: 'polygon-stock-fundamentals', reason: 'missing-symbol' },
+            rootSpan.recordException(new Error(error));
+            rootSpan.setAttributes({
+                'error': true,
+                'error.message': error,
+                'reason': 'missing-symbol'
             });
+            rootSpan.end();
 
             return {
               data: null,
               error
             };
           }
-          url = `https://api.polygon.io/v3/reference/tickers/${context.symbol}`;
+          url = `https://api.polygon.io/v3/reference/tickers/${inputData.symbol}`;
           break;
         case "DIVIDENDS":
           url = `https://api.polygon.io/v3/reference/dividends`;
@@ -689,14 +705,17 @@ export const polygonStockFundamentalsTool = createTool({
           url = `https://api.polygon.io/v3/reference/splits`;
           break;
         case "FINANCIALS":
-          if (context.symbol === undefined || context.symbol === null || context.symbol.trim() === '') {
+          if (inputData.symbol === undefined || inputData.symbol === null || inputData.symbol.trim() === '') {
             const error = "FINANCIALS function requires symbol parameter";
-            logError('polygon-stock-fundamentals', new Error(error), { context });
+            logError('polygon-stock-fundamentals', new Error(error), { input: inputData });
 
-            rootSpan?.error({
-              error: new Error(error),
-              metadata: { operation: 'polygon-stock-fundamentals', reason: 'missing-symbol' },
+            rootSpan.recordException(new Error(error));
+            rootSpan.setAttributes({
+                'error': true,
+                'error.message': error,
+                'reason': 'missing-symbol'
             });
+            rootSpan.end();
 
             return {
               data: null,
@@ -706,13 +725,16 @@ export const polygonStockFundamentalsTool = createTool({
           url = `https://api.polygon.io/v3/reference/financials`;
           break;
         default: {
-          const error = `Unsupported function: ${context.function}`;
-          logError('polygon-stock-fundamentals', new Error(error), { context });
+          const error = `Unsupported function: ${inputData.function}`;
+          logError('polygon-stock-fundamentals', new Error(error), { input: inputData });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: { operation: 'polygon-stock-fundamentals', reason: 'unsupported-function' },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+              'error': true,
+              'error.message': error,
+              'reason': 'unsupported-function'
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -725,28 +747,29 @@ export const polygonStockFundamentalsTool = createTool({
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.symbol !== undefined && context.symbol !== null && context.symbol.trim() !== '') {
-        params.append('ticker', context.symbol);
+      if (inputData.symbol !== undefined && inputData.symbol !== null && inputData.symbol.trim() !== '') {
+        params.append('ticker', inputData.symbol);
       }
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
-      if (context.sort !== undefined && context.sort !== null) {
-        params.append('sort', context.sort);
+      if (inputData.sort !== undefined && inputData.sort !== null) {
+        params.append('sort', inputData.sort);
       }
 
       const finalUrl = `${url}?${params.toString()}`;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: finalUrl.replace(apiKey, '[REDACTED]'), method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': finalUrl.replace(apiKey, '[REDACTED]'),
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
-        function: context.function,
-        symbol: context.symbol,
+        function: inputData.function,
+        symbol: inputData.symbol,
         url: finalUrl.replace(apiKey, '[REDACTED]')
       });
 
@@ -755,13 +778,11 @@ export const polygonStockFundamentalsTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length
-        }
+      apiSpan.setAttributes({
+        'http.status_code': response.status,
+        'response.size': JSON.stringify(data).length
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -774,18 +795,18 @@ export const polygonStockFundamentalsTool = createTool({
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
           logError('polygon-stock-fundamentals', new Error(error), {
-            context,
+            input: inputData,
             responseStatus: response.status
           });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: {
-              operation: 'polygon-stock-fundamentals',
-              reason: 'api-error',
-              status: response.status
-            },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+              'error': true,
+              'error.message': error,
+              'reason': 'api-error',
+              'http.status_code': response.status
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -797,8 +818,8 @@ export const polygonStockFundamentalsTool = createTool({
       const result = {
         data,
         metadata: {
-          function: context.function,
-          symbol: context.symbol,
+          function: inputData.function,
+          symbol: inputData.symbol,
           status: data.status,
           request_id: data.request_id,
           count: data.count
@@ -809,20 +830,17 @@ export const polygonStockFundamentalsTool = createTool({
       const totalDuration = Date.now() - startTime;
       logStepEnd('polygon-stock-fundamentals', {
         success: true,
-        function: context.function,
-        symbol: context.symbol,
+        function: inputData.function,
+        symbol: inputData.symbol,
         dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0
       }, totalDuration);
 
-      rootSpan?.end({
-        output: {
-          success: true,
-          function: context.function,
-          symbol: context.symbol,
-          dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.setAttributes({
+          'success': true,
+          'output.count': (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
+          'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return result;
 
@@ -831,17 +849,17 @@ export const polygonStockFundamentalsTool = createTool({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       logError('polygon-stock-fundamentals', error, {
-        context,
+        input: inputData,
         processingTimeMs: totalDuration
       });
 
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'polygon-stock-fundamentals',
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+          'error': true,
+          'error.message': errorMessage,
+          'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -886,39 +904,42 @@ export const polygonCryptoQuotesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
+  execute: async (inputData, context) => {
     const startTime = Date.now();
-    logToolExecution('polygon-crypto-quotes', { input: context });
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
 
-    await writer?.write({
-      type: 'progress',
+    logToolExecution('polygon-crypto-quotes', { input: inputData });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `Fetching crypto quotes (${context.function}) for ${context.symbol}`
+        message: `Fetching crypto quotes (${inputData.function}) for ${inputData.symbol}`
       }
     });
 
-    // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-crypto-quotes-tool',
-      input: {
-        function: context.function,
-        symbol: context.symbol,
-        limit: context.limit,
-      },
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-crypto-quotes-tool', {
+      attributes: {
+        'tool.id': 'polygon-crypto-quotes',
+        'tool.input.function': inputData.function,
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.limit': inputData.limit,
+      }
     });
 
-  const apiKey = process.env.POLYGON_API_KEY;
+    const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
     const subscriptionTier = governanceCtx?.subscriptionTier ?? 'free';
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
-    logToolExecution('polygon-stock-fundamentals', {
-      input: context,
+
+    logToolExecution('polygon-crypto-quotes', {
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -930,14 +951,18 @@ export const polygonCryptoQuotesTool = createTool({
         correlationId: governanceCtx?.correlationId
       }
     });
+
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
-      logError('polygon-crypto-quotes', new Error(error), { context });
+      logError('polygon-crypto-quotes', new Error(error), { input: inputData });
 
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-crypto-quotes', reason: 'missing-api-key' },
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'missing-api-key'
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -948,24 +973,27 @@ export const polygonCryptoQuotesTool = createTool({
     try {
       let url: string;
 
-      switch (context.function) {
+      switch (inputData.function) {
         case "QUOTES":
-          url = `https://api.polygon.io/v3/quotes/${context.symbol}`;
+          url = `https://api.polygon.io/v3/quotes/${inputData.symbol}`;
           break;
         case "TRADES":
-          url = `https://api.polygon.io/v3/trades/${context.symbol}`;
+          url = `https://api.polygon.io/v3/trades/${inputData.symbol}`;
           break;
         case "SNAPSHOT_SINGLE":
-          url = `https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/${context.symbol}`;
+          url = `https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/${inputData.symbol}`;
           break;
         default: {
-          const error = `Unsupported function: ${context.function}`;
-          logError('polygon-crypto-quotes', new Error(error), { context });
+          const error = `Unsupported function: ${inputData.function}`;
+          logError('polygon-crypto-quotes', new Error(error), { input: inputData });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: { operation: 'polygon-crypto-quotes', reason: 'unsupported-function' },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+              'error': true,
+              'error.message': error,
+              'reason': 'unsupported-function'
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -978,23 +1006,25 @@ export const polygonCryptoQuotesTool = createTool({
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
 
       const finalUrl = `${url}?${params.toString()}`;
+      const redactedUrl = apiKey ? finalUrl.replace(apiKey, '[REDACTED]') : finalUrl;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: finalUrl.replace(apiKey, '[REDACTED]'), method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': redactedUrl,
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
-        function: context.function,
-        symbol: context.symbol,
-        url: finalUrl.replace(apiKey, '[REDACTED]')
+        function: inputData.function,
+        symbol: inputData.symbol,
+        url: redactedUrl
       });
 
       const apiStartTime = Date.now();
@@ -1002,13 +1032,11 @@ export const polygonCryptoQuotesTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length
-        }
+      apiSpan.setAttributes({
+        'http.status_code': response.status,
+        'response.size': JSON.stringify(data).length
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -1021,18 +1049,18 @@ export const polygonCryptoQuotesTool = createTool({
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
           logError('polygon-crypto-quotes', new Error(error), {
-            context,
+            input: inputData,
             responseStatus: response.status
           });
 
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: {
-              operation: 'polygon-crypto-quotes',
-              reason: 'api-error',
-              status: response.status
-            },
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+              'error': true,
+              'error.message': error,
+              'reason': 'api-error',
+              'http.status_code': response.status
           });
+          rootSpan.end();
 
           return {
             data: null,
@@ -1044,8 +1072,8 @@ export const polygonCryptoQuotesTool = createTool({
       const result = {
         data,
         metadata: {
-          function: context.function,
-          symbol: context.symbol,
+          function: inputData.function,
+          symbol: inputData.symbol,
           status: data.status,
           request_id: data.request_id,
           count: data.count
@@ -1056,20 +1084,17 @@ export const polygonCryptoQuotesTool = createTool({
       const totalDuration = Date.now() - startTime;
       logStepEnd('polygon-crypto-quotes', {
         success: true,
-        function: context.function,
-        symbol: context.symbol,
+        function: inputData.function,
+        symbol: inputData.symbol,
         dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0
       }, totalDuration);
 
-      rootSpan?.end({
-        output: {
-          success: true,
-          function: context.function,
-          symbol: context.symbol,
-          dataPoints: (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.setAttributes({
+          'success': true,
+          'output.count': (data !== null && typeof data === 'object' && 'count' in data && typeof data.count === 'number') ? data.count : 0,
+          'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return result;
 
@@ -1078,17 +1103,17 @@ export const polygonCryptoQuotesTool = createTool({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
       logError('polygon-crypto-quotes', error, {
-        context,
+        input: inputData,
         processingTimeMs: totalDuration
       });
 
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'polygon-crypto-quotes',
-          processingTimeMs: totalDuration,
-        },
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+          'error': true,
+          'error.message': errorMessage,
+          'processing_time_ms': totalDuration
       });
+      rootSpan.end();
 
       return {
         data: null,
@@ -1136,33 +1161,41 @@ export const polygonCryptoAggregatesTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-crypto-aggregates',
-      input: { symbol: context.symbol, multiplier: context.multiplier, timespan: context.timespan }
-    });
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
 
-  logToolExecution('polygon-crypto-aggregates', { input: context });
+    logToolExecution('polygon-crypto-aggregates', { input: inputData });
 
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
-        message: `Fetching crypto aggregates for ${context.symbol}`
+        message: `Fetching crypto aggregates for ${inputData.symbol}`
       }
     });
 
-  const apiKey = process.env.POLYGON_API_KEY;
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-crypto-aggregates', {
+      attributes: {
+        'tool.id': 'polygon-crypto-aggregates',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.multiplier': inputData.multiplier,
+        'tool.input.timespan': inputData.timespan
+      }
+    });
+
+    const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
     const subscriptionTier = governanceCtx?.subscriptionTier ?? 'free';
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
+
     logToolExecution('polygon-stock-fundamentals', {
-      input: context,
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -1174,26 +1207,34 @@ export const polygonCryptoAggregatesTool = createTool({
         correlationId: governanceCtx?.correlationId
       }
     });
+
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-crypto-aggregates', reason: 'missing-api-key' }
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'missing-api-key'
       });
-      logError('polygon-crypto-aggregates', new Error(error), { symbol: context.symbol });
+      rootSpan.end();
+      logError('polygon-crypto-aggregates', new Error(error), { symbol: inputData.symbol });
       return {
         data: null,
         error
       };
     }
 
-    if (context.multiplier === undefined || context.multiplier === null || context.multiplier <= 0 || isNaN(context.multiplier)) {
+    if (inputData.multiplier === undefined || inputData.multiplier === null || inputData.multiplier <= 0 || isNaN(inputData.multiplier)) {
       const error = "Multiplier must be a positive number";
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-crypto-aggregates', reason: 'invalid-multiplier', multiplier: context.multiplier }
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'invalid-multiplier',
+        'multiplier': inputData.multiplier
       });
-      logError('polygon-crypto-aggregates', new Error(error), { symbol: context.symbol, multiplier: context.multiplier });
+      rootSpan.end();
+      logError('polygon-crypto-aggregates', new Error(error), { symbol: inputData.symbol, multiplier: inputData.multiplier });
       return {
         data: null,
         error
@@ -1201,30 +1242,31 @@ export const polygonCryptoAggregatesTool = createTool({
     }
 
     try {
-      const url = `https://api.polygon.io/v2/aggs/ticker/${context.symbol}/range/${context.multiplier}/${context.timespan}/${context.from ?? '2020-01-01'}/${context.to ?? new Date().toISOString().split('T')[0]}`;
+      const url = `https://api.polygon.io/v2/aggs/ticker/${inputData.symbol}/range/${inputData.multiplier}/${inputData.timespan}/${inputData.from ?? '2020-01-01'}/${inputData.to ?? new Date().toISOString().split('T')[0]}`;
 
       // Add API key and optional parameters
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
-      if (context.sort !== undefined && context.sort !== null) {
-        params.append('sort', context.sort);
+      if (inputData.sort !== undefined && inputData.sort !== null) {
+        params.append('sort', inputData.sort);
       }
 
       const finalUrl = `${url}?${params.toString()}`;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: finalUrl.replace(apiKey, '[REDACTED]'), method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': finalUrl.replace(apiKey, '[REDACTED]'),
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
-        symbol: context.symbol,
+        symbol: inputData.symbol,
         url: finalUrl.replace(apiKey, '[REDACTED]')
       });
 
@@ -1233,14 +1275,12 @@ export const polygonCryptoAggregatesTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length,
-          duration: apiDuration
-        }
+      apiSpan.setAttributes({
+        'http.status_code': response.status,
+        'response.size': JSON.stringify(data).length,
+        'duration_ms': apiDuration
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -1252,11 +1292,15 @@ export const polygonCryptoAggregatesTool = createTool({
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: { operation: 'polygon-crypto-aggregates', reason: 'api-error', symbol: context.symbol }
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+            'error': true,
+            'error.message': error,
+            'reason': 'api-error',
+            'symbol': inputData.symbol
           });
-          logError('polygonCryptoAggregatesTool', new Error(error), { symbol: context.symbol, apiError: error });
+          rootSpan.end();
+          logError('polygonCryptoAggregatesTool', new Error(error), { symbol: inputData.symbol, apiError: error });
           return {
             data: null,
             error
@@ -1267,37 +1311,40 @@ export const polygonCryptoAggregatesTool = createTool({
       const result = {
         data,
         metadata: {
-          symbol: context.symbol,
+          symbol: inputData.symbol,
           status: data.status,
           request_id: data.request_id,
           count: data.count,
-          multiplier: context.multiplier,
-          timespan: context.timespan,
-          from: context.from,
-          to: context.to
+          multiplier: inputData.multiplier,
+          timespan: inputData.timespan,
+          from: inputData.from,
+          to: inputData.to
         },
         error: undefined
       };
 
-      rootSpan?.end({
-        output: {
-          count: data?.count ?? 0,
-          symbol: context.symbol,
-          status: data?.status
-        }
+      rootSpan.setAttributes({
+        'output.count': data?.count ?? 0,
+        'output.symbol': inputData.symbol,
+        'output.status': data?.status
       });
+      rootSpan.end();
 
-  logToolExecution('polygon-crypto-aggregates', { output: { symbol: context.symbol, count: data?.count ?? 0 } });
+      logToolExecution('polygon-crypto-aggregates', { output: { symbol: inputData.symbol, count: data?.count ?? 0 } });
 
       return result;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: { operation: 'polygon-crypto-aggregates', reason: 'execution-error', symbol: context.symbol }
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': errorMessage,
+        'reason': 'execution-error',
+        'symbol': inputData.symbol
       });
-      logError('polygonCryptoAggregatesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: context.symbol });
+      rootSpan.end();
+      logError('polygonCryptoAggregatesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: inputData.symbol });
       return {
         data: null,
         error: errorMessage
@@ -1331,33 +1378,39 @@ export const polygonCryptoSnapshotsTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, tracingContext, runtimeContext, writer }) => {
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'polygon-crypto-snapshots',
-      input: { limit: context.limit }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+
+    const tracer = trace.getTracer('polygon-tools');
+    const rootSpan = tracer.startSpan('polygon-crypto-snapshots', {
+      attributes: {
+        'tool.id': 'polygon-crypto-snapshots',
+        'tool.input.limit': inputData.limit
+      }
     });
 
-  logToolExecution('polygon-crypto-snapshots', { input: context });
+    logToolExecution('polygon-crypto-snapshots', { input: inputData });
 
-    await writer?.write({
-      type: 'progress',
+    await writer?.custom({
+      type: 'data-tool-progress',
       data: {
         message: `Fetching crypto snapshots`
       }
     });
 
-  const apiKey = process.env.POLYGON_API_KEY;
+    const apiKey = process.env.POLYGON_API_KEY;
     // Governance checks
-    const governanceCtx = runtimeContext as PolygonRuntimeContext;
+    const governanceCtx = requestContext as PolygonRuntimeContext;
     const userId = governanceCtx?.userId;
     const tenantId = governanceCtx?.tenantId;
     const roles = governanceCtx?.roles ?? [];
     const subscriptionTier = governanceCtx?.subscriptionTier ?? 'free';
     const classificationLevel = governanceCtx?.classificationLevel ?? 'public';
     const currentTime = governanceCtx?.currentTime ?? new Date();
+
     logToolExecution('polygon-stock-fundamentals', {
-      input: context,
+      input: inputData,
       governance: {
         userId,
         tenantId,
@@ -1369,12 +1422,16 @@ export const polygonCryptoSnapshotsTool = createTool({
         correlationId: governanceCtx?.correlationId
       }
     });
+
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
       const error = "POLYGON_API_KEY environment variable or runtimeContext.apiKey is required";
-      rootSpan?.error({
-        error: new Error(error),
-        metadata: { operation: 'polygon-crypto-snapshots', reason: 'missing-api-key' }
+      rootSpan.recordException(new Error(error));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': error,
+        'reason': 'missing-api-key'
       });
+      rootSpan.end();
       logError('polygon-crypto-snapshots', new Error(error), {});
       return {
         data: null,
@@ -1389,17 +1446,18 @@ export const polygonCryptoSnapshotsTool = createTool({
       const params = new URLSearchParams();
       params.append('apiKey', apiKey);
 
-      if (context.limit !== undefined && context.limit !== null) {
-        params.append('limit', context.limit.toString());
+      if (inputData.limit !== undefined && inputData.limit !== null) {
+        params.append('limit', inputData.limit.toString());
       }
 
       const finalUrl = `${url}?${params.toString()}`;
 
       // Create child span for API call
-      const apiSpan = rootSpan?.createChildSpan({
-        type: AISpanType.TOOL_CALL,
-        name: 'polygon-api-call',
-        input: { url: finalUrl.replace(apiKey, '[REDACTED]'), method: 'GET' },
+      const apiSpan = tracer.startSpan('polygon-api-call', {
+        attributes: {
+          'http.url': finalUrl.replace(apiKey, '[REDACTED]'),
+          'http.method': 'GET'
+        }
       });
 
       logStepStart('polygon-api-call', {
@@ -1411,14 +1469,12 @@ export const polygonCryptoSnapshotsTool = createTool({
       const data = await response.json();
       const apiDuration = Date.now() - apiStartTime;
 
-      apiSpan?.end({
-        output: {
-          status: response.status,
-          statusText: response.statusText,
-          dataSize: JSON.stringify(data).length,
-          duration: apiDuration
-        }
+      apiSpan.setAttributes({
+        'http.status_code': response.status,
+        'response.size': JSON.stringify(data).length,
+        'duration_ms': apiDuration
       });
+      apiSpan.end();
 
       logStepEnd('polygon-api-call', {
         status: response.status,
@@ -1430,10 +1486,13 @@ export const polygonCryptoSnapshotsTool = createTool({
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
-          rootSpan?.error({
-            error: new Error(error),
-            metadata: { operation: 'polygon-crypto-snapshots', reason: 'api-error' }
+          rootSpan.recordException(new Error(error));
+          rootSpan.setAttributes({
+            'error': true,
+            'error.message': error,
+            'reason': 'api-error'
           });
+          rootSpan.end();
           logError('polygon-crypto-snapshots', new Error(error), { apiError: error });
           return {
             data: null,
@@ -1452,23 +1511,25 @@ export const polygonCryptoSnapshotsTool = createTool({
         error: undefined
       };
 
-      rootSpan?.end({
-        output: {
-          count: data?.count ?? 0,
-          status: data?.status
-        }
+      rootSpan.setAttributes({
+         'output.count': data?.count ?? 0,
+         'output.status': data?.status
       });
+      rootSpan.end();
 
-  logToolExecution('polygon-crypto-snapshots', { output: { count: data?.count ?? 0 } });
+      logToolExecution('polygon-crypto-snapshots', { output: { count: data?.count ?? 0 } });
 
       return result;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: { operation: 'polygon-crypto-snapshots', reason: 'execution-error' }
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setAttributes({
+        'error': true,
+        'error.message': errorMessage,
+        'reason': 'execution-error'
       });
+      rootSpan.end();
       logError('polygonCryptoSnapshotsTool', error instanceof Error ? error : new Error(errorMessage), {});
       return {
         data: null,

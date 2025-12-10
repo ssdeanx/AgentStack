@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 
 import { googleAI3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
@@ -8,6 +7,7 @@ import { log } from '../config/logger'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { mastraChunker } from '../tools/document-chunking.tool'
 import { readDataFileTool, writeDataFileTool, listDataDirTool, getDataFileInfoTool } from '../tools/data-file-manager'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export interface DocumentProcessingContext {
     userId?: string
@@ -24,12 +24,12 @@ export const documentProcessingAgent = new Agent({
     name: 'Document Processing Agent',
     description:
         'Converts PDFs to markdown, chunks documents for RAG, and prepares content for indexing. Use for PDF conversion, document chunking, text extraction, and content preprocessing for knowledge bases.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const inputDirectory = runtimeContext?.get('inputDirectory') ?? './documents'
-        const outputDirectory = runtimeContext?.get('outputDirectory') ?? './processed'
-        const chunkSize = runtimeContext?.get('chunkSize') ?? 512
-        const chunkOverlap = runtimeContext?.get('chunkOverlap') ?? 50
+    instructions: ({ requestContext }: { requestContext: RequestContext<DocumentProcessingContext> }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const inputDirectory = requestContext.get('inputDirectory') ?? './documents'
+        const outputDirectory = requestContext.get('outputDirectory') ?? './processed'
+        const chunkSize = requestContext.get('chunkSize') ?? 512
+        const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
 
         return `You are a Document Processing Specialist focused on converting and preparing documents for RAG systems.
 
@@ -134,8 +134,7 @@ When using mastraChunker, enable extraction for richer metadata:
         writeDataFileTool,
         listDataDirTool,
         getDataFileInfoTool,
-    },
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    }
 })
 
 log.info('Document Processing Agent initialized')

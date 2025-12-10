@@ -1,7 +1,8 @@
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
+import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { trace } from "@opentelemetry/api";
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -170,14 +171,18 @@ export const arxivTool = createTool({
     max_results: z.number(),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'arxiv-search',
-      input: { query: context.query, id: context.id, category: context.category }
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('arxiv-tool', '1.0.0').startSpan('arxiv-search', {
+      attributes: {
+        'tool.id': 'arxiv',
+        'tool.input.query': inputData.query,
+        'tool.input.id': inputData.id,
+        'tool.input.category': inputData.category,
+        'tool.input.maxResults': inputData.max_results,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `📚 Searching arXiv for "${context.query || context.id || 'papers'}"` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📚 Searching arXiv for "${(inputData.query ?? inputData.id) ?? 'papers'}"` } });
     toolCallCounters.set('arxiv', (toolCallCounters.get('arxiv') ?? 0) + 1);
     try {
       const params = new URLSearchParams();
@@ -185,54 +190,54 @@ export const arxivTool = createTool({
       // Build search query
       const searchTerms: string[] = [];
 
-      if (context.query !== undefined && context.query !== null) {
-        searchTerms.push(context.query);
+      if (inputData.query !== undefined && inputData.query !== null) {
+        searchTerms.push(inputData.query);
       }
 
-      if (context.author !== undefined && context.author !== null) {
-        searchTerms.push(`au:${context.author}`);
+      if (inputData.author !== undefined && inputData.author !== null) {
+        searchTerms.push(`au:${inputData.author}`);
       }
 
-      if (context.title !== undefined && context.title !== null) {
-        searchTerms.push(`ti:${context.title}`);
+      if (inputData.title !== undefined && inputData.title !== null) {
+        searchTerms.push(`ti:${inputData.title}`);
       }
 
-      if (context.category !== undefined) {
-        searchTerms.push(`cat:${context.category}`);
+      if (inputData.category !== undefined) {
+        searchTerms.push(`cat:${inputData.category}`);
       }
 
-      if (context.id !== undefined && context.id !== null) {
+      if (inputData.id !== undefined && inputData.id !== null) {
         // If specific ID is provided, use it directly
-        params.append("id_list", context.id);
+        params.append("id_list", inputData.id);
       } else if (searchTerms.length > 0) {
         params.append("search_query", searchTerms.join(" AND "));
       } else {
-        await writer?.write({ type: 'progress', data: { message: '❌ No search terms provided' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ No search terms provided' } });
         return {
           papers: [],
           total_results: 0,
           start_index: 0,
-          max_results: context.max_results ?? 10,
+          max_results: inputData.max_results ?? 10,
           error: "Either query, id, author, title, or category must be provided"
         };
       }
 
       // Add other parameters
-      params.append("max_results", String(context.max_results ?? 10));
-      params.append("start", String(context.start ?? 0));
+      params.append("max_results", String(inputData.max_results ?? 10));
+      params.append("start", String(inputData.start ?? 0));
 
-      if (context.sort_by !== undefined) {
-        params.append("sortBy", context.sort_by === "lastUpdatedDate" ? "lastUpdatedDate" :
-          context.sort_by === "submittedDate" ? "submittedDate" : "relevance");
+      if (inputData.sort_by !== undefined) {
+        params.append("sortBy", inputData.sort_by === "lastUpdatedDate" ? "lastUpdatedDate" :
+          inputData.sort_by === "submittedDate" ? "submittedDate" : "relevance");
       }
 
-      if (context.sort_order !== undefined) {
-        params.append("sortOrder", context.sort_order);
+      if (inputData.sort_order !== undefined) {
+        params.append("sortOrder", inputData.sort_order);
       }
 
       const url = `http://export.arxiv.org/api/query?${params.toString()}`;
 
-      await writer?.write({ type: 'progress', data: { message: '📡 Fetching from arXiv API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Fetching from arXiv API...' } });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -242,7 +247,7 @@ export const arxivTool = createTool({
       const xmlText = await response.text();
 
       // Parse XML response (simplified parsing - in production you might want a proper XML parser)
-      const papers = parseArxivXml(xmlText, Boolean(context.include_abstract));
+      const papers = parseArxivXml(xmlText, Boolean(inputData.include_abstract));
 
       // Extract total results from XML
       const totalResultsRegex = /<opensearch:totalResults>(\d+)<\/opensearch:totalResults>/;
@@ -251,25 +256,32 @@ export const arxivTool = createTool({
 
       const startIndexRegex = /<opensearch:startIndex>(\d+)<\/opensearch:startIndex>/;
       const startIndexMatch = startIndexRegex.exec(xmlText);
-      const startIndex = startIndexMatch ? parseInt(startIndexMatch[1], 10) : (context.start ?? 0);
+      const startIndex = startIndexMatch ? parseInt(startIndexMatch[1], 10) : (inputData.start ?? 0);
 
       const result = {
         papers,
         total_results: totalResults,
         start_index: startIndex,
-        max_results: context.max_results ?? 10
+        max_results: inputData.max_results ?? 10
       };
-      span?.end({ output: { total_results: totalResults, count: papers.length } });
+      span.setAttribute('tool.output.totalResults', totalResults);
+      span.setAttribute('tool.output.paperCount', papers.length);
+      span.end();
       return result;
 
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
+      span.end();
       return {
         papers: [],
         total_results: 0,
         start_index: 0,
-        max_results: context.max_results ?? 10,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        max_results: inputData.max_results ?? 10,
+        error: errorMessage
       };
     }
   }
@@ -310,40 +322,41 @@ export const arxivPdfParserTool = createTool({
     }),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'arxiv-pdf-parser',
-      input: { arxivId: context.arxivId },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('arxiv-pdf-parser-tool', '1.0.0').startSpan('arxiv-pdf-parser', {
+      attributes: {
+        'tool.id': 'arxiv-pdf-parser',
+        'tool.input.arxivId': inputData.arxivId,
+        'tool.input.maxPages': inputData.maxPages,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv PDF parser for ' + context.arxivId } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🚀 Starting arXiv PDF parser for ' + inputData.arxivId } });
     toolCallCounters.set('arxiv-pdf-parser', (toolCallCounters.get('arxiv-pdf-parser') ?? 0) + 1);
     const startTime = Date.now();
 
     try {
-      await writer?.write({ type: 'progress', data: { message: '📥 Downloading PDF from arXiv...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Downloading PDF from arXiv...' } });
       // Construct PDF URL
-      const pdfUrl = `https://arxiv.org/pdf/${context.arxivId}`;
+      const pdfUrl = `https://arxiv.org/pdf/${inputData.arxivId}`;
 
       // Download PDF
-      await writer?.write({ type: 'progress', data: { message: '🔄 Extracting text from PDF...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Extracting text from PDF...' } });
       const response = await fetch(pdfUrl);
 
       if (!response.ok) {
-        await writer?.write({ type: 'progress', data: { message: '❌ PDF download failed' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ PDF download failed' } });
         if (response.status === 404) {
           return {
             success: false,
-            arxivId: context.arxivId,
+            arxivId: inputData.arxivId,
             markdown: "",
             statistics: {
               pageCount: 0,
               textLength: 0,
               processingTimeMs: Date.now() - startTime
             },
-            error: `Paper not found: ${context.arxivId}`
+            error: `Paper not found: ${inputData.arxivId}`
           };
         }
         throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
@@ -352,13 +365,13 @@ export const arxivPdfParserTool = createTool({
       const pdfBuffer = Buffer.from(await response.arrayBuffer());
 
       // Extract text from PDF
-      const pdfContent = await extractPdfText(pdfBuffer, context.maxPages ?? 100);
+      const pdfContent = await extractPdfText(pdfBuffer, inputData.maxPages ?? 100);
 
       // Try to get metadata from arXiv API
       let paperMetadata: { title?: string; authors?: string[] } | undefined;
-      if (context.includeMetadata) {
+      if (inputData.includeMetadata) {
         try {
-          const apiUrl = `http://export.arxiv.org/api/query?id_list=${context.arxivId}&max_results=1`;
+          const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`;
           const apiResponse = await fetch(apiUrl);
 
           if (apiResponse.ok) {
@@ -386,9 +399,9 @@ export const arxivPdfParserTool = createTool({
       // Convert to markdown
       let markdown = pdfContent.text;
 
-      if (context.normalizeText) {
+      if (inputData.normalizeText) {
         markdown = convertPdfTextToMarkdown(markdown, paperMetadata);
-      } else if (paperMetadata && context.includeMetadata) {
+      } else if (paperMetadata && inputData.includeMetadata) {
         // Add basic frontmatter even without normalization
         const frontmatter = [
           '---',
@@ -403,14 +416,14 @@ export const arxivPdfParserTool = createTool({
         markdown = frontmatter + markdown;
       }
 
-      await writer?.write({ type: 'progress', data: { message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages' } });
       const processingTime = Date.now() - startTime;
 
       const result = {
         success: true,
-        arxivId: context.arxivId,
+        arxivId: inputData.arxivId,
         markdown,
-        metadata: context.includeMetadata ? {
+        metadata: inputData.includeMetadata ? {
           title: paperMetadata?.title,
           authors: paperMetadata?.authors,
           pageCount: pdfContent.numpages,
@@ -422,17 +435,23 @@ export const arxivPdfParserTool = createTool({
           processingTimeMs: processingTime
         }
       };
-      span?.end({ output: { success: true, pageCount: pdfContent.numpages } });
+      span.setAttribute('tool.output.success', true);
+      span.setAttribute('tool.output.pageCount', pdfContent.numpages);
+      span.end();
       return result;
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      span?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true });
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
+      span.end();
 
       return {
         success: false,
-        arxivId: context.arxivId,
+        arxivId: inputData.arxivId,
         markdown: "",
         statistics: {
           pageCount: 0,
@@ -485,21 +504,22 @@ export const arxivPaperDownloaderTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'arxiv-paper-downloader',
-      input: { arxivId: context.arxivId },
-      metadata: { arxivId: context.arxivId },
-      tracingPolicy: { internal: InternalSpans.TOOL },
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('arxiv-paper-downloader-tool', '1.0.0').startSpan('arxiv-paper-downloader', {
+      attributes: {
+        'tool.id': 'arxiv-paper-downloader',
+        'tool.input.arxivId': inputData.arxivId,
+        'tool.input.includePdfContent': inputData.includePdfContent,
+        'tool.input.format': inputData.format,
+      }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🚀 Starting arXiv paper downloader for ' + context.arxivId } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🚀 Starting arXiv paper downloader for ' + inputData.arxivId } });
     toolCallCounters.set('arxiv-paper-downloader', (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1);
     try {
-      await writer?.write({ type: 'progress', data: { message: '📡 Fetching paper metadata from arXiv API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Fetching paper metadata from arXiv API...' } });
       // Get metadata from arXiv API
-      const apiUrl = `http://export.arxiv.org/api/query?id_list=${context.arxivId}&max_results=1`;
+      const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`;
       const apiResponse = await fetch(apiUrl);
 
       if (!apiResponse.ok) {
@@ -513,8 +533,8 @@ export const arxivPaperDownloaderTool = createTool({
       if (papers?.length === 0) {
         return {
           success: false,
-          arxivId: context.arxivId,
-          error: `Paper not found: ${context.arxivId}`
+          arxivId: inputData.arxivId,
+          error: `Paper not found: ${inputData.arxivId}`
         };
       }
 
@@ -522,16 +542,16 @@ export const arxivPaperDownloaderTool = createTool({
 
       let pdfContent: { markdown: string; pageCount: number; textLength: number } | undefined;
 
-      await writer?.write({ type: 'progress', data: { message: '🔄 Processing paper data...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Processing paper data...' } });
       // Download and parse PDF if requested
-      if (context.includePdfContent) {
-        await writer?.write({ type: 'progress', data: { message: '📥 Downloading PDF content...' } });
+      if (inputData.includePdfContent) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Downloading PDF content...' } });
         try {
           const pdfResponse = await fetch(paperMetadata.pdf_url);
 
           if (pdfResponse.ok) {
             const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-            const extracted = await extractPdfText(pdfBuffer, context.maxPages ?? 100);
+            const extracted = await extractPdfText(pdfBuffer, inputData.maxPages ?? 100);
 
             const markdown = convertPdfTextToMarkdown(extracted.text, {
               title: paperMetadata.title,
@@ -560,26 +580,32 @@ export const arxivPaperDownloaderTool = createTool({
         error?: string;
       } = {
         success: true,
-        arxivId: context.arxivId
+        arxivId: inputData.arxivId
       };
 
-      if (context.format === "metadata" || context.format === "both") {
+      if (inputData.format === "metadata" || inputData.format === "both") {
         result.metadata = paperMetadata;
       }
 
-      if ((context.format === "markdown" || context.format === "both") && pdfContent) {
+      if ((inputData.format === "markdown" || inputData.format === "both") && pdfContent) {
         result.pdfContent = pdfContent;
       }
 
-      span?.end({ output: { success: true } });
+      span.setAttribute('tool.output.success', true);
+      span.end();
       return result;
 
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
+      span.end();
       return {
         success: false,
-        arxivId: context.arxivId,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        arxivId: inputData.arxivId,
+        error: errorMessage
       };
     }
   }

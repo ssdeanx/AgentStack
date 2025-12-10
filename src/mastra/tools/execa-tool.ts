@@ -1,12 +1,15 @@
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
+
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import chalk from 'chalk';
 import execa from 'execa';
 import type { ExecaError as ExecaErrorType } from 'execa';
+import { trace } from "@opentelemetry/api";
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
+import type { RequestContext } from '@mastra/core/request-context';
+
 // Create transform stream that applies chalk
 const colorTransform = new Transform({
   transform(chunk, _encoding, callback) {
@@ -31,15 +34,20 @@ export const execaTool = createTool({
     message: z.string(),
   }),
 
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'execa-tool',
-      input: { command: context.command, args: context.args },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext;
+
+    const tracer = trace.getTracer('execa-tool', '1.0.0');
+    const span = tracer.startSpan('execa-tool', {
+      attributes: {
+        'tool.id': 'execa-tool',
+        'tool.input.command': inputData.command,
+        'tool.input.args': inputData.args.join(' '),
+      }
     });
 
-    const { command, args, cwd, timeout, env } = context
+    const { command, args, cwd, timeout, env } = inputData
     await writer?.custom({ type: 'data-tool-progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
     try {
       log.info(
@@ -55,12 +63,18 @@ export const execaTool = createTool({
       })
       const output = result.all ?? ''
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Command executed successfully' } });
-      span?.end({ output: { success: true, outputLength: output.length } });
+      span.setAttributes({
+        'tool.output.success': true,
+        'tool.output.outputLength': output.length,
+      });
+      span.end();
       return { message: chalk.green(output) }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       log.error(errorMsg)
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      span.recordException(e instanceof Error ? e : new Error(errorMsg));
+      span.setStatus({ code: 2, message: errorMsg });
+      span.end();
       const execaErr = e as ExecaErrorType;
       if (e instanceof Error && 'all' in e) {
         return { message: execaErr.all ?? execaErr.message ?? 'Command failed' }

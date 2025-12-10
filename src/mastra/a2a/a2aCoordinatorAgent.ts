@@ -1,13 +1,12 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/llm'
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
 import { researchAgent } from '../agents/researchAgent'
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
-
+import type { RequestContext } from '@mastra/core/request-context';
 // Import all agents
 
 // Import all workflows
@@ -25,12 +24,12 @@ export const a2aCoordinatorAgent = new Agent({
     id: 'a2aCoordinator',
     name: 'a2aCoordinator',
     description: 'A2A Coordinator that orchestrates multiple specialized agents in parallel. Routes tasks dynamically, coordinates workflows, and synthesizes results using the A2A protocol.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext.get('userId');
+    instructions: ({ requestContext }) => {
+        const userId = requestContext.get('userId');
         return {
             role: 'system',
             content: `You are an A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent workflows.
-
+userId: ${userId}
 CORE CAPABILITIES:
 - Orchestrate multiple agents working in parallel
 - Route tasks to specialized agents dynamically
@@ -74,7 +73,7 @@ Use Promise.all() pattern for parallel execution.
     },
     model: googleAI,
     memory: pgMemory,
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    options: {},
     agents: { researchAgent, editorAgent, copywriterAgent },
     workflows: {},
     maxRetries: 5,

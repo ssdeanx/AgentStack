@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
 import { documentRerankerTool, mdocumentChunker } from '../tools/document-chunking.tool'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface KnowledgeIndexingContext {
@@ -24,12 +24,12 @@ export const knowledgeIndexingAgent = new Agent({
   name: 'Knowledge Indexing Agent',
   description:
     'Indexes documents into PgVector for semantic search and RAG. Use for building knowledge bases, indexing content with embeddings, semantic search, and document retrieval with reranking.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext?.get('userId') ?? 'default'
-    const indexName = runtimeContext?.get('indexName') ?? 'governed_rag'
-    const chunkSize = runtimeContext?.get('chunkSize') ?? 512
-    const chunkOverlap = runtimeContext?.get('chunkOverlap') ?? 50
-    const chunkingStrategy = runtimeContext?.get('chunkingStrategy') ?? 'recursive'
+  instructions: ({ requestContext }: { requestContext: RequestContext<KnowledgeIndexingContext> }) => {
+    const userId = requestContext.get('userId') ?? 'default'
+    const indexName = requestContext.get('indexName') ?? 'governed_rag'
+    const chunkSize = requestContext.get('chunkSize') ?? 512
+    const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
+    const chunkingStrategy = requestContext.get('chunkingStrategy') ?? 'recursive'
 
     return `You are a Knowledge Indexing Specialist focused on building and querying semantic knowledge bases.
 
@@ -134,8 +134,7 @@ When indexing, include relevant metadata:
     documentRerankerTool,
     readDataFileTool,
     listDataDirTool,
-  },
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  }
 })
 
 log.info('Knowledge Indexing Agent initialized')

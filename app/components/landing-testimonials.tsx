@@ -100,7 +100,7 @@ export function LandingTestimonials() {
 
   // Auto-play functionality
   useEffect(() => {
-    if (!isAutoPlaying) return
+    if (!isAutoPlaying) {return}
 
     const interval = setInterval(nextTestimonial, 5000)
     return () => clearInterval(interval)

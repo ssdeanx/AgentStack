@@ -1,7 +1,8 @@
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 
 /**
  * Alpha Vantage Tools
@@ -56,19 +57,21 @@ export const alphaVantageCryptoTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'alpha-vantage-crypto',
-      input: { symbol: context.symbol, market: context.market, function: context.function },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('alpha-vantage-crypto-tool', '1.0.0').startSpan('alpha-vantage-crypto', {
+      attributes: {
+        'tool.id': 'alpha-vantage-crypto',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.market': inputData.market,
+        'tool.input.function': inputData.function,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${context.symbol}/${context.market}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -78,25 +81,25 @@ export const alphaVantageCryptoTool = createTool({
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
-        function: context.function,
-        symbol: context.symbol,
-        market: context.market
+        function: inputData.function,
+        symbol: inputData.symbol,
+        market: inputData.market
       });
 
       // Add optional parameters
-      if (context.interval !== undefined) {
-        params.append("interval", context.interval);
+      if (inputData.interval !== undefined) {
+        params.append("interval", inputData.interval);
       }
-      if (context.outputsize !== undefined) {
-        params.append("outputsize", context.outputsize);
+      if (inputData.outputsize !== undefined) {
+        params.append("outputsize", inputData.outputsize);
       }
-      if (context.datatype !== undefined) {
-        params.append("datatype", context.datatype);
+      if (inputData.datatype !== undefined) {
+        params.append("datatype", inputData.datatype);
       }
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -153,26 +156,30 @@ export const alphaVantageCryptoTool = createTool({
         return null;
       };
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Crypto data ready for ${context.symbol}` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Crypto data ready for ${inputData.symbol}` } });
       const result = {
         data,
         metadata: {
-          function: getMetadataValue("1. Information") ?? context.function,
-          symbol: getMetadataValue("2. Symbol") ?? context.symbol,
-          market: getMetadataValue("3. Market") ?? context.market,
+          function: getMetadataValue("1. Information") ?? inputData.function,
+          symbol: getMetadataValue("2. Symbol") ?? inputData.symbol,
+          market: getMetadataValue("3. Market") ?? inputData.market,
           last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
           interval: getMetadataValue("5. Interval") ?? undefined,
           output_size: getMetadataValue("6. Output Size") ?? undefined,
           time_zone: getMetadataValue("7. Time Zone") ?? undefined
         }
       };
-      span?.end({ output: result });
+      span.end();
       return result;
 
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Crypto fetch error: ${errMsg}` } });
-      span?.error({ error: error instanceof Error ? error : new Error(errMsg), endSpan: true });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Crypto fetch error: ${errMsg}` } });
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errMsg }); // ERROR status
+      span.end();
       return {
         data: null,
         error: errMsg
@@ -236,19 +243,20 @@ export const alphaVantageStockTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'alpha-vantage-stock',
-      input: { symbol: context.symbol, function: context.function },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('alpha-vantage-stock-tool', '1.0.0').startSpan('alpha-vantage-stock', {
+      attributes: {
+        'tool.id': 'alpha-vantage-stock',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.function': inputData.function,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${context.symbol || 'symbol'}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${inputData.symbol || 'symbol'}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -258,34 +266,34 @@ export const alphaVantageStockTool = createTool({
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
-        function: context.function
+        function: inputData.function
       });
 
       // Add required symbol parameter
-      if (context.symbol) {
-        params.append("symbol", context.symbol);
+      if (inputData.symbol) {
+        params.append("symbol", inputData.symbol);
       }
 
       // Add optional parameters
-      if (context.interval !== undefined) {
-        params.append("interval", context.interval);
+      if (inputData.interval !== undefined) {
+        params.append("interval", inputData.interval);
       }
-      if (context.outputsize !== undefined) {
-        params.append("outputsize", context.outputsize);
+      if (inputData.outputsize !== undefined) {
+        params.append("outputsize", inputData.outputsize);
       }
-      if (context.datatype !== undefined) {
-        params.append("datatype", context.datatype);
+      if (inputData.datatype !== undefined) {
+        params.append("datatype", inputData.datatype);
       }
 
       // Technical indicator parameters
-      if (context.indicator !== undefined && context.indicator !== null) {
-        params.append("indicator", context.indicator);
+      if (inputData.indicator !== undefined && inputData.indicator !== null) {
+        params.append("indicator", inputData.indicator);
       }
-      if (context.time_period !== undefined && context.time_period !== null) {
-        params.append("time_period", context.time_period.toString());
+      if (inputData.time_period !== undefined && inputData.time_period !== null) {
+        params.append("time_period", inputData.time_period.toString());
       }
-      if (context.series_type !== undefined) {
-        params.append("series_type", context.series_type);
+      if (inputData.series_type !== undefined) {
+        params.append("series_type", inputData.series_type);
       }
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
@@ -331,25 +339,30 @@ export const alphaVantageStockTool = createTool({
       const result = {
         data,
         metadata: {
-          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? context.function,
-          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? context.symbol,
+          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? inputData.function,
+          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? inputData.symbol,
           last_refreshed: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "3. Last Refreshed" in metadataObj ? String((metadataObj as Record<string, unknown>)["3. Last Refreshed"]) : undefined,
           interval: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "4. Interval" in metadataObj ? String((metadataObj as Record<string, unknown>)["4. Interval"]) : undefined,
           output_size: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "5. Output Size" in metadataObj ? String((metadataObj as Record<string, unknown>)["5. Output Size"]) : undefined,
           time_zone: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "6. Time Zone" in metadataObj ? String((metadataObj as Record<string, unknown>)["6. Time Zone"]) : undefined,
-          indicator: context.indicator,
-          time_period: context.time_period?.toString(),
-          series_type: context.series_type
+          indicator: inputData.indicator,
+          time_period: inputData.time_period?.toString(),
+          series_type: inputData.series_type
         }
       };
-      span?.end({ output: result });
+      span.end();
       return result;
 
     } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
+      span.end();
       return {
         data: null,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        error: errorMessage
       };
     }
   }
@@ -431,19 +444,20 @@ export const alphaVantageTool = createTool({
     }).optional(),
     error: z.string().optional()
   }),
-  execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'alpha-vantage',
-      input: { function: context.function, symbol: context.symbol },
-      tracingPolicy: { internal: InternalSpans.TOOL }
+  execute: async (inputData, context) => {
+    const span = trace.getTracer('alpha-vantage-tool', '1.0.0').startSpan('alpha-vantage', {
+      attributes: {
+        'tool.id': 'alpha-vantage',
+        'tool.input.function': inputData.function,
+        'tool.input.symbol': inputData.symbol,
+      }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${context.function}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${inputData.function}` } });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -453,43 +467,43 @@ export const alphaVantageTool = createTool({
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
-        function: context.function
+        function: inputData.function
       });
 
       // Add function-specific parameters
-      if (context.symbol !== undefined && context.symbol !== null) {
-        params.append("symbol", context.symbol);
+      if (inputData.symbol !== undefined && inputData.symbol !== null) {
+        params.append("symbol", inputData.symbol);
       }
-      if (context.market !== undefined && context.market !== null) {
-        params.append("market", context.market);
+      if (inputData.market !== undefined && inputData.market !== null) {
+        params.append("market", inputData.market);
       }
-      if (context.interval !== undefined) {
-        params.append("interval", context.interval);
+      if (inputData.interval !== undefined) {
+        params.append("interval", inputData.interval);
       }
-      if (context.outputsize !== undefined) {
-        params.append("outputsize", context.outputsize);
+      if (inputData.outputsize !== undefined) {
+        params.append("outputsize", inputData.outputsize);
       }
-      if (context.datatype !== undefined) {
-        params.append("datatype", context.datatype ?? "json");
+      if (inputData.datatype !== undefined) {
+        params.append("datatype", inputData.datatype ?? "json");
       }
 
       // Technical indicator parameters
-      if (context.indicator !== undefined && context.indicator !== null) {
-        params.append("indicator", context.indicator);
+      if (inputData.indicator !== undefined && inputData.indicator !== null) {
+        params.append("indicator", inputData.indicator);
       }
-      if (context.time_period !== undefined && context.time_period !== null) {
-        params.append("time_period", context.time_period.toString());
+      if (inputData.time_period !== undefined && inputData.time_period !== null) {
+        params.append("time_period", inputData.time_period.toString());
       }
-      if (context.series_type !== undefined) {
-        params.append("series_type", context.series_type);
+      if (inputData.series_type !== undefined) {
+        params.append("series_type", inputData.series_type);
       }
 
       // Economic indicator
-      if (context.economic_indicator !== undefined) {
-        params.append("function", context.economic_indicator);
+      if (inputData.economic_indicator !== undefined) {
+        params.append("function", inputData.economic_indicator);
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
@@ -525,26 +539,32 @@ export const alphaVantageTool = createTool({
 
       const metadataObj = metadata as unknown;
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ General data ready for ${context.function}` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ General data ready for ${inputData.function}` } });
 
       const result = {
         data,
         metadata: {
-          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? context.function,
-          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? context.symbol,
+          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? inputData.function,
+          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? inputData.symbol,
           last_refreshed: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "3. Last Refreshed" in metadataObj ? String((metadataObj as Record<string, unknown>)["3. Last Refreshed"]) : undefined,
           interval: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "4. Interval" in metadataObj ? String((metadataObj as Record<string, unknown>)["4. Interval"]) : undefined,
           output_size: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "5. Output Size" in metadataObj ? String((metadataObj as Record<string, unknown>)["5. Output Size"]) : undefined,
           time_zone: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "6. Time Zone" in metadataObj ? String((metadataObj as Record<string, unknown>)["6. Time Zone"]) : undefined
         }
       };
-      span?.end({ output: result });
+      span.end();
       return result;
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      if (error instanceof Error) {
+        span.recordException(error);
+      }
+      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
+      span.end();
       return {
         data: null,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        error: errorMessage
       };
     }
   }

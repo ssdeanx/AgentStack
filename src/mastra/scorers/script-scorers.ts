@@ -1,8 +1,10 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 import { z } from 'zod'
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const scriptFormatScorer = createScorer({
+    id: 'script-format-scorer',
     name: 'Script Formatting',
     description: 'Evaluates if the script follows the required formatting rules (brackets for cues, capitals for emphasis, etc.)',
     judge: {
@@ -22,34 +24,34 @@ export const scriptFormatScorer = createScorer({
 })
 .analyze(({ results }) => {
     const { text } = results.preprocessStepResult
-    
+
     // Regex checks
     const bracketCues = (text.match(/\[.*?\]/g) || []).length
     const parentheticalTone = (text.match(/\(.*?\)/g) || []).length
-    
+
     // Check for capitalized words (2+ letters) to avoid "I", "A"
     // We want to see if there is *some* emphasis
     const capitalizedEmphasis = (text.match(/\b[A-Z]{2,}\b/g) || []).length
-    
+
     const issues: string[] = []
     let score = 1.0
-    
+
     if (bracketCues === 0) {
         issues.push('No visual/audio cues found in [BRACKETS]')
         score -= 0.3
     }
-    
+
     if (capitalizedEmphasis < 2) {
         issues.push('Little to no capitalized emphasis found')
         score -= 0.2
     }
-    
+
     // Tone shifts are optional but good
     if (parentheticalTone === 0) {
-        // issues.push('No tone shifts found in (parentheses)') 
+        // issues.push('No tone shifts found in (parentheses)')
         // Don't penalize too much, maybe it's a short script
     }
-    
+
     // Check for short paragraphs (heuristic: split by double newline, check avg length)
     const paragraphs = text.split(/\n\s*\n/)
     const longParagraphs = paragraphs.filter(p => p.length > 300).length
@@ -57,7 +59,7 @@ export const scriptFormatScorer = createScorer({
         issues.push(`${longParagraphs} paragraphs are too long (>300 chars)`)
         score -= 0.1 * longParagraphs
     }
-    
+
     return {
         hasVisualCues: bracketCues > 0,
         hasAudioCues: bracketCues > 0, // Assuming brackets cover both
@@ -73,9 +75,11 @@ export const scriptFormatScorer = createScorer({
 .generateReason(({ results, score }) => {
     const { issues } = results.analyzeStepResult
     return `Score: ${score.toFixed(2)}. ${issues.length > 0 ? 'Issues: ' + issues.join(', ') : 'Perfect formatting.'}`
-})
+});
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const pacingScorer = createScorer({
+    id: 'pacing-scorer',
     name: 'Script Pacing',
     description: 'Evaluates the pacing and structure of the script (Hook, Body, Payoff)',
     judge: {
@@ -131,4 +135,4 @@ export const pacingScorer = createScorer({
 .generateReason(({ results, score }) => {
     const { engagementLevel, explanation } = results.analyzeStepResult
     return `Score: ${score.toFixed(2)}. Engagement: ${engagementLevel}. ${explanation}`
-})
+});

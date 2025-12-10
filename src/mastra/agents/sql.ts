@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+
+import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI, googleAIFlashLite, googleAIPro, pgMemory } from "../config";
 import * as tools from "../tools/pg-sql-tool";
 import { sqlValidityScorer } from './../scorers/sql-validity.scorer';
@@ -15,14 +15,16 @@ export const sqlAgent = new Agent({
   id: "sqlAgent",
   name: "SQL Agent",
   description: `A SQL agent that generates and executes SQL queries on a PostgreSQL database containing city data.`,
-  instructions: ({ runtimeContext }: { runtimeContext: RuntimeContext<SqlAgentRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<SqlAgentRuntimeContext> }) => {
     // runtimeContext is read at invocation time
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
 
     return {
       role: 'system',
       content: `You are a SQL (PostgreSQL) expert for an Execute PG SQL  database. Generate and execute queries that answer user questions about city data.
+      userTier: ${userTier}
+      language: ${language}
 
     DATABASE SCHEMA:
     cities (
@@ -86,8 +88,8 @@ export const sqlAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<SqlAgentRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<SqlAgentRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAIPro
@@ -102,7 +104,7 @@ export const sqlAgent = new Agent({
   tools: {
     pgExecute: tools.pgExecute,
   },
-  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
+  options: {},
   scorers: {
     sqlValidity: {
       scorer: sqlValidityScorer,

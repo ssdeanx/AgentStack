@@ -2,8 +2,8 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { google } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import { BaseSpan } from '@mastra/observability';
+import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { creativityScorer, pacingScorer, scriptFormatScorer } from '../scorers';
@@ -18,12 +18,15 @@ export const scriptWriterAgent = new Agent({
   id: 'scriptWriterAgent',
   name: 'Script Writer',
   description: 'Master scriptwriter focused on retention, pacing, and psychological engagement.',
-  instructions: ({ runtimeContext }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ScriptWriterRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `You are a Master Scriptwriter. You do not write "text"; you write "experiences".
-
-  <core_philosophy>
+      userTier: ${userTier}
+      language: ${language}
+  <cor e_philosophy>
   Retention is King. If they click off, we failed.
   Every sentence must earn the right for the next sentence to be read/heard.
   </core_philosophy>
@@ -64,8 +67,8 @@ export const scriptWriterAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ScriptWriterRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<ScriptWriterRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return google.chat('gemini-3-pro-preview')
@@ -77,7 +80,7 @@ export const scriptWriterAgent = new Agent({
     return google.chat('gemini-2.5-flash-preview-09-2025')
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
+  options: {},
   scorers: {
     scriptFormat: {
       scorer: scriptFormatScorer,

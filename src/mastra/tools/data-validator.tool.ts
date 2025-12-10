@@ -1,7 +1,8 @@
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { trace } from "@opentelemetry/api";
 import { z } from "zod";
+import type { RequestContext } from '@mastra/core/request-context';
 
 const validatorContextSchema = z.object({
   maxErrors: z.number().optional(),
@@ -117,30 +118,37 @@ export const dataValidatorToolJSON = createTool({
     errors: z.array(z.string()).optional(),
     cleanedData: z.any().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🔍 Starting data validation' } });
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: "data-validator",
-      input: { hasData: context.data !== undefined, hasSchema: context.schema !== undefined },
-      tracingPolicy: { internal: InternalSpans.ALL }
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+    const requestContext = context?.requestContext as RequestContext<{ validatorContext: unknown }>; // TODO: unknown is not a type
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Starting data validation' } });
+
+    const tracer = trace.getTracer('data-validator');
+    const rootSpan = tracer.startSpan('data-validator', {
+      attributes: {
+        'tool.id': 'data-validator-json',
+        'tool.input.hasData': String(inputData.data !== undefined),
+        'tool.input.hasSchema': String(inputData.schema !== undefined),
+      }
     });
 
     try {
-      const schemaDef = context.schema as unknown as SchemaDefinition;
+      const schemaDef = inputData.schema as unknown as SchemaDefinition;
       const zodSchema = buildZodSchema(schemaDef);
 
-      const result = zodSchema.safeParse(context.data);
+      const result = zodSchema.safeParse(inputData.data);
 
       if (result.success) {
-        await writer?.write({ type: 'progress', data: { message: `✅ Validation passed` } });
-        rootSpan?.end({ output: { valid: true } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Validation passed` } });
+        rootSpan.setAttributes({ 'tool.output.valid': true });
+        rootSpan.end();
         return {
           valid: true,
           cleanedData: result.data,
         };
       } else {
-        const config = runtimeContext?.get("validatorContext");
+        const config = requestContext?.get("validatorContext");
         const { maxErrors } = config !== undefined ? validatorContextSchema.parse(config) : { maxErrors: undefined };
 
         let errors = result.error.issues.map((e: z.core.$ZodIssue) => `${e.path.join(".")}: ${e.message}`);
@@ -150,7 +158,8 @@ export const dataValidatorToolJSON = createTool({
           errors.push(`...and ${result.error.issues.length - maxErrors} more errors`);
         }
 
-        rootSpan?.end({ output: { valid: false, errorCount: errors.length } });
+        rootSpan.setAttributes({ 'tool.output.valid': false, 'tool.output.errorCount': errors.length });
+        rootSpan.end();
         return {
           valid: false,
           errors,
@@ -158,7 +167,9 @@ export const dataValidatorToolJSON = createTool({
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown validation error";
-      rootSpan?.error({ error: error instanceof Error ? error : new Error(errorMessage) });
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: 2, message: errorMessage });
+      rootSpan.end();
       return {
         valid: false,
         errors: [errorMessage],

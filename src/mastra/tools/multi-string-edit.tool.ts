@@ -1,8 +1,9 @@
-import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { createPatch } from 'diff'
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { createTool } from '@mastra/core/tools';
 
 const editOperationSchema = z.object({
   filePath: z.string().describe('Absolute path to the file to edit'),
@@ -89,8 +90,20 @@ Supports dry-run mode to preview changes and automatic backup creation.
 Use for batch refactoring, multi-file updates, and coordinated code changes.`,
   inputSchema: multiStringEditInputSchema,
   outputSchema: multiStringEditOutputSchema,
-  execute: async ({ context }): Promise<MultiStringEditOutput> => {
-    const { edits, dryRun = false, createBackup = true, projectRoot } = context
+  execute: async (inputData, context): Promise<MultiStringEditOutput> => {
+    const { edits, dryRun = false, createBackup = true, projectRoot } = inputData
+
+    const tracer = trace.getTracer('coding-tools');
+    const span = tracer.startSpan('multi_string_edit', {
+      attributes: {
+        editsCount: edits.length,
+        dryRun,
+        createBackup,
+        projectRoot,
+        operation: 'multi_string_edit'
+      }
+    });
+
     const results: Array<z.infer<typeof editResultSchema>> = []
     const appliedBackups: Map<string, string> = new Map()
     let hasFailure = false
@@ -167,7 +180,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
           results.push({
             filePath,
             status: 'applied',
-            reason: description || 'Dry run - changes not written',
+            reason: description ?? 'Dry run - changes not written',
             diff,
           })
           continue
@@ -203,8 +216,9 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
       for (const [filePath, backupPath] of appliedBackups) {
         try {
           await fs.copyFile(backupPath, filePath)
-        } catch {
+        } catch (error) {
           // Best effort rollback
+          span.recordException(error instanceof Error ? error : new Error(String(error)));
         }
       }
     }
@@ -216,8 +230,16 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
       failed: results.filter(r => r.status === 'failed').length,
     }
 
+    const success = !hasFailure;
+
+    if (!success) {
+      span.setStatus({ code: SpanStatusCode.ERROR, message: 'One or more edits failed' });
+    }
+
+    span.end();
+
     return {
-      success: !hasFailure,
+      success,
       results,
       summary,
     }

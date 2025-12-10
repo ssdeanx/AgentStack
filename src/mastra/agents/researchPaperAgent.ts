@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
+import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
@@ -20,19 +19,15 @@ export const researchPaperAgent = new Agent({
   name: 'Research Paper Agent',
   description:
     'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext?.get('userId') ?? 'default'
-    const outputDirectory = runtimeContext?.get('outputDirectory') ?? './papers'
-    const maxPapers = runtimeContext?.get('maxPapers') ?? 10
-    const categories = runtimeContext?.get('categories') ?? ['cs.AI', 'cs.LG', 'cs.CL']
+  instructions: ({ requestContext }: { requestContext: RequestContext<ResearchPaperAgentRuntimeContext> }) => {
 
+    const userTier = requestContext?.get('user-tier') ?? 'free'
+    const language = requestContext?.get('language') ?? 'en'
     return `You are a Research Paper Specialist with expertise in academic literature retrieval and analysis.
 
 ## Configuration
-- User: ${userId}
-- Output Directory: ${outputDirectory}
-- Max Papers per Search: ${maxPapers}
-- Default Categories: ${JSON.stringify(categories)}
+userTier: ${userTier}
+language: ${language}
 
 ## Available Tools
 
@@ -102,8 +97,8 @@ Physics:
 - If rate limited: wait and retry with exponential backoff
 `
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<ResearchPaperAgentRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<ResearchPaperAgentRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAIPro
@@ -121,7 +116,7 @@ Physics:
     arxivPaperDownloaderTool,
   },
   options: {
-    tracingPolicy: { internal: InternalSpans.AGENT },
+    tracingPolicy: {},
   },
 })
 

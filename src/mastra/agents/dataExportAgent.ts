@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 
 import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
@@ -12,6 +11,7 @@ import {
     backupDataTool,
     listDataDirTool,
 } from '../tools/data-file-manager'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export interface DataExportContext {
     userId?: string
@@ -27,11 +27,11 @@ export const dataExportAgent = new Agent({
     name: 'Data Export Agent',
     description:
         'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const outputDirectory = runtimeContext?.get('outputDirectory') ?? './data'
-        const overwriteExisting = runtimeContext?.get('overwriteExisting') ?? false
-        const delimiter = runtimeContext?.get('delimiter') ?? ','
+    instructions: ({ requestContext }: { requestContext: RequestContext<DataExportContext> }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const outputDirectory = requestContext.get('outputDirectory') ?? './data'
+        const overwriteExisting = requestContext.get('overwriteExisting') ?? false
+        const delimiter = requestContext.get('delimiter') ?? ','
 
         return `You are a Data Export Specialist. Your role is to convert structured data into clean, valid CSV files.
 
@@ -85,7 +85,6 @@ export const dataExportAgent = new Agent({
         backupDataTool,
         listDataDirTool,
     },
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
 })
 
 log.info('Data Export Agent initialized')

@@ -6,8 +6,8 @@ import * as path from 'path';
 import { glob } from 'glob';
 import { readFile } from 'fs/promises';
 import { log } from '../config/logger';
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RequestContext } from '@mastra/core/request-context';
+import { trace } from "@opentelemetry/api";
 
 const symbolContextSchema = z.object({
   maxResults: z.number().default(100),
@@ -48,20 +48,24 @@ export const findSymbolTool = createTool({
   description: 'Find symbol definitions (functions, classes, variables) across the codebase using semantic analysis.',
   inputSchema: findSymbolInputSchema,
   outputSchema: findSymbolOutputSchema,
-  execute: async ({ context, tracingContext, runtimeContext }) => {
-    const { symbolName, projectPath, symbolType } = context;
+  execute: async (inputData, context) => {
+    const { symbolName, projectPath, symbolType } = inputData;
+    const requestContext = context?.requestContext as RequestContext<SymbolContext>;
 
-    const symbolContext = runtimeContext?.get('semanticAnalysisContext');
-    const { maxResults, excludePatterns } = symbolContextSchema.parse(symbolContext || {});
+    const maxResults = requestContext?.get('maxResults');
+    const excludePatterns = requestContext?.get('excludePatterns');
 
     const symbols: SymbolInfo[] = [];
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'find_symbol',
-      input: { symbolName, projectPath, symbolType, maxResults },
-      tracingPolicy: { internal: InternalSpans.ALL },
-      runtimeContext: runtimeContext as RuntimeContext<SymbolContext>
+    const tracer = trace.getTracer('semantic-tools');
+    const span = tracer.startSpan('find_symbol', {
+      attributes: {
+        'tool.id': 'semantic:find-symbol',
+        'tool.input.symbolName': symbolName,
+        'tool.input.projectPath': projectPath,
+        'tool.input.symbolType': symbolType,
+        'tool.input.maxResults': maxResults,
+      }
     });
 
     try {
@@ -115,7 +119,7 @@ export const findSymbolTool = createTool({
                   filePath: pyFile,
                   line: pySymbol.line,
                   column: pySymbol.column,
-                  preview: pySymbol.docstring?.substring(0, 100) || `${pySymbol.kind} ${pySymbol.name}`
+                  preview: pySymbol.docstring?.substring(0, 100) ?? `${pySymbol.kind} ${pySymbol.name}`
                 });
               }
             }
@@ -129,12 +133,10 @@ export const findSymbolTool = createTool({
 
       const summary = generateSummary(symbols, symbolName);
 
-      span?.end({
-        output: {
-          symbolsCount: symbols.length,
-          summary
-        }
+      span.setAttributes({
+        'tool.output.symbolsCount': symbols.length,
       });
+      span.end();
 
       return {
         symbols,
@@ -143,7 +145,9 @@ export const findSymbolTool = createTool({
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span?.end({ metadata: { error: errorMessage } });
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
       throw error;
     }
   }
@@ -201,8 +205,8 @@ function extractSymbolInfo(
         const name = node.getName();
         const initializer = node.getInitializer();
         if (name && name.includes(symbolName) &&
-             !Node.isArrowFunction(initializer) &&
-             !Node.isFunctionExpression(initializer)) {
+            !Node.isArrowFunction(initializer) &&
+            !Node.isFunctionExpression(initializer)) {
           return { name, kind: 'variable' };
         }
   }

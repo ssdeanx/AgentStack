@@ -44,6 +44,7 @@ const PINECONE_CONFIG = {
 /**
  * Initialize Pinecone store with proper configuration
  */
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 const pineconeStore = new PineconeVector({
   apiKey: PINECONE_CONFIG.apiKey!,
 });

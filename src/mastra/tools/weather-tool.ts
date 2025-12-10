@@ -1,10 +1,9 @@
-import type { InferUITool} from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod'
-import { log } from '../config/logger'
-import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
-import type { RuntimeContext } from '@mastra/core/runtime-context'
-import type { TracingContext } from '@mastra/core/ai-tracing';
+import { trace } from "@opentelemetry/api";
+import { log } from "../config/logger";
+import type { RequestContext } from '@mastra/core/request-context';
 
 // Define the Zod schema for the runtime context
 const weatherToolContextSchema = z.object({
@@ -49,31 +48,41 @@ export const weatherTool = createTool({
         location: z.string(),
         unit: z.string(), // Add unit to output schema
     }),
-    execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
+    execute: async (inputData, context) => {
+        const writer = context?.writer;
+        const requestContext = context?.requestContext;
+
+        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${inputData.location}` } });
 
         const { temperatureUnit } = weatherToolContextSchema.parse(
-            runtimeContext.get('weatherToolContext')
+            requestContext?.get('weatherToolContext')
         )
 
         log.info(
-            `Fetching weather for location: ${context.location} in ${temperatureUnit}`
+            `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`
         )
 
-        const weatherSpan = tracingContext?.currentSpan?.createChildSpan({
-            type: AISpanType.TOOL_CALL,
-            name: 'weather-tool',
-            input: { location: context.location, temperatureUnit },
-            tracingPolicy: { internal: InternalSpans.ALL },
-            runtimeContext: runtimeContext as RuntimeContext<WeatherToolContext>,
-        })
+        // Get tracer from OpenTelemetry API
+        const tracer = trace.getTracer('weather-tool', '1.0.0');
+        const weatherSpan = tracer.startSpan('get-weather', {
+            attributes: {
+                'tool.id': 'get-weather',
+                'tool.input.location': inputData.location,
+                'tool.input.temperatureUnit': temperatureUnit,
+            }
+        });
 
         try {
             await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...' } });
-            const result = await getWeather(context.location, temperatureUnit)
+            const result = await getWeather(inputData.location, temperatureUnit)
             await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...' } });
-            weatherSpan?.end({ output: result })
-            log.info(`Weather fetched successfully for ${context.location}`)
+            weatherSpan.setAttributes({
+                'tool.output.location': result.location,
+                'tool.output.temperature': result.temperature,
+                'tool.output.conditions': result.conditions,
+            });
+            weatherSpan.end();
+            log.info(`Weather fetched successfully for ${inputData.location}`)
             const finalResult = {
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
@@ -83,10 +92,14 @@ export const weatherTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            if (error instanceof Error) {
+                weatherSpan.recordException(error);
+            }
+            weatherSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
+            weatherSpan.end();
             await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}` } });
-            weatherSpan?.end({ metadata: { error: errorMessage } })
             log.error(
-                `Failed to fetch weather for ${context.location}: ${errorMessage}`
+                `Failed to fetch weather for ${inputData.location}: ${errorMessage}`
             )
             throw error
         }

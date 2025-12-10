@@ -1,18 +1,18 @@
+import type { RequestContext } from '@mastra/core/request-context';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { z } from 'zod';
-import { glob } from 'glob';
 import { readFile } from 'fs/promises';
-import { mdocumentChunker } from '../tools/document-chunking.tool';
-import { getRepoFileTree, getFileContent } from '../tools/github';
-import { log } from '../config/logger';
+import { glob } from 'glob';
 import * as path from 'path';
-import { RuntimeContext } from '@mastra/core/runtime-context';
+import { z } from 'zod';
+import { log } from '../config/logger';
+import { mdocumentChunker } from '../tools/document-chunking.tool';
+import { getFileContent, getRepoFileTree } from '../tools/github';
 
 export type UserTier = 'free' | 'pro' | 'enterprise';
 
-export type IngestionRuntimeContext = {
+export interface IngestionRuntimeContext {
   'user-tier': UserTier;
-};
+}
 
 // --- Schemas ---
 
@@ -22,7 +22,7 @@ const scanInputSchema = z.object({
   githubBranch: z.string().default('main').describe('GitHub branch'),
   globPattern: z.string().default('**/*.{ts,tsx,js,jsx,py,md,json}'),
   limit: z.number().default(100),
-}).refine(data => data.repoPath || data.githubRepo, {
+}).refine(data => data.repoPath ?? data.githubRepo, {
   message: "Either repoPath or githubRepo must be provided"
 });
 
@@ -47,14 +47,14 @@ const scanStep = createStep({
   id: 'scan-repo',
   inputSchema: scanInputSchema,
   outputSchema: scanOutputSchema,
-  execute: async ({ inputData, mastra, runtimeContext }) => {
+  execute: async ({ inputData, mastra, requestContext }) => {
     let { repoPath, githubRepo, githubBranch, globPattern, limit } = inputData;
 
     // Apply runtime context limits
-    const context = runtimeContext as RuntimeContext<IngestionRuntimeContext> | undefined;
+    const context = requestContext as RequestContext<IngestionRuntimeContext> | undefined;
     const userTier = context?.get?.('user-tier') ?? 'free';
-    
-    const TIER_LIMITS = {
+
+    const TIER_LIMITS: Record<UserTier, number> = {
       free: 50,
       pro: 500,
       enterprise: 10000
@@ -64,43 +64,59 @@ const scanStep = createStep({
       log.info(`Limiting file scan to ${TIER_LIMITS[userTier]} for ${userTier} tier`);
       limit = TIER_LIMITS[userTier];
     }
-    
+
     if (githubRepo) {
       log.info(`Scanning GitHub repo ${githubRepo} branch ${githubBranch}`);
       const [owner, repo] = githubRepo.split('/');
-      
-      // Use the getRepoFileTree tool directly
-      const result = await getRepoFileTree.execute({
-        context: { owner, repo, branch: githubBranch, recursive: true },
-        mastra,
-        runtimeContext
-      });
 
-      if (!result.success || !result.tree) {
-        throw new Error(`Failed to scan GitHub repo: ${result.error}`);
+      type GitTreeItem = {
+        path: string;
+        mode?: string;
+        type: string;
+        sha?: string;
+        size?: number;
+        url?: string;
+      };
+
+      const scanResultRaw = await getRepoFileTree.execute(
+        { owner, repo, branch: githubBranch, recursive: true },
+        { mastra, requestContext }
+      );
+
+      // Type guard to narrow to the success shape
+      const isScanSuccess = (r: any): r is { success: boolean; tree?: GitTreeItem[]; error?: string } =>
+        r && typeof r === 'object' && 'success' in r;
+
+      if (!isScanSuccess(scanResultRaw) || !scanResultRaw.success || !scanResultRaw.tree) {
+        throw new Error(`Failed to scan GitHub repo: ${(scanResultRaw as any)?.error ?? 'unknown error'}`);
       }
+
+      // At this point, scanResultRaw.tree is present
+      const tree = scanResultRaw.tree as GitTreeItem[];
 
       // Simple filtering based on extensions for now since we don't have minimatch handy
       // Convert glob pattern like **/*.{ts,tsx} to regex or just check extensions
       // This is a simplified implementation
-      const extensions = globPattern.match(/\{([^}]+)\}/)?.[1]?.split(',') || ['ts', 'tsx', 'js', 'jsx', 'py', 'md', 'json'];
-      
-      const files = result.tree
-        .filter(item => item.type === 'blob' && extensions.some(ext => item.path.endsWith(`.${ext}`)))
-        .map(item => item.path)
+      const extensions =
+        (/\{([^}]+)\}/.exec(globPattern || '')?.[1]?.split(',').map(s => s.trim())) ??
+        ['ts', 'tsx', 'js', 'jsx', 'py', 'md', 'json'];
+
+      const files = tree
+        .filter((item: GitTreeItem) => item.type === 'blob' && extensions.some(ext => item.path.endsWith(`.${ext}`)))
+        .map((item: GitTreeItem) => item.path)
         .slice(0, limit);
 
-      log.info(`Found ${result.tree.length} files in GitHub, processing ${files.length}`);
+      log.info(`Found ${tree.length} files in GitHub, processing ${files.length}`);
       return { files, githubRepo, githubBranch };
     }
 
     if (repoPath) {
       log.info(`Scanning local repo at ${repoPath} with pattern ${globPattern}`);
-      const files = await glob(globPattern, { 
-        cwd: repoPath, 
+      const files = await glob(globPattern, {
+        cwd: repoPath,
         ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
         nodir: true,
-        absolute: true 
+        absolute: true
       });
 
       const limitedFiles = files.slice(0, limit);
@@ -116,30 +132,30 @@ const ingestStep = createStep({
   id: 'ingest-files',
   inputSchema: ingestInputSchema,
   outputSchema: ingestOutputSchema,
-  execute: async ({ inputData, tracingContext, writer, runtimeContext, mastra }) => {
+  execute: async ({ inputData, writer, requestContext, mastra }) => {
     const { files, repoPath, githubRepo, githubBranch } = inputData;
     let processedFiles = 0;
     let totalChunks = 0;
-    const errors: { file: string, error: string }[] = [];
+    const errors: Array<{ file: string, error: string }> = [];
 
     // Process in batches to avoid memory issues
     const BATCH_SIZE = 10;
-    
+
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
       const batch = files.slice(i, i + BATCH_SIZE);
-      
+
       await Promise.all(batch.map(async (filePath) => {
         try {
           let content = '';
-          
+
           if (githubRepo) {
             const [owner, repo] = githubRepo.split('/');
             const result = await getFileContent.execute({
               context: { owner, repo, path: filePath, ref: githubBranch },
               mastra,
-              runtimeContext
+              requestContext
             });
-            
+
             if (!result.success || !result.content) {
               throw new Error(`Failed to fetch file from GitHub: ${result.error}`);
             }
@@ -149,10 +165,10 @@ const ingestStep = createStep({
           }
 
           const ext = path.extname(filePath).toLowerCase();
-          
+
           let strategy: 'recursive' | 'markdown' | 'json' = 'recursive';
-          if (ext === '.md') strategy = 'markdown';
-          if (ext === '.json') strategy = 'json';
+          if (ext === '.md') { strategy = 'markdown'; }
+          if (ext === '.json') { strategy = 'json'; }
 
           const result = await mdocumentChunker.execute({
             context: {
@@ -165,16 +181,15 @@ const ingestStep = createStep({
               chunkOverlap: 50,
               chunkSeparator: '\n'
             },
-            tracingContext,
             writer,
-            runtimeContext
+            requestContext
           });
 
           if (result.success) {
             processedFiles++;
             totalChunks += result.chunkCount;
           } else {
-             throw new Error(result.error || 'Unknown error in chunking');
+            throw new Error(result.error || 'Unknown error in chunking');
           }
 
         } catch (error) {

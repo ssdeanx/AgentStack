@@ -47,6 +47,7 @@ const CHROMA_CONFIG = {
 /**
  * Initialize ChromaDB store with proper configuration
  */
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 const chromaStore = new ChromaVector(
   (CHROMA_CONFIG.apiKey !== null && CHROMA_CONFIG.apiKey !== undefined && CHROMA_CONFIG.apiKey.trim() !== "") &&
   (CHROMA_CONFIG.tenant !== null && CHROMA_CONFIG.tenant !== undefined && CHROMA_CONFIG.tenant.trim() !== "") &&

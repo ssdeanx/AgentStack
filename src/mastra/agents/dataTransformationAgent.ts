@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
 
 import { googleAI3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
@@ -17,6 +16,7 @@ import {
     readDataFileTool,
     writeDataFileTool,
 } from '../tools/data-file-manager'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export interface DataTransformationContext {
     userId?: string
@@ -32,11 +32,11 @@ export const dataTransformationAgent = new Agent({
     name: 'Data Transformation Agent',
     description:
         'Performs complex format transformations between CSV, JSON, and XML. Use for converting data between formats, transforming nested structures, flattening hierarchical data, and batch format conversions.',
-    instructions: ({ runtimeContext }) => {
-        const userId = runtimeContext?.get('userId') ?? 'default'
-        const preserveTypes = runtimeContext?.get('preserveTypes') ?? true
-        const flattenNested = runtimeContext?.get('flattenNested') ?? false
-        const xmlRootElement = runtimeContext?.get('xmlRootElement') ?? 'data'
+    instructions: ({ requestContext }: { requestContext: RequestContext<DataTransformationContext> }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const preserveTypes = requestContext.get('preserveTypes') ?? true
+        const flattenNested = requestContext.get('flattenNested') ?? false
+        const xmlRootElement = requestContext.get('xmlRootElement') ?? 'data'
 
         return `You are a Data Transformation Expert. Your role is to convert data between different formats while preserving data integrity.
 
@@ -121,8 +121,7 @@ export const dataTransformationAgent = new Agent({
         processXMLTool,
         readDataFileTool,
         writeDataFileTool,
-    },
-    options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+    }
 })
 
 log.info('Data Transformation Agent initialized')

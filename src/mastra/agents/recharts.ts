@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { InternalSpans } from '@mastra/core/ai-tracing'
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { UnicodeNormalizer } from '@mastra/core/processors'
 import { PGVECTOR_PROMPT } from "@mastra/pg"
 import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
@@ -26,11 +25,14 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface FinancialChartRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
+  chartStyle: 'detailed' | 'concise'
+  colorScheme: 'dark' | 'light'
 }
 
 log.info('Initializing Financial Chart Agents...')
@@ -43,17 +45,17 @@ export const chartTypeAdvisorAgent = new Agent({
   id: 'chartTypeAdvisorAgent',
   name: 'Chart Type Advisor',
   description: 'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier') ?? 'pro'
-    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
     return {
       role: 'system',
       content: `
 <role>
-User: ${userId ?? 'anonymous'}
-Tier: ${tier}
+User: ${userTier}
+Language: ${language}
 Chart Style: ${chartStyle}
 Color Scheme: ${colorScheme}
 You are a Financial Data Visualization Specialist focused on recommending optimal Recharts chart types.
@@ -119,7 +121,6 @@ Return recommendations as JSON:
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   maxRetries: 3
 })
 
@@ -131,18 +132,20 @@ export const chartDataProcessorAgent = new Agent({
   id: 'chartDataProcessorAgent',
   name: 'Chart Data Processor',
   description: 'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier') ?? 'pro'
-    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
     return {
       role: 'system',
       content: `
 <role>
-User: ${userId ?? 'anonymous'}
+User: ${userTier}
+Language: ${language}
+Chart Style: ${chartStyle}
+Color Scheme: ${colorScheme}
 You are a Financial Data Processing Specialist that transforms raw API data into Recharts-ready formats.
-Today's date is ${new Date().toISOString()}
 </role>
 
 <capabilities>
@@ -223,7 +226,7 @@ Return processed data as JSON:
     alphaVantageStockTool,
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
+  options: {},
   maxRetries: 3
 })
 
@@ -235,20 +238,21 @@ export const chartGeneratorAgent = new Agent({
   id: 'chartGeneratorAgent',
   name: 'Chart Generator',
   description: 'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier') ?? 'pro'
-    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = runtimeContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
 
     return {
       role: 'system',
       content: `
 <role>
-User: ${userId ?? 'anonymous'}
+User: ${userTier}
+Language: ${language}
+Chart Style: ${chartStyle}
 Color Scheme: ${colorScheme}
 You are a Senior React Developer specializing in Recharts financial visualization components.
-Today's date is ${new Date().toISOString()}
 </role>
 
 <expertise>
@@ -364,7 +368,6 @@ Return complete component code:
   },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   maxRetries: 3
 })
 
@@ -376,19 +379,20 @@ export const chartSupervisorAgent = new Agent({
   id: 'chartSupervisorAgent',
   name: 'Chart Supervisor',
   description: 'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId')
-    const tier = runtimeContext.get('tier') ?? 'pro'
-    const chartStyle = runtimeContext.get('chartStyle') ?? 'detailed'
+  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
     return {
       role: 'system',
       content: `
 <role>
-User: ${userId ?? 'anonymous'}
-Tier: ${tier}
+User: ${userTier}
+Language: ${language}
 Chart Style: ${chartStyle}
+Color Scheme: ${colorScheme}
 You are the Financial Chart Supervisor, orchestrating the complete chart creation pipeline.
-Today's date is ${new Date().toISOString()}
 </role>
 
 <responsibilities>
@@ -508,7 +512,6 @@ Return comprehensive chart package:
   },
   memory: pgMemory,
   options: {
-    tracingPolicy: { internal: InternalSpans.MODEL }
   },
   scorers: {
     responseQuality: {

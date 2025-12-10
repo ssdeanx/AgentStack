@@ -8,7 +8,7 @@ import { copywriterAgent } from '../agents/copywriterAgent';
 import { editorAgent } from '../agents/editorAgent';
 import { reportAgent } from '../agents/reportAgent';
 import { pgMemory } from '../config';
-import { InternalSpans } from '@mastra/core/ai-tracing';
+
 
 // CSV/Data Pipeline Networks
 export { dataPipelineNetwork } from './dataPipelineNetwork';
@@ -46,7 +46,7 @@ export const agentNetwork = new Agent({
   `,
   model: googleAI,
   memory: pgMemory, // Required for network capabilities
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
+  options: {},
   agents: {
     researchAgent,
     stockAnalysisAgent,

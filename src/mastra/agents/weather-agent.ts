@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { InternalSpans } from '@mastra/core/ai-tracing';
-import type { RuntimeContext } from '@mastra/core/runtime-context';
+import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { scorers } from '../scorers/weather-scorer';
@@ -18,13 +17,13 @@ export const weatherAgent = new Agent({
   name: 'Weather Agent',
   id: 'weatherAgent',
   description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }) => {
+    const userId = requestContext.get('userId');
     return {
       role: 'system',
       content: `
       You are a helpful weather assistant that provides accurate weather information and can help planning activities based on the weather.
-
+      userId: ${userId}
       Your primary function is to help users get weather details for specific locations. When responding:
       - Always ask for a location if none is provided
       - If the location name isn't in English, please translate it
@@ -47,8 +46,8 @@ export const weatherAgent = new Agent({
       }
     }
   },
-  model: ({ runtimeContext }: { runtimeContext: RuntimeContext<WeatherRuntimeContext> }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
+  model: ({ requestContext }: { requestContext: RequestContext<WeatherRuntimeContext> }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
       return googleAIPro
@@ -68,22 +67,9 @@ export const weatherAgent = new Agent({
         rate: 1,
       },
     },
-    completeness: {
-      scorer: scorers.completenessScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    translation: {
-      scorer: scorers.translationScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
+
   },
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.MODEL } },
+  options: {},
   maxRetries: 5
 });

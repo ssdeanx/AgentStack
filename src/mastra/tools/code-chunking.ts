@@ -4,6 +4,8 @@ import { Project, SyntaxKind } from 'ts-morph';
 import { PythonParser } from './semantic-utils';
 import { MDocument } from '@mastra/rag';
 import { log } from '../config/logger';
+import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 
 const codeChunkingInputSchema = z.object({
   filePath: z.string(),

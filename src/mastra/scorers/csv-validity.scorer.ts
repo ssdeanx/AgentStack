@@ -1,8 +1,10 @@
-import { createScorer } from '@mastra/core/scores'
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { googleAIFlashLite } from '../config/google'
 import { z } from 'zod'
 
+/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const csvValidityScorer = createScorer({
+    id: 'csv-validity-scorer',
     name: 'CSV Validity',
     description: 'Evaluates if the output is a valid CSV and follows the required schema',
     judge: {
@@ -55,15 +57,15 @@ export const csvValidityScorer = createScorer({
 })
 .generateScore(({ results }) => {
     const { isCsv, isValidFormat, hasHeaderRow } = results.analyzeStepResult
-    if (!isCsv) return 0
-    
+    if (!isCsv) {return 0}
+
     let score = 0.2
-    if (hasHeaderRow) score += 0.3
-    if (isValidFormat) score += 0.5
-    
+    if (hasHeaderRow) {score += 0.3}
+    if (isValidFormat) {score += 0.5}
+
     return score
 })
 .generateReason(({ results, score }) => {
     const { issues, rowCount } = results.analyzeStepResult
     return `Score: ${score.toFixed(2)}. Rows: ${rowCount}. ${issues.length > 0 ? 'Issues: ' + issues.join(', ') : 'Valid CSV.'}`
-})
+});

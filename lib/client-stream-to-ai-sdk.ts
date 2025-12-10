@@ -2,7 +2,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
 } from "ai";
-import { toAISdkFormat } from "@mastra/ai-sdk";
+import { toAISdkStream } from "@mastra/ai-sdk";
 import type { Mastra } from "@mastra/core/mastra";
 import type { AgentExecutionOptions } from "@mastra/core/agent";
 import type { MastraModelOutput } from "@mastra/core/stream";
@@ -99,7 +99,7 @@ export async function createAgentStreamResponse(
   // Handles both ReadableStream and AsyncIterable return types
   const uiMessageStream = createUIMessageStream({
     execute: async ({ writer }) => {
-      const aiSdkResult = toAISdkFormat(stream, { from: "agent" });
+      const aiSdkResult = toAISdkStream(stream, { from: "agent" });
 
       // Handle both ReadableStream and AsyncIterable
       const iterable: AsyncIterable<unknown> = isReadableStream(aiSdkResult)

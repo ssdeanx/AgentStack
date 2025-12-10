@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
-import { InternalSpans } from "@mastra/core/ai-tracing";
 import { googleAI, pgMemory } from "../config";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import type { RequestContext } from "@mastra/core/request-context";
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface KnowledgeIndexingContext {
@@ -18,8 +18,13 @@ export const excalidrawValidatorAgent = new Agent({
   id: "excalidrawValidatorAgent",
   name: "Excalidraw Validator",
   description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
-  instructions: ({ runtimeContext }) => {
-    const userId = runtimeContext.get('userId');
+  instructions: ({ requestContext }: { requestContext: RequestContext<KnowledgeIndexingContext> }) => {
+    const userId = requestContext.get('userId') ?? 'default'
+    const indexName = requestContext.get('indexName') ?? 'governed_rag'
+    const chunkSize = requestContext.get('chunkSize') ?? 512
+    const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
+    const chunkingStrategy = requestContext.get('chunkingStrategy') ?? 'recursive'
+
     return {
       role: 'system',
       content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
@@ -106,7 +111,6 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
   },
   model: googleAI,
   memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   tools: {},
   scorers: {},
   workflows: {},

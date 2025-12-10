@@ -1,4 +1,4 @@
-import { runExperiment } from '@mastra/core/scores';
+import { createScorer, runEvals } from '@mastra/core/evals';
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { sqlAgent } from '../agents/sql'
 import { copywriterAgent } from '../agents/copywriterAgent'
@@ -26,7 +26,7 @@ import {
 
 export async function runContentStrategistExperiment() {
     console.log('Running Content Strategist Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: contentStrategistAgent,
         data: [
             {
@@ -47,7 +47,7 @@ export async function runContentStrategistExperiment() {
 
 export async function runSqlAgentExperiment() {
     console.log('Running SQL Agent Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: sqlAgent,
         data: [
             {
@@ -68,7 +68,7 @@ export async function runSqlAgentExperiment() {
 
 export async function runCopywriterExperiment() {
     console.log('Running Copywriter Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: copywriterAgent,
         data: [
             {
@@ -89,7 +89,7 @@ export async function runCopywriterExperiment() {
 
 export async function runScriptWriterExperiment() {
     console.log('Running Script Writer Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: scriptWriterAgent,
         data: [
             {
@@ -107,7 +107,7 @@ export async function runScriptWriterExperiment() {
 
 export async function runStockAnalysisExperiment() {
     console.log('Running Stock Analysis Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: stockAnalysisAgent,
         data: [
             {
@@ -125,7 +125,7 @@ export async function runStockAnalysisExperiment() {
 
 export async function runReportAgentExperiment() {
     console.log('Running Report Agent Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: reportAgent,
         data: [
             {
@@ -143,7 +143,7 @@ export async function runReportAgentExperiment() {
 
 export async function runLearningExtractionExperiment() {
     console.log('Running Learning Extraction Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: learningExtractionAgent,
         data: [
             {
@@ -158,7 +158,7 @@ export async function runLearningExtractionExperiment() {
 
 export async function runEvaluationAgentExperiment() {
     console.log('Running Evaluation Agent Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: evaluationAgent,
         data: [
             {
@@ -173,7 +173,7 @@ export async function runEvaluationAgentExperiment() {
 
 export async function runImageToCsvExperiment() {
     console.log('Running Image to CSV Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: imageToCsvAgent,
         data: [
             {
@@ -188,7 +188,7 @@ export async function runImageToCsvExperiment() {
 
 export async function runCsvToExcalidrawExperiment() {
     console.log('Running CSV to Excalidraw Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: csvToExcalidrawAgent,
         data: [
             {
@@ -203,7 +203,7 @@ export async function runCsvToExcalidrawExperiment() {
 
 export async function runWeatherAgentExperiment() {
     console.log('Running Weather Agent Experiment...')
-    const results = await runExperiment({
+    const results = await runEvals({
         target: weatherAgent,
         data: [
             {
@@ -219,7 +219,7 @@ export async function runWeatherAgentExperiment() {
     return results
 }
 
-export async function runAllExperiments() {
+export async function runAllExperiments(p0: unknown) {
     await runContentStrategistExperiment()
     await runSqlAgentExperiment()
     await runCopywriterExperiment()
@@ -233,7 +233,3 @@ export async function runAllExperiments() {
     await runWeatherAgentExperiment()
 }
 
-// Allow running directly if this file is executed
-if (require.main === module) {
-    runAllExperiments().catch(console.error)
-}

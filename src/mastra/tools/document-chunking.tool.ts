@@ -1,4 +1,5 @@
-import { AISpanType } from '@mastra/core/ai-tracing';
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import {
@@ -157,37 +158,38 @@ Use this tool when you need advanced document processing with metadata extractio
   `,
   inputSchema: MastraDocumentChunkingInputSchema,
   outputSchema: MastraDocumentChunkingOutputSchema,
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📄 Starting Mastra chunker' } });
+  execute: async (inputData, context) => {
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📄 Starting Mastra chunker' } });
     const startTime = Date.now()
-    logToolExecution('mastra-chunker', { input: context })
+    logToolExecution('mastra-chunker', { input: inputData })
 
     // Create a span for tracing
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.MODEL_CHUNK,
-      name: 'mastra-chunker-tool',
-      input: {
-        documentLength: context.documentContent.length,
-        chunkingStrategy: context.chunkingStrategy,
-        chunkSize: context.chunkSize,
-        extractTitle: context.extractTitle,
-        extractSummary: context.extractSummary,
-        extractKeywords: context.extractKeywords,
-        extractQuestions: context.extractQuestions,
-      },
-    })
+    // Create a span for tracing
+    const tracer = trace.getTracer('document-chunking');
+    const span = tracer.startSpan('mastra-chunker-tool', {
+      attributes: {
+        documentLength: inputData.documentContent.length,
+        chunkingStrategy: inputData.chunkingStrategy,
+        chunkSize: inputData.chunkSize,
+        extractTitle: inputData.extractTitle,
+        extractSummary: inputData.extractSummary,
+        extractKeywords: inputData.extractKeywords,
+        extractQuestions: inputData.extractQuestions,
+        operation: 'mastra-chunker'
+      }
+    });
 
     try {
       // Create MDocument from input
       const document = new MDocument({
         docs: [
           {
-            text: context.documentContent,
+            text: inputData.documentContent,
             metadata: {
-              ...context.documentMetadata,
-              chunkingStrategy: context.chunkingStrategy,
-              chunkSize: context.chunkSize,
-              chunkOverlap: context.chunkOverlap,
+              ...inputData.documentMetadata,
+              chunkingStrategy: inputData.chunkingStrategy,
+              chunkSize: inputData.chunkSize,
+              chunkOverlap: inputData.chunkOverlap,
               processedAt: new Date().toISOString(),
               source: 'mastra-chunker',
             },
@@ -281,25 +283,25 @@ Use this tool when you need advanced document processing with metadata extractio
 
       // Build ExtractParams based on user preferences
       const extractParams: ExtractParams = {}
-      if (context.extractTitle) {
+      if (inputData.extractTitle) {
         extractParams.title = true
       }
-      if (context.extractSummary) {
+      if (inputData.extractSummary) {
         extractParams.summary = true
       }
-      if (context.extractKeywords) {
+      if (inputData.extractKeywords) {
         extractParams.keywords = true
       }
-      if (context.extractQuestions) {
+      if (inputData.extractQuestions) {
         extractParams.questions = true
       }
 
       // Execute chunking with metadata extraction
       const chunkingStartTime = Date.now()
       const chunkParams = buildChunkParams(
-        context.chunkingStrategy,
-        context.chunkSize,
-        context.chunkOverlap,
+        inputData.chunkingStrategy,
+        inputData.chunkSize,
+        inputData.chunkOverlap,
         extractParams
       )
       const chunks = await document.chunk(chunkParams)
@@ -308,7 +310,7 @@ Use this tool when you need advanced document processing with metadata extractio
       logStepStart('mastra-chunking-completed', {
         chunkCount: chunks.length,
         chunkingTimeMs: chunkingTime,
-        strategy: context.chunkingStrategy,
+        strategy: inputData.chunkingStrategy,
         extractOptions: Object.keys(extractParams),
       })
 
@@ -320,9 +322,9 @@ Use this tool when you need advanced document processing with metadata extractio
           chunkIndex: index,
           totalChunks: chunks.length,
           documentId: `doc_${Date.now()}_${index}`,
-          chunkingStrategy: context.chunkingStrategy,
-          chunkSize: context.chunkSize,
-          chunkOverlap: context.chunkOverlap,
+          chunkingStrategy: inputData.chunkingStrategy,
+          chunkSize: inputData.chunkSize,
+          chunkOverlap: inputData.chunkOverlap,
         },
       }))
 
@@ -331,7 +333,7 @@ Use this tool when you need advanced document processing with metadata extractio
       const output = {
         success: true,
         chunkCount: chunks.length,
-        totalTextLength: context.documentContent.length,
+        totalTextLength: inputData.documentContent.length,
         chunks: outputChunks,
         processingTimeMs: totalProcessingTime,
       }
@@ -339,14 +341,8 @@ Use this tool when you need advanced document processing with metadata extractio
       logStepEnd('mastra-chunker', output, totalProcessingTime)
 
       // End tracing span with success
-      span?.end({
-        output: {
-          success: true,
-          chunkCount: chunks.length,
-          processingTimeMs: totalProcessingTime,
-          chunkingStrategy: context.chunkingStrategy,
-        },
-      })
+      // End tracing span with success
+      span.end();
 
       return output
     } catch (error) {
@@ -357,24 +353,19 @@ Use this tool when you need advanced document processing with metadata extractio
           : 'Unknown error occurred'
 
       logError('mastra-chunker', error, {
-        context,
+        inputData,
         processingTimeMs: processingTime,
       })
 
       // Record error in tracing span
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'mastra-chunker',
-          chunkingStrategy: context.chunkingStrategy,
-          processingTimeMs: processingTime,
-        },
-      })
+      // Record error in tracing span
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
       return {
         success: false,
         chunkCount: 0,
-        totalTextLength: context.documentContent.length,
+        totalTextLength: inputData.documentContent.length,
         chunks: [],
         processingTimeMs: processingTime,
         error: errorMessage,
@@ -423,35 +414,36 @@ content indexing, or semantic search capabilities.
   `,
   inputSchema: CustomDocumentChunkingInputSchema,
   outputSchema: CustomDocumentChunkingOutputSchema,
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '📄 Starting MDocument chunker' } });
+  execute: async (inputData, context) => {
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📄 Starting MDocument chunker' } });
     const startTime = Date.now()
-    logToolExecution('mdocument-chunker', { input: context })
+    logToolExecution('mdocument-chunker', { input: inputData })
 
     // Create a span for tracing
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.MODEL_CHUNK,
-      name: 'mdocument-chunker-tool',
-      input: {
-        documentLength: context.documentContent.length,
-        chunkingStrategy: context.chunkingStrategy,
-        chunkSize: context.chunkSize,
-        generateEmbeddings: context.generateEmbeddings,
+    // Create a span for tracing
+    const tracer = trace.getTracer('document-chunking');
+    const span = tracer.startSpan('mdocument-chunker-tool', {
+      attributes: {
+        documentLength: inputData.documentContent.length,
+        chunkingStrategy: inputData.chunkingStrategy,
+        chunkSize: inputData.chunkSize,
+        generateEmbeddings: inputData.generateEmbeddings,
         indexName: 'memory_messages_3072',
-      },
-    })
+        operation: 'mdocument-chunker'
+      }
+    });
 
     try {
       // Create MDocument from input
       const document = new MDocument({
         docs: [
           {
-            text: context.documentContent,
+            text: inputData.documentContent,
             metadata: {
-              ...context.documentMetadata,
-              chunkingStrategy: context.chunkingStrategy,
-              chunkSize: context.chunkSize,
-              chunkOverlap: context.chunkOverlap,
+              ...inputData.documentMetadata,
+              chunkingStrategy: inputData.chunkingStrategy,
+              chunkSize: inputData.chunkSize,
+              chunkOverlap: inputData.chunkOverlap,
               processedAt: new Date().toISOString(),
               source: 'mdocument-chunker',
             },
@@ -543,9 +535,9 @@ content indexing, or semantic search capabilities.
       // Execute chunking using MDocument.chunk() method
       const chunkingStartTime = Date.now()
       const chunkParams = buildChunkParams(
-        context.chunkingStrategy,
-        context.chunkSize,
-        context.chunkOverlap
+        inputData.chunkingStrategy,
+        inputData.chunkSize,
+        inputData.chunkOverlap
       )
       const chunks = await document.chunk(chunkParams)
       const chunkingTime = Date.now() - chunkingStartTime
@@ -553,7 +545,7 @@ content indexing, or semantic search capabilities.
       logStepStart('custom-chunking-completed', {
         chunkCount: chunks.length,
         chunkingTimeMs: chunkingTime,
-        strategy: context.chunkingStrategy,
+        strategy: inputData.chunkingStrategy,
       })
 
       // Prepare chunks for embedding and storage
@@ -564,9 +556,9 @@ content indexing, or semantic search capabilities.
           chunkIndex: index,
           totalChunks: chunks.length,
           documentId: `doc_${Date.now()}_${index}`,
-          chunkingStrategy: context.chunkingStrategy,
-          chunkSize: context.chunkSize,
-          chunkOverlap: context.chunkOverlap,
+          chunkingStrategy: inputData.chunkingStrategy,
+          chunkSize: inputData.chunkSize,
+          chunkOverlap: inputData.chunkOverlap,
         },
         id: `chunk_${Date.now()}_${index}`,
       }))
@@ -575,8 +567,8 @@ content indexing, or semantic search capabilities.
       let embeddings: number[][] = []
 
       // Generate embeddings if requested
-      if (context.generateEmbeddings && chunksForProcessing.length > 0) {
-        await writer?.write({ type: 'progress', data: { message: '🧠 Generating embeddings' } });
+      if (inputData.generateEmbeddings && chunksForProcessing.length > 0) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🧠 Generating embeddings' } });
         const embeddingStartTime = Date.now()
         const result = await embedMany({
           values: chunksForProcessing.map((chunk) => chunk.text),
@@ -597,12 +589,12 @@ content indexing, or semantic search capabilities.
 
       // Store chunks in PgVector if embeddings were generated
       if (embeddingGenerated && embeddings.length > 0) {
-        await writer?.write({ type: 'progress', data: { message: '💾 Storing vectors in database' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Storing vectors in database' } });
         const storageStartTime = Date.now()
 
         // Store vectors with metadata
         await pgVector.upsert({
-          indexName: 'governed_rag',
+          indexName: 'memory_messages_3072',
           vectors: embeddings,
           metadata: chunksForProcessing.map(
             (chunk) => ({
@@ -627,7 +619,7 @@ content indexing, or semantic search capabilities.
       const output = {
         success: true,
         chunkCount: chunks.length,
-        totalTextLength: context.documentContent.length,
+        totalTextLength: inputData.documentContent.length,
         chunks: chunksForProcessing.map((chunk) => ({
           id: chunk.id,
           text: chunk.text,
@@ -640,17 +632,10 @@ content indexing, or semantic search capabilities.
       logStepEnd('mdocument-chunker', output, totalProcessingTime)
 
       // End tracing span with success
-      span?.end({
-        output: {
-          success: true,
-          chunkCount: chunksForProcessing.length,
-          processingTimeMs: totalProcessingTime,
-          embeddingsGenerated: embeddingGenerated,
-          chunkingStrategy: context.chunkingStrategy,
-        },
-      })
+      // End tracing span with success
+      span.end();
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Processed ${chunks.length} chunks successfully` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Processed ${chunks.length} chunks successfully` } });
       return output
     } catch (error) {
       const processingTime = Date.now() - startTime
@@ -660,25 +645,19 @@ content indexing, or semantic search capabilities.
           : 'Unknown error occurred'
 
       logError('mdocument-chunker', error, {
-        context,
+        inputData,
         processingTimeMs: processingTime,
       })
 
       // Record error in tracing span
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'mdocument-chunker',
-          chunkingStrategy: context.chunkingStrategy,
-          generateEmbeddings: context.generateEmbeddings,
-          processingTimeMs: processingTime,
-        },
-      })
+      // Record error in tracing span
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
       return {
         success: false,
         chunkCount: 0,
-        totalTextLength: context.documentContent.length,
+        totalTextLength: inputData.documentContent.length,
         chunks: [],
         processingTimeMs: processingTime,
         error: errorMessage,
@@ -741,67 +720,67 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     processingTimeMs: z.number(),
     error: z.string().optional(),
   }),
-  execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-    await writer?.write({ type: 'progress', data: { message: '🔍 Starting document reranking' } });
+  execute: async (inputData, context) => {
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Starting document reranking' } });
     const startTime = Date.now()
-    logToolExecution('document-reranker', { userQuery: context.userQuery })
+    logToolExecution('document-reranker', { userQuery: inputData.userQuery })
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.MODEL_GENERATION,
-      name: 'document-reranker-tool',
-      input: {
-        userQuery: context.userQuery,
-        indexName: context.indexName,
-        topK: context.topK,
-        initialTopK: context.initialTopK,
-      },
-    })
+    const tracer = trace.getTracer('document-chunking');
+    const span = tracer.startSpan('document-reranker-tool', {
+      attributes: {
+        userQuery: inputData.userQuery,
+        indexName: inputData.indexName,
+        topK: inputData.topK,
+        initialTopK: inputData.initialTopK,
+        operation: 'document-reranker'
+      }
+    });
 
     try {
       // Step 1: Generate embedding for user query
-      await writer?.write({ type: 'progress', data: { message: '🧠 Generating query embedding' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🧠 Generating query embedding' } });
       const embeddingStartTime = Date.now()
       const { embedding: queryEmbedding } = await embed({
-        value: context.userQuery,
+        value: inputData.userQuery,
         model: google.textEmbedding('gemini-embedding-001'),
       })
       const embeddingTime = Date.now() - embeddingStartTime
 
       logStepStart('query-embedding-generated', {
-        queryLength: context.userQuery.length,
+        queryLength: inputData.userQuery.length,
         embeddingDimension: queryEmbedding.length,
         embeddingTimeMs: embeddingTime,
       })
 
       // Step 2: Retrieve initial results from PgVector
-      await writer?.write({ type: 'progress', data: { message: '💾 Retrieving initial results from database' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Retrieving initial results from database' } });
       const searchStartTime = Date.now()
       const initialResults = await pgVector.query({
-        indexName: context.indexName,
+        indexName: inputData.indexName,
         queryVector: queryEmbedding,
-        topK: context.initialTopK,
+        topK: inputData.initialTopK,
       })
       const searchTime = Date.now() - searchStartTime
 
       logStepStart('initial-search-completed', {
         resultCount: initialResults.length,
         searchTimeMs: searchTime,
-        indexName: context.indexName,
+        indexName: inputData.indexName,
       })
 
       if (initialResults.length === 0) {
         const processingTime = Date.now() - startTime
-        await writer?.write({ type: 'progress', data: { message: '⚠️ No initial results found' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ No initial results found' } });
         return {
           success: true,
-          userQuery: context.userQuery,
+          userQuery: inputData.userQuery,
           rerankedDocuments: [],
           processingTimeMs: processingTime,
         }
       }
 
       // Step 3: Re-rank results using semantic relevance scorer
-      await writer?.write({ type: 'progress', data: { message: `⚖️ Reranking ${initialResults.length} documents` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `⚖️ Reranking ${initialResults.length} documents` } });
       const rerankerStartTime = Date.now()
       const rerankedResults = await rerank({
         results: initialResults.map((result) => ({
@@ -810,15 +789,15 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
           metadata: result.metadata,
           score: result.score || 0,
         })),
-        query: context.userQuery,
+        query: inputData.userQuery,
         scorer: new MastraAgentRelevanceScorer('relevance-scorer', googleAI),
         options: {
           weights: {
-            semantic: context.semanticWeight,
-            vector: context.vectorWeight,
-            position: context.positionWeight,
+            semantic: inputData.semanticWeight,
+            vector: inputData.vectorWeight,
+            position: inputData.positionWeight,
           },
-          topK: context.topK,
+          topK: inputData.topK,
         },
       })
       const rerankerTime = Date.now() - rerankerStartTime
@@ -828,9 +807,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         rerankedResultCount: rerankedResults.length,
         rerankerTimeMs: rerankerTime,
         weights: {
-          semantic: context.semanticWeight,
-          vector: context.vectorWeight,
-          position: context.positionWeight,
+          semantic: inputData.semanticWeight,
+          vector: inputData.vectorWeight,
+          position: inputData.positionWeight,
         },
       })
 
@@ -854,23 +833,16 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
       const output = {
         success: true,
-        userQuery: context.userQuery,
+        userQuery: inputData.userQuery,
         rerankedDocuments,
         processingTimeMs: totalProcessingTime,
       }
 
       logStepEnd('document-reranker', output, totalProcessingTime)
 
-      span?.end({
-        output: {
-          success: true,
-          rerankedDocumentCount: rerankedDocuments.length,
-          processingTimeMs: totalProcessingTime,
-          userQuery: context.userQuery,
-        },
-      })
+      span.end();
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results` } });
       return output
     } catch (error) {
       const processingTime = Date.now() - startTime
@@ -880,22 +852,16 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
           : 'Unknown error occurred'
 
       logError('document-reranker', error, {
-        userQuery: context.userQuery,
+        userQuery: inputData.userQuery,
         processingTimeMs: processingTime,
       })
 
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMessage),
-        metadata: {
-          operation: 'document-reranker',
-          userQuery: context.userQuery,
-          processingTimeMs: processingTime,
-        },
-      })
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
       return {
         success: false,
-        userQuery: context.userQuery,
+        userQuery: inputData.userQuery,
         rerankedDocuments: [],
         processingTimeMs: processingTime,
         error: errorMessage,
