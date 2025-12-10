@@ -1,7 +1,7 @@
 import { jwtVerify } from 'jose'
 
 import { ValidationService } from './ValidationService'
-import { RoleService } from './RoleService'
+import { RoleService } from './role-service'
 import { log } from '../config/logger'
 
 export interface JWTClaims {

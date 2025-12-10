@@ -4,7 +4,7 @@ import { structureScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from '@mastra/core/request-context'
 
-export interface DaneContext {
+export interface CsvToExcalidrawRuntimeContext {
     userId?: string
 }
 
@@ -12,7 +12,7 @@ export const csvToExcalidrawAgent = new Agent({
   id: "csvToExcalidrawAgent",
   name: "CSV to Excalidraw Converter",
   description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<CsvToExcalidrawRuntimeContext> }) => {
         const userId = requestContext.get('userId');
         return {
             role: 'system',
