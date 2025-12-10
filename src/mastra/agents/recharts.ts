@@ -28,7 +28,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export interface FinancialChartRuntimeContext {
+export interface ChartRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
   chartStyle: 'detailed' | 'concise'
@@ -45,7 +45,7 @@ export const chartTypeAdvisorAgent = new Agent({
   id: 'chartTypeAdvisorAgent',
   name: 'Chart Type Advisor',
   description: 'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ChartRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
     const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
@@ -132,7 +132,7 @@ export const chartDataProcessorAgent = new Agent({
   id: 'chartDataProcessorAgent',
   name: 'Chart Data Processor',
   description: 'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ChartRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
     const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
@@ -238,7 +238,7 @@ export const chartGeneratorAgent = new Agent({
   id: 'chartGeneratorAgent',
   name: 'Chart Generator',
   description: 'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ChartRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
     const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
@@ -379,7 +379,7 @@ export const chartSupervisorAgent = new Agent({
   id: 'chartSupervisorAgent',
   name: 'Chart Supervisor',
   description: 'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<FinancialChartRuntimeContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ChartRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
     const chartStyle = requestContext.get('chartStyle') ?? 'detailed'

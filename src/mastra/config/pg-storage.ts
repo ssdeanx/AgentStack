@@ -8,11 +8,7 @@ import { log } from './logger'
 import { google } from '@ai-sdk/google'
 //import type { CoreMessage } from '@mastra/core';
 // import { maskStreamTags } from '@mastra/core';
-import { z } from 'zod'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
-
-// Use the proper CoreMessage type from @mastra/core
-// This replaces the custom extension that was causing type conflicts
 
 // Utility function to create a masked stream for sensitive data
 // This properly uses maskStreamTags to mask content between XML tags in streams
@@ -95,6 +91,7 @@ export const pgMemory = new Memory({
     options: {
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+        generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
         // Advanced semantic recall with HNSW index configuration
         semanticRecall: {
             topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
@@ -108,30 +105,47 @@ export const pgMemory = new Memory({
                 type: 'flat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
                 ivf: {lists: parseInt(process.env.LISTS ?? '3072')}, // IVF configuration for flat index
-                }
+                },
+            threshold: 0.75, // Similarity threshold for semantic recall
+            indexName: 'memory_messages_3072', // Index name for semantic recall
         },
         // Enhanced working memory with supported template
         workingMemory: {
             enabled: true,
-            scope: 'thread', // 'resource' | 'thread'
-//        version: 'vnext',
-            schema: z.object({
-                items: z.array(
-                    z.object({
-                    title: z.string(),
-                    due: z.string().optional(),
-                    description: z.string(),
-                    status: z.enum(["active", "completed"]).default("active"),
-                    tags: z.array(z.string()).optional(),
-                    estimatedTime: z.string().optional(),
-                }),
-            ),
-        }),
+            scope: 'resource', // 'resource' | 'thread'
+            version: 'vnext',
+            template: `# User Profile & Context
+## Personal Information
+ - **Name**:
+ - **Role/Title**:
+ - **Organization**:
+ - **Location**:
+ - **Time Zone**:
+## Communication Preferences
+ - **Preferred Communication Style**:
+ - **Response Length Preference**:
+ - **Technical Level**:
+
+## Current Context
+ - **Active Projects**:
+ - **Current Goals**:
+ - **Deadlines**:
+ - **Recent Activities**:
+ - **Pain Points**:
+
+## Long-term Memory
+ - **Key Achievements**:
+ - **Important Relationships**:
+ - **Recurring Patterns**:
+ - **Preferences & Habits**:
+
+## Session Notes
+ - **Today's Focus**:
+ - **Outstanding Questions**:
+ - **Action Items**:
+ - **Follow-ups Needed**:
+`,
     },
-        // Thread management with supported options
-        threads: {
-            generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
-        },
     },
     processors: [],
 })
@@ -159,9 +173,7 @@ log.info('PG Store and Memory initialized with PgVector support', {
             scope: 'resource',
             version: 'vnext',
         },
-        threads: {
-            generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
-        },
+        generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
     },
 })
 // In-memory counter to track tool calls per request

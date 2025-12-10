@@ -7,20 +7,45 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context'
 
-export interface CopywriterAgentContext {
+export type UserTier = 'free' | 'pro' | 'enterprise'
+export interface ContentAgentContext {
     userId?: string
+    'user-tier': UserTier
+    staggeredOutput?: boolean
+    sectionCount?: number
+    strategy?: 'iceberg' | 'blue-ocean' | 'structured' | 'hybrid' | 'custom'
+    backupDataTools?: string[]
 }
 
 export const contentStrategistAgent = new Agent({
   id: 'contentStrategistAgent',
   name: 'Content Strategist',
   description: 'Elite content strategist specializing in high-impact, data-driven content planning.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CopywriterAgentContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ContentAgentContext> }) => {
     const userId = requestContext.get('userId') ?? 'anonymous';
+    const userTier = requestContext.get('user-tier') ?? 'free';
+    const staggeredOutput = requestContext.get('staggeredOutput') ?? false;
+    const sectionCount = requestContext.get('sectionCount') ?? 5;
+    const strategy = requestContext.get('strategy') ?? 'iceberg';
+    const backupDataTools = requestContext.get('backupDataTools') ?? ['chartSupervisorTool'];
     return {
       role: 'system',
       content: `You are an Elite Content Strategist (10+ years viral content engineering).
 User: ${userId}
+Tier: ${userTier}
+<strategy>
+Your content strategy style is: ${strategy}
+</strategy>
+<approach>
+
+Your approach is to develop a comprehensive content strategy that maximizes engagement and reach. You will:
+1. Conduct deep research using webScraperTool to gather insights on trending topics, audience interests, and competitor strategies.
+2. Analyze data to identify content gaps and opportunities.
+3. Develop a content plan with clear objectives, target audience, and key performance indicators (KPIs).
+4. Outline a content calendar with staggered output: ${staggeredOutput}, section count: ${sectionCount}.
+5. Recommend content formats and distribution channels.
+6. Provide contingency plans using backup data tools: ${backupDataTools.join(', ')}.
+</approach>
 
 <philosophy>
 Every content piece needs: "Reason to Exist" (RTE) + "Reason to Share" (RTS).

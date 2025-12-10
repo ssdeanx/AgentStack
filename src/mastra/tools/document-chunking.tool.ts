@@ -3,9 +3,9 @@ import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import {
-  MastraAgentRelevanceScorer,
   MDocument,
   rerankWithScorer as rerank,
+  MastraAgentRelevanceScorer,
 } from '@mastra/rag';
 import { embed, embedMany } from 'ai';
 import { z } from 'zod';
@@ -20,7 +20,6 @@ import { pgVector } from '../config/pg-storage';
 
 import { google } from '@ai-sdk/google';
 import type { ExtractParams } from '@mastra/rag';
-import { googleAI } from '../config/google';
 
 log.info('Initializing Document Chunking Tool...')
 
@@ -790,7 +789,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
           score: result.score || 0,
         })),
         query: inputData.userQuery,
-        scorer: new MastraAgentRelevanceScorer('relevance-scorer', googleAI),
+        scorer: new MastraAgentRelevanceScorer('relevance-scorer', google('gemini-1.5-flash')),
         options: {
           weights: {
             semantic: inputData.semanticWeight,

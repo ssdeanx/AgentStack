@@ -6,36 +6,34 @@ import type { RequestContext } from "@mastra/core/request-context";
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export interface KnowledgeIndexingContext {
+export interface ImageToCsvRuntimeContext  {
   userId?: string
-  indexName?: string
-  chunkSize?: number
-  chunkOverlap?: number
-  chunkingStrategy?: string
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
+  identityOutputSchema: 'excalidraw' | 'csv'
+  chalkboardOutputSchema: 'excalidraw' | 'csv'
 }
 
 export const imageToCsvAgent = new Agent({
   id: "imageToCsvAgent",
   name: "Image to CSV Converter",
   description: `You are an expert at converting images of diagrams into structured CSV data. Your task is to analyze the visual elements in the provided image and represent them in a CSV format that captures all relevant properties and relationships.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<KnowledgeIndexingContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ImageToCsvRuntimeContext> }) => {
     const userId = requestContext.get('userId') ?? 'default'
-    const indexName = requestContext.get('indexName') ?? 'governed_rag'
-    const chunkSize = requestContext.get('chunkSize') ?? 512
-    const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
-    const chunkingStrategy = requestContext.get('chunkingStrategy') ?? 'recursive'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const identityOutputSchema = requestContext.get('identityOutputSchema') ?? 'csv'
+    const chalkboardOutputSchema = requestContext.get('chalkboardOutputSchema') ?? 'csv'
 
     return {
       role: 'system',
       content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
 
 User: ${userId}
-Index Name: ${indexName}
-Chunk Size: ${chunkSize}
-Chunk Overlap: ${chunkOverlap}
-Chunking Strategy: ${chunkingStrategy}
+Tier: ${userTier}
+Language: ${language}
+Identity Output Schema: ${identityOutputSchema}
+Chalkboard Output Schema: ${chalkboardOutputSchema}
 
 When you receive an image, carefully analyze its contents and create a CSV representation that captures:
 

@@ -4,12 +4,8 @@ import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from "@mastra/core/request-context";
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
-export interface KnowledgeIndexingContext {
+export interface ExcalidrawValidatorRuntimeContext {
   userId?: string
-  indexName?: string
-  chunkSize?: number
-  chunkOverlap?: number
-  chunkingStrategy?: string
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
 }
@@ -18,17 +14,17 @@ export const excalidrawValidatorAgent = new Agent({
   id: "excalidrawValidatorAgent",
   name: "Excalidraw Validator",
   description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<KnowledgeIndexingContext> }) => {
+  instructions: ({ requestContext }: { requestContext: RequestContext<ExcalidrawValidatorRuntimeContext> }) => {
     const userId = requestContext.get('userId') ?? 'default'
-    const indexName = requestContext.get('indexName') ?? 'governed_rag'
-    const chunkSize = requestContext.get('chunkSize') ?? 512
-    const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
-    const chunkingStrategy = requestContext.get('chunkingStrategy') ?? 'recursive'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
 
     return {
       role: 'system',
       content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
-
+user: ${userId}
+tier: ${userTier}
+language: ${language}
 Your response MUST be valid JSON in the excalidraw JSON format.
 
 The format must follow this exact schema:

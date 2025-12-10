@@ -5,7 +5,7 @@ import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
-import { responseQualityScorer, structureScorer, summaryQualityScorer, toneConsistencyScorer } from '../scorers';
+import { summaryQualityScorer } from '../scorers';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EditorRuntimeContext {

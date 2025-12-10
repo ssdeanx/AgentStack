@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
-import { imageGen, pgMemory } from '../config'
+import { googleAINanoBanana, pgMemory } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 
@@ -53,7 +53,11 @@ export const imageAgent = new Agent({
       }
     }
   },
-  model: imageGen,
+  model: googleAINanoBanana,
   memory: pgMemory,
+  options: {},
+  tools: {},
+  scorers: {},
+  workflows: {},
   maxRetries: 3
 })

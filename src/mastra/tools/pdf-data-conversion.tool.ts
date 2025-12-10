@@ -31,7 +31,7 @@ import { trace, SpanStatusCode, context as otelContext } from "@opentelemetry/ap
 let pdfParse: unknown = null
 let pdfParseError: Error | null = null
 
-type PdfParseFunction = (_buffer: Buffer, _options?: { max?: number; version?: string }) => Promise<{
+type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{
   text: string;
   numpages: number;
   metadata?: unknown;
@@ -520,30 +520,23 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         operation: 'pdf-to-markdown'
       }
     });
-    
     // Create context with root span
     const ctx = trace.setSpan(otelContext.active(), rootSpan);
-
     const warnings: string[] = []
-
     try {
       // Validate file path
       const absolutePath = path.isAbsolute(inputData.pdfPath)
         ? inputData.pdfPath
         : path.resolve(process.cwd(), inputData.pdfPath)
-
       logStepStart('pdf-file-validation', { path: absolutePath })
-
       // Check file exists and is readable
       const fileStats = await fs.stat(absolutePath)
       if (!fileStats.isFile()) {
         throw new Error(`Path is not a file: ${absolutePath}`)
       }
-
       if (!absolutePath.toLowerCase().endsWith('.pdf')) {
         warnings.push('File does not have .pdf extension')
       }
-
       // Size check (warn if > 50MB)
       const sizeMB = fileStats.size / (1024 * 1024)
       if (sizeMB > 50) {
@@ -551,24 +544,19 @@ Perfect for RAG indexing, documentation conversion, and content processing.
           `Large PDF detected (${sizeMB.toFixed(2)}MB) - processing may be slow`
         )
       }
-
       // Read PDF file
       const readSpan = tracer.startSpan('read-pdf-file', {
         attributes: {
-           filePath: absolutePath,
-           sizeBytes: fileStats.size
+          filePath: absolutePath,
+          sizeBytes: fileStats.size
         }
       }, ctx);
-
       const readStart = Date.now()
       const pdfBuffer = await fs.readFile(absolutePath)
       const readDuration = Date.now() - readStart
-
       readSpan.end();
-
       // Provide size and read duration to match logger signature (name, payload, durationMs)
       logStepEnd('pdf-file-read', { size: pdfBuffer.length }, readDuration)
-
       // Extract text using sideloaded pdf-parse
       const extractSpan = tracer.startSpan('extract-pdf-text', {
         attributes: { maxPages: inputData.maxPages }
