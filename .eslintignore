@@ -1,0 +1,23 @@
+
+# Ignore node dependencies and build artifacts
+node_modules/
+dist/
+.next/
+public/
+coverage/
+build/
+out/
+logs/
+/.vscode/
+/.mastra/
+/.kilocode/
+/.github/
+/*.log
+memory-bank/
+memories/
+docs/
+components/ui/
+docker/
+coverage/
+
+.github/

@@ -1,6 +1,7 @@
 import { Project } from 'ts-morph';
 import * as path from 'path';
 import { exec, spawn } from 'child_process';
+import fg from 'fast-glob';
 import { promisify } from 'util';
 import { writeFile, unlink } from 'fs/promises';
 import * as os from 'os';
@@ -17,6 +18,7 @@ interface CachedProject {
   fileCount: number;
   estimatedMemoryMB: number;
   hitCount: number;
+  projectPath: string;
 }
 
 interface CacheStats {
@@ -37,14 +39,18 @@ export class ProjectCache {
   private cache = new Map<string, CachedProject>();
   private totalHits = 0;
   private totalMisses = 0;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   // Configuration
   private readonly MAX_PROJECT_MEMORY_MB = 2048; // 2GB limit per project
   private readonly MAX_TOTAL_MEMORY_MB = 4096;   // 4GB total cache limit
   private readonly MEMORY_PER_FILE_MB = 0.5;     // Rough estimate
   private readonly CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-  private constructor() {}
+  private constructor() {
+    this.startCleanupInterval();
+  }
 
   public static getInstance(): ProjectCache {
     ProjectCache.instance ??= new ProjectCache();
@@ -66,34 +72,61 @@ export class ProjectCache {
 
     this.totalMisses++;
 
-    // Create new project
-    log.info(`Initializing new ts-morph project for ${normalizedPath}`);
-    const project = new Project({
-      tsConfigFilePath: path.join(normalizedPath, 'tsconfig.json'),
-      skipAddingFilesFromTsConfig: false,
-    });
+    // Create new project with better error handling
+    try {
+      log.info(`Initializing new ts-morph project for ${normalizedPath}`);
 
-    // Estimate memory usage
-    const fileCount = project.getSourceFiles().length;
-    const estimatedMemoryMB = fileCount * this.MEMORY_PER_FILE_MB;
+      const tsConfigPath = path.join(normalizedPath, 'tsconfig.json');
+      const hasTsConfig = require('fs').existsSync(tsConfigPath);
 
-    // Cache if within limits
-    if (estimatedMemoryMB <= this.MAX_PROJECT_MEMORY_MB) {
-      // Evict if needed
-      this.ensureCapacity(estimatedMemoryMB);
-
-      this.cache.set(normalizedPath, {
-        project,
-        lastAccess: now,
-        fileCount,
-        estimatedMemoryMB,
-        hitCount: 0
+      const project = new Project({
+        tsConfigFilePath: hasTsConfig === true ? tsConfigPath : undefined,
+        skipAddingFilesFromTsConfig: false,
+        skipFileDependencyResolution: true, // Better performance
+        skipLoadingLibFiles: true, // Skip loading lib files for better performance
       });
-    } else {
-      log.warn(`Project ${normalizedPath} too large (${estimatedMemoryMB.toFixed(1)}MB) - skipping cache`);
-    }
 
-    return project;
+      // Add source files manually if no tsconfig
+      if (hasTsConfig === false) {
+        const sourceFiles = fg.sync('**/*.{ts,tsx,js,jsx}', {
+          cwd: normalizedPath,
+          ignore: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
+          onlyFiles: true,
+          absolute: true,
+          dot: true,
+          unique: true,
+        });
+        project.addSourceFilesAtPaths(sourceFiles);
+      }
+
+      // Estimate memory usage
+      const fileCount = project.getSourceFiles().length;
+      const estimatedMemoryMB = Math.max(fileCount * this.MEMORY_PER_FILE_MB, 10); // Minimum 10MB
+
+      // Cache if within limits
+      if (estimatedMemoryMB <= this.MAX_PROJECT_MEMORY_MB) {
+        // Evict if needed
+        this.ensureCapacity(estimatedMemoryMB);
+
+        this.cache.set(normalizedPath, {
+          project,
+          lastAccess: now,
+          fileCount,
+          estimatedMemoryMB,
+          hitCount: 0,
+          projectPath: normalizedPath
+        });
+
+        log.info(`Cached project ${normalizedPath}: ${fileCount} files, ~${estimatedMemoryMB.toFixed(1)}MB`);
+      } else {
+        log.warn(`Project ${normalizedPath} too large (${estimatedMemoryMB.toFixed(1)}MB) - skipping cache`);
+      }
+
+      return project;
+    } catch (error) {
+      log.error(`Failed to create project for ${normalizedPath}`, { error });
+      throw new Error(`Failed to initialize TypeScript project: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   private ensureCapacity(requiredMB: number): void {
@@ -103,13 +136,14 @@ export class ProjectCache {
       return;
     }
 
-    // Evict LRU
+    // Evict LRU items
     const entries = Array.from(this.cache.entries())
       .sort((a, b) => a[1].lastAccess - b[1].lastAccess);
 
     for (const [key, entry] of entries) {
       this.cache.delete(key);
       currentUsage -= entry.estimatedMemoryMB;
+      log.info(`Evicted project ${key} from cache`);
       if (currentUsage + requiredMB <= this.MAX_TOTAL_MEMORY_MB) {
         break;
       }
@@ -122,8 +156,55 @@ export class ProjectCache {
     return total;
   }
 
+  public getStats(): CacheStats {
+    const now = Date.now();
+    const totalRequests = this.totalHits + this.totalMisses;
+    const hitRate = totalRequests > 0 ? this.totalHits / totalRequests : 0;
+
+    return {
+      size: this.cache.size,
+      totalMemoryMB: this.getTotalMemoryUsage(),
+      hitRate,
+      projects: Array.from(this.cache.values()).map(entry => ({
+        path: entry.projectPath,
+        files: entry.fileCount,
+        memoryMB: entry.estimatedMemoryMB,
+        age: now - entry.lastAccess,
+        hits: entry.hitCount
+      }))
+    };
+  }
+
+  private startCleanupInterval(): void {
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpired();
+    }, this.CLEANUP_INTERVAL_MS);
+  }
+
+  private cleanupExpired(): void {
+    const now = Date.now();
+    const expiredKeys: string[] = [];
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.lastAccess > this.CACHE_TTL_MS) {
+        expiredKeys.push(key);
+      }
+    }
+
+    expiredKeys.forEach(key => {
+      this.cache.delete(key);
+      log.info(`Cleaned up expired project ${key} from cache`);
+    });
+  }
+
   public clear(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
     this.cache.clear();
+    this.totalHits = 0;
+    this.totalMisses = 0;
   }
 }
 
@@ -139,8 +220,33 @@ const EXEC_CONFIG = {
 } as const;
 
 interface CacheEntry {
-  result: any;
+  result: PythonResult;
   timestamp: number;
+}
+
+interface PythonResult {
+  success: boolean;
+  symbols?: PythonSymbol[];
+  cyclomaticComplexity?: number;
+  functions?: Array<{
+    name: string;
+    complexity: number;
+    line: number;
+  }>;
+  classes?: Array<{
+    name: string;
+    methods: number;
+    line: number;
+  }>;
+  references?: Array<{
+    name: string;
+    kind: string;
+    line: number;
+    column: number;
+    isDefinition: boolean;
+    text: string;
+  }>;
+  error?: string;
 }
 
 const RESULT_CACHE = new Map<string, CacheEntry>();
@@ -354,7 +460,7 @@ if __name__ == '__main__':
   private static pythonCommand: string | null = null;
 
   private static async getPythonCommand(): Promise<string> {
-    if (this.pythonCommand) {
+    if (this.pythonCommand !== null) {
       return this.pythonCommand;
     }
 
@@ -376,7 +482,7 @@ if __name__ == '__main__':
     return `${action}:${hash}`;
   }
 
-  private static getCachedResult(key: string): any | null {
+  private static getCachedResult(key: string): PythonResult | null {
     const entry = RESULT_CACHE.get(key);
     if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
       return entry.result;
@@ -387,10 +493,10 @@ if __name__ == '__main__':
     return null;
   }
 
-  private static cacheResult(key: string, result: any): void {
+  private static cacheResult(key: string, result: PythonResult): void {
     if (RESULT_CACHE.size >= MAX_CACHE_SIZE) {
       const oldestKey = RESULT_CACHE.keys().next().value;
-      if (oldestKey) {
+      if (oldestKey !== undefined) {
         RESULT_CACHE.delete(oldestKey);
       }
     }
@@ -405,11 +511,11 @@ if __name__ == '__main__':
     this.cleanupRegistered = true;
 
     process.on('exit', () => {
-      if (this.scriptPath) {
+      if (this.scriptPath !== null) {
         try {
           // Use fs.unlinkSync via require to avoid async in exit handler
           require('fs').unlinkSync(this.scriptPath);
-        } catch (e) {
+        } catch {
           // Ignore errors
         }
       }
@@ -417,7 +523,7 @@ if __name__ == '__main__':
   }
 
   private static async ensureScriptExists(): Promise<string> {
-    if (this.scriptPath) {
+    if (this.scriptPath !== null) {
       return this.scriptPath;
     }
 
@@ -428,10 +534,10 @@ if __name__ == '__main__':
     return this.scriptPath;
   }
 
-  private static async executePython(code: string, action: string, args: string[] = []): Promise<any> {
+  private static async executePython(code: string, action: string, args: string[] = []): Promise<PythonResult> {
     const cacheKey = this.getCacheKey(code, action + args.join(','));
     const cached = this.getCachedResult(cacheKey);
-    if (cached) {
+    if (cached !== null) {
       return cached;
     }
 
@@ -439,7 +545,7 @@ if __name__ == '__main__':
       const pythonCmd = await this.getPythonCommand();
       const scriptPath = await this.ensureScriptExists();
 
-      const result = await new Promise<any>((resolve, reject) => {
+      const result = await new Promise<PythonResult>((resolve, reject) => {
         const child = spawn(pythonCmd, [scriptPath, action, ...args], {
           stdio: ['pipe', 'pipe', 'pipe']
         });
@@ -455,19 +561,19 @@ if __name__ == '__main__':
           stderr += data.toString();
         });
 
-        child.on('close', (exitCode) => {
+        child.on('close', () => {
           if (stderr && !stderr.includes('DeprecationWarning')) {
             log.warn('Python stderr:', { stderr });
           }
 
           try {
-            const parsed = JSON.parse(stdout);
+            const parsed = JSON.parse(stdout) as PythonResult;
             if (!parsed.success) {
               reject(new Error(parsed.error ?? `Python ${action} analysis failed`));
             } else {
               resolve(parsed);
             }
-          } catch (parseError) {
+          } catch {
             reject(new Error(`Failed to parse Python output: ${stdout.substring(0, 200)}`));
           }
         });
@@ -491,7 +597,8 @@ if __name__ == '__main__':
       return result;
 
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code === 'ENOENT') {
         throw new Error('Python 3 not found. Please install Python 3 to analyze Python code.');
       }
       throw error;
@@ -525,7 +632,7 @@ if __name__ == '__main__':
   }
 
   public static async cleanup(): Promise<void> {
-    if (this.scriptPath) {
+    if (this.scriptPath !== null) {
       await unlink(this.scriptPath).catch(() => {});
       this.scriptPath = null;
     }

@@ -3,16 +3,13 @@ import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { DOMParser } from 'xmldom';
+import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { z } from 'zod';
 import type { RequestContext } from '@mastra/core/request-context';
+import svgjson from 'svgjson';
+import excalidrawToSvg from 'excalidraw-to-svg';
 
-// Import data processing libraries
-// svgjson does not ship with TypeScript types. Rather than attempting to
-// augment the module (which can trigger "cannot be augmented" errors when
-// the package has an existing untyped JS entry point), define a local
-// interface to represent the JSON structure returned by svgjson and cast
-// the runtime import to this local type.
+// Type for SVG JSON nodes from svgjson
 interface SvgJsonNode {
   name?: string
   attributes?: Record<string, string>
@@ -20,11 +17,6 @@ interface SvgJsonNode {
   text?: string
   content?: string
 }
-
-// svgjson does not ship with types; require it and cast to a local interface
-// to avoid TypeScript errors when the @types package is not installed. The
-// ambient declaration above provides minimal typing when available.
-const svgjson = require('svgjson') as (input: string) => SvgJsonNode // eslint-disable-line no-unused-vars
 
 // Define runtime context for these tools
 export interface DataProcessingContext {
@@ -58,7 +50,7 @@ interface ProcessSVGResult {
   elementCount: number
 }
 
-const DATA_DIR = path.join(process.cwd(), 'src/mastra/data')
+const DATA_DIR = path.join(process.cwd(), 'data')
 
 /**
  * Ensures the given filePath is within the DATA_DIR.
@@ -79,17 +71,17 @@ const ExcalidrawElementSchema = z.object({
   type: z.enum(['rectangle', 'ellipse', 'diamond', 'arrow', 'text', 'line', 'freedraw', 'image']),
   x: z.number(),
   y: z.number(),
-  width: z.number().optional(),
-  height: z.number().optional(),
+  width: z.number(),
+  height: z.number(),
   text: z.string().optional(),
-  strokeColor: z.string().optional(),
-  backgroundColor: z.string().optional(),
-  fillStyle: z.enum(['solid', 'hachure', 'cross-hatch']).optional(),
-  strokeWidth: z.number().optional(),
-  strokeStyle: z.enum(['solid', 'dashed', 'dotted']).optional(),
-  roughness: z.number().optional(),
-  opacity: z.number().optional(),
-  angle: z.number().optional(),
+  strokeColor: z.string().default('#000000'),
+  backgroundColor: z.string().default('transparent'),
+  fillStyle: z.enum(['solid', 'hachure', 'cross-hatch']).default('solid'),
+  strokeWidth: z.number().default(2),
+  strokeStyle: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
+  roughness: z.number().default(1),
+  opacity: z.number().default(100),
+  angle: z.number().default(0),
   points: z.array(z.array(z.number())).optional(),
   startBinding: z.any().optional(),
   endBinding: z.any().optional(),
@@ -101,14 +93,14 @@ const ExcalidrawElementSchema = z.object({
   groupIds: z.array(z.string()).optional(),
   frameId: z.string().nullable().optional(),
   roundness: z.any().optional(),
-  seed: z.number().optional(),
-  version: z.number().optional(),
-  versionNonce: z.number().optional(),
-  isDeleted: z.boolean().optional(),
+  seed: z.number().default(Math.floor(Math.random() * 1000000)),
+  version: z.number().default(1),
+  versionNonce: z.number().default(Math.floor(Math.random() * 1000000)),
+  isDeleted: z.boolean().default(false),
   boundElements: z.any().optional(),
-  updated: z.number().optional(),
+  updated: z.number().default(Date.now()),
   link: z.string().nullable().optional(),
-  locked: z.boolean().optional(),
+  locked: z.boolean().default(false),
 })
 
 const ExcalidrawSchema = z.object({
@@ -747,7 +739,7 @@ export const processSVGTool = createTool({
 
     try {
       // Use svgjson to parse SVG
-      const svgJson = svgjson(svgContent)
+      const svgJson = svgjson.svg2json(svgContent) as SvgJsonNode
 
       const result: ProcessSVGResult = {
         svgJson,
@@ -869,47 +861,82 @@ export const processXMLTool = createTool({
     const { xmlContent, extractElements = [], extractAttributes = [] } = inputData
 
     try {
-      const parser = new DOMParser()
-      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml')
-
-      if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-        throw new Error('XML parsing error')
+      // Configure fast-xml-parser for secure and detailed parsing
+      const parserOptions = {
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+        textNodeName: '#text',
+        parseAttributeValue: true,
+        trimValues: true,
+        ignoreDeclaration: true,
+        removeNSPrefix: false,
+        allowBooleanAttributes: true,
       }
+
+      const parser = new XMLParser(parserOptions)
+      const xmlDoc = parser.parse(xmlContent)
 
       const elements: XmlElementInfo[] = []
       const extractedData: ExtractedData = {}
 
-      function traverseElements(element: Element): XmlElementInfo {
-        const elementInfo: XmlElementInfo = {
-          tagName: element.tagName,
-          textContent: element.textContent,
-          attributes: {} as Record<string, string>,
-          children: [] as XmlElementInfo[],
+      function traverseElements(obj: Record<string, unknown> | unknown): XmlElementInfo[] {
+        const result: XmlElementInfo[] = []
+
+        if (typeof obj !== 'object' || obj === null) {
+          return result
         }
 
-        // Extract attributes
-        if (element.attributes !== null && element.attributes !== undefined && element.attributes.length > 0) {
-          for (let i = 0; i < element.attributes.length; i++) {
-            const attr = element.attributes[i]
-            elementInfo.attributes[attr.name] = attr.value
+        for (const [key, value] of Object.entries(obj)) {
+          if (key.startsWith('@_')) {
+            continue // Skip attributes at this level
           }
-        }
 
-        // Extract children: ensure there are any child nodes by checking the length
-        if (element.hasChildNodes?.()) {
-          for (let i = 0; i < element.childNodes.length; i++) {
-            const child = element.childNodes[i]
-            if (child?.nodeType === 1) { // Element node
-              elementInfo.children.push(traverseElements(child as Element))
+          const tagName = key
+          const elementInfo: XmlElementInfo = {
+            tagName,
+            textContent: null,
+            attributes: {} as Record<string, string>,
+            children: [] as XmlElementInfo[],
+          }
+
+          if (typeof value === 'object' && value !== null) {
+            // Extract attributes
+            for (const [attrKey, attrValue] of Object.entries(value)) {
+              if (attrKey.startsWith('@_')) {
+                const attrName = attrKey.substring(2)
+                elementInfo.attributes[attrName] = String(attrValue)
+              } else if (attrKey === '#text') {
+                elementInfo.textContent = String(attrValue)
+              }
             }
+
+            // Extract children
+            for (const [childKey, childValue] of Object.entries(value)) {
+              if (!childKey.startsWith('@_') && childKey !== '#text') {
+                if (Array.isArray(childValue)) {
+                  childValue.forEach((item) => {
+                    const childElements = traverseElements({ [childKey]: item })
+                    elementInfo.children.push(...childElements)
+                  })
+                } else {
+                  const childElements = traverseElements({ [childKey]: childValue })
+                  elementInfo.children.push(...childElements)
+                }
+              }
+            }
+          } else {
+            elementInfo.textContent = String(value)
           }
+
+          result.push(elementInfo)
+          elements.push(elementInfo)
         }
 
-        elements.push(elementInfo)
-        return elementInfo
+        return result
       }
 
-      traverseElements(xmlDoc.documentElement)
+      // Start traversal from root
+      traverseElements(xmlDoc)
 
       // Extract specific elements if requested
       if (extractElements.length > 0) {
@@ -941,11 +968,13 @@ export const processXMLTool = createTool({
 
       await writer?.write({ type: 'progress', data: { message: `✅ Processed XML with ${elements.length} elements` } });
 
+      const rootElement = elements.length > 0 ? elements[0].tagName : 'unknown'
+
       const result = {
         document: xmlDoc,
         elements,
         extractedData,
-        rootElement: xmlDoc.documentElement?.tagName ?? 'unknown',
+        rootElement,
       };
 
       span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.rootElement': result.rootElement });
@@ -1223,12 +1252,19 @@ export const validateDataTool = createTool({
 
         case 'xml':
           try {
-            const parser = new DOMParser()
-            const xmlDoc = parser.parseFromString(String(data), 'text/xml')
+            const parserOptions = {
+              ignoreAttributes: false,
+              attributeNamePrefix: '@_',
+              textNodeName: '#text',
+              parseAttributeValue: true,
+              trimValues: true,
+            }
+            const parser = new XMLParser(parserOptions)
+            const parsed = parser.parse(String(data))
 
-            if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
+            if (parsed === null || parsed === undefined || (typeof parsed === 'object' && Object.keys(parsed).length === 0)) {
               if (strict) {
-                errors.push('XML parsing error')
+                errors.push('XML parsing error: no valid root element found')
               } else {
                 warnings.push('XML parsing error: non-strict mode accepted')
                 isValid = true
@@ -1278,42 +1314,420 @@ export const validateDataTool = createTool({
 })
 
 /**
- * Helper function to convert JSON to XML
+ * Helper function to convert JSON to XML using fast-xml-parser
  */
 type JSONLike = string | number | boolean | null | JSONLike[] | { [key: string]: JSONLike }
 
 function jsonToXML(data: JSONLike, rootElement = 'root'): string {
-  function objectToXML(currentData: JSONLike, nodeName: string): string {
-    if (currentData === null || currentData === undefined) {
+  try {
+    const builderOptions = {
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+      textNodeName: '#text',
+      format: true,
+      indentBy: '  ',
+      suppressEmptyNode: false,
+    }
+
+    const builder = new XMLBuilder(builderOptions)
+    const xmlObj = { [rootElement]: data }
+    return builder.build(xmlObj)
+  } catch {
+    // Fallback to simple conversion if fast-xml-parser fails
+    function objectToXML(currentData: JSONLike, nodeName: string): string {
+      if (currentData === null || currentData === undefined) {
+        return ''
+      }
+
+      if (typeof currentData === 'string' || typeof currentData === 'number' || typeof currentData === 'boolean') {
+        return `<${nodeName}>${currentData}</${nodeName}>`
+      }
+
+      if (Array.isArray(currentData)) {
+        const singular = nodeName.endsWith('s') && nodeName.length > 1 ? nodeName.slice(0, -1) : nodeName
+        return currentData.map((item) => objectToXML(item, singular)).join('')
+      }
+
+      if (typeof currentData === 'object') {
+        let xml = `<${nodeName}>`
+        for (const [key, value] of Object.entries(currentData)) {
+          xml += objectToXML(value, key)
+        }
+        xml += `</${nodeName}>`
+        return xml
+      }
+
       return ''
     }
 
-    if (typeof currentData === 'string' || typeof currentData === 'number' || typeof currentData === 'boolean') {
-      return `<${nodeName}>${currentData}</${nodeName}>`
-    }
-
-    if (Array.isArray(currentData)) {
-      // For arrays, emit repeated child nodes. Attempt to use a singular form of the node name
-      // by trimming a trailing 's' if present; otherwise, use the same node name.
-      const singular = nodeName.endsWith('s') && nodeName.length > 1 ? nodeName.slice(0, -1) : nodeName
-      return currentData.map((item) => objectToXML(item, singular)).join('')
-    }
-
-    if (typeof currentData === 'object') {
-      let xml = `<${nodeName}>`
-      for (const [key, value] of Object.entries(currentData)) {
-        xml += objectToXML(value, key)
-      }
-      xml += `</${nodeName}>`
-      return xml
-    }
-
-    return ''
+    return objectToXML(data, rootElement)
   }
-
-  return objectToXML(data, rootElement)
 }
 
+
+/**
+ * Converts Excalidraw diagram to SVG format
+ */
+export const excalidrawToSVGTool = createTool({
+  id: 'excalidraw-to-svg',
+  description: 'Converts Excalidraw diagram data to SVG format for rendering and export',
+  inputSchema: z.object({
+    excalidrawData: ExcalidrawSchema.describe('Excalidraw diagram data to convert'),
+    exportOptions: z.object({
+      exportPadding: z.number().optional().default(10).describe('Padding around the diagram in pixels'),
+      exportBackground: z.boolean().optional().default(true).describe('Whether to include background color'),
+      viewBackgroundColor: z.string().optional().describe('Background color override'),
+      exportWithDarkMode: z.boolean().optional().default(false).describe('Export with dark mode theme'),
+      exportScale: z.number().optional().default(1).describe('Scale factor for export (1 = 100%)'),
+    }).optional(),
+    saveToFile: z.boolean().optional().describe('Whether to save SVG to file'),
+    fileName: z.string().optional().describe('Optional filename for saved SVG'),
+  }),
+  outputSchema: z.object({
+    svgContent: z.string().describe('Generated SVG content'),
+    savedFilePath: z.string().optional().describe('Path to saved file if saveToFile was true'),
+    dimensions: z.object({
+      width: z.number(),
+      height: z.number(),
+    }).describe('SVG dimensions'),
+    elementCount: z.number().describe('Number of Excalidraw elements converted'),
+  }),
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('excalidraw-to-svg', {
+      attributes: {
+        'tool.id': 'excalidraw-to-svg',
+        'tool.input.elementCount': inputData.excalidrawData.elements.length,
+        'tool.input.saveToFile': inputData.saveToFile,
+      }
+    });
+
+    await writer?.write({ type: 'progress', data: { message: '🎨 Converting Excalidraw to SVG' } });
+
+    try {
+      // Validate Excalidraw data
+      const validation = ExcalidrawSchema.safeParse(inputData.excalidrawData)
+      if (!validation.success) {
+        throw new Error(`Invalid Excalidraw data: ${validation.error.message}`)
+      }
+
+      // Convert to SVG
+      const svgContent = await excalidrawToSvg(
+        inputData.excalidrawData,
+        inputData.exportOptions
+      )
+
+      // Extract dimensions from SVG
+      const widthRegex = /width="(\d+)"/
+      const heightRegex = /height="(\d+)"/
+      const widthMatch = widthRegex.exec(svgContent)
+      const heightMatch = heightRegex.exec(svgContent)
+      const dimensions = {
+        width: widthMatch ? parseInt(widthMatch[1], 10) : 0,
+        height: heightMatch ? parseInt(heightMatch[1], 10) : 0,
+      }
+
+      let savedFilePath: string | undefined
+
+      // Save to file if requested
+      if (inputData.saveToFile === true) {
+        try {
+          const providedName = inputData.fileName
+          const fileName =
+            typeof providedName === 'string' && providedName.trim().length > 0
+              ? providedName.endsWith('.svg')
+                ? providedName
+                : `${providedName}.svg`
+              : `excalidraw-${Date.now()}.svg`
+
+          const fullPath = validateDataPath(fileName)
+          await fs.mkdir(path.dirname(fullPath), { recursive: true })
+          await fs.writeFile(fullPath, svgContent, 'utf-8')
+          savedFilePath = fileName
+
+          await writer?.write({ type: 'progress', data: { message: `💾 Saved SVG to ${fileName}` } });
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error)
+          await writer?.write({ type: 'progress', data: { message: `⚠️ Failed to save file: ${errorMsg}` } });
+        }
+      }
+
+      await writer?.write({ type: 'progress', data: { message: `✅ Converted ${inputData.excalidrawData.elements.length} elements to SVG` } });
+
+      const result = {
+        svgContent,
+        savedFilePath,
+        dimensions,
+        elementCount: inputData.excalidrawData.elements.length,
+      };
+
+      span.setAttributes({
+        'tool.output.elementCount': result.elementCount,
+        'tool.output.width': dimensions.width,
+        'tool.output.height': dimensions.height,
+      });
+      span.end();
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw new Error(`Excalidraw to SVG conversion failed: ${errorMessage}`)
+    }
+  },
+})
+
+/**
+ * Converts SVG back to Excalidraw format (simplified conversion)
+ */
+export const svgToExcalidrawTool = createTool({
+  id: 'svg-to-excalidraw',
+  description: 'Converts SVG content to Excalidraw diagram format (basic shapes only)',
+  inputSchema: z.object({
+    svgContent: z.string().describe('SVG content to convert'),
+    title: z.string().optional().describe('Optional title for the diagram'),
+  }),
+  outputSchema: z.object({
+    excalidrawData: ExcalidrawSchema,
+    elementCount: z.number(),
+    warnings: z.array(z.string()).optional(),
+  }),
+  execute: async (inputData, context) => {
+    const writer = context?.writer;
+
+    const tracer = trace.getTracer('data-processing');
+    const span = tracer.startSpan('svg-to-excalidraw', {
+      attributes: {
+        'tool.id': 'svg-to-excalidraw',
+      }
+    });
+
+    await writer?.write({ type: 'progress', data: { message: '🔄 Converting SVG to Excalidraw' } });
+
+    try {
+      // Parse SVG using svgjson
+      const svgJson = svgjson.svg2json(inputData.svgContent) as SvgJsonNode
+      const elements: ExcalidrawElementType[] = []
+      const warnings: string[] = []
+      const generateId = (): string => Math.random().toString(36).substring(2, 15)
+
+      // Add title if provided
+      if (typeof inputData.title === 'string' && inputData.title.trim().length > 0) {
+        elements.push({
+          id: generateId(),
+          type: 'text',
+          x: 50,
+          y: 40,
+          width: inputData.title.length * 10,
+          height: 30,
+          text: inputData.title,
+          fontSize: 20,
+          fontFamily: 1,
+          textAlign: 'left',
+          verticalAlign: 'top',
+          strokeColor: '#000000',
+          backgroundColor: 'transparent',
+          fillStyle: 'solid',
+          strokeWidth: 2,
+          strokeStyle: 'solid',
+          roughness: 1,
+          opacity: 100,
+          angle: 0,
+          seed: Math.floor(Math.random() * 1000000),
+          version: 1,
+          versionNonce: Math.floor(Math.random() * 1000000),
+          isDeleted: false,
+          boundElements: null,
+          updated: Date.now(),
+          link: null,
+          locked: false,
+        } as ExcalidrawElementType)
+      }
+
+      // Convert SVG elements to Excalidraw (simplified)
+      function convertSvgElement(node: SvgJsonNode, parentX = 0, parentY = 0) {
+        if (typeof node.name !== 'string' || node.name.length === 0) {
+          return
+        }
+
+        const attrs = node.attributes ?? {}
+        const x = parseFloat(attrs.x || '0') + parentX
+        const y = parseFloat(attrs.y || '0') + parentY
+
+        switch (node.name) {
+          case 'rect':
+            elements.push({
+              id: generateId(),
+              type: 'rectangle',
+              x,
+              y,
+              width: parseFloat(attrs.width || '100'),
+              height: parseFloat(attrs.height || '50'),
+              strokeColor: attrs.stroke || '#000000',
+              backgroundColor: attrs.fill || 'transparent',
+              fillStyle: 'solid',
+              strokeWidth: parseFloat(attrs['stroke-width'] || '2'),
+              strokeStyle: 'solid',
+              roughness: 1,
+              opacity: parseFloat(attrs.opacity || '1') * 100,
+              angle: 0,
+              seed: Math.floor(Math.random() * 1000000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            } as ExcalidrawElementType)
+            break
+
+          case 'circle':
+          case 'ellipse': {
+            const cx = parseFloat(attrs.cx ?? '0')
+            const cy = parseFloat(attrs.cy ?? '0')
+            const r = parseFloat(attrs.r ?? attrs.rx ?? '25')
+            elements.push({
+              id: generateId(),
+              type: 'ellipse',
+              x: cx - r + parentX,
+              y: cy - r + parentY,
+              width: r * 2,
+              height: r * 2,
+              strokeColor: attrs.stroke || '#000000',
+              backgroundColor: attrs.fill || 'transparent',
+              fillStyle: 'solid',
+              strokeWidth: parseFloat(attrs['stroke-width'] || '2'),
+              strokeStyle: 'solid',
+              roughness: 1,
+              opacity: parseFloat(attrs.opacity || '1') * 100,
+              angle: 0,
+              seed: Math.floor(Math.random() * 1000000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            } as ExcalidrawElementType)
+            break
+          }
+
+          case 'text': {
+            const textContent = node.text ?? node.content ?? ''
+            if (typeof textContent === 'string' && textContent.length > 0) {
+              elements.push({
+                id: generateId(),
+                type: 'text',
+                x,
+                y,
+                width: textContent.length * 8,
+                height: 20,
+                text: textContent,
+                fontSize: parseFloat(attrs['font-size'] ?? '16'),
+                fontFamily: 1,
+                textAlign: 'left',
+                verticalAlign: 'top',
+                strokeColor: attrs.fill ?? '#000000',
+                backgroundColor: 'transparent',
+                fillStyle: 'solid',
+                strokeWidth: 1,
+                strokeStyle: 'solid',
+                roughness: 1,
+                opacity: parseFloat(attrs.opacity ?? '1') * 100,
+                angle: 0,
+                seed: Math.floor(Math.random() * 1000000),
+                version: 1,
+                versionNonce: Math.floor(Math.random() * 1000000),
+                isDeleted: false,
+                boundElements: null,
+                updated: Date.now(),
+                link: null,
+                locked: false,
+              } as ExcalidrawElementType)
+            }
+            break
+          }
+
+          case 'path':
+          case 'line':
+          case 'polyline':
+          case 'polygon':
+            warnings.push(`Complex shape '${node.name}' converted to basic rectangle approximation`)
+            elements.push({
+              id: generateId(),
+              type: 'rectangle',
+              x,
+              y,
+              width: 100,
+              height: 50,
+              strokeColor: attrs.stroke || '#000000',
+              backgroundColor: 'transparent',
+              fillStyle: 'solid',
+              strokeWidth: parseFloat(attrs['stroke-width'] || '2'),
+              strokeStyle: 'solid',
+              roughness: 1,
+              opacity: parseFloat(attrs.opacity || '1') * 100,
+              angle: 0,
+              seed: Math.floor(Math.random() * 1000000),
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000),
+              isDeleted: false,
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              locked: false,
+            } as ExcalidrawElementType)
+            break
+        }
+
+        // Process children
+        if (node.children) {
+          node.children.forEach(child => convertSvgElement(child, x, y))
+        }
+      }
+
+      // Process SVG root and children
+      if (svgJson.children) {
+        svgJson.children.forEach(child => convertSvgElement(child))
+      }
+
+      const excalidrawData = {
+        type: 'excalidraw' as const,
+        version: 2,
+        source: 'https://excalidraw.com',
+        elements,
+        appState: {
+          gridSize: 20,
+          viewBackgroundColor: '#ffffff',
+        },
+        files: {},
+      }
+
+      await writer?.write({ type: 'progress', data: { message: `✅ Converted to ${elements.length} Excalidraw elements` } });
+
+      const result = {
+        excalidrawData,
+        elementCount: elements.length,
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
+
+      span.setAttributes({ 'tool.output.elementCount': elements.length });
+      span.end();
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw new Error(`SVG to Excalidraw conversion failed: ${errorMessage}`)
+    }
+  },
+})
 
 export type ReadCSVDataToolUITool = InferUITool<typeof readCSVDataTool>;
 export type ImageToCSVUITool = InferUITool<typeof imageToCSVTool>;
@@ -1322,3 +1736,5 @@ export type ExcalidrawValidationUITool = InferUITool<typeof validateExcalidrawTo
 export type SVGProcessingUITool = InferUITool<typeof processSVGTool>;
 export type XMLProcessingUITool = InferUITool<typeof processXMLTool>;
 export type DataValidationUITool = InferUITool<typeof validateDataTool>;
+export type ExcalidrawToSVGUITool = InferUITool<typeof excalidrawToSVGTool>;
+export type SVGToExcalidrawUITool = InferUITool<typeof svgToExcalidrawTool>;

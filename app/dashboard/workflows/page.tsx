@@ -44,7 +44,7 @@ export default function WorkflowsPage() {
     : []
 
   const filteredWorkflows = workflowList.filter((wf) =>
-    wf.id.toLowerCase().includes(searchQuery.toLowerCase())
+    Boolean(wf.id.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   return (
@@ -95,7 +95,7 @@ export default function WorkflowsPage() {
                     <div className="flex-1 truncate">
                       <div className="font-medium">{wf.id}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {(wf as any).description || "No description"}
+                        {(wf).description ?? "No description"}
                       </div>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -144,7 +144,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
     try {
       const parsedInput = JSON.parse(inputData)
       const wf = mastraClient.getWorkflow(workflowId)
-      const run = await wf.createRunAsync()
+      const run = await wf.createRun()
       const result = await run.startAsync({ inputData: parsedInput })
       setRunResult(result)
     } catch (err) {
@@ -179,7 +179,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
         <div>
           <h1 className="text-2xl font-bold">{workflowId}</h1>
           <p className="text-muted-foreground mt-1">
-            {(workflow as any)?.description || "No description available"}
+            {(workflow as any)?.description ?? "No description available"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -270,7 +270,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(workflow as any)?.type || "Standard"}
+              {(workflow as any)?.type ?? "Standard"}
             </div>
           </CardContent>
         </Card>
@@ -319,7 +319,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">
-                          {step.id || step.name || `Step ${index + 1}`}
+                          {(step.id ?? step.name) ?? `Step ${index + 1}`}
                         </div>
                         {step.description && (
                           <div className="text-sm text-muted-foreground">

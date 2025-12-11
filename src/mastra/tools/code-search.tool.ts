@@ -2,8 +2,7 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import { glob } from 'glob'
-import type { RequestContext } from '@mastra/core/request-context';
+import fg, { Options as FastGlobOptions } from 'fast-glob'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -13,6 +12,17 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+const defaultGlobOptions: FastGlobOptions = {
+  onlyFiles: true,
+  absolute: true,
+  dot: true,
+  unique: true,
+}
+
+async function globFiles(pattern: string, options?: FastGlobOptions): Promise<string[]> {
+  return fg(pattern, { ...defaultGlobOptions, ...options })
 }
 
 const codeSearchInputSchema = z.object({
@@ -62,6 +72,8 @@ Use for finding usages, identifying patterns, and code exploration.`,
   inputSchema: codeSearchInputSchema,
   outputSchema: codeSearchOutputSchema,
   execute: async (inputData, context): Promise<CodeSearchOutput> => {
+    const writer = context?.writer;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔎 Starting code search for pattern '${inputData.pattern}'` } });
     const tracer = trace.getTracer('code-search');
     const span = tracer.startSpan('code-search', {
         attributes: {
@@ -84,20 +96,21 @@ Use for finding usages, identifying patterns, and code exploration.`,
 
     for (const t of targets) {
       if (t.includes('*')) {
-        const matches = await glob(t, { nodir: true })
+        const matches = await globFiles(t)
         filePaths.push(...matches)
       } else if (await fileExists(t)) {
         const stat = await fs.stat(t)
         if (stat.isFile()) {
           filePaths.push(t)
         } else if (stat.isDirectory()) {
-          const dirFiles = await glob(path.join(t, '**/*'), { nodir: true })
+          const dirFiles = await globFiles(path.join(t, '**/*'))
           filePaths.push(...dirFiles)
         }
       }
     }
 
     filePaths = [...new Set(filePaths)]
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📁 Files to search: ${filePaths.length}` } });
 
     const matches: Array<z.infer<typeof matchSchema>> = []
     const filesWithMatches = new Set<string>()
@@ -161,6 +174,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
       truncated,
     }
 
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Code search complete: ${result.stats.totalMatches} matches across ${result.stats.filesWithMatches} files` } });
     span.end();
     return result;
   }

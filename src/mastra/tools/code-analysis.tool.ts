@@ -2,10 +2,12 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import { glob } from 'glob'
+import fg from 'fast-glob'
+import type { Options as FastGlobOptions } from 'fast-glob'
+import stripComments from 'strip-comments'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { PythonParser } from './semantic-utils'
-import type { RequestContext } from '@mastra/core/request-context';
+// RequestContext typing not used to avoid incompatibility with ToolExecutionContext
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -14,6 +16,17 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+const fastGlobDefaults: FastGlobOptions = {
+  onlyFiles: true,
+  absolute: true,
+  dot: true,
+  unique: true,
+}
+
+async function globFiles(pattern: string, options?: FastGlobOptions): Promise<string[]> {
+  return fg(pattern, { ...fastGlobDefaults, ...options })
 }
 
 const codeAnalysisInputSchema = z.object({
@@ -85,52 +98,172 @@ function detectLanguage(filePath: string): string {
   return LANGUAGE_MAP[ext] || 'unknown'
 }
 
-function calculateLoc(content: string, language: string): { loc: number; totalLines: number } {
-  const lines = content.split('\n')
-  const totalLines = lines.length
+function calculateLoc(content: string): { loc: number; totalLines: number } {
+  const totalLines = content.split('\n').length
+  let sanitized = content
 
-  let loc = 0
-  let inBlockComment = false
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-
-    if (!trimmed) {continue}
-
-    if (language === 'typescript' || language === 'javascript' || language === 'java' || language === 'cpp' || language === 'c' || language === 'csharp') {
-      if (inBlockComment) {
-        if (trimmed.includes('*/')) {inBlockComment = false}
-        continue
-      }
-      if (trimmed.startsWith('/*')) {
-        inBlockComment = !trimmed.includes('*/')
-        continue
-      }
-      if (trimmed.startsWith('//')) {continue}
-    } else if (language === 'python' || language === 'ruby') {
-      if (trimmed.startsWith('#')) {continue}
-    }
-
-    loc++
+  try {
+    sanitized = stripComments(content, { preserveNewlines: true })
+  } catch {
+    sanitized = content
   }
+
+  const loc = sanitized
+    .split('\n')
+    .reduce((count, line) => (line.trim() ? count + 1 : count), 0)
 
   return { loc, totalLines }
 }
 
+/**
+ * Estimates the cyclomatic complexity of the given code content.
+ * This function counts decision points in the code such as if statements, loops, ternary operators, and logical operators.
+ * Starts with a base complexity of 1 and increments for each matching pattern.
+ * @param content The code content as a string.
+ * @param language The programming language of the code (e.g., 'typescript', 'javascript', 'python').
+ * @returns The estimated complexity number.
+ */
 function estimateComplexity(content: string, language: string): number {
   let complexity = 1
 
-  const patterns = [
-    /\bif\b/g,
-    /\belse\s+if\b/g,
-    /\bfor\b/g,
-    /\bwhile\b/g,
-    /\bcase\b/g,
-    /\bcatch\b/g,
-    /\b\?\s*[^:]+\s*:/g, // ternary
-    /&&/g,
-    /\|\|/g,
-  ]
+  const languagePatterns: Record<string, RegExp[]> = {
+    typescript: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    javascript: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    python: [
+      /\bif\b/g,
+      /\belif\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\band\b/g,
+      /\bor\b/g,
+    ],
+    java: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    cpp: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    c: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    csharp: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    rust: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bmatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    go: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bcase\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    ruby: [
+      /\bif\b/g,
+      /\belsif\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\band\b/g,
+      /\bor\b/g,
+    ],
+    php: [
+      /\bif\b/g,
+      /\belseif\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    swift: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bcase\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+    kotlin: [
+      /\bif\b/g,
+      /\belse\s+if\b/g,
+      /\bfor\b/g,
+      /\bwhile\b/g,
+      /\bwhen\b/g,
+      /\bcatch\b/g,
+      /\b\?\s*[^:]+\s*:/g, // ternary
+      /&&/g,
+      /\|\|/g,
+    ],
+  }
+
+  const patterns = language in languagePatterns ? languagePatterns[language] : languagePatterns['typescript'] // default to typescript patterns
 
   for (const pattern of patterns) {
     const matches = content.match(pattern)
@@ -193,7 +326,9 @@ Supports TypeScript, JavaScript, Python, and other languages.
 Use for code review preparation, quality assessment, and refactoring planning.`,
   inputSchema: codeAnalysisInputSchema,
   outputSchema: codeAnalysisOutputSchema,
-  execute: async (inputData): Promise<CodeAnalysisOutput> => {
+  execute: async (inputData, context): Promise<CodeAnalysisOutput> => {
+    const writer = context?.writer;
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔬 Starting code analysis for target: ${Array.isArray(inputData.target) ? inputData.target.join(',') : inputData.target}` } });
     const tracer = trace.getTracer('code-analysis-tool', '1.0.0');
     const span = tracer.startSpan('code-analysis', {
       attributes: {
@@ -212,7 +347,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
 
     if (typeof target === 'string') {
       if (target.includes('*')) {
-        filePaths = await glob(target, { nodir: true })
+        filePaths = await globFiles(target)
       } else {
         filePaths = [target]
       }
@@ -222,8 +357,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
 
     const fileAnalyses: Array<z.infer<typeof fileAnalysisSchema>> = []
 
-    for (const filePath of filePaths) {
-      if (!await fileExists(filePath)) {continue}
+    for (const filePath of filePaths) {        await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Analyzing file: ${filePath}` } });      if (!await fileExists(filePath)) {continue}
 
       const stats = await fs.stat(filePath)
       if (stats.size > maxFileSize) {continue}
@@ -233,7 +367,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       const language = detectLanguage(filePath)
 
       const { loc, totalLines } = includeMetrics
-        ? calculateLoc(content, language)
+        ? calculateLoc(content)
         : { loc: 0, totalLines: 0 }
 
       let complexity = 0
@@ -281,6 +415,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       'tool.output.totalLoc': totalLoc,
       'tool.output.avgComplexity': avgComplexity,
     });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Code analysis complete: ${fileAnalyses.length} files analyzed` } });
     span.end();
 
     return {

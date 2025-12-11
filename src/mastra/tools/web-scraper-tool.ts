@@ -19,6 +19,7 @@ import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as cheerio from 'cheerio';
 import { CheerioCrawler, Request } from 'crawlee';
+import { XMLParser } from 'fast-xml-parser';
 import { JSDOM } from 'jsdom';
 import { marked } from 'marked';
 import * as fs from 'node:fs/promises';
@@ -26,6 +27,27 @@ import * as path from 'node:path';
 import { z } from 'zod';
 import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
+
+// Centralized data directory constant for consistency
+const DATA_DIR = path.resolve(process.cwd(), './data')
+
+/**
+ * Ensures the data directory exists and is accessible
+ */
+async function ensureDataDir(): Promise<void> {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true })
+  } catch (error) {
+    log.error('Failed to create data directory', {
+      error: error instanceof Error ? error.message : String(error),
+      path: DATA_DIR,
+    })
+    throw new ScrapingError(
+      'Failed to create data directory',
+      'DATA_DIR_ERROR'
+    )
+  }
+}
 
 // Enhanced HTML processing with JSDOM
 const DANGEROUS_TAGS = new Set([
@@ -139,6 +161,32 @@ function extractTextContent(html: string): string {
     })
     const $ = cheerio.load(html)
     return $.text().trim()
+  }
+}
+
+/**
+ * Parse XML content using fast-xml-parser
+ */
+function parseXmlContent(xmlContent: string): Record<string, unknown> {
+  try {
+    const parserOptions = {
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+      textNodeName: '#text',
+      parseAttributeValue: true,
+      trimValues: true,
+      ignoreDeclaration: true,
+    }
+    const parser = new XMLParser(parserOptions)
+    return parser.parse(xmlContent)
+  } catch (error) {
+    log.warn('XML parsing failed', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    throw new ScrapingError(
+      `XML parsing failed: ${error instanceof Error ? error.message : String(error)}`,
+      'XML_PARSE_ERROR'
+    )
   }
 }
 
@@ -791,19 +839,17 @@ export const webScraperTool = createTool({
                 )
                 : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`
 
-            const dataDir = path.join(process.cwd(), './data')
-            const fullPath = path.join(dataDir, fileName)
+            await ensureDataDir()
+            const fullPath = path.join(DATA_DIR, fileName)
 
             if (
-              !ValidationUtils.validateFilePath(fullPath, dataDir)
+              !ValidationUtils.validateFilePath(fullPath, DATA_DIR)
             ) {
               throw new ScrapingError(
                 'Invalid file path',
                 'INVALID_FILE_PATH'
               )
             }
-
-            await fs.mkdir(dataDir, { recursive: true })
             // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
             // Path was already validated by ValidationUtils.validateFilePath above.
             const fileHandle = await fs.open(fullPath, 'w')
@@ -921,7 +967,6 @@ export const batchWebScraperTool = createTool({
   outputSchema: batchWebScraperOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Batch scraping ${inputData.urls.length} URLs` } });
     toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
@@ -1052,17 +1097,15 @@ export const batchWebScraperTool = createTool({
             .toISOString()
             .replace(/[:.]/g, '-')
           const fileName = `${ValidationUtils.sanitizeFileName(inputData.baseFileName ?? 'batch_scrape')}_${timestamp}.json`
-          const dataDir = path.join(process.cwd(), './data')
-          const fullPath = path.join(dataDir, fileName)
+          await ensureDataDir()
+          const fullPath = path.join(DATA_DIR, fileName)
 
-          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
+          if (!ValidationUtils.validateFilePath(fullPath, DATA_DIR)) {
             throw new ScrapingError(
               'Invalid file path',
               'INVALID_FILE_PATH'
             )
           }
-
-          await fs.mkdir(dataDir, { recursive: true })
           // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
           // Path was already validated by ValidationUtils.validateFilePath above.
           const fileHandle = await fs.open(fullPath, 'w')
@@ -1075,7 +1118,7 @@ export const batchWebScraperTool = createTool({
             await fileHandle.close()
           }
           savedFilePath = path.relative(
-            path.join(process.cwd(), './data'),
+            DATA_DIR,
             fullPath
           )
           log.info('Batch results saved securely', {
@@ -1181,7 +1224,6 @@ export const siteMapExtractorTool = createTool({
   outputSchema: siteMapExtractorOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🗺️ Starting site map extraction for ${inputData.url}` } });
     toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
@@ -1323,17 +1365,15 @@ export const siteMapExtractorTool = createTool({
             .toISOString()
             .replace(/[:.]/g, '-')
           const fileName = `sitemap_${baseUrl.hostname}_${timestamp}.json`
-          const dataDir = path.join(process.cwd(), './data')
-          const fullPath = path.join(dataDir, fileName)
+          await ensureDataDir()
+          const fullPath = path.join(DATA_DIR, fileName)
 
-          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
+          if (!ValidationUtils.validateFilePath(fullPath, DATA_DIR)) {
             throw new ScrapingError(
               'Invalid file path',
               'INVALID_FILE_PATH'
             )
           }
-
-          await fs.mkdir(dataDir, { recursive: true })
           await fs.writeFile(
             fullPath,
             JSON.stringify(
@@ -1349,7 +1389,7 @@ export const siteMapExtractorTool = createTool({
           )
 
           savedFilePath = path.relative(
-            path.join(process.cwd(), './data'),
+            DATA_DIR,
             fullPath
           ) // Consistent with other tools
           log.info('Site map saved securely', {
@@ -1443,7 +1483,6 @@ export const linkExtractorTool = createTool({
   outputSchema: linkExtractorOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🔗 Extracting links from ${inputData.url}` } });
     toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
@@ -1678,7 +1717,6 @@ export const htmlToMarkdownTool = createTool({
   outputSchema: htmlToMarkdownOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Converting HTML to markdown...' } });
     toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
@@ -1712,17 +1750,15 @@ export const htmlToMarkdownTool = createTool({
               providedName.trim().length > 0
               ? ValidationUtils.sanitizeFileName(providedName)
               : `converted_${new Date().toISOString().replace(/[:.]/g, '-')}.md`
-          const dataDir = path.join(process.cwd(), './data')
-          const fullPath = path.join(dataDir, fileName)
+          await ensureDataDir()
+          const fullPath = path.join(DATA_DIR, fileName)
 
-          if (!ValidationUtils.validateFilePath(fullPath, dataDir)) {
+          if (!ValidationUtils.validateFilePath(fullPath, DATA_DIR)) {
             throw new ScrapingError(
               'Invalid file path',
               'INVALID_FILE_PATH'
             )
           }
-
-          await fs.mkdir(dataDir, { recursive: true })
           // Open the file handle and write via the handle to avoid using fs.writeFile with a non-literal argument.
           // Path was already validated by ValidationUtils.validateFilePath above.
           const fileHandle = await fs.open(fullPath, 'w')
@@ -1732,7 +1768,7 @@ export const htmlToMarkdownTool = createTool({
             await fileHandle.close()
           }
           savedFilePath = path.relative(
-            path.join(process.cwd(), './data'),
+            DATA_DIR,
             fullPath
           )
           log.info('Markdown saved securely', {
@@ -1813,7 +1849,6 @@ export const listScrapedContentTool = createTool({
   outputSchema: listScrapedContentOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing scraped content files...' } });
     toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
@@ -1831,10 +1866,10 @@ export const listScrapedContentTool = createTool({
     })
 
     try {
-      const dataDir = path.join(process.cwd(), './data')
+      await ensureDataDir()
 
       try {
-        await fs.access(dataDir)
+        await fs.access(DATA_DIR)
       } catch {
         return listScrapedContentOutputSchema.parse({
           files: [],
@@ -1843,7 +1878,7 @@ export const listScrapedContentTool = createTool({
         })
       }
 
-      const items = await fs.readdir(dataDir, { withFileTypes: true })
+      const items = await fs.readdir(DATA_DIR, { withFileTypes: true })
       const files: Array<{
         name: string
         path: string
@@ -1920,8 +1955,8 @@ export const listScrapedContentTool = createTool({
             }
           }
 
-          const filePath = path.join(dataDir, item.name)
-          const relativePath = path.relative(dataDir, filePath)
+          const filePath = path.join(DATA_DIR, item.name)
+          const relativePath = path.relative(DATA_DIR, filePath)
 
           let metadata
           if (inputData.includeMetadata !== false) {
@@ -2009,7 +2044,6 @@ export const contentCleanerTool = createTool({
   outputSchema: contentCleanerOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '🧹 Starting content cleaning...' } });
     toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
@@ -2143,7 +2177,6 @@ export const apiDataFetcherTool = createTool({
   outputSchema: apiDataFetcherOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Fetching data from ${inputData.url}` } });
     toolCallCounters.set('api-data-fetcher', (toolCallCounters.get('api-data-fetcher') ?? 0) + 1)
@@ -2188,7 +2221,7 @@ export const apiDataFetcherTool = createTool({
       const response = await fetch(inputData.url, {
         method: inputData.method ?? 'GET',
         headers,
-        body: inputData.body ? JSON.stringify(inputData.body) : undefined,
+        body: (inputData.body !== null && inputData.body !== undefined) ? JSON.stringify(inputData.body) : undefined,
         signal: AbortSignal.timeout(inputData.timeout ?? 30000),
       })
 
@@ -2204,7 +2237,7 @@ export const apiDataFetcherTool = createTool({
       }
 
       const contentType = response.headers.get('content-type')
-      let data: any
+      let data: unknown
 
       if ((contentType?.includes('application/json')) ?? false) {
         data = await response.json()
@@ -2266,7 +2299,6 @@ export const scrapingSchedulerTool = createTool({
   outputSchema: scrapingSchedulerOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `⏰ Scheduling scraping for ${inputData.urls.length} URLs` } });
     toolCallCounters.set('scraping-scheduler', (toolCallCounters.get('scraping-scheduler') ?? 0) + 1)
@@ -2292,18 +2324,6 @@ export const scrapingSchedulerTool = createTool({
 
       // Calculate next run time (simplified - doesn't parse full cron)
       const nextRun = new Date(Date.now() + 3600000).toISOString() // 1 hour from now
-
-      // Store job configuration (in production, persist to database)
-      const jobConfig = {
-        id: jobId,
-        urls: inputData.urls,
-        schedule: inputData.schedule,
-        config: inputData.config ?? {},
-        maxRuns,
-        runsCompleted: 0,
-        nextRun,
-        status: 'scheduled',
-      }
 
       // In a real implementation, this would integrate with a cron job system
       log.info('Scraping job scheduled', { jobId, nextRun })
@@ -2357,7 +2377,6 @@ export const dataExporterTool = createTool({
   outputSchema: dataExporterOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📤 Exporting ${inputData.data.length} records to ${inputData.format}...` } });
     toolCallCounters.set('data-exporter', (toolCallCounters.get('data-exporter') ?? 0) + 1)
@@ -2384,7 +2403,10 @@ export const dataExporterTool = createTool({
       switch (inputData.format) {
         case 'json':
           { const jsonContent = JSON.stringify(inputData.data, null, 2)
-          filePath = inputData.destination
+          await ensureDataDir()
+          filePath = path.isAbsolute(inputData.destination)
+            ? inputData.destination
+            : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, jsonContent, 'utf-8')
           break }
@@ -2402,7 +2424,10 @@ export const dataExporterTool = createTool({
             )
           ]
           const csvContent = csvRows.join('\n')
-          filePath = inputData.destination
+          await ensureDataDir()
+          filePath = path.isAbsolute(inputData.destination)
+            ? inputData.destination
+            : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, csvContent, 'utf-8')
           break }
@@ -2418,7 +2443,10 @@ export const dataExporterTool = createTool({
             xmlContent += '  </item>\n'
           }
           xmlContent += '</data>'
-          filePath = inputData.destination
+          await ensureDataDir()
+          filePath = path.isAbsolute(inputData.destination)
+            ? inputData.destination
+            : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, xmlContent, 'utf-8')
           break }

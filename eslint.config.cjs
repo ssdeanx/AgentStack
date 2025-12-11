@@ -160,6 +160,7 @@ module.exports = [
   {
     ignores: [
       "node_modules/**/*.d.ts",
+      'node_modules/',
       '/node_modules/**/*.js',
       '/node_modules/**/*.jsx',
       '/node_modules/**/*.ts',

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useTelemetry } from "@/lib/hooks/use-mastra"
+import { useAITraces } from "@/lib/hooks/use-mastra"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/card"
 import { Badge } from "@/ui/badge"
 import { Button } from "@/ui/button"
@@ -25,11 +25,13 @@ export default function TelemetryPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
 
-  const { data: telemetry, loading, error, refetch } = useTelemetry({
-    name: nameFilter || undefined,
-    scope: scopeFilter || undefined,
+  const { data: telemetry, loading, error, refetch } = useAITraces({
     page,
     perPage,
+    filters: {
+      name: nameFilter || undefined,
+      // scope: scopeFilter || undefined, // scope not supported in filters
+    },
   })
 
   return (
@@ -273,19 +275,19 @@ function TelemetryEntry({ entry }: { entry: any }) {
 }
 
 function calculateAvgDuration(telemetry: any): string {
-  const items = Array.isArray(telemetry) ? telemetry : (telemetry?.traces || [])
-  if (!items.length) return "N/A"
+  const items = Array.isArray(telemetry) ? telemetry : (telemetry?.traces ?? [])
+  if (!items.length) {return "N/A"}
 
   const durations = items.filter((i: any) => i.duration).map((i: any) => i.duration)
-  if (!durations.length) return "N/A"
+  if (!durations.length) {return "N/A"}
 
   const avg = durations.reduce((a: number, b: number) => a + b, 0) / durations.length
   return avg.toFixed(0)
 }
 
 function calculateSuccessRate(telemetry: any): string {
-  const items = Array.isArray(telemetry) ? telemetry : (telemetry?.traces || [])
-  if (!items.length) return "N/A"
+  const items = Array.isArray(telemetry) ? telemetry : (telemetry?.traces ?? [])
+  if (!items.length) {return "N/A"}
 
   const success = items.filter(
     (i: any) => i.status === "ok" || i.status === "success" || !i.status

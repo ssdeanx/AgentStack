@@ -1,17 +1,24 @@
 import { z } from "zod"
 
 // Agent Types
+export const ModelSchema = z.object({
+  provider: z.string(),
+  name: z.string(),
+})
+
 export const AgentSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),
-  model: z.string().optional(),
+  // Some SDK responses include the model id string while others return an object
+  modelId: z.string().optional(),
+  model: z.union([z.string(), ModelSchema]).optional(),
   instructions: z.string().optional(),
-  tools: z
-    .array(
-      z.union([z.string(), z.object({ id: z.string(), name: z.string().optional() })])
-    )
-    .optional(),
+  // Tools can be provided as an array or as a record keyed by tool id
+  tools: z.union([
+    z.array(z.union([z.string(), z.object({ id: z.string(), name: z.string().optional() })])),
+    z.record(z.string(), z.object({ name: z.string().optional(), description: z.string().optional() })),
+  ]).optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 })
 export type Agent = z.infer<typeof AgentSchema>
@@ -47,7 +54,8 @@ export const WorkflowSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),
-  steps: z.array(WorkflowStepSchema).optional(),
+  // Workflows may define steps as an array or as a keyed record
+  steps: z.union([z.array(WorkflowStepSchema), z.record(z.string(), WorkflowStepSchema)]).optional(),
   inputSchema: z.record(z.string(), z.unknown()).optional(),
 })
 export type Workflow = z.infer<typeof WorkflowSchema>
@@ -118,7 +126,13 @@ export type MemoryThread = z.infer<typeof MemoryThreadSchema>
 export const MessageSchema = z.object({
   id: z.string(),
   role: z.enum(["user", "assistant", "system"]),
-  content: z.string(),
+  // Content can be a raw string or a richer structured object with 'content' or 'parts'
+  content: z.union([
+    z.string(),
+    z.object({ content: z.string() }),
+    z.object({ parts: z.array(z.object({ text: z.string().optional(), type: z.string().optional() })) }),
+  ]),
+  format: z.number().optional(),
   threadId: z.string().optional(),
   createdAt: z.string().optional(),
   type: z.string().optional(),
@@ -140,6 +154,7 @@ export const LogEntrySchema = z.object({
   message: z.string(),
   timestamp: z.string().optional(),
   source: z.string().optional(),
+  runId: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
 export type LogEntry = z.infer<typeof LogEntrySchema>

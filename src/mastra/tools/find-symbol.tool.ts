@@ -1,9 +1,10 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { ProjectCache, PythonParser } from './semantic-utils';
-import { Node } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
+import { Node, SyntaxKind } from 'ts-morph';
 import * as path from 'path';
-import { glob } from 'glob';
+import fg from 'fast-glob';
 import { readFile } from 'fs/promises';
 import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -12,6 +13,8 @@ import { trace } from "@opentelemetry/api";
 const symbolContextSchema = z.object({
   maxResults: z.number().default(100),
   excludePatterns: z.array(z.string()).default([]),
+  includeNodeModules: z.boolean().default(false),
+  caseSensitive: z.boolean().default(false),
 });
 
 export type SymbolContext = z.infer<typeof symbolContextSchema>;
@@ -23,12 +26,15 @@ interface SymbolInfo {
   line: number;
   column: number;
   preview: string;
+  module?: string;
+  isExported?: boolean;
 }
 
 const findSymbolInputSchema = z.object({
   symbolName: z.string().describe('Name of the symbol to find'),
   projectPath: z.string().default(process.cwd()).describe('Project directory path'),
-  symbolType: z.enum(['all', 'function', 'class', 'interface', 'variable', 'type']).default('all').describe('Type of symbol to search for'),
+  symbolType: z.enum(['all', 'function', 'class', 'interface', 'variable', 'type', 'method', 'property', 'enum']).default('all').describe('Type of symbol to search for'),
+  includeDependencies: z.boolean().default(false).describe('Include node_modules in search'),
 });
 
 const findSymbolOutputSchema = z.object({
@@ -39,8 +45,15 @@ const findSymbolOutputSchema = z.object({
     line: z.number(),
     column: z.number(),
     preview: z.string(),
+    module: z.string().optional(),
+    isExported: z.boolean().optional(),
   })),
   summary: z.string(),
+  stats: z.object({
+    totalFiles: z.number(),
+    searchTime: z.number(),
+    cacheHits: z.number(),
+  }),
 });
 
 export const findSymbolTool = createTool({
@@ -49,13 +62,17 @@ export const findSymbolTool = createTool({
   inputSchema: findSymbolInputSchema,
   outputSchema: findSymbolOutputSchema,
   execute: async (inputData, context) => {
-    const { symbolName, projectPath, symbolType } = inputData;
+    const { symbolName, projectPath, symbolType, includeDependencies } = inputData;
     const requestContext = context?.requestContext as RequestContext<SymbolContext>;
 
-    const maxResults = requestContext?.get('maxResults');
-    const excludePatterns = requestContext?.get('excludePatterns');
+    const maxResults = requestContext?.get('maxResults') ?? 100;
+    const excludePatterns = requestContext?.get('excludePatterns') ?? [];
+    const includeNodeModules = requestContext?.get('includeNodeModules') ?? includeDependencies;
+    const caseSensitive = requestContext?.get('caseSensitive') ?? false;
 
     const symbols: SymbolInfo[] = [];
+    const startTime = Date.now();
+    let cacheHits = 0;
 
     const tracer = trace.getTracer('semantic-tools');
     const span = tracer.startSpan('find_symbol', {
@@ -69,57 +86,85 @@ export const findSymbolTool = createTool({
     });
 
     try {
+      // Normalize search term
+      const searchTerm = caseSensitive ? symbolName : symbolName.toLowerCase();
+
       // 1. TypeScript/JavaScript Analysis
       const projectCache = ProjectCache.getInstance();
       const project = projectCache.getOrCreate(projectPath);
+      cacheHits++;
 
-      for (const sourceFile of project.getSourceFiles()) {
+      const sourceFiles = project.getSourceFiles();
+      let processedFiles = 0;
+
+      for (const sourceFile of sourceFiles) {
+        if (symbols.length >= maxResults) {break;}
+
         const filePath = sourceFile.getFilePath();
-        if (filePath.includes('node_modules') || filePath.includes('.git')) {continue;}
+
+        // Skip excluded patterns
+        if (!includeNodeModules && filePath.includes('node_modules')) {continue;}
         if (excludePatterns.some(pattern => filePath.includes(pattern))) {continue;}
 
-        sourceFile.forEachDescendant((node) => {
-          if (symbols.length >= maxResults) {return;}
+        // Skip non-source files
+        if (!(/\.(ts|tsx|js|jsx)$/.exec(filePath))) {continue;}
 
-          const nodeSymbol = extractSymbolInfo(node, symbolName, symbolType);
-          if (nodeSymbol) {
-            const start = node.getStartLinePos();
-            const pos = sourceFile.getLineAndColumnAtPos(start);
+        try {
+          const moduleName = getModuleName(filePath, projectPath);
+          const fileSymbols = await analyzeTypeScriptFile(sourceFile, searchTerm, symbolType, caseSensitive);
+
+          for (const symbol of fileSymbols) {
+            if (symbols.length >= maxResults) {break;}
 
             symbols.push({
-              name: nodeSymbol.name,
-              kind: nodeSymbol.kind,
+              ...symbol,
               filePath,
-              line: pos.line,
-              column: pos.column,
-              preview: node.getText().substring(0, 100)
+              module: moduleName,
+              isExported: isSymbolExported(sourceFile, symbol.name)
             });
           }
-        });
+
+          processedFiles++;
+        } catch (error) {
+          log.warn(`Error analyzing file ${filePath}`, { error });
+        }
       }
 
       // 2. Python Analysis
       try {
-        const pythonFiles = await glob(path.join(projectPath, '**/*.py'), {
-          ignore: ['**/node_modules/**', '**/.git/**', '**/venv/**', '**/__pycache__/**'],
-          nodir: true
+        const pythonFiles = await fg(path.join(projectPath, '**/*.py'), {
+          ignore: includeNodeModules ? [] : ['**/node_modules/**', '**/.git/**', '**/venv/**', '**/__pycache__/**'],
+          onlyFiles: true,
+          absolute: true,
+          dot: true,
+          unique: true,
         });
 
         for (const pyFile of pythonFiles) {
+          if (symbols.length >= maxResults) {break;}
+          if (excludePatterns.some(pattern => pyFile.includes(pattern))) {continue;}
+
           try {
             const content = await readFile(pyFile, 'utf-8');
             const pythonSymbols = await PythonParser.findSymbols(content);
 
             for (const pySymbol of pythonSymbols) {
-              if (pySymbol.name.includes(symbolName) &&
-                  (symbolType === 'all' || symbolType === pySymbol.kind)) {
+              if (symbols.length >= maxResults) {break;}
+
+              const symbolNameMatch = caseSensitive
+                ? pySymbol.name.includes(symbolName)
+                : pySymbol.name.toLowerCase().includes(searchTerm);
+
+              if (symbolNameMatch && (symbolType === 'all' || symbolType === pySymbol.kind)) {
                 symbols.push({
                   name: pySymbol.name,
                   kind: pySymbol.kind,
                   filePath: pyFile,
                   line: pySymbol.line,
                   column: pySymbol.column,
-                  preview: pySymbol.docstring?.substring(0, 100) ?? `${pySymbol.kind} ${pySymbol.name}`
+                  preview: pySymbol.docstring?.substring(0, 100) ?? `${pySymbol.kind} ${pySymbol.name}`,
+                  module: getModuleName(pyFile, projectPath),
+                  isExported: isPythonSymbolExported(content, pySymbol.name)
                 });
               }
             }
@@ -131,16 +176,25 @@ export const findSymbolTool = createTool({
         log.warn('Error searching Python files', { error });
       }
 
-      const summary = generateSummary(symbols, symbolName);
+      const searchTime = Date.now() - startTime;
+      const summary = generateSummary(symbols, symbolName, processedFiles);
 
       span.setAttributes({
         'tool.output.symbolsCount': symbols.length,
+        'tool.output.processedFiles': processedFiles,
+        'tool.output.searchTime': searchTime,
+        'tool.output.cacheHits': cacheHits,
       });
       span.end();
 
       return {
         symbols,
-        summary
+        summary,
+        stats: {
+          totalFiles: processedFiles,
+          searchTime,
+          cacheHits,
+        }
       };
 
     } catch (error) {
@@ -155,21 +209,22 @@ export const findSymbolTool = createTool({
 
 function extractSymbolInfo(
   node: Node,
-  symbolName: string,
-  symbolType: string
+  searchTerm: string,
+  symbolType: string,
+  caseSensitive: boolean
 ): { name: string; kind: string } | null {
   // Function declarations and expressions
   if (symbolType === 'all' || symbolType === 'function') {
     if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
       const name = node.getName();
-      if (name?.includes(symbolName)) {
+      if (name && matchesSearch(name, searchTerm, caseSensitive)) {
         return { name, kind: 'function' };
       }
     }
     if (Node.isVariableDeclaration(node)) {
       const name = node.getName();
       const initializer = node.getInitializer();
-      if (name && name.includes(symbolName) &&
+      if (name && matchesSearch(name, searchTerm, caseSensitive) &&
           (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))) {
         return { name, kind: 'function' };
       }
@@ -179,7 +234,7 @@ function extractSymbolInfo(
   // Class declarations
   if ((symbolType === 'all' || symbolType === 'class') && Node.isClassDeclaration(node)) {
     const name = node.getName();
-    if (name?.includes(symbolName)) {
+    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'class' };
     }
   }
@@ -187,7 +242,7 @@ function extractSymbolInfo(
   // Interface declarations
   if ((symbolType === 'all' || symbolType === 'interface') && Node.isInterfaceDeclaration(node)) {
     const name = node.getName();
-    if (name?.includes(symbolName)) {
+    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'interface' };
     }
   }
@@ -195,28 +250,44 @@ function extractSymbolInfo(
   // Type aliases
   if ((symbolType === 'all' || symbolType === 'type') && Node.isTypeAliasDeclaration(node)) {
     const name = node.getName();
-    if (name?.includes(symbolName)) {
+    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'type' };
+    }
+  }
+
+  // Enum declarations
+  if ((symbolType === 'all' || symbolType === 'enum') && Node.isEnumDeclaration(node)) {
+    const name = node.getName();
+    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+      return { name, kind: 'enum' };
+    }
+  }
+
+  // Property declarations
+  if ((symbolType === 'all' || symbolType === 'property') && Node.isPropertyDeclaration(node)) {
+    const name = node.getName();
+    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+      return { name, kind: 'property' };
     }
   }
 
   // Variables
   if ((symbolType === 'all' || symbolType === 'variable') && Node.isVariableDeclaration(node)) {
-        const name = node.getName();
-        const initializer = node.getInitializer();
-        if (name && name.includes(symbolName) &&
-            !Node.isArrowFunction(initializer) &&
-            !Node.isFunctionExpression(initializer)) {
-          return { name, kind: 'variable' };
-        }
+    const name = node.getName();
+    const initializer = node.getInitializer();
+    if (name && matchesSearch(name, searchTerm, caseSensitive) &&
+        !Node.isArrowFunction(initializer) &&
+        !Node.isFunctionExpression(initializer)) {
+      return { name, kind: 'variable' };
+    }
   }
 
   return null;
 }
 
-function generateSummary(symbols: SymbolInfo[], query: string): string {
+function generateSummary(symbols: SymbolInfo[], query: string, processedFiles: number): string {
   if (symbols.length === 0) {
-    return `No symbols found matching "${query}"`;
+    return `No symbols found matching "${query}" in ${processedFiles} files`;
   }
 
   const byKind: Record<string, number> = {};
@@ -228,5 +299,62 @@ function generateSummary(symbols: SymbolInfo[], query: string): string {
     .map(([kind, count]) => `${count} ${kind}${count > 1 ? 's' : ''}`)
     .join(', ');
 
-  return `Found ${symbols.length} symbols: ${summary}`;
+  return `Found ${symbols.length} symbols matching "${query}" in ${processedFiles} files: ${summary}`;
+}
+
+function getModuleName(filePath: string, projectPath: string): string {
+  const relativePath = path.relative(projectPath, filePath);
+  const parsed = path.parse(relativePath);
+  return parsed.dir ? `${parsed.dir}/${parsed.name}` : parsed.name;
+}
+
+async function analyzeTypeScriptFile(
+  sourceFile: SourceFile,
+  searchTerm: string,
+  symbolType: string,
+  caseSensitive: boolean
+): Promise<Array<{name: string; kind: string; line: number; column: number; preview: string}>> {
+  const symbols: Array<{name: string; kind: string; line: number; column: number; preview: string}> = [];
+
+  sourceFile.forEachDescendant((node: Node) => {
+    const symbolInfo = extractSymbolInfo(node, searchTerm, symbolType, caseSensitive);
+    if (symbolInfo) {
+      const start = node.getStartLinePos();
+      const pos = sourceFile.getLineAndColumnAtPos(start);
+
+      symbols.push({
+        name: symbolInfo.name,
+        kind: symbolInfo.kind,
+        line: pos.line,
+        column: pos.column,
+        preview: node.getText().substring(0, 100)
+      });
+    }
+  });
+
+  return symbols;
+}
+
+function matchesSearch(name: string, searchTerm: string, caseSensitive: boolean): boolean {
+  return caseSensitive ? name.includes(searchTerm) : name.toLowerCase().includes(searchTerm);
+}
+
+function isSymbolExported(sourceFile: SourceFile, symbolName: string): boolean {
+  // Check if symbol is exported
+  const exports = sourceFile.getExportSymbols();
+  return exports.some((exp: any) => exp.getName() === symbolName);
+}
+
+function isPythonSymbolExported(content: string, symbolName: string): boolean {
+  // Simple heuristic: check if symbol appears in __all__ or is imported
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (line.includes('__all__') && line.includes(symbolName)) {
+      return true;
+    }
+    if (line.trim().startsWith('from ') && line.includes(symbolName)) {
+      return true;
+    }
+  }
+  return false;
 }

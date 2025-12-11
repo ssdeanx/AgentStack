@@ -8,6 +8,7 @@ import {
 } from "@mastra/observability";
 import { Mastra } from '@mastra/core';
 import { PostgresStore } from "@mastra/pg";
+import { OtelExporter } from "@mastra/otel-exporter";
 import { LangfuseExporter } from "@mastra/langfuse";
 // Config
 import { log } from './config/logger';
@@ -88,6 +89,8 @@ import { weatherWorkflow } from './workflows/weather-workflow';
 import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 import { ResearchRuntimeContext } from './agents/index';
+
+const ml = process.env.MLFLOW_EXPERIMENT_ID
 
 export const mastra = new Mastra({
   workflows: {
@@ -181,6 +184,21 @@ export const mastra = new Mastra({
   observability: new Observability({
     default: { enabled: false },
     configs: {
+      otel: {
+        serviceName: "maestra-app",
+        exporters: [new OtelExporter({
+          provider: {
+            custom: {
+              // Specify tracking server URI with the `/v1/traces` path.
+              endpoint: process.env.MLFLOW_TRACKING_URI ?? "http://localhost:5000/api/2.0/mlflow/tracking/v1/traces",
+              // Set the MLflow experiment ID in the header.
+              headers: { "x-mlflow-experiment-id": process.env.MLFLOW_EXPERIMENT_ID ?? "", api_key: process.env.DATABRICKS_TOKEN ?? "" },
+              // MLflow support HTTP/Protobuf protocol.
+              protocol: "http/protobuf"
+            }
+          }
+        })]
+      },
       langfuse: {
         serviceName: "ai",
         requestContextKeys: ["userId", "environment", "tenantId"],

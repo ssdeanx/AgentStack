@@ -45,14 +45,23 @@ export function useAgentsQuery() {
   return useQuery({
     queryKey: queryKeys.agents,
     queryFn: async (): Promise<Agent[]> => {
-      const agents = await mastraClient.getAgents()
-      return Object.entries(agents).map(([id, agent]) => ({
-        id,
-        name: (agent as unknown as Record<string, unknown>).name as string | undefined,
-        description: (agent as unknown as Record<string, unknown>).description as string | undefined,
-        model: (agent as unknown as Record<string, unknown>).model as string | undefined,
-        instructions: (agent as unknown as Record<string, unknown>).instructions as string | undefined,
-      })) as Agent[]
+      const agents = await mastraClient.listAgents()
+      return Object.entries(agents).map(([id, agent]) => {
+        const rec = agent as unknown as Record<string, unknown>
+        let modelStr: string | undefined = undefined
+        if (typeof (rec as any).modelId === "string") {modelStr = (rec as any).modelId}
+        else if (typeof rec.model === "string") {modelStr = rec.model}
+        else if (typeof rec.model === "object" && rec.model !== null && typeof (rec.model as Record<string, unknown>).name === "string") {
+          modelStr = (rec.model as Record<string, unknown>).name as string
+        }
+        return {
+          id,
+          name: rec.name as string | undefined,
+          description: rec.description as string | undefined,
+          model: modelStr,
+          instructions: rec.instructions as string | undefined,
+        }
+      }) as Agent[]
     },
   })
 }
@@ -61,42 +70,37 @@ export function useAgentQuery(agentId: string | null) {
   return useQuery({
     queryKey: queryKeys.agent(agentId ?? ""),
     queryFn: async (): Promise<Agent | null> => {
-      if (!agentId) {return null}
+      if (agentId === null || agentId === undefined) {return null}
       const agent = mastraClient.getAgent(agentId)
       const details = await agent.details()
+      const det = details as unknown as Record<string, unknown>
+        const detModelId = typeof det.modelId === 'string' ? det.modelId : undefined
+        const detModelField = det.model
+        let detModelStr: string | undefined = undefined
+        if (detModelId !== undefined && detModelId !== null) { detModelStr = detModelId }
+        else if (typeof detModelField === 'string') { detModelStr = detModelField }
+        else if (typeof detModelField === 'object' && detModelField !== null && typeof (detModelField as Record<string, unknown>).name === 'string') { detModelStr = (detModelField as Record<string, unknown>).name as string }
       return {
         id: agentId,
         name: details.name,
         description: details.description,
-        model: (details as unknown as Record<string, unknown>).model as string | undefined,
-        instructions: typeof details.instructions === 'string'
+          model: detModelStr,
+        instructions: typeof details.instructions === "string"
           ? details.instructions
           : JSON.stringify(details.instructions),
-        tools: details.tools
-          ? Object.keys(details.tools).map(id => ({ id, name: id }))
-          : [],
+        tools: Array.isArray(det.tools)
+          ? (det.tools as unknown[]).map((t) => {
+              if (typeof t === "string") { return { id: t, name: t } }
+              if (typeof t === "object" && t !== null) {
+                const tv = t as Record<string, unknown>
+                return { id: (tv.id as string) ?? '', name: (tv.name as string | undefined) }
+              }
+              return { id: String(t), name: String(t) }
+            })
+          : Object.entries((det.tools ?? {}) as Record<string, unknown>).map(([id, val]) => ({ id, name: typeof val === 'object' && val !== null ? (val as Record<string, unknown>).name as string | undefined : undefined })),
       } as Agent
     },
-    enabled: !(!agentId),
-  })
-}
-
-export function useAgentEvalsQuery(agentId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.agentEvals(agentId ?? ""),
-    queryFn: async () => {
-      if (!agentId) {return { ci: [], live: [] }}
-      const agent = mastraClient.getAgent(agentId)
-      const [ciResult, liveResult] = await Promise.all([
-        agent.evals(),
-        agent.liveEvals(),
-      ])
-      // Transform to expected format
-      const ci = Array.isArray(ciResult) ? ciResult : []
-      const live = Array.isArray(liveResult) ? liveResult : []
-      return { ci, live }
-    },
-    enabled: !!agentId,
+    enabled: agentId !== null && agentId !== undefined,
   })
 }
 
@@ -105,7 +109,7 @@ export function useWorkflowsQuery() {
   return useQuery({
     queryKey: queryKeys.workflows,
     queryFn: async (): Promise<Workflow[]> => {
-      const workflows = await mastraClient.getWorkflows()
+      const workflows = await mastraClient.listWorkflows()
       return Object.entries(workflows).map(([id, wf]) => ({
         id,
         name: (wf as unknown as Record<string, unknown>).name as string | undefined,
@@ -119,23 +123,23 @@ export function useWorkflowQuery(workflowId: string | null) {
   return useQuery({
     queryKey: queryKeys.workflow(workflowId ?? ""),
     queryFn: async (): Promise<Workflow | null> => {
-      if (!workflowId) {return null}
+      if (workflowId === null || workflowId === undefined) {return null}
       const workflow = mastraClient.getWorkflow(workflowId)
       const details = await workflow.details()
       return {
         id: workflowId,
         name: details.name,
         description: details.description,
-        steps: details.steps
-          ? Object.entries(details.steps).map(([stepId, step]) => ({
+        steps: Array.isArray(details.steps)
+          ? (details.steps as unknown[]).map((s) => ({ id: (s as Record<string, unknown>).id as string, name: (s as Record<string, unknown>).name as string | undefined, description: (s as Record<string, unknown>).description as string | undefined }))
+          : Object.entries(details.steps ?? {}).map(([stepId, step]) => ({
               id: stepId,
               name: (step as Record<string, unknown>).name as string | undefined,
               description: (step as Record<string, unknown>).description as string | undefined,
-            }))
-          : [],
+            })),
       } as Workflow
     },
-    enabled: !!workflowId,
+    enabled: workflowId !== null && workflowId !== undefined,
   })
 }
 
@@ -144,7 +148,7 @@ export function useToolsQuery() {
   return useQuery({
     queryKey: queryKeys.tools,
     queryFn: async (): Promise<Tool[]> => {
-      const tools = await mastraClient.getTools()
+      const tools = await mastraClient.listTools()
       return Object.entries(tools).map(([toolId, tool]) => ({
         id: toolId,
         name: (tool as unknown as Record<string, unknown>).name as string | undefined ?? toolId,
@@ -158,7 +162,7 @@ export function useToolQuery(toolId: string | null) {
   return useQuery({
     queryKey: queryKeys.tool(toolId ?? ""),
     queryFn: async (): Promise<Tool | null> => {
-      if (!toolId) {return null}
+      if (toolId === null || toolId === undefined) {return null}
       const tool = mastraClient.getTool(toolId)
       const details = await tool.details()
       return {
@@ -167,7 +171,7 @@ export function useToolQuery(toolId: string | null) {
         description: details.description,
       } as Tool
     },
-    enabled: !!toolId,
+    enabled: toolId !== null && toolId !== undefined,
   })
 }
 
@@ -180,7 +184,7 @@ export function useTracesQuery(params?: {
   return useQuery({
     queryKey: queryKeys.traces(params),
     queryFn: async () => {
-      const result = await mastraClient.getAITraces({
+      const result = await mastraClient.getTraces({
         pagination: {
           page: params?.page ?? 1,
           perPage: params?.perPage ?? 20,
@@ -204,10 +208,10 @@ export function useTraceQuery(traceId: string | null) {
   return useQuery({
     queryKey: queryKeys.trace(traceId ?? ""),
     queryFn: async () => {
-      if (!traceId) {return null}
-      return await mastraClient.getAITrace(traceId)
+      if (traceId === undefined || traceId === null) { return null }
+      return await mastraClient.getTrace(traceId)
     },
-    enabled: !!traceId,
+    enabled: traceId !== null && traceId !== undefined,
   })
 }
 
@@ -216,7 +220,7 @@ export function useMemoryThreadsQuery(resourceId: string, agentId: string) {
   return useQuery({
     queryKey: queryKeys.threads(resourceId, agentId),
     queryFn: async (): Promise<MemoryThread[]> => {
-      const threads = await mastraClient.getMemoryThreads({ resourceId, agentId })
+      const threads = await mastraClient.listMemoryThreads({ resourceId, agentId })
       if (Array.isArray(threads)) {
         return threads.map(t => ({
           ...t,
@@ -226,7 +230,7 @@ export function useMemoryThreadsQuery(resourceId: string, agentId: string) {
       }
       return []
     },
-    enabled: !!resourceId && !!agentId,
+    enabled: resourceId !== undefined && resourceId !== null && agentId !== undefined && agentId !== null,
   })
 }
 
@@ -238,12 +242,41 @@ export function useMemoryMessagesQuery(
   return useQuery({
     queryKey: queryKeys.messages(threadId ?? "", agentId),
     queryFn: async (): Promise<Message[]> => {
-      if (!threadId) {return []}
-      const thread = mastraClient.getMemoryThread(threadId, agentId)
-      const result = await thread.getMessages({ limit })
-      return (result.messages ?? []) as Message[]
+      if (threadId === null || threadId === undefined) { return [] }
+      const thread = mastraClient.getMemoryThread({ threadId, agentId })
+      // v1 uses paginated listMessages with page/perPage instead of getMessages(limit)
+      const result = await thread.listMessages({ page: 1, perPage: limit })
+      const dbMessages: unknown[] = result.messages ?? []
+      const uiMessages: Message[] = dbMessages.map((m: unknown) => {
+        const record = m as Record<string, unknown>
+        const contentRaw = record.content
+        let contentStr = ''
+        if (typeof contentRaw === 'string') {
+          contentStr = contentRaw
+        } else if (
+          typeof contentRaw === 'object' && contentRaw !== null && typeof (contentRaw as Record<string, unknown>).content === 'string'
+        ) {
+          contentStr = (contentRaw as Record<string, unknown>).content as string
+        } else if (
+          typeof contentRaw === 'object' && contentRaw !== null && Array.isArray((contentRaw as Record<string, unknown>).parts)
+        ) {
+          const parts = (contentRaw as Record<string, unknown>).parts as unknown[]
+          contentStr = parts.map((p) => (typeof p === 'object' && p !== null && (Boolean((p as Record<string, unknown>).text)) ? (p as Record<string, unknown>).text as string : '')).join(' ')
+        } else {
+          contentStr = JSON.stringify(contentRaw)
+        }
+        return {
+          id: (record.id as string) ?? '',
+          role: (record.role as Message['role']) ?? 'user',
+          content: contentStr,
+          threadId: (record.threadId as string | undefined),
+          createdAt: (record.createdAt as string | undefined),
+          type: (record.type as string | undefined),
+        }
+      })
+      return uiMessages
     },
-    enabled: !!threadId && !!agentId,
+    enabled: threadId !== null && threadId !== undefined && agentId !== undefined && agentId !== null,
   })
 }
 
@@ -278,7 +311,7 @@ export function useLogsQuery(transportId?: string) {
   return useQuery({
     queryKey: queryKeys.logs(transportId),
     queryFn: async () => {
-      const logs = await mastraClient.getLogs({ transportId: transportId ?? "" })
+      const logs = await mastraClient.listLogs({ transportId: transportId ?? "" })
       return Array.isArray(logs) ? logs : []
     },
   })
@@ -288,36 +321,20 @@ export function useRunLogsQuery(runId: string | null, transportId?: string) {
   return useQuery({
     queryKey: queryKeys.runLogs(runId ?? "", transportId),
     queryFn: async () => {
-      if (!runId) {return null}
+      if (runId === null || runId === undefined) {return null}
       return await mastraClient.getLogForRun({ runId, transportId: transportId ?? "" })
     },
-    enabled: !!runId,
+    enabled: runId !== undefined && runId !== null,
   })
 }
 
 export function useLogTransportsQuery() {
   return useQuery({
     queryKey: queryKeys.logTransports,
-    queryFn: async () => await mastraClient.getLogTransports(),
+    queryFn: async () => await mastraClient.listLogTransports(),
   })
 }
 
-// Telemetry Queries
-export function useTelemetryQuery(params?: {
-  name?: string
-  scope?: string
-  page?: number
-  perPage?: number
-  attribute?: Record<string, string>
-}) {
-  return useQuery({
-    queryKey: queryKeys.telemetry(params),
-    queryFn: async () => {
-      const result = await mastraClient.getTelemetry(params)
-      return Array.isArray(result) ? result : []
-    },
-  })
-}
 
 // Vector Queries
 export function useVectorIndexesQuery(vectorName: string) {
@@ -330,7 +347,7 @@ export function useVectorIndexesQuery(vectorName: string) {
       const indexes = result.indexes ?? []
       return indexes.map((name: string) => ({ name }))
     },
-    enabled: !!vectorName,
+    enabled: vectorName !== undefined && vectorName !== null,
   })
 }
 
@@ -338,11 +355,11 @@ export function useVectorDetailsQuery(vectorName: string, indexName: string | nu
   return useQuery({
     queryKey: queryKeys.vectorDetails(vectorName, indexName ?? ""),
     queryFn: async () => {
-      if (!indexName) {return null}
+      if (indexName === undefined || indexName === null) { return null }
       const vector = mastraClient.getVector(vectorName)
       return await vector.details(indexName)
     },
-    enabled: !!vectorName && !!indexName,
+    enabled: vectorName !== undefined && vectorName !== null && indexName !== undefined && indexName !== null,
   })
 }
 
@@ -353,13 +370,21 @@ export function useExecuteToolMutation() {
       toolId,
       data,
       runId,
+      threadId,
+      resourceId,
     }: {
       toolId: string
       data: Record<string, unknown>
       runId?: string
+      threadId?: string
+      resourceId?: string
     }) => {
       const tool = mastraClient.getTool(toolId)
-      return tool.execute({ data, runId })
+      const params: Record<string, unknown> & { data: unknown } = { data, args: data }
+      if (runId !== undefined && runId !== null) { params.runId = runId }
+      if (threadId !== undefined && threadId !== null) { params.threadId = threadId }
+      if (resourceId !== undefined && resourceId !== null) { params.resourceId = resourceId }
+      return tool.execute(params)
     },
   })
 }

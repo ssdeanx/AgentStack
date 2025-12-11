@@ -50,8 +50,8 @@ export default function MemoryPage() {
   const [newThreadTitle, setNewThreadTitle] = useState("")
   const { create: createThread, loading: creating } = useCreateMemoryThread()
 
-  const filteredThreads = threads?.filter((thread: any) =>
-    thread.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredThreads = threads?.threads?.filter((thread: any) =>
+    thread.title?.toLowerCase().includes(searchQuery.toLowerCase()) ??
     thread.id?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -178,7 +178,7 @@ export default function MemoryPage() {
                   <div className="flex items-center gap-3">
                     <MessageSquare className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1 truncate">
-                      <div className="font-medium">{thread.title || thread.id}</div>
+                      <div className="font-medium">{thread.title ?? thread.id}</div>
                       <div className="text-xs text-muted-foreground">
                         {thread.createdAt ? new Date(thread.createdAt).toLocaleDateString() : "No date"}
                       </div>
@@ -255,7 +255,7 @@ function ThreadDetails({
   const handleDeleteThread = async () => {
     setDeleting(true)
     try {
-      const thread = mastraClient.getMemoryThread(threadId, agentId)
+      const thread = mastraClient.getMemoryThread({ threadId, agentId })
       await thread.delete()
     } catch (err) {
       console.error("Failed to delete thread:", err)
@@ -332,7 +332,7 @@ function ThreadDetails({
                   {messages.length > 0 ? (
                     messages.map((message: any, index: number) => (
                       <div
-                        key={message.id || index}
+                        key={message.id ?? index}
                         className={`flex gap-3 ${
                           message.role === "user" ? "justify-end" : ""
                         }`}
@@ -387,7 +387,7 @@ function ThreadDetails({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setWmContent((workingMemory as any)?.workingMemory || "")}
+                      onClick={() => setWmContent((workingMemory as any)?.workingMemory ?? "")}
                     >
                       Edit
                     </Button>

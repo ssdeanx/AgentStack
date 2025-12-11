@@ -1,5 +1,7 @@
 import { MastraClient } from "@mastra/client-js";
-import ObservabilityError from '../app/dashboard/observability/error';
+
+// Optional AbortController to support request cancellation across the client
+export const mastraAbortController = new AbortController();
 
 /**
  * Client-side Mastra SDK instance for frontend use.
@@ -13,7 +15,7 @@ export const mastraClient = new MastraClient({
   retries: 3,
   backoffMs: 300,
   maxBackoffMs: 5000,
-  abortSignal: undefined,
+  abortSignal: mastraAbortController.signal,
   headers: {},
   credentials: "same-origin"
 });

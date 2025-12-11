@@ -2,7 +2,6 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { createPatch, structuredPatch } from 'diff'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context';
 
 const diffReviewInputSchema = z.object({
   original: z.string().describe('Original code content'),
@@ -47,11 +46,13 @@ Returns structured diff data with hunks, individual changes, and statistics.
 Use for code review, comparing versions, and analyzing modifications.`,
   inputSchema: diffReviewInputSchema,
   outputSchema: diffReviewOutputSchema,
-  execute: async (inputData, _context): Promise<DiffReviewOutput> => {
+  execute: async (inputData, context): Promise<DiffReviewOutput> => {
     const { original, modified, filename = 'file', context: contextLines = 3 } = inputData
+    const writer = context?.writer
 
     const tracer = trace.getTracer('diff-review');
     const span = tracer.startSpan('diff-review', { attributes: { filename, contextLines } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Generating unified diff for ${filename}` } });
 
     try {
 
@@ -63,6 +64,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🧩 Unified diff generated (${filename})` } });
 
     const structured = structuredPatch(
       filename,
@@ -73,6 +75,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Structured patch created with ${structured.hunks.length} hunk(s)` } });
 
     interface DiffHunk {
       oldStart: number
@@ -142,6 +145,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
     span?.setAttribute('additions', additions);
     span?.setAttribute('deletions', deletions);
     span?.setAttribute('totalChanges', totalChanges);
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Diff generated: ${additions} additions, ${deletions} deletions` } });
     span?.end();
 
     return {
@@ -161,5 +165,6 @@ Use for code review, comparing versions, and analyzing modifications.`,
     span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
     span?.end();
     throw error;
+  }
   }
 });

@@ -5,6 +5,20 @@ import { createPatch } from 'diff'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from '@mastra/core/tools';
 
+const DATA_DIR = path.join(process.cwd(), './data')
+
+/**
+ * Ensure the data directory exists
+ */
+async function ensureDataDir(): Promise<void> {
+  const dataPath = path.resolve(DATA_DIR)
+  try {
+    await fs.mkdir(dataPath, { recursive: true })
+  } catch {
+    // Ignore errors - directory might already exist
+  }
+}
+
 const editOperationSchema = z.object({
   filePath: z.string().describe('Absolute path to the file to edit'),
   oldString: z.string().describe('Exact text to find and replace (or regex pattern)'),
@@ -52,34 +66,123 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/**
+ * Check if a file path is within the specified boundary for security
+ */
 function isPathWithinBoundary(filePath: string, boundary: string): boolean {
   const resolvedPath = path.resolve(filePath)
   const resolvedBoundary = path.resolve(boundary)
   return resolvedPath.startsWith(resolvedBoundary + path.sep) || resolvedPath === resolvedBoundary
 }
 
-function generateSimpleDiff(original: string, modified: string, filePath: string): string {
-  const originalLines = original.split('\n')
-  const modifiedLines = modified.split('\n')
+/**
+ * Process a single file edit operation
+ */
+async function processFileEdit(
+  edit: z.infer<typeof editOperationSchema>,
+  defaultBoundary: string,
+  dryRun: boolean,
+  createBackup: boolean,
+  appliedBackups: Map<string, string>,
+  writer?: { custom: (data: { type: string; data: { message: string } }) => Promise<void> }
+): Promise<z.infer<typeof editResultSchema>> {
+  const { filePath, oldString, newString, description, useRegex, replaceAll } = edit
 
-  const diffLines: string[] = [`--- a/${path.basename(filePath)}`, `+++ b/${path.basename(filePath)}`]
-
-  let i = 0, j = 0
-  while (i < originalLines.length || j < modifiedLines.length) {
-    if (i < originalLines.length && j < modifiedLines.length && originalLines[i] === modifiedLines[j]) {
-      diffLines.push(` ${originalLines[i]}`)
-      i++
-      j++
-    } else if (i < originalLines.length && (j >= modifiedLines.length || originalLines[i] !== modifiedLines[j])) {
-      diffLines.push(`-${originalLines[i]}`)
-      i++
-    } else if (j < modifiedLines.length) {
-      diffLines.push(`+${modifiedLines[j]}`)
-      j++
+  if (!isPathWithinBoundary(filePath, defaultBoundary)) {
+    return {
+      filePath,
+      status: 'failed',
+      reason: `Path outside project boundary: ${defaultBoundary}`,
     }
   }
 
-  return diffLines.join('\n')
+  if (!await fileExists(filePath)) {
+    return {
+      filePath,
+      status: 'failed',
+      reason: 'File does not exist',
+    }
+  }
+
+  try {
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `📖 Reading file: ${filePath}` } });
+    const content = await fs.readFile(filePath, 'utf-8')
+    let newContent = content
+    let matchFound = false
+
+    if (useRegex === true) {
+      const flags = replaceAll === true ? 'g' : ''
+      const regex = new RegExp(oldString, flags)
+      if (regex.test(content)) {
+        newContent = content.replace(regex, newString)
+        matchFound = true
+      }
+    } else if (content.includes(oldString)) {
+      if (replaceAll === true) {
+        newContent = content.split(oldString).join(newString)
+        matchFound = true
+      } else {
+        const occurrences = content.split(oldString).length - 1
+        if (occurrences > 1) {
+          return {
+            filePath,
+            status: 'skipped',
+            reason: `Multiple occurrences found (${occurrences}). Use replaceAll: true to replace all.`,
+          }
+        }
+        newContent = content.replace(oldString, newString)
+        matchFound = true
+      }
+    }
+
+    if (!matchFound) {
+      return {
+        filePath,
+        status: 'skipped',
+        reason: 'Old string/pattern not found in file',
+      }
+    }
+
+    const diff = createPatch(
+      path.basename(filePath),
+      content,
+      newContent,
+      'original',
+      'modified'
+    )
+
+    if (dryRun) {
+      return {
+        filePath,
+        status: 'applied',
+        reason: description ?? 'Dry run - changes not written',
+        diff,
+      }
+    }
+
+    if (createBackup && !appliedBackups.has(filePath)) {
+      const backupPath = `${filePath}.bak`
+      await fs.copyFile(filePath, backupPath)
+      appliedBackups.set(filePath, backupPath)
+    }
+
+    await fs.writeFile(filePath, newContent, 'utf-8')
+
+    return {
+      filePath,
+      status: 'applied',
+      reason: description,
+      backup: appliedBackups.get(filePath),
+      diff,
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return {
+      filePath,
+      status: 'failed',
+      reason: errorMessage,
+    }
+  }
 }
 
 export const multiStringEditTool = createTool({
@@ -91,6 +194,21 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
   inputSchema: multiStringEditInputSchema,
   outputSchema: multiStringEditOutputSchema,
   execute: async (inputData, context): Promise<MultiStringEditOutput> => {
+    const writer = context?.writer;
+
+    // Ensure data directory exists
+    await ensureDataDir();
+
+    // Input validation
+    if (!inputData.edits) {
+      return {
+        success: false,
+        results: [],
+        summary: { total: 0, applied: 0, skipped: 0, failed: 0 },
+      };
+    }
+
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}` } });
     const { edits, dryRun = false, createBackup = true, projectRoot } = inputData
 
     const tracer = trace.getTracer('coding-tools');
@@ -111,104 +229,11 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     const defaultBoundary = projectRoot ?? process.cwd()
 
     for (const edit of edits) {
-      const { filePath, oldString, newString, description } = edit
-
-      if (!isPathWithinBoundary(filePath, defaultBoundary)) {
-        results.push({
-          filePath,
-          status: 'failed',
-          reason: `Path outside project boundary: ${defaultBoundary}`,
-        })
-        hasFailure = true
-        continue
-      }
-
-      if (!await fileExists(filePath)) {
-        results.push({
-          filePath,
-          status: 'failed',
-          reason: 'File does not exist',
-        })
-        hasFailure = true
-        continue
-      }
-
-      try {
-        const content = await fs.readFile(filePath, 'utf-8')
-        let newContent = content
-        let matchFound = false
-
-        if (edit.useRegex) {
-                  const flags = edit.replaceAll ? 'g' : ''
-                  const regex = new RegExp(edit.oldString, flags)
-                  if (regex.test(content)) {
-                    newContent = content.replace(regex, edit.newString)
-                    matchFound = true
-                  }
-                }
-        else if (content.includes(edit.oldString)) {
-                    if (edit.replaceAll) {
-                      newContent = content.split(edit.oldString).join(edit.newString)
-                      matchFound = true
-                    } else {
-                      const occurrences = content.split(edit.oldString).length - 1
-                      if (occurrences > 1) {
-                        results.push({
-                          filePath,
-                          status: 'skipped',
-                          reason: `Multiple occurrences found (${occurrences}). Use replaceAll: true to replace all.`,
-                        })
-                        continue
-                      }
-                      newContent = content.replace(edit.oldString, edit.newString)
-                      matchFound = true
-                    }
-                  }
-
-        if (!matchFound) {
-          results.push({
-            filePath,
-            status: 'skipped',
-            reason: 'Old string/pattern not found in file',
-          })
-          continue
-        }
-
-        const diff = createPatch(path.basename(filePath), content, newContent, 'original', 'modified')
-
-        if (dryRun) {
-          results.push({
-            filePath,
-            status: 'applied',
-            reason: description ?? 'Dry run - changes not written',
-            diff,
-          })
-          continue
-        }
-
-        if (createBackup && !appliedBackups.has(filePath)) {
-          const backupPath = `${filePath}.bak`
-          await fs.copyFile(filePath, backupPath)
-          appliedBackups.set(filePath, backupPath)
-        }
-
-        await fs.writeFile(filePath, newContent, 'utf-8')
-
-        results.push({
-          filePath,
-          status: 'applied',
-          reason: description,
-          backup: appliedBackups.get(filePath),
-          diff,
-        })
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        results.push({
-          filePath,
-          status: 'failed',
-          reason: errorMessage,
-        })
-        hasFailure = true
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✏️ Processing edit for: ${edit.filePath}` } });
+      const result = await processFileEdit(edit, defaultBoundary, dryRun, createBackup, appliedBackups, writer);
+      results.push(result);
+      if (result.status === 'failed') {
+        hasFailure = true;
       }
     }
 
@@ -236,6 +261,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
       span.setStatus({ code: SpanStatusCode.ERROR, message: 'One or more edits failed' });
     }
 
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Multi-string edit complete: ${summary.applied} applied, ${summary.failed} failed, ${summary.skipped} skipped` } });
     span.end();
 
     return {

@@ -6,7 +6,7 @@ import { Badge } from "@/ui/badge"
 import { Bot, Info, Wrench, Activity } from "lucide-react"
 import { LoadingSkeleton, EmptyState } from "../../_components"
 import { AgentToolsTab } from "./agent-tools-tab"
-import { AgentEvalsTab } from "./agent-evals-tab"
+import { AgentTab } from "./agent-tab"
 
 interface AgentDetailsProps {
   agentId: string
@@ -24,7 +24,7 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
       <EmptyState
         icon={Bot}
         title="Failed to load agent"
-        description={error?.message || "Agent not found"}
+        description={error?.message ?? "Agent not found"}
       />
     )
   }
@@ -35,9 +35,9 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          <h2 className="text-xl font-semibold">{agent.name || agent.id}</h2>
+          <h2 className="text-xl font-semibold">{agent.name ?? agent.id}</h2>
         </div>
-        {agent.description && (
+        {agent.description !== null && (
           <p className="text-sm text-muted-foreground">{agent.description}</p>
         )}
         <div className="flex gap-2">
@@ -95,7 +95,7 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
         </TabsContent>
 
         <TabsContent value="evals" className="mt-4">
-          <AgentEvalsTab agentId={agentId} />
+          <AgentTab agentId={agentId} />
         </TabsContent>
       </Tabs>
     </div>
