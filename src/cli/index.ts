@@ -6,7 +6,7 @@ import {
     logProgress,
     log,
 } from '../mastra/config/logger'
-import { tierManagementService } from '../mastra/config/tier-management-service'
+import { tierManagementService } from '../mastra/services/tier-management-service'
 import type { SubscriptionTier } from '../mastra/config/role-hierarchy'
 import * as dotenv from 'dotenv'
 import * as fs from 'fs/promises'
