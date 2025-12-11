@@ -130,7 +130,7 @@ const indexDocumentsStep = createStep({
 })
 
 export const governedRagIndex = createWorkflow({
-  id: 'governed-rag-index',
+  id: 'governedRagIndex',
   description: 'Index documents with security tags and classifications',
   inputSchema: z.object({
     documents: z.array(

@@ -89,6 +89,7 @@ import { weatherWorkflow } from './workflows/weather-workflow';
 import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 import { ResearchRuntimeContext } from './agents/index';
+import { governedRagIndex } from "./workflows/governed-rag-index.workflow";
 
 const ml = process.env.MLFLOW_EXPERIMENT_ID
 
@@ -106,6 +107,8 @@ export const mastra = new Mastra({
     telephoneGameWorkflow,
     repoIngestionWorkflow,
     specGenerationWorkflow,
+    governedRagIndex,
+    
   },
   agents: {
     // Core Agents

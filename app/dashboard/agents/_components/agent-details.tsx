@@ -42,7 +42,13 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
         )}
         <div className="flex gap-2">
           <Badge variant="outline">{agent.id}</Badge>
-          {agent.model && <Badge variant="secondary">{agent.model}</Badge>}
+          {agent.model && (
+            <Badge variant="secondary">
+              {typeof agent.model === "string"
+                ? agent.model
+                : `${agent.model.provider}${agent.model.name ? ` / ${agent.model.name}` : ""}`}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -76,7 +82,7 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
           {agent.model && (
             <div>
               <h4 className="text-sm font-medium mb-2">Model</h4>
-              <p className="text-sm text-muted-foreground">{agent.model}</p>
+              {typeof agent.model === "string" ? agent.model : `${agent.model.provider}${agent.model.name ? ` / ${agent.model.name}` : ""}`}
             </div>
           )}
 

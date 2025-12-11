@@ -700,7 +700,7 @@ const finalizeContentStep = createStep({
 });
 
 export const contentReviewWorkflow = createWorkflow({
-  id: 'content-review-workflow',
+  id: 'contentReviewWorkflow',
   description: 'Content creation workflow with iterative quality review using .dowhile() loop',
   inputSchema: contentInputSchema,
   outputSchema: finalOutputSchema,

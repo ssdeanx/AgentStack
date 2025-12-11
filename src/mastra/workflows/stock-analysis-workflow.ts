@@ -550,7 +550,7 @@ const generateReportStep = createStep({
 });
 
 export const stockAnalysisWorkflow = createWorkflow({
-  id: 'stock-analysis-workflow',
+  id: 'stockAnalysisWorkflow',
   description: 'Sequential stock analysis workflow with data enrichment at each step',
   inputSchema: z.object({
     symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)'),

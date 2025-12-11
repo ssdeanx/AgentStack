@@ -259,7 +259,7 @@ const tasksStep = createStep({
 // --- Workflow ---
 
 export const specGenerationWorkflow = createWorkflow({
-  id: 'spec-generation-workflow',
+  id: 'specGenerationWorkflow',
   inputSchema: specInputSchema,
   outputSchema: workflowOutputSchema,
 })

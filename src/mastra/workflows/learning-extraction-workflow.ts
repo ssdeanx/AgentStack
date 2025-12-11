@@ -758,7 +758,7 @@ const generateLearningReportStep = createStep({
 });
 
 export const learningExtractionWorkflow = createWorkflow({
-  id: 'learning-extraction-workflow',
+  id: 'learningExtractionWorkflow',
   description: 'Extract learnings from content with human-in-the-loop approval using suspend()/resume()',
   inputSchema: learningInputSchema,
   outputSchema: finalOutputSchema,
