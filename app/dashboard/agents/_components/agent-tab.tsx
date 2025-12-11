@@ -62,13 +62,16 @@ export function AgentTab({ agentId }: AgentTabProps) {
         </div>
       </div>
 
-      {agent.tools && agent.tools.length > 0 && (
+      {Array.isArray(agent.tools) && agent.tools.length > 0 && (
         <div>
           <h4 className="text-sm font-medium mb-3">Tools</h4>
           <div className="flex flex-wrap gap-2">
-            {agent.tools.map((tool, index) => (
-              <Badge key={index} variant="secondary">{tool.name}</Badge>
-            ))}
+            {agent.tools.map((tool, index) => {
+              const label = typeof tool === "string" ? tool : (tool.name ?? tool.id)
+              return (
+                <Badge key={index} variant="secondary">{label}</Badge>
+              )
+            })}
           </div>
         </div>
       )}

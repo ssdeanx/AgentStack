@@ -128,7 +128,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
     (inner?.state ?? inner?.status ?? payload?.state ?? payload?.status ?? "").toString() ?? "";
 
   // Convert a free-form status to tool states defined by the SDK
-  function mapToToolState(s: string): DynamicToolUIPart["state"] {
+  const mapToToolState = (s: string): DynamicToolUIPart["state"] => {
     const st = String(s ?? "").toLowerCase();
 
     if (!st) {
@@ -164,7 +164,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
     // fallback: if an output is present consider finished, otherwise input available
     if (output !== undefined && output !== null) {return "output-available";}
     return "input-available";
-  }
+  };
 
   const state = mapToToolState(rawState);
 

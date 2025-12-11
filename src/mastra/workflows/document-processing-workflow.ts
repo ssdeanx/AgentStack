@@ -689,7 +689,7 @@ const indexChunksStep = createStep({
 });
 
 export const documentProcessingWorkflow = createWorkflow({
-  id: 'document-processing-workflow',
+  id: 'documentProcessingWorkflow',
   description: 'Full document ingestion pipeline with conditional PDF handling using .branch()',
   inputSchema: documentInputSchema,
   outputSchema: indexedDocumentSchema,

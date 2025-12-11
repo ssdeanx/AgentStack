@@ -219,7 +219,7 @@ const ingestStep = createStep({
 // --- Workflow ---
 
 export const repoIngestionWorkflow = createWorkflow({
-  id: 'repo-ingestion-workflow',
+  id: 'repoIngestionWorkflow',
   inputSchema: scanInputSchema,
   outputSchema: ingestOutputSchema,
 })

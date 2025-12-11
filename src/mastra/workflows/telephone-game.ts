@@ -104,7 +104,7 @@ const stepD2 = createStep({
 });
 
 const telephoneGameWorkflow = createWorkflow({
-  id: 'telephoneGame',
+  id: 'telephoneGameWorkflow',
   inputSchema: z.object({}),
   outputSchema: z.object({
     message: z.string(),

@@ -597,7 +597,7 @@ const verifyStep = createStep({
 
 // Create the workflow
 export const governedRagAnswer = createWorkflow({
-  id: 'governed-rag-answer',
+  id: 'governedRagAnswer',
   description:
     'Multi-agent governed RAG: auth → retrieve+rerank → answer → verify',
   inputSchema: z.object({

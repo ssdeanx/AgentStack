@@ -415,7 +415,7 @@ Script: ${refinedScript}`;
 // --- Workflow ---
 
 export const contentStudioWorkflow = createWorkflow({
-  id: 'content-studio-workflow',
+  id: 'contentStudioWorkflow',
   inputSchema: z.object({
     topic: z.string(),
   }),

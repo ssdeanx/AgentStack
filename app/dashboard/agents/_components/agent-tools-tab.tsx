@@ -10,7 +10,11 @@ interface AgentToolsTabProps {
 }
 
 export function AgentToolsTab({ agent }: AgentToolsTabProps) {
-  const tools = agent.tools ?? []
+  const tools = Array.isArray(agent.tools)
+    ? agent.tools
+    : agent.tools
+    ? [agent.tools]
+    : []
 
   if (tools.length === 0) {
     return (
@@ -25,16 +29,21 @@ export function AgentToolsTab({ agent }: AgentToolsTabProps) {
   return (
     <div className="space-y-3">
       {tools.map((tool, index) => {
-        const toolId = typeof tool === "string" ? tool : tool.id
-        const toolName = typeof tool === "string" ? tool : tool.name || tool.id
+        const toolId = typeof tool === "string" ? tool : (tool as any).id
+        const toolName = typeof tool === "string" ? tool : tool.name || (tool as any).id
         return (
           <div
-            key={`${toolId}-${index}`}
+            key={`${toolName}-${toolId}-${index}`}
             className="flex items-center justify-between p-3 rounded-md border"
+            data-testid={`agent-tool-${toolId}-${toolName}`}
           >
             <div className="flex items-center gap-3">
               <Wrench className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{toolName}</span>
+              <span className="text-sm font-medium">
+                {typeof tool === "string"
+                  ? tool
+                  : String(tool.name ?? (tool as any).id ?? JSON.stringify(tool))}
+              </span>
             </div>
             <Badge variant="secondary">Tool</Badge>
           </div>

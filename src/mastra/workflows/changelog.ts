@@ -279,7 +279,7 @@ const stepA2 = createStep({
 });
 
 const changelogWorkflow = createWorkflow({
-  id: 'changelog',
+  id: 'changelogWorkflow',
   inputSchema: z.object({
     channelId: z.string(),
   }),

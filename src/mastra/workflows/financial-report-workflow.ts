@@ -993,7 +993,7 @@ const parallelMergeStep = createStep({
 });
 
 export const financialReportWorkflow = createWorkflow({
-  id: 'financial-report-workflow',
+  id: 'financialReportWorkflow',
   description: 'Comprehensive multi-source financial reports using .parallel() for concurrent data fetching',
   inputSchema: financialInputSchema,
   outputSchema: finalReportSchema,

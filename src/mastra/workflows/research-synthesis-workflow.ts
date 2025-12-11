@@ -559,7 +559,7 @@ const foreachWrapperStep = createStep({
 });
 
 export const researchSynthesisWorkflow = createWorkflow({
-  id: 'research-synthesis-workflow',
+  id: 'researchSynthesisWorkflow',
   description: 'Multi-topic research with synthesis using .foreach() for concurrent topic processing',
   inputSchema: researchInputSchema,
   outputSchema: reportOutputSchema,
