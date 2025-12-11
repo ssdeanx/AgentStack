@@ -1,6 +1,5 @@
 import { createScorer, runEvals } from '@mastra/core/evals';
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
-import { sqlAgent } from '../agents/sql'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { scriptWriterAgent } from '../agents/scriptWriterAgent'
 import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
@@ -42,27 +41,6 @@ export async function runContentStrategistExperiment() {
         scorers: [structureScorer, creativityScorer, toneConsistencyScorer]
     })
     console.log('Content Strategist Experiment Results:', JSON.stringify(results, null, 2))
-    return results
-}
-
-export async function runSqlAgentExperiment() {
-    console.log('Running SQL Agent Experiment...')
-    const results = await runEvals({
-        target: sqlAgent,
-        data: [
-            {
-                input: 'What are the top 5 most populous cities in Europe?',
-            },
-            {
-                input: 'List all cities in France with a population over 1 million.',
-            },
-            {
-                input: 'Show me the average population of cities in Asia.',
-            }
-        ],
-        scorers: [sqlValidityScorer, responseQualityScorer]
-    })
-    console.log('SQL Agent Experiment Results:', JSON.stringify(results, null, 2))
     return results
 }
 
@@ -221,7 +199,6 @@ export async function runWeatherAgentExperiment() {
 
 export async function runAllExperiments(p0: unknown) {
     await runContentStrategistExperiment()
-    await runSqlAgentExperiment()
     await runCopywriterExperiment()
     await runScriptWriterExperiment()
     await runStockAnalysisExperiment()

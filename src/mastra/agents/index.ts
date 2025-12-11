@@ -1,7 +1,6 @@
 export type { EditorRuntimeContext } from "./editorAgent";
 export type { ResearchRuntimeContext } from "./researchAgent";
 export type { WeatherRuntimeContext } from "./weather-agent";
-export type { SqlAgentRuntimeContext } from "./sql";
 export type { ReportRuntimeContext } from "./reportAgent";
 export type { ImageRuntimeContext } from "./image";
 export type { StockRuntimeContext } from "./stockAnalysisAgent";
@@ -47,7 +46,6 @@ export { reportAgent } from "./reportAgent";
 export { researchAgent } from "./researchAgent";
 export { researchPaperAgent } from "./researchPaperAgent";
 export { scriptWriterAgent } from "./scriptWriterAgent";
-export { sqlAgent } from "./sql";
 export { stockAnalysisAgent } from "./stockAnalysisAgent";
 export { weatherAgent } from "./weather-agent";
 

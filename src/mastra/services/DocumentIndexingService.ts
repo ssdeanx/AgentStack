@@ -10,7 +10,7 @@ import { EmbeddingService } from './EmbeddingService'
 import { ValidationService } from './ValidationService'
 import type { StorageResult } from './VectorStorageService'
 import { VectorStorageService } from './VectorStorageService'
-import { RoleService } from './role-service'
+import { RoleService } from './RoleService'
 import { log } from '../config/logger'
 
 export interface DocumentInput {

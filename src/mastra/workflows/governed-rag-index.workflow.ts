@@ -8,8 +8,8 @@ import {
   logStepStart,
 } from '../config/logger'
 
-import type { IndexingResult } from '../config/DocumentIndexingService'
-import { DocumentIndexingService } from '../config/DocumentIndexingService'
+import type { IndexingResult } from '../services/DocumentIndexingService'
+import { DocumentIndexingService } from '../services/DocumentIndexingService'
 import { pgVector } from '../config/pg-storage'
 
 // Single step that handles all document indexing

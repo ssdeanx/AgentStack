@@ -116,26 +116,60 @@ export function getInheritorRoles(targetRole: string): string[] {
  * Supabase-compatible tier configuration
  */
 export interface TierConfig {
-    maxRequests: number
+    // Backwards-compatible: maxRequests remains for legacy callers
+    maxRequests?: number
+    // Explicit quotas used throughout services
+    maxDocuments: number
+    maxApiRequestsPerDay: number
+    maxUsersPerTenant: number
     features: string[]
     rlsPolicy: string
+    supportLevel?: 'community' | 'email' | 'priority' | 'phone_24x7'
+    customIntegrations?: boolean
+    advancedAnalytics?: boolean
+    whiteLabel?: boolean
+    onPremise?: boolean
 }
 
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     free: {
         maxRequests: 100,
+        maxDocuments: 250,
+        maxApiRequestsPerDay: 100,
+        maxUsersPerTenant: 1,
         features: ['basic-chat', 'public-docs'],
         rlsPolicy: RLS_POLICIES.publicRead,
+        supportLevel: 'community',
+        customIntegrations: false,
+        advancedAnalytics: false,
+        whiteLabel: false,
+        onPremise: false,
     },
     pro: {
         maxRequests: 10000,
+        maxDocuments: 10000,
+        maxApiRequestsPerDay: 10000,
+        maxUsersPerTenant: 100,
         features: ['advanced-chat', 'private-docs', 'api-access'],
         rlsPolicy: RLS_POLICIES.proFeatures,
+        supportLevel: 'email',
+        customIntegrations: true,
+        advancedAnalytics: true,
+        whiteLabel: false,
+        onPremise: false,
     },
     enterprise: {
         maxRequests: -1, // unlimited
+        maxDocuments: -1,
+        maxApiRequestsPerDay: -1,
+        maxUsersPerTenant: -1,
         features: ['unlimited-chat', 'all-docs', 'custom-models', 'admin-panel'],
         rlsPolicy: RLS_POLICIES.enterpriseFeatures,
+        supportLevel: 'priority',
+        customIntegrations: true,
+        advancedAnalytics: true,
+        whiteLabel: true,
+        onPremise: true,
     },
 }
 
@@ -147,10 +181,37 @@ export function getTierConfig(tier: SubscriptionTier): TierConfig {
 }
 
 /**
+ * Backwards-compatible tier quota accessor used by services
+ */
+export function getTierQuota(tier: SubscriptionTier): {
+    maxDocuments: number
+    maxApiRequestsPerDay: number
+    maxUsersPerTenant: number
+    features: string[]
+    rlsPolicy: string
+} {
+    const cfg = getTierConfig(tier)
+    return {
+        maxDocuments: cfg.maxDocuments,
+        maxApiRequestsPerDay: cfg.maxApiRequestsPerDay,
+        maxUsersPerTenant: cfg.maxUsersPerTenant,
+        features: cfg.features,
+        rlsPolicy: cfg.rlsPolicy,
+    }
+}
+
+/**
  * Check if a feature is available in a tier
  */
 export function hasFeature(tier: SubscriptionTier, feature: string): boolean {
     return TIER_CONFIGS[tier].features.includes(feature)
+}
+
+/**
+ * Backwards-compatible feature check
+ */
+export function isTierFeatureEnabled(tier: SubscriptionTier, feature: string) {
+    return hasFeature(tier, feature)
 }
 
 /**
@@ -167,6 +228,24 @@ export function getTierForRole(role: string): SubscriptionTier {
         return 'free'
     }
     return 'free'
+}
+
+/**
+ * Minimum tier required for a given classification level
+ */
+export function getMinimumTierForClassification(
+    classification: 'public' | 'internal' | 'confidential'
+): SubscriptionTier {
+    switch (classification) {
+        case 'public':
+            return 'free'
+        case 'internal':
+            return 'pro'
+        case 'confidential':
+            return 'enterprise'
+        default:
+            return 'free'
+    }
 }
 
 /**
