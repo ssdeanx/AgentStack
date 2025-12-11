@@ -1,46 +1,80 @@
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { Octokit } from "octokit";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { GithubIntegration } from "@mastra/github";
 import { z } from 'zod';
 import { log } from '../config/logger';
 
-
-export const github = new GithubIntegration({
-  config: {
-    PERSONAL_ACCESS_TOKEN: process.env.GITHUB_API_KEY ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN!,
-  }
-});
-
-const GITHUB_API_BASE = 'https://api.github.com';
-
-async function githubFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = process.env.GITHUB_API_KEY ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-
-  const response = await fetch(`${GITHUB_API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'Authorization': token ? `Bearer ${token}` : '',
-      'User-Agent': 'Mastra-GitHub-Agent',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`GitHub API error: ${response.status} - ${error}`);
-  }
-
-  return response.json();
+interface GitHubRepo {
+  name: string;
+  full_name: string;
+  description: string | null;
+  html_url: string;
+  default_branch: string;
+  stargazers_count: number;
+  forks_count: number;
+  private: boolean;
+  updated_at: string;
 }
+
+function getOctokit() {
+  const token = process.env.GITHUB_API_KEY ?? process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+  return new Octokit({ auth: token });
+}
+
+// Helper to normalize or map repository items into our shape
+function mapRepo(repo: GitHubRepo) {
+  return {
+    name: repo.name,
+    fullName: repo.full_name,
+    description: repo.description,
+    url: repo.html_url,
+    defaultBranch: repo.default_branch,
+    stars: repo.stargazers_count,
+    forks: repo.forks_count,
+    isPrivate: repo.private,
+    updatedAt: repo.updated_at,
+  };
+}
+
+// Map input 'type' (combined set) to org-specific types accepted by listForOrg
+function mapTypeForOrg(type?: string): 'all' | 'public' | 'private' | 'forks' | 'sources' | 'member' | undefined {
+  if (type === undefined || type === null || type === '') { return undefined; }
+  switch (type) {
+    case 'all':
+    case 'public':
+    case 'private':
+    case 'forks':
+    case 'sources':
+    case 'member':
+      return type as any;
+    default:
+      return undefined;
+  }
+}
+
+// Map input 'type' to authenticated user types accepted by listForAuthenticatedUser
+function mapTypeForAuthenticatedUser(type?: string): 'all' | 'owner' | 'public' | 'private' | 'member' | undefined {
+  if (type === undefined || type === null || type === '') { return undefined; }
+  switch (type) {
+    case 'all':
+    case 'owner':
+    case 'public':
+    case 'private':
+    case 'member':
+      return type;
+    default:
+      return undefined;
+  }
+}
+
 
 export const listRepositories = createTool({
   id: 'github:listRepositories',
   description: 'List repositories for the authenticated user or a specified organization',
   inputSchema: z.object({
     org: z.string().optional().describe('Organization name (optional, defaults to user repos)'),
-    type: z.enum(['all', 'public', 'private', 'forks', 'sources', 'member']).optional().default('all'),
+    type: z.enum(['all', 'public', 'private', 'member', 'owner', 'forks', 'sources']).optional().default('all'),
     sort: z.enum(['created', 'updated', 'pushed', 'full_name']).optional().default('updated'),
     perPage: z.number().optional().default(30),
   }),
@@ -74,29 +108,31 @@ export const listRepositories = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📚 Fetching repositories...' } });
 
     try {
-      const path = inputData.org !== undefined
-        ? `/orgs/${inputData.org}/repos?type=${inputData.type}&sort=${inputData.sort}&per_page=${inputData.perPage}`
-        : `/user/repos?type=${inputData.type}&sort=${inputData.sort}&per_page=${inputData.perPage}`;
+      const octokit = getOctokit();
+      let response;
+      if (inputData.org !== undefined) {
+        response = await octokit.rest.repos.listForOrg({
+          org: inputData.org,
+          type: mapTypeForOrg(inputData.type),
+          sort: inputData.sort,
+          per_page: inputData.perPage,
+        });
+      } else {
+        response = await octokit.rest.repos.listForAuthenticatedUser({
+          type: mapTypeForAuthenticatedUser(inputData.type),
+          sort: inputData.sort,
+          per_page: inputData.perPage,
+        });
+      }
+      const data = response.data as any[];
 
-      const data = await githubFetch<Array<Record<string, unknown>>>(path);
-
-      const repositories = data.map((repo) => ({
-        name: repo.name as string,
-        fullName: repo.full_name as string,
-        description: repo.description as string | null,
-        url: repo.html_url as string,
-        defaultBranch: repo.default_branch as string,
-        stars: repo.stargazers_count as number,
-        forks: repo.forks_count as number,
-        isPrivate: repo.private as boolean,
-        updatedAt: repo.updated_at as string,
-      }));
+      const repositories = data.map(mapRepo);
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${repositories.length} repositories` } });
 
       span.setAttributes({
         'tool.output.success': true,
-        'tool.output.count': repositories.length
+        'tool.output.count': repositories.length,
       });
       span.end();
 
@@ -108,13 +144,25 @@ export const listRepositories = createTool({
       if (e instanceof Error) {
         span.recordException(e);
       }
-      span.setStatus({ code: 2, message: errorMsg });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       span.end();
 
       return { success: false, error: errorMsg };
     }
   },
 });
+
+interface GitHubPR {
+  number: number;
+  title: string;
+  state: string;
+  user: { login: string } | null | undefined;
+  html_url: string;
+  created_at: string;
+  updated_at: string;
+  draft?: boolean;
+  labels: Array<{ name: string }>;
+}
 
 export const listPullRequests = createTool({
   id: 'github:listPullRequests',
@@ -157,27 +205,31 @@ export const listPullRequests = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Fetching PRs for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const path = `/repos/${inputData.owner}/${inputData.repo}/pulls?state=${inputData.state}&sort=${inputData.sort}&direction=${inputData.direction}&per_page=${inputData.perPage}`;
-      const data = await githubFetch<Array<Record<string, unknown>>>(path);
+      const octokit = getOctokit();
+      const response = await octokit.rest.pulls.list({
+        owner: inputData.owner,
+        repo: inputData.repo,
+        state: inputData.state,
+        sort: inputData.sort,
+        direction: inputData.direction,
+        per_page: inputData.perPage,
+      });
 
-      const pullRequests = data.map((pr) => ({
-        number: pr.number as number,
-        title: pr.title as string,
-        state: pr.state as string,
-        author: (pr.user as Record<string, unknown>)?.login as string ?? 'unknown',
-        url: pr.html_url as string,
-        createdAt: pr.created_at as string,
-        updatedAt: pr.updated_at as string,
-        draft: pr.draft as boolean ?? false,
-        labels: ((pr.labels as Array<Record<string, unknown>>) ?? []).map((l) => l.name as string),
+      const pullRequests = (response.data ?? []).map((pr: GitHubPR) => ({
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        author: pr.user?.login ?? 'unknown',
+        url: pr.html_url,
+        createdAt: pr.created_at,
+        updatedAt: pr.updated_at,
+        draft: pr.draft ?? false,
+        labels: pr.labels.map(l => l.name),
       }));
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${pullRequests.length} pull requests` } });
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.count': pullRequests.length
-      });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.count': pullRequests.length });
       span.end();
 
       return { success: true, pullRequests };
@@ -238,12 +290,18 @@ export const listIssues = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🐛 Fetching issues for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      let path = `/repos/${inputData.owner}/${inputData.repo}/issues?state=${inputData.state}&sort=${inputData.sort}&direction=${inputData.direction}&per_page=${inputData.perPage}`;
-      if (inputData.labels !== undefined && inputData.labels !== null) {path += `&labels=${inputData.labels}`;}
+      const octokit = getOctokit();
+      const response = await octokit.rest.issues.listForRepo({
+        owner: inputData.owner,
+        repo: inputData.repo,
+        state: inputData.state,
+        labels: inputData.labels,
+        sort: inputData.sort,
+        direction: inputData.direction,
+        per_page: inputData.perPage,
+      });
 
-      const data = await githubFetch<Array<Record<string, unknown>>>(path);
-
-      // Filter out pull requests (GitHub API returns PRs as issues too)
+      const data = response.data as any[];
       const issues = data
         .filter((issue) => issue.pull_request === undefined || issue.pull_request === null)
         .map((issue) => ({
@@ -260,10 +318,7 @@ export const listIssues = createTool({
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${issues.length} issues` } });
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.count': issues.length
-      });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.count': issues.length });
       span.end();
 
       return { success: true, issues };
@@ -274,7 +329,7 @@ export const listIssues = createTool({
       if (e instanceof Error) {
         span.recordException(e);
       }
-      span.setStatus({ code: 2, message: errorMsg });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       span.end();
 
       return { success: false, error: errorMsg };
@@ -318,16 +373,16 @@ export const createIssue = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Creating issue in ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const data = await githubFetch<Record<string, unknown>>(`/repos/${inputData.owner}/${inputData.repo}/issues`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: inputData.title,
-          body: inputData.body,
-          labels: inputData.labels,
-          assignees: inputData.assignees,
-        }),
+      const octokit = getOctokit();
+      const response = await octokit.rest.issues.create({
+        owner: inputData.owner,
+        repo: inputData.repo,
+        title: inputData.title,
+        body: inputData.body,
+        labels: inputData.labels,
+        assignees: inputData.assignees,
       });
+      const data = response.data as any;
 
       const issue = {
         number: data.number as number,
@@ -402,12 +457,14 @@ export const getRepositoryInfo = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Fetching repository info for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      const repo = await githubFetch<Record<string, unknown>>(`/repos/${inputData.owner}/${inputData.repo}`);
+      const octokit = getOctokit();
+      const res = await octokit.rest.repos.get({ owner: inputData.owner, repo: inputData.repo });
+      const repo = res.data as any;
 
       const repository = {
         name: repo.name as string,
         fullName: repo.full_name as string,
-        description: repo.description as string | null,
+        description: (repo.description as string) ?? null,
         url: repo.html_url as string,
         defaultBranch: repo.default_branch as string,
         stars: repo.stargazers_count as number,
@@ -415,7 +472,7 @@ export const getRepositoryInfo = createTool({
         watchers: repo.watchers_count as number,
         openIssues: repo.open_issues_count as number,
         isPrivate: repo.private as boolean,
-        language: repo.language as string | null,
+        language: (repo.language as string) ?? null,
         topics: (repo.topics as string[]) ?? [],
         createdAt: repo.created_at as string,
         updatedAt: repo.updated_at as string,
@@ -480,15 +537,15 @@ export const searchCode = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching code for "${inputData.query}"...` } });
 
     try {
+      const octokit = getOctokit();
       let q = inputData.query;
-      if (inputData.repo) {q += ` repo:${inputData.repo}`;}
-      if (inputData.language) {q += ` language:${inputData.language}`;}
+      if (inputData.repo !== undefined && inputData.repo !== null && inputData.repo !== '') { q += ` repo:${inputData.repo}`; }
+      if (inputData.language !== undefined && inputData.language !== null && inputData.language !== '') { q += ` language:${inputData.language}`; }
 
-      const data = await githubFetch<{ total_count: number; items: Array<Record<string, unknown>> }>(
-        `/search/code?q=${encodeURIComponent(q)}&per_page=${inputData.perPage}`
-      );
+      const data = await octokit.rest.search.code({ q, per_page: inputData.perPage });
+      const items = data.data.items as any[];
 
-      const results = data.items.map((item) => ({
+      const results = items.map((item) => ({
         name: item.name as string,
         path: item.path as string,
         repository: (item.repository as Record<string, unknown>)?.full_name as string ?? 'unknown',
@@ -496,15 +553,12 @@ export const searchCode = createTool({
         sha: item.sha as string,
       }));
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${data.total_count} results` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${data.data.total_count} results` } });
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.totalCount': data.total_count
-      });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.totalCount': data.data.total_count });
       span.end();
 
-      return { success: true, results, totalCount: data.total_count };
+      return { success: true, results, totalCount: data.data.total_count };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub search code failed: ${errorMsg}`);
@@ -512,7 +566,7 @@ export const searchCode = createTool({
       if (e instanceof Error) {
         span.recordException(e);
       }
-      span.setStatus({ code: 2, message: errorMsg });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       span.end();
 
       return { success: false, error: errorMsg };
@@ -553,34 +607,22 @@ export const getFileContent = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Fetching file ${inputData.path}...` } });
 
     try {
-      let apiPath = `/repos/${inputData.owner}/${inputData.repo}/contents/${inputData.path}`;
-      if (inputData.ref !== undefined && inputData.ref !== null) {apiPath += `?ref=${inputData.ref}`;}
-
-      const data = await githubFetch<Record<string, unknown>>(apiPath);
+      const octokit = getOctokit();
+      const response = await octokit.rest.repos.getContent({ owner: inputData.owner, repo: inputData.repo, path: inputData.path, ref: inputData.ref });
+      const data = response.data as any;
 
       if (Array.isArray(data)) {
         throw new Error('Path points to a directory, not a file');
       }
 
-      const content = data.encoding === 'base64'
-        ? Buffer.from(data.content as string, 'base64').toString('utf-8')
-        : data.content as string;
+      const content = data.encoding === 'base64' ? Buffer.from(data.content as string, 'base64').toString('utf-8') : (data.content as string);
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File content retrieved' } });
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.size': data.size as number
-      });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.size': data.size as number });
       span.end();
 
-      return {
-        success: true,
-        content,
-        encoding: data.encoding as string,
-        sha: data.sha as string,
-        size: data.size as number,
-      };
+      return { success: true, content, encoding: data.encoding as string, sha: data.sha as string, size: data.size as number };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       log.error(`GitHub get file failed: ${errorMsg}`);
@@ -588,7 +630,7 @@ export const getFileContent = createTool({
       if (e instanceof Error) {
         span.recordException(e);
       }
-      span.setStatus({ code: 2, message: errorMsg });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       span.end();
 
       return { success: false, error: errorMsg };
@@ -633,13 +675,15 @@ export const getRepoFileTree = createTool({
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🌳 Fetching file tree for ${inputData.owner}/${inputData.repo}...` } });
 
     try {
-      // 1. Get the tree SHA for the branch
-      // We can pass the branch name directly to the trees API in many cases, but let's be robust
-      const treePath = `/repos/${inputData.owner}/${inputData.repo}/git/trees/${inputData.branch}?recursive=${inputData.recursive ? '1' : '0'}`;
+      const octokit = getOctokit();
+      // Get branch commit to find tree SHA
+      const branchRes = await octokit.rest.repos.getBranch({ owner: inputData.owner, repo: inputData.repo, branch: inputData.branch });
+      const treeSha = (branchRes.data as any).commit.commit.tree.sha as string;
 
-      const data = await githubFetch<{ tree: Array<Record<string, unknown>>, truncated: boolean }>(treePath);
+      const treeRes = await octokit.rest.git.getTree({ owner: inputData.owner, repo: inputData.repo, tree_sha: treeSha, recursive: inputData.recursive ? '1' : '0' });
+      const data = treeRes.data as any;
 
-      const tree = data.tree.map((item) => ({
+      const tree = (data.tree ?? []).map((item: any) => ({
         path: item.path as string,
         mode: item.mode as string,
         type: item.type as string,
@@ -648,16 +692,13 @@ export const getRepoFileTree = createTool({
         url: item.url as string | undefined,
       }));
 
-      if (data.truncated) {
+      if (data.truncated === true) {
         await writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ Warning: File tree was truncated by GitHub API limit' } });
       }
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${tree.length} items` } });
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.count': tree.length
-      });
+      span.setAttributes({ 'tool.output.success': true, 'tool.output.count': tree.length });
       span.end();
 
       return { success: true, tree };
@@ -668,7 +709,7 @@ export const getRepoFileTree = createTool({
       if (e instanceof Error) {
         span.recordException(e);
       }
-      span.setStatus({ code: 2, message: errorMsg });
+      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       span.end();
 
       return { success: false, error: errorMsg };
