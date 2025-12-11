@@ -70,7 +70,7 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 | Editor Agent Tool | Text editing | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `editorAgentTool` | - | [editor-agent-tool.ts](./editor-agent-tool.ts) |
 | Execa Tool | Shell command execution | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | `execaTool` | `execa` | [execa-tool.ts](./execa-tool.ts) |
 | Pnpm Tool | PNPM package management | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pnpmTool` | `execa` | [pnpm-tool.ts](./pnpm-tool.ts) |
-| Github | GitHub API interactions | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `githubTool` | `@mastra/github` | [github.ts](./github.ts) |
+| Github | GitHub API interactions | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `githubTool` | `octokit` | [github.ts](./github.ts) |
 | FS | Filesystem operations | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `fsTool` | `fs-extra` | [fs.ts](./fs.ts) |
 | Write Note | Note writing utility | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | `writeNoteTool` | `fs` | [write-note.ts](./write-note.ts) |
 | Calendar Tool | Calendar management | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `calendarTool` | - | [calendar-tool.ts](./calendar-tool.ts) |

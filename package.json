@@ -183,7 +183,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/jsdom": "^27.0.0",
     "@types/mdx": "^2.0.13",
-    "@types/node": "^25.0.0",
+    "@types/node": "^24.10.3",
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
