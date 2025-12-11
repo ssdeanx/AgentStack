@@ -21,7 +21,7 @@ export function AgentListItem({ agent, isSelected, onClick }: AgentListItemProps
     >
       <Bot className="h-4 w-4 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{agent.name || agent.id}</p>
+        <p className="font-medium truncate">{agent.name ?? agent.id}</p>
         {agent.description && (
           <p
             className={cn(

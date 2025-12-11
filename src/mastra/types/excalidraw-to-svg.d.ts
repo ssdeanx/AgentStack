@@ -1,5 +1,6 @@
 declare module 'excalidraw-to-svg' {
   interface ExcalidrawElement {
+    [key: string]: any
     id: string
     type: string
     x: number
@@ -14,12 +15,13 @@ declare module 'excalidraw-to-svg' {
     strokeStyle: string
     roughness: number
     opacity: number
-    [key: string]: any
+
   }
 
   interface ExcalidrawAppState {
-    viewBackgroundColor?: string
     [key: string]: any
+    viewBackgroundColor?: string
+
   }
 
   interface ExcalidrawData {

@@ -18,14 +18,14 @@ export function AgentList({ selectedAgentId, onSelectAgent }: AgentListProps) {
   const [search, setSearch] = useState("")
 
   const filteredAgents = useMemo(() => {
-    if (!agents) return []
-    if (!search) return agents
+    if (!agents) {return []}
+    if (!search) {return agents}
     const searchLower = search.toLowerCase()
     return agents.filter(
       (agent) =>
-        agent.id.toLowerCase().includes(searchLower) ||
-        agent.name?.toLowerCase().includes(searchLower) ||
-        agent.description?.toLowerCase().includes(searchLower)
+        (agent.id.toLowerCase().includes(searchLower) ||
+        ((agent.name?.toLowerCase().includes(searchLower)) ?? false) ||
+        agent.description?.toLowerCase().includes(searchLower)) ?? false
     )
   }, [agents, search])
 

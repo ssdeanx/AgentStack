@@ -30,7 +30,21 @@ export interface DataFileManagerContext {
   workspaceId?: string
 }
 
-const DATA_DIR = path.join(process.cwd(), 'docs/data')
+const DATA_DIR = path.join(process.cwd(), './data')
+
+/**
+ * Ensures the data directory exists
+ */
+async function ensureDataDir(): Promise<void> {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true })
+  } catch (error) {
+    // Directory might already exist, ignore error
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+      throw error
+    }
+  }
+}
 
 /**
  * Ensures the given filePath is within the DATA_DIR.
@@ -63,6 +77,7 @@ export const readDataFileTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const requestContext = context?.requestContext;
+    await ensureDataDir();
     await writer?.custom({ type: 'data-tool-progress', data: { message: '📖 Reading file: ' + inputData.fileName } });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const readSpan = tracer.startSpan('read:file', {

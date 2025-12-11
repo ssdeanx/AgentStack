@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import type { Message } from "@/lib/types/mastra-api"
 import { mastraClient } from "@/lib/mastra-client"
 
 // Generic fetch hook for MastraClient data
@@ -35,30 +36,35 @@ export function useMastraFetch<T>(
 // Agents hooks
 export function useAgents() {
   return useMastraFetch(async () => {
-    const agents = await mastraClient.getAgents()
-    return Object.entries(agents).map(([id, agent]) => ({ id, ...agent }))
+    const agents = await mastraClient.listAgents()
+    return Object.entries(agents).map(([id, agent]) => {
+      const rec = agent as unknown as Record<string, unknown>
+      let modelStr: string | undefined = undefined
+      if (typeof rec.modelId === 'string') { modelStr = rec.modelId }
+      else if (typeof rec.model === 'string') { modelStr = rec.model }
+      else if (typeof rec.model === 'object' && rec.model !== null && typeof (rec.model as Record<string, unknown>).name === 'string') { modelStr = (rec.model as Record<string, unknown>).name as string }
+      return { ...(agent as unknown as Record<string, unknown>), id, model: modelStr }
+    })
   }, [])
 }
 
 export function useAgent(agentId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!agentId) {return null}
+      if (agentId === null || agentId === undefined) {return null}
       const agent = mastraClient.getAgent(agentId)
       const details = await agent.details()
-      return { id: agentId, ...details }
-    },
-    [agentId]
-  )
-}
-
-export function useAgentEvals(agentId: string | null) {
-  return useMastraFetch(
-    async () => {
-      if (!agentId) {return { ci: [], live: [] }}
-      const agent = mastraClient.getAgent(agentId)
-      const [ci, live] = await Promise.all([agent.evals(), agent.liveEvals()])
-      return { ci, live }
+      const det = details as unknown as Record<string, unknown>
+      const detModelId = typeof det.modelId === 'string' ? det.modelId : undefined
+      const detModelField = det.model
+      let detModelStr: string | undefined = undefined
+      if (detModelId !== undefined && detModelId !== null) { detModelStr = detModelId }
+      else if (typeof detModelField === 'string') { detModelStr = detModelField }
+      else if (typeof detModelField === 'object' && detModelField !== null && typeof (detModelField as Record<string, unknown>).name === 'string') { detModelStr = (detModelField as Record<string, unknown>).name as string }
+      const tools = Array.isArray(det.tools)
+        ? (det.tools as unknown[]).map((t) => (typeof t === 'string' ? { id: t, name: t } : { id: (t as Record<string, unknown>).id as string, name: (t as Record<string, unknown>).name as string | undefined }))
+        : Object.entries((det.tools ?? {}) as Record<string, unknown>).map(([id, val]) => ({ id, name: typeof val === 'object' && val !== null ? (val as Record<string, unknown>).name as string | undefined : undefined }))
+      return { ...details, id: agentId, model: detModelStr, tools }
     },
     [agentId]
   )
@@ -67,17 +73,22 @@ export function useAgentEvals(agentId: string | null) {
 // Workflows hooks
 export function useWorkflows() {
   return useMastraFetch(async () => {
-    return await mastraClient.getWorkflows()
+    const wf = await mastraClient.listWorkflows()
+    return Object.entries(wf).map(([id, w]) => ({ id, ...(w as unknown as Record<string, unknown>) }))
   }, [])
 }
 
 export function useWorkflow(workflowId: string | null) {
   return useMastraFetch(
     async () => {
-      if (!workflowId) {return null}
+      if (workflowId === null || workflowId === undefined) {return null}
       const workflow = mastraClient.getWorkflow(workflowId)
       const details = await workflow.details()
-      return { id: workflowId, ...details }
+      const det = details as unknown as Record<string, unknown>
+      const steps = Array.isArray(det.steps)
+        ? (det.steps as unknown[]).map((s) => ({ id: (s as Record<string, unknown>).id as string, name: (s as Record<string, unknown>).name as string | undefined, description: (s as Record<string, unknown>).description as string | undefined }))
+        : Object.entries((det.steps ?? {}) as Record<string, unknown>).map(([id, s]) => ({ id, name: (s as Record<string, unknown>).name as string | undefined, description: (s as Record<string, unknown>).description as string | undefined }))
+      return { id: workflowId, ...details, steps }
     },
     [workflowId]
   )
@@ -86,7 +97,7 @@ export function useWorkflow(workflowId: string | null) {
 // Tools hooks
 export function useTools() {
   return useMastraFetch(async () => {
-    const tools = await mastraClient.getTools()
+    const tools = await mastraClient.listTools()
     return Object.entries(tools).map(([toolId, tool]) => ({
       ...(tool as unknown as Record<string, unknown>),
       id: toolId
@@ -132,25 +143,53 @@ export function useVectorDetails(vectorName: string, indexName: string | null) {
 export function useMemoryThreads(resourceId: string, agentId: string) {
   return useMastraFetch(
     async () => {
-      return await mastraClient.getMemoryThreads({ resourceId, agentId });
+      return await mastraClient.listMemoryThreads({ resourceId, agentId });
     },
     [resourceId, agentId]
   )
 }
 
 export function useMemoryThread(threadId: string | null, agentId: string) {
-  const [messages, setMessages] = useState<unknown[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
    const fetchMessages = useCallback(
-    async (limit = 50) => {
+    async () => {
       if (threadId === null) { return }
       setLoading(true)
       try {
-        const thread = mastraClient.getMemoryThread(threadId, agentId)
-        const result = await thread.getMessages({ limit })
-        setMessages(result.messages ?? [])
+        const thread = mastraClient.getMemoryThread({ threadId, agentId })
+          const result = await thread.listMessages({})
+        const dbMessages: unknown[] = result.messages ?? []
+        const uiMessages: Message[] = dbMessages.map((m: unknown) => {
+          const record = m as Record<string, unknown>
+          const contentRaw = record.content
+          let contentStr = ''
+          if (typeof contentRaw === 'string') {
+            contentStr = contentRaw
+          } else if (
+            typeof contentRaw === 'object' && contentRaw !== null && typeof (contentRaw as Record<string, unknown>).content === 'string'
+          ) {
+            contentStr = (contentRaw as Record<string, unknown>).content as string
+          } else if (
+            typeof contentRaw === 'object' && contentRaw !== null && Array.isArray((contentRaw as Record<string, unknown>).parts)
+          ) {
+            const parts = (contentRaw as Record<string, unknown>).parts as unknown[]
+            contentStr = parts.map((p) => (typeof p === 'object' && p !== null && (p as Record<string, unknown>).text ? (p as Record<string, unknown>).text as string : '')).join(' ')
+          } else {
+            contentStr = JSON.stringify(contentRaw)
+          }
+          return {
+            id: (record.id as string) ?? '',
+            role: (record.role as Message['role']) ?? 'user',
+            content: contentStr,
+            threadId: (record.threadId as string | undefined),
+            createdAt: (record.createdAt as string | undefined),
+            type: (record.type as string | undefined),
+          }
+        })
+        setMessages(uiMessages)
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)))
       } finally {
@@ -203,13 +242,13 @@ export function useAITraces(params?: {
 }) {
   return useMastraFetch(
     async () => {
-      return await mastraClient.getAITraces({
+      return await mastraClient.getTraces({
         pagination: {
           page: params?.page ?? 1,
           perPage: params?.perPage ?? 20,
           dateRange: params?.dateRange,
         },
-        filters: params?.filters as Parameters<typeof mastraClient.getAITraces>[0]["filters"],
+        filters: params?.filters as Parameters<typeof mastraClient.getTraces>[0]["filters"],
       })
     },
     [params?.page, params?.perPage, JSON.stringify(params?.filters)]
@@ -220,7 +259,7 @@ export function useAITrace(traceId: string | null) {
   return useMastraFetch(
     async () => {
       if (!traceId) {return null}
-      return await mastraClient.getAITrace(traceId);
+      return await mastraClient.getTrace(traceId);
     },
     [traceId]
   )
@@ -230,7 +269,7 @@ export function useAITrace(traceId: string | null) {
 export function useLogs(transportId?: string) {
   return useMastraFetch(
     async () => {
-      return await mastraClient.getLogs({ transportId: transportId ?? "" })
+      return await mastraClient.listLogs({ transportId: transportId ?? "" })
     },
     [transportId]
   )
@@ -248,25 +287,11 @@ export function useRunLogs(runId: string | null, transportId?: string) {
 
 export function useLogTransports() {
   return useMastraFetch(async () => {
-    return await mastraClient.getLogTransports()
+    return await mastraClient.listLogTransports()
   }, [])
 }
 
-// Telemetry hooks
-export function useTelemetry(params?: {
-  name?: string
-  scope?: string
-  page?: number
-  perPage?: number
-  attribute?: Record<string, string>
-}) {
-  return useMastraFetch(
-    async () => {
-      return await mastraClient.getTelemetry(params);
-    },
-    [params?.name, params?.scope, params?.page, params?.perPage]
-  )
-}
+// Telemetry hooks - use useAITraces instead
 
 // Action hooks (mutations)
 export function useExecuteTool() {
@@ -275,12 +300,16 @@ export function useExecuteTool() {
   const [result, setResult] = useState<unknown>(null)
 
   const execute = useCallback(
-    async (toolId: string, data: Record<string, unknown>, options?: { runId?: string }) => {
+    async (toolId: string, data: Record<string, unknown>, options?: { runId?: string; threadId?: string; resourceId?: string }) => {
       setLoading(true)
       setError(null)
       try {
         const tool = mastraClient.getTool(toolId)
-        const res = await tool.execute({ data, ...options })
+        const params: Record<string, unknown> & { data: unknown } = { data, args: data }
+        if (options?.runId !== undefined && options?.runId !== null) { params.runId = options.runId }
+        if (options?.threadId !== undefined && options?.threadId !== null) { params.threadId = options.threadId }
+        if (options?.resourceId !== undefined && options?.resourceId !== null) { params.resourceId = options.resourceId }
+        const res = await tool.execute(params)
         setResult(res)
         return res
       } catch (err) {

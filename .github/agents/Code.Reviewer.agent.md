@@ -4,7 +4,7 @@ description: 'Reviews code changes, suggests improvements, and ensures adherence
 argument-hint: 'Analyze code changes, provide feedback, and suggest improvements for code quality and maintainability.'
 model: GPT-5 mini (copilot)
 infer: true
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'runSubagent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'ms-vscode.vscode-websearchforcopilot/websearch']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
 ---
 
 <code-reviewer-instructions version="2.0" priority="enterprise">
