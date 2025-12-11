@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { createToolCallAccuracyScorerCode } from '@mastra/core/evals/code';
-import { createCompletenessScorer } from '@mastra/core/evals/completeness-scorer';
+//import { createToolCallAccuracyScorerCode } from '@mastra/core/evals/code';
+//import { createCompletenessScorer } from '@mastra/core/evals/completeness-scorer';
 import { createScorer, runEvals } from '@mastra/core/evals';
 
-export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({
-  expectedTool: 'weatherTool',
-  strictMode: false,
-});
+//export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({
+  //expectedTool: 'weatherTool',
+  //strictMode: false,
+//});
 
-export const completenessScorer = createCompletenessScorer();
+//export const completenessScorer = createCompletenessScorer();
 
 // Custom LLM-judged scorer: evaluates if non-English locations are translated appropriately
 /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
@@ -89,7 +89,7 @@ export const translationScorer = createScorer({
   });
 
 export const scorers = {
-  toolCallAppropriatenessScorer,
-  completenessScorer,
+  //toolCallAppropriatenessScorer,
+  //completenessScorer,
   translationScorer,
 };

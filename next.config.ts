@@ -48,8 +48,8 @@ const nextConfig: NextConfig = {
 //    cssChunking: true,
  //   craCompat: true,
 //    validateRSCRequestHeaders: true,
-    webpackMemoryOptimizations: true,
-    webpackBuildWorker: true,
+ //   webpackMemoryOptimizations: true,
+ //7   webpackBuildWorker: true,
  //   turbopackTreeShaking: true,
 //    turbopackMinify: true,
 //    turbopackImportTypeBytes: true,
@@ -65,10 +65,10 @@ const nextConfig: NextConfig = {
     ppr: false,
   },
 };
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-})
-module.exports = withBundleAnalyzer({})
+//const withBundleAnalyzer = require('@next/bundle-analyzer')({
+//  enabled: process.env.ANALYZE === 'true',
+//})
+//module.exports = withBundleAnalyzer({})
 
 const withMDX = createMDX({
   extension: /\.mdx?$/,

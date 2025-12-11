@@ -23,9 +23,9 @@ const prompts = [
 ];
 
 function stringifyNode(node: Node): string {
-  if ("value" in node && typeof node.value === "string") return node.value;
+  if ("value" in node && typeof node.value === "string") {return node.value;}
   if ("children" in node && Array.isArray(node.children))
-    return node.children.map(stringifyNode).join("");
+    {return node.children.map(stringifyNode).join("");}
   return "";
 }
 
@@ -58,18 +58,18 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
 }) => {
   switch (name) {
     case "new_note":
-      const today = new Date().toISOString().split("T")[0];
+      { const today = new Date().toISOString().split("T")[0];
       return [
         {
           role: "user",
           content: {
             type: "text",
-            text: `Create a new note, It is critical to provide a detailed description of each section. Ensure that each section is well-organized and easy to read. Also, include subsections for each section.  Provide as much detail as possible for each section. Using this template titled \"${today}\" with sections: \"## Tasks\", \"## Specifications\", \"## Resources\", and \"## Notes\".  `,
+            text: `Create a new note, It is critical to provide a detailed description of each section. Ensure that each section is well-organized and easy to read. Also, include subsections for each section.  Provide as much detail as possible for each section. Using this template titled \\"${today}\\" with sections: \\"## Tasks\\", \\"## Specifications\\", \\"## Resources\\", and \\"## Notes\\".  `,
           },
         },
-      ];
+      ]; }
     case "summarize_note":
-      if (!args?.noteContent) throw new Error("No content provided");
+      { if (!args?.noteContent) {throw new Error("No content provided");}
       const metaSum = await analyzeMarkdown(args.noteContent as string);
       return [
         {
@@ -79,9 +79,9 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
             text: `Summarize each section in ≤ 5 bullets.\\n\\n### Outline\\n${metaSum.headings.map((h) => `- ${h} (${metaSum.wordCounts[h] || 0} words)`).join("\\n")}`.trim(),
           },
         },
-      ];
+      ]; }
     case "brainstorm_ideas":
-      if (!args?.noteContent) throw new Error("No content provided");
+      { if (!args?.noteContent) {throw new Error("No content provided");}
       const metaBrain = await analyzeMarkdown(args.noteContent as string);
       return [
         {
@@ -91,9 +91,9 @@ const getPromptMessages: MCPServerPrompts["getPromptMessages"] = async ({
             text: `Brainstorm ≤5 ideas for underdeveloped sections below ${args?.topic ? `on ${args.topic}` : "."}\\n\\nUnderdeveloped sections:\\n${metaBrain.headings.length ? metaBrain.headings.map((h) => `- ${h}`).join("\\n") : "- (none, pick any)"}`,
           },
         },
-      ];
+      ]; }
     default:
-      throw new Error(`Prompt \"${name}\" not found, please check the prompt name and try again.`);
+      throw new Error(`Prompt \\"${name}\\" not found, please check the prompt name and try again.`);
   }
 };
 

@@ -42,7 +42,7 @@ export const resourceHandlers: MCPServerResources = {
   listResources: listNoteFiles,
   getResourceContent: async ({ uri }: { uri: string }) => {
     const content = await readNoteFile(uri);
-    if (content === null) return { text: "" };
+    if (content === null) {return { text: "" };}
     return { text: content };
   },
 };

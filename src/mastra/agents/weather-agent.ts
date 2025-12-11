@@ -60,13 +60,6 @@ export const weatherAgent = new Agent({
   },
   tools: { weatherTool, webScraperTool, mdocumentChunker },
   scorers: {
-    toolCallAppropriateness: {
-      scorer: scorers.toolCallAppropriatenessScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
 
   },
   memory: pgMemory,
