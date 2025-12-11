@@ -107,9 +107,7 @@ export const upstashMemory = new Memory({
             - **Follow-ups Needed**:
             `,
     },
-  },
-  processors: [
-  ],
+  }
 });
 
 // Graph-based RAG tool using Upstash

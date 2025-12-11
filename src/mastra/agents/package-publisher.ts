@@ -178,7 +178,6 @@ export const danePackagePublisher = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           }
@@ -198,7 +197,7 @@ export const danePackagePublisher = new Agent({
   scorers: {
     taskCompletion: {
       scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.4 },
     },
   },
 });

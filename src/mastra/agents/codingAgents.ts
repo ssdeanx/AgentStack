@@ -90,12 +90,11 @@ Always consider maintainability, scalability, and testability in your recommenda
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: userTier === 'enterprise' ? 'high' : 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_LOW',
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
           cachedContent: 'Repo Name, Description, Key Modules, Recent Commits',
         } satisfies GoogleGenerativeAIProviderOptions,
       }
@@ -199,8 +198,8 @@ Be constructive and educational in feedback.`,
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
             includeThoughts: true,
+            thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
@@ -309,8 +308,8 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
             includeThoughts: true,
+            thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
@@ -415,7 +414,7 @@ For each refactoring:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: userTier === 'enterprise' ? 'high' : 'medium',
+            thinkingBudget: -1,
             includeThoughts: true,
           },
           responseModalities: ['TEXT'],

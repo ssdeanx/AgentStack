@@ -98,11 +98,10 @@ Tailor your editing style to the content type:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }

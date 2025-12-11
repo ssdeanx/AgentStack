@@ -164,11 +164,10 @@ Structure:
             providerOptions: {
                 google: {
                     thinkingConfig: {
-                        thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
                     },
-                    responseModalities: ['TEXT', 'IMAGE'],
+                    responseModalities: ['TEXT'],
                 } satisfies GoogleGenerativeAIProviderOptions,
             }
         }

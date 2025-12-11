@@ -132,12 +132,11 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }

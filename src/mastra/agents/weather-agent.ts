@@ -38,7 +38,6 @@ export const weatherAgent = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           }

@@ -95,11 +95,10 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
         } satisfies GoogleGenerativeAIProviderOptions,
       }

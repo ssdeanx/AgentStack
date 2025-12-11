@@ -99,12 +99,11 @@ ${PGVECTOR_PROMPT}
         google: {
 
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
@@ -202,11 +201,10 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
         google: {
           structuredOutput: true,
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         }
       }
     }
@@ -288,11 +286,10 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
         google: {
           structuredOutput: true,
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         }
       }
     }
@@ -309,10 +306,6 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
     htmlToMarkdownTool,
     contentCleanerTool,
     googleScholarTool,
-    google_search: googleTools.googleSearch({
-      mode: "MODE_DYNAMIC",
-      dynamicThreshold: 0.7,
-    }),
   },
   memory: pgMemory,
 
@@ -379,11 +372,10 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
         google: {
           structuredOutput: true,
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         }
       }
     }

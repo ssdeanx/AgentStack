@@ -90,7 +90,7 @@ export const acpAgent = new Agent({
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     };

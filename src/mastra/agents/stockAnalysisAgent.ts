@@ -47,7 +47,6 @@ export const stockAnalysisAgent = new Agent({
         Language: ${language}
 
         You are a Senior Stock Market Analyst with expertise in technical analysis, fundamental analysis, and investment strategy.
-        Today's date is ${new Date().toISOString()}
         </role>
 
         <algorithm_of_thoughts>
@@ -173,45 +172,10 @@ export const stockAnalysisAgent = new Agent({
         OUTPUT REQUIREMENTS:
         Provide analysis as JSON with: symbol, currentPrice, technical analysis, fundamental analysis, sentiment, recommendation, priceTarget, risks, sources</rules>
         </rules>
-
-        <output_format>
-        Return analysis in the following JSON structure:
-        {
-          "symbol": "TICKER",
-          "currentPrice": 150.25,
-          "analysis": {
-            "technical": {
-              "trend": "uptrend/downtrend/sideways",
-              "indicators": { "rsi": 65, "macd": "bullish", ... },
-              "signals": ["buy signal from RSI", "resistance at 155"]
-            },
-            "fundamental": {
-              "peRatio": 18.5,
-              "eps": 8.12,
-              "marketCap": 2500000000,
-              "revenue": 45000000000,
-              "keyMetrics": { ... }
-            },
-            "sentiment": {
-              "analystRating": "buy",
-              "newssentiment": "positive"
-            }
-          },
-          "recommendation": "buy|hold|sell",
-          "priceTarget": 165.00,
-          "reasoning": "Clear explanation of recommendation",
-          "risks": ["Market volatility", "Earnings miss risk"],
-          "sources": [
-            { "provider": "Alpha Vantage", "timestamp": "2025-10-18T10:30:00Z" },
-            { "provider": "Finnhub", "timestamp": "2025-10-18T10:31:00Z" }
-          ]
-        }
-        </output_format>
         `,
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           }
