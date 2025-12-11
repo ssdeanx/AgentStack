@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { PythonParser } from './semantic-utils'
 import type { RequestContext } from '@mastra/core/request-context';
 
@@ -193,7 +193,7 @@ Supports TypeScript, JavaScript, Python, and other languages.
 Use for code review preparation, quality assessment, and refactoring planning.`,
   inputSchema: codeAnalysisInputSchema,
   outputSchema: codeAnalysisOutputSchema,
-  execute: async (inputData, context): Promise<CodeAnalysisOutput> => {
+  execute: async (inputData): Promise<CodeAnalysisOutput> => {
     const tracer = trace.getTracer('code-analysis-tool', '1.0.0');
     const span = tracer.startSpan('code-analysis', {
       attributes: {
@@ -202,10 +202,11 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       }
     });
 
-    const { target, options } = inputData
-    const includeMetrics = options?.includeMetrics ?? true
-    const detectPatterns = options?.detectPatterns ?? true
-    const maxFileSize = options?.maxFileSize ?? 100000
+    try {
+      const { target, options } = inputData
+      const includeMetrics = options?.includeMetrics ?? true
+      const detectPatterns = options?.detectPatterns ?? true
+      const maxFileSize = options?.maxFileSize ?? 100000
 
     let filePaths: string[] = []
 
@@ -291,5 +292,12 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
         issueCount,
       },
     }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    span?.recordException(error instanceof Error ? error : new Error(errorMessage));
+    span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+    span?.end();
+    throw error;
+  }
   },
 })

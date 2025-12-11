@@ -1,6 +1,6 @@
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from "@mastra/core/tools";
-import { readFileSync, writeFileSync } from 'fs';
+import { promises as fsPromises } from 'fs';
 import { z } from 'zod';
 import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -18,12 +18,11 @@ export const fsTool = createTool({
   }),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const tracingContext = context?.tracingContext;
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'fs-tool',
-      input: { action: inputData.action, file: inputData.file },
+
+    const tracer = trace.getTracer('tools/fs-tool');
+    const span = tracer.startSpan('fs-tool', {
+      attributes: { action: inputData.action, file: inputData.file },
     });
 
     const { action, file, data } = inputData
@@ -31,18 +30,21 @@ export const fsTool = createTool({
     try {
       switch (action) {
         case 'write':
-          writeFileSync(file, data)
+          await fsPromises.writeFile(file, data)
           break
-        case 'read':
-          return { message: readFileSync(file, 'utf8') }
+        case 'read': {
+          const readContent = await fsPromises.readFile(file, 'utf8')
+          return { message: readContent }
+        }
         case 'append':
-          writeFileSync(file, data, { flag: 'a' })
+          await fsPromises.appendFile(file, data)
           break
         default:
           return { message: 'Invalid action' }
       }
       await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ FS operation complete' } });
-      span?.end({ output: { success: true } });
+      span?.setAttribute('success', true);
+      span?.end();
       return { message: 'Success' }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -50,7 +52,9 @@ export const fsTool = createTool({
       log.error(
         `FS operation failed: ${errorMsg}`
       );
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      span?.recordException(e instanceof Error ? e : new Error(errorMsg));
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
+      span?.end();
       return {
         message: `Error: ${errorMsg}`,
       };

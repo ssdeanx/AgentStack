@@ -1,4 +1,4 @@
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -26,7 +26,7 @@ export const jwtAuthTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const requestContext = context?.requestContext;
-    const tracingContext = context?.tracingContext;
+
 
     await writer?.custom({ type: 'data-tool-progress', data: { message: '🔐 Verifying JWT authentication' } });
     const jwt = (requestContext as RequestContext<JwtAuthContext>)?.get(
@@ -34,23 +34,23 @@ export const jwtAuthTool = createTool({
     )
 
     // Create a span for tracing
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'jwt-auth-tool',
-      input: { hasJwt: !!jwt },
-    })
+    const tracer = trace.getTracer('tools/jwt-auth');
+    const span = tracer.startSpan('jwt-auth-tool', {
+      attributes: { hasJwt: !!jwt },
+    });
 
     if (!jwt) {
       const error = new Error('JWT not found in runtime context')
-      span?.error({ error })
+      span?.recordException(error);
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+      span?.end();
       throw error
     }
 
     try {
       //            const result = await AuthenticationService.verifyJWT(jwt)
-      span?.end({
-        //                output: { success: true, hasRoles: result.roles?.length > 0 },
-      })
+      span?.setAttribute('success', true);
+      span?.end();
       // Mock return for now as the service call is commented out
       return {
         sub: 'mock-user',
@@ -65,7 +65,9 @@ export const jwtAuthTool = createTool({
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       log.error(`JWT verification failed: ${errorMessage}`)
-      span?.error({ error: new Error(errorMessage) })
+      span?.recordException(new Error(errorMessage));
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span?.end();
       throw new Error('JWT verification failed: Unknown error')
     }
   },

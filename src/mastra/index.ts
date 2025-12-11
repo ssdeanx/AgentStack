@@ -15,7 +15,7 @@ import { pgVector } from './config/pg-storage';
 
 // Scorers
 import { responseQualityScorer, taskCompletionScorer } from './scorers/custom-scorers';
-import { completenessScorer, toolCallAppropriatenessScorer, translationScorer } from './scorers/weather-scorer';
+import { translationScorer } from './scorers/weather-scorer';
 
 // MCP
 import { a2aCoordinatorMcpServer } from './mcp';
@@ -164,7 +164,7 @@ export const mastra = new Mastra({
     a2aCoordinatorAgent,
     codingA2ACoordinator,
   },
-  scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer, responseQualityScorer, taskCompletionScorer },
+  scorers: { translationScorer, responseQualityScorer, taskCompletionScorer },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
 
   storage: new PostgresStore({
@@ -184,7 +184,7 @@ export const mastra = new Mastra({
       langfuse: {
         serviceName: "ai",
         requestContextKeys: ["userId", "environment", "tenantId"],
-        sampling: { type: SamplingStrategyType.ALWAYS },
+        //sampling: { type: SamplingStrategyType.ALWAYS },
         spanOutputProcessors: [new SensitiveDataFilter(
           {
             sensitiveFields: ['api-key', 'authorization', 'password', 'token',

@@ -1,4 +1,4 @@
-import { delay } from '@mastra/core';
+//import { delay } from '@mastra/core';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import chalk from 'chalk';
 import execa from 'execa';
@@ -171,7 +171,7 @@ const stepA1 = createStep({
           TOKEN_LIMIT -= result.usage?.totalTokens ?? 0;
 
           if (TOKEN_LIMIT < 20000) {
-            await delay(60000);
+            //await delay(60000);
             TOKEN_LIMIT = 80000;
           }
         }

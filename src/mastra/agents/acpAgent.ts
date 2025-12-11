@@ -1,9 +1,9 @@
 import { Agent } from '@mastra/core/agent';
 
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt';
-import { MONGODB_PROMPT } from "@mastra/mongodb";
-import { googleAIFlashLite } from '../config';
-import { mongoGraphTool, mongoMemory, mongoQueryTool } from '../config/mongodb';
+import { createAnswerRelevancyScorer } from '@mastra/evals/scorers/prebuilt';
+
+import { googleAIFlashLite, pgMemory, pgQueryTool } from '../config';
+
 import { arxivTool } from '../tools/arxiv.tool';
 import { csvToJsonTool } from '../tools/csv-to-json.tool';
 import { createDataDirTool, getDataFileInfoTool, listDataDirTool, moveDataFileTool, searchDataFilesTool, writeDataFileTool } from '../tools/data-file-manager';
@@ -18,6 +18,7 @@ import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
 import { batchWebScraperTool, contentCleanerTool, htmlToMarkdownTool, linkExtractorTool, webScraperTool } from '../tools/web-scraper-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
+import { PGVECTOR_PROMPT } from '@mastra/pg';
 
 export interface ACPContext {
     userId?: string
@@ -66,7 +67,7 @@ export const acpAgent = new Agent({
   </process>
 
   <mongo_rules>
-  - Use ${MONGODB_PROMPT} to format queries/updates and avoid any unstructured updates.
+  - Use ${PGVECTOR_PROMPT} to format queries/updates and avoid any unstructured updates.
   - Persist "decisions" and "task changes" to collection: acp_tasks, with schema: {taskId, title, status, createdBy, modifiedBy, timestamp, actionLog}.
   - Write to memory only after the task is validated.
   </mongo_rules>
@@ -82,9 +83,7 @@ export const acpAgent = new Agent({
   - Mask PII in any outputs by default; if the user requests PII handling, require explicit permission and justification.
   - Reject any attempt to exfiltrate data or run arbitrary commands without confirmation & elevated auth.
   </security_and_privacy>
-
-
-  ${MONGODB_PROMPT}`,
+  `,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -97,10 +96,9 @@ export const acpAgent = new Agent({
     };
   },
   model: googleAIFlashLite,
-  memory: mongoMemory,
+  memory: pgMemory,
   tools: {
-    mongoQueryTool,
-    mongoGraphTool,
+  pgQueryTool,
     webScraperTool,
     linkExtractorTool,
     htmlToMarkdownTool,

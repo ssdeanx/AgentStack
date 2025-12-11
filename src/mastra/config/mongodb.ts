@@ -4,11 +4,10 @@ import { google } from '@ai-sdk/google';
 import { embedMany } from 'ai';
 import type { UIMessage } from 'ai'
 import { log } from './logger';
-import { TokenLimiter } from "@mastra/memory/processors";
 import z from "zod";
 import { Memory } from "@mastra/memory";
-import { AISpanType } from '@mastra/observability'
-import type { TracingContext } from '@mastra/observability'
+import { trace, SpanStatusCode } from '@opentelemetry/api'
+
 
 /**
  * MongoDB Vector configuration for the Governed RAG system
@@ -72,6 +71,7 @@ export const mongoMemory = new Memory({
     options: {
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+        generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
         // Advanced semantic recall with HNSW index configuration
         semanticRecall: {
             topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
@@ -96,13 +96,8 @@ export const mongoMemory = new Memory({
             scope: 'resource',
             version: 'vnext',
             template: '# User Profile\n- **Name**:\n- **Preferences**:\n\n# Interaction History\n{{history}}\n\n# Current Context\n{{context}}\n- **Tasks**:\n{{tasks}}\n- **Notes**:\n{{notes}}',
-        },
-        // Thread management with supported options
-        threads: {
-            generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
-        },
-    },
-    processors: [new TokenLimiter(1048576)],
+        }
+    }
 })
 
 log.info('Mongos and Memory initialized with PgVector support', {
@@ -192,8 +187,7 @@ export async function processDocument(
   options: {
     chunkSize?: number;
     chunkOverlap?: number;
-  } = {},
-  tracingContext?: TracingContext
+  } = {}
 ): Promise<{
   chunks: Array<{
     text: string;
@@ -205,16 +199,13 @@ export async function processDocument(
   const chunkSize = options.chunkSize ?? 1000;
   const chunkOverlap = options.chunkOverlap ?? 200;
 
-  const span = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.MODEL_CHUNK,
-    name: 'mongo-process-document',
-    input: {
+  const tracer = trace.getTracer('mastra/mongodb');
+  const span = tracer.startSpan('mongo-process-document', {
+    attributes: {
       contentLength: content.length,
       chunkSize,
       chunkOverlap,
       model: 'gemini-embedding-001',
-    },
-    metadata: {
       component: 'mongodb',
       operationType: 'document-processing',
     },
@@ -254,44 +245,25 @@ export async function processDocument(
       processingTimeMs: processingTime,
     });
 
-    span?.end({
-      output: {
-        chunksCount: chunks.length,
-        embeddingDimension: embeddings[0]?.length || 0,
-        processingTimeMs: processingTime,
-        success: true,
-      },
-      metadata: {
-        model: 'gemini-embedding-001',
-        operation: 'document-processing',
-        finalStatus: 'success',
-      },
-    });
+    span?.setAttribute('chunksCount', chunks.length);
+    span?.setAttribute('embeddingDimension', embeddings[0]?.length || 0);
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('success', true);
+    span?.setAttribute('model', 'gemini-embedding-001');
+    span?.setAttribute('operation', 'document-processing');
+    span?.end();
 
     return { chunks, embeddings };
   } catch (error) {
     const processingTime = Date.now() - startTime;
     log.error("Failed to process document", { error: String(error), processingTimeMs: processingTime });
 
-    span?.error({
-      error: error instanceof Error ? error : new Error(String(error)),
-      metadata: {
-        model: 'gemini-embedding-001',
-        operation: 'document-processing',
-        processingTime,
-      },
-    });
-
-    span?.end({
-      output: {
-        success: false,
-        processingTimeMs: processingTime,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      metadata: {
-        finalStatus: 'error',
-      },
-    });
+    span?.recordException(error instanceof Error ? error : new Error(String(error)));
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('model', 'gemini-embedding-001');
+    span?.setAttribute('operation', 'document-processing');
+    span?.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
+    span?.end();
 
     throw error;
   }
@@ -306,20 +278,16 @@ export async function storeDocumentEmbeddings(
     metadata?: Record<string, unknown>;
   }>,
   embeddings: number[][],
-  baseMetadata: Record<string, unknown> = {},
-  tracingContext?: TracingContext
+  baseMetadata: Record<string, unknown> = {}
 ): Promise<string[]> {
   const startTime = Date.now();
 
-  const span = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.TOOL_CALL,
-    name: 'mongo-store-embeddings',
-    input: {
+  const tracer = trace.getTracer('mastra/mongodb');
+  const span = tracer.startSpan('mongo-store-embeddings', {
+    attributes: {
       chunksCount: chunks.length,
       embeddingsCount: embeddings.length,
       collectionName: MONGODB_CONFIG.collectionName,
-    },
-    metadata: {
       component: 'mongodb',
       operationType: 'vector-storage',
     },
@@ -349,41 +317,22 @@ export async function storeDocumentEmbeddings(
       processingTimeMs: processingTime,
     });
 
-    span?.end({
-      output: {
-        idsCount: ids.length,
-        processingTimeMs: processingTime,
-        success: true,
-      },
-      metadata: {
-        operation: 'vector-storage',
-        finalStatus: 'success',
-      },
-    });
+    span?.setAttribute('idsCount', ids.length);
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('success', true);
+    span?.setAttribute('operation', 'vector-storage');
+    span?.end();
 
     return ids;
   } catch (error) {
     const processingTime = Date.now() - startTime;
     log.error("Failed to store document embeddings", { error: String(error), processingTimeMs: processingTime });
 
-    span?.error({
-      error: error instanceof Error ? error : new Error(String(error)),
-      metadata: {
-        operation: 'vector-storage',
-        processingTime,
-      },
-    });
-
-    span?.end({
-      output: {
-        success: false,
-        processingTimeMs: processingTime,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      metadata: {
-        finalStatus: 'error',
-      },
-    });
+    span?.recordException(error instanceof Error ? error : new Error(String(error)));
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('operation', 'vector-storage');
+    span?.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
+    span?.end();
 
     throw error;
   }
@@ -398,8 +347,7 @@ export async function querySimilarDocuments(
     topK?: number;
     filter?: MongoDBMetadataFilter;
     includeVector?: boolean;
-  } = {},
-  tracingContext?: TracingContext
+  } = {}
 ): Promise<Array<{
   id: string;
   score: number;
@@ -409,17 +357,14 @@ export async function querySimilarDocuments(
   const startTime = Date.now();
   const topK = options.topK ?? 10;
 
-  const span = tracingContext?.currentSpan?.createChildSpan({
-    type: AISpanType.TOOL_CALL,
-    name: 'mongo-query-similar',
-    input: {
+  const tracer = trace.getTracer('mastra/mongodb');
+  const span = tracer.startSpan('mongo-query-similar', {
+    attributes: {
       queryTextLength: queryText.length,
       topK,
       hasFilter: !!options.filter,
       includeVector: options.includeVector ?? false,
       collectionName: MONGODB_CONFIG.collectionName,
-    },
-    metadata: {
       component: 'mongodb',
       operationType: 'vector-query',
       model: 'gemini-embedding-001',
@@ -450,18 +395,12 @@ export async function querySimilarDocuments(
       processingTimeMs: processingTime,
     });
 
-    span?.end({
-      output: {
-        resultsCount: results.length,
-        processingTimeMs: processingTime,
-        success: true,
-      },
-      metadata: {
-        model: 'gemini-embedding-001',
-        operation: 'vector-query',
-        finalStatus: 'success',
-      },
-    });
+    span?.setAttribute('resultsCount', results.length);
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('success', true);
+    span?.setAttribute('model', 'gemini-embedding-001');
+    span?.setAttribute('operation', 'vector-query');
+    span?.end();
 
     // Ensure metadata is always defined
     return results.map(result => ({
@@ -472,25 +411,12 @@ export async function querySimilarDocuments(
     const processingTime = Date.now() - startTime;
     log.error("Failed to query similar documents", { error: String(error), processingTimeMs: processingTime });
 
-    span?.error({
-      error: error instanceof Error ? error : new Error(String(error)),
-      metadata: {
-        model: 'gemini-embedding-001',
-        operation: 'vector-query',
-        processingTime,
-      },
-    });
-
-    span?.end({
-      output: {
-        success: false,
-        processingTimeMs: processingTime,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      metadata: {
-        finalStatus: 'error',
-      },
-    });
+    span?.recordException(error instanceof Error ? error : new Error(String(error)));
+    span?.setAttribute('processingTimeMs', processingTime);
+    span?.setAttribute('model', 'gemini-embedding-001');
+    span?.setAttribute('operation', 'vector-query');
+    span?.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
+    span?.end();
 
     throw error;
   }

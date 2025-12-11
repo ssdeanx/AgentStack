@@ -175,7 +175,7 @@ export const googleSearchTool = createTool({
       await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Search complete: ${organicResults.length} organic results` } });
       return result
     } catch (error) {
-        error instanceof Error ? error.message : String(error)
+      const errorMessage = error instanceof Error ? error.message : String(error);
       await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Search failed: ${errorMessage}` } });
       searchSpan.recordException(new Error(errorMessage));
       searchSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });

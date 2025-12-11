@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { createPatch, structuredPatch } from 'diff'
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { RequestContext } from '@mastra/core/request-context';
 
 const diffReviewInputSchema = z.object({
@@ -49,6 +49,11 @@ Use for code review, comparing versions, and analyzing modifications.`,
   outputSchema: diffReviewOutputSchema,
   execute: async (inputData, _context): Promise<DiffReviewOutput> => {
     const { original, modified, filename = 'file', context: contextLines = 3 } = inputData
+
+    const tracer = trace.getTracer('diff-review');
+    const span = tracer.startSpan('diff-review', { attributes: { filename, contextLines } });
+
+    try {
 
     const unifiedDiff = createPatch(
       filename,
@@ -134,6 +139,11 @@ Use for code review, comparing versions, and analyzing modifications.`,
       summary = `${totalChanges} change${totalChanges !== 1 ? 's' : ''}: ${parts.join(', ')} across ${hunks.length} hunk${hunks.length !== 1 ? 's' : ''}.`
     }
 
+    span?.setAttribute('additions', additions);
+    span?.setAttribute('deletions', deletions);
+    span?.setAttribute('totalChanges', totalChanges);
+    span?.end();
+
     return {
       unifiedDiff,
       hunks,
@@ -145,5 +155,11 @@ Use for code review, comparing versions, and analyzing modifications.`,
       },
       summary,
     }
-  },
-})
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    span?.recordException(error instanceof Error ? error : new Error(errorMessage));
+    span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+    span?.end();
+    throw error;
+  }
+});

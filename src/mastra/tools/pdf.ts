@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from 'fs'
 import  * as path from 'path'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { RequestContext } from '@mastra/core/request-context';
 
 type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{ numpages: number; text: string }>
@@ -35,12 +35,11 @@ export const readPDF = createTool({
   }),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const tracingContext = context?.tracingContext;
 
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'read-pdf',
-      input: { pdfPath: inputData.pdfPath },
+
+    const tracer = trace.getTracer('tools/read-pdf');
+    const span = tracer.startSpan('read-pdf', {
+      attributes: { pdfPath: inputData.pdfPath, service: 'pdf-parse' },
     });
 
     const { pdfPath } = inputData
@@ -68,14 +67,18 @@ export const readPDF = createTool({
       log.info(chalk.blue('-----------------'))
       log.info(chalk.blue(`Number of pages: ${data.numpages}`))
 
-      span?.end({ output: { pageCount: data.numpages, textLength: data.text.length } });
+      span?.setAttribute('pageCount', data.numpages);
+      span?.setAttribute('textLength', data.text.length);
+      span?.end();
       return { content: data.text }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       log.error(
         `Error reading PDF: ${errorMsg}`
       )
-      span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true });
+      span?.recordException(e instanceof Error ? e : new Error(errorMsg));
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
+      span?.end();
       return {
         content: `Error scanning PDF: ${errorMsg}`,
       }
