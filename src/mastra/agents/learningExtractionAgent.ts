@@ -53,7 +53,6 @@ export const learningExtractionAgent = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           }

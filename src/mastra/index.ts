@@ -202,31 +202,31 @@ export const mastra = new Mastra({
           }
         })]
       },
-      langfuse: {
-        serviceName: "ai",
-        requestContextKeys: ["userId", "environment", "tenantId"],
+      //langfuse: {
+      //  serviceName: "ai",
+     //   requestContextKeys: ["userId", "environment", "tenantId"],
         //sampling: { type: SamplingStrategyType.ALWAYS },
-        spanOutputProcessors: [new SensitiveDataFilter(
-          {
-            sensitiveFields: ['api-key', 'authorization', 'password', 'token',
-              'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
-            redactionToken: '[REDACTED]',
-            redactionStyle: 'partial'
-          }
-        )],
-        exporters: [
-          new LangfuseExporter({
-            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-            secretKey: process.env.LANGFUSE_SECRET_KEY,
-            baseUrl: process.env.LANGFUSE_BASE_URL,
-            logger: log,
-            options: {
-              tracer: trace.getTracer("ai"),
-            },
-            logLevel: 'info',
-          }),
-          ],
-      },
+    //    spanOutputProcessors: [new SensitiveDataFilter(
+    ///      {
+    //        sensitiveFields: ['api-key', 'authorization', 'password', 'token',
+    //          'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
+    //        redactionToken: '[REDACTED]',
+    //        redactionStyle: 'partial'
+    //      }
+    //    )],
+    //    exporters: [
+    //      new LangfuseExporter({
+    //        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+    //        secretKey: process.env.LANGFUSE_SECRET_KEY,
+    //        baseUrl: process.env.LANGFUSE_BASE_URL,
+    //        logger: log,
+    //        options: {
+    //          tracer: trace.getTracer("ai"),
+    //        },
+    //        logLevel: 'info',
+     //     }),
+     //     ],
+     // },
     }
   }),
   server: {

@@ -115,11 +115,10 @@ Provide the final content in a clear, well-structured format appropriate for the
             providerOptions: {
                 google: {
                     thinkingConfig: {
-                        thinkingLevel: 'medium',
                         includeThoughts: true,
                         thinkingBudget: -1,
                     },
-                    responseModalities: ['TEXT', 'IMAGE'],
+                    responseModalities: ['TEXT'],
                     mediaResolution: 'MEDIA_RESOLUTION_LOW',
                 } satisfies GoogleGenerativeAIProviderOptions,
             }

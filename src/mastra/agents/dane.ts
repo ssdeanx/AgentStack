@@ -29,11 +29,10 @@ export const daneCommitMessage = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
@@ -58,11 +57,10 @@ export const daneIssueLabeler = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
@@ -92,11 +90,10 @@ export const daneLinkChecker = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
@@ -128,11 +125,10 @@ export const daneChangeLog = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
@@ -189,11 +185,10 @@ export const dane = new Agent({
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }

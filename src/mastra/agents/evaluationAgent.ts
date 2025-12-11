@@ -116,11 +116,10 @@ For each search result provided, you must determine its relevance to the user's 
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
           mediaResolution: 'MEDIA_RESOLUTION_LOW',
         } satisfies GoogleGenerativeAIProviderOptions,
       }

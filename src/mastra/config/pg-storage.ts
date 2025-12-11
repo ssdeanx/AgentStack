@@ -146,13 +146,13 @@ export const pgMemory = new Memory({
  - **Follow-ups Needed**:
 `,
     },
-    },
-    processors: [],
+  }
 })
 
 log.info('PG Store and Memory initialized with PgVector support', {
     schema: process.env.DB_SCHEMA ?? 'mastra',
     maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
+    
     memoryOptions: {
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         semanticRecall: {
@@ -172,8 +172,8 @@ log.info('PG Store and Memory initialized with PgVector support', {
             enabled: true,
             scope: 'resource',
             version: 'vnext',
-        },
-        generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
+        }
+        
     },
 })
 // In-memory counter to track tool calls per request

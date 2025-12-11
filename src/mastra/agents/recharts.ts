@@ -59,7 +59,7 @@ Language: ${language}
 Chart Style: ${chartStyle}
 Color Scheme: ${colorScheme}
 You are a Financial Data Visualization Specialist focused on recommending optimal Recharts chart types.
-Today's date is ${new Date().toISOString()}
+
 </role>
 
 <expertise>
@@ -111,7 +111,6 @@ Return recommendations as JSON:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           }
@@ -209,7 +208,6 @@ Return processed data as JSON:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'medium',
             includeThoughts: true,
             thinkingBudget: -1,
           }
@@ -358,7 +356,6 @@ Return complete component code:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           }
@@ -485,7 +482,6 @@ Return comprehensive chart package:
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           }
@@ -514,10 +510,6 @@ Return comprehensive chart package:
   options: {
   },
   scorers: {
-    responseQuality: {
-      scorer: responseQualityScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
     taskCompletion: {
       scorer: taskCompletionScorer,
       sampling: { type: 'ratio', rate: 0.5 },
@@ -528,7 +520,7 @@ Return comprehensive chart package:
     },
     financialData: {
       scorer: financialDataScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.6 },
     },
   },
   inputProcessors: [

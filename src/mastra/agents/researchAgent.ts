@@ -145,9 +145,8 @@ export const researchAgent = new Agent({
         `,
       providerOptions: {
         google: {
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
           thinkingConfig: {
-            thinkingLevel: 'high',
             includeThoughts: true,
             thinkingBudget: -1,
           }

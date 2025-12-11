@@ -38,11 +38,10 @@ Current user: ${userId ?? 'anonymous'}`,
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: 'low',
             includeThoughts: true,
             thinkingBudget: -1,
           },
-          responseModalities: ['TEXT', 'IMAGE'],
+          responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       },
     };
