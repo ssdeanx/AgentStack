@@ -15,9 +15,9 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <!-- Stats Badges -->
-[![Agents](https://img.shields.io/badge/Agents-48-blue?logo=robot&logoColor=white)](src/mastra/agents)
-[![Tools](https://img.shields.io/badge/Tools-94%2B-orange?logo=hammer&logoColor=white)](src/mastra/tools)
-[![Workflows](https://img.shields.io/badge/Workflows-11-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
+[![Agents](https://img.shields.io/badge/Agents-30+-blue?logo=robot&logoColor=white)](src/mastra/agents)
+[![Tools](https://img.shields.io/badge/Tools-60+-orange?logo=hammer&logoColor=white)](src/mastra/tools)
+[![Workflows](https://img.shields.io/badge/Workflows-14-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
 [![Networks](https://img.shields.io/badge/Networks-4-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
 [![UI Components](https://img.shields.io/badge/UI%20Components-65-pink?logo=react&logoColor=white)](ui/)
 
@@ -31,7 +31,7 @@
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 [![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **94+ enterprise tools**, **48 specialized agents**, **11 workflows**, **4 agent networks**, **65 UI components** (30 AI Elements + 35 base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **60+ enterprise tools**, **30+ specialized agents**, **14 workflows**, **4 agent networks**, **65 UI components** (30+ AI Elements + 35+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 <!-- Mastra Ecosystem -->
 [![@mastra/core](https://img.shields.io/npm/v/@mastra/core?label=@mastra/core&logo=npm)](https://www.npmjs.com/package/@mastra/core)
@@ -60,7 +60,7 @@
 | **Production Observability** | ✅ **Full Langfuse tracing + custom scorers**        | ⚠️ Partial    | ❌ Basic      | ❌ Limited |
 | **Financial Tools**          | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**  | ❌ None       | ❌ None       | ❌ None    |
 | **RAG Pipeline**             | ✅ **PgVector HNSW + rerank + graphRAG**             | ⚠️ External   | ❌ Basic      | ❌ None    |
-| **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration (48 agents)**  | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
+| **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration (30+ agents)**  | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
 | **Governance**               | ✅ **JWT/RBAC + path traversal + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
 | **TypeScript**               | ✅ **Zod schemas everywhere (94+ tools)**            | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
 | **UI Components**            | ✅ **65 components (AI Elements + shadcn/ui)**       | ❌ None       | ❌ None       | ❌ None    |
@@ -72,8 +72,8 @@
 
 - **💰 Financial Intelligence**: 30+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
 - **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal  
-- **🤖 48 Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane)
-- **📋 11 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis
+- **🤖 30+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane)
+- **📋 14 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis
 - **🌐 4 Agent Networks**: Coding team, data pipeline, report generation, research pipeline
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report), A2A coordinator for cross-agent communication
 - **🎨 65 UI Components**: AI Elements (30 chat/reasoning/canvas components) + shadcn/ui (35 base primitives)
@@ -84,9 +84,10 @@
 ## 🏗️ **Architecture**
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 graph TB
     subgraph "� Frontend (Next.js 16)"
-        UI[AI Elements + shadcn/ui<br/>• 30 AI Components<br/>• 34 Base Primitives]
+        UI[AI Elements + shadcn/ui<br/>• 30+ AI Components<br/>• 35+ Base Primitives]
         App[App Router<br/>• React 19<br/>• Tailwind CSS 4]
     end
 
@@ -95,9 +96,10 @@ graph TB
     end
 
     subgraph "🎯 AgentStack Runtime"
-        Coord --> Agents[38 Agents<br/>• ResearchAgent<br/>• StockAnalysis<br/>• Copywriter<br/>• ReportAgent]
-        Agents --> Tools[34+ Tools<br/>• Polygon/Finnhub<br/>• SerpAPI 10+<br/>• PgVector RAG<br/>• PDF→MD]
-        Agents --> Workflows[Research→Report<br/>Weather→Activities]
+        Coord --> Agents[30+ Agents<br/>• Research/Financial/Coding<br/>• Content/Data/Business]
+        Agents --> Tools[60+ Tools<br/>• Polygon/Finnhub/SerpAPI<br/>• RAG/Code/Data Processing]
+        Agents --> Workflows[14+ Workflows<br/>• Weather/Content/Financial<br/>• Document/RAG/Analysis]
+        Agents --> Networks[4+ Networks<br/>• Coding/Data/Report/Research]
     end
 
     subgraph "🗄️ PgVector Storage"
@@ -106,21 +108,36 @@ graph TB
     end
 
     subgraph "📊 Observability"
-        Agents --> Langfuse[Langfuse Traces<br/>• 97% Traced<br/>• 10+ Scorers]
-        Postgres --> Langfuse
+        Agents --> Otel[Otel Traces<br/>• 97% Traced<br/>• 10+ Scorers]
+        UI --> Otel
+        Postgres --> Otel
+        Agents --> Otel
+        Coord --> Otel
+        Workflows --> Otel
+        Networks --> Otel
+
     end
 
     UI --> App
     App --> Agents
 
-    style Client fill:#e8f5e9,stroke:#ff9800
-    style Langfuse fill:#e8f5e9,stroke:#ff9800
-    style UI fill:#e8f5e9,stroke:#64b5f6
+    style Client stroke:#58a6ff
+    style App stroke:#58a6ff
+    style Coord stroke:#58a6ff
+    style Agents stroke:#58a6ff
+    style Tools stroke:#58a6ff
+    style Embeddings stroke:#58a6ff
+    style Workflows stroke:#58a6ff
+    style Networks stroke:#58a6ff
+    style Postgres stroke:#58a6ff
+    style Otel stroke:#58a6ff
+    style UI stroke:#58a6ff
 ```
 
 ## 📊 **System Flowchart**
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 flowchart TD
     A[app/chat] -->|components| B[chat-header.tsx]
     A -->|components| C[chat-messages.tsx]
@@ -155,18 +172,33 @@ flowchart TD
     AB -->|imports| AF[networks/*]
     AB -->|imports| AG[config/*]
     
-    style A fill:#e8f5e9,stroke:#81c784
-    style G fill:#e8f5e9,stroke:#81c784
-    style L fill:#e8f5e9,stroke:#81c784
-    style Q fill:#e8f5e9,stroke:#81c784
-    style U fill:#e3f2fd,stroke:#64b5f6
-    style Z fill:#e3f2fd,stroke:#64b5f6
-    style AB fill:#000000,stroke:#ff9800
+    style A stroke:#64b5f6
+    style B stroke:#64b5f6
+    style C stroke:#64b5f6
+    style D stroke:#64b5f6
+    style E stroke:#64b5f6
+    style F stroke:#64b5f6
+    style G stroke:#64b5f6
+    style H stroke:#64b5f6
+    style I stroke:#64b5f6
+    style J stroke:#64b5f6
+    style K stroke:#64b5f6
+    style L stroke:#64b5f6
+    style M stroke:#64b5f6
+    style N stroke:#64b5f6
+    style O stroke:#64b5f6
+    style P stroke:#64b5f6
+    style L stroke:#64b5f6
+    style Q stroke:#64b5f6
+    style U stroke:#64b5f6
+    style Z stroke:#64b5f6
+    style AB stroke:#64b5f6
 ```
 
 ## 🔄 **RAG Pipeline (Production-Grade)**
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 flowchart TD
     A[Docs/PDF/Web] --> B[MDocument Chunker<br/>• 10 Strategies<br/>• Metadata Extract]
     B --> C[Gemini Embeddings<br/>• 3072D Vectors]
@@ -176,29 +208,55 @@ flowchart TD
     G --> H[Graph Traversal<br/>• Relations/Context]
     H --> I[Answer Agent<br/>• Cite/Verify]
     I --> J[Response + Sources]
+    J --> K[Otel Traces<br/>• 97% Coverage]
+    J --> L[Embedding Store<br/>• Memory Threads]
+
+    style A stroke:#58a6ff
+    style B stroke:#58a6ff
+    style C stroke:#58a6ff
+    style D stroke:#58a6ff
+    style E stroke:#58a6ff
+    style F stroke:#58a6ff
+    style G stroke:#58a6ff
+    style H stroke:#58a6ff
+    style I stroke:#58a6ff
+    style J stroke:#58a6ff
+    style K stroke:#58a6ff
+    style L stroke:#58a6ff
+    style K stroke:#58a6ff
+    style L stroke:#58a6ff
 ```
 
-## 🤝 **A2A Multi-Agent Flow**
+## 🤝 **Flowcharts**
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 sequenceDiagram
-    participant Client as MCP Client
-    participant Coord as A2A Coordinator
-    participant Research as Research Agent
-    participant Stock as Stock Agent
-    participant Report as Report Agent
+    actor User as User
+    participant Assistant as Assistant_Message
+    participant NetworkProvider as NetworkProvider
+    participant WorkflowProvider as WorkflowProvider
+    participant ProgressPanel as ProgressPanel
 
-    Client->>Coord: coordinate_a2a_task("AAPL analysis")
-    Note over Coord: Parallel Orchestration
-    Coord->>+Research: research("AAPL fundamentals")
-    Coord->>+Stock: analyze("AAPL technicals")
-    Research->>Research: SerpAPI + PgVector RAG
-    Stock->>Stock: Polygon + Finnhub APIs
-    Research-->>-Coord: Insights + Learnings
-    Stock-->>-Coord: Metrics + Targets
-    Coord->>+Report: generate_report(rawData)
-    Report-->>-Coord: Markdown Report
-    Coord->>Client: Final Synthesized Report
+    User->>Assistant: Run network or workflow
+    Assistant->>NetworkProvider: Stream messages with parts
+    Assistant->>WorkflowProvider: Stream messages with parts
+
+    loop For_each_assistant_message_in_network
+        NetworkProvider->>NetworkProvider: Iterate parts with index partIndex
+        NetworkProvider->>NetworkProvider: Build id using messageId_partType_partIndex
+        NetworkProvider->>NetworkProvider: Append ProgressEvent to allProgressEvents
+    end
+
+    loop For_each_assistant_message_in_workflow
+        WorkflowProvider->>WorkflowProvider: Iterate parts with index partIndex
+        WorkflowProvider->>WorkflowProvider: Build id using messageId_partType_partIndex
+        WorkflowProvider->>WorkflowProvider: Append ProgressEvent to allProgressEvents
+    end
+
+    NetworkProvider->>ProgressPanel: Provide progressEvents for network view
+    WorkflowProvider->>ProgressPanel: Provide progressEvents for workflow view
+    ProgressPanel->>User: Render grouped progress items with stable IDs
 ```
 
 ## 🚀 **Quick Start**
@@ -214,7 +272,7 @@ sequenceDiagram
 ```bash
 git clone https://github.com/ssdeanx/AgentStack.git
 cd AgentStack
-npm ci
+npm i
 ```
 
 ### Setup `.env`
@@ -231,7 +289,7 @@ cp .env.example .env
 npm run dev
 
 # Terminal 2: Start Next.js frontend (at :3000)
-npm run dev:next
+
 ```
 
 ### Next.js + Mastra Client SDK
@@ -924,146 +982,63 @@ npm run mcp-server
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-_Last updated: 2025-12-05 | v3.3.0_
+_Last updated: 2025-12-05 | v1.1.0_
 
-## 🧠 **Agent/Tool Relationships**
+## 🧠 **Architecture Diagram**
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 classDiagram
-  class Agent {
-    +string id
-    +string name
-    +string description
-    +function instructions(runtimeContext)
-    +model
-    +memory
-    +tools
-    +agents
-    +workflows
-    +scorers
-    +maxRetries
-  }
+    class Message {
+      +string id
+      +string role
+      +MessagePart[] parts
+    }
 
-  class Tool {
-    +string id
-    +string description
-    +inputSchema
-    +outputSchema
-    +function execute(context)
-  }
+    class MessagePart {
+      +string type
+      +AgentDataPart data
+    }
 
-  class codingTeamNetwork {
-    +id = "coding-team-network"
-    +name = "Coding Team Network"
-    +description
-    +agents: coding_agents
-  }
+    class AgentDataPart {
+      +string text
+      +string status
+      +string stage
+      +string stepId
+      +string message
+      +string agentId
+      +string workflowId
+    }
 
-  class codingA2ACoordinator {
-    +id = "codingA2ACoordinator"
-    +name = "Coding A2A Coordinator"
-    +description
-    +agents: coding_agents
-  }
+    class ProgressEvent {
+      +string id
+      +string stage
+      +string status
+      +string message
+      +string agentId
+      +string workflowId
+    }
 
-  class codeArchitectAgent {
-    +id = "code-architect"
-    +name = "Code Architect Agent"
-    +description
-    +UserTier userTier
-    +string language
-    +string projectRoot
-  }
+    class NetworkProvider {
+      +ProgressEvent[] extractProgressEvents(messages)
+    }
 
-  class codeReviewerAgent {
-    +id = "code-reviewer"
-    +name = "Code Reviewer Agent"
-    +description
-  }
+    class WorkflowProvider {
+      +ProgressEvent[] extractProgressEvents(messages)
+    }
 
-  class testEngineerAgent {
-    +id = "test-engineer"
-    +name = "Test Engineer Agent"
-    +description
-  }
+    class ProgressPanel {
+      +void render(progressEvents)
+    }
 
-  class refactoringAgent {
-    +id = "refactoring"
-    +name = "Refactoring Agent"
-    +description
-  }
+    Message "1" --> "*" MessagePart : has
+    MessagePart "1" --> "0..1" AgentDataPart : data
 
-  class codeAnalysisTool {
-    +id = "coding:codeAnalysis"
-    +description
-    +CodeAnalysisInput inputSchema
-    +CodeAnalysisOutput outputSchema
-  }
+    NetworkProvider --> Message : reads
+    WorkflowProvider --> Message : reads
 
-  class codeSearchTool {
-    +id = "coding:codeSearch"
-    +description
-    +CodeSearchInput inputSchema
-    +CodeSearchOutput outputSchema
-  }
+    NetworkProvider --> ProgressEvent : creates_with_id_messageId_partType_partIndex
+    WorkflowProvider --> ProgressEvent : creates_with_id_messageId_partType_partIndex
 
-  class diffReviewTool {
-    +id = "coding:diffReview"
-    +description
-    +DiffReviewInput inputSchema
-    +DiffReviewOutput outputSchema
-  }
-
-  class multiStringEditTool {
-    +id = "coding:multiStringEdit"
-    +description
-    +MultiStringEditInput inputSchema
-    +MultiStringEditOutput outputSchema
-  }
-
-  class testGeneratorTool {
-    +id = "coding:testGenerator"
-    +description
-    +TestGeneratorInput inputSchema
-    +TestGeneratorOutput outputSchema
-  }
-
-  Agent <|-- codingTeamNetwork
-  Agent <|-- codingA2ACoordinator
-  Agent <|-- codeArchitectAgent
-  Agent <|-- codeReviewerAgent
-  Agent <|-- testEngineerAgent
-  Agent <|-- refactoringAgent
-
-  Tool <|-- codeAnalysisTool
-  Tool <|-- codeSearchTool
-  Tool <|-- diffReviewTool
-  Tool <|-- multiStringEditTool
-  Tool <|-- testGeneratorTool
-
-  codingTeamNetwork o-- codeArchitectAgent
-  codingTeamNetwork o-- codeReviewerAgent
-  codingTeamNetwork o-- testEngineerAgent
-  codingTeamNetwork o-- refactoringAgent
-
-  codingA2ACoordinator o-- codeArchitectAgent
-  codingA2ACoordinator o-- codeReviewerAgent
-  codingA2ACoordinator o-- testEngineerAgent
-  codingA2ACoordinator o-- refactoringAgent
-
-  codeArchitectAgent --> codeAnalysisTool
-  codeArchitectAgent --> codeSearchTool
-
-  codeReviewerAgent --> codeAnalysisTool
-  codeReviewerAgent --> diffReviewTool
-  codeReviewerAgent --> codeSearchTool
-
-  testEngineerAgent --> codeAnalysisTool
-  testEngineerAgent --> testGeneratorTool
-  testEngineerAgent --> codeSearchTool
-
-  refactoringAgent --> multiStringEditTool
-  refactoringAgent --> codeAnalysisTool
-  refactoringAgent --> diffReviewTool
-  refactoringAgent --> codeSearchTool
+    ProgressPanel "1" --> "*" ProgressEvent : renders
 ```
