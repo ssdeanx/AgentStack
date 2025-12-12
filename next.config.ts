@@ -4,7 +4,7 @@ import MonacoWebpackPlugin from "monaco-editor-webpack-plugin";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
-  serverExternalPackages: ["@mastra/*", "cheerio", "pdf-parse", "svgjson", "convert-csv-to-json", "csv-parse", "jose", "marked", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
+  serverExternalPackages: ["@mastra/*", "cheerio", "pdf-parse", "svgjson", "convert-csv-to-json", "csv-parse", "jose", "re2","marked", "ai-sdk-provider-gemini-cli", "@mcpc-tech/*", "@openrouter/*", "@supermemory/*", "playwright-core", "crawlee"],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: false,
   reactStrictMode: true,
