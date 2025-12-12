@@ -29,7 +29,7 @@
 <!-- Repository Links -->
 [![GitHub](https://img.shields.io/badge/GitHub-ssdeanx/AgentStack-181717?logo=github)](https://github.com/ssdeanx/AgentStack)
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
-[![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e44412f3-9bcc-4661-b79d-23160d90dfe0)
+[![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461)
 
 **AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **60+ enterprise tools**, **30+ specialized agents**, **14 workflows**, **4 agent networks**, **65 UI components** (30+ AI Elements + 35+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
@@ -71,7 +71,7 @@
 ## ✨ **Core Capabilities**
 
 - **💰 Financial Intelligence**: 30+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
-- **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal  
+- **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
 - **🤖 30+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane)
 - **📋 14 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis
 - **🌐 4 Agent Networks**: Coding team, data pipeline, report generation, research pipeline

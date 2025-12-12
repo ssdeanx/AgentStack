@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { UnicodeNormalizer } from '@mastra/core/processors'
+import { TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors'
 import { PGVECTOR_PROMPT } from "@mastra/pg"
 import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
@@ -120,7 +120,8 @@ Return recommendations as JSON:
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  maxRetries: 3
+  maxRetries: 3,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 /**
@@ -225,7 +226,8 @@ Return processed data as JSON:
   },
   memory: pgMemory,
   options: {},
-  maxRetries: 3
+  maxRetries: 3,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 /**
@@ -365,7 +367,8 @@ Return complete component code:
   },
   model: googleAI,
   memory: pgMemory,
-  maxRetries: 3
+  maxRetries: 3,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 /**
@@ -531,5 +534,6 @@ Return comprehensive chart package:
       trim: true,
     }),
   ],
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })

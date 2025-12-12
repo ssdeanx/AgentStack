@@ -3,6 +3,7 @@ import { googleAI, pgMemory } from "../config";
 import { csvValidityScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from "@mastra/core/request-context";
+import { TokenLimiterProcessor } from "@mastra/core/processors";
 
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -151,5 +152,6 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
     },
   },
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

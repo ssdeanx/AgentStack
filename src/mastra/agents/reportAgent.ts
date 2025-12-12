@@ -5,6 +5,7 @@ import { pgMemory } from '../config/pg-storage'
 import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ReportRuntimeContext {
@@ -121,7 +122,8 @@ export const reportAgent = new Agent({
   },
   tools: {},
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 // --- IGNORE ---

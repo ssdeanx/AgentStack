@@ -5,6 +5,7 @@ import { pgMemory } from '../config/pg-storage'
 import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
 import { documentRerankerTool, mdocumentChunker } from '../tools/document-chunking.tool'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface KnowledgeIndexingContext {
@@ -134,7 +135,8 @@ When indexing, include relevant metadata:
     documentRerankerTool,
     readDataFileTool,
     listDataDirTool,
-  }
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Knowledge Indexing Agent initialized')

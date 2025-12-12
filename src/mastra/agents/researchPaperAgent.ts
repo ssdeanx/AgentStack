@@ -5,6 +5,7 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchPaperAgentRuntimeContext {
@@ -118,6 +119,7 @@ Physics:
   options: {
     tracingPolicy: {},
   },
+  outputProcessors: [new TokenLimiterProcessor(1000000)]
 })
 
 log.info('Research Paper Agent initialized')

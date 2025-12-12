@@ -17,6 +17,7 @@ import {
     writeDataFileTool,
 } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export interface DataTransformationContext {
     userId?: string
@@ -121,7 +122,8 @@ export const dataTransformationAgent = new Agent({
         processXMLTool,
         readDataFileTool,
         writeDataFileTool,
-    }
+    },
+    outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Data Transformation Agent initialized')

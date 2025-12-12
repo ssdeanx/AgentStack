@@ -14,6 +14,7 @@ import { structureScorer } from '../scorers'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -142,6 +143,7 @@ Provide the final content in a clear, well-structured format appropriate for the
         },
     },
     workflows: {},
-    maxRetries: 5
+    maxRetries: 5,
+    outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 

@@ -18,6 +18,12 @@ export const upstashVector = new UpstashVector({
   token: process.env.UPSTASH_VECTOR_REST_TOKEN ?? 'your-vector-token'
 });
 
+await upstashVector.createIndex({
+  indexName: "vector_messages",
+  dimension: 1536,
+  metric: 'cosine'
+});
+
 /**
  * Shared Mastra agent memory instance using Upstash for distributed storage and [Pinecone] for vector search.
  *
@@ -56,9 +62,10 @@ export const upstashVector = new UpstashVector({
 export const upstashMemory = new Memory({
   storage: upstashStorage,
   vector: upstashVector,
-  embedder: google.textEmbedding('text-embedding-004'),
+  embedder: google.textEmbedding('gemini-embedding-001'),
   options: {
     lastMessages: 500, // Enhanced for better context retention
+    generateTitle: true, // Auto-generate thread titles
     semanticRecall: {
       topK: 5, // Retrieve top 5 semantically relevant messages
       messageRange: {
@@ -67,10 +74,15 @@ export const upstashMemory = new Memory({
       },
       scope: 'resource', // Search across all threads for a user
       indexConfig: {
+        type: 'hnsw', // Use HNSW for efficient vector search
+        metric: 'cosine', // Use cosine similarity for semantic search
+        hnsw: {
+          efConstruction: 256, // Enhanced HNSW configuration for better performance
+          m: 32, // Enhanced HNSW configuration for better performance
+        },
       },
-    },
-    threads: {
-      generateTitle: true, // Auto-generate thread titles
+      threshold: 0.7, // Enhanced semantic recall threshold
+      indexName: 'vector_messages', // Enhanced vector index name
     },
     workingMemory: {
       enabled: true, // Persistent user information across conversations
@@ -117,11 +129,14 @@ export const graphupstashQueryTool = createGraphRAGTool({
     'Graph-based retrieval augmented generation using PostgreSQL and PgVector for advanced semantic search and context retrieval.',
   // Supported vector store and index options
   vectorStoreName: 'pgVector',
-  indexName: 'memory_messages_728',
-  model: google.textEmbedding('text-embedding-004'),
+  indexName: 'vector_messages',
+  model: google.textEmbedding('gemini-embedding-001'),
   // Supported graph options (updated for 1568 dimensions)
+  providerOptions: {
+    google: { dimensions: 1536},
+  },
   graphOptions: {
-    dimension: 3072, // gemini-embedding-001 dimension (1568)
+    dimension: 1536, // gemini-embedding-001 dimension (1568)
     threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
     randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
     restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
@@ -138,10 +153,13 @@ export const upstashQueryTool = createVectorQueryTool({
   description:
     'PostgreSQL vector similarity search using PgVector for semantic content retrieval and question answering.',
   // Supported vector store and index options
-  vectorStoreName: 'pgVector',
-  indexName: 'memory_messages_728',
-  model: google.textEmbedding('text-embedding-004'),
+  vectorStoreName: 'vector_messages',
+  indexName: 'messages',
+  model: google.textEmbedding('gemini-embedding-001'),
   // Supported database configuration for PgVector
+  providerOptions: {
+    google: { dimensions: 1536},
+  },
   databaseConfig: {
   },
   includeVectors: true,

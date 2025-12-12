@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
@@ -128,8 +128,7 @@ Always consider maintainability, scalability, and testability in your recommenda
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-  outputProcessors: [
-  ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 //log.info('Cached tokens:', providerMetadata.google?.usageMetadata);
@@ -239,6 +238,7 @@ Be constructive and educational in feedback.`,
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 /**
@@ -340,7 +340,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 /**
@@ -448,7 +448,7 @@ For each refactoring:
   inputProcessors: [
     new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
-
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent')

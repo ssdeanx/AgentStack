@@ -3,6 +3,7 @@ import { listEvents, getTodayEvents, getUpcomingEvents, findFreeSlots } from '..
 import { googleAIFlashLite, pgMemory } from '../config';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export interface CalendarContext {
     userId?: string
@@ -54,5 +55,5 @@ Current user: ${userId ?? 'anonymous'}`,
     getUpcomingEvents,
     findFreeSlots,
   },
-
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

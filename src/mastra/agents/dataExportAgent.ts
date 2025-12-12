@@ -12,6 +12,7 @@ import {
     listDataDirTool,
 } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export interface DataExportContext {
     userId?: string
@@ -85,6 +86,7 @@ export const dataExportAgent = new Agent({
         backupDataTool,
         listDataDirTool,
     },
+    outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Data Export Agent initialized')

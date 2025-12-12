@@ -4,7 +4,7 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 
-import { BatchPartsProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import {
   createAnswerRelevancyScorer,
@@ -156,7 +156,8 @@ ${PGVECTOR_PROMPT}
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ]
+  ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const contractAnalysisAgent = new Agent({
@@ -239,7 +240,8 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ]
+  ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const complianceMonitoringAgent = new Agent({
@@ -325,7 +327,8 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ]
+  ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const businessStrategyAgent = new Agent({
@@ -406,7 +409,8 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
       stripControlChars: true,
       collapseWhitespace: true,
     }),
-  ]
+  ],
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 

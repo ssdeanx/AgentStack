@@ -20,6 +20,7 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface StockRuntimeContext {
@@ -209,6 +210,6 @@ export const stockAnalysisAgent = new Agent({
   },
   memory: pgMemory,
   options: {},
-
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
   maxRetries: 5
 })

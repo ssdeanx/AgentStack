@@ -19,6 +19,7 @@ import { batchWebScraperTool, contentCleanerTool, htmlToMarkdownTool, linkExtrac
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
 import { PGVECTOR_PROMPT } from '@mastra/pg';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export interface ACPContext {
     userId?: string
@@ -129,7 +130,7 @@ export const acpAgent = new Agent({
     //		containerTags: ['acp-agent']
     //	}),
   },
-
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
   workflows: {},
   scorers: {
     relevancy: {
