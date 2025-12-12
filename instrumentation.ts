@@ -5,14 +5,7 @@
 //} from "@mastra/core/telemetry/otel-vendor";
 import type { Context, TextMapGetter} from "@opentelemetry/api";
 import { ROOT_CONTEXT, context } from "@opentelemetry/api";
-import { LangfuseExporter } from "langfuse-vercel";
 
-export function register() {
-  const exporter = new LangfuseExporter({
-    publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-    secretKey: process.env.LANGFUSE_SECRET_KEY,
-    baseUrl: process.env.LANGFUSE_BASE_URL,
-  });
 
   //const sdk = new NodeSDK({
   //  autoDetectResources: true,
@@ -43,4 +36,4 @@ export function register() {
 //});
 
 //  sdk.start();
-}
+//}

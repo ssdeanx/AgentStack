@@ -4,6 +4,7 @@ import { exec, spawn } from 'child_process';
 import fg from 'fast-glob';
 import { promisify } from 'util';
 import { writeFile, unlink } from 'fs/promises';
+import { existsSync, unlinkSync } from 'node:fs';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { log } from '../config/logger';
@@ -77,17 +78,17 @@ export class ProjectCache {
       log.info(`Initializing new ts-morph project for ${normalizedPath}`);
 
       const tsConfigPath = path.join(normalizedPath, 'tsconfig.json');
-      const hasTsConfig = require('fs').existsSync(tsConfigPath);
+      const hasTsConfig = existsSync(tsConfigPath);
 
       const project = new Project({
-        tsConfigFilePath: hasTsConfig === true ? tsConfigPath : undefined,
+        tsConfigFilePath: hasTsConfig ? tsConfigPath : undefined,
         skipAddingFilesFromTsConfig: false,
         skipFileDependencyResolution: true, // Better performance
         skipLoadingLibFiles: true, // Skip loading lib files for better performance
       });
 
       // Add source files manually if no tsconfig
-      if (hasTsConfig === false) {
+      if (!hasTsConfig) {
         const sourceFiles = fg.sync('**/*.{ts,tsx,js,jsx}', {
           cwd: normalizedPath,
           ignore: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
@@ -179,6 +180,8 @@ export class ProjectCache {
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpired();
     }, this.CLEANUP_INTERVAL_MS);
+
+    this.cleanupInterval.unref();
   }
 
   private cleanupExpired(): void {
@@ -513,8 +516,7 @@ if __name__ == '__main__':
     process.on('exit', () => {
       if (this.scriptPath !== null) {
         try {
-          // Use fs.unlinkSync via require to avoid async in exit handler
-          require('fs').unlinkSync(this.scriptPath);
+          unlinkSync(this.scriptPath);
         } catch {
           // Ignore errors
         }

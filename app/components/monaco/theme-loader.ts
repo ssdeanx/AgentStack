@@ -15,6 +15,7 @@ let monacoInitialized = false
 let initPromise: ReturnType<typeof loader.init> | null = null
 
 async function getMonaco() {
+  loader.config({ paths: { vs: '/monaco/vs' } })
   initPromise ??= loader.init()
   const monaco = await initPromise
   if (!monacoInitialized) {

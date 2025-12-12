@@ -4,6 +4,7 @@ import * as path from 'node:path'
 import { createPatch } from 'diff'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from '@mastra/core/tools';
+import RE2 from 're2'
 
 const DATA_DIR = path.join(process.cwd(), './data')
 
@@ -33,6 +34,7 @@ const multiStringEditInputSchema = z.object({
   dryRun: z.boolean().optional().describe('Preview changes without applying them'),
   createBackup: z.boolean().optional().describe('Create .bak backup files before editing'),
   projectRoot: z.string().optional().describe('Project root for path validation (security boundary)'),
+  maxFileSize: z.number().optional().describe('Skip files larger than this (bytes)'),
 })
 
 const editResultSchema = z.object({
@@ -84,7 +86,7 @@ async function processFileEdit(
   dryRun: boolean,
   createBackup: boolean,
   appliedBackups: Map<string, string>,
-  writer?: { custom: (data: { type: string; data: { message: string } }) => Promise<void> }
+  maxFileSize: number
 ): Promise<z.infer<typeof editResultSchema>> {
   const { filePath, oldString, newString, description, useRegex, replaceAll } = edit
 
@@ -105,16 +107,41 @@ async function processFileEdit(
   }
 
   try {
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📖 Reading file: ${filePath}` } });
+    const stat = await fs.stat(filePath)
+    if (!stat.isFile()) {
+      return {
+        filePath,
+        status: 'failed',
+        reason: 'Target path is not a file',
+      }
+    }
+
+    if (stat.size > maxFileSize) {
+      return {
+        filePath,
+        status: 'skipped',
+        reason: `File too large (${stat.size} bytes) - exceeds maxFileSize (${maxFileSize})`,
+      }
+    }
+
     const content = await fs.readFile(filePath, 'utf-8')
     let newContent = content
     let matchFound = false
 
     if (useRegex === true) {
       const flags = replaceAll === true ? 'g' : ''
-      const regex = new RegExp(oldString, flags)
+      let regex: RE2
+      try {
+        regex = new RE2(oldString, flags)
+      } catch (error) {
+        return {
+          filePath,
+          status: 'failed',
+          reason: `Invalid regex: ${error instanceof Error ? error.message : String(error)}`,
+        }
+      }
       if (regex.test(content)) {
-        newContent = content.replace(regex, newString)
+        newContent = content.replace(regex as unknown as RegExp, newString)
         matchFound = true
       }
     } else if (content.includes(oldString)) {
@@ -199,17 +226,9 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     // Ensure data directory exists
     await ensureDataDir();
 
-    // Input validation
-    if (!inputData.edits) {
-      return {
-        success: false,
-        results: [],
-        summary: { total: 0, applied: 0, skipped: 0, failed: 0 },
-      };
-    }
-
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}` } });
     const { edits, dryRun = false, createBackup = true, projectRoot } = inputData
+    const maxFileSize = inputData.maxFileSize ?? 1_000_000
 
     const tracer = trace.getTracer('coding-tools');
     const span = tracer.startSpan('multi_string_edit', {
@@ -229,8 +248,8 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     const defaultBoundary = projectRoot ?? process.cwd()
 
     for (const edit of edits) {
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✏️ Processing edit for: ${edit.filePath}` } });
-      const result = await processFileEdit(edit, defaultBoundary, dryRun, createBackup, appliedBackups, writer);
+      await writer?.custom?.({ type: 'data-tool-progress', data: { message: `✏️ Processing edit for: ${edit.filePath}` } });
+      const result = await processFileEdit(edit, defaultBoundary, dryRun, createBackup, appliedBackups, maxFileSize);
       results.push(result);
       if (result.status === 'failed') {
         hasFailure = true;

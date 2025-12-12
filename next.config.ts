@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
+import MonacoWebpackPlugin from "monaco-editor-webpack-plugin";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
@@ -8,6 +9,24 @@ const nextConfig: NextConfig = {
   typedRoutes: false,
   reactStrictMode: true,
   distDir: ".next",
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.plugins = config.plugins ?? [];
+      config.plugins.push(
+        new MonacoWebpackPlugin({
+          languages: [
+            'typescript',
+            'javascript',
+            'json',
+            'css',
+            'markdown',
+          ],
+        })
+      );
+    }
+
+    return config;
+  },
   typescript: {
     ignoreBuildErrors: true,
     tsconfigPath: "./tsconfig.json",

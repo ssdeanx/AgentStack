@@ -36,7 +36,7 @@
     "vitest.config.ts",
     "mdx-components.tsx",
     "testsSetup.ts",
-    "eslint.config.cjs",
+    "eslint.config.js",
     "prettier.config.js",
     "eslint-config-next.d.ts",
     "read_pdf_parse.js",
