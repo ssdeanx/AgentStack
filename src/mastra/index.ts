@@ -9,7 +9,6 @@ import {
 import { Mastra } from '@mastra/core';
 import { PostgresStore } from "@mastra/pg";
 import { OtelExporter } from "@mastra/otel-exporter";
-import { LangfuseExporter } from "@mastra/langfuse";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
@@ -185,22 +184,25 @@ export const mastra = new Mastra({
   vectors: { pgVector },
   logger: log,
   observability: new Observability({
-    default: { enabled: false },
+//    default: { enabled: false },
     configs: {
       otel: {
-        serviceName: "maestra-app",
-        exporters: [new OtelExporter({
-          provider: {
-            custom: {
-              // Specify tracking server URI with the `/v1/traces` path.
-              endpoint: process.env.MLFLOW_TRACKING_URI ?? "http://localhost:5000/api/2.0/mlflow/tracking/v1/traces",
-              // Set the MLflow experiment ID in the header.
-              headers: { "x-mlflow-experiment-id": process.env.MLFLOW_EXPERIMENT_ID ?? "", api_key: process.env.DATABRICKS_TOKEN ?? "" },
-              // MLflow support HTTP/Protobuf protocol.
-              protocol: "http/protobuf"
-            }
-          }
-        })]
+        serviceName: "my-service",
+        exporters: [
+          new OtelExporter({
+            provider: {
+              laminar: {
+                apiKey: process.env.LMNR_PROJECT_API_KEY,
+              // teamId: process.env.LAMINAR_TEAM_ID, // Optional, for backwards compatibility
+              },
+            },
+            logger: log,
+            resourceAttributes: {
+              // Optional OpenTelemetry Resource Attributes for the trace
+              ["deployment.environment"]: "dev",
+            },
+          }),
+        ],
       },
       //langfuse: {
       //  serviceName: "ai",
