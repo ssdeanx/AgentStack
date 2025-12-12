@@ -42,6 +42,7 @@ import {
   CheckIcon,
   MessageSquareIcon,
   BookmarkPlusIcon,
+  ChevronDownIcon,
 } from "lucide-react"
 import { useState, useCallback, useMemo, Fragment } from "react"
 import type { UIMessage, FileUIPart } from "ai"
@@ -51,9 +52,36 @@ import {
   isToolOrDynamicToolUIPart,
   isFileUIPart,
 } from "ai"
-import { mapDataToolPartToDynamicToolPart } from "../helpers/tool-part-transform"
 import type { BundledLanguage } from "shiki"
 import { Button } from "@/ui/button"
+import { Badge } from "@/ui/badge"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/ui/collapsible"
+import type {
+  AgentDataPart,
+  WorkflowDataPart,
+  NetworkDataPart,
+} from "@mastra/ai-sdk"
+
+type MastraDataPart = AgentDataPart | WorkflowDataPart | NetworkDataPart | { type: `data-${string}`; id?: string; data: unknown }
+
+function resolveToolDisplayName(tool: ToolInvocationState): string {
+  const dynamicName = (tool as { toolName?: unknown }).toolName
+  if (typeof dynamicName === "string" && dynamicName.trim().length > 0) {
+    return dynamicName
+  }
+
+  const typeVal = (tool as { type?: unknown }).type
+  if (typeof typeVal === "string" && typeVal.startsWith("tool-")) {
+    const sliced = typeVal.slice("tool-".length)
+    return sliced.length > 0 ? sliced : "unknown"
+  }
+
+  return "unknown"
+}
 
 // Extract extractTasksFromText to module level to fix scope issues
 function extractTasksFromText(content: string): AgentTaskData[] {
@@ -173,10 +201,10 @@ interface MessageItemProps {
   sources: Array<{ url: string; title: string }>
   checkpointIds: string[]
   checkpointMessageIndices: number[]
-  onCreateCheckpoint?: (index: number) => void
-  onRestoreCheckpoint?: (checkpointId: string) => void
-  onApproveConfirmation?: (id: string) => void
-  onRejectConfirmation?: (id: string) => void
+  onCreateCheckpoint?: (_index: number) => void
+  onRestoreCheckpoint?: (_checkpointId: string) => void
+  onApproveConfirmation?: (_id: string) => void
+  onRejectConfirmation?: (_id: string) => void
 }
 
 function MessageItem({
@@ -216,25 +244,47 @@ function MessageItem({
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
   const messageTools = useMemo(() => {
-    if (!message.parts || message.parts.length === 0) {return undefined}
+    const parts = message.parts ?? []
     const tools: ToolInvocationState[] = []
 
-    for (const p of message.parts) {
-      if (!p) {continue}
+    for (const p of parts) {
       if (isToolOrDynamicToolUIPart(p)) {
         tools.push(p as ToolInvocationState)
-        continue
-      }
-
-      if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
-        const converted = mapDataToolPartToDynamicToolPart(p)
-        if (converted) {
-          tools.push(converted)
-        }
       }
     }
 
     return tools.length > 0 ? tools : undefined
+  }, [message.parts])
+
+  const dataParts = useMemo(() => {
+    const parts = message.parts ?? []
+    return parts.filter((p) => typeof (p as { type?: unknown }).type === "string" && (p as { type: string }).type.startsWith("data-"))
+  }, [message.parts])
+
+  const toolProgressEvents = useMemo(() => {
+    const parts = message.parts ?? []
+    return parts
+      .filter((p) => (p as { type?: unknown }).type === "data-tool-progress")
+      .map((p) => {
+        const { data } = p as { data?: unknown }
+        const messageText =
+          (data !== null && typeof data === "object" &&
+            Object.prototype.hasOwnProperty.call(data, "message") &&
+            typeof (data as { message?: unknown }).message === "string")
+            ? (data as { message: string }).message
+            : ""
+        const statusText =
+          (data !== null && typeof data === "object" &&
+            Object.prototype.hasOwnProperty.call(data, "status") &&
+            typeof (data as { status?: unknown }).status === "string")
+            ? (data as { status: string }).status
+            : ""
+        return {
+          message: messageText,
+          status: statusText,
+        }
+      })
+      .filter((e) => e.message.trim().length > 0 || e.status.trim().length > 0)
   }, [message.parts])
 
   const fileParts = message.parts?.filter(isFileUIPart) as FileUIPart[] | undefined
@@ -242,15 +292,14 @@ function MessageItem({
   const otherFileParts = fileParts?.filter((f) => !f.mediaType?.startsWith("image/"))
 
   const reasoningSteps = useMemo(() => {
-    if (messageReasoning?.text) {
-      return parseReasoningToSteps(messageReasoning.text)
-    }
+    const reasoningText = messageReasoning?.text ?? ""
+    if (reasoningText.length > 0) {return parseReasoningToSteps(reasoningText)}
     return []
   }, [messageReasoning])
 
   const hasChainOfThoughtSteps = showChainOfThought && reasoningSteps.length > 0
   const shouldShowReasoningFallback =
-    showReasoning && (!showChainOfThought || !hasChainOfThoughtSteps) && !!messageReasoning?.text
+    showReasoning && (!showChainOfThought || !hasChainOfThoughtSteps) && (messageReasoning?.text ?? "").length > 0
 
   const plan = useMemo(() => {
     if (isAssistant) {
@@ -282,8 +331,8 @@ function MessageItem({
       return parts.map((part, i) => {
         if (i % 2 === 1) {
           const blockIndex = parseInt(part, 10)
-          const block = codeBlocks[blockIndex]
-          if (block) {
+          if (blockIndex >= 0 && blockIndex < codeBlocks.length) {
+            const block = codeBlocks[blockIndex]
             return (
               <CodeBlock
                 key={`code-${blockIndex}`}
@@ -378,6 +427,101 @@ function MessageItem({
             )
           )}
 
+          {/* Custom UI: Mastra data parts (data-tool-agent/workflow/network, data-workflow, data-network, data-{custom}) */}
+          {isAssistant && dataParts.length > 0 && (
+            <div className="my-3 space-y-2">
+              {dataParts.map((part, index) => {
+                const partType = (part as { type: string }).type
+
+                if (partType === "data-tool-progress") {
+                  // Rendered separately below in the dedicated Tool progress panel.
+                  return null
+                }
+
+                if (partType === "data-tool-agent" || partType === "data-tool-workflow" || partType === "data-tool-network") {
+                  const nestedPart = part as MastraDataPart
+                  const label =
+                    partType === "data-tool-agent"
+                      ? "Tool Nested Agent Stream"
+                      : partType === "data-tool-workflow"
+                        ? "Tool Nested Workflow Stream"
+                        : "Tool Nested Network Stream"
+
+                  return (
+                    <Collapsible
+                      key={`${message.id}-${partType}-${index}`}
+                      className="rounded-lg border bg-muted/40"
+                      defaultOpen={false}
+                    >
+                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
+                        <span>{label}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Data Part</Badge>
+                          <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="px-4 pb-4 pt-2">
+                        <CodeBlock
+                          code={JSON.stringify((nestedPart as { data?: unknown }).data ?? {}, null, 2)}
+                          language={"json" as BundledLanguage}
+                          className="my-2"
+                        >
+                          <CodeBlockCopyButton />
+                        </CodeBlock>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )
+                }
+
+                // Generic fallback: show any other data-* part as JSON so ALL tools/custom events are visible.
+                const { data } = part as { data?: unknown }
+                return (
+                  <Collapsible
+                    key={`${message.id}-${partType}-${index}`}
+                    className="rounded-lg border bg-muted/20"
+                    defaultOpen={false}
+                  >
+                    <CollapsibleTrigger className="group flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
+                      <span>{partType}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Custom Event</Badge>
+                        <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="px-4 pb-4 pt-2">
+                      <CodeBlock
+                        code={JSON.stringify(data ?? {}, null, 2)}
+                        language={"json" as BundledLanguage}
+                        className="my-2"
+                      >
+                        <CodeBlockCopyButton />
+                      </CodeBlock>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Custom tool progress events (writer.custom -> data-tool-progress) */}
+          {isAssistant && toolProgressEvents.length > 0 && (
+            <div className="my-3 rounded-lg border bg-muted/20 p-3">
+              <div className="text-xs font-medium text-muted-foreground">Tool progress</div>
+              <ul className="mt-2 space-y-1 text-sm">
+                {toolProgressEvents.slice(-10).map((e, idx) => (
+                  <li key={`tool-progress-${idx}`} className="flex gap-2">
+                    {e.status.trim().length > 0 && (
+                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                        {e.status}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 wrap-break-word">{e.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Plan */}
           {plan && <AgentPlan plan={plan} defaultOpen={false} />}
 
@@ -416,7 +560,7 @@ function MessageItem({
                   setSandboxPreview({
                     code: codeBlocks[0].code,
                     language: codeBlocks[0].language,
-                    title: messageReasoning?.text ? "Reasoning Snippet" : "Code Snippet",
+                    title: (messageReasoning?.text ?? "").length > 0 ? "Reasoning Snippet" : "Code Snippet",
                   })
                 }
               >
@@ -449,7 +593,7 @@ function MessageItem({
           )}
 
           {/* Parsed Tasks */}
-          {isAssistant && extractedTasks && extractedTasks.length > 0 && (
+          {isAssistant && extractedTasks.length > 0 && (
             <div className="mt-4 space-y-3">
               {extractedTasks.map((task, idx: number) => (
                 <AgentTask key={`task-${idx}`} task={task} defaultOpen={false} />
@@ -462,17 +606,20 @@ function MessageItem({
             <>
               {messageTools
                 .filter((tool) => tool.state === ("approval-requested" as unknown))
-                .map((tool) => (
-                  <AgentConfirmation
-                    key={tool.toolCallId}
-                    toolName={tool.toolName || "unknown"}
-                    description={`Execute ${tool.toolName} with provided parameters`}
-                    approval={{ id: tool.toolCallId }}
-                    state={tool.state}
-                    onApprove={(id) => onApproveConfirmation?.(id)}
-                    onReject={(id) => onRejectConfirmation?.(id)}
-                  />
-                ))}
+                .map((tool, idx) => {
+                  const resolvedName = resolveToolDisplayName(tool)
+                  return (
+                    <AgentConfirmation
+                      key={`${tool.toolCallId}-${idx}`}
+                      toolName={resolvedName}
+                      description={`Execute ${resolvedName} with provided parameters`}
+                      approval={{ id: tool.toolCallId }}
+                      state={tool.state}
+                      onApprove={(id) => onApproveConfirmation?.(id)}
+                      onReject={(id) => onRejectConfirmation?.(id)}
+                    />
+                  )
+                })}
             </>
           )}
 
@@ -502,7 +649,7 @@ function MessageItem({
         )}
       </Message>
 
-      {isCheckpoint && checkpointId && onRestoreCheckpoint && (
+      {isCheckpoint && checkpointId !== null && onRestoreCheckpoint && (
         <AgentCheckpoint
           messageIndex={messageIndex}
           onRestore={() => onRestoreCheckpoint(checkpointId)}
@@ -515,15 +662,13 @@ function MessageItem({
 function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
   const { setWebPreview, agentConfig } = useChatContext()
 
-  if (!preview || !agentConfig?.features.webPreview) {return null}
+  if (!preview || agentConfig?.features.webPreview !== true) {return null}
 
   const handleCodeChange = useCallback((newCode: string) => {
-    if (preview) {
-      setWebPreview({
-        ...preview,
-        code: newCode,
-      })
-    }
+    setWebPreview({
+      ...preview,
+      code: newCode,
+    })
   }, [preview, setWebPreview])
 
   const handleClose = useCallback(() => {
@@ -531,7 +676,7 @@ function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
   }, [setWebPreview])
 
   // If we have code, use the enhanced preview with live editing
-  if (preview.code) {
+  if ((preview.code ?? "").length > 0) {
     return (
       <div className="mx-auto mb-4 max-w-4xl">
         <AgentWebPreview
@@ -617,7 +762,7 @@ export function ChatMessages() {
   )
 
   const streamingReasoningSteps = useMemo(() => {
-    if (streamingReasoning) {
+    if ((streamingReasoning ?? "").length > 0) {
       return parseReasoningToSteps(streamingReasoning)
     }
     return []
@@ -627,7 +772,12 @@ export function ChatMessages() {
   const shouldShowStreamingReasoningFallback =
     showReasoning &&
     (!showChainOfThought || !hasStreamingChainOfThought) &&
-    !!streamingReasoning
+    (streamingReasoning ?? "").length > 0
+
+  const shouldRenderLoadingMessage = useMemo(() => {
+    if (!isLoading) {return false}
+    return messages.at(-1)?.role !== "assistant"
+  }, [isLoading, messages])
 
   // Get checkpoint data for message items
   const checkpointIds = useMemo(() => checkpoints.map((cp) => cp.id), [checkpoints])
@@ -681,7 +831,7 @@ export function ChatMessages() {
               />
             ))}
 
-            {isLoading && (
+            {shouldRenderLoadingMessage && (
               <Message from="assistant">
                 <MessageContent>
                   {hasStreamingChainOfThought && (

@@ -191,45 +191,24 @@ export const mastra = new Mastra({
         exporters: [
           new OtelExporter({
             provider: {
-              laminar: {
-                apiKey: process.env.LMNR_PROJECT_API_KEY,
-              // teamId: process.env.LAMINAR_TEAM_ID, // Optional, for backwards compatibility
+              traceloop: {
+                apiKey: process.env.TRACELOOP_API_KEY,
+                destinationId: "my-destination",
               },
+
+
             },
+            batchSize: 500,
+            timeout: 50000,
             logger: log,
+            logLevel: "debug",
             resourceAttributes: {
-              // Optional OpenTelemetry Resource Attributes for the trace
               ["deployment.environment"]: "dev",
             },
           }),
         ],
       },
-      //langfuse: {
-      //  serviceName: "ai",
-     //   requestContextKeys: ["userId", "environment", "tenantId"],
-        //sampling: { type: SamplingStrategyType.ALWAYS },
-    //    spanOutputProcessors: [new SensitiveDataFilter(
-    ///      {
-    //        sensitiveFields: ['api-key', 'authorization', 'password', 'token',
-    //          'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
-    //        redactionToken: '[REDACTED]',
-    //        redactionStyle: 'partial'
-    //      }
-    //    )],
-    //    exporters: [
-    //      new LangfuseExporter({
-    //        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-    //        secretKey: process.env.LANGFUSE_SECRET_KEY,
-    //        baseUrl: process.env.LANGFUSE_BASE_URL,
-    //        logger: log,
-    //        options: {
-    //          tracer: trace.getTracer("ai"),
-    //        },
-    //        logLevel: 'info',
-     //     }),
-     //     ],
-     // },
-    }
+    },
   }),
   server: {
     apiRoutes: [

@@ -11,14 +11,14 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, SourceUrlUIPart } from "ai"
+import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, SourceUrlUIPart, ToolUIPart } from "ai"
 import {
   getNetworkConfig,
   NETWORK_CONFIGS,
   type NetworkConfig,
   type NetworkId,
 } from "@/app/networks/config/networks"
-
+import type { AgentDataPart, NetworkDataPart } from "@mastra/ai-sdk";
 export type NetworkStatus = "idle" | "routing" | "executing" | "completed" | "error"
 
 export interface RoutingStep {
@@ -256,23 +256,77 @@ export function NetworkProvider({
   // Extract routing steps from data-network parts
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant") {
-      const dataParts = lastMessage.parts?.filter(
-        (p) =>
-          p.type === "data-network" ||
-          p.type === "dynamic-tool" ||
-          (typeof p.type === "string" && p.type.startsWith("data-tool-"))
-      )
+    if (lastMessage?.role !== "assistant" || !lastMessage.parts?.length) {return}
 
-      if (dataParts.length > 0) {
-        const steps: RoutingStep[] = networkConfig.agents.map((agent, index) => ({
-          agentId: agent.id,
-          agentName: agent.name,
-          input: "",
-          status: index === 0 && aiStatus === "streaming" ? "active" : "pending",
-        }))
+    const dataParts = lastMessage.parts.filter(
+      (p) => p.type === "data-network" || p.type === "dynamic-tool" || (typeof p.type === "string" && p.type.startsWith("data-tool-"))
+    )
+    if (!dataParts?.length) {return}
+
+    // Helper: map raw state to routing step status
+    const mapRawStateToStatus = (raw: unknown, hasOutput = false): RoutingStep["status"] => {
+      const rs = (raw ?? "").toString().toLowerCase()
+      if (rs.includes("stream") || rs.includes("running") || rs.includes("active")) {return "active"}
+      if (rs.includes("success") || rs.includes("done") || rs.includes("completed") || hasOutput) {return "completed"}
+      if (rs.includes("error") || rs.includes("failed")) {return "error"}
+      return "pending"
+    }
+
+    // Prefer a data-network part that includes explicit per-agent details
+    const networkPart = dataParts.find((p) => p.type === "data-network") as NetworkDataPart | undefined
+    if (networkPart) {
+      const payload = (networkPart as any).data ?? (networkPart as any).payload ?? networkPart
+      const agentsFromPart = (payload?.agents ?? payload?.nodes ?? payload?.steps ?? []) as any[]
+
+      if (Array.isArray(agentsFromPart) && agentsFromPart.length > 0) {
+        const steps = agentsFromPart.map((agent, idx) => {
+          const agentId = agent.id ?? agent.agentId ?? agent.agent?.id ?? `agent-${idx}`
+          const agentName = agent.name ?? agent.agentName ?? agent.agent?.name ?? String(agentId)
+          const input = agent.input ?? agent.args ?? agent.params ?? ""
+          const output = agent.output ?? agent.result ?? agent.value
+          const status = mapRawStateToStatus(agent.state ?? agent.status, Boolean(output))
+          const startedAt = agent.startedAt ? new Date(agent.startedAt) : undefined
+          const completedAt = agent.completedAt ? new Date(agent.completedAt) : undefined
+          return {
+            agentId: String(agentId),
+            agentName: String(agentName),
+            input,
+            output,
+            status,
+            startedAt,
+            completedAt,
+          } as RoutingStep
+        })
         setRoutingSteps(steps)
+        return
       }
+    }
+
+    // Fallback: create steps from the network configuration (if available) or from dynamic-tool parts
+    if (networkConfig?.agents?.length) {
+      const steps: RoutingStep[] = networkConfig.agents.map((agent, index) => ({
+        agentId: agent.id,
+        agentName: agent.name,
+        input: "",
+        status: index === 0 && aiStatus === "streaming" ? "active" : "pending",
+      }))
+      setRoutingSteps(steps)
+      return
+    }
+
+    const toolParts = dataParts.filter((p) => p.type === "dynamic-tool" || (typeof p.type === "string" && p.type.startsWith("data-tool-")))
+    if (toolParts.length > 0) {
+      const steps: RoutingStep[] = toolParts.map((tp, idx) => {
+        const converted = mapDataPartToDynamicTool(tp as MastraPart)
+        return {
+          agentId: converted?.toolCallId ?? `tool-${idx}`,
+          agentName: converted?.toolName ?? `tool-${idx}`,
+          input: converted?.input ?? "",
+          output: converted?.output ?? undefined,
+          status: converted ? (converted.state === "input-streaming" ? "active" : (converted.state === "output-error" ? "error" : (converted.state === "output-available" ? "completed" : "pending"))) : "pending",
+        } as RoutingStep
+      })
+      setRoutingSteps(steps)
     }
   }, [messages, networkConfig, aiStatus])
 

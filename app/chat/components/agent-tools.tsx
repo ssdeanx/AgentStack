@@ -10,49 +10,85 @@ import {
 import type { ToolInvocationState } from "../providers/chat-context"
 import type { DynamicToolUIPart } from "ai"
 import { cn } from "@/lib/utils"
+import { useMemo } from "react"
 
 export interface AgentToolsProps {
   tools: Array<ToolInvocationState | DynamicToolUIPart>
   className?: string
 }
 
-const toolDisplayNames: Record<string, string> = {
-  weatherTool: "Weather",
-  webScraperTool: "Web Scraper",
-  googleNewsTool: "Google News",
-  googleScholarTool: "Google Scholar",
-  arxivTool: "arXiv Search",
-  polygonStockQuotesTool: "Stock Quotes",
-  finnhubAnalysisTool: "Analyst Ratings",
-  pdfToMarkdownTool: "PDF Parser",
+function getProgressMessage(tool: ToolInvocationState | DynamicToolUIPart): string | null {
+  const { input } = tool
+  if (input !== null && typeof input === "object" && Object.prototype.hasOwnProperty.call(input, "message")) {
+    const msg = (input as { message?: unknown }).message
+    if (typeof msg === "string" && msg.trim().length > 0) {
+      return msg.trim()
+    }
+  }
+  return null
 }
 
 function formatToolName(toolName: string): string {
-  if (toolDisplayNames[toolName]) {return toolDisplayNames[toolName]}
-  return toolName
+  const normalized = toolName
     .replace(/Tool$/, "")
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (s) => s.toUpperCase())
+    .replace(/[:/_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .trim()
+
+  return normalized.length > 0
+    ? normalized.replace(/^./, (s) => s.toUpperCase())
+    : "Tool"
 }
 
 export function AgentTools({ tools, className }: AgentToolsProps) {
-  if (!tools || tools.length === 0) {return null}
+  if (tools.length === 0) {return null}
+
+  const groups = useMemo(() => {
+    const grouped = new Map<string, Array<ToolInvocationState | DynamicToolUIPart>>()
+    const order: string[] = []
+
+    for (const tool of tools) {
+      const id = tool.toolCallId
+      if (!grouped.has(id)) {
+        grouped.set(id, [])
+        order.push(id)
+      }
+      grouped.get(id)?.push(tool)
+    }
+
+    return order.map((id) => ({ id, items: grouped.get(id) ?? [] }))
+  }, [tools])
 
   return (
     <div className={cn("space-y-2 mt-2", className)}>
-      {tools.map((tool) => {
-        const toolName = tool.toolName ?? "unknown"
+      {groups.map(({ id, items }, groupIdx) => {
+        if (items.length === 0) {return null}
+        const latest = items[items.length - 1]
+
+        const toolNameFromDynamic = (latest as { toolName?: unknown }).toolName
+        const toolName =
+          (typeof toolNameFromDynamic === "string" && toolNameFromDynamic.trim().length > 0
+            ? toolNameFromDynamic
+            : undefined) ??
+          (typeof (latest as { type?: unknown }).type === "string" &&
+          ((latest as { type: string }).type).startsWith("tool-")
+            ? (latest as { type: string }).type.slice("tool-".length)
+            : "unknown")
         const displayName = formatToolName(toolName)
-        const toolState = tool.state
+        const toolState = latest.state
         const hasOutput = toolState === "output-available" || toolState === "output-error"
-        const errorText = toolState === "output-error"
-          ? (tool as unknown as { errorText?: string }).errorText
-          : undefined
+        const errorText =
+          toolState === "output-error"
+            ? (latest as unknown as { errorText?: string }).errorText
+            : undefined
+
+        const progressMessages = items
+          .map(getProgressMessage)
+          .filter((m): m is string => typeof m === "string" && m.length > 0)
 
         return (
           <Tool
-            key={tool.toolCallId}
+            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
             defaultOpen={toolState === "output-error"}
           >
             <ToolHeader
@@ -61,10 +97,23 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
               state={toolState}
             />
             <ToolContent>
-              <ToolInput input={tool.input} />
+              {progressMessages.length > 0 && (
+                <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                  <div className="font-medium text-foreground/80">Progress</div>
+                  <ul className="mt-1 space-y-1">
+                    {progressMessages.slice(-6).map((msg, idx) => (
+                      <li key={`${id}-progress-${idx}`} className="truncate">
+                        {msg}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <ToolInput input={latest.input} />
               {hasOutput && (
                 <ToolOutput
-                  output={toolState === "output-available" ? tool.output : undefined}
+                  output={toolState === "output-available" ? latest.output : undefined}
                   errorText={errorText}
                 />
               )}
