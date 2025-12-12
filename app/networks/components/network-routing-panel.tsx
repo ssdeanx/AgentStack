@@ -1,6 +1,6 @@
 "use client"
 
-import { useNetworkContext, type RoutingStep } from "@/app/networks/providers/network-context"
+import { useNetworkContext, type RoutingStep, type ProgressEvent } from "@/app/networks/providers/network-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card"
 import { Badge } from "@/ui/badge"
 import { ScrollArea } from "@/ui/scroll-area"
@@ -28,6 +28,55 @@ function StepStatusIcon({ status }: { status: RoutingStep["status"] }) {
     default:
       return <CircleIcon className="size-4 text-muted-foreground" />
   }
+}
+
+function ProgressEventItem({ event }: { event: ProgressEvent }) {
+  const getStatusIcon = (status: ProgressEvent["status"]) => {
+    switch (status) {
+      case "done":
+        return <CheckCircle2Icon className="size-3 text-green-500" />
+      case "in-progress":
+        return <Loader2Icon className="size-3 animate-spin text-blue-500" />
+      case "error":
+        return <XCircleIcon className="size-3 text-red-500" />
+      default:
+        return <CircleIcon className="size-3 text-muted-foreground" />
+    }
+  }
+
+  const getStatusColor = (status: ProgressEvent["status"]) => {
+    switch (status) {
+      case "done":
+        return "text-green-700 dark:text-green-300"
+      case "in-progress":
+        return "text-blue-700 dark:text-blue-300"
+      case "error":
+        return "text-red-700 dark:text-red-300"
+      default:
+        return "text-muted-foreground"
+    }
+  }
+
+  return (
+    <div className="flex items-start gap-2 py-1">
+      {getStatusIcon(event.status)}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={cn("text-xs font-medium", getStatusColor(event.status))}>
+            {event.stage}
+          </span>
+          {event.agentId && (
+            <Badge variant="outline" className="text-xs px-1 py-0">
+              {event.agentId}
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {event.message}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean }) {
@@ -77,7 +126,7 @@ function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean 
 }
 
 export function NetworkRoutingPanel() {
-  const { networkConfig, networkStatus, routingSteps } = useNetworkContext()
+  const { networkConfig, networkStatus, routingSteps, progressEvents } = useNetworkContext()
 
   if (!networkConfig) {return null}
 
@@ -152,6 +201,20 @@ export function NetworkRoutingPanel() {
                 <p className="mt-1 text-muted-foreground/70 text-xs">
                   Send a message to see agent routing
                 </p>
+              </div>
+            )}
+
+            {/* Progress Events */}
+            {progressEvents.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-3 text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Progress Events
+                </p>
+                <div className="space-y-2">
+                  {progressEvents.slice(-5).map((event) => (
+                    <ProgressEventItem key={event.id} event={event} />
+                  ))}
+                </div>
               </div>
             )}
           </div>

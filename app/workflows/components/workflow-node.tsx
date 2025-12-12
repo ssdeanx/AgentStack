@@ -68,10 +68,15 @@ function getStatusBadgeVariant(status: StepStatus): "default" | "secondary" | "d
 }
 
 export function WorkflowNode({ data }: WorkflowNodeProps) {
-  const { runStep, workflowStatus } = useWorkflowContext()
+  const { runStep, workflowStatus, progressEvents } = useWorkflowContext()
   const { step, stepIndex, totalSteps, status, handles } = data
 
   const canRunStep = workflowStatus === "idle" || workflowStatus === "completed"
+
+  // Get streaming text for this step
+  const stepStreamingEvents = progressEvents.filter(event =>
+    event.stepId === step.id && event.status === "in-progress"
+  )
 
   const handleRunStep = () => {
     if (canRunStep) {
@@ -83,7 +88,7 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
     <Node
       handles={handles}
       className={cn(
-        "w-[280px] transition-all",
+        "w-70 transition-all",
         status === "running" && "ring-2 ring-yellow-500/50",
         status === "completed" && "ring-2 ring-green-500/50",
         status === "error" && "ring-2 ring-red-500/50"
@@ -104,6 +109,26 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
 
       <NodeContent>
         <p className="text-sm text-muted-foreground">{step.content}</p>
+
+        {/* Show streaming agent text when step is running */}
+        {status === "running" && stepStreamingEvents.length > 0 && (
+          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-1 mb-1">
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                Agent Processing...
+              </span>
+            </div>
+            <div className="text-xs text-blue-600 dark:text-blue-400 max-h-16 overflow-y-auto">
+              {stepStreamingEvents.map((event, idx) => (
+                <div key={idx} className="mb-1 last:mb-0">
+                  {event.message}
+                  <span className="inline-block w-1 h-3 bg-blue-500 animate-pulse ml-1" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </NodeContent>
 
       <NodeFooter>

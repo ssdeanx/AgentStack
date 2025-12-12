@@ -8,6 +8,7 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type ReactNode,
 } from "react"
 import {
@@ -31,6 +32,24 @@ export interface StepProgress {
   output?: unknown
 }
 
+export interface WorkflowProgressEvent {
+  id: string
+  stage: string
+  status: "in-progress" | "done" | "error"
+  message: string
+  stepId?: string
+  timestamp: Date
+  data?: unknown
+}
+
+export interface WorkflowSuspendPayload {
+  message: string
+  requestId?: string
+  stepId: string
+  approved?: boolean
+  approverName?: string
+}
+
 export interface WorkflowRun {
   id: string
   workflowId: string
@@ -38,6 +57,7 @@ export interface WorkflowRun {
   startedAt: Date
   completedAt?: Date
   stepProgress: Record<string, StepProgress>
+  suspendPayload?: WorkflowSuspendPayload
   error?: string
 }
 
@@ -48,13 +68,16 @@ export interface WorkflowContextValue {
   workflowStatus: WorkflowStatus
   currentRun: WorkflowRun | null
   activeStepIndex: number
+  progressEvents: WorkflowProgressEvent[]
+  suspendPayload: WorkflowSuspendPayload | null
   selectWorkflow: (workflowId: WorkflowId) => void
   runWorkflow: (inputData?: Record<string, unknown>) => void
   pauseWorkflow: () => void
-  resumeWorkflow: () => void
+  resumeWorkflow: (resumeData?: { approved: boolean; approverName?: string }) => void
   stopWorkflow: () => void
   runStep: (stepId: string) => Promise<void>
   getStepStatus: (stepId: string) => StepStatus
+  approveWorkflow: (approved: boolean, approverName?: string) => void
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   messages: ReturnType<typeof useChat>["messages"]
@@ -179,6 +202,8 @@ export function WorkflowProvider({
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("idle")
   const [currentRun, setCurrentRun] = useState<WorkflowRun | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState(-1)
+  const [progressEvents, setProgressEvents] = useState<WorkflowProgressEvent[]>([])
+  const [suspendPayload, setSuspendPayload] = useState<WorkflowSuspendPayload | null>(null)
 
   const workflowConfig = useMemo(
     () => getWorkflowConfig(selectedWorkflow),
@@ -228,12 +253,84 @@ export function WorkflowProvider({
     }
   }, [status, workflowStatus])
 
+  // Extract progress events from custom data parts
+  useEffect(() => {
+    const allProgressEvents: WorkflowProgressEvent[] = []
+    let detectedSuspendPayload: WorkflowSuspendPayload | null = null
+
+    for (const message of messages) {
+      if (message.role === "assistant" && message.parts !== null) {
+        for (const part of message.parts) {
+          // Handle workflow progress events (data-workflow, data-tool-workflow)
+          if (part.type === "data-workflow" || part.type === "data-tool-workflow") {
+            const workflowPart = part as { data?: { text?: string; status?: string; stepId?: string } }
+            const eventData = workflowPart.data
+
+            if (eventData && eventData.text !== null && typeof eventData.text === "string" && eventData.text.trim()) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${Date.now()}`,
+                stage: part.type.replace("data-", "").replace("-tool-", " "),
+                status: "in-progress",
+                message: eventData.text,
+                stepId: eventData.stepId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle suspend payloads (data-workflow-suspend)
+          if (part.type === "data-workflow-suspend") {
+            const suspendPart = part as { data?: { message?: string; requestId?: string; stepId?: string } }
+            const suspendData = suspendPart.data
+
+            if (suspendData?.message !== null && suspendData?.message !== undefined &&
+                suspendData?.stepId !== null && suspendData?.stepId !== undefined) {
+              detectedSuspendPayload = {
+                message: suspendData.message,
+                requestId: suspendData.requestId,
+                stepId: suspendData.stepId,
+              }
+              setWorkflowStatus("paused")
+            }
+          }
+
+          // Handle custom progress events from workflow steps
+          if (typeof part.type === "string" && part.type.startsWith("data-workflow-progress")) {
+            const progressPart = part as { type: string; data?: { status?: string; message?: string; stage?: string; stepId?: string } }
+            const eventData = progressPart.data
+
+            if (eventData && eventData.status !== null && typeof eventData.status === "string" &&
+                (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${Date.now()}`,
+                stage: eventData.stage ?? "workflow",
+                status: eventData.status,
+                message: eventData.message ?? `${part.type} ${eventData.status}`,
+                stepId: eventData.stepId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+        }
+      }
+    }
+
+    setProgressEvents(allProgressEvents)
+    if (detectedSuspendPayload) {
+      setSuspendPayload(detectedSuspendPayload)
+    }
+  }, [messages])
+
   const selectWorkflow = useCallback((workflowId: WorkflowId) => {
     if (WORKFLOW_CONFIGS[workflowId] !== undefined) {
       setSelectedWorkflow(workflowId)
       setWorkflowStatus("idle")
       setCurrentRun(null)
       setActiveStepIndex(-1)
+      setProgressEvents([])
+      setSuspendPayload(null)
     }
   }, [])
 
@@ -252,6 +349,8 @@ export function WorkflowProvider({
       setCurrentRun(run)
       setWorkflowStatus("running")
       setActiveStepIndex(0)
+      setProgressEvents([]) // Clear previous progress events
+      setSuspendPayload(null) // Clear any previous suspend state
 
       // Send message to trigger workflow via AI SDK
       const inputText = inputData?.input?.toString() ?? `Run ${workflowConfig.name}`
@@ -270,21 +369,31 @@ export function WorkflowProvider({
     }
   }, [workflowStatus, stop])
 
-  const resumeWorkflow = useCallback(() => {
+  const resumeWorkflow = useCallback((resumeData?: { approved: boolean; approverName?: string }) => {
     if (workflowStatus === "paused" && workflowConfig) {
       setWorkflowStatus("running")
       setCurrentRun((prev) =>
         prev ? { ...prev, status: "running" } : null
       )
-      sendMessage({ text: "resume" })
+      setSuspendPayload(null)
+      sendMessage({ text: resumeData ? `resume ${JSON.stringify(resumeData)}` : "resume" })
     }
   }, [workflowStatus, workflowConfig, sendMessage])
+
+  const approveWorkflow = useCallback((approved: boolean, approverName?: string) => {
+    if (suspendPayload) {
+      const resumeData = { approved, approverName: approverName ?? "User" }
+      resumeWorkflow(resumeData)
+    }
+  }, [suspendPayload, resumeWorkflow])
 
   const stopWorkflow = useCallback(() => {
     stop()
     setWorkflowStatus("idle")
     setCurrentRun(null)
     setActiveStepIndex(-1)
+    setProgressEvents([])
+    setSuspendPayload(null)
   }, [stop])
 
   const runStep = useCallback(
@@ -364,6 +473,8 @@ export function WorkflowProvider({
       workflowStatus,
       currentRun,
       activeStepIndex,
+      progressEvents,
+      suspendPayload,
       selectWorkflow,
       runWorkflow,
       pauseWorkflow,
@@ -371,6 +482,7 @@ export function WorkflowProvider({
       stopWorkflow,
       runStep,
       getStepStatus,
+      approveWorkflow,
       nodes,
       edges,
       messages,
@@ -382,6 +494,8 @@ export function WorkflowProvider({
       workflowStatus,
       currentRun,
       activeStepIndex,
+      progressEvents,
+      suspendPayload,
       selectWorkflow,
       runWorkflow,
       pauseWorkflow,
@@ -389,6 +503,7 @@ export function WorkflowProvider({
       stopWorkflow,
       runStep,
       getStepStatus,
+      approveWorkflow,
       nodes,
       edges,
       messages,

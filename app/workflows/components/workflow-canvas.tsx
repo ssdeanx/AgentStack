@@ -4,13 +4,15 @@ import { Canvas } from "@/src/components/ai-elements/canvas"
 import { Connection } from "@/src/components/ai-elements/connection"
 import { Controls } from "@/src/components/ai-elements/controls"
 import { Edge } from "@/src/components/ai-elements/edge"
-import { useWorkflowContext } from "@/app/workflows/providers/workflow-context"
+import { useWorkflowContext, type WorkflowProgressEvent } from "@/app/workflows/providers/workflow-context"
 import { workflowNodeTypes } from "./workflow-node"
 import { WorkflowInfoPanel } from "./workflow-info-panel"
 import { WorkflowLegend } from "./workflow-legend"
 import { WorkflowActions } from "./workflow-actions"
 import { WorkflowOutput } from "./workflow-output"
 import { WorkflowInputPanel } from "./workflow-input-panel"
+import { WorkflowProgressPanel } from "./workflow-progress-panel"
+import { WorkflowSuspendDialog } from "./workflow-suspend-dialog"
 import type { ReactNode } from "react"
 
 const edgeTypes = {
@@ -37,11 +39,13 @@ export function WorkflowCanvas({ children }: WorkflowCanvasProps) {
         fitViewOptions={{ padding: 0.3 }}
       >
         <Controls />
+        <WorkflowProgressPanel />
         <WorkflowInfoPanel />
         <WorkflowLegend />
         <WorkflowActions />
         <WorkflowOutput />
         <WorkflowInputPanel />
+        <WorkflowSuspendDialog />
         {children}
       </Canvas>
     </div>
