@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-
+@source "../node_modules/streamdown/dist/index.js";
 /* Tailwind CSS v4 Custom Variants */
 @custom-variant dark (&:is(.dark *));
 @custom-variant starting (&:is(:popover-open, :modal, [data-state="open"]):starting-style);

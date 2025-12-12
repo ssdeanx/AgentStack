@@ -112,10 +112,13 @@ const loadDocumentStep = createStep({
     const startTime = Date.now();
     logStepStart('load-document', { sourceType: inputData.source.type });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'load-document',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "load-document",
+        id: "load-document",
+      }
     });
 
     const tracer = trace.getTracer('document-processing');
@@ -124,10 +127,13 @@ const loadDocumentStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: `Loading document from ${inputData.source.type}...`,
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "20%",
+          message: `Loading document from ${inputData.source.type}...`,
+          stage: "workflow",
+        }
       });
 
       let content = '';
@@ -184,10 +190,13 @@ const loadDocumentStep = createStep({
         }
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 80,
-        message: 'Document loaded, detecting type...',
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "80%",
+          message: 'Document loaded, detecting type...',
+          stage: "workflow",
+        }
       });
 
       const wordCount = content.split(/\s+/).length;
@@ -213,11 +222,13 @@ const loadDocumentStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'load-document',
-        success: true,
-        duration: Date.now() - startTime,
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'load-document',
+          success: true,
+          duration: Date.now() - startTime,
+        }
       });
 
       logStepEnd('load-document', { contentType, wordCount }, Date.now() - startTime);
@@ -228,10 +239,12 @@ const loadDocumentStep = createStep({
       span.end();
       logError('load-document', error, { source: inputData.source });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'load-document',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'load-document',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       });
 
       throw error;
@@ -249,10 +262,13 @@ const convertPdfToMarkdownStep = createStep({
     const startTime = Date.now();
     logStepStart('convert-pdf-to-markdown', { contentType: inputData.contentType });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'convert-pdf-to-markdown',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "convert-pdf-to-markdown",
+        id: "convert-pdf-to-markdown",
+      }
     });
 
     const tracer = trace.getTracer('document-processing');
@@ -261,10 +277,13 @@ const convertPdfToMarkdownStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 30,
-        message: 'Converting PDF to markdown...',
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "30%",
+          message: 'Converting PDF to markdown...',
+          stage: "workflow",
+        }
       });
 
       let markdownContent = inputData.content;
@@ -306,10 +325,13 @@ const convertPdfToMarkdownStep = createStep({
           .trim();
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Markdown conversion complete...',
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "90%",
+          message: 'Markdown conversion complete...',
+          stage: "workflow",
+        }
       });
 
       const result: z.infer<typeof markdownContentSchema> = {
@@ -329,11 +351,13 @@ const convertPdfToMarkdownStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'convert-pdf-to-markdown',
-        success: true,
-        duration: Date.now() - startTime,
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'convert-pdf-to-markdown',
+          success: true,
+          duration: Date.now() - startTime,
+        }
       });
 
       logStepEnd('convert-pdf-to-markdown', { wordCount: result.metadata.wordCount }, Date.now() - startTime);
@@ -345,10 +369,12 @@ const convertPdfToMarkdownStep = createStep({
       span.end();
       logError('convert-pdf-to-markdown', error, { contentType: inputData.contentType });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'convert-pdf-to-markdown',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'convert-pdf-to-markdown',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       });
 
       throw error;
@@ -364,16 +390,22 @@ const passTextThroughStep = createStep({
   execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'pass-text-through',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "pass-text-through",
+        id: "pass-text-through",
+      }
     });
 
-    await writer?.write({
-      type: 'progress',
-      percent: 50,
-      message: 'Processing text content...',
+    await writer?.custom({
+      type: 'data-workflow-progress',
+      data: {
+        status: "50%",
+        message: 'Processing text content...',
+        stage: "workflow",
+      }
     });
 
     const result: z.infer<typeof markdownContentSchema> = {
@@ -386,11 +418,13 @@ const passTextThroughStep = createStep({
       settings: inputData.settings,
     };
 
-    await writer?.write({
-      type: 'step-complete',
-      stepId: 'pass-text-through',
-      success: true,
-      duration: Date.now() - startTime,
+    await writer?.custom({
+      type: 'data-workflow-step-complete',
+      data: {
+        stepId: 'pass-text-through',
+        success: true,
+        duration: Date.now() - startTime,
+      }
     });
 
     return result;
@@ -406,10 +440,13 @@ const chunkDocumentStep = createStep({
     const startTime = Date.now();
     logStepStart('chunk-document', { strategy: inputData.settings.chunkStrategy });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'chunk-document',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "chunk-document",
+        id: "chunk-document",
+      }
     });
 
     const tracer = trace.getTracer('document-processing');
@@ -424,10 +461,13 @@ const chunkDocumentStep = createStep({
       const { chunkSize, chunkOverlap, chunkStrategy } = inputData.settings;
       const {content} = inputData;
 
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: `Chunking with ${chunkStrategy} strategy...`,
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "20%",
+          message: `Chunking with ${chunkStrategy} strategy...`,
+          stage: "workflow",
+        }
       });
 
       const chunks: Array<z.infer<typeof chunkSchema>> = [];
@@ -461,10 +501,13 @@ const chunkDocumentStep = createStep({
           position += paragraph.length + 2;
 
           if (chunkIndex % 10 === 0) {
-            await writer?.write({
-              type: 'progress',
-              percent: 20 + Math.min(60, (position / content.length) * 60),
-              message: `Processed ${chunkIndex} chunks...`,
+            await writer?.custom({
+              type: 'data-workflow-progress',
+              data: {
+                status: `${20 + Math.min(60, (position / content.length) * 60)}%`,
+                message: `Processed ${chunkIndex} chunks...`,
+                stage: "workflow",
+              }
             });
           }
         }
@@ -524,10 +567,13 @@ const chunkDocumentStep = createStep({
         }
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: `Created ${chunks.length} chunks...`,
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "90%",
+          message: `Created ${chunks.length} chunks...`,
+          stage: "workflow",
+        }
       });
 
       const avgChunkSize = chunks.reduce((sum, c) => sum + c.content.length, 0) / chunks.length;
@@ -550,11 +596,13 @@ const chunkDocumentStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'chunk-document',
-        success: true,
-        duration: Date.now() - startTime,
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'chunk-document',
+          success: true,
+          duration: Date.now() - startTime,
+        }
       });
 
       logStepEnd(
@@ -569,7 +617,7 @@ const chunkDocumentStep = createStep({
       span.end();
       logError('chunk-document', error, { strategy: inputData.settings.chunkStrategy });
 
-      await writer?.write({
+      await writer?.custom({
         type: 'step-error',
         stepId: 'chunk-document',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -589,10 +637,13 @@ const indexChunksStep = createStep({
     const startTime = Date.now();
     logStepStart('index-chunks', { totalChunks: inputData.totalChunks });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'index-chunks',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "index-chunks",
+        id: "index-chunks",
+      }
     });
 
     const tracer = trace.getTracer('document-processing');
@@ -604,10 +655,13 @@ const indexChunksStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: `Indexing ${inputData.totalChunks} chunks...`,
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "20%",
+          message: `Indexing ${inputData.totalChunks} chunks...`,
+          stage: "workflow",
+        }
       });
 
       const documentId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -619,10 +673,13 @@ const indexChunksStep = createStep({
           vectorIds.push(`vec-${documentId}-${i}`);
 
           if (i % 5 === 0) {
-            await writer?.write({
-              type: 'progress',
-              percent: 20 + Math.min(60, ((i + 1) / inputData.chunks.length) * 60),
-              message: `Indexed ${i + 1}/${inputData.chunks.length} chunks...`,
+            await writer?.custom({
+              type: 'data-workflow-progress',
+              data: {
+                status: `${20 + Math.min(60, ((i + 1) / inputData.chunks.length) * 60)}%`,
+                message: `Indexed ${i + 1}/${inputData.chunks.length} chunks...`,
+                stage: "workflow",
+              }
             });
           }
         }
@@ -632,10 +689,13 @@ const indexChunksStep = createStep({
         });
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Generating summary...',
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "90%",
+          message: 'Generating summary...',
+          stage: "workflow",
+        }
       });
 
       const sampleContent = inputData.chunks.slice(0, 3).map(c => c.content).join(' ').slice(0, 500);
@@ -662,11 +722,13 @@ const indexChunksStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'index-chunks',
-        success: true,
-        duration: Date.now() - startTime,
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'index-chunks',
+          success: true,
+          duration: Date.now() - startTime,
+        }
       });
 
       logStepEnd('index-chunks', { documentId, chunksCount: inputData.totalChunks }, Date.now() - startTime);
@@ -677,10 +739,12 @@ const indexChunksStep = createStep({
       span.end();
       logError('index-chunks', error, { totalChunks: inputData.totalChunks });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'index-chunks',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'index-chunks',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
       });
 
       throw error;

@@ -40,7 +40,7 @@ const fetchWeather = createStep({
     city: z.string().describe('The city to get the weather for'),
   }),
   outputSchema: forecastSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const tracer = trace.getTracer('weather-workflow');
     const span = tracer.startSpan('fetch-weather', {
       attributes: {
@@ -52,6 +52,16 @@ const fetchWeather = createStep({
     if (!inputData?.city) {
       throw new Error('City not provided in input data');
     }
+
+    // Emit workflow progress start
+    await writer?.custom({
+      type: "data-workflow-progress",
+      data: {
+        status: "in-progress",
+        message: "Fetching weather data",
+        stepId: "fetch-weather",
+      }
+    });
 
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputData.city)}&count=1`;
     const geocodingResponse = await fetch(geocodingUrl);
@@ -91,6 +101,16 @@ const fetchWeather = createStep({
       location: name,
     };
 
+    // Emit workflow progress completion
+    await writer?.custom({
+      type: "data-workflow-progress",
+      data: {
+        status: "done",
+        message: "Weather data fetched successfully",
+        stepId: "fetch-weather",
+      }
+    });
+
     span.setAttribute('precipitationChance', forecast.precipitationChance);
     span.setAttribute('condition', forecast.condition);
     span.end();
@@ -111,7 +131,7 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const tracer = trace.getTracer('weather-workflow');
     const span = tracer.startSpan('plan-activities', {
       attributes: {
@@ -126,6 +146,16 @@ const planActivities = createStep({
     if (!forecast?.date) {
       throw new Error('Forecast data not found');
     }
+
+    // Emit workflow progress start
+    await writer?.custom({
+      type: "data-workflow-progress",
+      data: {
+        status: "in-progress",
+        message: "Planning activities based on weather",
+        stepId: "plan-activities",
+      }
+    });
 
     const agent = mastra?.getAgent('weatherAgent');
     if (agent === undefined || agent === null) {
@@ -191,6 +221,17 @@ const planActivities = createStep({
     const result = {
       activities: activitiesText,
     };
+
+    // Emit workflow progress completion
+    await writer?.custom({
+      type: "data-workflow-progress",
+      data: {
+        status: "done",
+        message: "Activities planned successfully",
+        stepId: "plan-activities",
+      }
+    });
+
     span.setAttribute('activitiesLength', activitiesText.length);
     span.end();
     return result;

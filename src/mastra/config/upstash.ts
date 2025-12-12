@@ -18,11 +18,13 @@ export const upstashVector = new UpstashVector({
   token: process.env.UPSTASH_VECTOR_REST_TOKEN ?? 'your-vector-token'
 });
 
-await upstashVector.createIndex({
-  indexName: "vector_messages",
-  dimension: 1536,
-  metric: 'cosine'
-});
+export async function initializeUpstashVector() {
+  await upstashVector.createIndex({
+    indexName: "vector_messages",
+    dimension: 1536,
+    metric: 'cosine'
+  });
+}
 
 /**
  * Shared Mastra agent memory instance using Upstash for distributed storage and [Pinecone] for vector search.
@@ -154,7 +156,7 @@ export const upstashQueryTool = createVectorQueryTool({
     'PostgreSQL vector similarity search using PgVector for semantic content retrieval and question answering.',
   // Supported vector store and index options
   vectorStoreName: 'vector_messages',
-  indexName: 'messages',
+  indexName: 'vector_messages',
   model: google.textEmbedding('gemini-embedding-001'),
   // Supported database configuration for PgVector
   providerOptions: {
