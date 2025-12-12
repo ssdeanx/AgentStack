@@ -294,7 +294,7 @@ export function NetworkProvider({
     const allProgressEvents: ProgressEvent[] = []
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
-        for (const part of message.parts) {
+        for (const [partIndex, part] of message.parts.entries()) {
           // Handle agent and workflow progress events
           if (part.type === "data-tool-agent" || part.type === "data-tool-workflow") {
             const agentPart = part as { data: AgentDataPart }
@@ -302,7 +302,7 @@ export function NetworkProvider({
 
             if (eventData?.data?.text?.trim()) {
               allProgressEvents.push({
-                id: `${message.id}-${part.type}-${Date.now()}`,
+                id: `${message.id}-${part.type}-${partIndex}`,
                 stage: part.type.replace("data-tool-", ""),
                 status: "in-progress",
                 message: eventData.data.text,
@@ -320,7 +320,7 @@ export function NetworkProvider({
 
             if (eventData?.status && (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
               allProgressEvents.push({
-                id: `${message.id}-${part.type}-${Date.now()}`,
+                id: `${message.id}-${part.type}-${partIndex}`,
                 stage: eventData.stage ?? "progress",
                 status: eventData.status,
                 message: eventData.message ?? `${part.type} ${eventData.status}`,

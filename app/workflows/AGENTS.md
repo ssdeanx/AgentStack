@@ -29,6 +29,29 @@ app/workflows/
     └── workflow-output.tsx       # Streaming output panel (bottom-right)
 ```
 
+## Progress Event Handling
+
+```mermaid
+sequenceDiagram
+    participant Assistant as Assistant<br/>(Message)
+    participant Context as Workflow/Network<br/>Context
+    participant Extractor as Progress Event<br/>Extractor
+    participant State as Context State
+    participant Panel as Progress<br/>Panel/Dialog
+
+    Assistant->>Context: Receive message with<br/>data-tool-* parts
+    Context->>Extractor: Extract progress events<br/>from message parts
+    Extractor->>Extractor: Parse stage, status,<br/>message, agentId
+    Extractor->>State: Update progressEvents<br/>and suspendPayload
+    State->>Panel: Trigger re-render with<br/>new events
+    Panel->>Panel: Group by stage &<br/>render event items
+    
+    Note over Panel: If suspendPayload exists<br/>& status="paused"
+    Panel->>Panel: Show SuspendDialog<br/>with approve/reject
+    Panel->>Context: User clicks Approve<br/>(calls approveWorkflow)
+    Context->>Context: Clear suspendPayload<br/>Resume workflow
+```
+
 ## AI SDK Integration
 
 Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` to connect to Mastra's `/workflow/:workflowId` routes:
