@@ -40,7 +40,7 @@ export function ChatInput() {
 
   const handleSubmit = async (message: { text: string; files: unknown[] }) => {
     if (message.text.trim()) {
-      await sendMessage(message.text, message.files as File[])
+      sendMessage(message.text, message.files as File[])
     }
   }
 

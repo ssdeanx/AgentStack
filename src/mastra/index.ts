@@ -9,7 +9,6 @@ import {
 import { Mastra } from '@mastra/core';
 import { PostgresStore } from "@mastra/pg";
 import { OtelExporter } from "@mastra/otel-exporter";
-import { LangfuseExporter } from "@mastra/langfuse";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
@@ -185,49 +184,31 @@ export const mastra = new Mastra({
   vectors: { pgVector },
   logger: log,
   observability: new Observability({
-    default: { enabled: false },
+//    default: { enabled: false },
     configs: {
       otel: {
-        serviceName: "maestra-app",
-        exporters: [new OtelExporter({
-          provider: {
-            custom: {
-              // Specify tracking server URI with the `/v1/traces` path.
-              endpoint: process.env.MLFLOW_TRACKING_URI ?? "http://localhost:5000/api/2.0/mlflow/tracking/v1/traces",
-              // Set the MLflow experiment ID in the header.
-              headers: { "x-mlflow-experiment-id": process.env.MLFLOW_EXPERIMENT_ID ?? "", api_key: process.env.DATABRICKS_TOKEN ?? "" },
-              // MLflow support HTTP/Protobuf protocol.
-              protocol: "http/protobuf"
-            }
-          }
-        })]
+        serviceName: "my-service",
+        exporters: [
+          new OtelExporter({
+            provider: {
+              traceloop: {
+                apiKey: process.env.TRACELOOP_API_KEY,
+                destinationId: "my-destination",
+              },
+
+
+            },
+            batchSize: 500,
+            timeout: 50000,
+            logger: log,
+            logLevel: "debug",
+            resourceAttributes: {
+              ["deployment.environment"]: "dev",
+            },
+          }),
+        ],
       },
-      //langfuse: {
-      //  serviceName: "ai",
-     //   requestContextKeys: ["userId", "environment", "tenantId"],
-        //sampling: { type: SamplingStrategyType.ALWAYS },
-    //    spanOutputProcessors: [new SensitiveDataFilter(
-    ///      {
-    //        sensitiveFields: ['api-key', 'authorization', 'password', 'token',
-    //          'secret', 'key', 'bearer', 'bearertoken', 'jwt', 'credential', 'clientsecret', 'privatekey', 'refresh', 'email', 'phone', 'address', 'ssn'],
-    //        redactionToken: '[REDACTED]',
-    //        redactionStyle: 'partial'
-    //      }
-    //    )],
-    //    exporters: [
-    //      new LangfuseExporter({
-    //        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-    //        secretKey: process.env.LANGFUSE_SECRET_KEY,
-    //        baseUrl: process.env.LANGFUSE_BASE_URL,
-    //        logger: log,
-    //        options: {
-    //          tracer: trace.getTracer("ai"),
-    //        },
-    //        logLevel: 'info',
-     //     }),
-     //     ],
-     // },
-    }
+    },
   }),
   server: {
     apiRoutes: [

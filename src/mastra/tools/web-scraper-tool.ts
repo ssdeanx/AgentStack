@@ -572,6 +572,14 @@ export const webScraperTool = createTool({
   outputSchema: webScraperOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const toolCallId = (context as { toolCallId?: string } | undefined)?.toolCallId
+
+    const progressData = (message: string) => ({
+      message,
+      toolCallId: typeof toolCallId === 'string' && toolCallId.trim() !== '' ? toolCallId : undefined,
+      toolName: 'web:scraper',
+      state: 'input-streaming',
+    })
 
     const allowedDomains = ValidationUtils.getAllowedDomains();
     if (!ValidationUtils.isUrlAllowed(inputData.url, allowedDomains)) {
@@ -583,10 +591,10 @@ export const webScraperTool = createTool({
       );
     }
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Starting web scrape for ${inputData.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: progressData(`🌐 Starting web scrape for ${inputData.url}`) });
     toolCallCounters.set('web:scraper', (toolCallCounters.get('web:scraper') ?? 0) + 1)
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🐛 Initializing crawler...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: progressData('🐛 Initializing crawler...') });
     log.info('Starting enhanced web scraping with JSDOM', {
       url: inputData.url,
       selector: inputData.selector,
@@ -853,7 +861,7 @@ export const webScraperTool = createTool({
         },
       })
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Fetching and parsing page...' } });
+      await writer?.custom({ type: 'data-tool-progress', data: progressData('📥 Fetching and parsing page...') });
       await crawler.run([
         new Request({
           url: inputData.url,
@@ -897,7 +905,7 @@ export const webScraperTool = createTool({
           }
         }
 
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '✂️ Converting to markdown...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: progressData('✂️ Converting to markdown...') });
         if (
           inputData.saveMarkdown === true &&
           typeof markdownContent === 'string' &&
@@ -949,7 +957,7 @@ export const webScraperTool = createTool({
         }
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: progressData(`✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}`) });
 
 
     return webScraperOutputSchema.parse({

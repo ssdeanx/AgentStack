@@ -15,7 +15,6 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { mapDataToolPartToDynamicToolPart } from "../helpers/tool-part-transform";
 
 export interface Source {
   url: string
@@ -30,7 +29,7 @@ export interface TokenUsage {
 
 export type ChatStatus = "ready" | "submitted" | "streaming" | "error"
 
-export type ToolInvocationState = DynamicToolUIPart
+export type ToolInvocationState = ToolUIPart | DynamicToolUIPart
 
 export interface QueuedTask {
   id: string
@@ -93,33 +92,33 @@ export interface ChatContextValue {
   resourceId: string
 
   // Actions
-  sendMessage: (text: string, files?: File[]) => void
+  sendMessage: (_text: string, _files?: File[]) => void
   stopGeneration: () => void
   clearMessages: () => void
-  selectAgent: (agentId: string) => void
-  selectModel: (modelId: string) => void
+  selectAgent: (_agentId: string) => void
+  selectModel: (_modelId: string) => void
   dismissError: () => void
 
   // Task management
-  addTask: (task: Omit<QueuedTask, "id">) => string
-  updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
-  removeTask: (taskId: string) => void
+  addTask: (_task: Omit<QueuedTask, "id">) => string
+  updateTask: (_taskId: string, _updates: Partial<QueuedTask>) => void
+  removeTask: (_taskId: string) => void
 
   // Confirmation management
-  approveConfirmation: (confirmationId: string) => void
-  rejectConfirmation: (confirmationId: string, reason?: string) => void
+  approveConfirmation: (_confirmationId: string) => void
+  rejectConfirmation: (_confirmationId: string, _reason?: string) => void
 
   // Checkpoint management
-  createCheckpoint: (messageIndex: number, label?: string) => string
-  restoreCheckpoint: (checkpointId: string) => void
-  removeCheckpoint: (checkpointId: string) => void
+  createCheckpoint: (_messageIndex: number, _label?: string) => string
+  restoreCheckpoint: (_checkpointId: string) => void
+  removeCheckpoint: (_checkpointId: string) => void
 
   // Web Preview management
-  setWebPreview: (preview: WebPreviewData | null) => void
+  setWebPreview: (_preview: WebPreviewData | null) => void
 
   // Memory management
-  setThreadId: (threadId: string) => void
-  setResourceId: (resourceId: string) => void
+  setThreadId: (_threadId: string) => void
+  setResourceId: (_resourceId: string) => void
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -237,24 +236,17 @@ export function ChatProvider({
 
   const toolInvocations = useMemo((): ToolInvocationState[] => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role !== "assistant" || !lastMessage.parts) {return []}
+    if (lastMessage?.role !== "assistant") {return []}
 
-    // Iterate parts in order and collect both `dynamic-tool` and
-    // Mastra-native `data-tool-*` parts (converted to dynamic-tool).
+    // Collect native AI SDK tool parts (tool-*) and dynamic-tool parts.
     const {parts} = lastMessage
     const result: ToolInvocationState[] = []
 
     for (const p of parts) {
       if (p.type === "dynamic-tool") {
-        result.push(p as ToolInvocationState)
-        continue
-      }
-
-      if (typeof p.type === "string" && p.type.startsWith("data-tool-")) {
-        const converted = mapDataToolPartToDynamicToolPart(p)
-        if (converted) {
-          result.push(converted)
-        }
+        result.push(p as DynamicToolUIPart)
+      } else if (typeof p.type === "string" && p.type.startsWith("tool-")) {
+        result.push(p as ToolUIPart)
       }
     }
 
@@ -265,7 +257,7 @@ export function ChatProvider({
   useEffect(() => {
     const allSources: Source[] = []
     for (const message of messages) {
-      if (message.role === "assistant" && message.parts) {
+      if (message.role === "assistant") {
         for (const part of message.parts) {
           if (part.type === "source-url") {
             const src = part as { url: string; title?: string }
@@ -283,22 +275,16 @@ export function ChatProvider({
   // Extract web preview data from tool outputs (for chart/diagram agents)
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant" && lastMessage.parts) {
+    if (lastMessage?.role === "assistant") {
       for (const part of lastMessage.parts) {
         // Check for generated HTML/React code in tool outputs
         let output: Record<string, unknown> | undefined
 
-        // Extract output from standard dynamic-tool parts
         if (part.type === "dynamic-tool") {
-          const toolPart = part as DynamicToolUIPart
-          output = toolPart.output as Record<string, unknown> | undefined
-
-          // Or convert a Mastra `data-tool-*` part into a DynamicTool shape, then check its output
-        } else if (typeof part.type === "string" && part.type.startsWith("data-tool-")) {
-          const converted = mapDataToolPartToDynamicToolPart(part)
-          output = converted?.output as Record<string, unknown> | undefined
-
-          // Not a tool part we care about
+          output = (part as DynamicToolUIPart).output as Record<string, unknown> | undefined
+        } else if (typeof part.type === "string" && part.type.startsWith("tool-")) {
+          const toolPart = part as ToolUIPart
+          output = (toolPart as unknown as { output?: unknown }).output as Record<string, unknown> | undefined
         } else {
           continue
         }
@@ -316,8 +302,9 @@ export function ChatProvider({
           } else if ((Boolean(out.code)) && typeof out.code === "string") {
             // For code generation (like Recharts), create a data URL or sandbox
             const language = (out.language as string) || "tsx"
-            if (language === "html" || (Boolean((out as any).html))) {
-              const htmlContent = (out as any).html ?? out.code
+            const htmlCandidate = (out as { html?: unknown }).html
+            if (language === "html" || typeof htmlCandidate === "string") {
+              const htmlContent = typeof htmlCandidate === "string" ? htmlCandidate : out.code
               const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
               setWebPreviewState({
                 id: `preview-${Date.now()}`,
@@ -334,7 +321,7 @@ export function ChatProvider({
   }, [messages])
 
   const sendMessage = useCallback(
-    (text: string, files?: File[]) => {
+    (text: string, _files?: File[]) => {
       if (!text.trim() || isLoading) {return}
       setChatError(null)
       aiSendMessage({ text: text.trim() })
@@ -360,7 +347,7 @@ export function ChatProvider({
 
   const selectAgent = useCallback(
     (agentId: string) => {
-      if (AGENT_CONFIGS[agentId]) {
+      if (Object.prototype.hasOwnProperty.call(AGENT_CONFIGS, agentId)) {
         setSelectedAgent(agentId)
         setSources([])
         setChatError(null)
@@ -506,7 +493,7 @@ export function ChatProvider({
   // Extract usage data from completed messages
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant" && lastMessage.parts && aiStatus === "ready") {
+    if (lastMessage?.role === "assistant" && aiStatus === "ready") {
       for (const part of lastMessage.parts) {
         // Look for step-finish part with usage data (from Mastra server)
         const partAny = part as Record<string, unknown>

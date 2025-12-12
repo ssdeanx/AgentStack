@@ -50,6 +50,12 @@
     "app/**/*.tsx",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "src/mastra/types/**/*.d.ts",
+    "types/**/*.d.ts",
+    "utils/**/*.ts",
+    "utils/**/*.tsx",
+    "styles/**/*.ts",
+    "styles/**/*.tsx",
     "ui/**/*.ts",
     "ui/**/*.tsx",
     "lib/**/*.ts",
@@ -58,8 +64,10 @@
     "hooks/**/*.tsx",
     "pages/**/*.ts",
     "pages/**/*.tsx",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    // Tests are excluded from the main typecheck run to avoid typechecking test-only imports
+    // that may pull in declaration files with unsupported syntax from node_modules.
+    "types/**/*.d.ts",
+
   ],
   "exclude": [
     "node_modules",
@@ -74,6 +82,8 @@
     "scripts",
     ".kilocode",
     "docs",
-    "memory-bank"
+    "memory-bank",
+    "node_modules/@crawlee/http/internals/http-crawler.d.ts",
+    "node_modules/@mdx-js/loader/index.d.cts"
   ]
 }

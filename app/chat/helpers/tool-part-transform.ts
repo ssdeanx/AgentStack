@@ -9,47 +9,52 @@ import type { DynamicToolUIPart } from "ai";
  *
  * If the part does not look like a Mastra `data-tool-*` part, returns null.
  */
-export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart | null {
-  if (!part || typeof part !== "object") {return null;}
-  if (typeof part.type !== "string" || !(part.type.startsWith("data-tool"))) {
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+export function mapDataToolPartToDynamicToolPart(part: unknown): DynamicToolUIPart | null {
+  if (!isRecord(part)) {return null;}
+  const partType = part.type
+  if (typeof partType !== "string" || !partType.startsWith("data-tool")) {
     // Not a Mastra data-tool part
     return null;
   }
 
   // Utility helpers
-  const first = <T>(...xs: Array<T | undefined | null>) => xs.find((x) => x !== undefined && x !== null) as T | undefined;
-
-  const toStringIfExists = (v: any) => (v === undefined || v === null ? undefined : String(v));
-
-  const isObject = (v: any) => v && typeof v === "object" && !Array.isArray(v);
+  const first = <T>(...xs: Array<T | undefined | null>) =>
+    xs.find((x) => x !== undefined && x !== null) as T | undefined;
 
   // Extract the primary payload object to inspect - Mastra sometimes nests
   // the payload in different properties (data, payload, body, call, invocation, etc.)
-  const candidates: any[] = [
-    part.data,
-    (part).payload,
-    (part).body,
-    part,
-  ].filter(Boolean);
+  const candidates: unknown[] = [part.data, part.payload, part.body, part].filter(
+    (v) => v !== undefined && v !== null
+  );
 
   // If payload has nested "data" and/or "call" shapes, prefer them
-  let payload: any = undefined;
+  let payload: unknown = undefined;
   for (const candidate of candidates) {
-    if (isObject(candidate?.call)) {
+    if (!isRecord(candidate)) {continue;}
+    if (isRecord(candidate.call)) {
       payload = candidate.call;
       break;
     }
-    if (isObject(candidate?.invocation)) {
+    if (isRecord(candidate.invocation)) {
       payload = candidate.invocation;
       break;
     }
-    if (isObject(candidate?.toolInvocation)) {
+    if (isRecord(candidate.toolInvocation)) {
       payload = candidate.toolInvocation;
       break;
     }
-    if ((Boolean(isObject(candidate?.data))) && ((Boolean(isObject(candidate.data?.input))) || (Boolean(isObject(candidate.data?.output))) || (Boolean(candidate.data.id)))) {
-          payload = candidate.data;
-          break;
+    if (isRecord(candidate.data)) {
+      const dataObj = candidate.data
+      if (isRecord(dataObj.input) || isRecord(dataObj.output) || dataObj.id !== undefined) {
+        payload = dataObj;
+        break;
+      }
     }
   }
 
@@ -57,75 +62,96 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
   payload = payload ?? candidates[0] ?? {};
 
   // Some nested shapes: payload may itself contain another "payload" or "data"
-  let inner = payload;
-  if (!(inner) || !(isObject(inner))) {inner = {};}
-  if (isObject(inner.payload)) {inner = inner.payload;}
-  if (isObject(inner.data) && (Object.keys(inner.data).length > 0)) {inner = inner.data;}
+  let inner: unknown = payload;
+  if (!isRecord(inner)) {inner = {};}
+  if (isRecord((inner as UnknownRecord).payload)) {inner = (inner as UnknownRecord).payload;}
+  if (isRecord((inner as UnknownRecord).data) && Object.keys((inner as UnknownRecord).data as UnknownRecord).length > 0) {
+    inner = (inner as UnknownRecord).data;
+  }
 
   // Attempt to find a "call" or "execution" sub-object if present
-  if (isObject(inner.call)) {inner = inner.call;}
-  else if (isObject(inner.exec)) {inner = inner.exec;}
-  else if (isObject(inner.execution)) {inner = inner.execution;}
-  else if (isObject(inner.run)) {inner = inner.run;}
+  if (isRecord((inner as UnknownRecord).call)) {inner = (inner as UnknownRecord).call;}
+  else if (isRecord((inner as UnknownRecord).exec)) {inner = (inner as UnknownRecord).exec;}
+  else if (isRecord((inner as UnknownRecord).execution)) {inner = (inner as UnknownRecord).execution;}
+  else if (isRecord((inner as UnknownRecord).run)) {inner = (inner as UnknownRecord).run;}
+
+  const innerObj = isRecord(inner) ? inner : ({} as UnknownRecord)
+  const payloadObj = isRecord(payload) ? payload : ({} as UnknownRecord)
 
   // Now, pick the fields from different possible shapes
   const toolCallId =
     (first<string>(
-      inner?.toolCallId,
-      inner?.callId,
-      inner?.id,
-      inner?.tool_call_id,
-      inner?.requestId,
-      inner?.runId
+      innerObj.toolCallId as string | undefined,
+      innerObj.callId as string | undefined,
+      innerObj.id as string | undefined,
+      innerObj.tool_call_id as string | undefined,
+      innerObj.requestId as string | undefined,
+      innerObj.runId as string | undefined
     ) ?? first<string>(
-      payload?.toolCallId,
-      payload?.id,
-      payload?.callId,
-      payload?.tool_call_id
-    ) ?? `toolcall-${Date.now()}`);
+      payloadObj.toolCallId as string | undefined,
+      payloadObj.id as string | undefined,
+      payloadObj.callId as string | undefined,
+      payloadObj.tool_call_id as string | undefined
+    ));
+
+  if (typeof toolCallId !== "string" || toolCallId.trim().length === 0) {
+    return null;
+  }
 
   const toolName =
     (first<string>(
-      inner?.toolName,
-      inner?.name,
-      inner?.tool,
-      inner?.toolId,
-      inner?.tool_id
+      innerObj.toolName as string | undefined,
+      innerObj.name as string | undefined,
+      innerObj.tool as string | undefined,
+      innerObj.toolId as string | undefined,
+      innerObj.tool_id as string | undefined
     ) ??
-      first<string>(payload?.toolName, payload?.name, payload?.tool, payload?.toolId));
+      first<string>(
+        payloadObj.toolName as string | undefined,
+        payloadObj.name as string | undefined,
+        payloadObj.tool as string | undefined,
+        payloadObj.toolId as string | undefined
+      ));
+
+  const progressMessage = first<string>(
+    innerObj.message as string | undefined,
+    payloadObj.message as string | undefined
+  );
 
   // Input detection: args / parameters / input / params
   const input =
-    inner?.input ??
-    inner?.args ??
-    inner?.parameters ??
-    inner?.params ??
-    payload?.input ??
-    payload?.args ??
-    payload?.params ??
+    innerObj.input ??
+    innerObj.args ??
+    innerObj.parameters ??
+    innerObj.params ??
+    payloadObj.input ??
+    payloadObj.args ??
+    payloadObj.params ??
+    (typeof progressMessage === "string" && progressMessage.trim().length > 0
+      ? { message: progressMessage.trim() }
+      : undefined) ??
     undefined;
 
   // Output detection: output / result / value / return
   const output =
-    inner?.output ??
-    inner?.result ??
-    inner?.value ??
-    inner?.return ??
-    payload?.output ??
-    payload?.result ??
-    payload?.value ??
+    innerObj.output ??
+    innerObj.result ??
+    innerObj.value ??
+    innerObj.return ??
+    payloadObj.output ??
+    payloadObj.result ??
+    payloadObj.value ??
     undefined;
 
   // Error detection
   const errorText =
     first<string | undefined>(
-      inner?.errorText ?? inner?.error ?? inner?.err,
-      payload?.errorText ?? payload?.error ?? payload?.err
+      (innerObj.errorText as string | undefined) ?? (innerObj.error as string | undefined) ?? (innerObj.err as string | undefined),
+      (payloadObj.errorText as string | undefined) ?? (payloadObj.error as string | undefined) ?? (payloadObj.err as string | undefined)
     ) ?? undefined;
 
   // Map any status-like property to AI SDK tool state
-  const rawState =
-    (inner?.state ?? inner?.status ?? payload?.state ?? payload?.status ?? "").toString() ?? "";
+  const rawState = String(innerObj.state ?? innerObj.status ?? payloadObj.state ?? payloadObj.status ?? "");
 
   // Convert a free-form status to tool states defined by the SDK
   const mapToToolState = (s: string): DynamicToolUIPart["state"] => {
@@ -172,7 +198,7 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
   const dynamic: DynamicToolUIPart = {
     type: "dynamic-tool",
     toolCallId: String(toolCallId),
-    toolName: toolName ?? (typeof inner?.tool === "string" ? inner.tool : undefined) ?? `tool-${(toolCallId ?? "").slice(0, 8)}`,
+    toolName: toolName ?? (typeof innerObj.tool === "string" ? innerObj.tool : undefined) ?? `tool-${String(toolCallId).slice(0, 8)}`,
     input: input ?? undefined,
     output: output ?? undefined,
     errorText: errorText ?? undefined,
@@ -181,8 +207,8 @@ export function mapDataToolPartToDynamicToolPart(part: any): DynamicToolUIPart |
 
   // Attach any useful debug/metadata (opaque) — non-standard; client code can ignore it.
   try {
-    (dynamic as any).__mastra = {
-      sourceType: part.type,
+    (dynamic as unknown as { __mastra?: unknown }).__mastra = {
+      sourceType: partType,
       original: part,
     };
   } catch {

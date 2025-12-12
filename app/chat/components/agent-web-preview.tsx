@@ -58,7 +58,7 @@ type PreviewStatus = "idle" | "running" | "success" | "error"
 interface AgentWebPreviewProps {
   preview: WebPreviewData
   onClose?: () => void
-  onCodeChange?: (code: string) => void
+  onCodeChange?: (_code: string) => void
   defaultTab?: "preview" | "code"
   height?: string | number
   showConsole?: boolean

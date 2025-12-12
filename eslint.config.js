@@ -23,6 +23,8 @@ const ignores = [
     'memories/**',
     'docs/**',
     'components/ui/**',
+    'node_modules/@crawlee/http/internals/http-crawler.d.ts',
+    'node_modules/@mdx-js/loader/index.d.cts',
     'docker/**',
     '.spec/**',
     '.specstory/**',
