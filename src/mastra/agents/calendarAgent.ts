@@ -55,5 +55,5 @@ Current user: ${userId ?? 'anonymous'}`,
     getUpcomingEvents,
     findFreeSlots,
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000)]
 });
