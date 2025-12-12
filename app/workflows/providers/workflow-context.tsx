@@ -11,6 +11,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react"
+import type { AgentDataPart } from "@mastra/ai-sdk"
 import {
   getWorkflowConfig,
   WORKFLOW_CONFIGS,
@@ -61,6 +62,15 @@ export interface WorkflowRun {
   error?: string
 }
 
+export interface WorkflowDataPart {
+  messageId: string
+  partIndex: number
+  part: {
+    type: string
+    data?: unknown
+  }
+}
+
 /* eslint-disable no-unused-vars */
 export interface WorkflowContextValue {
   selectedWorkflow: WorkflowId
@@ -70,6 +80,7 @@ export interface WorkflowContextValue {
   activeStepIndex: number
   progressEvents: WorkflowProgressEvent[]
   suspendPayload: WorkflowSuspendPayload | null
+  dataParts: WorkflowDataPart[]
   selectWorkflow: (workflowId: WorkflowId) => void
   runWorkflow: (inputData?: Record<string, unknown>) => void
   pauseWorkflow: () => void
@@ -204,6 +215,7 @@ export function WorkflowProvider({
   const [activeStepIndex, setActiveStepIndex] = useState(-1)
   const [progressEvents, setProgressEvents] = useState<WorkflowProgressEvent[]>([])
   const [suspendPayload, setSuspendPayload] = useState<WorkflowSuspendPayload | null>(null)
+  const [dataParts, setDataParts] = useState<WorkflowDataPart[]>([])
 
   const workflowConfig = useMemo(
     () => getWorkflowConfig(selectedWorkflow),
@@ -253,14 +265,24 @@ export function WorkflowProvider({
     }
   }, [status, workflowStatus])
 
-  // Extract progress events from custom data parts
+  // Extract progress events and data parts from custom data parts
   useEffect(() => {
     const allProgressEvents: WorkflowProgressEvent[] = []
+    const allDataParts: WorkflowDataPart[] = []
     let detectedSuspendPayload: WorkflowSuspendPayload | null = null
 
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
         for (const [partIndex, part] of message.parts.entries()) {
+          // Collect all data parts for custom component rendering
+          if (typeof part.type === "string" && part.type.startsWith("data-")) {
+            allDataParts.push({
+              messageId: message.id,
+              partIndex,
+              part,
+            })
+          }
+
           // Handle workflow progress events (data-workflow, data-tool-workflow)
           if (part.type === "data-workflow" || part.type === "data-tool-workflow") {
             const workflowPart = part as { data?: { text?: string; status?: string; stepId?: string } }
@@ -273,6 +295,77 @@ export function WorkflowProvider({
                 status: "in-progress",
                 message: eventData.text,
                 stepId: eventData.stepId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle network aggregation events (data-network)
+          if (part.type === "data-network") {
+            const networkPart = part as { data?: { text?: string; status?: string; networkId?: string } }
+            const eventData = networkPart.data
+
+            if (eventData && eventData.text !== null && typeof eventData.text === "string" && eventData.text.trim()) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${partIndex}`,
+                stage: "network",
+                status: "in-progress",
+                message: eventData.text,
+                stepId: eventData.networkId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle tool agent events (data-tool-agent)
+          if (part.type === "data-tool-agent") {
+            const agentPart = part as { data?: AgentDataPart }
+            const eventData = agentPart.data
+
+            if (eventData) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${partIndex}`,
+                stage: "tool agent",
+                status: "in-progress",
+                message: `Agent executing tool`,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle nested workflow events (data-tool-workflow)
+          if (part.type === "data-tool-workflow") {
+            const nestedWorkflowPart = part as { data?: { text?: string; status?: string; workflowId?: string } }
+            const eventData = nestedWorkflowPart.data
+
+            if (eventData && eventData.text !== null && typeof eventData.text === "string" && eventData.text.trim()) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${partIndex}`,
+                stage: "nested workflow",
+                status: "in-progress",
+                message: eventData.text,
+                stepId: eventData.workflowId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle nested network events (data-tool-network)
+          if (part.type === "data-tool-network") {
+            const nestedNetworkPart = part as { data?: { text?: string; status?: string; networkId?: string } }
+            const eventData = nestedNetworkPart.data
+
+            if (eventData && eventData.text !== null && typeof eventData.text === "string" && eventData.text.trim()) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${partIndex}`,
+                stage: "nested network",
+                status: "in-progress",
+                message: eventData.text,
+                stepId: eventData.networkId,
                 timestamp: new Date(),
                 data: eventData,
               })
@@ -313,11 +406,29 @@ export function WorkflowProvider({
               })
             }
           }
+
+          // Handle custom tool progress events
+          if (typeof part.type === "string" && part.type.startsWith("data-tool-progress")) {
+            const toolProgressPart = part as { type: string; data?: { status?: string; message?: string; toolName?: string } }
+            const eventData = toolProgressPart.data
+
+            if (eventData && eventData.status !== null && typeof eventData.status === "string") {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${partIndex}`,
+                stage: "tool",
+                status: eventData.status === "success" ? "done" : eventData.status === "pending" ? "in-progress" : "error",
+                message: eventData.message ?? `${eventData.toolName ?? 'Tool'} ${eventData.status}`,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
         }
       }
     }
 
     setProgressEvents(allProgressEvents)
+    setDataParts(allDataParts)
     if (detectedSuspendPayload) {
       setSuspendPayload(detectedSuspendPayload)
     }
@@ -331,6 +442,7 @@ export function WorkflowProvider({
       setActiveStepIndex(-1)
       setProgressEvents([])
       setSuspendPayload(null)
+      setDataParts([])
     }
   }, [])
 
@@ -351,6 +463,7 @@ export function WorkflowProvider({
       setActiveStepIndex(0)
       setProgressEvents([]) // Clear previous progress events
       setSuspendPayload(null) // Clear any previous suspend state
+      setDataParts([]) // Clear previous data parts
 
       // Send message to trigger workflow via AI SDK
       const inputText = inputData?.input?.toString() ?? `Run ${workflowConfig.name}`
@@ -394,6 +507,7 @@ export function WorkflowProvider({
     setActiveStepIndex(-1)
     setProgressEvents([])
     setSuspendPayload(null)
+    setDataParts([])
   }, [stop])
 
   const runStep = useCallback(
@@ -475,6 +589,7 @@ export function WorkflowProvider({
       activeStepIndex,
       progressEvents,
       suspendPayload,
+      dataParts,
       selectWorkflow,
       runWorkflow,
       pauseWorkflow,
@@ -496,6 +611,7 @@ export function WorkflowProvider({
       activeStepIndex,
       progressEvents,
       suspendPayload,
+      dataParts,
       selectWorkflow,
       runWorkflow,
       pauseWorkflow,

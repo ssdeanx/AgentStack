@@ -158,10 +158,14 @@ const fetchPriceDataStep = createStep({
     const startTime = Date.now();
     logStepStart('fetch-price-data', { symbols: inputData.symbols });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'fetch-price-data',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: 'step-start',
+        data: "Starting parallel price fetch...",
+        id: 'fetch-price-data',
+      },
+      id: 'fetch-price-data',
     });
 
     const tracer = trace.getTracer('financial-report');
@@ -173,12 +177,13 @@ const fetchPriceDataStep = createStep({
       const priceData: Array<z.infer<typeof priceDataSchema>> = [];
       const apiKey = process.env.POLYGON_API_KEY;
 
-      await writer?.write({
-        type: 'parallel-progress',
-        stepId: 'fetch-price-data',
-        total: inputData.symbols.length,
-        completed: 0,
-        message: `Fetching prices for ${inputData.symbols.length} symbols...`,
+      await writer?.custom({
+        type: 'data-workflow-parallel-progress',
+        data: {
+          type: 'progress',
+          data: "Fetching prices for ${inputData.symbols.length} symbols...",
+        },
+        id: 'fetch-price-data',
       });
 
       for (let i = 0; i < inputData.symbols.length; i++) {

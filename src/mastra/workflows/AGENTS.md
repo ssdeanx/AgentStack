@@ -54,6 +54,132 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 - Add logs and robust error handling.
 - Use `writer` for streaming progress updates to clients.
 
+## Standardized Writer Pattern
+
+All workflows must use the following standardized `writer` pattern for consistent progress tracking:
+
+### Step Start
+
+```typescript
+await writer?.custom({
+  type: 'data-workflow-step-start',
+  data: {
+    type: "workflow",
+    data: "step-id",
+    id: "step-id",
+  },
+  id: 'step-id'
+});
+```
+
+### Progress Updates
+
+```typescript
+await writer?.custom({
+  type: 'data-workflow-progress',
+  data: {
+    status: "XX%",  // Percentage: "20%", "50%", "90%", "100%"
+    message: "Descriptive progress message...",
+    stage: "workflow",
+  },
+  id: 'step-id'
+});
+```
+
+### Step Complete
+
+```typescript
+await writer?.custom({
+  type: 'data-workflow-step-complete',
+  data: {
+    stepId: 'step-id',
+    success: true,
+    duration: Date.now() - startTime,
+  },
+  id: 'step-id'
+});
+```
+
+### Step Error
+
+```typescript
+await writer?.custom({
+  type: 'data-workflow-step-error',
+  data: {
+    stepId: 'step-id',
+    error: error instanceof Error ? error.message : 'Unknown error',
+  },
+  id: 'step-id'
+});
+```
+
+### Pattern Requirements
+
+1. **Always include step-start** at the beginning of each step's execute function
+2. **Use percentage-based status** (e.g., "20%", "50%") instead of "in-progress"/"done"
+3. **Include step-complete** with success status and duration
+4. **Include step-error** in catch blocks
+5. **Add progress updates** at logical checkpoints (20%, 50%, 90%, etc.)
+
+### Example Implementation
+
+```typescript
+execute: async ({ inputData, writer }) => {
+  const startTime = Date.now();
+  
+  // Step start
+  await writer?.custom({
+    type: 'data-workflow-step-start',
+    data: {
+      type: "workflow",
+      data: "my-step",
+      id: "my-step",
+    },
+    id: 'my-step'
+  });
+
+  try {
+    // Progress update
+    await writer?.custom({
+      type: 'data-workflow-progress',
+      data: {
+        status: "20%",
+        message: "Starting processing...",
+        stage: "workflow",
+      },
+      id: 'my-step'
+    });
+
+    // ... step logic ...
+
+    // Completion
+    await writer?.custom({
+      type: 'data-workflow-step-complete',
+      data: {
+        stepId: 'my-step',
+        success: true,
+        duration: Date.now() - startTime,
+      },
+      id: 'my-step'
+    });
+
+    return result;
+  } catch (error) {
+    // Error handling
+    await writer?.custom({
+      type: 'data-workflow-step-error',
+      data: {
+        stepId: 'my-step',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      id: 'my-step'
+    });
+
+    throw error;
+  }
+}
+```
+
 ---
 ## Change Log
 

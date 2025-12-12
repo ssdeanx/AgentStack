@@ -7,6 +7,7 @@ import {
   rerankWithScorer as rerank,
   MastraAgentRelevanceScorer,
 } from '@mastra/rag';
+import { ModelRouterEmbeddingModel } from "@mastra/core/llm";
 import { embed, embedMany } from 'ai';
 import { z } from 'zod';
 import {
@@ -777,6 +778,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
           processingTimeMs: processingTime,
         }
       }
+      // Create a relevance scorer
 
       // Step 3: Re-rank results using semantic relevance scorer
       await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `⚖️ Reranking ${initialResults.length} documents` } });
@@ -789,7 +791,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
           score: result.score || 0,
         })),
         query: inputData.userQuery,
-        scorer: new MastraAgentRelevanceScorer('relevance-scorer', google('gemini-1.5-flash')),
+        scorer: new MastraAgentRelevanceScorer('relevance-scorer', google('gemini-2.5-flash')),
         options: {
           weights: {
             semantic: inputData.semanticWeight,

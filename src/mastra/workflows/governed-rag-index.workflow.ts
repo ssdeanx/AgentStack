@@ -40,10 +40,19 @@ const indexDocumentsStep = createStep({
       })
     ),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
     const startTime = Date.now()
     const totalDocs = inputData.documents.length
     logStepStart('index-documents', { totalDocuments: totalDocs })
+
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: "workflow",
+        data: "index-documents",
+        id: "index-documents",
+      }
+    });
 
     try {
       const vectorStore = pgVector
@@ -62,12 +71,32 @@ const indexDocumentsStep = createStep({
           0,
           totalDocs
         )
+
+        await writer?.custom({
+          type: 'data-workflow-progress',
+          data: {
+            status: "10%",
+            message: `PgVector index ${indexName} created or already exists with 1568 dimensions`,
+            stage: "workflow",
+          }
+        });
+
       } catch (createError) {
         logProgress(
           `Index creation info (may already exist): ${createError instanceof Error ? createError.message : String(createError)}`,
           0,
           totalDocs
         )
+
+        await writer?.custom({
+          type: 'data-workflow-progress',
+          data: {
+            status: "10%",
+            message: `Index creation info (may already exist): ${createError instanceof Error ? createError.message : String(createError)}`,
+            stage: "workflow",
+          }
+        });
+
         // Index might already exist, continue
       }
 
@@ -98,6 +127,15 @@ const indexDocumentsStep = createStep({
           totalDocs
         )
 
+        await writer?.custom({
+          type: 'data-workflow-progress',
+          data: {
+            status: `${Math.round(10 + (docIndex / totalDocs) * 80)}%`,
+            message: `Indexing document ${doc.docId}`,
+            stage: "workflow",
+          }
+        });
+
         const result: IndexingResult =
           await DocumentIndexingService.indexDocument(
             doc,
@@ -114,14 +152,42 @@ const indexDocumentsStep = createStep({
         }
       }
 
+      await writer?.custom({
+        type: 'data-workflow-progress',
+        data: {
+          status: "100%",
+          message: `Indexing complete: ${results.indexed} indexed, ${results.failed} failed`,
+          stage: "workflow",
+        }
+      });
+
       logStepEnd(
         'index-documents',
         { indexed: results.indexed, failed: results.failed },
         Date.now() - startTime
       )
+
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'index-documents',
+          success: true,
+          duration: Date.now() - startTime,
+        }
+      });
+
       return results
     } catch (error) {
       logError('index-documents', error, { totalDocuments: totalDocs })
+
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'index-documents',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      });
+
       throw new Error(
         `Document indexing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
