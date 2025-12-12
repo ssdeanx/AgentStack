@@ -134,6 +134,49 @@ graph TB
     style UI stroke:#58a6ff
 ```
 
+## 🔍 **Workflow Architecture**
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
+sequenceDiagram
+    participant W as Workflow Step
+    participant Writer as Writer (custom)
+    participant UI as UI/Frontend
+    
+    Note over W,UI: Standardized Workflow Logging Pattern
+    
+    W->>Writer: step-start event
+    Writer->>UI: data-workflow-step-start
+    Note right of UI: {type: "workflow", data: "step-id", id: "step-id"}
+    
+    W->>Writer: progress update (20%)
+    Writer->>UI: data-workflow-progress
+    Note right of UI: {status: "20%", message: "...", stage: "workflow"}
+    
+    W->>W: Execute step logic
+    
+    W->>Writer: progress update (50%)
+    Writer->>UI: data-workflow-progress
+    Note right of UI: {status: "50%", message: "...", stage: "workflow"}
+    
+    W->>W: Continue execution
+    
+    W->>Writer: progress update (100%)
+    Writer->>UI: data-workflow-progress
+    Note right of UI: {status: "100%", message: "...", stage: "workflow"}
+    
+    W->>Writer: step-complete event
+    Writer->>UI: data-workflow-step-complete
+    Note right of UI: {stepId: "step-id", success: true, duration: ms}
+    
+    Note over W,UI: Error Handling Pattern
+    
+    W->>W: Error occurs
+    W->>Writer: step-error event
+    Writer->>UI: data-workflow-step-error
+    Note right of UI: {stepId: "step-id", error: "error message"}
+```
+
 ## 📊 **System Flowchart**
 
 ```mermaid
@@ -989,56 +1032,117 @@ _Last updated: 2025-12-05 | v1.1.0_
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 classDiagram
-    class Message {
+    class WorkflowRun {
       +string id
-      +string role
-      +MessagePart[] parts
+      +string workflowId
+      +string status
+      +Date startedAt
+      +Date finishedAt
+      +string error
     }
 
-    class MessagePart {
+    class WorkflowDataPart {
+      +string messageId
+      +number partIndex
+      +DataPart part
+    }
+
+    class DataPart {
       +string type
-      +AgentDataPart data
+      +unknown data
     }
 
-    class AgentDataPart {
-      +string text
-      +string status
-      +string stage
-      +string stepId
-      +string message
-      +string agentId
-      +string workflowId
-    }
-
-    class ProgressEvent {
+    class WorkflowProgressEvent {
       +string id
       +string stage
       +string status
       +string message
-      +string agentId
-      +string workflowId
+      +string stepId
+      +Date timestamp
+      +unknown data
     }
 
-    class NetworkProvider {
-      +ProgressEvent[] extractProgressEvents(messages)
+    class WorkflowSuspendPayload {
+      +string message
+      +string requestId
+      +string stepId
+    }
+
+    class WorkflowContextValue {
+      +string selectedWorkflow
+      +WorkflowRun currentRun
+      +string status
+      +number activeStepIndex
+      +WorkflowProgressEvent[] progressEvents
+      +WorkflowSuspendPayload suspendPayload
+      +WorkflowDataPart[] dataParts
+      +selectWorkflow(workflowId)
+      +runWorkflow(inputData)
+      +pauseWorkflow()
+      +resumeWorkflow()
+      +stopWorkflow()
+      +runStep(stepId)
     }
 
     class WorkflowProvider {
-      +ProgressEvent[] extractProgressEvents(messages)
+      -WorkflowRun currentRun
+      -WorkflowProgressEvent[] progressEvents
+      -WorkflowDataPart[] dataParts
+      -WorkflowSuspendPayload suspendPayload
+      +useEffect_parseMessages()
+      +useEffect_syncStatus()
+      +runWorkflow(inputData)
+      +pauseWorkflow()
+      +resumeWorkflow()
+      +stopWorkflow()
+      +runStep(stepId)
     }
 
-    class ProgressPanel {
-      +void render(progressEvents)
+    class WriterCustomPayload {
+      +string type
+      +unknown data
+      +string id
     }
 
-    Message "1" --> "*" MessagePart : has
-    MessagePart "1" --> "0..1" AgentDataPart : data
+    class Writer {
+      +custom(payload)
+    }
 
-    NetworkProvider --> Message : reads
-    WorkflowProvider --> Message : reads
+    class StepExecutionContext {
+      +unknown inputData
+      +Writer writer
+      +unknown mastra
+    }
 
-    NetworkProvider --> ProgressEvent : creates_with_id_messageId_partType_partIndex
-    WorkflowProvider --> ProgressEvent : creates_with_id_messageId_partType_partIndex
+    class WorkflowStep {
+      +string id
+      +execute(context)
+    }
 
-    ProgressPanel "1" --> "*" ProgressEvent : renders
+    class UpstashVector {
+      +createIndex(indexName, dimension, metric)
+    }
+
+    class UpstashConfig {
+      +initializeUpstashVector()
+      +UpstashVector upstashVector
+    }
+
+    WorkflowProvider ..> WorkflowContextValue : provides
+    WorkflowProvider --> WorkflowRun : manages
+    WorkflowProvider --> WorkflowProgressEvent : aggregates
+    WorkflowProvider --> WorkflowDataPart : collects
+    WorkflowProvider --> WorkflowSuspendPayload : handles
+
+    WorkflowContextValue o--> WorkflowRun
+    WorkflowContextValue o--> WorkflowProgressEvent
+    WorkflowContextValue o--> WorkflowDataPart
+    WorkflowContextValue o--> WorkflowSuspendPayload
+
+    WorkflowStep --> StepExecutionContext : uses
+    StepExecutionContext o--> Writer
+
+    Writer --> WriterCustomPayload : sends
+
+    UpstashConfig o--> UpstashVector
 ```

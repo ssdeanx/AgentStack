@@ -180,6 +180,63 @@ execute: async ({ inputData, writer }) => {
 }
 ```
 
+# Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant BrowserApp
+    participant WorkflowProvider
+    participant AIBackend
+    participant WorkflowStep
+    participant Writer
+
+    User->>BrowserApp: Click run workflow
+    BrowserApp->>WorkflowProvider: runWorkflow(inputData)
+    WorkflowProvider->>AIBackend: send workflow start message
+
+    AIBackend->>WorkflowStep: execute({ inputData, writer })
+    activate WorkflowStep
+
+    note over WorkflowStep: Step start
+    WorkflowStep->>Writer: custom(type: data-workflow-step-start, id: stepId)
+    Writer-->>AIBackend: stream message part (data-workflow-step-start)
+    AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-start
+    WorkflowProvider->>WorkflowProvider: extract dataParts
+
+    note over WorkflowStep: Progress updates
+    WorkflowStep->>Writer: custom(type: data-workflow-progress, status: 20%)
+    Writer-->>AIBackend: stream progress part
+    AIBackend-->>WorkflowProvider: assistant message with data-workflow-progress
+    WorkflowProvider->>WorkflowProvider: add WorkflowProgressEvent
+
+    WorkflowStep->>WorkflowStep: perform main logic
+
+    alt success
+        WorkflowStep->>Writer: custom(type: data-workflow-progress, status: 100%)
+        Writer-->>AIBackend: final progress part
+        AIBackend-->>WorkflowProvider: assistant message with data-workflow-progress
+        WorkflowProvider->>WorkflowProvider: update progressEvents
+
+        WorkflowStep->>Writer: custom(type: data-workflow-step-complete, success: true)
+        Writer-->>AIBackend: step complete part
+        AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-complete
+        WorkflowProvider->>WorkflowProvider: update activeStepIndex
+    else error
+        WorkflowStep->>Writer: custom(type: data-workflow-step-error, error)
+        Writer-->>AIBackend: step error part
+        AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-error
+        WorkflowProvider->>WorkflowProvider: add error progressEvent
+    end
+
+    WorkflowStep-->>AIBackend: return result or throw
+    deactivate WorkflowStep
+
+    AIBackend-->>WorkflowProvider: final completion message
+    WorkflowProvider-->>BrowserApp: updated context (progressEvents, dataParts)
+    BrowserApp-->>User: render workflow progress UI
+```
+
 ---
 ## Change Log
 
