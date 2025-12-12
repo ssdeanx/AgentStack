@@ -7,6 +7,7 @@ import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface WeatherRuntimeContext {
   'user-tier': UserTier
@@ -61,6 +62,7 @@ export const weatherAgent = new Agent({
   scorers: {
 
   },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
   memory: pgMemory,
   options: {},
   maxRetries: 5

@@ -5,6 +5,7 @@ import { pgMemory } from '../config/pg-storage'
 import { structureScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface LearningExtractionAgentContext {
@@ -69,5 +70,6 @@ export const learningExtractionAgent = new Agent({
     },
   },
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })

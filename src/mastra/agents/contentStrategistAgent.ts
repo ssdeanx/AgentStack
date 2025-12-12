@@ -6,6 +6,7 @@ import { structureScorer, creativityScorer } from '../scorers';
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ContentAgentContext {
@@ -99,11 +100,12 @@ EXAMPLE FLOW:
   scorers: {
     structure: {
       scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.3 },
     },
     creativity: {
       scorer: creativityScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
+      sampling: { type: 'ratio', rate: 0.3 },
     },
-  }
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

@@ -8,6 +8,7 @@ import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { mastraChunker } from '../tools/document-chunking.tool'
 import { readDataFileTool, writeDataFileTool, listDataDirTool, getDataFileInfoTool } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export interface DocumentProcessingContext {
     userId?: string
@@ -124,17 +125,18 @@ When using mastraChunker, enable extraction for richer metadata:
 - Large files: Process in batches, report progress
 - Encoding issues: Attempt UTF-8/Latin-1 fallbacks
 `
-    },
-    model: googleAI3,
-    memory: pgMemory,
-    tools: {
-        pdfToMarkdownTool,
-        mastraChunker,
-        readDataFileTool,
-        writeDataFileTool,
-        listDataDirTool,
-        getDataFileInfoTool,
-    }
+   },
+   model: googleAI3,
+   memory: pgMemory,
+   tools: {
+      pdfToMarkdownTool,
+      mastraChunker,
+      readDataFileTool,
+      writeDataFileTool,
+      listDataDirTool,
+      getDataFileInfoTool,
+   },
+   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Document Processing Agent initialized')

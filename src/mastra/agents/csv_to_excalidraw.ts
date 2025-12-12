@@ -3,6 +3,7 @@ import { googleAI, pgMemory } from "../config";
 import { structureScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from "@mastra/core/processors";
 
 export interface CsvToExcalidrawRuntimeContext {
     userId?: string
@@ -182,5 +183,6 @@ Structure:
     },
   },
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

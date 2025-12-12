@@ -5,6 +5,7 @@ import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export interface DaneContext {
     userId?: string
@@ -39,6 +40,7 @@ export const daneCommitMessage = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const daneIssueLabeler = new Agent({
@@ -67,6 +69,7 @@ export const daneIssueLabeler = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const daneLinkChecker = new Agent({
@@ -100,6 +103,7 @@ export const daneLinkChecker = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const daneChangeLog = new Agent({
@@ -135,6 +139,7 @@ export const daneChangeLog = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 export const dane = new Agent({
@@ -201,4 +206,5 @@ export const dane = new Agent({
     googleSearch,
     listEvents,
   },
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })

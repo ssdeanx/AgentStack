@@ -5,6 +5,7 @@ import { pgMemory } from '../config/pg-storage'
 import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EvaluationContext {
@@ -134,5 +135,6 @@ For each search result provided, you must determine its relevance to the user's 
     }
   },
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })

@@ -7,6 +7,7 @@ import { taskCompletionScorer } from '../scorers';
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface PackagePublisherRuntimeContext {
@@ -200,4 +201,5 @@ export const danePackagePublisher = new Agent({
       sampling: { type: 'ratio', rate: 0.4 },
     },
   },
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

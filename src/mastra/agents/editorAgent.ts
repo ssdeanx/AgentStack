@@ -6,6 +6,7 @@ import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { summaryQualityScorer } from '../scorers';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EditorRuntimeContext {
@@ -127,7 +128,8 @@ Tailor your editing style to the content type:
     }
   },
   workflows: {},
-  maxRetries: 5
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 // Attempt to resolve provider metadata from available SDK objects

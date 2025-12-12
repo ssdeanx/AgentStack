@@ -14,6 +14,7 @@ import {
 import { readCSVDataTool } from '../tools/data-processing-tools'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export interface DataIngestionContext {
     userId?: string
@@ -99,7 +100,8 @@ export const dataIngestionAgent = new Agent({
         listDataDirTool,
         getDataFileInfoTool,
         chartSupervisorTool
-    }
+    },
+    outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Data Ingestion Agent initialized')
