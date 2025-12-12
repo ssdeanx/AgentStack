@@ -12,6 +12,14 @@ import type { DynamicToolUIPart } from "ai"
 import { cn } from "@/lib/utils"
 import { useMemo } from "react"
 
+// Import custom tool components
+//import {
+//  WebScraperTool,
+//  BatchWebScraperTool,
+ // SiteMapExtractorTool,
+ // LinkExtractorTool,
+//} from "@/src/components/ai-elements/tools"
+
 export interface AgentToolsProps {
   tools: Array<ToolInvocationState | DynamicToolUIPart>
   className?: string
@@ -86,6 +94,56 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
           .map(getProgressMessage)
           .filter((m): m is string => typeof m === "string" && m.length > 0)
 
+        // Check if this is a web scraper tool and render custom component
+   //     if (toolName === "web:scraper" && hasOutput) {
+    //     return (
+    //        <WebScraperTool
+    //          key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+    //          toolCallId={id}
+    //          input={latest.input as WebScraperUITool["input"]}
+    //          output={latest.output as WebScraperUITool["output"]}
+    //          errorText={errorText}
+    //        />
+    //      )
+    //    }
+
+    //    if (toolName === "batch-web-scraper" && hasOutput) {
+    //      return (
+    //        <BatchWebScraperTool
+    //            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+    //              toolCallId={id}
+     //         input={latest.input as BatchWebScraperUITool["input"]}
+     //         output={latest.output as BatchWebScraperUITool["output"]}
+     //         errorText={errorText}
+     //       />
+     //     )
+     //   }
+
+     //   if (toolName === "site-map-extractor" && hasOutput) {
+     //     return (
+     //       <SiteMapExtractorTool
+     //         key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+     //        toolCallId={id}
+     //         input={latest.input as SiteMapExtractorUITool["input"]}
+      //        output={latest.output as SiteMapExtractorUITool["output"]}
+      //        errorText={errorText}
+       //     />
+       //   )
+       // }
+
+        //if (toolName === "link-extractor" && hasOutput) {
+        //  return (
+        //    <LinkExtractorTool
+        //      key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+       //       toolCallId={id}
+       //       input={latest.input as LinkExtractorUITool["input"]}
+       //       output={latest.output as LinkExtractorUITool["output"]}
+        //      errorText={errorText}
+      //      />
+       //   )
+      //  }
+
+        // Default rendering for other tools
         return (
           <Tool
             key={`${id}-${toolName}-${toolState}-${groupIdx}`}

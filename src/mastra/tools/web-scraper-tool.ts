@@ -1759,7 +1759,7 @@ export const linkExtractorTool = createTool({
     }
   },
 })
-
+export type LinkExtractorUITool = InferUITool<typeof linkExtractorTool>;
 // ===== HTML TO MARKDOWN CONVERTER TOOL =====
 const htmlToMarkdownOutputSchema = z
   .object({
