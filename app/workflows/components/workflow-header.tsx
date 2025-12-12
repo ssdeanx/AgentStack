@@ -71,7 +71,7 @@ export function WorkflowHeader() {
           onValueChange={(value) => selectWorkflow(value)}
           disabled={isWorkflowActive}
         >
-          <SelectTrigger className="w-70">
+          <SelectTrigger className="w-72">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

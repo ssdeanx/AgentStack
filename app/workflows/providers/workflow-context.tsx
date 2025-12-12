@@ -260,7 +260,7 @@ export function WorkflowProvider({
 
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
-        for (const part of message.parts) {
+        for (const [partIndex, part] of message.parts.entries()) {
           // Handle workflow progress events (data-workflow, data-tool-workflow)
           if (part.type === "data-workflow" || part.type === "data-tool-workflow") {
             const workflowPart = part as { data?: { text?: string; status?: string; stepId?: string } }
@@ -268,7 +268,7 @@ export function WorkflowProvider({
 
             if (eventData && eventData.text !== null && typeof eventData.text === "string" && eventData.text.trim()) {
               allProgressEvents.push({
-                id: `${message.id}-${part.type}-${Date.now()}`,
+                id: `${message.id}-${part.type}-${partIndex}`,
                 stage: part.type.replace("data-", "").replace("-tool-", " "),
                 status: "in-progress",
                 message: eventData.text,
@@ -303,7 +303,7 @@ export function WorkflowProvider({
             if (eventData && eventData.status !== null && typeof eventData.status === "string" &&
                 (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
               allProgressEvents.push({
-                id: `${message.id}-${part.type}-${Date.now()}`,
+                id: `${message.id}-${part.type}-${partIndex}`,
                 stage: eventData.stage ?? "workflow",
                 status: eventData.status,
                 message: eventData.message ?? `${part.type} ${eventData.status}`,
