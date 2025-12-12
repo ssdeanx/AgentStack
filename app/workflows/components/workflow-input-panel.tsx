@@ -125,7 +125,7 @@ export function WorkflowInputPanel() {
             ref={textareaRef}
             placeholder={getPlaceholder()}
             disabled={isDisabled}
-            className="min-h-[60px] max-h-[120px]"
+            className="min-h-15 max-h-30"
           />
           <PromptInputFooter>
             <div className="flex items-center justify-between w-full">
@@ -171,7 +171,7 @@ export function WorkflowInputPanel() {
                 <button
                   key={example}
                   onClick={() => handleExampleClick(example)}
-                  className="text-xs px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 transition-colors truncate max-w-[120px]"
+                  className="text-xs px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 transition-colors truncate max-w-30"
                   disabled={isDisabled}
                   title={example}
                 >

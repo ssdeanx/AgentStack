@@ -71,7 +71,7 @@ export function WorkflowHeader() {
           onValueChange={(value) => selectWorkflow(value)}
           disabled={isWorkflowActive}
         >
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-70">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -135,7 +135,7 @@ export function WorkflowHeader() {
                 Pause
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={resumeWorkflow}>
+              <Button variant="outline" size="sm" onClick={() => resumeWorkflow()}>
                 <RefreshCwIcon className="size-4 mr-1" />
                 Resume
               </Button>

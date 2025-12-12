@@ -31,6 +31,16 @@ export interface RoutingStep {
   completedAt?: Date
 }
 
+export interface ProgressEvent {
+  id: string
+  stage: string
+  status: "in-progress" | "done" | "error"
+  message: string
+  agentId?: string
+  timestamp: Date
+  data?: unknown
+}
+
 export interface Source {
   url: string
   title: string
@@ -43,14 +53,15 @@ export interface NetworkContextValue {
   networkConfig: NetworkConfig | undefined
   networkStatus: NetworkStatus
   routingSteps: RoutingStep[]
+  progressEvents: ProgressEvent[]
   messages: UIMessage[]
   streamingOutput: string
   streamingReasoning: string
   toolInvocations: ToolInvocationState[]
   sources: Source[]
   error: string | null
-  selectNetwork: (networkId: NetworkId) => void
-  sendMessage: (text: string) => void
+  selectNetwork: (_networkId: NetworkId) => void
+  sendMessage: (_text: string) => void
   stopExecution: () => void
   clearHistory: () => void
 }
@@ -104,6 +115,30 @@ interface ToolData {
   data?: ToolData
 }
 
+interface NetworkAgentData {
+  id?: string
+  agentId?: string
+  agent?: { id?: string; name?: string }
+  name?: string
+  agentName?: string
+  input?: unknown
+  args?: unknown
+  params?: unknown
+  output?: unknown
+  result?: unknown
+  value?: unknown
+  state?: string
+  status?: string
+  startedAt?: string | number | Date
+  completedAt?: string | number | Date
+}
+
+interface NetworkPayload {
+  agents?: NetworkAgentData[]
+  nodes?: NetworkAgentData[]
+  steps?: NetworkAgentData[]
+}
+
 function mapDataPartToDynamicTool(part: MastraPart): DynamicToolUIPart | null {
   if (part === null || typeof part !== "object") {return null}
 
@@ -146,6 +181,7 @@ export function NetworkProvider({
   const validDefaultNetwork = NETWORK_CONFIGS[defaultNetwork] !== undefined ? defaultNetwork : Object.keys(NETWORK_CONFIGS)[0]
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(validDefaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
+  const [progressEvents, setProgressEvents] = useState<ProgressEvent[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
   const [sources, setSources] = useState<Source[]>([])
 
@@ -253,6 +289,53 @@ export function NetworkProvider({
     setSources(allSources)
   }, [messages])
 
+  // Extract progress events from custom data parts
+  useEffect(() => {
+    const allProgressEvents: ProgressEvent[] = []
+    for (const message of messages) {
+      if (message.role === "assistant" && message.parts !== null) {
+        for (const part of message.parts) {
+          // Handle agent and workflow progress events
+          if (part.type === "data-tool-agent" || part.type === "data-tool-workflow") {
+            const agentPart = part as { data: AgentDataPart }
+            const eventData = agentPart.data
+
+            if (eventData?.data?.text?.trim()) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${Date.now()}`,
+                stage: part.type.replace("data-tool-", ""),
+                status: "in-progress",
+                message: eventData.data.text,
+                agentId: eventData.id,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+
+          // Handle custom progress events from tools
+          if (typeof part.type === "string" && part.type.startsWith("data-tool-progress")) {
+            const progressPart = part as { type: string; data?: { status?: string; message?: string; stage?: string; agentId?: string } }
+            const eventData = progressPart.data
+
+            if (eventData?.status && (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
+              allProgressEvents.push({
+                id: `${message.id}-${part.type}-${Date.now()}`,
+                stage: eventData.stage ?? "progress",
+                status: eventData.status,
+                message: eventData.message ?? `${part.type} ${eventData.status}`,
+                agentId: eventData.agentId,
+                timestamp: new Date(),
+                data: eventData,
+              })
+            }
+          }
+        }
+      }
+    }
+    setProgressEvents(allProgressEvents)
+  }, [messages])
+
   // Extract routing steps from data-network parts
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
@@ -275,8 +358,8 @@ export function NetworkProvider({
     // Prefer a data-network part that includes explicit per-agent details
     const networkPart = dataParts.find((p) => p.type === "data-network") as NetworkDataPart | undefined
     if (networkPart) {
-      const payload = (networkPart as any).data ?? (networkPart as any).payload ?? networkPart
-      const agentsFromPart = (payload?.agents ?? payload?.nodes ?? payload?.steps ?? []) as any[]
+      const payload = (networkPart as { data?: NetworkPayload; payload?: NetworkPayload }).data ?? (networkPart as { data?: NetworkPayload; payload?: NetworkPayload }).payload ?? networkPart as NetworkPayload
+      const agentsFromPart = (payload?.agents ?? payload?.nodes ?? payload?.steps ?? [])
 
       if (Array.isArray(agentsFromPart) && agentsFromPart.length > 0) {
         const steps = agentsFromPart.map((agent, idx) => {
@@ -285,8 +368,8 @@ export function NetworkProvider({
           const input = agent.input ?? agent.args ?? agent.params ?? ""
           const output = agent.output ?? agent.result ?? agent.value
           const status = mapRawStateToStatus(agent.state ?? agent.status, Boolean(output))
-          const startedAt = agent.startedAt ? new Date(agent.startedAt) : undefined
-          const completedAt = agent.completedAt ? new Date(agent.completedAt) : undefined
+          const startedAt = agent.startedAt !== null && agent.startedAt !== undefined ? new Date(agent.startedAt) : undefined
+          const completedAt = agent.completedAt !== null && agent.completedAt !== undefined ? new Date(agent.completedAt) : undefined
           return {
             agentId: String(agentId),
             agentName: String(agentName),
@@ -335,6 +418,7 @@ export function NetworkProvider({
     if (config) {
       setSelectedNetwork(networkId)
       setRoutingSteps([])
+      setProgressEvents([])
       setNetworkError(null)
       setSources([])
     }
@@ -357,6 +441,7 @@ export function NetworkProvider({
   const clearHistory = useCallback(() => {
     setMessages([])
     setRoutingSteps([])
+    setProgressEvents([])
     setNetworkError(null)
     setSources([])
   }, [setMessages])
@@ -369,6 +454,7 @@ export function NetworkProvider({
       networkConfig,
       networkStatus,
       routingSteps,
+      progressEvents,
       messages,
       streamingOutput,
       streamingReasoning,
@@ -385,6 +471,7 @@ export function NetworkProvider({
       networkConfig,
       networkStatus,
       routingSteps,
+      progressEvents,
       messages,
       streamingOutput,
       streamingReasoning,
