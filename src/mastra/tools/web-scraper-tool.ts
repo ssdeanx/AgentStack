@@ -19,14 +19,13 @@ import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as cheerio from 'cheerio';
 import { CheerioCrawler, Request } from 'crawlee';
-import { XMLParser } from 'fast-xml-parser';
 import { JSDOM } from 'jsdom';
 import { marked } from 'marked';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import RE2 from 're2';
 import { z } from 'zod';
 import { log } from '../config/logger';
-import type { RequestContext } from '@mastra/core/request-context';
 
 // Centralized data directory constant for consistency
 const DATA_DIR = path.resolve(process.cwd(), './data')
@@ -161,32 +160,6 @@ function extractTextContent(html: string): string {
     })
     const $ = cheerio.load(html)
     return $.text().trim()
-  }
-}
-
-/**
- * Parse XML content using fast-xml-parser
- */
-function parseXmlContent(xmlContent: string): Record<string, unknown> {
-  try {
-    const parserOptions = {
-      ignoreAttributes: false,
-      attributeNamePrefix: '@_',
-      textNodeName: '#text',
-      parseAttributeValue: true,
-      trimValues: true,
-      ignoreDeclaration: true,
-    }
-    const parser = new XMLParser(parserOptions)
-    return parser.parse(xmlContent)
-  } catch (error) {
-    log.warn('XML parsing failed', {
-      error: error instanceof Error ? error.message : String(error),
-    })
-    throw new ScrapingError(
-      `XML parsing failed: ${error instanceof Error ? error.message : String(error)}`,
-      'XML_PARSE_ERROR'
-    )
   }
 }
 
@@ -362,12 +335,33 @@ export class ScrapingError extends Error {
 }
 
 export class ValidationUtils {
+  static getAllowedDomains(): string[] {
+    const raw = process.env.WEB_SCRAPER_ALLOWED_DOMAINS ?? '';
+    return raw
+      .split(',')
+      .map((d) => d.trim().toLowerCase())
+      .filter((d) => d.length > 0);
+  }
+
   static validateUrl(url: string): boolean {
     try {
       const parsedUrl = new URL(url)
       return ['http:', 'https:'].includes(parsedUrl.protocol)
     } catch {
       return false
+    }
+  }
+
+  static isUrlAllowed(url: string, allowedDomains: string[]): boolean {
+    if (allowedDomains.length === 0) {
+      return true;
+    }
+    try {
+      const parsedUrl = new URL(url);
+      const hostname = parsedUrl.hostname.toLowerCase();
+      return allowedDomains.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+    } catch {
+      return false;
     }
   }
 
@@ -579,6 +573,16 @@ export const webScraperTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
+    const allowedDomains = ValidationUtils.getAllowedDomains();
+    if (!ValidationUtils.isUrlAllowed(inputData.url, allowedDomains)) {
+      throw new ScrapingError(
+        `Domain is not allowlisted for scraping: ${inputData.url}`,
+        'DOMAIN_NOT_ALLOWED',
+        undefined,
+        inputData.url
+      );
+    }
+
     await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Starting web scrape for ${inputData.url}` } });
     toolCallCounters.set('web:scraper', (toolCallCounters.get('web:scraper') ?? 0) + 1)
 
@@ -604,13 +608,37 @@ export const webScraperTool = createTool({
     let detectedLanguage: string | undefined
 
     try {
+      const headers: Record<string, string> = {
+        ...(inputData.headers ?? {}),
+      };
+      if (typeof inputData.userAgent === 'string' && inputData.userAgent.trim() !== '') {
+        headers['user-agent'] = inputData.userAgent;
+      }
+
+      const maxDepth = inputData.depth ?? 1;
+      const maxPages = inputData.maxPages ?? 1;
+      const followLinks = inputData.followLinks ?? false;
+      const retryAttempts = inputData.retryAttempts ?? 2;
+      const delayBetweenRequests = inputData.delayBetweenRequests ?? 1000;
+
       const crawler = new CheerioCrawler({
-        maxRequestsPerCrawl: (inputData.depth && (inputData.followLinks ?? false)) ? Math.min(inputData.maxPages ?? 10, 50) : 10,
+        maxRequestsPerCrawl: followLinks ? Math.min(maxPages, 50) : 1,
         maxConcurrency: 10,
+        maxRequestRetries: retryAttempts,
+        sameDomainDelaySecs: delayBetweenRequests / 1000,
         requestHandlerTimeoutSecs: (inputData?.timeout ?? 30000) / 1000,
-        async requestHandler({ request, body, response }) {
+        async requestHandler({ request, body, response, enqueueLinks }) {
           try {
             scrapedUrl = request.url
+
+            if (!ValidationUtils.isUrlAllowed(request.url, allowedDomains)) {
+              throw new ScrapingError(
+                `Domain is not allowlisted for scraping: ${request.url}`,
+                'DOMAIN_NOT_ALLOWED',
+                undefined,
+                request.url
+              )
+            }
 
             if (
               typeof response?.statusCode === 'number' &&
@@ -629,6 +657,41 @@ export const webScraperTool = createTool({
 
             // Sanitize HTML using JSDOM
             rawContent = HtmlProcessor.sanitizeHtml(rawContent)
+
+            if (followLinks) {
+              const currentDepth =
+                typeof request.userData?.depth === 'number'
+                  ? (request.userData.depth as number)
+                  : 0
+
+              if (currentDepth < maxDepth) {
+                try {
+                  await enqueueLinks({
+                    selector: 'a[href]',
+                    baseUrl: request.url,
+                    strategy: 'same-hostname',
+                    limit: Math.max(1, Math.min(maxPages, 100)),
+                    transformRequestFunction: (req) => {
+                      const nextDepth = currentDepth + 1
+                      const nextUrl = req.url
+                      if (!ValidationUtils.isUrlAllowed(nextUrl, allowedDomains)) {
+                        return null
+                      }
+                      return {
+                        ...req,
+                        headers,
+                        userData: { ...(req.userData ?? {}), depth: nextDepth },
+                      }
+                    },
+                  })
+                } catch (error) {
+                  log.warn('Failed to enqueue links', {
+                    error: error instanceof Error ? error.message : String(error),
+                    url: request.url,
+                  })
+                }
+              }
+            }
 
             // Extract metadata if requested
             if (inputData.extractMetadata !== false) {
@@ -652,9 +715,10 @@ export const webScraperTool = createTool({
               const imgElements = document.querySelectorAll('img')
               imgElements.forEach((img) => {
                 const src = img.getAttribute('src')
-                if (src && src.trim() !== '') {
+                const trimmedSrc = (src ?? '').trim()
+                if (trimmedSrc !== '') {
                   images.push({
-                    src: new URL(src, request.url).href,
+                    src: new URL(trimmedSrc, request.url).href,
                     alt: img.getAttribute('alt') ?? undefined,
                     title: img.getAttribute('title') ?? undefined,
                   })
@@ -682,14 +746,17 @@ export const webScraperTool = createTool({
               const microdataElements = document.querySelectorAll('[itemscope]')
               microdataElements.forEach((element) => {
                 const itemType = element.getAttribute('itemtype')
-                if (itemType && itemType.trim() !== '') {
-                  const microdata: Record<string, unknown> = { '@type': itemType }
+                const trimmedItemType = (itemType ?? '').trim()
+                if (trimmedItemType !== '') {
+                  const microdata: Record<string, unknown> = { '@type': trimmedItemType }
                   const props = element.querySelectorAll('[itemprop]')
                   props.forEach((prop) => {
                     const propName = prop.getAttribute('itemprop')
-                    const propValue = prop.textContent?.trim() || prop.getAttribute('content')
-                    if (propName && propName.trim() !== '' && propValue && typeof propValue === 'string' && propValue.trim() !== '') {
-                      microdata[propName] = propValue
+                    const trimmedPropName = (propName ?? '').trim()
+                    const propValueRaw = prop.textContent?.trim() ?? prop.getAttribute('content')
+                    const trimmedPropValue = (propValueRaw ?? '').trim()
+                    if (trimmedPropName !== '' && trimmedPropValue !== '') {
+                      microdata[trimmedPropName] = trimmedPropValue
                     }
                   })
                   if (Object.keys(microdata).length > 1) {
@@ -787,7 +854,13 @@ export const webScraperTool = createTool({
       })
 
       await writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Fetching and parsing page...' } });
-      await crawler.run([new Request({ url: inputData.url })])
+      await crawler.run([
+        new Request({
+          url: inputData.url,
+          headers,
+          userData: { depth: 0 },
+        }),
+      ])
 
       // Enhanced HTML to markdown conversion using JSDOM
       if (
@@ -1545,6 +1618,39 @@ export const linkExtractorTool = createTool({
       const { document } = dom.window
       const baseUrl = new URL(scrapedUrl)
 
+      const wildcardMatch = (pattern: string, input: string): boolean => {
+        const trimmed = pattern.trim()
+        if (trimmed === '') {
+          return false
+        }
+        const parts = trimmed
+          .split('*')
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+        if (parts.length === 0) {
+          return true
+        }
+        let position = 0
+        for (const part of parts) {
+          const idx = input.indexOf(part, position)
+          if (idx === -1) {
+            return false
+          }
+          position = idx + part.length
+        }
+        return true
+      }
+
+      const compiledFilters = (inputData.filterPatterns ?? [])
+        .filter((p) => typeof p === 'string' && p.trim() !== '')
+        .map((pattern) => {
+          try {
+            return { pattern, re2: new RE2(pattern) }
+          } catch {
+            return { pattern, re2: null as RE2 | null }
+          }
+        })
+
       const links: Array<{
         href: string
         text: string
@@ -1562,39 +1668,14 @@ export const linkExtractorTool = createTool({
             const absoluteUrl = new URL(href, scrapedUrl).href
             const linkUrl = new URL(absoluteUrl)
 
-            if (inputData.filterPatterns) {
-              const matchesFilter = inputData.filterPatterns.some(
-                (pattern) => {
-                  // Do not construct RegExp from untrusted input; use a simple and safe wildcard matcher.
-                  // Support '*' as a wildcard matching any sequence of characters, otherwise perform substring checks.
-                  if (
-                    typeof pattern !== 'string' ||
-                    pattern.trim() === ''
-                  ) {
-                    return false
-                  }
-                  const parts = pattern
-                    .split('*')
-                    .map((p) => p.trim())
-                    .filter((p) => p.length > 0)
-                  // If pattern is only '*' or empty after trimming, treat as match-all
-                  if (parts.length === 0) {
-                    return true
-                  }
-                  let position = 0
-                  for (const part of parts) {
-                    const idx = absoluteUrl.indexOf(
-                      part,
-                      position
-                    )
-                    if (idx === -1) {
-                      return false
-                    }
-                    position = idx + part.length
-                  }
-                  return true
+            if (compiledFilters.length > 0) {
+              const matchesFilter = compiledFilters.some(({ pattern, re2 }) => {
+                if (re2) {
+                  return re2.test(absoluteUrl)
                 }
-              )
+                return wildcardMatch(pattern, absoluteUrl)
+              })
+
               if (!matchesFilter) {
                 return
               }

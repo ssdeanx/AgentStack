@@ -1,4 +1,8 @@
 export { default as MonacoCodeEditor } from './MonacoCodeEditor'
+export { default as MonacoWorkbench } from './MonacoWorkbench'
+export { default as MonacoExplorer } from './MonacoExplorer'
+export { default as MonacoBottomPanel } from './MonacoBottomPanel'
+export { default as MonacoRightPanel } from './MonacoRightPanel'
 export { default as MonacoToolbar } from './MonacoToolbar'
 export { default as MonacoTabs } from './MonacoTabs'
 export { default as MonacoStatusBar } from './MonacoStatusBar'

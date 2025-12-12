@@ -29,6 +29,8 @@ async function globFiles(pattern: string, options?: FastGlobOptions): Promise<st
   return fg(pattern, { ...fastGlobDefaults, ...options })
 }
 
+const DEFAULT_IGNORE = ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**']
+
 const codeAnalysisInputSchema = z.object({
   target: z.union([
     z.string().describe('File path or glob pattern'),
@@ -343,60 +345,85 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       const detectPatterns = options?.detectPatterns ?? true
       const maxFileSize = options?.maxFileSize ?? 100000
 
-    let filePaths: string[] = []
+      const targets = Array.isArray(target) ? target : [target]
+      let filePaths: string[] = []
 
-    if (typeof target === 'string') {
-      if (target.includes('*')) {
-        filePaths = await globFiles(target)
-      } else {
-        filePaths = [target]
-      }
-    } else {
-      filePaths = target
-    }
+      for (const t of targets) {
+        if (t.includes('*')) {
+          const matches = await globFiles(t, { ignore: DEFAULT_IGNORE })
+          filePaths.push(...matches)
+          continue
+        }
 
-    const fileAnalyses: Array<z.infer<typeof fileAnalysisSchema>> = []
+        if (!(await fileExists(t))) {
+          continue
+        }
 
-    for (const filePath of filePaths) {        await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Analyzing file: ${filePath}` } });      if (!await fileExists(filePath)) {continue}
-
-      const stats = await fs.stat(filePath)
-      if (stats.size > maxFileSize) {continue}
-      if (stats.isDirectory()) {continue}
-
-      const content = await fs.readFile(filePath, 'utf-8')
-      const language = detectLanguage(filePath)
-
-      const { loc, totalLines } = includeMetrics
-        ? calculateLoc(content)
-        : { loc: 0, totalLines: 0 }
-
-      let complexity = 0
-      if (includeMetrics) {
-        if (language === 'python') {
-          try {
-            const complexityData = await PythonParser.analyzeComplexity(content)
-            complexity = complexityData.cyclomaticComplexity
-          } catch {
-            complexity = estimateComplexity(content, language)
-          }
-        } else {
-          complexity = estimateComplexity(content, language)
+        const stat = await fs.stat(t)
+        if (stat.isDirectory()) {
+          const dirFiles = await globFiles(path.join(t, '**/*'), {
+            ignore: DEFAULT_IGNORE,
+          })
+          filePaths.push(...dirFiles)
+        } else if (stat.isFile()) {
+          filePaths.push(t)
         }
       }
 
-      const issues = detectPatterns
-        ? detectIssues(content, language)
-        : []
+      filePaths = [...new Set(filePaths)]
 
-      fileAnalyses.push({
-        path: filePath,
-        language,
-        loc,
-        totalLines,
-        complexity,
-        issues,
-      })
-    }
+      const fileAnalyses: Array<z.infer<typeof fileAnalysisSchema>> = []
+
+      for (const filePath of filePaths) {
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: { message: `📄 Analyzing file: ${filePath}` },
+        })
+
+        try {
+          const stats = await fs.stat(filePath)
+          if (!stats.isFile()) {
+            continue
+          }
+          if (stats.size > maxFileSize) {
+            continue
+          }
+
+          const content = await fs.readFile(filePath, 'utf-8')
+          const language = detectLanguage(filePath)
+
+          const { loc, totalLines } = includeMetrics
+            ? calculateLoc(content)
+            : { loc: 0, totalLines: 0 }
+
+          let complexity = 0
+          if (includeMetrics) {
+            if (language === 'python') {
+              try {
+                const complexityData = await PythonParser.analyzeComplexity(content)
+                complexity = complexityData.cyclomaticComplexity
+              } catch {
+                complexity = estimateComplexity(content, language)
+              }
+            } else {
+              complexity = estimateComplexity(content, language)
+            }
+          }
+
+          const issues = detectPatterns ? detectIssues(content, language) : []
+
+          fileAnalyses.push({
+            path: filePath,
+            language,
+            loc,
+            totalLines,
+            complexity,
+            issues,
+          })
+        } catch {
+          // Skip unreadable files
+        }
+      }
 
     const totalLoc = fileAnalyses.reduce((sum, f) => sum + f.loc, 0)
     const avgComplexity = fileAnalyses.length > 0
@@ -418,21 +445,21 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
     await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Code analysis complete: ${fileAnalyses.length} files analyzed` } });
     span.end();
 
-    return {
-      files: fileAnalyses,
-      summary: {
-        totalFiles: fileAnalyses.length,
-        totalLoc,
-        avgComplexity: Math.round(avgComplexity * 100) / 100,
-        issueCount,
-      },
-    }
-  } catch (error: unknown) {
+      return {
+        files: fileAnalyses,
+        summary: {
+          totalFiles: fileAnalyses.length,
+          totalLoc,
+          avgComplexity: Math.round(avgComplexity * 100) / 100,
+          issueCount,
+        },
+      }
+    } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     span?.recordException(error instanceof Error ? error : new Error(errorMessage));
     span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
     span?.end();
     throw error;
-  }
+    }
   },
 })

@@ -2,8 +2,14 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import fg, { Options as FastGlobOptions } from 'fast-glob'
+import fg, { type Options as FastGlobOptions } from 'fast-glob'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
+import RE2 from 're2'
+
+interface RegexLike {
+  lastIndex?: number
+  exec: RegExp['exec']
+}
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -19,6 +25,7 @@ const defaultGlobOptions: FastGlobOptions = {
   absolute: true,
   dot: true,
   unique: true,
+  ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
 }
 
 async function globFiles(pattern: string, options?: FastGlobOptions): Promise<string[]> {
@@ -37,6 +44,7 @@ const codeSearchInputSchema = z.object({
     maxResults: z.number().optional().describe('Maximum results to return'),
     includeContext: z.boolean().optional().describe('Include surrounding lines'),
     contextLines: z.number().optional().describe('Number of context lines'),
+    maxFileSize: z.number().optional().describe('Skip files larger than this (bytes)'),
   }).optional(),
 })
 
@@ -90,6 +98,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
     const maxResults = options?.maxResults ?? 100
     const includeContext = options?.includeContext ?? true
     const contextLines = options?.contextLines ?? 2
+    const maxFileSize = options?.maxFileSize ?? 1_000_000
 
     let filePaths: string[] = []
     const targets = Array.isArray(target) ? target : [target]
@@ -116,9 +125,21 @@ Use for finding usages, identifying patterns, and code exploration.`,
     const filesWithMatches = new Set<string>()
     let truncated = false
 
-    const searchRegex = isRegex
-      ? new RegExp(pattern, caseSensitive ? 'g' : 'gi')
-      : new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi')
+    let searchRegex: RegexLike
+    try {
+      if (isRegex) {
+        searchRegex = new RE2(pattern, caseSensitive ? 'g' : 'gi') as unknown as RegexLike
+      } else {
+        searchRegex = new RegExp(
+          pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          caseSensitive ? 'g' : 'gi'
+        )
+      }
+    } catch (error) {
+      throw new Error(
+        `Invalid ${isRegex ? 'regex' : 'pattern'}: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
 
     for (const filePath of filePaths) {
       if (matches.length >= maxResults) {
@@ -127,6 +148,13 @@ Use for finding usages, identifying patterns, and code exploration.`,
       }
 
       try {
+        const stat = await fs.stat(filePath)
+        if (!stat.isFile()) {
+          continue
+        }
+        if (stat.size > maxFileSize) {
+          continue
+        }
         const content = await fs.readFile(filePath, 'utf-8')
         const lines = content.split('\n')
 
@@ -137,7 +165,9 @@ Use for finding usages, identifying patterns, and code exploration.`,
           }
 
           const line = lines[i]
-          searchRegex.lastIndex = 0
+          if (typeof searchRegex.lastIndex === 'number') {
+            searchRegex.lastIndex = 0
+          }
           let match
 
           while ((match = searchRegex.exec(line)) !== null) {

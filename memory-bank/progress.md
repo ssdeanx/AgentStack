@@ -24,6 +24,70 @@
 | **Workflows UI**            | ✅ 100%    | **app/workflows/**: Full Canvas visualization with 8 components, AI SDK streaming, input panels. **12 workflows** (added repoIngestion, specGeneration). Fixed pending/skipped status bug.                                                                                                                                                                                                                                                                                   |
 | **Mastra Admin Dashboard**  | 🔄 70%     | **app/dashboard/**: TanStack Query v5 installed, shared components created, loading/error files for all routes. Agents page modularized. See `/memory-bank/dashboard-v2/` for detailed tracking.                                                                                                                                                                                                                                                                             |
 
+## Tooling Hardening **[Synced Dec 12]**
+
+- **Semantic tools runtime fixes**
+  - `src/mastra/tools/semantic-utils.ts`: removed CommonJS `require('fs')` usage (repo is ESM) and added `unref()` on the cache cleanup interval to avoid keeping Node alive.
+
+- **Web scraping governance + crawl behavior**
+  - `src/mastra/tools/web-scraper-tool.ts`: added allowlist enforcement via `WEB_SCRAPER_ALLOWED_DOMAINS` (comma-separated domains). Requests outside the allowlist now fail with `DOMAIN_NOT_ALLOWED`.
+  - `web:scraper`: `followLinks` now actually crawls internal links using Crawlee `enqueueLinks` with depth tracking.
+  - Request tuning: retries/delay and headers/user-agent are applied consistently.
+
+- **Code tools robustness**
+  - `src/mastra/tools/code-search.tool.ts`: default ignore patterns (`node_modules`, `.git`, `dist`, `build`), safe regex compilation, and max file-size guard.
+  - `src/mastra/tools/code-analysis.tool.ts`: supports directory targets; adds default ignore patterns; refactors file loop for readability/robustness.
+  - `src/mastra/tools/multi-string-edit.tool.ts`: adds max file-size guard; invalid regex now returns a structured failed result instead of throwing.
+
+## Dependency Audit Notes **[Dec 12]**
+
+- **Keep (good, maintained choices)**
+  - `ts-morph` (semantic TS/JS analysis)
+  - `fast-glob` (file discovery)
+  - `diff` (patch generation)
+  - `crawlee` + `cheerio` (scraping/crawling)
+  - `zod` (schemas)
+  - `@opentelemetry/api` (tracing)
+
+- **Consider tightening / de-duplicating**
+  - **Motion libs**: you have both `framer-motion` and `motion` pinned to the same version. If only one is used, remove the other to reduce bundle risk.
+  - **Monaco**: `@monaco-editor/react` is an `-rc` version; for production, prefer a stable tag unless you depend on the RC fixes.
+  - **Multiple AI provider packages**: you have many `ai-sdk-provider-*` providers plus `@ai-sdk/*` packages. If some are unused, drop them to reduce supply-chain surface.
+
+- **High-impact / caution**
+  - `isolated-vm`: native dependency; can complicate Windows installs and serverless deploys. Keep only if you truly need strong sandboxing.
+  - `playwright`: large + postinstall; keep if browser automation is needed; otherwise it materially increases install/CI time.
+
+## Regex Hardening **[Dec 12]**
+
+- Installed `re2` and wired it into tools that accept user-supplied regex:
+  - `src/mastra/tools/code-search.tool.ts`: when `options.isRegex === true`, patterns compile using `re2` (RE2 engine).
+  - `src/mastra/tools/multi-string-edit.tool.ts`: when `useRegex === true`, patterns compile using `re2`.
+
+## npm Install Notes **[Dec 12]**
+
+- `npm i re2` succeeded but reported peer warnings around `zod` version expectations for some AI SDK packages.
+- `npm audit` reports **1 high severity vulnerability** (follow-up: review `npm audit` output and decide whether to run `npm audit fix` or pin/override).
+
+## Monaco Editor **[Dec 12]**
+
+- **Production worker/assets**
+  - `app/components/monaco/theme-loader.ts`: configured Monaco loader to use `'/monaco/vs'`.
+  - Manual asset copy: `node_modules/monaco-editor/min/vs` → `public/monaco/vs` (run once after install).
+  - Postinstall script removed from package.json - assets now managed manually or via webpack plugin.
+
+- **Webpack plugin (production builds)**
+  - `next.config.ts`: added `monaco-editor-webpack-plugin` to client webpack config (languages: TypeScript, JavaScript, JSON, CSS, Markdown).
+  - Note: Next 16 dev uses Turbopack (`next dev --turbopack`), so the webpack plugin primarily affects `next build`.
+
+- **VS Code-style Workbench UI**
+  - `app/components/monaco/MonacoWorkbench.tsx`: Complete VS Code-like layout with Explorer, Tabs, Editor, BottomPanel, and RightPanel.
+  - `app/components/monaco/MonacoExplorer.tsx`: File explorer panel with file selection and new file creation.
+  - `app/components/monaco/MonacoBottomPanel.tsx`: Bottom panel with terminal and problems tabs.
+  - `app/components/monaco/MonacoRightPanel.tsx`: Right sidebar panel for workspace details.
+  - State persistence: Files, active tab, theme, and view state (cursor/scroll) preserved across sessions via localStorage.
+  - Tab management: Proper tab switching without editor remounts, view state preservation per tab.
+
 ## What's Next
 
 - **Migration: Mastra v1 - Memory** (🔄 started 2025-12-06)

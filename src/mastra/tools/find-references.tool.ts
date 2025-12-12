@@ -2,7 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { ProjectCache, PythonParser } from './semantic-utils';
 import type { SourceFile } from 'ts-morph';
-import { Node, SyntaxKind } from 'ts-morph';
+import { Node } from 'ts-morph';
 import * as path from 'path';
 import fg from 'fast-glob';
 import { readFile } from 'fs/promises';
@@ -93,7 +93,7 @@ export const findReferencesTool = createTool({
       const projectCache = ProjectCache.getInstance();
       const project = projectCache.getOrCreate(projectPath);
 
-      if (filePath && line !== undefined) {
+      if (typeof filePath === 'string' && filePath.trim() !== '' && typeof line === 'number') {
         await writer?.custom({ type: 'data-tool-progress', data: { message: `📌 Precise lookup: ${filePath}:${line}` } });
         // Precise lookup
         const sourceFile = project.getSourceFile(filePath);
@@ -105,13 +105,15 @@ export const findReferencesTool = createTool({
             const symbol = node.getSymbol();
             if (symbol) {
               const references = project.getLanguageService().findReferencesAtPosition(sourceFile, position);
-              if (references) {
-                for (const ref of references) {
-                  for (const reference of ref.getReferences()) {
+              for (const ref of references ?? []) {
+                for (const reference of ref.getReferences()) {
                     const refSourceFile = reference.getSourceFile();
                     const refNode = reference.getNode();
                     const start = refNode.getStartLinePos();
                     const pos = refSourceFile.getLineAndColumnAtPos(start);
+
+                    const codeContext = getCodeContext(refSourceFile, pos.line, 2);
+                    const kind = getReferenceKind(refNode);
 
                     allReferences.push({
                       filePath: refSourceFile.getFilePath(),
@@ -119,10 +121,9 @@ export const findReferencesTool = createTool({
                       column: pos.column,
                       text: refNode.getParent()?.getText().substring(0, 100) ?? refNode.getText(),
                       isDefinition: reference.isDefinition() ?? false,
-                      context: '',
-                      kind: ''
+                      context: codeContext,
+                      kind
                     });
-                  }
                 }
               }
             }
@@ -132,7 +133,6 @@ export const findReferencesTool = createTool({
         await writer?.custom({ type: 'data-tool-progress', data: { message: `📁 Name-based search across project files...` } });
         // Name-based search across all files
         const sourceFiles = project.getSourceFiles();
-        let processedFiles = 0;
 
         for (const sourceFile of sourceFiles) {
           if (allReferences.length >= maxReferences) {break;}
@@ -153,8 +153,6 @@ export const findReferencesTool = createTool({
                 filePath: sourceFilePath
               });
             }
-
-            processedFiles++;
           } catch (error) {
             log.warn(`Error analyzing file ${sourceFilePath}`, { error });
           }
@@ -288,13 +286,6 @@ function getCodeContext(sourceFile: SourceFile, lineNumber: number, contextLines
   const lines = sourceFile.getFullText().split('\n');
   const start = Math.max(0, lineNumber - contextLines - 1);
   const end = Math.min(lines.length, lineNumber + contextLines);
-
-  return lines.slice(start, end).join('\n');
-}
-
-function getPythonContext(lines: string[], lineIndex: number, contextLines: number): string {
-  const start = Math.max(0, lineIndex - contextLines);
-  const end = Math.min(lines.length, lineIndex + contextLines + 1);
 
   return lines.slice(start, end).join('\n');
 }
