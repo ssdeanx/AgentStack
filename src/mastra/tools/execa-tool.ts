@@ -48,7 +48,7 @@ export const execaTool = createTool({
     });
 
     const { command, args, cwd, timeout, env } = inputData
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `💻 Executing command: ${command} ${args.join(' ')}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💻 Executing command: ${command} ${args.join(' ')}`, stage: 'execaTool' }, id: 'execaTool' });
     try {
       log.info(
         chalk.green(`Running command: ${command} ${args.join(' ')}`)
@@ -62,7 +62,7 @@ export const execaTool = createTool({
         env: optionsEnv,
       })
       const output = result.all ?? ''
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Command executed successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Command executed successfully', stage: 'execaTool' }, id: 'execaTool' });
       span.setAttributes({
         'tool.output.success': true,
         'tool.output.outputLength': output.length,

@@ -62,7 +62,7 @@ export const findReferencesTool = createTool({
   outputSchema: findReferencesOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔎 Starting semantic find-references for '${inputData.symbolName}' at ${inputData.projectPath}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔎 Starting semantic find-references for '${inputData.symbolName}' at ${inputData.projectPath}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
     const { symbolName, projectPath, filePath, line } = inputData;
 
     const requestContext = context?.requestContext;
@@ -89,12 +89,12 @@ export const findReferencesTool = createTool({
       const startTime = Date.now();
 
       // 1. TypeScript/JavaScript Analysis
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `🧭 Starting TypeScript/JavaScript analysis` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🧭 Starting TypeScript/JavaScript analysis`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
       const projectCache = ProjectCache.getInstance();
       const project = projectCache.getOrCreate(projectPath);
 
       if (typeof filePath === 'string' && filePath.trim() !== '' && typeof line === 'number') {
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `📌 Precise lookup: ${filePath}:${line}` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📌 Precise lookup: ${filePath}:${line}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
         // Precise lookup
         const sourceFile = project.getSourceFile(filePath);
         if (sourceFile) {
@@ -130,7 +130,7 @@ export const findReferencesTool = createTool({
           }
         }
       } else {
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `📁 Name-based search across project files...` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📁 Name-based search across project files...`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
         // Name-based search across all files
         const sourceFiles = project.getSourceFiles();
 
@@ -145,7 +145,7 @@ export const findReferencesTool = createTool({
 
           try {
             const fileReferences = await analyzeTypeScriptReferences(sourceFile, searchTerm, caseSensitive, maxReferences - allReferences.length);
-            await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Scanned: ${sourceFile.getFilePath()} (${fileReferences.length} matches)` } });
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📄 Scanned: ${sourceFile.getFilePath()} (${fileReferences.length} matches)`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
 
             for (const ref of fileReferences) {
               allReferences.push({
@@ -160,7 +160,7 @@ export const findReferencesTool = createTool({
       }
 
       // 2. Python Analysis
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `🐍 Starting Python analysis` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🐍 Starting Python analysis`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
       try {
         const pythonFiles = await fg(path.join(projectPath, '**/*.py'), {
           ignore: ['**/node_modules/**', '**/.git/**', '**/venv/**', '**/__pycache__/**'],
@@ -170,7 +170,7 @@ export const findReferencesTool = createTool({
           unique: true,
         });
 
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `🐍 Python files to check: ${pythonFiles.length}` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🐍 Python files to check: ${pythonFiles.length}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
         for (const pyFile of pythonFiles) {
           try {
             const content = await readFile(pyFile, 'utf-8');
@@ -188,7 +188,7 @@ export const findReferencesTool = createTool({
               });
             }
             if (references.length > 0) {
-              await writer?.custom({ type: 'data-tool-progress', data: { message: `🐍 Found ${references.length} matches in ${pyFile}` } });
+              await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🐍 Found ${references.length} matches in ${pyFile}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
             }
           } catch (error) {
             log.warn(`Error parsing Python file ${pyFile}`, { error });
@@ -203,7 +203,7 @@ export const findReferencesTool = createTool({
       const filesCount = new Set(allReferences.map(r => r.filePath)).size;
       const searchTime = Date.now() - startTime;
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Find references complete: ${allReferences.length} references across ${filesCount} files` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Find references complete: ${allReferences.length} references across ${filesCount} files`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
 
       span.end();
 
@@ -220,7 +220,7 @@ export const findReferencesTool = createTool({
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Find references failed: ${errorMessage}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ Find references failed: ${errorMessage}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
       span.recordException(new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
       span.end();

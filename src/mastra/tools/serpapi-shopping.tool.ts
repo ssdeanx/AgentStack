@@ -47,7 +47,7 @@ export const amazonSearchTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Amazon search for "' + inputData.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Amazon search for "' + inputData.query + '"', stage: 'amazon-search' }, id: 'amazon-search' });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -61,7 +61,7 @@ export const amazonSearchTool = createTool({
       }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'amazon-search' }, id: 'amazon-search' });
     log.info('Executing Amazon search', { query: inputData.query })
 
     try {
@@ -120,7 +120,7 @@ export const amazonSearchTool = createTool({
 
       const result = { products }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Amazon search complete: ' + products.length + ' products' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Amazon search complete: ' + products.length + ' products', stage: 'amazon-search' }, id: 'amazon-search' });
       amazonSpan.setAttribute('tool.output.productCount', products.length);
       amazonSpan.end();
       log.info('Amazon search completed', { query: inputData.query, productCount: products.length })
@@ -170,7 +170,7 @@ export const walmartSearchTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Walmart search for "' + inputData.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Walmart search for "' + inputData.query + '"', stage: 'walmart-search' }, id: 'walmart-search' });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -184,7 +184,7 @@ export const walmartSearchTool = createTool({
       }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'walmart-search' }, id: 'walmart-search' });
     log.info('Executing Walmart search', { query: inputData.query })
 
     try {
@@ -227,7 +227,7 @@ export const walmartSearchTool = createTool({
 
       const result = { products }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Walmart search complete: ' + products.length + ' products' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Walmart search complete: ' + products.length + ' products', stage: 'walmart-search' }, id: 'walmart-search' });
       walmartSpan.setAttribute('tool.output.productCount', products.length);
       walmartSpan.end();
       log.info('Walmart search completed', { query: inputData.query, productCount: products.length })
@@ -279,7 +279,7 @@ export const ebaySearchTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting eBay search for "' + inputData.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting eBay search for "' + inputData.query + '"', stage: 'ebay-search' }, id: 'ebay-search' });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -294,7 +294,7 @@ export const ebaySearchTool = createTool({
       }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'ebay-search' }, id: 'ebay-search' });
     log.info('Executing eBay search', { query: inputData.query })
 
     try {
@@ -342,7 +342,7 @@ export const ebaySearchTool = createTool({
           })
         ) ?? []
       const result = { products }
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ eBay search complete: ' + products.length + ' products' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ eBay search complete: ' + products.length + ' products', stage: 'ebay-search' }, id: 'ebay-search' });
       ebaySpan.setAttribute('tool.output.productCount', products.length);
       ebaySpan.end();
       log.info('eBay search completed', { query: inputData.query, productCount: products.length })
@@ -391,7 +391,7 @@ export const homeDepotSearchTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🛒 Starting Home Depot search for "' + inputData.query + '"' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Home Depot search for "' + inputData.query + '"', stage: 'home-depot-search' }, id: 'home-depot-search' });
     validateSerpApiKey()
 
     // Get tracer from OpenTelemetry API
@@ -405,7 +405,7 @@ export const homeDepotSearchTool = createTool({
       }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'home-depot-search' }, id: 'home-depot-search' });
     log.info('Executing Home Depot search', { query: inputData.query })
 
     try {
@@ -442,7 +442,7 @@ export const homeDepotSearchTool = createTool({
           })
         ) ?? []
       const result = { products }
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Home Depot search complete: ' + products.length + ' products' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Home Depot search complete: ' + products.length + ' products', stage: 'home-depot-search' }, id: 'home-depot-search' });
       homeDepotSpan.setAttribute('tool.output.productCount', products.length);
       homeDepotSpan.end();
       log.info('Home Depot search completed', { query: inputData.query, productCount: products.length })

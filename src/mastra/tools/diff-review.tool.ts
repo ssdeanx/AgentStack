@@ -52,7 +52,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
 
     const tracer = trace.getTracer('diff-review');
     const span = tracer.startSpan('diff-review', { attributes: { filename, contextLines } });
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📝 Generating unified diff for ${filename}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📝 Generating unified diff for ${filename}`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
 
     try {
 
@@ -64,7 +64,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🧩 Unified diff generated (${filename})` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🧩 Unified diff generated (${filename})`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
 
     const structured = structuredPatch(
       filename,
@@ -75,7 +75,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
       'modified',
       { context: contextLines }
     )
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Structured patch created with ${structured.hunks.length} hunk(s)` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Structured patch created with ${structured.hunks.length} hunk(s)`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
 
     interface DiffHunk {
       oldStart: number
@@ -145,7 +145,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
     span?.setAttribute('additions', additions);
     span?.setAttribute('deletions', deletions);
     span?.setAttribute('totalChanges', totalChanges);
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Diff generated: ${additions} additions, ${deletions} deletions` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Diff generated: ${additions} additions, ${deletions} deletions`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
     span?.end();
 
     return {

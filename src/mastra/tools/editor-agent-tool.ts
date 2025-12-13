@@ -34,7 +34,7 @@ export const editorTool = createTool({
       .describe('Additional suggestions for improvement'),
   }),
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📝 Starting editor agent' } });
+    await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '📝 Starting editor agent' }, id: 'editor-agent' });
     const { content, contentType = 'general', instructions, tone } = inputData
     const writer = context?.writer;
 
@@ -65,7 +65,7 @@ export const editorTool = createTool({
       }
       prompt += `:\n\n${content}`
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '🤖 Generating edited content' } });
+      await writer?.custom({ type: 'data-tool-agent', data: { message: '🤖 Generating edited content' }, id: 'editor-agent' });
       const result = await editorAgent.generate(prompt)
 
       // Parse the structured response from the editor agent
@@ -84,7 +84,7 @@ export const editorTool = createTool({
 
       span.end();
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Editing complete' } });
+      await writer?.custom({ type: 'data-tool-agent', data: { message: '✅ Editing complete' }, id: 'editor-agent' });
       return {
         editedContent:
           parsedResult.editedContent ??

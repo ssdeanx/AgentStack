@@ -159,7 +159,7 @@ Use this tool when you need advanced document processing with metadata extractio
   inputSchema: MastraDocumentChunkingInputSchema,
   outputSchema: MastraDocumentChunkingOutputSchema,
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📄 Starting Mastra chunker' } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📄 Starting Mastra chunker', stage: 'mastra:chunker' }, id: 'mastra:chunker' });
     const startTime = Date.now()
     logToolExecution('mastra-chunker', { input: inputData })
 
@@ -415,7 +415,7 @@ content indexing, or semantic search capabilities.
   inputSchema: CustomDocumentChunkingInputSchema,
   outputSchema: CustomDocumentChunkingOutputSchema,
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📄 Starting MDocument chunker' } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📄 Starting MDocument chunker', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
     const startTime = Date.now()
     logToolExecution('mdocument-chunker', { input: inputData })
 
@@ -568,7 +568,7 @@ content indexing, or semantic search capabilities.
 
       // Generate embeddings if requested
       if (inputData.generateEmbeddings && chunksForProcessing.length > 0) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🧠 Generating embeddings' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧠 Generating embeddings', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
         const embeddingStartTime = Date.now()
         const result = await embedMany({
           values: chunksForProcessing.map((chunk) => chunk.text),
@@ -589,7 +589,7 @@ content indexing, or semantic search capabilities.
 
       // Store chunks in PgVector if embeddings were generated
       if (embeddingGenerated && embeddings.length > 0) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Storing vectors in database' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Storing vectors in database', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
         const storageStartTime = Date.now()
 
         // Store vectors with metadata
@@ -635,7 +635,7 @@ content indexing, or semantic search capabilities.
       // End tracing span with success
       span.end();
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Processed ${chunks.length} chunks successfully` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed ${chunks.length} chunks successfully`, stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
       return output
     } catch (error) {
       const processingTime = Date.now() - startTime
@@ -721,7 +721,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     error: z.string().optional(),
   }),
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Starting document reranking' } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Starting document reranking', stage: 'document:reranker' }, id: 'document:reranker' });
     const startTime = Date.now()
     logToolExecution('document-reranker', { userQuery: inputData.userQuery })
 
@@ -738,7 +738,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
     try {
       // Step 1: Generate embedding for user query
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🧠 Generating query embedding' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧠 Generating query embedding', stage: 'document:reranker' }, id: 'document:reranker' });
       const embeddingStartTime = Date.now()
       const { embedding: queryEmbedding } = await embed({
         value: inputData.userQuery,
@@ -753,7 +753,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       })
 
       // Step 2: Retrieve initial results from PgVector
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Retrieving initial results from database' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Retrieving initial results from database', stage: 'document:reranker' }, id: 'document:reranker' });
       const searchStartTime = Date.now()
       const initialResults = await pgVector.query({
         indexName: inputData.indexName,
@@ -770,7 +770,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
       if (initialResults.length === 0) {
         const processingTime = Date.now() - startTime
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '⚠️ No initial results found' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '⚠️ No initial results found', stage: 'document:reranker' }, id: 'document:reranker' });
         return {
           success: true,
           userQuery: inputData.userQuery,
@@ -781,7 +781,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       // Create a relevance scorer
 
       // Step 3: Re-rank results using semantic relevance scorer
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `⚖️ Reranking ${initialResults.length} documents` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⚖️ Reranking ${initialResults.length} documents`, stage: 'document:reranker' }, id: 'document:reranker' });
       const rerankerStartTime = Date.now()
       const rerankedResults = await rerank({
         results: initialResults.map((result) => ({
@@ -843,7 +843,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
       span.end();
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results`, stage: 'document:reranker' }, id: 'document:reranker' });
       return output
     } catch (error) {
       const processingTime = Date.now() - startTime

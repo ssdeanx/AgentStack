@@ -122,7 +122,7 @@ export const dataValidatorToolJSON = createTool({
     const writer = context?.writer;
     const requestContext = context?.requestContext as RequestContext<{ validatorContext: unknown }>; // TODO: unknown is not a type
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Starting data validation' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Starting data validation', stage: 'data-validator-json' }, id: 'data-validator-json' });
 
     const tracer = trace.getTracer('data-validator');
     const rootSpan = tracer.startSpan('data-validator', {
@@ -140,7 +140,7 @@ export const dataValidatorToolJSON = createTool({
       const result = zodSchema.safeParse(inputData.data);
 
       if (result.success) {
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Validation passed` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Validation passed`, stage: 'data-validator-json' }, id: 'data-validator-json' });
         rootSpan.setAttributes({ 'tool.output.valid': true });
         rootSpan.end();
         return {

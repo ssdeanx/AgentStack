@@ -226,7 +226,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     // Ensure data directory exists
     await ensureDataDir();
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}`, stage: 'coding:multiStringEdit' }, id: 'coding:multiStringEdit' });
     const { edits, dryRun = false, createBackup = true, projectRoot } = inputData
     const maxFileSize = inputData.maxFileSize ?? 1_000_000
 
@@ -248,7 +248,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     const defaultBoundary = projectRoot ?? process.cwd()
 
     for (const edit of edits) {
-      await writer?.custom?.({ type: 'data-tool-progress', data: { message: `✏️ Processing edit for: ${edit.filePath}` } });
+      await writer?.custom?.({ type: 'data-tool-progress', data: { status: 'in-progress', message: `✏️ Processing edit for: ${edit.filePath}`, stage: 'coding:multiStringEdit' }, id: 'coding:multiStringEdit' });
       const result = await processFileEdit(edit, defaultBoundary, dryRun, createBackup, appliedBackups, maxFileSize);
       results.push(result);
       if (result.status === 'failed') {
@@ -280,7 +280,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
       span.setStatus({ code: SpanStatusCode.ERROR, message: 'One or more edits failed' });
     }
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Multi-string edit complete: ${summary.applied} applied, ${summary.failed} failed, ${summary.skipped} skipped` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Multi-string edit complete: ${summary.applied} applied, ${summary.failed} failed, ${summary.skipped} skipped`, stage: 'coding:multiStringEdit' }, id: 'coding:multiStringEdit' });
     span.end();
 
     return {

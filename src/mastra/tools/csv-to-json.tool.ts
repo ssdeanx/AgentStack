@@ -39,7 +39,7 @@ export const csvToJsonTool = createTool({
     const writer = context?.writer;
     const requestContext = context?.requestContext;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📊 Starting CSV to JSON conversion' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📊 Starting CSV to JSON conversion', stage: 'csv-to-json' }, id: 'csv-to-json' });
     const tracer = trace.getTracer('csv-to-json', '1.0.0');
     const rootSpan = tracer.startSpan('csv-to-json', {
       attributes: {

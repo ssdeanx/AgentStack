@@ -32,7 +32,7 @@ export const jsonToCsvTool = createTool({
     const writer = context?.writer;
     const requestContext = context?.requestContext as RequestContext<{ csvToolContext: unknown }>;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📊 Converting ${inputData.data.length} JSON records to CSV` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📊 Converting ${inputData.data.length} JSON records to CSV`, stage: 'json-to-csv' }, id: 'json-to-csv' });
 
     const tracer = trace.getTracer('json-to-csv', '1.0.0');
     const rootSpan = tracer.startSpan('json-to-csv', {

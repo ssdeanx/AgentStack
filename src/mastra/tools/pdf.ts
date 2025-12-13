@@ -43,7 +43,7 @@ export const readPDF = createTool({
     });
 
     const { pdfPath } = inputData
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📄 Reading PDF: ${pdfPath}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📄 Reading PDF: ${pdfPath}`, stage: 'readPDF' }, id: 'readPDF' });
     try {
       // Check if file exists
       if (!existsSync(pdfPath)) {

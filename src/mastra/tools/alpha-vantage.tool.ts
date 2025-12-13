@@ -67,11 +67,11 @@ export const alphaVantageCryptoTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}`, status: 'in-progress', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -99,7 +99,7 @@ export const alphaVantageCryptoTool = createTool({
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...', status: 'in-progress', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -156,7 +156,7 @@ export const alphaVantageCryptoTool = createTool({
         return null;
       };
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Crypto data ready for ${inputData.symbol}` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Crypto data ready for ${inputData.symbol}`, status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
       const result = {
         data,
         metadata: {
@@ -174,7 +174,7 @@ export const alphaVantageCryptoTool = createTool({
 
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Crypto fetch error: ${errMsg}` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Crypto fetch error: ${errMsg}`, status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
       if (error instanceof Error) {
         span.recordException(error);
       }
@@ -252,11 +252,11 @@ export const alphaVantageStockTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${inputData.symbol || 'symbol'}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${inputData.symbol || 'symbol'}`, status: 'in-progress', stage: 'alpha-vantage-stock' }, id: 'alpha-vantage-stock' });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-stock' }, id: 'alpha-vantage-stock' });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -453,11 +453,11 @@ export const alphaVantageTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${inputData.function}` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${inputData.function}`, status: 'in-progress', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
       return {
         data: null,
         error: "ALPHA_VANTAGE_API_KEY environment variable is required"
@@ -503,7 +503,7 @@ export const alphaVantageTool = createTool({
         params.append("function", inputData.economic_indicator);
       }
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...', status: 'in-progress', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`;
 
@@ -539,7 +539,7 @@ export const alphaVantageTool = createTool({
 
       const metadataObj = metadata as unknown;
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ General data ready for ${inputData.function}` } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ General data ready for ${inputData.function}`, status: 'done', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
 
       const result = {
         data,

@@ -182,7 +182,7 @@ export const arxivTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📚 Searching arXiv for "${(inputData.query ?? inputData.id) ?? 'papers'}"` } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📚 Searching arXiv for "${(inputData.query ?? inputData.id) ?? 'papers'}"`, stage: 'arxiv' }, id: 'arxiv' });
     toolCallCounters.set('arxiv', (toolCallCounters.get('arxiv') ?? 0) + 1);
     try {
       const params = new URLSearchParams();
@@ -212,7 +212,7 @@ export const arxivTool = createTool({
       } else if (searchTerms.length > 0) {
         params.append("search_query", searchTerms.join(" AND "));
       } else {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ No search terms provided' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ No search terms provided', stage: 'arxiv' }, id: 'arxiv' });
         return {
           papers: [],
           total_results: 0,
@@ -237,7 +237,7 @@ export const arxivTool = createTool({
 
       const url = `http://export.arxiv.org/api/query?${params.toString()}`;
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Fetching from arXiv API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Fetching from arXiv API...', stage: 'arxiv' }, id: 'arxiv' });
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -331,21 +331,21 @@ export const arxivPdfParserTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🚀 Starting arXiv PDF parser for ' + inputData.arxivId } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🚀 Starting arXiv PDF parser for ' + inputData.arxivId, stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
     toolCallCounters.set('arxiv-pdf-parser', (toolCallCounters.get('arxiv-pdf-parser') ?? 0) + 1);
     const startTime = Date.now();
 
     try {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Downloading PDF from arXiv...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📥 Downloading PDF from arXiv...', stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
       // Construct PDF URL
       const pdfUrl = `https://arxiv.org/pdf/${inputData.arxivId}`;
 
       // Download PDF
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Extracting text from PDF...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Extracting text from PDF...', stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
       const response = await fetch(pdfUrl);
 
       if (!response.ok) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ PDF download failed' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ PDF download failed', stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
         if (response.status === 404) {
           return {
             success: false,
@@ -416,7 +416,7 @@ export const arxivPdfParserTool = createTool({
         markdown = frontmatter + markdown;
       }
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ PDF parsing complete: ' + pdfContent.numpages + ' pages', stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
       const processingTime = Date.now() - startTime;
 
       const result = {
@@ -514,10 +514,10 @@ export const arxivPaperDownloaderTool = createTool({
       }
     });
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🚀 Starting arXiv paper downloader for ' + inputData.arxivId } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🚀 Starting arXiv paper downloader for ' + inputData.arxivId, stage: 'arxiv-paper-downloader' }, id: 'arxiv-paper-downloader' });
     toolCallCounters.set('arxiv-paper-downloader', (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1);
     try {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Fetching paper metadata from arXiv API...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Fetching paper metadata from arXiv API...', stage: 'arxiv-paper-downloader' }, id: 'arxiv-paper-downloader' });
       // Get metadata from arXiv API
       const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`;
       const apiResponse = await fetch(apiUrl);
@@ -542,10 +542,10 @@ export const arxivPaperDownloaderTool = createTool({
 
       let pdfContent: { markdown: string; pageCount: number; textLength: number } | undefined;
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Processing paper data...' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Processing paper data...', stage: 'arxiv-paper-downloader' }, id: 'arxiv-paper-downloader' });
       // Download and parse PDF if requested
       if (inputData.includePdfContent) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📥 Downloading PDF content...' } });
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📥 Downloading PDF content...', stage: 'arxiv-paper-downloader' }, id: 'arxiv-paper-downloader' });
         try {
           const pdfResponse = await fetch(paperMetadata.pdf_url);
 

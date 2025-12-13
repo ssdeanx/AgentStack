@@ -52,7 +52,7 @@ export const weatherTool = createTool({
         const writer = context?.writer;
         const requestContext = context?.requestContext;
 
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${inputData.location}` } });
+        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${inputData.location}`, status: 'in-progress', stage: 'starting' }, id: 'get-weather' });
 
         const { temperatureUnit } = weatherToolContextSchema.parse(
             requestContext?.get('weatherToolContext')
@@ -73,9 +73,9 @@ export const weatherTool = createTool({
         });
 
         try {
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...', status: 'in-progress', stage: 'geocoding' }, id: 'get-weather' });
             const result = await getWeather(inputData.location, temperatureUnit)
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...', status: 'in-progress', stage: 'processing' }, id: 'get-weather' });
             weatherSpan.setAttributes({
                 'tool.output.location': result.location,
                 'tool.output.temperature': result.temperature,
@@ -87,7 +87,7 @@ export const weatherTool = createTool({
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
             };
-            await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}`, status: 'done', stage: 'complete' }, id: 'get-weather' });
             return finalResult;
         } catch (error) {
             const errorMessage =
@@ -97,7 +97,7 @@ export const weatherTool = createTool({
             }
             weatherSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
             weatherSpan.end();
-            await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}` } });
+            await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}`, status: 'done', stage: 'error' }, id: 'get-weather' });
             log.error(
                 `Failed to fetch weather for ${inputData.location}: ${errorMessage}`
             )
