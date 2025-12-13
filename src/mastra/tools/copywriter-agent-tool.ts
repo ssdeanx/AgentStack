@@ -3,16 +3,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
 import { trace } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context';
 
-// Define the Zod schema for the runtime context
-const copywriterToolContextSchema = z.object({
-  userId: z.string().optional(),
-  contentType: z.string().optional(),
-})
-
-// Infer the TypeScript type from the Zod schema
-export type CopywriterToolContext = z.infer<typeof copywriterToolContextSchema>
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
 
@@ -78,11 +69,9 @@ export const copywriterTool = createTool({
   execute: async (inputData, context) => {
    const writer = context?.writer;
     const mastra = context?.mastra;
-    const requestContext: RequestContext<CopywriterToolContext> | undefined = context?.requestContext;
 
-    const userId = copywriterToolContextSchema.parse(
-      context?.requestContext?.get('userId') ?? 'anonymous'
-    )
+    const userIdVal = context?.requestContext?.get('userId')
+    const userId = typeof userIdVal === 'string' && userIdVal.trim().length > 0 ? userIdVal : 'anonymous'
     const {
       topic,
       contentType = 'blog',
@@ -92,7 +81,15 @@ export const copywriterTool = createTool({
       specificRequirements,
     } = inputData
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` }, id: 'copywriter-agent' });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"`,
+        stage: 'copywriter-agent',
+      },
+      id: 'copywriter-agent',
+    });
 
     const span = trace.getTracer('copywriter-agent-tool', '1.0.0').startSpan('copywriter-generate', {
       attributes: {
@@ -106,7 +103,28 @@ export const copywriterTool = createTool({
     });
 
     try {
-      const agentInstance = mastra!.getAgent('copywriterAgent')
+      const agentInstance = mastra?.getAgent('copywriterAgent')
+
+      if (!agentInstance) {
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: 'Copywriter agent is not available in this runtime.',
+            stage: 'copywriter-agent',
+          },
+          id: 'copywriter-agent',
+        })
+
+        return {
+          content: `Unable to generate content: copywriterAgent is not available.`,
+          contentType,
+          title: undefined,
+          summary: undefined,
+          keyPoints: [],
+          wordCount: 0,
+        }
+      }
 
       // Build the prompt with context
       let prompt = `Create ${length} ${contentType} content about: ${topic}`
@@ -161,11 +179,45 @@ export const copywriterTool = createTool({
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: '🤖 Generating content...' } });
-      const result = await agentInstance.generate(prompt)
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: '🤖 Generating content...',
+          stage: 'copywriter-agent',
+        },
+        id: 'copywriter-agent',
+      })
+
+      interface StreamResult {
+        fullStream?: ReadableStream<unknown>
+        textStream?: ReadableStream<unknown>
+        text?: Promise<string | undefined>
+      }
+
+      const agentWithStream = agentInstance as unknown as {
+        stream?: (_prompt: string) => Promise<StreamResult>
+        generate: (_prompt: string) => Promise<{ text: string }>
+      }
+
+      let contentText = ''
+      if (writer && typeof agentWithStream.stream === 'function') {
+        const stream = await agentWithStream.stream(prompt)
+
+        if (stream.fullStream) {
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+        } else if (stream.textStream) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+        }
+
+        contentText = (await stream.text) ?? ''
+      } else {
+        const result = await agentWithStream.generate(prompt)
+        contentText = result.text
+      }
 
       // Parse and structure the response
-      const content = result.text
+      const content = contentText
       const wordCount = content.split(/\s+/).length
 
       // Extract title if present (look for # or ## at start)

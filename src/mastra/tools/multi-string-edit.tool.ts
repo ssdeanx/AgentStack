@@ -5,6 +5,15 @@ import { createPatch } from 'diff'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from '@mastra/core/tools';
 import RE2 from 're2'
+import type { RequestContext } from '@mastra/core/request-context';
+
+// Define the expected shape of the runtime context for this tool
+export interface MultiStringEditContext {
+  maxFileSize?: number;
+  createBackup?: boolean;
+  dryRun?: boolean;
+  operationType: 'batch' | 'single'; // Required field
+}
 
 const DATA_DIR = path.join(process.cwd(), './data')
 
@@ -220,16 +229,19 @@ Supports dry-run mode to preview changes and automatic backup creation.
 Use for batch refactoring, multi-file updates, and coordinated code changes.`,
   inputSchema: multiStringEditInputSchema,
   outputSchema: multiStringEditOutputSchema,
-  execute: async (inputData, context): Promise<MultiStringEditOutput> => {
+  execute: async (inputData, context) => {
+    const { edits, dryRun = false, createBackup = true, projectRoot } = inputData;
     const writer = context?.writer;
+    const requestContext = context?.requestContext as RequestContext<MultiStringEditContext>;
+
+    const maxFileSize = requestContext?.get('maxFileSize') ?? 1_000_000;
+
 
     // Ensure data directory exists
     await ensureDataDir();
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}`, stage: 'coding:multiStringEdit' }, id: 'coding:multiStringEdit' });
-    const { edits, dryRun = false, createBackup = true, projectRoot } = inputData
-    const maxFileSize = inputData.maxFileSize ?? 1_000_000
-
+    
     const tracer = trace.getTracer('coding-tools');
     const span = tracer.startSpan('multi_string_edit', {
       attributes: {

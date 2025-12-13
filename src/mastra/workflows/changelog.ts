@@ -35,11 +35,11 @@ const stepA1 = createStep({
     });
 
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "20%",
         message: "Starting Get a git diff",
-        stage: "workflow",
+        stage: "gitDiffAgent",
         stepId: "stepA1",
       },
       id: "stepA1",
@@ -211,26 +211,17 @@ const stepA1 = createStep({
     writeFileSync(`generated-changelogs/changelog-${today}`, combinedChangelog);
 
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "100%",
         message: "Get a git diff completed",
-        stage: "workflow",
+        stage: "gitDiffAgent",
         stepId: "stepA1",
       },
       id: "stepA1",
     });
 
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
-        stepId: 'stepA1',
-        success: true,
-        duration: Date.now() - startTime,
-      },
-      id: "stepA1",
-    });
-
+    
     return {
       message: combinedChangelog,
     };
@@ -260,11 +251,11 @@ const stepA2 = createStep({
     });
 
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "50%",
         message: "Starting Make changelog",
-        stage: "workflow",
+        stage: "gitDiffAgent",
         stepId: "stepA2",
       },
       id: "stepA2",
@@ -333,26 +324,17 @@ const stepA2 = createStep({
       log.info(chalk.green(result.text));
 
       await writer?.custom({
-        type: "data-workflow-progress",
+        type: "data-tool-progress",
         data: {
           status: "100%",
           message: "Make changelog completed",
-          stage: "workflow",
+          stage: "gitDiffAgent",
           stepId: "stepA2",
         },
         id: "stepA2",
       });
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'stepA2',
-          success: true,
-          duration: Date.now() - startTime,
-        },
-        id: "stepA2",
-      });
-
+      
       return {
         message: result.text,
       };
@@ -360,26 +342,17 @@ const stepA2 = createStep({
       log.error(e instanceof Error ? e.message : String(e));
 
       await writer?.custom({
-        type: "data-workflow-progress",
+        type: "data-tool-progress",
         data: {
           status: "100%",
           message: "Make changelog completed",
-          stage: "workflow",
+          stage: "gitDiffAgent",
           stepId: "stepA2",
         },
         id: "stepA2",
       });
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'stepA2',
-          success: false,
-          duration: Date.now() - startTime,
-        },
-        id: "stepA2",
-      });
-
+      
       return {
         message: e as string,
       };

@@ -416,7 +416,7 @@ export function WorkflowProvider({
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
                 stage: "tool",
-                status: eventData.status === "success" ? "done" : eventData.status === "pending" ? "in-progress" : "error",
+                status: eventData.status === "done" ? "done" : (eventData.status === "pending" || eventData.status === "in-progress") ? "in-progress" : "error",
                 message: eventData.message ?? `${eventData.toolName ?? 'Tool'} ${eventData.status}`,
                 timestamp: new Date(),
                 data: eventData,

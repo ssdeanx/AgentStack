@@ -43,8 +43,11 @@ export const finnhubQuotesTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching quote for ${inputData.symbol}`
-      }
+        status: 'in-progress',
+        message: `Fetching quote for ${inputData.symbol}`,
+        stage: 'finnhub-quotes'
+      },
+      id: 'finnhub-quotes'
     });
 
     logToolExecution('finnhubQuotesTool', { input: inputData });
@@ -194,8 +197,11 @@ export const finnhubCompanyTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching company data (${inputData.function}) for ${inputData.symbol}`
-      }
+        status: 'in-progress',
+        message: `Fetching company data (${inputData.function}) for ${inputData.symbol}`,
+        stage: 'finnhub-company'
+      },
+      id: 'finnhub-company'
     });
 
     logToolExecution('finnhubCompanyTool', { input: inputData });
@@ -369,8 +375,11 @@ export const finnhubFinancialsTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching financials (${inputData.function}) for ${inputData.symbol}`
-      }
+        status: 'in-progress',
+        message: `Fetching financials (${inputData.function}) for ${inputData.symbol}`,
+        stage: 'finnhub-financials'
+      },
+      id: 'finnhub-financials'
     });
 
     logToolExecution('finnhubFinancialsTool', { input: inputData });
@@ -535,8 +544,11 @@ export const finnhubAnalysisTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching analysis (${inputData.function}) for ${inputData.symbol}`
-      }
+        status: 'in-progress',
+        message: `Fetching analysis (${inputData.function}) for ${inputData.symbol}`,
+        stage: 'finnhub-analysis'
+      },
+      id: 'finnhub-analysis'
     });
 
     logToolExecution('finnhubAnalysisTool', { input: inputData });
@@ -705,8 +717,11 @@ export const finnhubTechnicalTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching technical data (${inputData.function}) for ${inputData.symbol}`
-      }
+        status: 'in-progress',
+        message: `Fetching technical data (${inputData.function}) for ${inputData.symbol}`,
+        stage: 'finnhub-technical'
+      },
+      id: 'finnhub-technical'
     });
 
     logToolExecution('finnhubTechnicalTool', { input: inputData });
@@ -885,8 +900,11 @@ export const finnhubEconomicTool = createTool({
     await context?.writer?.custom({
       type: 'data-tool-progress',
       data: {
-        message: `Fetching economic data for ${inputData.economic_code}`
-      }
+        status: 'in-progress',
+        message: `Fetching economic data for ${inputData.economic_code}`,
+        stage: 'finnhub-economic'
+      },
+      id: 'finnhub-economic'
     });
 
     logToolExecution('finnhubEconomicTool', { input: inputData });

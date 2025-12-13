@@ -3,6 +3,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { editorAgent } from '../agents/editorAgent';
+
 export const editorTool = createTool({
   id: 'editor-agent',
   description:

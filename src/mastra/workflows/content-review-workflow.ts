@@ -97,11 +97,11 @@ const researchTopicStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "20%",
+          status: "in-progress",
           message: `Researching topic: ${inputData.topic}...`,
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "research-topic",
       });
@@ -116,11 +116,11 @@ const researchTopicStep = createStep({
 
       if (agent) {
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
             status: "50%",
             message: "AI researching topic...",
-          stage: "workflow",
+          stage: "researchAgent",
           },
           id: "research-topic",
 
@@ -160,11 +160,11 @@ const researchTopicStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "90%",
           message: "Research complete.",
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "research-topic",
       });
@@ -243,7 +243,7 @@ const draftContentStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "in-progress",
           message: "Starting content drafting",
@@ -258,7 +258,7 @@ const draftContentStep = createStep({
 
       if (agent) {
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
             status: "40%",
             message: "AI writing content draft...",
@@ -300,7 +300,7 @@ const draftContentStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "90%",
           message: "Drafting complete.",
@@ -382,11 +382,11 @@ const initialReviewStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "30%",
           message: 'Evaluating content quality...',
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "initial-review",
       });
@@ -448,11 +448,11 @@ const initialReviewStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "90%",
           message: `Initial score: ${score}/100...`,
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "initial-review",
       });
@@ -481,25 +481,16 @@ const initialReviewStep = createStep({
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "100%",
           message: `Iteration 1: Score ${score}/${inputData.qualityThreshold}`,
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "initial-review",
       });
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'initial-review',
-          success: true,
-          duration: Date.now() - startTime,
-        },
-        id: "initial-review",
-      });
-
+      
       logStepEnd('initial-review', { score, approved, iteration: 1 }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -557,21 +548,11 @@ const refineContentStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "in-progress",
           message: `Starting iteration ${nextIteration}...`,
-          stage: "workflow",
-        },
-        id: "refine-content",
-      });
-
-      await writer?.custom({
-        type: 'data-workflow-progress',
-        data: {
-          status: "20%",
-          message: `Refining content (iteration ${nextIteration})...`,
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "refine-content",
       });
@@ -603,13 +584,13 @@ Rewrite with improvements.`;
         const rewrittenText = await stream.text;
         refinedContent = rewrittenText;
       }
-
+// FIXME: @Copilot statu
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "60%",
           message: 'Re-evaluating refined content...',
-          stage: "workflow",
+          stage: "researchAgent",
         },
         id: "refine-content",
       });
@@ -663,11 +644,11 @@ Rewrite with improvements.`;
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "90%",
           message: `Iteration ${nextIteration}: Score ${newScore}/100...`,
-          stage: "workflow",
+          stage: "researchAgent",
         }
       });
 
@@ -697,23 +678,15 @@ Rewrite with improvements.`;
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "100%",
           message: `Iteration ${nextIteration}: Score ${newScore}/${inputData.qualityThreshold} - ${approved ? 'APPROVED' : 'needs refinement'}`,
-          stage: "workflow",
+          stage: "researchAgent",
         }
       });
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'refine-content',
-          success: true,
-          duration: Date.now() - startTime,
-        }
-      });
-
+      
       logStepEnd('refine-content', { score: newScore, approved, iteration: nextIteration }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -754,11 +727,11 @@ const finalizeContentStep = createStep({
     });
 
     await writer?.custom({
-      type: 'data-workflow-progress',
+      type: 'data-tool-progress',
       data: {
         status: "50%",
         message: 'Finalizing content...',
-        stage: "workflow",
+        stage: "researchAgent",
       }
     });
 

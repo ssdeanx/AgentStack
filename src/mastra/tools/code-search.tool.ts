@@ -81,7 +81,15 @@ Use for finding usages, identifying patterns, and code exploration.`,
   outputSchema: codeSearchOutputSchema,
   execute: async (inputData, context): Promise<CodeSearchOutput> => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔎 Starting code search for pattern '${inputData.pattern}'` } });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🔎 Starting code search for pattern '${inputData.pattern}'`,
+        stage: 'coding:codeSearch'
+      },
+      id: 'coding:codeSearch'
+    });
     const tracer = trace.getTracer('code-search');
     const span = tracer.startSpan('code-search', {
         attributes: {
@@ -119,7 +127,15 @@ Use for finding usages, identifying patterns, and code exploration.`,
     }
 
     filePaths = [...new Set(filePaths)]
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📁 Files to search: ${filePaths.length}` } });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `📁 Files to search: ${filePaths.length}`,
+        stage: 'coding:codeSearch'
+      },
+      id: 'coding:codeSearch'
+    });
 
     const matches: Array<z.infer<typeof matchSchema>> = []
     const filesWithMatches = new Set<string>()
@@ -204,7 +220,15 @@ Use for finding usages, identifying patterns, and code exploration.`,
       truncated,
     }
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Code search complete: ${result.stats.totalMatches} matches across ${result.stats.filesWithMatches} files` } });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `✅ Code search complete: ${result.stats.totalMatches} matches across ${result.stats.filesWithMatches} files`,
+        stage: 'coding:codeSearch'
+      },
+      id: 'coding:codeSearch'
+    });
     span.end();
     return result;
   }

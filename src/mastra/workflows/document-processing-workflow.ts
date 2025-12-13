@@ -113,16 +113,6 @@ const loadDocumentStep = createStep({
     const startTime = Date.now();
     logStepStart('load-document', { sourceType: inputData.source.type });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        type: "workflow",
-        data: "load-document",
-        id: "load-document",
-      },
-      id: "load-document",
-    });
-
     const tracer = trace.getTracer('document-processing');
     const span = tracer.startSpan('document-loader', {
       attributes: { sourceType: inputData.source.type },
@@ -130,11 +120,11 @@ const loadDocumentStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "20%",
+          status: 'in-progress',
           message: `Loading document from ${inputData.source.type}...`,
-          stage: "workflow",
+          stage: "documentProcessingAgent",
         },
         id: "load-document",
       });
@@ -194,11 +184,11 @@ const loadDocumentStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
           status: "80%",
           message: 'Document loaded, detecting type...',
-          stage: "workflow",
+          stage: "documentProcessingAgent",
         },
         id: "load-document",
       });
@@ -227,11 +217,11 @@ const loadDocumentStep = createStep({
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-step-complete',
+        type: 'data-tool-progress',
         data: {
+          status: "done",
+          message: "Document loaded successfully",
           stepId: 'load-document',
-          success: true,
-          duration: Date.now() - startTime,
         },
         id: "load-document",
       });
@@ -268,16 +258,6 @@ const convertPdfToMarkdownStep = createStep({
     const startTime = Date.now();
     logStepStart('convert-pdf-to-markdown', { contentType: inputData.contentType });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        type: "workflow",
-        data: "input-convert-pdf-to-markdown",
-        id: "convert-pdf-to-markdown",
-      },
-      id: "convert-pdf-to-markdown",
-    });
-
     const tracer = trace.getTracer('document-processing');
     const span = tracer.startSpan('pdf-to-markdown-converter', {
       attributes: { contentType: inputData.contentType },
@@ -285,11 +265,11 @@ const convertPdfToMarkdownStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "30%",
-          message: 'Converting PDF to markdown...',
-          stage: "workflow",
+          status: 'in-progress',
+          message: 'Converting PDF to markdown `...',
+          stage: "documentProcessingAgent",
         },
         id: "convert-pdf-to-markdown",
       });
@@ -334,11 +314,11 @@ const convertPdfToMarkdownStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: 'Markdown conversion complete...',
-          stage: "workflow",
+          status: "in-progress",
+          message: 'Markdown conversion complete (90%)...',
+          stage: "documentProcessingAgent",
         },
         id: "convert-pdf-to-markdown",
       });
@@ -361,11 +341,11 @@ const convertPdfToMarkdownStep = createStep({
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-step-complete',
+        type: 'data-tool-progress',
         data: {
+          status: "done",
+          message: "PDF converted to markdown successfully",
           stepId: 'convert-pdf-to-markdown',
-          success: true,
-          duration: Date.now() - startTime,
         },
         id: "convert-pdf-to-markdown",
       });
@@ -402,21 +382,11 @@ const passTextThroughStep = createStep({
     const startTime = Date.now();
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "pass-text-through",
-        id: "pass-text-through",
-      },
-      id: "pass-text-through",
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-progress',
-      data: {
-        status: "50%",
-        message: 'Processing text content...',
-        stage: "workflow",
+        status: 'in-progress',
+        message: `Processing text content ${startTime}, ${inputData.content}...`,
+        stage: "documentProcessingAgent",
       },
       id: "pass-text-through",
     });
@@ -432,11 +402,11 @@ const passTextThroughStep = createStep({
     };
 
     await writer?.custom({
-      type: 'data-workflow-step-complete',
+      type: 'data-tool-progress',
       data: {
+        status: "done", // must be "done" for the UI to show the step as completed
+        message: "Text passed through successfully ${inputData.content}`,",
         stepId: 'pass-text-through',
-        success: true,
-        duration: Date.now() - startTime,
       },
       id: "pass-text-through",
     });
@@ -454,16 +424,6 @@ const chunkDocumentStep = createStep({
     const startTime = Date.now();
     logStepStart('chunk-document', { strategy: inputData.settings.chunkStrategy });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        type: "workflow",
-        data: "chunk-document",
-        id: "chunk-document",
-      },
-      id: "chunk-document",
-    });
-
     const tracer = trace.getTracer('document-processing');
     const span = tracer.startSpan('document-chunker', {
       attributes: {
@@ -477,11 +437,11 @@ const chunkDocumentStep = createStep({
       const {content} = inputData;
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "20%",
+          status: 'in-progress',
           message: `Chunking with ${chunkStrategy} strategy...`,
-          stage: "workflow",
+          stage: "documentProcessingAgent",
         },
         id: "chunk-document",
       });
@@ -518,11 +478,11 @@ const chunkDocumentStep = createStep({
 
           if (chunkIndex % 10 === 0) {
             await writer?.custom({
-              type: 'data-workflow-progress',
+              type: 'data-tool-progress',
               data: {
-                status: `${20 + Math.min(60, (position / content.length) * 60)}%`,
+                status: 'in-progress',
                 message: `Processed ${chunkIndex} chunks...`,
-                stage: "workflow",
+                stage: "documentProcessingAgent",
               }
             });
           }
@@ -584,11 +544,11 @@ const chunkDocumentStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: `Created ${chunks.length} chunks...`,
-          stage: "workflow",
+          status: "in-progress",
+          message: `Created ${chunks.length} chunks (90%)...`,
+          stage: "documentProcessingAgent",
         },
         id: "chunk-document",
       });
@@ -614,11 +574,11 @@ const chunkDocumentStep = createStep({
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-step-complete',
+        type: 'data-tool-progress',
         data: {
+          status: "done",
+          message: "Document chunked successfully",
           stepId: 'chunk-document',
-          success: true,
-          duration: Date.now() - startTime,
         },
         id: "chunk-document",
       });
@@ -636,10 +596,11 @@ const chunkDocumentStep = createStep({
       logError('chunk-document', error, { strategy: inputData.settings.chunkStrategy });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-        stepId: 'chunk-document',
-        error: error instanceof Error ? error.message : 'Unknown error',
+          status: "done",
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stepId: 'chunk-document',
         },
         id: "chunk-document",
       });
@@ -658,16 +619,6 @@ const indexChunksStep = createStep({
     const startTime = Date.now();
     logStepStart('index-chunks', { totalChunks: inputData.totalChunks });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        type: "workflow",
-        data: "index-chunks",
-        id: "index-chunks",
-      },
-      id: "index-chunks",
-    });
-
     const tracer = trace.getTracer('document-processing');
     const span = tracer.startSpan('vector-indexer', {
       attributes: {
@@ -678,11 +629,11 @@ const indexChunksStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "20%",
+          status: 'in-progress',
           message: `Indexing ${inputData.totalChunks} chunks...`,
-          stage: "workflow",
+          stage: "documentProcessingAgent",
         },
         id: "index-chunks",
       });
@@ -697,11 +648,11 @@ const indexChunksStep = createStep({
 
           if (i % 5 === 0) {
             await writer?.custom({
-              type: 'data-workflow-progress',
+              type: 'data-tool-progress',
               data: {
-                status: `${20 + Math.min(60, ((i + 1) / inputData.chunks.length) * 60)}%`,
+                status: 'in-progress',
                 message: `Indexed ${i + 1}/${inputData.chunks.length} chunks...`,
-                stage: "workflow",
+                stage: "documentProcessingAgent",
               },
               id: "index-chunks",
             });
@@ -714,11 +665,11 @@ const indexChunksStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: 'Generating summary...',
-          stage: "workflow",
+          status: "in-progress",
+          message: 'Generating summary (90%)...',
+          stage: "documentProcessingAgent",
         },
         id: "index-chunks",
       });
@@ -748,11 +699,11 @@ const indexChunksStep = createStep({
       span.end();
 
       await writer?.custom({
-        type: 'data-workflow-step-complete',
+        type: 'data-tool-progress',
         data: {
+          status: "done",
+          message: "Chunks indexed successfully",
           stepId: 'index-chunks',
-          success: true,
-          duration: Date.now() - startTime,
         },
         id: "index-chunks",
       });
