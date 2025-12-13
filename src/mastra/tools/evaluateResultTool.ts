@@ -24,7 +24,7 @@ export const evaluateResultTool = createTool({
       .optional(),
   }),
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🤔 Evaluating relevance of result: ' + inputData.result.title } });
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🤔 Evaluating relevance of result: ' + inputData.result.title, stage: 'evaluate-result' }, id: 'evaluate-result' });
 
     const tracer = trace.getTracer('evaluate-result');
     const evalSpan = tracer.startSpan('evaluate_result', {
@@ -87,7 +87,7 @@ export const evaluateResultTool = createTool({
       }
 
       evalSpan.end();
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant' } });
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: parsed.data.isRelevant ? '✅ Result is relevant' : '❌ Result is not relevant', stage: 'evaluate-result' }, id: 'evaluate-result' });
       return parsed.data
     } catch (error) {
       log.error('Error evaluating result:', {

@@ -163,7 +163,7 @@ Carefully read the issue and think hard about a plan to solve it before coding.
 
 ## 8. Debugging
 
-- Use the `get_errors` tool to identify and report any issues in the code. This tool replaces the previously used `#problems` tool.
+- Use the `'read/problems'`  tool to identify and report any issues in the code. This tool replaces the previously used `get_errors` tool.
 - Make code changes only if you have high confidence they can solve the problem
 - When debugging, try to determine the root cause rather than addressing symptoms
 - Debug for as long as needed to identify the root cause and identify a fix

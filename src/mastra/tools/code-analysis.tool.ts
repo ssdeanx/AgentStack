@@ -330,7 +330,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
   outputSchema: codeAnalysisOutputSchema,
   execute: async (inputData, context): Promise<CodeAnalysisOutput> => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔬 Starting code analysis for target: ${Array.isArray(inputData.target) ? inputData.target.join(',') : inputData.target}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔬 Starting code analysis for target: ${Array.isArray(inputData.target) ? inputData.target.join(',') : inputData.target}`, stage: 'coding:codeAnalysis' }, id: 'coding:codeAnalysis' });
     const tracer = trace.getTracer('code-analysis-tool', '1.0.0');
     const span = tracer.startSpan('code-analysis', {
       attributes: {
@@ -377,7 +377,8 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       for (const filePath of filePaths) {
         await writer?.custom({
           type: 'data-tool-progress',
-          data: { message: `📄 Analyzing file: ${filePath}` },
+          data: { status: 'in-progress', message: `📄 Analyzing file: ${filePath}`, stage: 'coding:codeAnalysis' },
+          id: 'coding:codeAnalysis'
         })
 
         try {
@@ -442,7 +443,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
       'tool.output.totalLoc': totalLoc,
       'tool.output.avgComplexity': avgComplexity,
     });
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Code analysis complete: ${fileAnalyses.length} files analyzed` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Code analysis complete: ${fileAnalyses.length} files analyzed`, stage: 'coding:codeAnalysis' }, id: 'coding:codeAnalysis' });
     span.end();
 
       return {

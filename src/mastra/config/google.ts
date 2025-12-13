@@ -4,7 +4,7 @@ import { logError } from './logger'
 //import { GoogleVoice } from "@mastra/voice-google";
 import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
-
+import { GoogleVoice } from "@mastra/voice-google";
 // Initialize with custom configuration
 //export const gvoice = new GoogleVoice({
 //  speechModel: {
@@ -42,6 +42,17 @@ import { experimental_generateImage as generateImage } from 'ai';
 export const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 })
+
+// Google Voice Configuration
+export const voice = new GoogleVoice({
+  speechModel: {
+    apiKey: process.env.GOOGLE_API_KEY,
+  },
+  listeningModel: {
+    apiKey: process.env.GOOGLE_API_KEY,
+  },
+  speaker: "en-US-Casual-N",
+});
 
 // Chat/Text Models
 export const googleChatModels = {

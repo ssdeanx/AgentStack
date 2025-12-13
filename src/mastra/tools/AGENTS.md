@@ -7,7 +7,7 @@
 
 ## Persona
 
-**Name:** Senior Tooling & Integrations Engineer  
+**Name:** Senior Tooling & Integrations Engineer
 **Role Objective:** Provide minimal, secure, schema-bound callable functions enabling agent actions with clear natural language affordances.
 
 ## Purpose
@@ -77,6 +77,8 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 | Data Processing Tools | General data processing | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | Various | - | [data-processing-tools.ts](./data-processing-tools.ts) |
 | PDF | PDF utilities | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfTool` | `pdf-parse` | [pdf.ts](./pdf.ts) |
 | SerpAPI Config | SerpAPI configuration | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | Config exports | `serpapi` | [serpapi-config.ts](./serpapi-config.ts) |
+| Code Search | Search for patterns across source files. Supports string and regex patterns with context lines. Use for finding usages, identifying patterns, and code exploration. | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `codeSearchTool` | `fast-glob`, `zod`, `re2` | [code-search.tool.ts](./code-search.tool.ts) |
+| Find Symbol | Find symbol definitions (functions, classes, variables) across the codebase using semantic analysis. | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `findSymbolTool` | `ts-morph`, `zod`, `fast-glob` | [find-symbol.tool.ts](./find-symbol.tool.ts) |
 
 ### 6. 📈 Financial Chart Tools
 ![charts](https://img.shields.io/badge/category-charts-teal?style=flat&logo=appwrite)
@@ -118,7 +120,47 @@ export const yourTool = createTool({
 - **Error Handling**: Try-catch, clear messages, retries for APIs.
 - **Security**: Sanitize inputs, mask secrets, rate-limit.
 - **Performance**: Cache, stream large data, timeouts.
-- **Observability**: Arize spans on all executes.
+- **Observability**: Otel spans on all executes.
+
+### Data Tool Progress Events
+
+All tools must emit progress events with this exact format:
+
+```typescript
+// ✅ CORRECT: Progress event format
+await context?.writer?.custom({
+  type: "data-tool-progress",
+  data: {
+    status: "in-progress", // "in-progress" | "done"
+    message: "Descriptive progress message...",
+    stage: "tool-name" // Tool identifier (same as id)
+  },
+  id: "tool-name" // Tool identifier outside data object
+});
+
+// ❌ WRONG: Don't put id inside data object
+await context?.writer?.custom({
+  type: "data-tool-progress",
+  data: {
+    id: "tool-name", // ❌ Wrong - id belongs outside
+    message: "..."
+  }
+});
+```
+
+**Example from Alpha Vantage Tool:**
+
+```typescript
+await context?.writer?.custom({
+  type: 'data-tool-progress',
+  data: {
+    status: 'in-progress',
+    message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}`,
+    stage: 'alpha-vantage-crypto'
+  },
+  id: 'alpha-vantage-crypto'
+});
+```
 
 ## Testing
 97% coverage via Vitest. Run:

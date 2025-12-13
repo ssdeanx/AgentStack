@@ -43,7 +43,7 @@ export const pnpmBuild = createTool({
     });
 
     const { name, packagePath } = inputData
-    if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { message: `🔨 Building ${name} at ${packagePath}` } });}
+    if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔨 Building ${name} at ${packagePath}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' });}
     try {
       if (verbose) {log.info(chalk.green(`\n Building: ${name} at ${packagePath}`))}
       const p = execa(`pnpm`, ['build'], {
@@ -53,7 +53,7 @@ export const pnpmBuild = createTool({
       })
       if (verbose) {log.info(`\n`)}
       await p
-      if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Build complete for ${name}` } });}
+      if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Build complete for ${name}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' });}
 
       span.end();
       return { message: 'Done' }
@@ -87,7 +87,7 @@ export const pnpmChangesetStatus = createTool({
         }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Checking changeset status...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Checking changeset status...', stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
     try {
       log.info(
         chalk.green(
@@ -109,7 +109,7 @@ export const pnpmChangesetStatus = createTool({
         line.trim().substring(2).split('@').slice(0, -1).join('@')
       )
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${packages.length} packages to publish` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Found ${packages.length} packages to publish`, stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
 
       span.setAttribute('packageCount', packages.length);
       span.end();
@@ -145,7 +145,7 @@ export const pnpmChangesetPublish = createTool({
     });
 
     // const {value} = input // unused
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🚀 Publishing changesets...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🚀 Publishing changesets...', stage: 'pnpmChangesetPublish' }, id: 'pnpmChangesetPublish' });
     try {
       log.info(chalk.green(`Publishing...`))
       const p = execa(`pnpm`, ['changeset', 'publish'], {
@@ -154,7 +154,7 @@ export const pnpmChangesetPublish = createTool({
       })
       log.info(`\n`)
       await p
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Publish complete' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Publish complete', stage: 'pnpmChangesetPublish' }, id: 'pnpmChangesetPublish' });
 
       span.end();
       return { message: 'Done' }
@@ -195,7 +195,7 @@ export const activeDistTag = createTool({
     });
 
     const { packagePath } = input
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🏷️ Setting active dist tag for ${packagePath}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🏷️ Setting active dist tag for ${packagePath}`, stage: 'activeDistTag' }, id: 'activeDistTag' });
     try {
       const pkgJson = JSON.parse(
         readFileSync(path.join(packagePath, 'package.json'), 'utf-8')
@@ -216,7 +216,7 @@ export const activeDistTag = createTool({
       )
       log.info(`\n`)
       await p
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Dist tag set to latest for ${pkgJson.name}@${version}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Dist tag set to latest for ${pkgJson.name}@${version}`, stage: 'activeDistTag' }, id: 'activeDistTag' });
       span.end();
       return { message: 'Done' }
     } catch (e) {
@@ -260,7 +260,7 @@ export const pnpmRun = createTool({
     });
 
     const { script, args = [], packagePath } = input
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🏃 Running pnpm ${script} ${args.join(' ')}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🏃 Running pnpm ${script} ${args.join(' ')}`, stage: 'pnpmRun' }, id: 'pnpmRun' });
     try {
       log.info(chalk.green(`\n Running: pnpm ${script} ${args.join(' ')}`))
       const p = execa('pnpm', ['run', script, ...args], {
@@ -270,7 +270,7 @@ export const pnpmRun = createTool({
       })
       log.info(`\n`)
       await p
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Script ${script} complete` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Script ${script} complete`, stage: 'pnpmRun' }, id: 'pnpmRun' });
       span.end();
       return { message: 'Done' }
     } catch (e) {

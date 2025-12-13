@@ -572,14 +572,6 @@ export const webScraperTool = createTool({
   outputSchema: webScraperOutputSchema,
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const toolCallId = (context as { toolCallId?: string } | undefined)?.toolCallId
-
-    const progressData = (message: string) => ({
-      message,
-      toolCallId: typeof toolCallId === 'string' && toolCallId.trim() !== '' ? toolCallId : undefined,
-      toolName: 'web:scraper',
-      state: 'input-streaming',
-    })
 
     const allowedDomains = ValidationUtils.getAllowedDomains();
     if (!ValidationUtils.isUrlAllowed(inputData.url, allowedDomains)) {
@@ -591,10 +583,10 @@ export const webScraperTool = createTool({
       );
     }
 
-    await writer?.custom({ type: 'data-tool-progress', data: progressData(`🌐 Starting web scrape for ${inputData.url}`) });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Starting web scrape for ${inputData.url}`, stage: 'web:scraper' }, id: 'web:scraper' });
     toolCallCounters.set('web:scraper', (toolCallCounters.get('web:scraper') ?? 0) + 1)
 
-    await writer?.custom({ type: 'data-tool-progress', data: progressData('🐛 Initializing crawler...') });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🐛 Initializing crawler...', stage: 'web:scraper' }, id: 'web:scraper' });
     log.info('Starting enhanced web scraping with JSDOM', {
       url: inputData.url,
       selector: inputData.selector,
@@ -861,7 +853,7 @@ export const webScraperTool = createTool({
         },
       })
 
-      await writer?.custom({ type: 'data-tool-progress', data: progressData('📥 Fetching and parsing page...') });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📥 Fetching and parsing page...', stage: 'web:scraper' }, id: 'web:scraper' });
       await crawler.run([
         new Request({
           url: inputData.url,
@@ -905,7 +897,7 @@ export const webScraperTool = createTool({
           }
         }
 
-        await writer?.custom({ type: 'data-tool-progress', data: progressData('✂️ Converting to markdown...') });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '✂️ Converting to markdown...', stage: 'web:scraper' }, id: 'web:scraper' });
         if (
           inputData.saveMarkdown === true &&
           typeof markdownContent === 'string' &&
@@ -957,7 +949,7 @@ export const webScraperTool = createTool({
         }
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: progressData(`✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}`) });
+await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}`, stage: 'web:scraper' }, id: 'web:scraper' });
 
 
     return webScraperOutputSchema.parse({
@@ -1049,7 +1041,7 @@ export const batchWebScraperTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Batch scraping ${inputData.urls.length} URLs` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Batch scraping ${inputData.urls.length} URLs`, stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
     toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
 
     const tracer = trace.getTracer('batch-web-scraper', '1.0.0');
@@ -1061,7 +1053,7 @@ export const batchWebScraperTool = createTool({
       }
     });
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🐛 Initializing batch crawlers...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🐛 Initializing batch crawlers...', stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
     log.info('Starting enhanced batch web scraping with JSDOM', {
       urlCount: inputData.urls.length,
       maxConcurrent: inputData.maxConcurrent ?? 3,
@@ -1217,7 +1209,7 @@ export const batchWebScraperTool = createTool({
 
       const successful = results.filter((r) => r.success).length
       const failed = results.length - successful
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Batch complete: ${successful}/${results.length} successful` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Batch complete: ${successful}/${results.length} successful`, stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
 
       batchSpan.setAttributes({
         'tool.output.totalProcessed': results.length,
@@ -1306,7 +1298,7 @@ export const siteMapExtractorTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🗺️ Starting site map extraction for ${inputData.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🗺️ Starting site map extraction for ${inputData.url}`, stage: 'site-map-extractor' }, id: 'site-map-extractor' });
     toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
     const tracer = trace.getTracer('site-map-extractor', '1.0.0');
     const mapSpan = tracer.startSpan('site_map_extraction', {
@@ -1319,7 +1311,7 @@ export const siteMapExtractorTool = createTool({
       }
     })
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Crawling internal links...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Crawling internal links...', stage: 'site-map-extractor' }, id: 'site-map-extractor' });
     log.info('Starting enhanced site map extraction with JSDOM', {
       url: inputData.url,
       maxDepth: inputData.maxDepth ?? 2,
@@ -1486,7 +1478,7 @@ export const siteMapExtractorTool = createTool({
         }
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Site map complete: ${pages.length} pages discovered` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Site map complete: ${pages.length} pages discovered`, stage: 'site-map-extractor' }, id: 'site-map-extractor' });
       mapSpan.setAttributes({
         'tool.output.totalPages': pages.length,
         'tool.output.savedFile': typeof savedFilePath === 'string' && savedFilePath.trim().length > 0,
@@ -1565,7 +1557,7 @@ export const linkExtractorTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔗 Extracting links from ${inputData.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔗 Extracting links from ${inputData.url}`, stage: 'link-extractor' }, id: 'link-extractor' });
     toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
     const tracer = trace.getTracer('link-extractor', '1.0.0');
     const linkSpan = tracer.startSpan('link_extraction', {
@@ -1807,7 +1799,7 @@ export const htmlToMarkdownTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Converting HTML to markdown...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Converting HTML to markdown...', stage: 'html-to-markdown' }, id: 'html-to-markdown' });
     toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
     const tracer = trace.getTracer('html-to-markdown', '1.0.0');
     const convertSpan = tracer.startSpan('html_to_markdown', {
@@ -1819,7 +1811,7 @@ export const htmlToMarkdownTool = createTool({
       }
     })
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🧹 Sanitizing HTML...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧹 Sanitizing HTML...', stage: 'html-to-markdown' }, id: 'html-to-markdown' });
     log.info('Converting HTML to markdown with enhanced JSDOM processing', {
       htmlLength: inputData.html.length,
       saveToFile: inputData.saveToFile,
@@ -1939,7 +1931,7 @@ export const listScrapedContentTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing scraped content files...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing scraped content files...', stage: 'list-scraped-content' }, id: 'list-scraped-content' });
     toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
     const tracer = trace.getTracer('list-scraped-content', '1.0.0');
     const listSpan = tracer.startSpan('list_scraped_content', {
@@ -2134,7 +2126,7 @@ export const contentCleanerTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🧹 Starting content cleaning...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧹 Starting content cleaning...', stage: 'content-cleaner' }, id: 'content-cleaner' });
     toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
     const tracer = trace.getTracer('content-cleaner', '1.0.0');
     const cleanSpan = tracer.startSpan('content_cleaning', {
@@ -2267,7 +2259,7 @@ export const apiDataFetcherTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🌐 Fetching data from ${inputData.url}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Fetching data from ${inputData.url}`, stage: 'api-data-fetcher' }, id: 'api-data-fetcher' });
     toolCallCounters.set('api-data-fetcher', (toolCallCounters.get('api-data-fetcher') ?? 0) + 1)
     const tracer = trace.getTracer('api-data-fetcher', '1.0.0');
     const fetchSpan = tracer.startSpan('api_data_fetch', {
@@ -2389,7 +2381,7 @@ export const scrapingSchedulerTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `⏰ Scheduling scraping for ${inputData.urls.length} URLs` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⏰ Scheduling scraping for ${inputData.urls.length} URLs`, stage: 'scraping-scheduler' }, id: 'scraping-scheduler' });
     toolCallCounters.set('scraping-scheduler', (toolCallCounters.get('scraping-scheduler') ?? 0) + 1)
     const tracer = trace.getTracer('scraping-scheduler', '1.0.0');
     const scheduleSpan = tracer.startSpan('scraping_scheduler', {
@@ -2467,7 +2459,7 @@ export const dataExporterTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📤 Exporting ${inputData.data.length} records to ${inputData.format}...` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📤 Exporting ${inputData.data.length} records to ${inputData.format}...`, stage: 'data-exporter' }, id: 'data-exporter' });
     toolCallCounters.set('data-exporter', (toolCallCounters.get('data-exporter') ?? 0) + 1)
     const tracer = trace.getTracer('data-exporter', '1.0.0');
     const exportSpan = tracer.startSpan('data_export', {

@@ -90,10 +90,7 @@ export const chartSupervisorTool = createTool({
       includeCode = true,
     } = inputData
 
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: { message: `📊 Starting chart pipeline for ${symbols.join(', ')}` },
-    })
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📊 Starting chart pipeline for ${symbols.join(', ')}`, stage: 'chart-supervisor' }, id: 'chart-supervisor' })
 
     const tracer = trace.getTracer('chart-supervisor-tool')
     const span = tracer.startSpan('chart-supervisor-tool', {
@@ -126,7 +123,7 @@ Please:
 4. ${includeCode ? 'Generate the complete React TypeScript component code' : 'Skip component code generation'}
 5. Include all data sources used with timestamps`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Fetching financial data...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching financial data...', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -157,7 +154,7 @@ Please:
       })
       span.end()
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Chart generation complete' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Chart generation complete', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
 
       return {
         success: true,
@@ -241,10 +238,7 @@ export const chartGeneratorTool = createTool({
       height = 400,
     } = inputData
 
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: { message: `⚛️ Generating ${chartType} component: ${componentName}` },
-    })
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⚛️ Generating ${chartType} component: ${componentName}`, stage: 'chart-generator' }, id: 'chart-generator' })
 
     const tracer = trace.getTracer('chart-generator-tool')
     const span = tracer.startSpan('chart-generator-tool', {
@@ -280,7 +274,7 @@ Requirements:
 
 Return JSON with: componentName, code, usage, props, dependencies`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🎨 Generating component code...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Generating component code...', stage: 'chart-generator' }, id: 'chart-generator' })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -309,7 +303,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
       })
       span.end()
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Component generated' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Component generated', stage: 'chart-generator' }, id: 'chart-generator' })
 
       return {
         componentName: parsedResult.componentName ?? componentName,
@@ -385,10 +379,7 @@ export const chartDataProcessorTool = createTool({
       calculations = [],
     } = inputData
 
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: { message: `📈 Processing data for ${symbols.join(', ')}` },
-    })
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📈 Processing data for ${symbols.join(', ')}`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
 
     const tracer = trace.getTracer('chart-data-processor-tool')
     const span = tracer.startSpan('chart-data-processor-tool', {
@@ -426,7 +417,7 @@ Return JSON with:
 - metadata: { symbols, timeRange, dataPoints, lastUpdated, interval }
 - calculations: Object with any calculated values`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '🔄 Fetching from financial APIs...' } })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching from financial APIs...', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
       const result = await agent.generate(prompt)
 
       let parsedResult
@@ -460,10 +451,7 @@ Return JSON with:
       })
       span.end()
 
-      await context?.writer?.custom({
-        type: 'data-tool-progress',
-        data: { message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points` },
-      })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
 
       return {
         chartData: parsedResult.chartData ?? [],
@@ -555,10 +543,7 @@ export const chartTypeAdvisorTool = createTool({
   execute: async (inputData, context) => {
     const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
 
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: { message: `🎯 Analyzing visualization requirements...` },
-    })
+    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🎯 Analyzing visualization requirements...`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
 
     const tracer = trace.getTracer('chart-type-advisor-tool')
     const span = tracer.startSpan('chart-type-advisor-tool', {
@@ -625,10 +610,7 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
       })
       span.end()
 
-      await context?.writer?.custom({
-        type: 'data-tool-progress',
-        data: { message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}` },
-      })
+      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
 
       return {
         primaryRecommendation: parsedResult.primaryRecommendation ?? {

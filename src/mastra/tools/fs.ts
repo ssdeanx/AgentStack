@@ -26,7 +26,7 @@ export const fsTool = createTool({
     });
 
     const { action, file, data } = inputData
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 FS ${action} on ${file}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: {  status: 'in-progress', message: `💾 FS ${action} on ${file}`, stage: 'fsTool' }, id: 'fsTool' });
     try {
       switch (action) {
         case 'write':
@@ -42,13 +42,13 @@ export const fsTool = createTool({
         default:
           return { message: 'Invalid action' }
       }
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ FS operation complete' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ FS operation complete', stage: 'fsTool' }, id: 'fsTool' });
       span?.setAttribute('success', true);
       span?.end();
       return { message: 'Success' }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ FS error: ${errorMsg}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ FS error: ${errorMsg}`, stage: 'fsTool' }, id: 'fsTool' });
       log.error(
         `FS operation failed: ${errorMsg}`
       );

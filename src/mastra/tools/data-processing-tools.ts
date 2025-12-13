@@ -142,7 +142,7 @@ export const readCSVDataTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    await writer?.write({ type: 'progress', data: { message: '📖 Reading CSV file: ' + inputData.fileName } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading CSV file: ' + inputData.fileName, stage: 'read:CSVdata' }, id: 'read:CSVdata' });
 
     const tracer = trace.getTracer('data-processing');
     const span = tracer.startSpan('read_csv_data', {
@@ -194,7 +194,7 @@ export const readCSVDataTool = createTool({
 
       span.setAttributes({ 'tool.output.rowCount': rows.length, 'tool.output.headerCount': headers.length });
       span.end();
-      await writer?.write({ type: 'progress', data: { message: `✅ Read ${rows.length} rows from CSV` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Read ${rows.length} rows from CSV`, stage: 'read:CSVdata' }, id: 'read:CSVdata' });
       return { headers, rows, rawCSV: content }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -241,7 +241,7 @@ export const csvToExcalidrawTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🎨 Converting CSV to Excalidraw' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Converting CSV to Excalidraw', stage: 'csv-to-excalidraw' }, id: 'csv-to-excalidraw' });
     const { csvData, layoutType = 'table', title, hasHeaders = true, delimiter = ',' } = inputData
 
     try {
@@ -450,7 +450,7 @@ export const csvToExcalidrawTool = createTool({
 
       const filename = `csv-diagram-${Date.now()}.excalidraw`
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Generated Excalidraw diagram with ${elements.length} elements` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Generated Excalidraw diagram with ${elements.length} elements`, stage: 'csv-to-excalidraw' }, id: 'csv-to-excalidraw' });
 
       const result = {
         filename,
@@ -515,7 +515,7 @@ export const imageToCSVTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🖼️ Converting image analysis to CSV' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🖼️ Converting image analysis to CSV', stage: 'image-to-csv' }, id: 'image-to-csv' });
     const { elements, filename } = inputData
 
     const columns = [
@@ -539,7 +539,7 @@ export const imageToCSVTool = createTool({
 
     const outputFilename = filename ?? `image-analysis-${Date.now()}.csv`
 
-    await writer?.write({ type: 'progress', data: { message: `✅ Converted ${elements.length} elements to CSV` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Converted ${elements.length} elements to CSV`, stage: 'image-to-csv' }, id: 'image-to-csv' });
 
     const result = {
       csvContent,
@@ -582,7 +582,7 @@ export const validateExcalidrawTool = createTool({
         }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🔍 Validating Excalidraw data' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Validating Excalidraw data', stage: 'validate-excalidraw' }, id: 'validate-excalidraw' });
     const { excalidrawData, autoFix = true } = inputData
     const errors: string[] = []
     const warnings: string[] = []
@@ -671,7 +671,7 @@ export const validateExcalidrawTool = createTool({
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Validation complete. Valid: ${errors.length === 0}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Validation complete. Valid: ${errors.length === 0}`, stage: 'validate-excalidraw' }, id: 'validate-excalidraw' });
       const result = {
         isValid: errors.length === 0,
         fixedData: errors.length === 0 ? undefined : fixedData,
@@ -734,7 +734,7 @@ export const processSVGTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🖼️ Processing SVG content' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🖼️ Processing SVG content', stage: 'process-svg' }, id: 'process-svg' });
     const { svgContent, extractPaths = true, extractText = true, extractStyles = true } = inputData
 
     try {
@@ -810,7 +810,7 @@ export const processSVGTool = createTool({
 
       result.elementCount = svgJson.children ? svgJson.children.length : 0
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Processed SVG with ${result.elementCount} elements` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed SVG with ${result.elementCount} elements`, stage: 'process-svg' }, id: 'process-svg' });
       span.setAttributes({ 'tool.output.elementCount': result.elementCount });
       span.end();
       return result
@@ -857,7 +857,7 @@ export const processXMLTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '📄 Processing XML content' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📄 Processing XML content', stage: 'process-xml' }, id: 'process-xml' });
     const { xmlContent, extractElements = [], extractAttributes = [] } = inputData
 
     try {
@@ -966,7 +966,7 @@ export const processXMLTool = createTool({
         })
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Processed XML with ${elements.length} elements` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed XML with ${elements.length} elements`, stage: 'process-xml' }, id: 'process-xml' });
 
       const rootElement = elements.length > 0 ? elements[0].tagName : 'unknown'
 
@@ -1023,7 +1023,7 @@ export const convertDataFormatTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `🔄 Converting data from ${inputData.inputFormat} to ${inputData.outputFormat}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔄 Converting data from ${inputData.inputFormat} to ${inputData.outputFormat}`, stage: 'convert-data-format' }, id: 'convert-data-format' });
     const { inputData: dataToConvert, inputFormat, outputFormat, options = {} } = inputData
 
     let convertedData: string | Record<string, unknown> | Array<Record<string, unknown>> | undefined
@@ -1120,7 +1120,7 @@ export const convertDataFormatTool = createTool({
           metadata.conversionType = 'no-conversion'
       }
 
-      await writer?.write({ type: 'progress', data: { message: '✅ Data conversion successful' } });
+      await writer?.custom({ type: 'data-tool-progress', data: {status: 'done', message: '✅ Data conversion successful', stage: 'convert-data-format' }, id: 'convert-data-format' });
 
       const result = {
         convertedData,
@@ -1170,7 +1170,7 @@ export const validateDataTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: `✅ Validating ${inputData.schemaType} data` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Validating ${inputData.schemaType} data`, stage: 'validate-data' }, id: 'validate-data' });
     const { data, schemaType, strict = true } = inputData
     const errors: string[] = []
     const warnings: string[] = []
@@ -1404,7 +1404,7 @@ export const excalidrawToSVGTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🎨 Converting Excalidraw to SVG' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Converting Excalidraw to SVG', stage: 'excalidraw-to-svg' }, id: 'excalidraw-to-svg' });
 
     try {
       // Validate Excalidraw data
@@ -1447,14 +1447,14 @@ export const excalidrawToSVGTool = createTool({
           await fs.writeFile(fullPath, svgContent, 'utf-8')
           savedFilePath = fileName
 
-          await writer?.write({ type: 'progress', data: { message: `💾 Saved SVG to ${fileName}` } });
+          await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `💾 Saved SVG to ${fileName}`, stage: 'excalidraw-to-svg' }, id: 'excalidraw-to-svg' });
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error)
-          await writer?.write({ type: 'progress', data: { message: `⚠️ Failed to save file: ${errorMsg}` } });
+          await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `⚠️ Failed to save file: ${errorMsg}`, stage: 'excalidraw-to-svg' }, id: 'excalidraw-to-svg' });
         }
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Converted ${inputData.excalidrawData.elements.length} elements to SVG` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Converted ${inputData.excalidrawData.elements.length} elements to SVG`, stage: 'excalidraw-to-svg' }, id: 'excalidraw-to-svg' });
 
       const result = {
         svgContent,
@@ -1505,7 +1505,7 @@ export const svgToExcalidrawTool = createTool({
       }
     });
 
-    await writer?.write({ type: 'progress', data: { message: '🔄 Converting SVG to Excalidraw' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Converting SVG to Excalidraw', stage: 'svg-to-excalidraw' }, id: 'svg-to-excalidraw' });
 
     try {
       // Parse SVG using svgjson
@@ -1708,7 +1708,7 @@ export const svgToExcalidrawTool = createTool({
         files: {},
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Converted to ${elements.length} Excalidraw elements` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Converted to ${elements.length} Excalidraw elements`, stage: 'svg-to-excalidraw' }, id: 'svg-to-excalidraw' });
 
       const result = {
         excalidrawData,

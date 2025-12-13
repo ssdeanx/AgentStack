@@ -92,7 +92,7 @@ export const copywriterTool = createTool({
       specificRequirements,
     } = inputData
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { message: `✍️ Starting copywriter agent for ${contentType} about "${topic}"` }, id: 'copywriter-agent' });
 
     const span = trace.getTracer('copywriter-agent-tool', '1.0.0').startSpan('copywriter-generate', {
       attributes: {

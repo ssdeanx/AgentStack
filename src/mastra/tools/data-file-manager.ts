@@ -12,7 +12,7 @@
 // outputSchema: src/mastra/schemas/tool-schemas.ts::ToolOutput
 // approvedBy: sam
 // approvalDate: 9/22
-import type { RequestContext } from '@mastra/core/request-context';
+//import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import * as fs from 'fs/promises';
@@ -76,9 +76,8 @@ export const readDataFileTool = createTool({
   outputSchema: z.string().describe('The content of the file as a string.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
     await ensureDataDir();
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📖 Reading file: ' + inputData.fileName } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading file: ' + inputData.fileName, stage: 'read:file' }, id: 'read:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const readSpan = tracer.startSpan('read:file', {
       attributes: {
@@ -103,7 +102,7 @@ export const readDataFileTool = createTool({
         'tool.output.fileSize': content.length
       });
       readSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File read successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File read successfully', stage: 'read:file' }, id: 'read:file' });
       return content
     } catch (error) {
       const errorMessage =
@@ -137,8 +136,8 @@ export const writeDataFileTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '💾 Writing to file: ' + inputData.fileName } });
+
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Writing to file: ' + inputData.fileName, stage: 'write:file' }, id: 'write:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const writeSpan = tracer.startSpan('write:file', {
       attributes: {
@@ -172,7 +171,7 @@ export const writeDataFileTool = createTool({
         'tool.output.success': true
       });
       writeSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File written successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File written successfully', stage: 'write:file' }, id: 'write:file' });
       return `File ${fileName} written successfully.`
     } catch (error) {
       const errorMessage =
@@ -204,8 +203,7 @@ export const deleteDataFileTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Deleting file: ' + inputData.fileName } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Deleting file: ' + inputData.fileName, stage: 'delete:file' }, id: 'delete:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const deleteSpan = tracer.startSpan('delete:file', {
       attributes: {
@@ -229,7 +227,7 @@ export const deleteDataFileTool = createTool({
         'tool.output.success': true
       });
       deleteSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File deleted successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File deleted successfully', stage: 'delete:file' }, id: 'delete:file' });
       return `File ${fileName} deleted successfully.`
     } catch (error) {
       const errorMessage =
@@ -263,8 +261,7 @@ export const listDataDirTool = createTool({
     .describe('An array of file and directory names.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📂 Listing directory: ' + (inputData.dirPath ?? 'docs/data') } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing directory: ' + (inputData.dirPath ?? 'docs/data'), stage: 'list:directory' }, id: 'list:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const listSpan = tracer.startSpan('list:directory', {
       attributes: {
@@ -288,7 +285,7 @@ export const listDataDirTool = createTool({
         'tool.output.count': contents.length
       });
       listSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory listed successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory listed successfully', stage: 'list:directory' }, id: 'list:directory' });
       return contents
     } catch (error) {
       const errorMessage =
@@ -325,8 +322,7 @@ export const copyDataFileTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📋 Copying file: ${inputData.sourceFile} to ${inputData.destFile}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📋 Copying file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'copy:file' }, id: 'copy:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const copySpan = tracer.startSpan('copy:file', {
       attributes: {
@@ -357,7 +353,7 @@ export const copyDataFileTool = createTool({
         'tool.output.success': true
       });
       copySpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File copied successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File copied successfully', stage: 'copy:file' }, id: 'copy:file' });
       return `File ${sourceFile} copied to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
@@ -394,8 +390,7 @@ export const moveDataFileTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🚚 Moving file: ${inputData.sourceFile} to ${inputData.destFile}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🚚 Moving file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'move:file' }, id: 'move:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const moveSpan = tracer.startSpan('move:file', {
       attributes: {
@@ -426,7 +421,7 @@ export const moveDataFileTool = createTool({
         'tool.output.success': true
       });
       moveSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File moved successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File moved successfully', stage: 'move:file' }, id: 'move:file' });
       return `File ${sourceFile} moved to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
@@ -469,8 +464,7 @@ export const searchDataFilesTool = createTool({
     .describe('An array of matching file paths.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching for pattern: "${inputData.pattern}"` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching for pattern: "${inputData.pattern}"`, stage: 'search:files' }, id: 'search:files' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const searchSpan = tracer.startSpan('search:files', {
       attributes: {
@@ -540,7 +534,7 @@ export const searchDataFilesTool = createTool({
         'tool.output.resultCount': results.length
       });
       searchSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Found ${results.length} matches` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Found ${results.length} matches`, stage: 'search:files' }, id: 'search:files' });
       return results
     } catch (error) {
       const errorMessage =
@@ -579,8 +573,7 @@ export const getDataFileInfoTool = createTool({
     .describe('File metadata information.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: 'ℹ️ Getting info for file: ' + inputData.fileName } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: 'ℹ️ Getting info for file: ' + inputData.fileName, stage: 'get:fileinfo' }, id: 'get:fileinfo' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const infoSpan = tracer.startSpan('get:fileinfo', {
       attributes: {
@@ -613,7 +606,7 @@ export const getDataFileInfoTool = createTool({
         'tool.output.isFile': stats.isFile(),
       });
       infoSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ File info retrieved' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File info retrieved', stage: 'get:fileinfo' }, id: 'get:fileinfo' });
       return result
     } catch (error) {
       const errorMessage =
@@ -644,8 +637,7 @@ export const createDataDirTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '📁 Creating directory: ' + inputData.dirPath } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📁 Creating directory: ' + inputData.dirPath, stage: 'create:directory' }, id: 'create:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const createDirSpan = tracer.startSpan('create:directory', {
       attributes: {
@@ -668,7 +660,7 @@ export const createDataDirTool = createTool({
         'tool.output.success': true
       });
       createDirSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory created successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory created successfully', stage: 'create:directory' }, id: 'create:directory' });
       return `Directory ${dirPath} created successfully.`
     } catch (error) {
       const errorMessage =
@@ -700,8 +692,7 @@ export const removeDataDirTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🗑️ Removing directory: ' + inputData.dirPath } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Removing directory: ' + inputData.dirPath, stage: 'remove:directory' }, id: 'remove:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const removeDirSpan = tracer.startSpan('remove:directory', {
       attributes: {
@@ -729,7 +720,7 @@ export const removeDataDirTool = createTool({
         'tool.output.success': true
       });
       removeDirSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Directory removed successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory removed successfully', stage: 'remove:directory' }, id: 'remove:directory' });
       return `Directory ${dirPath} removed successfully.`
     } catch (error) {
       const errorMessage =
@@ -767,8 +758,7 @@ export const archiveDataTool = createTool({
     .describe('A confirmation string indicating success.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `📦 Archiving: ${inputData.sourcePath} to ${inputData.archiveName}.gz` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📦 Archiving: ${inputData.sourcePath} to ${inputData.archiveName}.gz`, stage: 'archive:data' }, id: 'archive:data' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const archiveSpan = tracer.startSpan('archive:data', {
       attributes: {
@@ -804,7 +794,7 @@ export const archiveDataTool = createTool({
         'tool.output.success': true
       });
       archiveSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Archive created successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Archive created successfully', stage: 'archive:data' }, id: 'archive:data' });
       return `File ${sourcePath} archived to ${archiveName}.gz successfully.`
     } catch (error) {
       const errorMessage =
@@ -843,8 +833,7 @@ export const backupDataTool = createTool({
     .describe('A confirmation string indicating success with backup path.'),
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `💾 Creating backup for: ${inputData.sourcePath}` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💾 Creating backup for: ${inputData.sourcePath}`, stage: 'backup:data' }, id: 'backup:data' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const backupSpan = tracer.startSpan('backup:data', {
       attributes: {
@@ -882,7 +871,7 @@ export const backupDataTool = createTool({
         'tool.output.backupPath': relativeBackupPath
       });
       backupSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Backup created successfully' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Backup created successfully', stage: 'backup:data' }, id: 'backup:data' });
       return `Backup created: ${sourcePath} → ${relativeBackupPath}`
     } catch (error) {
       const errorMessage =

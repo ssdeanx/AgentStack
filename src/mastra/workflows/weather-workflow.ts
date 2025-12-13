@@ -60,7 +60,8 @@ const fetchWeather = createStep({
         status: "in-progress",
         message: "Fetching weather data",
         stepId: "fetch-weather",
-      }
+      },
+      id: "fetch-weather"
     });
 
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputData.city)}&count=1`;
@@ -108,7 +109,8 @@ const fetchWeather = createStep({
         status: "done",
         message: "Weather data fetched successfully",
         stepId: "fetch-weather",
-      }
+      },
+      id: "fetch-weather"
     });
 
     span.setAttribute('precipitationChance', forecast.precipitationChance);
@@ -154,7 +156,8 @@ const planActivities = createStep({
         status: "in-progress",
         message: "Planning activities based on weather",
         stepId: "plan-activities",
-      }
+      },
+      id: "plan-activities"
     });
 
     const agent = mastra?.getAgent('weatherAgent');
@@ -229,7 +232,8 @@ const planActivities = createStep({
         status: "done",
         message: "Activities planned successfully",
         stepId: "plan-activities",
-      }
+      },
+      id: "plan-activities"
     });
 
     span.setAttribute('activitiesLength', activitiesText.length);

@@ -28,7 +28,7 @@ export const jwtAuthTool = createTool({
     const requestContext = context?.requestContext;
 
 
-    await writer?.custom({ type: 'data-tool-progress', data: { message: '🔐 Verifying JWT authentication' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔐 Verifying JWT authentication', stage: 'jwt-auth' }, id: 'jwt-auth' });
     const jwt = (requestContext as RequestContext<JwtAuthContext>)?.get(
       'jwt'
     )

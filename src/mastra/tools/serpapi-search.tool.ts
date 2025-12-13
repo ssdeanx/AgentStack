@@ -90,7 +90,7 @@ export const googleSearchTool = createTool({
     // Validate API key
     validateSerpApiKey()
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🔍 Searching Google for "${input.query}" (${input.numResults} results)` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching Google for "${input.query}" (${input.numResults} results)`, stage: 'serpapi-search' }, id: 'serpapi-search' });
 
     const tracer = trace.getTracer('serpapi-search');
     const searchSpan = tracer.startSpan('google-search-tool', {
@@ -121,7 +121,7 @@ export const googleSearchTool = createTool({
       if (input.device) {
         params.device = input.device
       }
-      await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'serpapi-search' }, id: 'serpapi-search' });
       const response = await getJson(params)
       // Extract organic results
       const organicResults =
@@ -172,11 +172,11 @@ export const googleSearchTool = createTool({
         query: input.query,
         resultCount: organicResults.length,
       })
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Search complete: ${organicResults.length} organic results` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Search complete: ${organicResults.length} organic results`, stage: 'serpapi-search' }, id: 'serpapi-search' });
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Search failed: ${errorMessage}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ Search failed: ${errorMessage}`, stage: 'serpapi-search' }, id: 'serpapi-search' });
       searchSpan.recordException(new Error(errorMessage));
       searchSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
       searchSpan.end();
@@ -239,7 +239,7 @@ export const googleAiOverviewTool = createTool({
   outputSchema: googleAiOverviewOutputSchema,
   execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { message: `🤖 Generating AI overview for "${input.query}"` } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🤖 Generating AI overview for "${input.query}"`, stage: 'google-ai-overview' }, id: 'google-ai-overview' });
     // Validate API key
     validateSerpApiKey()
 
@@ -252,7 +252,7 @@ export const googleAiOverviewTool = createTool({
             operation: 'google-ai-overview'
         }
     });
-    await writer?.write({ type: 'progress', data: { message: '📡 Querying SerpAPI for AI overview...' } });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI for AI overview...', stage: 'google-ai-overview' }, id: 'google-ai-overview' });
     log.info('Executing Google AI Overview search', {
       query: input.query,
       location: input.location,
@@ -286,7 +286,7 @@ export const googleAiOverviewTool = createTool({
         available,
       }
       overviewSpan.end();
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ AI overview ready: ${available ? 'Available' : 'Not available'} (${sources.length} sources)` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ AI overview ready: ${available ? 'Available' : 'Not available'} (${sources.length} sources)`, stage: 'google-ai-overview' }, id: 'google-ai-overview' });
       log.info('Google AI Overview completed', {
         query: input.query,
         available,
@@ -296,7 +296,7 @@ export const googleAiOverviewTool = createTool({
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ AI overview failed: ${errorMessage}` } });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ AI overview failed: ${errorMessage}`, stage: 'google-ai-overview' }, id: 'google-ai-overview' });
       overviewSpan.recordException(new Error(errorMessage));
       overviewSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
       overviewSpan.end();

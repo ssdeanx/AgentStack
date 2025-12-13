@@ -254,7 +254,8 @@ Use for increasing test coverage and establishing testing patterns.`,
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
-            data: { message: `🧪 Generating tests for: ${sourceFile}` }
+            data: { status: 'in-progress', message: `🧪 Generating tests for: ${sourceFile}`, stage: 'coding:testGenerator' },
+            id: 'coding:testGenerator'
         });
 
     const content = await fs.readFile(sourceFile, 'utf-8')

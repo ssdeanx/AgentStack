@@ -65,7 +65,7 @@ export const googleNewsTool = createTool({
     outputSchema: googleNewsOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer;
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📰 Starting Google News search for "' + input.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📰 Starting Google News search for "' + input.query + '"', stage: 'google-news' }, id: 'google-news' });
         validateSerpApiKey()
 
         const tracer = trace.getTracer('serpapi-news-trends-tool');
@@ -77,7 +77,7 @@ export const googleNewsTool = createTool({
                 operation: 'google-news'
             }
         });
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'google-news' }, id: 'google-news' });
         log.info('Executing Google News search', { query: input.query })
         try {
             const params: Record<string, string | number> = {
@@ -120,7 +120,7 @@ export const googleNewsTool = createTool({
                 newsArticles,
                 totalResults: response.search_information?.total_results,
             }
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google News search complete: ' + newsArticles.length + ' articles' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Google News search complete: ' + newsArticles.length + ' articles', stage: 'google-news' }, id: 'google-news' });
             newsSpan.end();
             log.info('Google News search completed', {
                 query: input.query,
@@ -162,7 +162,7 @@ export const googleNewsLiteTool = createTool({
     }),
     execute: async (input, context) => {
         const writer = context?.writer;
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📰 Starting Google News Lite search for "' + input.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📰 Starting Google News Lite search for "' + input.query + '"', stage: 'google-news-lite' }, id: 'google-news-lite' });
         validateSerpApiKey()
 
         const tracer = trace.getTracer('serpapi-news-trends-tool');
@@ -172,7 +172,7 @@ export const googleNewsLiteTool = createTool({
                 operation: 'google-news-lite'
             }
         });
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'google-news-lite' }, id: 'google-news-lite' });
         log.info('Executing Google News Lite search', { query: input.query })
         try {
             const params: Record<string, string | number> = {
@@ -190,7 +190,7 @@ export const googleNewsLiteTool = createTool({
                     })
                 ) ?? []
             const result = { newsArticles }
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google News Lite search complete: ' + newsArticles.length + ' articles' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Google News Lite search complete: ' + newsArticles.length + ' articles', stage: 'google-news-lite' }, id: 'google-news-lite' });
             newsLiteSpan.end();
             log.info('Google News Lite search completed', { query: input.query, resultCount: newsArticles.length })
             return result
@@ -249,7 +249,7 @@ export const googleTrendsTool = createTool({
     outputSchema: googleTrendsOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer;
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📈 Starting Google Trends analysis for "' + input.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📈 Starting Google Trends analysis for "' + input.query + '"', stage: 'google-trends' }, id: 'google-trends' });
         validateSerpApiKey()
 
         const tracer = trace.getTracer('serpapi-news-trends-tool');
@@ -261,7 +261,7 @@ export const googleTrendsTool = createTool({
             }
         });
 
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'google-trends' }, id: 'google-trends' });
         log.info('Executing Google Trends search', { query: input.query })
 
         try {
@@ -304,7 +304,7 @@ export const googleTrendsTool = createTool({
                 averageInterest,
             }
 
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Google Trends analysis complete' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Google Trends analysis complete', stage: 'google-trends' }, id: 'google-trends' });
             trendsSpan.end();
             log.info('Google Trends search completed', { query: input.query, dataPoints: interestOverTime.length })
 
@@ -349,7 +349,7 @@ export const googleAutocompleteTool = createTool({
     outputSchema: googleAutocompleteOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer;
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '🔍 Getting autocomplete suggestions for "' + input.query + '"' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Getting autocomplete suggestions for "' + input.query + '"', stage: 'google-autocomplete' }, id: 'google-autocomplete' });
         validateSerpApiKey()
 
         const tracer = trace.getTracer('serpapi-news-trends-tool');
@@ -360,7 +360,7 @@ export const googleAutocompleteTool = createTool({
             }
         });
 
-        await writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying SerpAPI...' } });
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📡 Querying SerpAPI...', stage: 'google-autocomplete' }, id: 'google-autocomplete' });
         log.info('Executing Google Autocomplete search', { query: input.query })
 
         try {
@@ -379,7 +379,7 @@ export const googleAutocompleteTool = createTool({
 
             const result = { suggestions }
 
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '✅ Autocomplete complete: ' + suggestions.length + ' suggestions' } });
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Autocomplete complete: ' + suggestions.length + ' suggestions', stage: 'google-autocomplete' }, id: 'google-autocomplete' });
             autocompleteSpan.end();
             log.info('Google Autocomplete completed', { query: input.query, suggestionCount: suggestions.length })
 

@@ -99,7 +99,7 @@ const planStep = createStep({
     try {
       const { text } = result;
       // Simple heuristic to find JSON in markdown code blocks if present
-      const jsonMatch = (/```json\n([\s\S]*?)\n```/.exec(text)) || (/\{[\s\S]*\}/.exec(text));
+      const jsonMatch = (/```json\n([\s\S]*?)\n```/.exec(text)) ?? (/\{[\s\S]*\}/.exec(text));
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         return {
