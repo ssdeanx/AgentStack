@@ -55,7 +55,7 @@ const fetchWeather = createStep({
 
     // Emit workflow progress start
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "in-progress",
         message: "Fetching weather data",
@@ -104,7 +104,7 @@ const fetchWeather = createStep({
 
     // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "done",
         message: "Weather data fetched successfully",
@@ -151,7 +151,7 @@ const planActivities = createStep({
 
     // Emit workflow progress start
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "in-progress",
         message: "Planning activities based on weather",
@@ -214,12 +214,18 @@ const planActivities = createStep({
       },
     ]);
 
-    let activitiesText = '';
+    const {fullStream} = response as unknown as { fullStream?: ReadableStream<unknown> }
+    const {textStream} = response as unknown as { textStream?: ReadableStream<unknown> }
 
-    for await (const chunk of response.textStream) {
-      process.stdout.write(chunk);
-      activitiesText += chunk;
+    if (writer !== undefined && writer !== null) {
+      if (fullStream !== undefined && typeof (fullStream as unknown as { pipeTo?: unknown }).pipeTo === 'function') {
+        await (fullStream as unknown as ReadableStream<unknown>).pipeTo(writer as unknown as WritableStream)
+      } else if (textStream !== undefined && typeof (textStream as unknown as { pipeTo?: unknown }).pipeTo === 'function') {
+        await (textStream as unknown as ReadableStream<unknown>).pipeTo(writer as unknown as WritableStream)
+      }
     }
+
+    const activitiesText = (await response.text) ?? '';
 
     const result = {
       activities: activitiesText,
@@ -227,7 +233,7 @@ const planActivities = createStep({
 
     // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: "data-tool-progress",
       data: {
         status: "done",
         message: "Activities planned successfully",

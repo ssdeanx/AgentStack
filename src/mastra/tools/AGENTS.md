@@ -92,36 +92,6 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 
 *Status based on test coverage & maturity: stable (tested, production-ready), alpha (basic tests), experimental (untested/prototype). 18/30+ tools tested.*
 
-## Tool Development Guide
-
-### Creating a New Tool
-
-```typescript
-import { createTool } from '@mastra/core/tools'
-import { z } from 'zod'
-
-export const yourTool = createTool({
-  id: 'namespace:yourTool',
-  description: 'Brief description',
-  inputSchema: z.object({ param1: z.string() }),
-  outputSchema: z.object({ result: z.any() }),
-  execute: async ({ context }) => { /* impl */ return { result: 'data' } }
-})
-```
-
-1. Add to `index.ts` export.
-2. Create `__tests__/your-tool.test.ts` with Vitest.
-3. Update this AGENTS.md table.
-4. Run `npm test`.
-
-## Best Practices
-
-- **Schema First**: Zod for inputs/outputs.
-- **Error Handling**: Try-catch, clear messages, retries for APIs.
-- **Security**: Sanitize inputs, mask secrets, rate-limit.
-- **Performance**: Cache, stream large data, timeouts.
-- **Observability**: Otel spans on all executes.
-
 ### Data Tool Progress Events
 
 All tools must emit progress events with this exact format:

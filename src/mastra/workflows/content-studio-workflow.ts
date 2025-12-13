@@ -101,23 +101,11 @@ const researchStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('research-step', inputData);
-
     // Emit workflow step start
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "research-step",
-        id: "research-step",
-      },
-      id: 'research-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "20%",
+        status: "in-progress",
         message: "Starting research phase",
         stepId: "research-step",
       },
@@ -148,25 +136,13 @@ Return JSON with summary, data, and sources.`;
     }
 
     const output = { topic: inputData.topic, researchData };
-
-    // Emit workflow progress completion
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "100%",
-        message: "Research phase completed",
-        stepId: "research-step",
-      },
-      id: 'research-step',
-    });
-
     // Emit workflow step complete
     await writer?.custom({
-      type: 'data-workflow-step-complete',
+      type: 'data-tool-progress',
       data: {
+        status: "success",
+        message: "Research phase completed",
         stepId: 'research-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'research-step',
     });
@@ -183,21 +159,10 @@ const evaluationStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('evaluation-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "evaluation-step",
-        id: "evaluation-step",
-      },
-      id: 'evaluation-step',
-    });
-
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "30%",
+        status: "in-progress",
         message: "Starting evaluation phase",
         stepId: "evaluation-step",
       },
@@ -228,24 +193,12 @@ Return JSON with isRelevant and reason.`;
     }
 
     const output = { ...inputData, evaluation };
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Evaluation phase completed",
-        stepId: "evaluation-step",
-      },
-      id: 'evaluation-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'evaluation-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'evaluation-step',
     });
@@ -262,22 +215,10 @@ const learningStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('learning-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "learning-step",
-        id: "learning-step",
-      },
-      id: 'learning-step',
-    });
-
-      // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "40%",
+        status: "in-progress",
         message: "Starting learning extraction phase",
         stepId: "learning-step",
       },
@@ -306,24 +247,12 @@ Return JSON with learning and followUpQuestion.`;
     }
 
     const output = { ...inputData, learning };
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Learning extraction phase completed",
-        stepId: "learning-step",
-      },
-      id: 'learning-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'learning-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'learning-step',
     });
@@ -340,22 +269,10 @@ const strategyStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('strategy-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "strategy-step",
-        id: "strategy-step",
-      },
-      id: 'strategy-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "50%",
+        status: "in-progress",
         message: "Starting content strategy phase",
         stepId: "strategy-step",
       },
@@ -399,24 +316,12 @@ Return JSON with title, targetAudience, angle, and keyPoints.`;
     }
 
     const output = { plan };
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Content strategy phase completed",
-        stepId: "strategy-step",
-      },
-      id: 'strategy-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'strategy-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'strategy-step',
     });
@@ -433,22 +338,10 @@ const hookStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('hook-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "hook-step",
-        id: "hook-step",
-      },
-      id: 'hook-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "60%",
+        status: "in-progress",
         message: "Starting hook creation phase",
         stepId: "hook-step",
       },
@@ -477,24 +370,12 @@ const hookStep = createStep({
     }
 
     const output = { hooks, plan: inputData.plan };
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Hook creation phase completed",
-        stepId: "hook-step",
-      },
-      id: 'hook-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'hook-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'hook-step',
     });
@@ -511,22 +392,10 @@ const bodyStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('body-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "body-step",
-        id: "body-step",
-      },
-      id: 'body-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "70%",
+        status: "in-progress",
         message: "Starting body script creation phase",
         stepId: "body-step",
       },
@@ -545,24 +414,12 @@ const bodyStep = createStep({
       bodyResult = null;
     }
     const output = { bodyScript: bodyResult?.bodyScript ?? '', plan: inputData.plan, hooks: inputData.hooks };
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Body script creation phase completed",
-        stepId: "body-step",
-      },
-      id: 'body-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'body-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'body-step',
     });
@@ -579,22 +436,10 @@ const reviewStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('review-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "review-step",
-        id: "review-step",
-      },
-      id: 'review-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "80%",
+        status: "in-progress",
         message: "Starting review phase",
         stepId: "review-step",
       },
@@ -632,24 +477,12 @@ Return JSON with score, feedback, approved, and finalScript (which is just the i
 
     // Ensure the finalScript always contains the full script
     review.finalScript = fullScript;
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Review phase completed",
-        stepId: "review-step",
-      },
-      id: 'review-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'review-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'review-step',
     });
@@ -666,22 +499,10 @@ const refineStep = createStep({
   execute: async ({ inputData, writer }) => {
     const start = Date.now();
     logStepStart('refine-step', inputData);
-
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "refine-step",
-        id: "refine-step",
-      },
-      id: 'refine-step',
-    });
-
-    // Emit workflow progress start
-    await writer?.custom({
-      type: "data-workflow-progress",
-      data: {
-        status: "90%",
+        status: "in-progress",
         message: "Starting refinement phase",
         stepId: "refine-step",
       },
@@ -726,24 +547,12 @@ Script: ${refinedScript}`;
 
     // Ensure the finalScript is always the refined version
     review.finalScript = refinedScript;
-
-    // Emit workflow progress completion
     await writer?.custom({
-      type: "data-workflow-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
+        status: "success",
         message: "Refinement phase completed",
-        stepId: "refine-step",
-      },
-      id: 'refine-step',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
         stepId: 'refine-step',
-        success: true,
-        duration: Date.now() - start,
       },
       id: 'refine-step',
     });

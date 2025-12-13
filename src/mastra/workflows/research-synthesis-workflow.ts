@@ -70,25 +70,11 @@ const initializeResearchStep = createStep({
     logStepStart('initialize-research', { topicsCount: inputData.topics.length });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: 'data-workflow-step-start',
-        data: {
-          'initialize-research': {
-            topicsCount: inputData.topics.length,
-            concurrency: inputData.concurrency,
-          },
-        },
-      },
-      id: 'initialize-research',
-    });
-
-    await writer?.custom({
-      type: 'data-workflow-progress',
-      data: {
-          status: "50%",
+          status: "in-progress",
           message: `Researching topic: ${inputData.topics}...`,
-          stage: "workflow",
+          stage: "researchAgent",
       },
       id: 'initialize-research',
     });
@@ -98,16 +84,7 @@ const initializeResearchStep = createStep({
       maxSources: inputData.maxSourcesPerTopic,
     }));
 
-    await writer?.custom({
-      type: 'data-workflow-step-complete',
-      data: {
-      stepId: 'initialize-research',
-      success: true,
-      duration: Date.now() - startTime,
-      },
-      id: 'initialize-research',
-    });
-
+    
     logStepEnd('initialize-research', { topicsCount: topics.length }, Date.now() - startTime);
 
     return topics;
@@ -128,11 +105,11 @@ const researchTopicStep = createStep({
     logStepStart('research-topic-item', { topic: inputData.topic });
 
     await writer?.custom({
-      type: 'data-workflow-topic-progress',
+      type: 'data-tool-progress',
       data: {
-      topic: inputData.topic,
-      status: 'started',
-      timestamp: Date.now(),
+        status: 'in-progress',
+        message: `Researching topic: ${inputData.topic}...`,
+        stage: 'workflow',
       },
       id: 'research-topic-item',
     });
@@ -147,11 +124,11 @@ const researchTopicStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-topic-progress',
+        type: 'data-tool-progress',
         data: {
-          topic: inputData.topic,
-          status: 'researching',
-          percent: 30,
+          status: 'in-progress',
+          message: `Researching topic: ${inputData.topic}...`,
+          stage: 'workflow',
         },
         id: 'research-topic-item',
       });
@@ -208,12 +185,11 @@ const researchTopicStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-topic-progress',
+        type: 'data-tool-progress',
         data: {
-          topic: inputData.topic,
-          status: 'completed',
-          percent: 100,
-          findingsCount: result.keyFindings.length,
+          status: 'done',
+          message: `Research completed for ${inputData.topic}...`,
+          stage: 'workflow',
         },
         id: 'research-topic-item',
       });
@@ -233,11 +209,11 @@ const researchTopicStep = createStep({
       logError('research-topic-item', error, { topic: inputData.topic });
 
       await writer?.custom({
-        type: 'data-workflow-topic-progress',
+        type: 'data-tool-progress',
         data: {
-        topic: inputData.topic,
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'in-progress',
+          message: `Research error for ${inputData.topic}...`,
+          stage: 'researchAgent',
         },
         id: 'research-topic-item',
       });
@@ -265,15 +241,6 @@ const synthesizeResearchStep = createStep({
     const startTime = Date.now();
     logStepStart('synthesize-research', { topicsCount: inputData.topics.length });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-      id: 'synthesize-research',
-      timestamp: Date.now(),
-      },
-      id: 'synthesize-research',
-    });
-
     const tracer = trace.getTracer('research-synthesis');
     const span = tracer.startSpan('research-synthesis', {
       attributes: {
@@ -284,9 +251,9 @@ const synthesizeResearchStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          percent: 20,
+          status: 'in-progress',
           message: 'Synthesizing research across topics...',
         },
         id: 'synthesize-research',
@@ -298,9 +265,9 @@ const synthesizeResearchStep = createStep({
 
       if (agent !== undefined) {
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
-            percent: 50,
+            status: 'in-progress',
             message: 'AI synthesizing findings...',
           },
           id: 'synthesize-research',
@@ -381,9 +348,9 @@ Provide:
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          percent: 90,
+          status: 'done',
           message: 'Synthesis complete...',
         },
         id: 'synthesize-research',
@@ -409,17 +376,7 @@ Provide:
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          type: 'step-complete',
-          stepId: 'synthesize-research',
-          success: true,
-          duration: Date.now() - startTime,
-        },
-        id: 'synthesize-research',
-      });
-
+      
       logStepEnd('synthesize-research', { themesCount: synthesis.commonThemes.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -451,15 +408,6 @@ const generateResearchReportStep = createStep({
     const startTime = Date.now();
     logStepStart('generate-research-report', { topicsCount: inputData.metadata.topicsCount });
 
-    await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        stepId: 'generate-research-report',
-        timestamp: Date.now(),
-      },
-      id: 'generate-research-report',
-    });
-
     const tracer = trace.getTracer('research-synthesis');
     const span = tracer.startSpan('research-report-generation', {
       attributes: {
@@ -469,9 +417,9 @@ const generateResearchReportStep = createStep({
 
     try {
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          percent: 20,
+          status: 'in-progress',
           message: 'Generating research report...',
         },
         id: 'generate-research-report',
@@ -482,9 +430,9 @@ const generateResearchReportStep = createStep({
 
       if (agent !== undefined) {
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
-            percent: 50,
+            status: 'in-progress',
             message: 'AI generating comprehensive report...',
           },
           id: 'generate-research-report',
@@ -550,9 +498,9 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          percent: 90,
+          status: 'done',
           message: 'Report generation complete...',
           stage: 'workflow',
         },
@@ -575,17 +523,7 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          type: 'step-complete',
-          stepId: 'generate-research-report',
-          success: true,
-          duration: Date.now() - startTime,
-        },
-        id: 'generate-research-report',
-      });
-
+      
       logStepEnd('generate-research-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {

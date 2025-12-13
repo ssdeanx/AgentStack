@@ -73,11 +73,11 @@ const indexDocumentsStep = createStep({
         )
 
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
-            status: "10%",
+            status: "in-progress",
             message: `PgVector index ${indexName} created or already exists with 1568 dimensions`,
-            stage: "workflow",
+            stage: "documentIndexingAgent",
           }
         });
 
@@ -89,11 +89,11 @@ const indexDocumentsStep = createStep({
         )
 
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
-            status: "10%",
+            status: "in-progress",
             message: `Index creation info (may already exist): ${createError instanceof Error ? createError.message : String(createError)}`,
-            stage: "workflow",
+            stage: "documentIndexingAgent",
           }
         });
 
@@ -128,11 +128,11 @@ const indexDocumentsStep = createStep({
         )
 
         await writer?.custom({
-          type: 'data-workflow-progress',
+          type: 'data-tool-progress',
           data: {
-            status: `${Math.round(10 + (docIndex / totalDocs) * 80)}%`,
+            status: "in-progress",
             message: `Indexing document ${doc.docId}`,
-            stage: "workflow",
+            stage: "documentIndexingAgent",
           }
         });
 
@@ -153,11 +153,11 @@ const indexDocumentsStep = createStep({
       }
 
       await writer?.custom({
-        type: 'data-workflow-progress',
+        type: 'data-tool-progress',
         data: {
-          status: "100%",
+          status: "done",
           message: `Indexing complete: ${results.indexed} indexed, ${results.failed} failed`,
-          stage: "workflow",
+          stage: "documentIndexingAgent",
         }
       });
 
@@ -167,15 +167,7 @@ const indexDocumentsStep = createStep({
         Date.now() - startTime
       )
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'index-documents',
-          success: true,
-          duration: Date.now() - startTime,
-        }
-      });
-
+      
       return results
     } catch (error) {
       logError('index-documents', error, { totalDocuments: totalDocs })

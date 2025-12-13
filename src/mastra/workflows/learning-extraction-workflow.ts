@@ -117,10 +117,14 @@ const extractLearningsStep = createStep({
     const startTime = Date.now();
     logStepStart('extract-learnings', { contentType: inputData.contentType, depth: inputData.extractionDepth });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'extract-learnings',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        type: 'workflow',
+        data: 'extract-learnings',
+        id: 'extract-learnings',
+      },
+      id: 'extract-learnings',
     });
 
     const tracer = trace.getTracer('learning-extraction');
@@ -132,10 +136,14 @@ const extractLearningsStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: `Analyzing ${inputData.contentType}...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Analyzing ${inputData.contentType}...`,
+          stage: 'workflow',
+        },
+        id: 'extract-learnings',
       });
 
       const agent = mastra?.getAgent('learningExtractionAgent');
@@ -143,10 +151,14 @@ const extractLearningsStep = createStep({
       let summary = '';
 
       if (agent) {
-        await writer?.write({
-          type: 'progress',
-          percent: 50,
-          message: `Extracting learnings (${inputData.extractionDepth} mode)...`,
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: `Extracting learnings (${inputData.extractionDepth} mode)...`,
+            stage: 'workflow',
+          },
+          id: 'extract-learnings',
         });
 
         const depthInstructions = {
@@ -222,10 +234,14 @@ Also provide an overall summary.`;
         summary = `Extracted ${learnings.length} learnings from the ${inputData.contentType}.`;
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: `Extracted ${learnings.length} learnings...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'completed',
+          message: `Extracted ${learnings.length} learnings...`,
+          stage: 'workflow',
+        },
+        id: 'extract-learnings',
       });
 
       const criticalCount = learnings.filter(l => l.importance === 'critical').length;
@@ -253,13 +269,7 @@ Also provide an overall summary.`;
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'extract-learnings',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('extract-learnings', { learningsCount: learnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -268,10 +278,13 @@ Also provide an overall summary.`;
       span.end();
       logError('extract-learnings', error, { contentType: inputData.contentType });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'extract-learnings',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'extract-learnings',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'extract-learnings',
       });
 
       throw error;
@@ -290,10 +303,14 @@ const humanApprovalStep = createStep({
     const startTime = Date.now();
     logStepStart('human-approval', { learningsCount: inputData.learnings.length, hasResumeData: !!resumeData });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'human-approval',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: 'workflow',
+        data: 'human-approval',
+        id: 'human-approval',
+      },
+      id: 'human-approval',
     });
 
     const tracer = trace.getTracer('learning-extraction');
@@ -303,10 +320,14 @@ const humanApprovalStep = createStep({
 
     try {
       if (!inputData.requireApproval) {
-        await writer?.write({
-          type: 'progress',
-          percent: 100,
-          message: 'Auto-approval (requireApproval=false)...',
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'completed',
+            message: 'Auto-approval (requireApproval=false)...',
+            stage: 'workflow',
+          },
+          id: 'human-approval',
         });
 
         const result: z.infer<typeof approvalResultSchema> = {
@@ -328,22 +349,19 @@ const humanApprovalStep = createStep({
         span.setAttribute('responseTimeMs', Date.now() - startTime);
         span.end();
 
-        await writer?.write({
-          type: 'step-complete',
-          stepId: 'human-approval',
-          success: true,
-          duration: Date.now() - startTime,
-        });
-
+        
         return result;
       }
 
       if (!resumeData) {
-        await writer?.write({
-          type: 'suspend-request',
-          stepId: 'human-approval',
-          message: 'Awaiting human approval...',
-          learningsCount: inputData.learnings.length,
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: 'Awaiting human approval...',
+            stage: 'workflow',
+          },
+          id: 'human-approval',
         });
 
         span.setAttribute('suspended', true);
@@ -364,10 +382,14 @@ const humanApprovalStep = createStep({
         return await suspend(suspendPayload);
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 50,
-        message: 'Processing approval decision...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Processing approval decision...',
+          stage: 'workflow',
+        },
+        id: 'human-approval',
       });
 
       let approvedLearnings = inputData.learnings;
@@ -388,10 +410,14 @@ const humanApprovalStep = createStep({
         rejectedCount = resumeData.rejectedLearnings.length;
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: `Approved ${approvedLearnings.length} learnings...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'completed',
+          message: `Approved ${approvedLearnings.length} learnings...`,
+          stage: 'workflow',
+        },
+        id: 'human-approval',
       });
 
       const approvalRate = (approvedLearnings.length / inputData.learnings.length) * 100;
@@ -417,13 +443,7 @@ const humanApprovalStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'human-approval',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('human-approval', { approved: resumeData.approved, approvedCount: approvedLearnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -432,10 +452,13 @@ const humanApprovalStep = createStep({
       span.end();
       logError('human-approval', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'human-approval',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'human-approval',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'human-approval',
       });
 
       throw error;
@@ -452,10 +475,14 @@ const validateLearningsStep = createStep({
     const startTime = Date.now();
     logStepStart('validate-learnings', { learningsCount: inputData.learnings.length });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'validate-learnings',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: 'workflow',
+        data: 'validate-learnings',
+        id: 'validate-learnings',
+      },
+      id: 'validate-learnings',
     });
 
     // Use OpenTelemetry directly; don't rely on Mastra tracing shims.
@@ -467,10 +494,14 @@ const validateLearningsStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: 'Validating learnings quality...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Validating learnings quality...',
+          stage: 'workflow',
+        },
+        id: 'validate-learnings',
       });
 
       const agent = mastra?.getAgent('evaluationAgent');
@@ -529,18 +560,26 @@ const validateLearningsStep = createStep({
         });
 
         if (i % 3 === 0) {
-          await writer?.write({
-            type: 'progress',
-            percent: 20 + Math.floor((i / inputData.learnings.length) * 60),
-            message: `Validated ${i + 1}/${inputData.learnings.length} learnings...`,
+          await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+              status: 'in-progress',
+              message: `Validated ${i + 1}/${inputData.learnings.length} learnings...`,
+              stage: 'workflow',
+            },
+            id: 'validate-learnings',
           });
         }
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Validation complete...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'completed',
+          message: 'Validation complete...',
+          stage: 'workflow',
+        },
+        id: 'validate-learnings',
       });
 
       const highQuality = validatedLearnings.filter(l => (l.qualityScore ?? 0) >= 80).length;
@@ -565,13 +604,7 @@ const validateLearningsStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'validate-learnings',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('validate-learnings', result.validationSummary, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -581,10 +614,13 @@ const validateLearningsStep = createStep({
 
       logError('validate-learnings', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'validate-learnings',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'validate-learnings',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'validate-learnings',
       });
 
       throw error;
@@ -601,10 +637,14 @@ const generateLearningReportStep = createStep({
     const startTime = Date.now();
     logStepStart('generate-learning-report', { learningsCount: inputData.learnings.length });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'generate-learning-report',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-workflow-step-start',
+      data: {
+        type: 'workflow',
+        data: 'generate-learning-report',
+        id: 'generate-learning-report',
+      },
+      id: 'generate-learning-report',
     });
 
     // Use OpenTelemetry directly; avoid Mastra-specific tracing shims.
@@ -616,10 +656,14 @@ const generateLearningReportStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 30,
-        message: 'Generating learning report...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Generating learning report...',
+          stage: 'workflow',
+        },
+        id: 'generate-learning-report',
       });
 
       const agent = mastra?.getAgent('reportAgent');
@@ -704,10 +748,14 @@ const generateLearningReportStep = createStep({
   *Report generated: ${new Date().toISOString()}*`;
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Report complete...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'completed',
+          message: 'Report complete...',
+          stage: 'workflow',
+        },
+        id: 'generate-learning-report',
       });
 
       const result: z.infer<typeof finalOutputSchema> = {
@@ -730,11 +778,14 @@ const generateLearningReportStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'generate-learning-report',
-        success: true,
-        duration: Date.now() - startTime,
+      await writer?.custom({
+        type: 'data-workflow-step-complete',
+        data: {
+          stepId: 'generate-learning-report',
+          success: true,
+          duration: Date.now() - startTime,
+        },
+        id: 'generate-learning-report',
       });
 
       logStepEnd('generate-learning-report', { reportLength: report.length }, Date.now() - startTime);
@@ -746,10 +797,13 @@ const generateLearningReportStep = createStep({
 
       logError('generate-learning-report', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'generate-learning-report',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'generate-learning-report',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'generate-learning-report',
       });
 
       throw error;

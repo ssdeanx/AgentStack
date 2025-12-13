@@ -10,14 +10,15 @@ import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
 import { trace } from "@opentelemetry/api";
 
-const symbolContextSchema = z.object({
-  maxResults: z.number().default(100),
-  excludePatterns: z.array(z.string()).default([]),
-  includeNodeModules: z.boolean().default(false),
-  caseSensitive: z.boolean().default(false),
-});
 
-export type SymbolContext = z.infer<typeof symbolContextSchema>;
+// Define the expected shape of the runtime context for this tool
+export interface SymbolContext {
+  maxResults?: number;
+  excludePatterns?: string[];
+  includeNodeModules?: boolean;
+  caseSensitive?: boolean;
+  searchType: 'semantic' | 'text'; // Required field
+}
 
 interface SymbolInfo {
   name: string;
@@ -73,6 +74,17 @@ export const findSymbolTool = createTool({
     const symbols: SymbolInfo[] = [];
     const startTime = Date.now();
     let cacheHits = 0;
+
+    // Emit progress event for starting symbol search
+    await context?.writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "in-progress",
+        message: `🔍 Starting symbol search for '${symbolName}' in ${projectPath}`,
+        stage: "semantic:find-symbol"
+      },
+      id: "semantic:find-symbol"
+    });
 
     const tracer = trace.getTracer('semantic-tools');
     const span = tracer.startSpan('find_symbol', {
@@ -179,6 +191,17 @@ export const findSymbolTool = createTool({
       const searchTime = Date.now() - startTime;
       const summary = generateSummary(symbols, symbolName, processedFiles);
 
+      // Emit completion progress event
+      await context?.writer?.custom({
+        type: "data-tool-progress",
+        data: {
+          status: "done",
+          message: `✅ Found ${symbols.length} symbols for '${symbolName}' in ${processedFiles} files (${searchTime}ms)`,
+          stage: "semantic:find-symbol"
+        },
+        id: "semantic:find-symbol"
+      });
+
       span.setAttributes({
         'tool.output.symbolsCount': symbols.length,
         'tool.output.processedFiles': processedFiles,
@@ -215,16 +238,16 @@ function extractSymbolInfo(
 ): { name: string; kind: string } | null {
   // Function declarations and expressions
   if (symbolType === 'all' || symbolType === 'function') {
-    if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
+    if (node.isKind(SyntaxKind.FunctionDeclaration) || node.isKind(SyntaxKind.MethodDeclaration)) {
       const name = node.getName();
-      if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+      if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
         return { name, kind: 'function' };
       }
     }
-    if (Node.isVariableDeclaration(node)) {
+    if (node.isKind(SyntaxKind.VariableDeclaration)) {
       const name = node.getName();
       const initializer = node.getInitializer();
-      if (name && matchesSearch(name, searchTerm, caseSensitive) &&
+      if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive) &&
           (Node.isArrowFunction(initializer) || Node.isFunctionExpression(initializer))) {
         return { name, kind: 'function' };
       }
@@ -232,50 +255,50 @@ function extractSymbolInfo(
   }
 
   // Class declarations
-  if ((symbolType === 'all' || symbolType === 'class') && Node.isClassDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'class') && node.isKind(SyntaxKind.ClassDeclaration)) {
     const name = node.getName();
-    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'class' };
     }
   }
 
   // Interface declarations
-  if ((symbolType === 'all' || symbolType === 'interface') && Node.isInterfaceDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'interface') && node.isKind(SyntaxKind.InterfaceDeclaration)) {
     const name = node.getName();
-    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'interface' };
     }
   }
 
   // Type aliases
-  if ((symbolType === 'all' || symbolType === 'type') && Node.isTypeAliasDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'type') && node.isKind(SyntaxKind.TypeAliasDeclaration)) {
     const name = node.getName();
-    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'type' };
     }
   }
 
   // Enum declarations
-  if ((symbolType === 'all' || symbolType === 'enum') && Node.isEnumDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'enum') && node.isKind(SyntaxKind.EnumDeclaration)) {
     const name = node.getName();
-    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'enum' };
     }
   }
 
   // Property declarations
-  if ((symbolType === 'all' || symbolType === 'property') && Node.isPropertyDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'property') && node.isKind(SyntaxKind.PropertyDeclaration)) {
     const name = node.getName();
-    if (name && matchesSearch(name, searchTerm, caseSensitive)) {
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive)) {
       return { name, kind: 'property' };
     }
   }
 
   // Variables
-  if ((symbolType === 'all' || symbolType === 'variable') && Node.isVariableDeclaration(node)) {
+  if ((symbolType === 'all' || symbolType === 'variable') && node.isKind(SyntaxKind.VariableDeclaration)) {
     const name = node.getName();
     const initializer = node.getInitializer();
-    if (name && matchesSearch(name, searchTerm, caseSensitive) &&
+    if (name && name !== undefined && matchesSearch(name, searchTerm, caseSensitive) &&
         !Node.isArrowFunction(initializer) &&
         !Node.isFunctionExpression(initializer)) {
       return { name, kind: 'variable' };
@@ -342,7 +365,10 @@ function matchesSearch(name: string, searchTerm: string, caseSensitive: boolean)
 function isSymbolExported(sourceFile: SourceFile, symbolName: string): boolean {
   // Check if symbol is exported
   const exports = sourceFile.getExportSymbols();
-  return exports.some((exp: any) => exp.getName() === symbolName);
+  return exports.some((exp: unknown) => {
+    const exportSymbol = exp as { getName?: () => string };
+    return exportSymbol.getName?.() === symbolName;
+  });
 }
 
 function isPythonSymbolExported(content: string, symbolName: string): boolean {

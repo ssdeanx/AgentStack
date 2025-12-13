@@ -104,7 +104,14 @@ export const chartSupervisorTool = createTool({
 
     try {
       const agent = context?.mastra?.getAgent('chartSupervisorAgent')
-      if (!agent) {throw new Error('Agent chartSupervisorAgent not found');}
+      if (!agent) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent not found', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
+        return {
+          success: false,
+          sources: [],
+          error: 'Agent chartSupervisorAgent not found',
+        }
+      }
 
       const prompt = `Create a financial chart visualization with the following requirements:
 
@@ -124,15 +131,33 @@ Please:
 5. Include all data sources used with timestamps`
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching financial data...', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-      const result = await agent.generate(prompt)
+      let resultText = ''
+      const writer = context?.writer
+      const agentWithStream = agent as unknown as {
+        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
+        generate: (_prompt: string) => Promise<{ text: string }>
+      }
+
+      if (writer && typeof agentWithStream.stream === 'function') {
+        const stream = await agentWithStream.stream(prompt)
+        if (stream.fullStream) {
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+        } else if (stream.textStream) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+        }
+        resultText = (await stream.text) ?? ''
+      } else {
+        const result = await agentWithStream.generate(prompt)
+        resultText = result.text
+      }
 
       let parsedResult
       try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
+        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
         if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
-          parsedResult = JSON.parse(result.text)
+          parsedResult = JSON.parse(resultText)
         }
       } catch {
         parsedResult = {
@@ -143,7 +168,7 @@ Please:
             dataPoints: 0,
             lastUpdated: new Date().toISOString(),
           },
-          rawResponse: result.text,
+          rawResponse: resultText,
         }
       }
 
@@ -251,7 +276,10 @@ export const chartGeneratorTool = createTool({
 
     try {
       const agent = context?.mastra?.getAgent('chartGeneratorAgent')
-      if (!agent) {throw new Error('Agent chartGeneratorAgent not found');}
+      if (!agent) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartGeneratorAgent not found', stage: 'chart-generator' }, id: 'chart-generator' })
+        throw new Error('Agent chartGeneratorAgent not found');
+      }
 
       const prompt = `Generate a production-ready Recharts React component with these specifications:
 
@@ -275,21 +303,39 @@ Requirements:
 Return JSON with: componentName, code, usage, props, dependencies`
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Generating component code...', stage: 'chart-generator' }, id: 'chart-generator' })
-      const result = await agent.generate(prompt)
+      let resultText = ''
+      const writer = context?.writer
+      const agentWithStream = agent as unknown as {
+        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
+        generate: (_prompt: string) => Promise<{ text: string }>
+      }
+
+      if (writer && typeof agentWithStream.stream === 'function') {
+        const stream = await agentWithStream.stream(prompt)
+        if (stream.fullStream) {
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+        } else if (stream.textStream) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+        }
+        resultText = (await stream.text) ?? ''
+      } else {
+        const result = await agentWithStream.generate(prompt)
+        resultText = result.text
+      }
 
       let parsedResult
       try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
+        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
         if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
-          parsedResult = JSON.parse(result.text)
+          parsedResult = JSON.parse(resultText)
         }
       } catch {
-        const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(result.text)
+        const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(resultText)
         parsedResult = {
           componentName,
-          code: codeMatch?.[1] !== undefined ? codeMatch[1] : result.text,
+          code: codeMatch?.[1] !== undefined ? codeMatch[1] : resultText,
           usage: `<${componentName} data={data} />`,
           props: { data: `${componentName}Data[]` },
           dependencies: ['recharts', 'react'],
@@ -392,7 +438,22 @@ export const chartDataProcessorTool = createTool({
 
     try {
       const agent = context?.mastra?.getAgent('chartDataProcessorAgent')
-      if (!agent) {throw new Error('Agent chartDataProcessorAgent not found');}
+      if (!agent) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartDataProcessorAgent not found', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
+        return {
+          chartData: [],
+          dataKeys: [],
+          domain: { x: [], y: [0, 100] },
+          metadata: {
+            symbols,
+            timeRange,
+            dataPoints: 0,
+            lastUpdated: new Date().toISOString(),
+            interval: aggregation,
+          },
+          error: 'Agent chartDataProcessorAgent not found',
+        }
+      }
 
       const prompt = `Fetch and process financial data for Recharts visualization:
 
@@ -418,15 +479,33 @@ Return JSON with:
 - calculations: Object with any calculated values`
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching from financial APIs...', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
-      const result = await agent.generate(prompt)
+      let resultText = ''
+      const writer = context?.writer
+      const agentWithStream = agent as unknown as {
+        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
+        generate: (_prompt: string) => Promise<{ text: string }>
+      }
+
+      if (writer && typeof agentWithStream.stream === 'function') {
+        const stream = await agentWithStream.stream(prompt)
+        if (stream.fullStream) {
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+        } else if (stream.textStream) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+        }
+        resultText = (await stream.text) ?? ''
+      } else {
+        const result = await agentWithStream.generate(prompt)
+        resultText = result.text
+      }
 
       let parsedResult
       try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
+        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
         if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
-          parsedResult = JSON.parse(result.text)
+          parsedResult = JSON.parse(resultText)
         }
       } catch {
         parsedResult = {
@@ -440,7 +519,7 @@ Return JSON with:
             lastUpdated: new Date().toISOString(),
             interval: aggregation,
           },
-          rawResponse: result.text,
+          rawResponse: resultText,
         }
       }
 
@@ -555,7 +634,10 @@ export const chartTypeAdvisorTool = createTool({
 
     try {
       const agent = context?.mastra?.getAgent('chartTypeAdvisorAgent')
-      if (!agent) {throw new Error('Agent chartTypeAdvisorAgent not found');}
+      if (!agent) {
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartTypeAdvisorAgent not found', stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
+        throw new Error('Agent chartTypeAdvisorAgent not found');
+      }
 
       const prompt = `Recommend the optimal Recharts chart type:
 
@@ -574,15 +656,33 @@ Analyze and recommend:
 
 Return JSON with: primaryRecommendation, alternatives, configuration`
 
-      const result = await agent.generate(prompt)
+      let resultText = ''
+      const writer = context?.writer
+      const agentWithStream = agent as unknown as {
+        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
+        generate: (_prompt: string) => Promise<{ text: string }>
+      }
+
+      if (writer && typeof agentWithStream.stream === 'function') {
+        const stream = await agentWithStream.stream(prompt)
+        if (stream.fullStream) {
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+        } else if (stream.textStream) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+        }
+        resultText = (await stream.text) ?? ''
+      } else {
+        const result = await agentWithStream.generate(prompt)
+        resultText = result.text
+      }
 
       let parsedResult
       try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(result.text)
+        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
         if (jsonMatch?.[1] !== undefined) {
           parsedResult = JSON.parse(jsonMatch[1])
         } else {
-          parsedResult = JSON.parse(result.text)
+          parsedResult = JSON.parse(resultText)
         }
       } catch {
         parsedResult = {

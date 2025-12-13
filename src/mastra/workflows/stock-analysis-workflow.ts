@@ -70,22 +70,20 @@ const fetchStockDataStep = createStep({
     const startTime = Date.now();
     logStepStart('fetch-stock-data', { symbol: inputData.symbol });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'fetch-stock-data',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('stock-analysis');
     const span = tracer.startSpan('polygon-snapshot-fetch', {
       attributes: { symbol: inputData.symbol, service: 'polygon', endpoint: '/v2/snapshot' },
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: `Fetching stock data for ${inputData.symbol}...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Fetching stock data for ${inputData.symbol}...`,
+          stage: 'workflow',
+        },
+        id: 'fetch-stock-data',
       });
 
       const apiKey = process.env.POLYGON_API_KEY;
@@ -97,10 +95,14 @@ const fetchStockDataStep = createStep({
       const response = await fetch(url);
       const data = await response.json();
 
-      await writer?.write({
-        type: 'progress',
-        percent: 80,
-        message: 'Processing stock data...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: 'Processing stock data...',
+          stage: 'workflow',
+        },
+        id: 'fetch-stock-data',
       });
 
       const ticker = data?.ticker;
@@ -121,13 +123,7 @@ const fetchStockDataStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'fetch-stock-data',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+    
       logStepEnd('fetch-stock-data', { symbol: result.symbol, price: result.currentPrice }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -136,10 +132,13 @@ const fetchStockDataStep = createStep({
       span.end();
       logError('fetch-stock-data', error, { symbol: inputData.symbol });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'fetch-stock-data',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-p',
+        data: {
+          stepId: 'fetch-stock-data',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'fetch-stock-data',
       });
 
       throw error;
@@ -160,12 +159,6 @@ const getCompanyNewsStep = createStep({
     const startTime = Date.now();
     logStepStart('get-company-news', { symbol: inputData.symbol });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'get-company-news',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('stock-analysis');
     const span = tracer.startSpan('finnhub-news-fetch', {
       attributes: {
@@ -176,10 +169,14 @@ const getCompanyNewsStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 30,
-        message: `Fetching news for ${inputData.symbol}...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Fetching news for ${inputData.symbol}...`,
+          stage: 'workflow',
+        },
+        id: 'get-company-news',
       });
 
       const apiKey = process.env.FINNHUB_API_KEY;
@@ -189,10 +186,32 @@ const getCompanyNewsStep = createStep({
           headlines: [],
           overallSentiment: 'neutral',
         };
+
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: 'FINNHUB_API_KEY not set; returning empty news and neutral sentiment.',
+            stage: 'workflow',
+          },
+          id: 'get-company-news',
+        });
+
         span.setAttribute('newsCount', 0);
         span.setAttribute('sentiment', 'neutral');
         span.setAttribute('responseTimeMs', Date.now() - startTime);
         span.end();
+
+        await writer?.custom({
+          type: 'data-workflow-step-complete',
+          data: {
+            stepId: 'get-company-news',
+            success: true,
+            duration: Date.now() - startTime,
+          },
+          id: 'get-company-news',
+        });
+
         return { stockData: inputData, newsData };
       }
 
@@ -203,10 +222,14 @@ const getCompanyNewsStep = createStep({
       const response = await fetch(url);
       const articles = await response.json();
 
-      await writer?.write({
-        type: 'progress',
-        percent: 70,
-        message: 'Analyzing news sentiment...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Analyzing news sentiment...',
+          stage: 'workflow',
+        },
+        id: 'get-company-news',
       });
 
       const headlines = Array.isArray(articles)
@@ -230,13 +253,7 @@ const getCompanyNewsStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'get-company-news',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('get-company-news', { symbol: inputData.symbol, newsCount: headlines.length }, Date.now() - startTime);
       return { stockData: inputData, newsData };
     } catch (error) {
@@ -245,10 +262,13 @@ const getCompanyNewsStep = createStep({
       span.end();
       logError('get-company-news', error, { symbol: inputData.symbol });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'get-company-news',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'get-company-news',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'get-company-news',
       });
 
       return {
@@ -271,12 +291,6 @@ const runAnalysisStep = createStep({
     const startTime = Date.now();
     logStepStart('run-analysis', { symbol: inputData.stockData.symbol });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'run-analysis',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('stock-analysis');
     const span = tracer.startSpan('stock-analysis-agent-call', {
       attributes: {
@@ -286,10 +300,14 @@ const runAnalysisStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 10,
-        message: 'Starting technical analysis...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Starting technical analysis...',
+          stage: 'workflow',
+        },
+        id: 'run-analysis',
       });
 
       const agent = mastra?.getAgent('stockAnalysisAgent');
@@ -298,10 +316,14 @@ const runAnalysisStep = createStep({
       let fundamentalAnalysis: z.infer<typeof analysisDataSchema>['fundamentalAnalysis'] = {};
 
       if (agent) {
-        await writer?.write({
-          type: 'progress',
-          percent: 40,
-          message: 'Running AI-powered analysis...',
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: 'Running AI-powered analysis...',
+            stage: 'workflow',
+          },
+          id: 'run-analysis',
         });
 
         const prompt = `Analyze the stock ${inputData.stockData.symbol}:
@@ -354,10 +376,14 @@ const runAnalysisStep = createStep({
         };
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Finalizing analysis...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: 'Finalizing analysis...',
+          stage: 'workflow',
+        },
+        id: 'run-analysis',
       });
 
       const result: z.infer<typeof analysisDataSchema> = {
@@ -375,13 +401,7 @@ const runAnalysisStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'run-analysis',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('run-analysis', { symbol: result.symbol, trend: technicalAnalysis?.trend }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -390,10 +410,13 @@ const runAnalysisStep = createStep({
       span.end();
       logError('run-analysis', error, { symbol: inputData.stockData.symbol });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'run-analysis',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'run-analysis',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'run-analysis',
       });
 
       throw error;
@@ -410,12 +433,6 @@ const generateReportStep = createStep({
     const startTime = Date.now();
     logStepStart('generate-report', { symbol: inputData.symbol });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'generate-report',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('stock-analysis');
     const span = tracer.startSpan('report-agent-call', {
       attributes: {
@@ -425,10 +442,14 @@ const generateReportStep = createStep({
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        percent: 20,
-        message: 'Generating investment report...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: 'Generating investment report...',
+          stage: 'workflow',
+        },
+        id: 'generate-report',
       });
 
       const agent = mastra?.getAgent('reportAgent');
@@ -441,10 +462,14 @@ const generateReportStep = createStep({
       let report = '';
 
       if (agent) {
-        await writer?.write({
-          type: 'progress',
-          percent: 50,
-          message: 'AI generating comprehensive report...',
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: 'AI generating comprehensive report...',
+            stage: 'workflow',
+          },
+          id: 'generate-report',
         });
 
         const prompt = `Generate an investment report for ${inputData.symbol}:
@@ -499,10 +524,14 @@ const generateReportStep = createStep({
         report = `Stock Analysis Report for ${inputData.symbol}\n\nCurrent Price: $${inputData.stockData.currentPrice}\nRecommendation: ${recommendation}`;
       }
 
-      await writer?.write({
-        type: 'progress',
-        percent: 90,
-        message: 'Finalizing report...',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: 'Finalizing report...',
+          stage: 'workflow',
+        },
+        id: 'generate-report',
       });
 
       const result: z.infer<typeof reportDataSchema> = {
@@ -523,13 +552,7 @@ const generateReportStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'generate-report',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
+      
       logStepEnd('generate-report', { symbol: result.symbol, recommendation }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -538,10 +561,13 @@ const generateReportStep = createStep({
       span.end();
       logError('generate-report', error, { symbol: inputData.symbol });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'generate-report',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-workflow-step-error',
+        data: {
+          stepId: 'generate-report',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        id: 'generate-report',
       });
 
       throw error;

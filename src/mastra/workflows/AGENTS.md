@@ -29,7 +29,7 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 
 - **Sequential (`.then()`)**: weatherWorkflow, stockAnalysisWorkflow, changelogWorkflow
 - **Parallel (`.parallel()`)**: financialReportWorkflow
-- **Conditional Branch (`.branch()`)**: documentProcessingWorkflow  
+- **Conditional Branch (`.branch()`)**: documentProcessingWorkflow
 - **Loop (`.dowhile()`)**: contentReviewWorkflow
 - **Iteration (`.foreach()`)**: researchSynthesisWorkflow
 - **Human-in-the-Loop (`suspend()`/`resume()`)**: learningExtractionWorkflow
@@ -41,200 +41,364 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 3. Add tests and, where appropriate, add e2e test harnesses to validate integrations.
 4. Register in `src/mastra/index.ts` workflows object.
 
-## Execution & debugging
+## Agents and Tools events Workflows
 
-- Workflows are executed by the Mastra runtime and can be invoked in development using `npm run dev` and programmatic calls from the code.
-- Use `TracingContext` to instrument workflow steps with spans and useful metadata.
-- Access workflows via `/workflow` API route.
+```ts
+import { createStep, createWorkflow } from "@mastra/core/workflows";
+import { z } from "zod";
+import { weatherAgent } from "../agents/weather-agent";
 
-## Best practices
+const analyzeWeatherWithAgent = createStep({
+  id: "analyze-weather",
+  description:
+    "Use an agent to analyze weather conditions and provide insights",
+  inputSchema: z.object({
+    location: z.string().describe("The location to analyze weather for"),
+  }),
+  outputSchema: z.object({
+    analysis: z.string().describe("Weather analysis from the agent"),
+    location: z.string(),
+  }),
+  execute: async ({ inputData, writer }) => {
+    // Pipe the agent's stream to the step writer to enable text chunk streaming
+    const response = await weatherAgent.stream(
+      `Analyze the weather conditions in ${inputData.location} and provide detailed insights about temperature, conditions, and recommendations for outdoor activities.`,
+    );
 
-- Keep steps idempotent when possible; implement checkpointing for long-running operations.
-- Reuse tools across workflows to reduce duplication.
-- Add logs and robust error handling.
-- Use `writer` for streaming progress updates to clients.
+    await response.fullStream.pipeTo(writer);
 
-## Standardized Writer Pattern
-
-All workflows must use the following standardized `writer` pattern for consistent progress tracking:
-
-### Step Start
-
-```typescript
-await writer?.custom({
-  type: 'data-workflow-step-start',
-  data: {
-    type: "workflow",
-    data: "step-id",
-    id: "step-id",
+    return {
+      analysis: await response.text,
+      location: inputData.location,
+    };
   },
-  id: 'step-id'
 });
+
+const calculateComfortScore = createStep({
+  id: "calculate-comfort",
+  description: "Calculate a comfort score based on the weather analysis",
+  inputSchema: z.object({
+    analysis: z.string(),
+    location: z.string(),
+  }),
+  outputSchema: z.object({
+    comfortScore: z.number().describe("Comfort score from 0-100"),
+    summary: z.string(),
+    location: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    // Simple calculation based on analysis length and keywords
+    const analysis = inputData.analysis.toLowerCase();
+    let score = 50; // Base score
+
+    // Adjust score based on positive keywords
+    if (analysis.includes("sunny") || analysis.includes("clear")) score += 20;
+    if (analysis.includes("warm") || analysis.includes("comfortable"))
+      score += 15;
+    if (analysis.includes("cool") || analysis.includes("pleasant")) score += 10;
+
+    // Adjust score based on negative keywords
+    if (analysis.includes("rain") || analysis.includes("storm")) score -= 20;
+    if (analysis.includes("hot") || analysis.includes("humid")) score -= 15;
+    if (analysis.includes("cold") || analysis.includes("freezing")) score -= 15;
+
+    // Keep score within bounds
+    score = Math.max(0, Math.min(100, score));
+
+    const summary = `Based on the weather analysis for ${inputData.location}, the comfort score is ${score}/100. ${
+      score >= 70
+        ? "Great conditions for outdoor activities!"
+        : score >= 40
+          ? "Decent weather, but consider the conditions."
+          : "Not ideal weather conditions today."
+    }`;
+
+    return {
+      comfortScore: score,
+      summary,
+      location: inputData.location,
+    };
+  },
+});
+
+export const agentTextStreamWorkflow = createWorkflow({
+  id: "agent-text-stream-workflow",
+  description:
+    "A workflow that uses an agent to analyze weather with text streaming, then calculates a comfort score",
+  inputSchema: z.object({
+    location: z.string().describe("The location to analyze weather for"),
+  }),
+  outputSchema: z.object({
+    comfortScore: z.number(),
+    summary: z.string(),
+    location: z.string(),
+  }),
+})
+  .then(analyzeWeatherWithAgent)
+  .then(calculateComfortScore);
+
+agentTextStreamWorkflow.commit();
 ```
 
-### Progress Updates
+```ts
+import { createStep, createWorkflow } from "@mastra/core/workflows";
+import { z } from "zod";
 
-```typescript
-await writer?.custom({
-  type: 'data-workflow-progress',
-  data: {
-    status: "XX%",  // Percentage: "20%", "50%", "90%", "100%"
-    message: "Descriptive progress message...",
-    stage: "workflow",
-  },
-  id: 'step-id'
-});
-```
-
-### Step Complete
-
-```typescript
-await writer?.custom({
-  type: 'data-workflow-step-complete',
-  data: {
-    stepId: 'step-id',
-    success: true,
-    duration: Date.now() - startTime,
-  },
-  id: 'step-id'
-});
-```
-
-### Step Error
-
-```typescript
-await writer?.custom({
-  type: 'data-workflow-step-error',
-  data: {
-    stepId: 'step-id',
-    error: error instanceof Error ? error.message : 'Unknown error',
-  },
-  id: 'step-id'
-});
-```
-
-### Pattern Requirements
-
-1. **Always include step-start** at the beginning of each step's execute function
-2. **Use percentage-based status** (e.g., "20%", "50%") instead of "in-progress"/"done"
-3. **Include step-complete** with success status and duration
-4. **Include step-error** in catch blocks
-5. **Add progress updates** at logical checkpoints (20%, 50%, 90%, etc.)
-
-### Example Implementation
-
-```typescript
-execute: async ({ inputData, writer }) => {
-  const startTime = Date.now();
-  
-  // Step start
-  await writer?.custom({
-    type: 'data-workflow-step-start',
-    data: {
-      type: "workflow",
-      data: "my-step",
-      id: "my-step",
-    },
-    id: 'my-step'
-  });
-
-  try {
-    // Progress update
+// Step 1: Validate order
+const validateOrder = createStep({
+  id: "validate-order",
+  description: "Validate the order details",
+  inputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+    isValid: z.boolean(),
+  }),
+  execute: async ({ inputData, writer }) => {
     await writer?.custom({
-      type: 'data-workflow-progress',
+      type: "data-tool-progress",
       data: {
-        status: "20%",
-        message: "Starting processing...",
-        stage: "workflow",
+        status: "in-progress",
+        message: `Validating order ${inputData.orderId}...`,
+        stage: "validation",
       },
-      id: 'my-step'
     });
 
-    // ... step logic ...
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Completion
     await writer?.custom({
-      type: 'data-workflow-step-complete',
+      type: "data-tool-progress",
       data: {
-        stepId: 'my-step',
-        success: true,
-        duration: Date.now() - startTime,
+        status: "done",
+        message: `Order validated successfully`,
+        stage: "validation",
       },
-      id: 'my-step'
+    });
+    try {
+      if (inputData.orderType === "standard" && inputData.amount < 50) {
+        throw new Error("Standard orders must be at least $50");
+      }
+      if (inputData.orderType === "express" && inputData.amount < 100) {
+        throw new Error("Express orders must be at least $100");
+      }
+    } catch (error) {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: "error",
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stage: "validation",
+        },
+        id: "validation",
+      });
+      throw error;
+    }
+    return {
+      ...inputData,
+      isValid: true,
+    };
+  },
+});
+
+// Nested Workflow 1: Standard Processing
+const standardProcessStep = createStep({
+  id: "standard-process",
+  description: "Process standard order",
+  inputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+    isValid: z.boolean(),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    processingTime: z.string(),
+    shippingMethod: z.string(),
+  }),
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "in-progress",
+        message: `Processing standard order ${inputData.orderId}...`,
+        stage: "standard-processing",
+      },
     });
 
-    return result;
-  } catch (error) {
-    // Error handling
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     await writer?.custom({
-      type: 'data-workflow-step-error',
+      type: "data-tool-progress",
       data: {
-        stepId: 'my-step',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        status: "in-progress",
+        message: `Preparing standard shipping (5-7 business days)...`,
+        stage: "standard-processing",
       },
-      id: 'my-step'
     });
 
-    throw error;
-  }
-}
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "done",
+        message: `Standard order processed successfully`,
+        stage: "standard-processing",
+      },
+    });
+
+    return {
+      orderId: inputData.orderId,
+      processingTime: "5-7 business days",
+      shippingMethod: "Standard Ground",
+    };
+  },
+});
+
+const standardWorkflow = createWorkflow({
+  id: "standard-shipping-workflow",
+  description: "Workflow for standard shipping orders",
+  inputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+    isValid: z.boolean(),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    processingTime: z.string(),
+    shippingMethod: z.string(),
+  }),
+}).then(standardProcessStep);
+
+standardWorkflow.commit();
+
+// Nested Workflow 2: Express Processing
+const expressProcessStep = createStep({
+  id: "express-process",
+  description: "Process express order",
+  inputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+    isValid: z.boolean(),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    processingTime: z.string(),
+    shippingMethod: z.string(),
+  }),
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "in-progress",
+        message: `Processing express order ${inputData.orderId}...`,
+        stage: "express-processing",
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "in-progress",
+        message: `Priority handling activated...`,
+        stage: "express-processing",
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "in-progress",
+        message: `Preparing express shipping (1-2 business days)...`,
+        stage: "express-processing",
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    await writer?.custom({
+      type: "data-tool-progress",
+      data: {
+        status: "done",
+        message: `Express order processed successfully`,
+        stage: "express-processing",
+      },
+    });
+
+    return {
+      orderId: inputData.orderId,
+      processingTime: "1-2 business days",
+      shippingMethod: "Express Overnight",
+    };
+  },
+});
+
+const expressWorkflow = createWorkflow({
+  id: "express-shipping-workflow",
+  description: "Workflow for express shipping orders",
+  inputSchema: z.object({
+    orderId: z.string(),
+    orderType: z.enum(["standard", "express"]),
+    amount: z.number(),
+    isValid: z.boolean(),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    processingTime: z.string(),
+    shippingMethod: z.string(),
+  }),
+}).then(expressProcessStep);
+
+expressWorkflow.commit();
+
+// Main branching workflow
+export const branchingWorkflow = createWorkflow({
+  id: "branching-workflow",
+  description:
+    "A workflow that branches based on order type to different processing workflows",
+  inputSchema: z.object({
+    orderId: z.string().describe("The order ID"),
+    orderType: z
+      .enum(["standard", "express"])
+      .describe("Type of shipping: standard or express"),
+    amount: z.number().describe("The order amount"),
+  }),
+  outputSchema: z.object({
+    orderId: z.string(),
+    processingTime: z.string(),
+    shippingMethod: z.string(),
+  }),
+})
+  .then(validateOrder)
+  .branch([
+    [
+      async ({ inputData }) => inputData.orderType === "standard",
+      standardWorkflow,
+    ],
+    [
+      async ({ inputData }) => inputData.orderType === "express",
+      expressWorkflow,
+    ],
+  ]);
+
+branchingWorkflow.commit();
 ```
 
 # Sequence Diagram
 
 ```mermaid
-sequenceDiagram
-    actor User
-    participant BrowserApp
-    participant WorkflowProvider
-    participant AIBackend
-    participant WorkflowStep
-    participant Writer
 
-    User->>BrowserApp: Click run workflow
-    BrowserApp->>WorkflowProvider: runWorkflow(inputData)
-    WorkflowProvider->>AIBackend: send workflow start message
-
-    AIBackend->>WorkflowStep: execute({ inputData, writer })
-    activate WorkflowStep
-
-    note over WorkflowStep: Step start
-    WorkflowStep->>Writer: custom(type: data-workflow-step-start, id: stepId)
-    Writer-->>AIBackend: stream message part (data-workflow-step-start)
-    AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-start
-    WorkflowProvider->>WorkflowProvider: extract dataParts
-
-    note over WorkflowStep: Progress updates
-    WorkflowStep->>Writer: custom(type: data-workflow-progress, status: 20%)
-    Writer-->>AIBackend: stream progress part
-    AIBackend-->>WorkflowProvider: assistant message with data-workflow-progress
-    WorkflowProvider->>WorkflowProvider: add WorkflowProgressEvent
-
-    WorkflowStep->>WorkflowStep: perform main logic
-
-    alt success
-        WorkflowStep->>Writer: custom(type: data-workflow-progress, status: 100%)
-        Writer-->>AIBackend: final progress part
-        AIBackend-->>WorkflowProvider: assistant message with data-workflow-progress
-        WorkflowProvider->>WorkflowProvider: update progressEvents
-
-        WorkflowStep->>Writer: custom(type: data-workflow-step-complete, success: true)
-        Writer-->>AIBackend: step complete part
-        AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-complete
-        WorkflowProvider->>WorkflowProvider: update activeStepIndex
-    else error
-        WorkflowStep->>Writer: custom(type: data-workflow-step-error, error)
-        Writer-->>AIBackend: step error part
-        AIBackend-->>WorkflowProvider: assistant message with data-workflow-step-error
-        WorkflowProvider->>WorkflowProvider: add error progressEvent
-    end
-
-    WorkflowStep-->>AIBackend: return result or throw
-    deactivate WorkflowStep
-
-    AIBackend-->>WorkflowProvider: final completion message
-    WorkflowProvider-->>BrowserApp: updated context (progressEvents, dataParts)
-    BrowserApp-->>User: render workflow progress UI
 ```
 
 ---
