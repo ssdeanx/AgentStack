@@ -327,9 +327,6 @@ cp .env.example .env
 ```bash
 # Terminal 1: Start Mastra backend (agents/tools/workflows at :4111)
 npm run dev
-
-# Terminal 2: Start Next.js frontend (at :3000)
-
 ```
 
 ### Next.js + Mastra Client SDK
