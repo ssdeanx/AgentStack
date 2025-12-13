@@ -139,42 +139,39 @@ graph TB
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 sequenceDiagram
-    participant W as Workflow Step
-    participant Writer as Writer (custom)
-    participant UI as UI/Frontend
+    participant User
+    participant Workflow
+    participant Writer
+    participant Agent/Tool
+    participant Logger
+
+    User->>Workflow: Execute workflow step
+    Workflow->>Logger: logStepStart()
     
-    Note over W,UI: Standardized Workflow Logging Pattern
+    Workflow->>Writer: custom({ type: "data-tool-progress" })
+    Note over Writer: status: "in-progress"<br/>message: "Starting..."<br/>stage: "step-id"
+    Writer-->>User: Stream progress update
     
-    W->>Writer: step-start event
-    Writer->>UI: data-workflow-step-start
-    Note right of UI: {type: "workflow", data: "step-id", id: "step-id"}
+    Workflow->>Agent/Tool: Execute operation
+    Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
+    Note over Writer: Tool emits progress<br/>with same format
+    Writer-->>User: Stream tool progress
     
-    W->>Writer: progress update (20%)
-    Writer->>UI: data-workflow-progress
-    Note right of UI: {status: "20%", message: "...", stage: "workflow"}
+    Agent/Tool-->>Workflow: Return result
     
-    W->>W: Execute step logic
+    Workflow->>Writer: custom({ type: "data-tool-progress" })
+    Note over Writer: status: "done"<br/>message: "Completed..."<br/>stage: "step-id"
+    Writer-->>User: Stream completion
     
-    W->>Writer: progress update (50%)
-    Writer->>UI: data-workflow-progress
-    Note right of UI: {status: "50%", message: "...", stage: "workflow"}
+    Workflow->>Logger: logStepEnd()
+    Workflow-->>User: Return final output
     
-    W->>W: Continue execution
-    
-    W->>Writer: progress update (100%)
-    Writer->>UI: data-workflow-progress
-    Note right of UI: {status: "100%", message: "...", stage: "workflow"}
-    
-    W->>Writer: step-complete event
-    Writer->>UI: data-workflow-step-complete
-    Note right of UI: {stepId: "step-id", success: true, duration: ms}
-    
-    Note over W,UI: Error Handling Pattern
-    
-    W->>W: Error occurs
-    W->>Writer: step-error event
-    Writer->>UI: data-workflow-step-error
-    Note right of UI: {stepId: "step-id", error: "error message"}
+    alt Error occurs
+        Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
+        Note over Writer: status: "error"<br/>message: error details
+        Writer-->>User: Stream error
+        Workflow->>Logger: logError()
+    end
 ```
 
 ## 📊 **System Flowchart**
@@ -404,6 +401,7 @@ export type Agent = z.infer<typeof AgentSchema>;
 ```
 
 **Key Features:**
+
 - **Type Safety**: All API responses validated with Zod schemas
 - **Caching**: Centralized query keys for efficient cache management
 - **Mutations**: useExecuteToolMutation, useCreateThreadMutation, useVectorQueryMutation
@@ -411,6 +409,7 @@ export type Agent = z.infer<typeof AgentSchema>;
 - **Error Handling**: Built-in loading/error states
 
 **Usage in client components:**
+
 ```typescript
 "use client";
 import { useAgentsQuery } from "@/lib/hooks/use-dashboard-queries";
