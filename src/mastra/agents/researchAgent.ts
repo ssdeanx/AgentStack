@@ -34,6 +34,9 @@ export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
+  // Optional runtime fields the server middleware may populate
+  userId?: string
+  researchPhase?: 'initial' | 'followup' | 'validation' | string
 }
 log.info('Initializing Research Agent...')
 
@@ -46,6 +49,9 @@ export const researchAgent = new Agent({
     // runtimeContext is read at invocation time
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
+    const userId = requestContext.get('userId') ?? 'anonymous'
+    const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+
     return {
       role: 'system',
       content: `
@@ -53,6 +59,8 @@ export const researchAgent = new Agent({
 
         Tier: ${userTier}
         Language: ${language}
+        UserId: ${userId}
+        Research Phase: ${researchPhase}
 
         You are a Senior Research Analyst. Your goal is to research topics thoroughly by following a precise, multi-phase process.
         </role>
@@ -160,8 +168,8 @@ export const researchAgent = new Agent({
       // higher quality (chat style) for enterprise
       return google.chat('gemini-3-pro-preview')
     } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return googleAI
+      // cheaper/faster model for pro tier
+      return 'google/gemini-2.5-flash-preview-09-2025'
     }
     // cheaper/faster model for free tier
     return google.chat('gemini-2.5-flash-preview-09-2025')

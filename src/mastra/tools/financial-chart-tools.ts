@@ -1,8 +1,10 @@
 import { trace } from "@opentelemetry/api";
+import type { MastraModelOutput } from '@mastra/core/stream';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
+import { chartSupervisorAgent, chartGeneratorAgent, chartDataProcessorAgent, chartTypeAdvisorAgent } from '../agents'
 
 
 log.info('Initializing Financial Chart Tools...')
@@ -103,8 +105,9 @@ export const chartSupervisorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent('chartSupervisorAgent')
-      if (!agent) {
+      const agentCandidate = context?.mastra?.getAgent?.('chartSupervisorAgent')
+      const agent = agentCandidate ?? chartSupervisorAgent
+      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent not found', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
         return {
           success: false,
@@ -133,21 +136,18 @@ Please:
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching financial data...', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
       let resultText = ''
       const writer = context?.writer
-      const agentWithStream = agent as unknown as {
-        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
-        generate: (_prompt: string) => Promise<{ text: string }>
-      }
 
-      if (writer && typeof agentWithStream.stream === 'function') {
-        const stream = await agentWithStream.stream(prompt)
-        if (stream.fullStream) {
+      if (typeof agent.stream === 'function') {
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
+        if (stream?.fullStream) {
           await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream.textStream) {
+        } else if (stream?.textStream) {
           await stream.textStream.pipeTo(writer as unknown as WritableStream)
         }
-        resultText = (await stream.text) ?? ''
+        const text = stream?.text ? await stream.text : undefined
+        resultText = text ?? ''
       } else {
-        const result = await agentWithStream.generate(prompt)
+        const result = await agent.generate(prompt)
         resultText = result.text
       }
 
@@ -275,8 +275,8 @@ export const chartGeneratorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent('chartGeneratorAgent')
-      if (!agent) {
+      const agent = context?.mastra?.getAgent?.('chartGeneratorAgent') ?? chartGeneratorAgent
+      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartGeneratorAgent not found', stage: 'chart-generator' }, id: 'chart-generator' })
         throw new Error('Agent chartGeneratorAgent not found');
       }
@@ -305,21 +305,18 @@ Return JSON with: componentName, code, usage, props, dependencies`
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Generating component code...', stage: 'chart-generator' }, id: 'chart-generator' })
       let resultText = ''
       const writer = context?.writer
-      const agentWithStream = agent as unknown as {
-        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
-        generate: (_prompt: string) => Promise<{ text: string }>
-      }
 
-      if (writer && typeof agentWithStream.stream === 'function') {
-        const stream = await agentWithStream.stream(prompt)
-        if (stream.fullStream) {
+      if (typeof agent.stream === 'function') {
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
+        if (stream?.fullStream) {
           await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream.textStream) {
+        } else if (stream?.textStream) {
           await stream.textStream.pipeTo(writer as unknown as WritableStream)
         }
-        resultText = (await stream.text) ?? ''
+        const text = stream?.text ? await stream.text : undefined
+        resultText = text ?? ''
       } else {
-        const result = await agentWithStream.generate(prompt)
+        const result = await agent.generate(prompt)
         resultText = result.text
       }
 
@@ -335,7 +332,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
         const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(resultText)
         parsedResult = {
           componentName,
-          code: codeMatch?.[1] !== undefined ? codeMatch[1] : resultText,
+          code: codeMatch?.[1] ?? resultText,
           usage: `<${componentName} data={data} />`,
           props: { data: `${componentName}Data[]` },
           dependencies: ['recharts', 'react'],
@@ -437,8 +434,8 @@ export const chartDataProcessorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent('chartDataProcessorAgent')
-      if (!agent) {
+      const agent = context?.mastra?.getAgent?.('chartDataProcessorAgent') ?? chartDataProcessorAgent
+      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartDataProcessorAgent not found', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
         return {
           chartData: [],
@@ -481,21 +478,18 @@ Return JSON with:
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching from financial APIs...', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
       let resultText = ''
       const writer = context?.writer
-      const agentWithStream = agent as unknown as {
-        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
-        generate: (_prompt: string) => Promise<{ text: string }>
-      }
 
-      if (writer && typeof agentWithStream.stream === 'function') {
-        const stream = await agentWithStream.stream(prompt)
-        if (stream.fullStream) {
+      if (typeof agent.stream === 'function') {
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
+        if (stream?.fullStream) {
           await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream.textStream) {
+        } else if (stream?.textStream) {
           await stream.textStream.pipeTo(writer as unknown as WritableStream)
         }
-        resultText = (await stream.text) ?? ''
+        const text = stream?.text ? await stream.text : undefined
+        resultText = text ?? ''
       } else {
-        const result = await agentWithStream.generate(prompt)
+        const result = await agent.generate(prompt)
         resultText = result.text
       }
 
@@ -633,8 +627,8 @@ export const chartTypeAdvisorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent('chartTypeAdvisorAgent')
-      if (!agent) {
+      const agent = context?.mastra?.getAgent?.('chartTypeAdvisorAgent') ?? chartTypeAdvisorAgent
+      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartTypeAdvisorAgent not found', stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
         throw new Error('Agent chartTypeAdvisorAgent not found');
       }
@@ -658,21 +652,18 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
 
       let resultText = ''
       const writer = context?.writer
-      const agentWithStream = agent as unknown as {
-        stream?: (_prompt: string) => Promise<{ fullStream?: ReadableStream<unknown>; textStream?: ReadableStream<unknown>; text?: Promise<string | undefined> }>
-        generate: (_prompt: string) => Promise<{ text: string }>
-      }
 
-      if (writer && typeof agentWithStream.stream === 'function') {
-        const stream = await agentWithStream.stream(prompt)
-        if (stream.fullStream) {
+      if (typeof agent.stream === 'function') {
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
+        if (stream?.fullStream) {
           await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream.textStream) {
+        } else if (stream?.textStream) {
           await stream.textStream.pipeTo(writer as unknown as WritableStream)
         }
-        resultText = (await stream.text) ?? ''
+        const text = stream?.text ? await stream.text : undefined
+        resultText = text ?? ''
       } else {
-        const result = await agentWithStream.generate(prompt)
+        const result = await agent.generate(prompt)
         resultText = result.text
       }
 

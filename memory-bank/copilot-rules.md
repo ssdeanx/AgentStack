@@ -152,6 +152,32 @@ If any fail, do NOT proceed. Fix issues first.
 
 ---
 
+## Tool Streaming & Progress Events
+
+All tools must follow the TASK001 streaming convention:
+
+- Prefer the runtime agent instance via `context.mastra.getAgent('<agentId>')` when available, otherwise fall back to the local agent import.
+- If the agent exposes a stream API, call `agent.stream(prompt)` returning a `MastraModelOutput` and:
+  - Pipe `textStream` / `fullStream` to `context.writer` so the UI receives nested chunks
+  - Await `stream.text` for the final text
+  - Use `stream.object` when present for structured responses and fall back to JSON parsing of `stream.text`
+- If no streaming API, call `agent.generate(prompt)` and parse `response.object` or JSON text as a fallback.
+- Emit progress events with the exact format below at start/in-progress/done:
+
+```typescript
+await context?.writer?.custom({
+  type: 'data-tool-progress',
+  data: {
+    status: 'in-progress',
+    message: `📈 Fetching tool-id data for ${inputData.symbol}/${inputData.market}`,
+    stage: 'tool-id'
+  },
+  id: 'tool-id'
+});
+```
+
+- Update the TASK001 scratchpad (`/memory-bank/tasks/TASK001-tool-streaming.md`) when implementing or changing tool streaming behavior.
+
 ## 🎨 UI Component Rules
 
 ### Component Locations

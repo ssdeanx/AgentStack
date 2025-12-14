@@ -2,7 +2,9 @@ import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
-import { trace } from "@opentelemetry/api";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import type { MastraModelOutput } from '@mastra/core/stream';
+import { copywriterAgent } from '../agents/copywriterAgent';
 
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
@@ -103,9 +105,10 @@ export const copywriterTool = createTool({
     });
 
     try {
-      const agentInstance = mastra?.getAgent('copywriterAgent')
+      const agent = mastra?.getAgent?.('copywriterAgent') ?? copywriterAgent
 
-      if (!agentInstance) {
+      // Validate agent has an invocation method (generate or stream).
+      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
@@ -189,32 +192,55 @@ export const copywriterTool = createTool({
         id: 'copywriter-agent',
       })
 
-      interface StreamResult {
-        fullStream?: ReadableStream<unknown>
-        textStream?: ReadableStream<unknown>
-        text?: Promise<string | undefined>
-      }
-
-      const agentWithStream = agentInstance as unknown as {
-        stream?: (_prompt: string) => Promise<StreamResult>
-        generate: (_prompt: string) => Promise<{ text: string }>
-      }
-
       let contentText = ''
-      if (writer && typeof agentWithStream.stream === 'function') {
-        const stream = await agentWithStream.stream(prompt)
+      if (typeof agent.stream === 'function') {
+        try {
+          await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming content from copywriter agent', stage: 'copywriter-agent' }, id: 'copywriter-agent' });
+          const stream = await agent.stream(prompt) as MastraModelOutput | undefined
 
-        if (stream.fullStream) {
-          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream.textStream) {
-          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+          if (stream?.textStream && writer) {
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming text from copywriter agent', stage: 'copywriter-agent' }, id: 'copywriter-agent' });
+            await stream.textStream.pipeTo(writer as unknown as WritableStream)
+          } else if (stream?.fullStream && writer) {
+            await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming from copywriter agent (full stream)', stage: 'copywriter-agent' }, id: 'copywriter-agent' });
+            await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+          }
+
+          const text = (await stream?.text) ?? ''
+          const responseObject = stream?.object ?? (() => { try { return JSON.parse(text) } catch { return {} } })()
+
+          if ((Boolean(responseObject)) && typeof responseObject === 'object') {
+            const obj = responseObject as Record<string, unknown>
+            const contentVal = obj.content
+            if (typeof contentVal === 'string') {
+              contentText = contentVal
+            } else {
+              contentText = text
+            }
+          } else {
+            contentText = text
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          span.recordException(err instanceof Error ? err : new Error(msg))
+          try { span.setStatus({ code: SpanStatusCode.ERROR, message: msg }) } catch { /* ignore */ }
+          span.end()
+          await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ Error generating content: ${msg}`, stage: 'copywriter-agent' }, id: 'copywriter-agent' });
+          throw err
         }
-
-        contentText = (await stream.text) ?? ''
       } else {
-        const result = await agentWithStream.generate(prompt)
-        contentText = result.text
+        const response = await agent.generate(prompt)
+        const responseObject = response.object ?? (() => { try { return JSON.parse(response.text) } catch { return undefined } })()
+        const obj = responseObject as Record<string, unknown> | undefined
+        if (obj && typeof obj.content === 'string') {
+          contentText = obj.content
+        } else {
+          contentText = response.text
+        }
       }
+
+      // Final progress 'done' event
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Content generated', stage: 'copywriter-agent' }, id: 'copywriter-agent' });
 
       // Parse and structure the response
       const content = contentText

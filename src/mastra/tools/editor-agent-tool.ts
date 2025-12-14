@@ -2,6 +2,7 @@ import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { trace, SpanStatusCode } from "@opentelemetry/api";
+import type { MastraModelOutput } from '@mastra/core/stream';
 import { editorAgent } from '../agents/editorAgent';
 
 export const editorTool = createTool({
@@ -34,8 +35,22 @@ export const editorTool = createTool({
       .optional()
       .describe('Additional suggestions for improvement'),
   }),
+  // Streaming: Pipe a nested agent's textStream into the tool writer so the UI
+  // receives nested agent chunks while the tool is running. See:
+  // https://mastra.ai/docs/streaming/tool-streaming#tool-using-an-agent
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '📝 Starting editor agent' }, id: 'editor-agent' });
+    // Emit progress start
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '📝 Starting editor agent',
+        stage: 'editor-agent',
+      },
+      id: 'editor-agent',
+    })
+
+
     const { content, contentType = 'general', instructions, tone } = inputData
     const writer = context?.writer;
 
@@ -66,17 +81,53 @@ export const editorTool = createTool({
       }
       prompt += `:\n\n${content}`
 
-      await writer?.custom({ type: 'data-tool-agent', data: { message: '🤖 Generating edited content' }, id: 'editor-agent' });
-      const result = await editorAgent.generate(prompt)
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🤖 Generating edited content', stage: 'editor-agent' }, id: 'editor-agent' });
+
+      // Use the agent's streaming API when available, following the Mastra nested-agent example.
+      // Prefer the agent instance registered on `context.mastra` so usage is correctly
+      // attributed to the running Mastra runtime; fall back to the imported agent.
+      let resultText = ''
+      try {
+        const agent = context?.mastra?.getAgent?.('editorAgent') ?? editorAgent
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
+
+        // Stream the agent's text stream into the tool writer so the UI receives
+        // nested and merged chunks while the tool is running. This also allows
+        // Mastra to aggregate usage into the tool run (see docs).
+        if (stream?.textStream && writer) {
+          await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming text from editor agent', stage: 'editor-agent' }, id: 'editor-agent' });
+          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+          resultText = (await stream.text) ?? ''
+        } else if (stream?.fullStream && writer) {
+          // Some runtimes expose a fullStream; pipe it so nested events and
+          // structured payloads are forwarded to the tool writer.
+          await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming from editor agent (full stream)', stage: 'editor-agent' }, id: 'editor-agent' });
+          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
+          resultText = (await stream.text) ?? ''
+        } else if (stream) {
+          // No UI writer available, but stream exists
+          resultText = (await stream.text) ?? ''
+        } else {
+          // Fallback to synchronous generate using the agent instance
+          const result = await agent.generate(prompt)
+          resultText = result.text
+        }
+      } catch (err) {
+        // Streaming/generation error — bubble up after logging
+        const msg = err instanceof Error ? err.message : String(err)
+        span.recordException(err instanceof Error ? err : new Error(msg))
+        span.setStatus({ code: SpanStatusCode.ERROR, message: msg })
+        throw err
+      }
 
       // Parse the structured response from the editor agent
       let parsedResult
       try {
-        parsedResult = JSON.parse(result.text)
+        parsedResult = JSON.parse(resultText)
       } catch {
         // Fallback for non-JSON responses
         parsedResult = {
-          editedContent: result.text,
+          editedContent: resultText,
           contentType,
           changes: ['Content edited and improved'],
           suggestions: [],
@@ -85,16 +136,21 @@ export const editorTool = createTool({
 
       span.end();
 
-      await writer?.custom({ type: 'data-tool-agent', data: { message: '✅ Editing complete' }, id: 'editor-agent' });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: '✅ Editing complete',
+          stage: 'editor-agent',
+        },
+        id: 'editor-agent',
+      })
+
       return {
         editedContent:
-          parsedResult.editedContent ??
-          parsedResult.copy ??
-          result.text,
+          parsedResult.editedContent ?? parsedResult.copy ?? resultText,
         contentType: parsedResult.contentType ?? contentType,
-        changes: parsedResult.changes ?? [
-          'Content edited and improved',
-        ],
+        changes: parsedResult.changes ?? ['Content edited and improved'],
         suggestions: parsedResult.suggestions ?? [],
       }
     } catch (error) {
