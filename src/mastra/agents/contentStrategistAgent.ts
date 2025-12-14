@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent';
 import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
-import { structureScorer, creativityScorer } from '../scorers';
+
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context'
@@ -98,14 +98,7 @@ EXAMPLE FLOW:
     chartSupervisorTool
   },
   scorers: {
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
-    creativity: {
-      scorer: creativityScorer,
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
+
   },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { responseQualityScorer, structureScorer, taskCompletionScorer } from '../scorers'
+
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
@@ -129,10 +129,8 @@ For each search result provided, you must determine its relevance to the user's 
   model: googleAIFlashLite,
   memory: pgMemory,
   scorers: {
-    responseQuality: {
-      scorer: responseQualityScorer,
-      sampling: { type: 'ratio', rate: 0.5 },
-    }
+
+    
   },
   workflows: {},
   maxRetries: 5,

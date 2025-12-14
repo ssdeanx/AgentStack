@@ -4,7 +4,7 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
 
-import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import {
   createAnswerRelevancyScorer,
@@ -14,7 +14,7 @@ import { PGVECTOR_PROMPT } from "@mastra/pg";
 import { google, googleAI, googleAI3, googleAIFlashLite } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory, pgQueryTool } from '../config/pg-storage';
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer } from '../scorers/custom-scorers';
+
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { extractLearningsTool } from '../tools/extractLearningsTool';

@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
-import { csvValidityScorer } from "../scorers";
+
+
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from "@mastra/core/request-context";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
@@ -146,10 +147,8 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
   memory: pgMemory,
   tools: {},
   scorers: {
-    csvValidity: {
-      scorer: csvValidityScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
+
+    
   },
   workflows: {},
   maxRetries: 5,

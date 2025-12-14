@@ -3,7 +3,7 @@ import { Agent } from '@mastra/core/agent';
 
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
-import { taskCompletionScorer } from '../scorers';
+
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -196,10 +196,7 @@ export const danePackagePublisher = new Agent({
   },
   // options: { tracingPolicy: { internal: InternalSpans.AGENT } },
   scorers: {
-    taskCompletion: {
-      scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.4 },
-    },
+
   },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

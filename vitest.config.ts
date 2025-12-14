@@ -4,9 +4,6 @@ import * as path from 'path'
 export default defineConfig({
     test: {
         globals: true,
-
-        globalSetup: './globalSetup.ts',
-        setupFiles: ['./testSetup.ts'],
         environment: 'jsdom',
         include: [
             'src/**/*.test.{ts,tsx}', // Colocated tests in features

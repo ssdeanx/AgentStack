@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { researchCompletenessScorer, structureScorer, summaryQualityScorer } from '../scorers'
+
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
@@ -107,18 +107,7 @@ export const reportAgent = new Agent({
   memory: pgMemory,
   options: {},
   scorers: {
-    researchCompleteness: {
-      scorer: researchCompletenessScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: 'ratio', rate: 0.6 },
-    },
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
+
   },
   tools: {},
   workflows: {},

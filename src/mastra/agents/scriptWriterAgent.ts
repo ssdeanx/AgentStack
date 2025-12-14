@@ -6,7 +6,6 @@ import { BaseSpan } from '@mastra/observability';
 import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
-import { creativityScorer, pacingScorer, scriptFormatScorer } from '../scorers';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -82,18 +81,6 @@ export const scriptWriterAgent = new Agent({
   memory: pgMemory,
   options: {},
   scorers: {
-    scriptFormat: {
-      scorer: scriptFormatScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
-    pacing: {
-      scorer: pacingScorer,
-      sampling: { type: 'ratio', rate: 1.0 },
-    },
-    creativity: {
-      scorer: creativityScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
   },
   tools: {
     webScraperTool

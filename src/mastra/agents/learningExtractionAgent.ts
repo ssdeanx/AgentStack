@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { structureScorer } from '../scorers'
+
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
@@ -64,10 +64,7 @@ export const learningExtractionAgent = new Agent({
   model: googleAI,
   memory: pgMemory,
   scorers: {
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 0.7 },
-    },
+
   },
   workflows: {},
   maxRetries: 5,

@@ -5,7 +5,7 @@ import type { RequestContext } from '@mastra/core/request-context';
 import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
-import { summaryQualityScorer } from '../scorers';
+
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
@@ -122,10 +122,7 @@ Tailor your editing style to the content type:
   memory: pgMemory,
   tools: [],
   scorers: {
-    summaryQuality: {
-      scorer: summaryQualityScorer,
-      sampling: { type: 'ratio', rate: 0.6 },
-    }
+
   },
   workflows: {},
   maxRetries: 5,

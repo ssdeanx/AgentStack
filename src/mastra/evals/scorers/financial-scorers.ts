@@ -1,8 +1,6 @@
-import { createScorer, runEvals } from '@mastra/core/evals';
-import { googleAIFlashLite } from '../config/google'
-import { z } from 'zod'
+import { createScorer } from '@mastra/core/evals';
+import { googleAIFlashLite } from '../../config/google'
 
-/* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const financialDataScorer = createScorer({
     id: 'financial-data-scorer',
     name: 'Financial Data Integrity',
@@ -10,7 +8,8 @@ export const financialDataScorer = createScorer({
     judge: {
         model: googleAIFlashLite,
         instructions: 'You are a financial data auditor.'
-    }
+    },
+    type: 'agent'
 })
 .preprocess(({ run }) => {
     const {output} = run
@@ -20,7 +19,6 @@ export const financialDataScorer = createScorer({
     if (typeof output === 'string') {
         text = output
         try {
-            // Try to find JSON block if embedded in markdown
             const match = /```json\s*([\s\S]*?)\s*```/.exec(output)
             if (match) {
                 json = JSON.parse(match[1])
