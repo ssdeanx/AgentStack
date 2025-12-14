@@ -51,6 +51,9 @@ import { researchPaperAgent } from './agents/researchPaperAgent';
 
 // Utility Agents
 import { daneNewContributor } from './workflows/new-contributor';
+import { calendarAgent } from './agents/calendarAgent';
+import { bgColorAgent } from './agents/bgColorAgent';
+import { danePackagePublisher } from './agents/package-publisher';
 
 // Financial Chart Agents
 import {
@@ -72,6 +75,7 @@ import { codingA2ACoordinator } from './a2a/codingA2ACoordinator';
 
 // Workflows
 import { trace } from "@opentelemetry/api";
+import type { RequestContext } from '@mastra/core/request-context';
 import { acpAgent } from './agents/acpAgent';
 import { businessStrategyAgent, complianceMonitoringAgent, contractAnalysisAgent, legalResearchAgent } from "./agents/businessLegalAgents";
 import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/dane';
@@ -140,6 +144,11 @@ export const mastra = new Mastra({
     daneLinkChecker,
     daneChangeLog,
     dane,
+    // Calendar and misc
+    calendarAgent,
+    bgColorAgent,
+    // Package publisher
+    danePackagePublisher,
     // Financial Chart Agents
     chartTypeAdvisorAgent,
     chartDataProcessorAgent,
@@ -453,37 +462,63 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
     ],
-//    cors: {
-//      origin: ["*"], // Allow specific origins or '*' for all
-//      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//      allowHeaders: ["Content-Type", "Authorization"],
-//      exposeHeaders: ["Content-Length", "X-Requested-With"],
-//      credentials: false,
-//    },
-//    middleware: [
-      // Middleware to extract data from the request body
-//      async (c, next) => {
-//        const runtimeContext = c.get("runtimeContext");
-//
-//        if (c.req.method === "POST") {
-//          try {
-//            const clonedReq = c.req.raw.clone();
-///            const body = await clonedReq.json();
-//
-            // Ensure body and body.data are objects before using them
-//            if (body !== null && typeof body === 'object' && body.data !== null && typeof body.data === 'object') {
-//              const data = body.data as Record<string, unknown>;
-//              for (const [key, value] of Object.entries(data)) {
-//                runtimeContext.set(key, value);
-//              }
-//            }
-//          } catch {
-//            log.error("Failed to parse request body for middleware");
-//          }
-//        }
-//        await next();
-//      },
-//0          ],
+    middleware: [
+      // Populate RequestContext with real runtime values derived from headers (used by agents/tools)
+      async (c, next) => {
+        const country = c.req.header('CF-IPCountry') ?? ''
+        const authHeader = c.req.header('Authorization') ?? ''
+        const headerUserId = c.req.header('x-user-id')
+        const headerUserTier = c.req.header('x-user-tier')
+        const acceptLanguage = c.req.header('accept-language') ?? ''
+        const researchPhaseHeader = c.req.header('x-research-phase')
+
+        const requestContext = c.get('requestContext') as RequestContext | undefined
+        if (requestContext?.set) {
+          // Temperature unit (from Cloudflare geo header)
+          const unit = country === 'US' ? 'fahrenheit' : 'celsius'
+          requestContext.set('temperature-unit', unit)
+
+          // userId: prefer explicit header, otherwise try to parse from a bearer token (format: "Bearer user:<id>")
+          let userId = headerUserId
+          if (!userId && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice('Bearer '.length)
+            const exec = /user:([^;\s]+)/.exec(token)
+            if (exec) { userId = exec[1] }
+          }
+          if (userId !== null && userId !== '') { requestContext.set('userId', userId) }
+
+          // user-tier: prefer explicit header, otherwise derive from token hints
+          let userTier = headerUserTier
+          if (!userTier && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.slice('Bearer '.length)
+            if (token.includes('enterprise')) { userTier = 'enterprise' }
+            else if (token.includes('pro')) { userTier = 'pro' }
+            else { userTier = 'free' }
+          }
+          if (userTier !== null && userTier !== '') { requestContext.set('user-tier', userTier) }
+
+          // language: prefer Accept-Language header (primary language subtag), fallback to 'en'
+          const language = acceptLanguage.split(',')[0]?.split('-')[0] ?? 'en'
+          const supported = ['en', 'es', 'ja', 'fr']
+          requestContext.set('language', supported.includes(language) ? language : 'en')
+
+          // research phase
+          requestContext.set('researchPhase', researchPhaseHeader ?? 'initial')
+
+          // runtime API key (for tools that may accept runtimeContext.apiKey)
+        //  if (apiKeyHeader !== null && apiKeyHeader !== '') { requestContext.set('apiKey', apiKeyHeader) }
+        }
+
+        await next()
+      },
+      // Request timing logger
+      async (c, next) => {
+        const start = Date.now()
+        await next()
+        const duration = Date.now() - start
+        log.info(`${c.req.method} ${c.req.url} - ${duration}ms`)
+      },
+    ]
     }
 });
 

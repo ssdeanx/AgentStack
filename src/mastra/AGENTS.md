@@ -45,7 +45,7 @@ This folder contains the middleware and high-level components that define Mastra
 
 - Use explicit Zod schemas for every tool input/output.
 - Keep tools small and side-effect-free when possible; agents orchestrate tools and handle context.
-- Use `RuntimeContext` to enforce access control in tools and workflows.
+- Use `RequestContext` (per-request) or agent-specific runtime context types (e.g. `EditorRuntimeContext`) to enforce access control in tools and workflows.
 
 ---
 Last updated: 2025-11-26
