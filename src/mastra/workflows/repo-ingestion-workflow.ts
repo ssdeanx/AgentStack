@@ -177,29 +177,36 @@ const ingestStep = createStep({
 
           const result = await mdocumentChunker.execute({
             documentContent: content,
-            documentMetadata: { filePath, source: githubRepo ? 'github' : 'local' },
+            documentMetadata: { filePath, source: (githubRepo) ? 'github' : 'local' },
             chunkingStrategy: strategy,
             indexName: 'memory_messages_3072',
             generateEmbeddings: true,
+            embeddingModel: 'google/gemini-embedding-001',
+            embeddingBatchSize: 50,
             chunkSize: 512,
             chunkOverlap: 50,
             chunkSeparator: '\n'
           }, { writer, requestContext });
 
-          if (result && typeof result === 'object' && 'success' in result && result.success) {
-                      processedFiles++;
-                      totalChunks += result.chunkCount;
-                    }
-          else if (result instanceof ZodError) {
-                        throw new Error(result.message);
-                      }
-          else if (result instanceof Error) {
-                        throw result;
-                      } else if (result && typeof result === 'object' && 'error' in result) {
-                        throw new Error(typeof result.error === 'string' ? result.error : 'Unknown error in chunking');
-                      } else {
-                        throw new Error('Unknown error in chunking');
-                      }
+          const isSuccessResult = (r: unknown): r is { success: true; chunkCount?: number } =>
+            typeof r === 'object' && r !== null && 'success' in r && (r as { success: unknown }).success === true;
+
+          const isErrorObject = (r: unknown): r is { error: unknown } =>
+            typeof r === 'object' && r !== null && 'error' in r;
+
+          if (isSuccessResult(result)) {
+            processedFiles++;
+            totalChunks += result.chunkCount ?? 0;
+          } else if (result instanceof ZodError) {
+            throw new Error(result.message);
+          } else if (result instanceof Error) {
+            throw result;
+          } else if (isErrorObject(result)) {
+            const err = result.error;
+            throw new Error(typeof err === 'string' ? err : 'Unknown error in chunking');
+          } else {
+            throw new Error('Unknown error in chunking');
+          }
 
         } catch (error) {
           const errorObj = error instanceof Error ? error : new Error(String(error));

@@ -1,7 +1,11 @@
 import js from '@eslint/js'
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from '@typescript-eslint/eslint-plugin'
 import tsparser from '@typescript-eslint/parser'
 import prettierConfig from 'eslint-config-prettier'
+import { globalIgnores } from "eslint/config";
 
 const ignores = [
     'eslint.config.js',
@@ -46,7 +50,10 @@ const ignores = [
 
 export default [
     { ignores },
+    globalIgnores(["dist", "node_modules"]),
     js.configs.recommended,
+    reactHooks.configs.flat.recommended,
+    reactRefresh.configs.next,
     prettierConfig,
     {
         files: ['**/*.ts', '**/*.tsx'],
@@ -55,6 +62,7 @@ export default [
         },
         languageOptions: {
             parser: tsparser,
+            globals: globals.browser,
             parserOptions: {
                 ecmaVersion: 2022,
                 sourceType: 'module',

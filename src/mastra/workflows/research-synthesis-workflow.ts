@@ -72,9 +72,9 @@ const initializeResearchStep = createStep({
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-          status: "in-progress",
-          message: `Researching topic: ${inputData.topics}...`,
-          stage: "researchAgent",
+        status: "in-progress",
+        message: `Researching topic: ${inputData.topics}...`,
+        stage: "researchAgent",
       },
       id: 'initialize-research',
     });
@@ -84,7 +84,7 @@ const initializeResearchStep = createStep({
       maxSources: inputData.maxSourcesPerTopic,
     }));
 
-    
+
     logStepEnd('initialize-research', { topicsCount: topics.length }, Date.now() - startTime);
 
     return topics;
@@ -109,7 +109,7 @@ const researchTopicStep = createStep({
       data: {
         status: 'in-progress',
         message: `Researching topic: ${inputData.topic}...`,
-        stage: 'workflow',
+        stage: 'research-topic-item',
       },
       id: 'research-topic-item',
     });
@@ -128,7 +128,7 @@ const researchTopicStep = createStep({
         data: {
           status: 'in-progress',
           message: `Researching topic: ${inputData.topic}...`,
-          stage: 'workflow',
+          stage: 'research-topic-item',
         },
         id: 'research-topic-item',
       });
@@ -189,7 +189,7 @@ const researchTopicStep = createStep({
         data: {
           status: 'done',
           message: `Research completed for ${inputData.topic}...`,
-          stage: 'workflow',
+          stage: 'research-topic-item',
         },
         id: 'research-topic-item',
       });
@@ -211,9 +211,9 @@ const researchTopicStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'in-progress',
+          status: 'done',
           message: `Research error for ${inputData.topic}...`,
-          stage: 'researchAgent',
+          stage: 'research-topic-item',
         },
         id: 'research-topic-item',
       });
@@ -255,6 +255,7 @@ const synthesizeResearchStep = createStep({
         data: {
           status: 'in-progress',
           message: 'Synthesizing research across topics...',
+          stage: 'synthesize-research',
         },
         id: 'synthesize-research',
       });
@@ -269,6 +270,7 @@ const synthesizeResearchStep = createStep({
           data: {
             status: 'in-progress',
             message: 'AI synthesizing findings...',
+            stage: 'synthesize-research',
           },
           id: 'synthesize-research',
         });
@@ -352,6 +354,7 @@ Provide:
         data: {
           status: 'done',
           message: 'Synthesis complete...',
+          stage: 'synthesize-research',
         },
         id: 'synthesize-research',
       });
@@ -376,7 +379,7 @@ Provide:
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      
+
       logStepEnd('synthesize-research', { themesCount: synthesis.commonThemes.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -386,10 +389,11 @@ Provide:
       logError('synthesize-research', error);
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'synthesize-research',
+          stage: 'synthesize-research',
           error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
         },
         id: 'synthesize-research',
       });
@@ -421,6 +425,7 @@ const generateResearchReportStep = createStep({
         data: {
           status: 'in-progress',
           message: 'Generating research report...',
+          stage: 'generate-research-report',
         },
         id: 'generate-research-report',
       });
@@ -434,6 +439,7 @@ const generateResearchReportStep = createStep({
           data: {
             status: 'in-progress',
             message: 'AI generating comprehensive report...',
+            stage: 'generate-research-report',
           },
           id: 'generate-research-report',
         });
@@ -502,7 +508,7 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
         data: {
           status: 'done',
           message: 'Report generation complete...',
-          stage: 'workflow',
+          stage: 'generate-research-report',
         },
         id: 'generate-research-report',
       });
@@ -523,7 +529,7 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      
+
       logStepEnd('generate-research-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -533,11 +539,11 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
       logError('generate-research-report', error);
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'generate-research-report',
+          stage: 'generate-research-report',
           error: error instanceof Error ? error.message : 'Unknown error',
-          stage: 'workflow',
+          status: 'done'
         },
         id: 'generate-research-report',
       });

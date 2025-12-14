@@ -119,6 +119,8 @@
     "diff": "^8.0.2",
     "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.23",
     "excalidraw-to-svg": "^3.1.0",
     "fast-glob": "^3.3.3",
     "fast-xml-parser": "^5.3.3",
