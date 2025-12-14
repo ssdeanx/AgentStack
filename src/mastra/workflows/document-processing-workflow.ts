@@ -269,7 +269,7 @@ const convertPdfToMarkdownStep = createStep({
         data: {
           status: 'in-progress',
           message: 'Converting PDF to markdown `...',
-          stage: "documentProcessingAgent",
+          stage: "convert-pdf-to-markdown",
         },
         id: "convert-pdf-to-markdown",
       });
@@ -318,7 +318,7 @@ const convertPdfToMarkdownStep = createStep({
         data: {
           status: "in-progress",
           message: 'Markdown conversion complete (90%)...',
-          stage: "documentProcessingAgent",
+          stage: "convert-pdf-to-markdown",
         },
         id: "convert-pdf-to-markdown",
       });
@@ -345,7 +345,7 @@ const convertPdfToMarkdownStep = createStep({
         data: {
           status: "done",
           message: "PDF converted to markdown successfully",
-          stepId: 'convert-pdf-to-markdown',
+          stage: 'convert-pdf-to-markdown',
         },
         id: "convert-pdf-to-markdown",
       });
@@ -360,9 +360,10 @@ const convertPdfToMarkdownStep = createStep({
       logError('convert-pdf-to-markdown', error, { contentType: inputData.contentType });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'convert-pdf-to-markdown',
+          stage: 'convert-pdf-to-markdown',
+          status: "done",
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         id: "convert-pdf-to-markdown",
