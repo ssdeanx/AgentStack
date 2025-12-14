@@ -3,12 +3,6 @@ import { TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processor
 import { PGVECTOR_PROMPT } from "@mastra/pg"
 import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
-import {
-  financialDataScorer,
-  responseQualityScorer,
-  sourceDiversityScorer,
-  taskCompletionScorer,
-} from '../scorers'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import { chartDataProcessorTool, chartGeneratorTool, chartTypeAdvisorTool } from '../tools/financial-chart-tools'
 import {
@@ -513,18 +507,7 @@ Return comprehensive chart package:
   options: {
   },
   scorers: {
-    taskCompletion: {
-      scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    sourceDiversity: {
-      scorer: sourceDiversityScorer,
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
-    financialData: {
-      scorer: financialDataScorer,
-      sampling: { type: 'ratio', rate: 0.6 },
-    },
+
   },
   inputProcessors: [
     new UnicodeNormalizer({

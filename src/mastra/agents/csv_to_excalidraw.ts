@@ -1,6 +1,5 @@
 import { Agent } from "@mastra/core/agent";
 import { googleAI, pgMemory } from "../config";
-import { structureScorer } from "../scorers";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from "@mastra/core/processors";
@@ -177,10 +176,7 @@ Structure:
   memory: pgMemory,
   tools: {},
   scorers: {
-    structure: {
-      scorer: structureScorer,
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
+
   },
   workflows: {},
   maxRetries: 5,

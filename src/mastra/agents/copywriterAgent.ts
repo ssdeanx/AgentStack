@@ -10,7 +10,7 @@ import {
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { googleAIFlashLite } from '../config/google'
-import { structureScorer } from '../scorers'
+
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -137,10 +137,7 @@ Provide the final content in a clear, well-structured format appropriate for the
         chartSupervisorTool
     },
     scorers: {
-        structure: {
-            scorer: structureScorer,
-            sampling: { type: 'ratio', rate: 0.5 },
-        },
+
     },
     workflows: {},
     maxRetries: 5,

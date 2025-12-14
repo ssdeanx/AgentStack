@@ -1,9 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-
-import { createAnswerRelevancyScorer } from '@mastra/evals/scorers/prebuilt';
-
 import { googleAIFlashLite, pgMemory, pgQueryTool } from '../config';
-
 import { arxivTool } from '../tools/arxiv.tool';
 import { csvToJsonTool } from '../tools/csv-to-json.tool';
 import { createDataDirTool, getDataFileInfoTool, listDataDirTool, moveDataFileTool, searchDataFilesTool, writeDataFileTool } from '../tools/data-file-manager';
@@ -133,9 +129,6 @@ export const acpAgent = new Agent({
   outputProcessors: [new TokenLimiterProcessor(1048576)],
   workflows: {},
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: "ratio", rate: 0.5 }
-    }
+
   },
 });
