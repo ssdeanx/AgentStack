@@ -2,8 +2,8 @@ import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
+import type { MastraModelOutput } from '@mastra/core/stream';
 import { log } from '../config/logger';
-import { learningExtractionAgent } from '../agents/learningExtractionAgent';
 
 export const extractLearningsTool = createTool({
   id: 'extract-learnings',
@@ -20,14 +20,24 @@ export const extractLearningsTool = createTool({
       .describe('The search result to process'),
   }),
   execute: async (inputData, context) => {
-    await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '🧠 Extracting learnings from search result' }, id: 'extract-learnings' });
-
+    const mastra = context?.mastra;
+    const writer = context?.writer;
+    // Emit progress start event
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🧠 Extracting learnings from search result',
+        stage: 'extract-learnings',
+      },
+      id: 'extract-learnings',
+    })
     const tracer = trace.getTracer('extract-learnings');
     const extractSpan = tracer.startSpan('extract_learnings', {
       attributes: {
-        query: inputData.query,
-        url: inputData.result.url,
-        contentLength: inputData.result.content.length,
+        query: inputData?.query,
+        url: inputData?.result?.url,
+        contentLength: inputData?.result?.content?.length,
         operation: 'extract_learnings'
       }
     });
@@ -39,22 +49,47 @@ export const extractLearningsTool = createTool({
         title: result.title,
         url: result.url,
       })
-      await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '🤖 Generating insights with learning agent' } });
-      const response = await learningExtractionAgent.generate([
-        {
-          role: 'user',
-          content: `The user is researching "${query}".
-            Extract a key learning and generate follow-up questions from this search result:
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🤖 Generating insights with learning agent', stage: 'extract-learnings' }, id: 'extract-learnings' });
 
-            Title: ${result.title}
-            URL: ${result.url}
-            Content: ${result.content.substring(0, 8000)}...
+      const truncatedContent = (result?.content ?? '').slice(0, 8000);
+      const contentWithTruncation = (result?.content ?? '').length > 8000 ? truncatedContent + 'AAAA...' : truncatedContent;
 
-            Respond with a JSON object containing:
-            - learning: string with the key insight from the content
-            - followUpQuestions: array of up to 1 follow-up question for deeper research`,
-        },
-      ])
+      const prompt = `The user is researching "${query}".\nExtract a key learning and generate follow-up questions from this search result:\n\nTitle: ${result?.title}\nURL: ${result?.url}\nContent: ${contentWithTruncation}\n\nRespond with a JSON object containing:\n- learning: string with the key insight from the content\n- followUpQuestions: array of up to 1 follow-up question for deeper research`;
+
+      if (mastra === undefined || mastra === null) {
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ Mastra instance not provided', stage: 'extract-learnings' }, id: 'extract-learnings' });
+        extractSpan.setAttribute('output.learningLength', 0);
+        extractSpan.setAttribute('output.followUpQuestionsCount', 0);
+        extractSpan.end();
+        return { learning: 'Mastra instance not provided', followUpQuestions: [] };
+      }
+
+      const agent = mastra.getAgent('learningExtractionAgent');
+      if (agent === undefined || agent === null) {
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ learningExtractionAgent not available', stage: 'extract-learnings' }, id: 'extract-learnings' });
+        extractSpan.setAttribute('output.learningLength', 0);
+        extractSpan.setAttribute('output.followUpQuestionsCount', 0);
+        extractSpan.end();
+        return { learning: 'learningExtractionAgent not available', followUpQuestions: [] };
+      }
+
+      let responseObject: unknown = {};
+      if (typeof agent.stream === 'function') {
+        // Use MastraModelOutput for accurate typing and pipe fullStream into the writer (Mastra nested-agent pattern)
+        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔁 Streaming learnings from agent', stage: 'extract-learnings' }, id: 'extract-learnings' });
+        const stream = await agent.stream(prompt) as MastraModelOutput | undefined;
+        if (stream?.fullStream !== undefined && writer) { await stream.fullStream.pipeTo(writer as unknown as WritableStream) }
+
+        if (stream) {
+          const text = (await stream.text) ?? '';
+          try { responseObject = stream.object ?? (text ? JSON.parse(text) : {}) } catch { responseObject = {} }
+        } else {
+          responseObject = {}
+        }
+      } else {
+        const response = await agent.generate(prompt);
+        try { responseObject = response.object ?? (response.text ? JSON.parse(response.text) : {}) } catch { responseObject = {} }
+      }
 
       const outputSchema = z.object({
         learning: z.string(),
@@ -62,43 +97,79 @@ export const extractLearningsTool = createTool({
       })
 
       log.info('Learning extraction response', {
-        result: response.object,
+        result: responseObject,
       })
 
-      const parsed = outputSchema.safeParse(response.object)
+      const parsed = outputSchema.safeParse(responseObject)
 
       if (!parsed.success) {
-        log.warn(
-          'Learning extraction agent returned unexpected shape',
-          {
-            response: response.object,
-          }
-        )
+        log.warn('Learning extraction agent returned unexpected shape', { response: responseObject });
 
 
+        extractSpan.setAttribute('output.learningLength', 0);
+        extractSpan.setAttribute('output.followUpQuestionsCount', 0);
         extractSpan.end();
-        await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '⚠️ Invalid response format from agent' } });
+
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: '⚠️ Invalid response format from agent',
+            stage: 'extract-learnings',
+          },
+          id: 'extract-learnings',
+        })
+
         return {
-          learning:
-            'Invalid response format from learning extraction agent',
+          learning: 'Invalid response format from learning extraction agent',
           followUpQuestions: [],
         }
       }
 
+      const learningLength = parsed.data.learning.length ?? 0;
+      const followUpQuestionsCount = parsed.data.followUpQuestions?.length ?? 0;
+
+      extractSpan.setAttribute('output.learningLength', learningLength);
+      extractSpan.setAttribute('output.followUpQuestionsCount', followUpQuestionsCount);
       extractSpan.end();
-      await context?.writer?.custom({ type: 'data-tool-agent', data: { message: '✅ Learnings extracted successfully' } });
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: '✅ Learnings extracted successfully',
+          stage: 'extract-learnings',
+        },
+        id: 'extract-learnings',
+      })
+
       return parsed.data
     } catch (error) {
       log.error('Error extracting learnings', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       })
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
 
-      extractSpan.recordException(new Error(errorMessage));
-      extractSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      try {
+        extractSpan.recordException(new Error(errorMessage));
+        extractSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      } catch {
+        // ignore
+      }
+
+      extractSpan.setAttribute('metadata.error', errorMessage);
       extractSpan.end();
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `❌ Error extracting information: ${errorMessage}`,
+          stage: 'extract-learnings',
+        },
+        id: 'extract-learnings',
+      })
 
       return {
         learning: `Error extracting information: ${errorMessage}`,

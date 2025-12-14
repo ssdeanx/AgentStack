@@ -37,6 +37,7 @@ This document instructs GitHub Copilot on how to:
    - Status check       → + progress.md
 ```
 
+Note: For tool implementation tasks, consult `memory-bank/tasks/TASK001-tool-streaming.md` which documents the standard streaming and progress-event conventions (use `context.writer` with `data-tool-progress` start/in-progress/done events, and prefer `agent.stream()` with `MastraModelOutput` when available). Update the task scratchpad with any deviations or agent-specific details.
 ### On Context Reset (New Session)
 
 ```markdown

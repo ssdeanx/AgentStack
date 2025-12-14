@@ -319,17 +319,20 @@ export function WorkflowProvider({
             }
           }
 
-          // Handle tool agent events (data-tool-agent)
+          // Handle legacy tool agent events (data-tool-agent) by normalizing into progress events
           if (part.type === "data-tool-agent") {
             const agentPart = part as { data?: AgentDataPart }
-            const eventData = agentPart.data
+            const eventData = agentPart.data as Record<string, unknown> | undefined
+            const dataObj = eventData?.data as Record<string, unknown> | undefined
+            const msg = typeof dataObj?.text === 'string' ? dataObj.text : (typeof dataObj?.message === 'string' ? dataObj.message : (typeof eventData?.message === 'string' ? eventData.message : `Agent executing tool`))
+            const stage = typeof eventData?.stage === 'string' ? eventData.stage : 'tool agent'
 
-            if (eventData) {
+            if (msg && msg.trim().length > 0) {
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
-                stage: "tool agent",
-                status: "in-progress",
-                message: `Agent executing tool`,
+                stage: String(stage),
+                status: 'in-progress',
+                message: msg,
                 timestamp: new Date(),
                 data: eventData,
               })

@@ -295,18 +295,28 @@ export function NetworkProvider({
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
         for (const [partIndex, part] of message.parts.entries()) {
-          // Handle agent and workflow progress events
+          // Handle legacy agent/workflow events by normalizing them into progress events
           if (part.type === "data-tool-agent" || part.type === "data-tool-workflow") {
-            const agentPart = part as { data: AgentDataPart }
-            const eventData = agentPart.data
+            const agentPart = part as { data?: AgentDataPart }
+            const eventData = agentPart.data as Record<string, unknown> | undefined
+            const dataObj = eventData?.data as Record<string, unknown> | undefined
 
-            if (eventData?.data?.text?.trim()) {
+            const msg = typeof dataObj?.text === 'string' ? dataObj.text
+              : typeof dataObj?.message === 'string' ? dataObj.message
+              : typeof eventData?.message === 'string' ? eventData.message
+              : typeof eventData?.text === 'string' ? eventData.text
+              : ''
+
+            const stage = typeof eventData?.stage === 'string' ? eventData.stage : (typeof dataObj?.stage === 'string' ? dataObj.stage : part.type.replace("data-tool-", ""))
+            const agentId = typeof eventData?.id === 'string' ? eventData.id : undefined
+
+            if (msg && msg.trim().length > 0) {
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
-                stage: part.type.replace("data-tool-", ""),
+                stage: String(stage),
                 status: "in-progress",
-                message: eventData.data.text,
-                agentId: eventData.id,
+                message: msg,
+                agentId,
                 timestamp: new Date(),
                 data: eventData,
               })
@@ -318,7 +328,7 @@ export function NetworkProvider({
             const progressPart = part as { type: string; data?: { status?: string; message?: string; stage?: string; agentId?: string } }
             const eventData = progressPart.data
 
-            if (eventData?.status && (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
+            if (typeof eventData?.status === 'string' && (eventData.status === "in-progress" || eventData.status === "done")) {
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
                 stage: eventData.stage ?? "progress",

@@ -321,7 +321,7 @@ export function ChatProvider({
   }, [messages])
 
   const sendMessage = useCallback(
-    (text: string, _files?: File[]) => {
+    (text: string, files?: File[]) => {
       if (!text.trim() || isLoading) {return}
       setChatError(null)
       aiSendMessage({ text: text.trim() })

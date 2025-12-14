@@ -4,10 +4,11 @@ import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import {
   MDocument,
-  rerankWithScorer as rerank,
-  MastraAgentRelevanceScorer,
+  rerank,
 } from '@mastra/rag';
-import { ModelRouterEmbeddingModel } from "@mastra/core/llm";
+import { randomUUID } from 'crypto';
+
+import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from "@mastra/core/llm";
 import { embed, embedMany } from 'ai';
 import { z } from 'zod';
 import {
@@ -23,6 +24,36 @@ import { google } from '@ai-sdk/google';
 import type { ExtractParams } from '@mastra/rag';
 
 log.info('Initializing Document Chunking Tool...')
+
+/**
+ * Remove metadata keys that are not safe for vector stores (leading $ or containing dots)
+ */
+function sanitizeMetadata(m: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  const keys = Object.keys(m)
+  for (const k of keys) {
+    if (k.startsWith('$') || k.includes('.')) {
+      continue
+    }
+    out[k] = m[k]
+  }
+  return out
+}
+
+/**
+ * Normalize reranking weights so they sum to 1. Returns normalized object.
+ */
+export function normalizeWeights(semantic: number, vector: number, position: number) {
+  const sum = semantic + vector + position
+  if (sum <= 0) {
+    return { semantic: 0.5, vector: 0.3, position: 0.2 }
+  }
+  return {
+    semantic: semantic / sum,
+    vector: vector / sum,
+    position: position / sum,
+  }
+}
 
 // Define runtime context for this tool
 export interface DocumentChunkingContext {
@@ -53,6 +84,10 @@ const CustomDocumentChunkingInputSchema = z.object({
   chunkOverlap: z.number().min(0).max(500).default(50),
   chunkSeparator: z.string().default('\n'),
   indexName: z.string().default('memory_messages_3072'),
+  // Embedding model name for ModelRouterEmbeddingModel (e.g. 'google/gemini-embedding-001')
+  embeddingModel: z.string().default('google/gemini-embedding-001'),
+  // Number of texts to embed per batch
+  embeddingBatchSize: z.number().min(1).max(500).default(50),
   generateEmbeddings: z.boolean().default(true),
 })
 
@@ -97,7 +132,9 @@ const MastraDocumentChunkingInputSchema = z.object({
   chunkSize: z.number().min(50).max(4000).default(512),
   chunkOverlap: z.number().min(0).max(500).default(50),
   chunkSeparator: z.string().default('\n'),
-  // ExtractParams for metadata extraction
+  // ExtractParams for metadata extraction (supports full ExtractParams)
+  // Keep legacy boolean flags for convenience
+  extract: z.any().optional(),
   extractTitle: z.boolean().default(false),
   extractSummary: z.boolean().default(false),
   extractKeywords: z.boolean().default(false),
@@ -283,6 +320,10 @@ Use this tool when you need advanced document processing with metadata extractio
 
       // Build ExtractParams based on user preferences
       const extractParams: ExtractParams = {}
+      // Accept full ExtractParams via `extract` or fall back to legacy booleans
+      if (inputData.extract !== undefined && inputData.extract !== null && typeof inputData.extract === 'object') {
+        Object.assign(extractParams, inputData.extract as ExtractParams)
+      }
       if (inputData.extractTitle) {
         extractParams.title = true
       }
@@ -340,10 +381,6 @@ Use this tool when you need advanced document processing with metadata extractio
 
       logStepEnd('mastra-chunker', output, totalProcessingTime)
 
-      // End tracing span with success
-      // End tracing span with success
-      span.end();
-
       return output
     } catch (error) {
       const processingTime = Date.now() - startTime
@@ -358,7 +395,6 @@ Use this tool when you need advanced document processing with metadata extractio
       })
 
       // Record error in tracing span
-      // Record error in tracing span
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
@@ -370,6 +406,8 @@ Use this tool when you need advanced document processing with metadata extractio
         processingTimeMs: processingTime,
         error: errorMessage,
       }
+    } finally {
+      span.end();
     }
   },
 })
@@ -474,14 +512,14 @@ content indexing, or semantic search capabilities.
             return {
               strategy: 'character' as const,
               ...baseParams,
-              separator: '\n',
+              separators: ['\n'],
               isSeparatorRegex: false,
             }
           case 'markdown':
             return {
               strategy: 'markdown' as const,
               ...baseParams,
-              sections: [
+              headers: [
                 ['#', 'title'],
                 ['##', 'section'],
               ] as Array<[string, string]>,
@@ -490,7 +528,7 @@ content indexing, or semantic search capabilities.
             return {
               strategy: 'html' as const,
               ...baseParams,
-              sections: [
+              headers: [
                 ['h1', 'title'],
                 ['h2', 'section'],
               ] as Array<[string, string]>,
@@ -520,6 +558,7 @@ content indexing, or semantic search capabilities.
           case 'semantic-markdown':
             return {
               strategy: 'semantic-markdown' as const,
+              ...baseParams,
               joinThreshold: 500,
             }
           default:
@@ -527,7 +566,8 @@ content indexing, or semantic search capabilities.
             return {
               strategy: 'recursive' as const,
               ...baseParams,
-              separators: ['\n\n', '\n', ' '], // Removed 'as const' to make it mutable string[]
+              separators: ['\n\n', '\n', ' '],
+              isSeparatorRegex: false,
             }
         }
       }
@@ -560,7 +600,7 @@ content indexing, or semantic search capabilities.
           chunkSize: inputData.chunkSize,
           chunkOverlap: inputData.chunkOverlap,
         },
-        id: `chunk_${Date.now()}_${index}`,
+        id: chunk.metadata?.id ?? `chunk_${Date.now()}_${randomUUID()}`,
       }))
 
       let embeddingGenerated = false
@@ -570,21 +610,38 @@ content indexing, or semantic search capabilities.
       if (inputData.generateEmbeddings && chunksForProcessing.length > 0) {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧠 Generating embeddings', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
         const embeddingStartTime = Date.now()
-        const result = await embedMany({
-          values: chunksForProcessing.map((chunk) => chunk.text),
-          model: google.textEmbedding('gemini-embedding-001'),
-          maxRetries: 3,
-          abortSignal: new AbortController().signal,
-        })
-        embeddings = result.embeddings
-        embeddingGenerated = true
+        // Prepare texts and keep mapping so we can upsert only non-empty embeddings
+        const texts = chunksForProcessing.map((chunk) => (typeof chunk.text === 'string' ? chunk.text.trim() : ''))
+        const nonEmptyIndexes = texts.map((t, i) => (t.length > 0 ? i : -1)).filter((i) => i !== -1)
+        const nonEmptyValues = nonEmptyIndexes.map((i) => texts[i])
 
-        const embeddingTime = Date.now() - embeddingStartTime
-        logStepStart('embeddings-generated', {
-          embeddingCount: embeddings.length,
-          embeddingTimeMs: embeddingTime,
-          dimension: embeddings[0]?.length || 0,
-        })
+        try {
+          const allEmbeddings: number[][] = []
+          for (let i = 0; i < nonEmptyValues.length; i += inputData.embeddingBatchSize) {
+            const batch = nonEmptyValues.slice(i, i + inputData.embeddingBatchSize)
+            const result = await embedMany({
+              values: batch,
+              model: new ModelRouterEmbeddingModel(inputData.embeddingModel),
+              maxRetries: 3,
+              abortSignal: new AbortController().signal,
+            })
+            allEmbeddings.push(...result.embeddings)
+          }
+          embeddings = allEmbeddings
+          embeddingGenerated = embeddings.length > 0
+
+          const embeddingTime = Date.now() - embeddingStartTime
+          logStepStart('embeddings-generated', {
+            embeddingCount: embeddings.length,
+            embeddingTimeMs: embeddingTime,
+            dimension: embeddings[0]?.length || 0,
+          })
+        } catch (embedError) {
+          logError('mdocument-chunker-embeddings', embedError, { embeddingBatchSize: inputData.embeddingBatchSize })
+          // fall back to no embeddings so chunks are still returned
+          embeddings = []
+          embeddingGenerated = false
+        }
       }
 
       // Store chunks in PgVector if embeddings were generated
@@ -592,22 +649,50 @@ content indexing, or semantic search capabilities.
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Storing vectors in database', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
         const storageStartTime = Date.now()
 
+        // Ensure index exists with the same dimension as embeddings
+        try {
+          await pgVector.createIndex({ indexName: inputData.indexName, dimension: embeddings[0]?.length || 0 })
+        } catch (idxErr) {
+          log.info('createIndex skipped or failed', { error: (idxErr as Error)?.message ?? idxErr })
+        }
+
+        // Ensure chunk ids are stable and unique
+        // Ensure ids are present and sanitize metadata
+        const allIds = chunksForProcessing.map((chunk) => chunk.id ?? `chunk_${Date.now()}_${randomUUID()}`)
+        const sanitizedMetadata = chunksForProcessing.map((chunk) => ({ ...sanitizeMetadata(chunk.metadata), text: chunk.text }))
+
+        // Map embeddings back to the full set: only non-empty values produced embeddings
+        const finalVectors: number[][] = []
+        const finalMetadata: Array<Record<string, unknown>> = []
+        const finalIds: string[] = []
+
+        if (embeddings.length > 0) {
+          // Rebuild arrays using nonEmptyIndexes mapping
+          const texts = chunksForProcessing.map((c) => (typeof c.text === 'string' ? c.text.trim() : ''))
+          const nonEmptyIndexes = texts.map((t, i) => (t.length > 0 ? i : -1)).filter((i) => i !== -1)
+          for (let i = 0; i < nonEmptyIndexes.length; i++) {
+            const idx = nonEmptyIndexes[i]
+            finalVectors.push(embeddings[i])
+            finalMetadata.push(sanitizedMetadata[idx])
+            finalIds.push(allIds[idx])
+          }
+        }
+
         // Store vectors with metadata
-        await pgVector.upsert({
-          indexName: 'memory_messages_3072',
-          vectors: embeddings,
-          metadata: chunksForProcessing.map(
-            (chunk) => ({
-              ...chunk.metadata,
-              text: chunk.text,
-            })
-          ),
-          ids: chunksForProcessing.map((chunk) => chunk.id),
-        })
+        if (finalVectors.length > 0) {
+          await pgVector.upsert({
+            indexName: inputData.indexName,
+            vectors: finalVectors,
+            metadata: finalMetadata,
+            ids: finalIds,
+          })
+        } else {
+          log.info('No embeddings to upsert after processing (empty or embedding generation failed)')
+        }
 
         const storageTime = Date.now() - storageStartTime
         logStepStart('vectors-stored', {
-          indexName: 'memory_messages_3072',
+          indexName: inputData.indexName,
           vectorCount: embeddings.length,
           storageTimeMs: storageTime,
         })
@@ -631,10 +716,6 @@ content indexing, or semantic search capabilities.
 
       logStepEnd('mdocument-chunker', output, totalProcessingTime)
 
-      // End tracing span with success
-      // End tracing span with success
-      span.end();
-
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed ${chunks.length} chunks successfully`, stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
       return output
     } catch (error) {
@@ -650,7 +731,6 @@ content indexing, or semantic search capabilities.
       })
 
       // Record error in tracing span
-      // Record error in tracing span
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
@@ -662,6 +742,8 @@ content indexing, or semantic search capabilities.
         processingTimeMs: processingTime,
         error: errorMessage,
       }
+    } finally {
+      span.end();
     }
   },
 })
@@ -704,6 +786,10 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     semanticWeight: z.number().min(0).max(1).default(0.5),
     vectorWeight: z.number().min(0).max(1).default(0.3),
     positionWeight: z.number().min(0).max(1).default(0.2),
+    // Optional metadata filter (MongoDB/Sift-style)
+    filter: z.record(z.string(), z.any()).optional(),
+    includeVector: z.boolean().default(false),
+    rerankModel: z.string().default('google/gemini-2.5-flash'),
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -752,13 +838,24 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         embeddingTimeMs: embeddingTime,
       })
 
-      // Step 2: Retrieve initial results from PgVector
+      // Normalize weights to sum to 1 (if user input deviates)
+      const weights = normalizeWeights(inputData.semanticWeight, inputData.vectorWeight, inputData.positionWeight)
+      // Log if user-supplied weights did not sum to 1
+      const origSum = inputData.semanticWeight + inputData.vectorWeight + inputData.positionWeight
+      if (Math.abs(origSum - 1) > 1e-6) {
+        log.info('Normalized reranker weights', { originalSum: origSum, normalized: weights })
+      }
+
+      // Step 2: Retrieve initial results from PgVector (supports metadata filters)
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Retrieving initial results from database', stage: 'document:reranker' }, id: 'document:reranker' });
       const searchStartTime = Date.now()
+      // @ts-ignore - PGVector query accepts Mongo/Sift-style filter at runtime
       const initialResults = await pgVector.query({
         indexName: inputData.indexName,
         queryVector: queryEmbedding,
         topK: inputData.initialTopK,
+        filter: inputData.filter,
+        includeVector: inputData.includeVector,
       })
       const searchTime = Date.now() - searchStartTime
 
@@ -783,24 +880,21 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       // Step 3: Re-rank results using semantic relevance scorer
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⚖️ Reranking ${initialResults.length} documents`, stage: 'document:reranker' }, id: 'document:reranker' });
       const rerankerStartTime = Date.now()
-      const rerankedResults = await rerank({
-        results: initialResults.map((result) => ({
+      const rerankedResults = await rerank(
+        initialResults.map((result) => ({
           id: result.id,
-          text: result.metadata?.text as string,
+          text: (result.metadata?.text as string) ?? (typeof result.metadata?.text === 'undefined' ? '' : String(result.metadata?.text)),
           metadata: result.metadata,
           score: result.score || 0,
         })),
-        query: inputData.userQuery,
-        scorer: new MastraAgentRelevanceScorer('relevance-scorer', google('gemini-2.5-flash')),
-        options: {
-          weights: {
-            semantic: inputData.semanticWeight,
-            vector: inputData.vectorWeight,
-            position: inputData.positionWeight,
-          },
+        inputData.userQuery,
+        // Use ModelRouterLanguageModel wrapper so the reranker receives a Mastra-compatible model
+        new ModelRouterLanguageModel(inputData.rerankModel),
+        {
+          weights,
           topK: inputData.topK,
-        },
-      })
+        }
+      )
       const rerankerTime = Date.now() - rerankerStartTime
 
       logStepStart('reranking-completed', {
@@ -841,8 +935,6 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
       logStepEnd('document-reranker', output, totalProcessingTime)
 
-      span.end();
-
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results`, stage: 'document:reranker' }, id: 'document:reranker' });
       return output
     } catch (error) {
@@ -867,6 +959,8 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         processingTimeMs: processingTime,
         error: errorMessage,
       }
+    } finally {
+      span.end();
     }
   },
 })

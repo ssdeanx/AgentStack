@@ -102,7 +102,7 @@ await context?.writer?.custom({
   type: "data-tool-progress",
   data: {
     status: "in-progress", // "in-progress" | "done"
-    message: "Descriptive progress message...",
+    message: "Descriptive progress message ${inputData.context}....`,",
     stage: "tool-name" // Tool identifier (same as id)
   },
   id: "tool-name" // Tool identifier outside data object
@@ -132,6 +132,8 @@ await context?.writer?.custom({
 });
 ```
 
+> Note: These conventions are tracked in the memory bank task `TASK001-update-2025-12-14`. Recent commits synced tool implementations and memory-bank progress notes to follow this standard.
+
 ## Testing
 97% coverage via Vitest. Run:
 
@@ -146,7 +148,7 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 
 ---
 
-**Last updated:** 2025-11-27
+**Last updated:** 2025-12-14
 
 ## Related
 
@@ -158,6 +160,7 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.4.0 | 2025-12-14 | Custom Agent nest events|
 | 2.3.0 | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool |
 | 2.2.0 | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links |
 | 2.1.0 | 2025-11-26 | Meta update, 30+ claim |
