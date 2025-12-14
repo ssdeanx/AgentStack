@@ -32,7 +32,7 @@ jobs:
           ${{ vars.APP_ID }}
         uses: 'actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b' # ratchet:actions/create-github-app-token@v2
         with:
-          app-id: '${{ vars.AgentStack }}'
+          app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.GOOGLE_API_KEY }}'
           permission-contents: 'read'
           permission-issues: 'write'
