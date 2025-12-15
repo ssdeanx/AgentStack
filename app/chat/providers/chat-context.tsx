@@ -92,32 +92,43 @@ export interface ChatContextValue {
   resourceId: string
 
   // Actions
+  // eslint-disable-next-line no-unused-vars
   sendMessage: (text: string, files?: File[]) => void
   stopGeneration: () => void
   clearMessages: () => void
+  // eslint-disable-next-line no-unused-vars
   selectAgent: (agentId: string) => void
+  // eslint-disable-next-line no-unused-vars
   selectModel: (modelId: string) => void
   dismissError: () => void
 
   // Task management
+  // eslint-disable-next-line no-unused-vars
   addTask: (task: Omit<QueuedTask, "id">) => string
+  // eslint-disable-next-line no-unused-vars
   updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
+  // eslint-disable-next-line no-unused-vars
   removeTask: (taskId: string) => void
 
   // Confirmation management
+  // eslint-disable-next-line no-unused-vars
   approveConfirmation: (confirmationId: string) => void
+  // eslint-disable-next-line no-unused-vars
   rejectConfirmation: (confirmationId: string, reason?: string) => void
-
   // Checkpoint management
+  // eslint-disable-next-line no-unused-vars
   createCheckpoint: (messageIndex: number, label?: string) => string
+  // eslint-disable-next-line no-unused-vars
   restoreCheckpoint: (checkpointId: string) => void
+  // eslint-disable-next-line no-unused-vars
   removeCheckpoint: (checkpointId: string) => void
-
   // Web Preview management
+  // eslint-disable-next-line no-unused-vars
   setWebPreview: (preview: WebPreviewData | null) => void
-
   // Memory management
+  // eslint-disable-next-line no-unused-vars
   setThreadId: (threadId: string) => void
+  // eslint-disable-next-line no-unused-vars
   setResourceId: (resourceId: string) => void
 }
 

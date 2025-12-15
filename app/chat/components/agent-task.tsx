@@ -15,23 +15,7 @@ import {
   AlertCircleIcon,
   FileIcon,
 } from "lucide-react"
-
-export type TaskStepStatus = "pending" | "running" | "completed" | "error"
-
-export interface TaskStep {
-  id: string
-  text: string
-  status: TaskStepStatus
-  file?: {
-    name: string
-    icon?: string
-  }
-}
-
-export interface AgentTaskData {
-  title: string
-  steps: TaskStep[]
-}
+import type { AgentTaskData, TaskStepStatus } from "./chat.types"
 
 interface AgentTaskProps {
   task: AgentTaskData

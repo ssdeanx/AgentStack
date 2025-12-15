@@ -51,11 +51,14 @@ const scanStep = createStep({
     const { repoPath, githubRepo, githubBranch, globPattern } = inputData;
     let { limit } = inputData;
 
+    const githubRepoValue = typeof githubRepo === 'string' ? githubRepo : '';
+    const repoPathValue = typeof repoPath === 'string' ? repoPath : '';
+
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
         status: 'in-progress',
-        message: `Scanning repo (source: ${githubRepo ? `github:${githubRepo}@${githubBranch}` : `local:${repoPath ?? 'unknown'}`}, limit: ${limit}, pattern: ${globPattern})...`,
+        message: `Scanning repo (source: ${githubRepoValue.length > 0 ? `github:${githubRepoValue}@${githubBranch}` : `local:${repoPathValue.length > 0 ? repoPathValue : 'unknown'}`}, limit: ${limit}, pattern: ${globPattern})...`,
         stage: 'scan-repo',
       },
       id: 'scan-repo',
@@ -76,9 +79,9 @@ const scanStep = createStep({
       limit = TIER_LIMITS[userTier];
     }
 
-    if (githubRepo) {
-      log.info(`Scanning GitHub repo ${githubRepo} branch ${githubBranch}`);
-      const [owner, repo] = githubRepo.split('/');
+    if (githubRepoValue.length > 0) {
+      log.info(`Scanning GitHub repo ${githubRepoValue} branch ${githubBranch}`);
+      const [owner, repo] = githubRepoValue.split('/');
 
       interface GitTreeItem {
         path: string;
@@ -123,19 +126,19 @@ const scanStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: `Repo scan complete for GitHub repo ${githubRepo}@${githubBranch} (files: ${files.length})`,
+          message: `Repo scan complete for GitHub repo ${githubRepoValue}@${githubBranch} (files: ${files.length})`,
           stage: 'scan-repo',
         },
         id: 'scan-repo',
       });
 
-      return { files, githubRepo, githubBranch };
+      return { files, githubRepo: githubRepoValue, githubBranch };
     }
 
-    if (repoPath) {
-      log.info(`Scanning local repo at ${repoPath} with pattern ${globPattern}`);
+    if (repoPathValue.length > 0) {
+      log.info(`Scanning local repo at ${repoPathValue} with pattern ${globPattern}`);
       const files = await glob(globPattern, {
-        cwd: repoPath,
+        cwd: repoPathValue,
         ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
         nodir: true,
         absolute: true
@@ -148,13 +151,13 @@ const scanStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: `Repo scan complete for local path ${repoPath} (files: ${limitedFiles.length})`,
+          message: `Repo scan complete for local path ${repoPathValue} (files: ${limitedFiles.length})`,
           stage: 'scan-repo',
         },
         id: 'scan-repo',
       });
 
-      return { files: limitedFiles, repoPath };
+      return { files: limitedFiles, repoPath: repoPathValue };
     }
 
     const error = new Error('No repo path provided');
@@ -181,11 +184,14 @@ const ingestStep = createStep({
     let totalChunks = 0;
     const errors: Array<{ file: string, error: string }> = [];
 
+    const githubRepoValue = typeof githubRepo === 'string' ? githubRepo : '';
+    const repoPathValue = typeof repoPath === 'string' ? repoPath : '';
+
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
         status: 'in-progress',
-        message: `Starting ingestion (source: ${githubRepo ? `github:${githubRepo}@${githubBranch}` : `local:${repoPath ?? 'unknown'}`}, files: ${files.length})...`,
+        message: `Starting ingestion (source: ${githubRepoValue.length > 0 ? `github:${githubRepoValue}@${githubBranch}` : `local:${repoPathValue.length > 0 ? repoPathValue : 'unknown'}`}, files: ${files.length})...`,
         stage: 'ingest-files',
       },
       id: 'ingest-files',
@@ -211,8 +217,8 @@ const ingestStep = createStep({
         try {
           let content = '';
 
-          if (githubRepo) {
-            const [owner, repo] = githubRepo.split('/');
+          if (githubRepoValue.length > 0) {
+            const [owner, repo] = githubRepoValue.split('/');
             const result = await getFileContent.execute(
               { owner, repo, path: filePath, ref: githubBranch },
               { mastra, requestContext }
@@ -227,7 +233,7 @@ const ingestStep = createStep({
               throw new Error(`Failed to fetch file from GitHub: ${successResult.error}`);
             }
             content = successResult.content;
-          } else if (repoPath) {
+          } else if (repoPathValue.length > 0) {
             content = await readFile(filePath, 'utf-8');
           }
 
@@ -239,7 +245,7 @@ const ingestStep = createStep({
 
           const result = await mdocumentChunker.execute({
             documentContent: content,
-            documentMetadata: { filePath, source: (githubRepo) ? 'github' : 'local' },
+            documentMetadata: { filePath, source: (githubRepoValue.length > 0) ? 'github' : 'local' },
             chunkingStrategy: strategy,
             indexName: 'memory_messages_3072',
             generateEmbeddings: true,

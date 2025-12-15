@@ -11,15 +11,7 @@ import {
 } from "@/src/components/ai-elements/chain-of-thought"
 import { Badge } from "@/ui/badge"
 import { SearchIcon, BrainIcon, CheckIcon, LoaderIcon, ClockIcon } from "lucide-react"
-
-export interface ReasoningStep {
-  id: string
-  label: string
-  description?: string
-  status: "complete" | "active" | "pending"
-  searchResults?: string[]
-  duration?: number
-}
+import type { ReasoningStep } from "./chat.types"
 
 interface AgentChainOfThoughtProps {
   steps: ReasoningStep[]
@@ -88,63 +80,4 @@ export function AgentChainOfThought({
       </ChainOfThoughtContent>
     </ChainOfThought>
   )
-}
-
-type StepType = "step" | "search" | "analysis" | "decision"
-
-function categorizeStep(text: string): StepType {
-  const lower = text.toLowerCase()
-  if (lower.includes("search") || lower.includes("looking for") || lower.includes("finding")) {
-    return "search"
-  }
-  if (lower.includes("analyzing") || lower.includes("examining") || lower.includes("reviewing")) {
-    return "analysis"
-  }
-  if (lower.includes("decided") || lower.includes("conclusion") || lower.includes("therefore")) {
-    return "decision"
-  }
-  return "step"
-}
-
-export function parseReasoningToSteps(reasoning: string): ReasoningStep[] {
-  if (!reasoning) {return []}
-
-  const lines = reasoning.split("\n").filter((line) => line.trim())
-  const steps: ReasoningStep[] = []
-  let currentSearchTerms: string[] = []
-
-  lines.forEach((line, index) => {
-    const trimmed = line.trim()
-
-    // Skip very short lines
-    if (trimmed.length < 5) {return}
-
-    // Check for bullet points or numbered lists
-    const isBullet = trimmed.startsWith("-") || trimmed.startsWith("•") || /^\d+\./.test(trimmed)
-    const content = isBullet
-      ? trimmed.replace(/^[-•\d.]+\s*/, "")
-      : trimmed
-
-    // Extract search terms if mentioned
-    const searchMatch = /(?:search|looking for|finding)[:\s]+["']?([^"'\n]+)["']?/i.exec(content)
-    if (searchMatch) {
-      currentSearchTerms.push(searchMatch[1].trim())
-    }
-
-    if (content.length > 10) {
-      const stepType = categorizeStep(content)
-      steps.push({
-        id: `step-${index}`,
-        label: content.length > 80 ? content.slice(0, 77) + "..." : content,
-        description: content.length > 80 ? content : undefined,
-        status: "complete",
-        searchResults: stepType === "search" ? [...currentSearchTerms] : undefined,
-      })
-
-      // Reset after each step to prevent accumulation
-      currentSearchTerms = []
-    }
-  })
-
-  return steps.slice(0, 15)
 }

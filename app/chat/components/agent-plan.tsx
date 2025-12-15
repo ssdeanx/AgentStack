@@ -15,18 +15,7 @@ import { Button } from "@/ui/button"
 import { PlayIcon, XIcon, CheckIcon, CircleIcon } from "lucide-react"
 import { useMemo } from "react"
 
-export interface PlanStep {
-  text: string
-  completed?: boolean
-}
-
-export interface AgentPlanData {
-  title: string
-  description: string
-  steps: PlanStep[] | string[]
-  isStreaming?: boolean
-  currentStep?: number
-}
+import type { AgentPlanData, PlanStep } from "./chat.types"
 
 interface AgentPlanProps {
   plan: AgentPlanData
@@ -125,34 +114,4 @@ export function AgentPlan({
       )}
     </Plan>
   )
-}
-
-export function extractPlanFromText(text: string): AgentPlanData | null {
-  const planPatterns = [
-    /(?:plan|steps|approach|strategy|roadmap|outline)[:\s]*\n((?:[-•\d].+\n?)+)/i,
-    /(?:here's|here is|my|the) (?:plan|approach|strategy)[:\s]*\n((?:[-•\d].+\n?)+)/i,
-    /(?:i will|let me|first,)[:\s]*((?:[-•\d].+\n?)+)/i,
-  ]
-
-  for (const pattern of planPatterns) {
-    const match = pattern.exec(text)
-    if (match) {
-      const stepsText = match[1]
-      const steps = stepsText
-        .split("\n")
-        .map((line) => line.replace(/^[-•\d.]+\s*/, "").trim())
-        .filter((line) => line.length > 0)
-
-      if (steps.length >= 2) {
-        return {
-          title: "Execution Plan",
-          description: `${steps.length} steps to complete this task`,
-          steps: steps.map((stepText) => ({ text: stepText, completed: false })),
-          isStreaming: false,
-        }
-      }
-    }
-  }
-
-  return null
 }

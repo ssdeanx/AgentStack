@@ -62,7 +62,7 @@ export function NetworkHeader() {
 
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false)
   const [selectedModel, setSelectedModel] = useState<ModelConfig>(
-    MODEL_CONFIGS.find((m) => m.isDefault) || MODEL_CONFIGS[0]
+    MODEL_CONFIGS.find((m) => m.isDefault) ?? MODEL_CONFIGS[0]
   )
 
   const networksByCategory = useMemo(() => getNetworksByCategory(), [])

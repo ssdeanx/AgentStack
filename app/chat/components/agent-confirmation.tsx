@@ -19,18 +19,19 @@ import {
   InfoIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-export type ConfirmationSeverity = "info" | "warning" | "danger"
+import type { ConfirmationSeverity } from "./chat.types"
 
 interface AgentConfirmationProps {
   toolName: string
   description: string
   approval: ConfirmationProps["approval"]
   state: ToolUIPart["state"]
-  onApprove: (approvalId: string) => void
-  onReject: (approvalId: string) => void
   severity?: ConfirmationSeverity
   className?: string
+  // eslint-disable-next-line no-unused-vars
+  onApprove(approvalId: string): void
+  // eslint-disable-next-line no-unused-vars
+  onReject(approvalId: string): void
 }
 
 const severityConfig: Record<ConfirmationSeverity, {

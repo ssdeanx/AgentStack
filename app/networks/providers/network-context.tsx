@@ -1,6 +1,6 @@
+
 "use client"
 
-// eslint-disable-next-line react-refresh/only-export-components
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import {
@@ -35,7 +35,7 @@ export interface RoutingStep {
 export interface ProgressEvent {
   id: string
   stage: string
-  status: "in-progress" | "done" | "error"
+  status: "in-progress" | "done"
   message: string
   agentId?: string
   timestamp: Date
@@ -61,10 +61,12 @@ export interface NetworkContextValue {
   toolInvocations: ToolInvocationState[]
   sources: Source[]
   error: string | null
-  selectNetwork: (_networkId: NetworkId) => void
-  sendMessage: (_text: string) => void
   stopExecution: () => void
   clearHistory: () => void
+  // eslint-disable-next-line no-unused-vars
+  selectNetwork: (networkId: NetworkId) => void
+  // eslint-disable-next-line no-unused-vars
+  sendMessage: (text: string) => void
 }
 
 const NetworkContext = createContext<NetworkContextValue | null>(null)
@@ -151,7 +153,8 @@ function mapDataPartToDynamicTool(part: MastraPart): DynamicToolUIPart | null {
   const payload = (part.data ?? part.payload ?? part) as ToolData
   const inner = payload?.data ?? payload
 
-  const toolCallId = inner?.toolCallId ?? inner?.id ?? inner?.callId ?? `tool-${Date.now()}`
+  const fallbackIdBase = (inner?.toolName ?? inner?.name ?? inner?.tool ?? inner?.agentName ?? 'tool').toString()
+  const toolCallId = inner?.toolCallId ?? inner?.id ?? inner?.callId ?? `tool-${fallbackIdBase}`
   const toolName = inner?.toolName ?? inner?.name ?? inner?.tool ?? inner?.agentName ?? "network-step"
   const input = inner?.input ?? inner?.args ?? inner?.params
   const output = inner?.output ?? inner?.result ?? inner?.value
@@ -183,7 +186,6 @@ export function NetworkProvider({
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(validDefaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
-  const [clearedProgress, setClearedProgress] = useState(false)
 
   const networkConfig = useMemo(
     () => NETWORK_CONFIGS[selectedNetwork],
@@ -333,11 +335,13 @@ export function NetworkProvider({
             const progressPart = part as { type: string; data?: { status?: string; message?: string; stage?: string; agentId?: string } }
             const eventData = progressPart.data
 
-            if (typeof eventData?.status === 'string' && (eventData.status === "in-progress" || eventData.status === "done")) {
+            if (typeof eventData?.status === 'string') {
+              const normalizedStatus: ProgressEvent["status"] =
+                eventData.status === 'in-progress' || eventData.status === 'pending' ? 'in-progress' : 'done'
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
                 stage: eventData.stage ?? "progress",
-                status: eventData.status,
+                status: normalizedStatus,
                 message: eventData.message ?? `${part.type} ${eventData.status}`,
                 agentId: eventData.agentId,
                 timestamp: new Date(),
@@ -459,7 +463,6 @@ export function NetworkProvider({
     setMessages([])
     setRoutingSteps([])
     setNetworkError(null)
-    setClearedProgress(true)
   }, [setMessages, setRoutingSteps, setNetworkError])
 
   const error = aiError?.message ?? networkError
