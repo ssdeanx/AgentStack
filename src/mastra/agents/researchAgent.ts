@@ -1,11 +1,9 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
-import { googleTools } from '@ai-sdk/google/internal';
 import { Agent } from '@mastra/core/agent';
-import { TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import { PGVECTOR_PROMPT } from "@mastra/pg";
-import { google, googleAI, googleAIFlashLite } from '../config/google';
+import { google } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory, pgQueryTool } from '../config/pg-storage';
 import { alphaVantageCryptoTool, alphaVantageStockTool } from '../tools/alpha-vantage.tool';
@@ -215,8 +213,11 @@ export const researchAgent = new Agent({
     }),
   ],
   outputProcessors: [
-    new TokenLimiterProcessor(1000000)
+    new TokenLimiterProcessor(1000000),
+    new BatchPartsProcessor({
+      batchSize: 5,
+      maxWaitTime: 75,
+      emitOnNonText: true
+    }),
   ],
 })
-
-

@@ -1,5 +1,6 @@
 "use client"
 
+// eslint-disable-next-line react-refresh/only-export-components
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import {
@@ -46,7 +47,7 @@ export interface Source {
   title: string
 }
 
-export type ToolInvocationState = DynamicToolUIPart
+export type ToolInvocationState = DynamicToolUIPart | ToolUIPart
 
 export interface NetworkContextValue {
   selectedNetwork: NetworkId
@@ -68,7 +69,7 @@ export interface NetworkContextValue {
 
 const NetworkContext = createContext<NetworkContextValue | null>(null)
 
-export function useNetworkContext(): NetworkContextValue {
+export function useNetworkContext(): NetworkContextValue { // eslint-disable-line react-refresh/only-export-components
   const context = useContext(NetworkContext)
   if (!context) {
     throw new Error("useNetworkContext must be used within a NetworkProvider")
@@ -181,9 +182,8 @@ export function NetworkProvider({
   const validDefaultNetwork = NETWORK_CONFIGS[defaultNetwork] !== undefined ? defaultNetwork : Object.keys(NETWORK_CONFIGS)[0]
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(validDefaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
-  const [progressEvents, setProgressEvents] = useState<ProgressEvent[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
-  const [sources, setSources] = useState<Source[]>([])
+  const [clearedProgress, setClearedProgress] = useState(false)
 
   const networkConfig = useMemo(
     () => NETWORK_CONFIGS[selectedNetwork],
@@ -261,6 +261,11 @@ export function NetworkProvider({
         result.push(p as ToolInvocationState)
         continue
       }
+      // Standard tool parts
+      if (typeof p.type === "string" && p.type.startsWith("tool-")) {
+        result.push(p as ToolUIPart)
+        continue
+      }
       // Mastra data-tool-* or data-network parts
       if (typeof p.type === "string" && (p.type.startsWith("data-tool") || p.type === "data-network")) {
         const converted = mapDataPartToDynamicTool(p)
@@ -270,8 +275,8 @@ export function NetworkProvider({
     return result
   }, [messages])
 
-  // Extract sources from source-url parts
-  useEffect(() => {
+  // Extract sources from messages
+  const sources = useMemo(() => {
     const allSources: Source[] = []
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
@@ -286,11 +291,11 @@ export function NetworkProvider({
         }
       }
     }
-    setSources(allSources)
+    return allSources
   }, [messages])
 
   // Extract progress events from custom data parts
-  useEffect(() => {
+  const progressEvents = useMemo(() => {
     const allProgressEvents: ProgressEvent[] = []
     for (const message of messages) {
       if (message.role === "assistant" && message.parts !== null) {
@@ -343,18 +348,18 @@ export function NetworkProvider({
         }
       }
     }
-    setProgressEvents(allProgressEvents)
+    return allProgressEvents
   }, [messages])
 
   // Extract routing steps from data-network parts
-  useEffect(() => {
+  const derivedRoutingSteps = useMemo(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role !== "assistant" || !lastMessage.parts?.length) {return}
+    if (lastMessage?.role !== "assistant" || !lastMessage.parts?.length) {return routingSteps}
 
     const dataParts = lastMessage.parts.filter(
       (p) => p.type === "data-network" || p.type === "dynamic-tool" || (typeof p.type === "string" && p.type.startsWith("data-tool-"))
     )
-    if (!dataParts?.length) {return}
+    if (!dataParts?.length) {return routingSteps}
 
     // Helper: map raw state to routing step status
     const mapRawStateToStatus = (raw: unknown, hasOutput = false): RoutingStep["status"] => {
@@ -372,26 +377,24 @@ export function NetworkProvider({
       const agentsFromPart = (payload?.agents ?? payload?.nodes ?? payload?.steps ?? [])
 
       if (Array.isArray(agentsFromPart) && agentsFromPart.length > 0) {
-        const steps = agentsFromPart.map((agent, idx) => {
-          const agentId = agent.id ?? agent.agentId ?? agent.agent?.id ?? `agent-${idx}`
-          const agentName = agent.name ?? agent.agentName ?? agent.agent?.name ?? String(agentId)
-          const input = agent.input ?? agent.args ?? agent.params ?? ""
-          const output = agent.output ?? agent.result ?? agent.value
-          const status = mapRawStateToStatus(agent.state ?? agent.status, Boolean(output))
-          const startedAt = agent.startedAt !== null && agent.startedAt !== undefined ? new Date(agent.startedAt) : undefined
-          const completedAt = agent.completedAt !== null && agent.completedAt !== undefined ? new Date(agent.completedAt) : undefined
-          return {
-            agentId: String(agentId),
-            agentName: String(agentName),
-            input,
-            output,
-            status,
-            startedAt,
-            completedAt,
-          } as RoutingStep
-        })
-        setRoutingSteps(steps)
-        return
+        return agentsFromPart.map((agent, idx) => {
+                  const agentId = agent.id ?? agent.agentId ?? agent.agent?.id ?? `agent-${idx}`
+                  const agentName = agent.name ?? agent.agentName ?? agent.agent?.name ?? String(agentId)
+                  const input = agent.input ?? agent.args ?? agent.params ?? ""
+                  const output = agent.output ?? agent.result ?? agent.value
+                  const status = mapRawStateToStatus(agent.state ?? agent.status, Boolean(output))
+                  const startedAt = agent.startedAt !== null && agent.startedAt !== undefined ? new Date(agent.startedAt) : undefined
+                  const completedAt = agent.completedAt !== null && agent.completedAt !== undefined ? new Date(agent.completedAt) : undefined
+                  return {
+                    agentId: String(agentId),
+                    agentName: String(agentName),
+                    input,
+                    output,
+                    status,
+                    startedAt,
+                    completedAt,
+                  } as RoutingStep
+                });
       }
     }
 
@@ -403,8 +406,7 @@ export function NetworkProvider({
         input: "",
         status: index === 0 && aiStatus === "streaming" ? "active" : "pending",
       }))
-      setRoutingSteps(steps)
-      return
+      return steps
     }
 
     const toolParts = dataParts.filter((p) => p.type === "dynamic-tool" || (typeof p.type === "string" && p.type.startsWith("data-tool-")))
@@ -419,18 +421,23 @@ export function NetworkProvider({
           status: converted ? (converted.state === "input-streaming" ? "active" : (converted.state === "output-error" ? "error" : (converted.state === "output-available" ? "completed" : "pending"))) : "pending",
         } as RoutingStep
       })
-      setRoutingSteps(steps)
+      return steps
     }
-  }, [messages, networkConfig, aiStatus])
+
+    return routingSteps
+  }, [messages, networkConfig, aiStatus, routingSteps])
+
+  // Update routing steps when derived steps change
+  useEffect(() => {
+    setRoutingSteps(derivedRoutingSteps)
+  }, [derivedRoutingSteps])
 
   const selectNetwork = useCallback((networkId: NetworkId) => {
     const config = getNetworkConfig(networkId)
     if (config) {
       setSelectedNetwork(networkId)
       setRoutingSteps([])
-      setProgressEvents([])
       setNetworkError(null)
-      setSources([])
     }
   }, [])
 
@@ -451,10 +458,9 @@ export function NetworkProvider({
   const clearHistory = useCallback(() => {
     setMessages([])
     setRoutingSteps([])
-    setProgressEvents([])
     setNetworkError(null)
-    setSources([])
-  }, [setMessages])
+    setClearedProgress(true)
+  }, [setMessages, setRoutingSteps, setNetworkError])
 
   const error = aiError?.message ?? networkError
 

@@ -72,6 +72,10 @@
   ],
   "exclude": [
     "node_modules",
+    "node_modules/**/*.ts",
+    "node_modules/**/*.tsx",
+    "node_modules/**/*.d.ts",
+    "/node_modules/**/*.tsx",
     "/node_modules",
     "/dist",
     "dist",

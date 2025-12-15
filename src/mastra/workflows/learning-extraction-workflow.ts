@@ -120,9 +120,9 @@ const extractLearningsStep = createStep({
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        type: 'workflow',
-        data: 'extract-learnings',
-        id: 'extract-learnings',
+        status: 'in-progress',
+        message: `Starting learning extraction...`,
+        stage: 'extract-learnings',
       },
       id: 'extract-learnings',
     });
@@ -141,7 +141,7 @@ const extractLearningsStep = createStep({
         data: {
           status: 'in-progress',
           message: `Analyzing ${inputData.contentType}...`,
-          stage: 'workflow',
+          stage: 'extract-learnings',
         },
         id: 'extract-learnings',
       });
@@ -156,7 +156,7 @@ const extractLearningsStep = createStep({
           data: {
             status: 'in-progress',
             message: `Extracting learnings (${inputData.extractionDepth} mode)...`,
-            stage: 'workflow',
+            stage: 'extract-learnings',
           },
           id: 'extract-learnings',
         });
@@ -237,9 +237,9 @@ Also provide an overall summary.`;
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
+          status: 'done',
           message: `Extracted ${learnings.length} learnings...`,
-          stage: 'workflow',
+          stage: 'extract-learnings',
         },
         id: 'extract-learnings',
       });
@@ -269,7 +269,7 @@ Also provide an overall summary.`;
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      
+
       logStepEnd('extract-learnings', { learningsCount: learnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -279,10 +279,11 @@ Also provide an overall summary.`;
       logError('extract-learnings', error, { contentType: inputData.contentType });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'extract-learnings',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'extract-learnings',
         },
         id: 'extract-learnings',
       });
@@ -304,11 +305,11 @@ const humanApprovalStep = createStep({
     logStepStart('human-approval', { learningsCount: inputData.learnings.length, hasResumeData: !!resumeData });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: 'workflow',
-        data: 'human-approval',
-        id: 'human-approval',
+        status: 'in-progress',
+        message: `Starting human approval step...`,
+        stage: 'human-approval',
       },
       id: 'human-approval',
     });
@@ -323,9 +324,9 @@ const humanApprovalStep = createStep({
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
-            status: 'completed',
-            message: 'Auto-approval (requireApproval=false)...',
-            stage: 'workflow',
+            status: 'done',
+            message: `Auto-approving ${inputData.learnings.length} learnings (requireApproval=false)...`,
+            stage: 'human-approval',
           },
           id: 'human-approval',
         });
@@ -349,7 +350,7 @@ const humanApprovalStep = createStep({
         span.setAttribute('responseTimeMs', Date.now() - startTime);
         span.end();
 
-        
+
         return result;
       }
 
@@ -358,8 +359,8 @@ const humanApprovalStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'Awaiting human approval...',
-            stage: 'workflow',
+            message: `Awaiting human approval for ${inputData.learnings.length} learnings...`,
+            stage: 'human-approval',
           },
           id: 'human-approval',
         });
@@ -386,8 +387,8 @@ const humanApprovalStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Processing approval decision...',
-          stage: 'workflow',
+          message: `Processing approval decision for ${inputData.learnings.length} learnings...`,
+          stage: 'human-approval',
         },
         id: 'human-approval',
       });
@@ -413,9 +414,9 @@ const humanApprovalStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
+          status: 'done',
           message: `Approved ${approvedLearnings.length} learnings...`,
-          stage: 'workflow',
+          stage: 'human-approval',
         },
         id: 'human-approval',
       });
@@ -443,7 +444,7 @@ const humanApprovalStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      
+
       logStepEnd('human-approval', { approved: resumeData.approved, approvedCount: approvedLearnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -453,10 +454,11 @@ const humanApprovalStep = createStep({
       logError('human-approval', error);
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'human-approval',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'human-approval',
         },
         id: 'human-approval',
       });
@@ -476,11 +478,11 @@ const validateLearningsStep = createStep({
     logStepStart('validate-learnings', { learningsCount: inputData.learnings.length });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: 'workflow',
-        data: 'validate-learnings',
-        id: 'validate-learnings',
+        status: 'in-progress',
+        message: `Starting validation for ${inputData.learnings.length} learnings...`,
+        stage: 'validate-learnings',
       },
       id: 'validate-learnings',
     });
@@ -498,8 +500,8 @@ const validateLearningsStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Validating learnings quality...',
-          stage: 'workflow',
+          message: `Validating learnings quality (${inputData.learnings.length} items)...`,
+          stage: 'validate-learnings',
         },
         id: 'validate-learnings',
       });
@@ -565,7 +567,7 @@ const validateLearningsStep = createStep({
             data: {
               status: 'in-progress',
               message: `Validated ${i + 1}/${inputData.learnings.length} learnings...`,
-              stage: 'workflow',
+              stage: 'validate-learnings',
             },
             id: 'validate-learnings',
           });
@@ -575,9 +577,9 @@ const validateLearningsStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
-          message: 'Validation complete...',
-          stage: 'workflow',
+          status: 'done',
+          message: `Validation complete: ${inputData.learnings.length} learnings processed`,
+          stage: 'validate-learnings',
         },
         id: 'validate-learnings',
       });
@@ -604,7 +606,7 @@ const validateLearningsStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      
+
       logStepEnd('validate-learnings', result.validationSummary, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -615,10 +617,11 @@ const validateLearningsStep = createStep({
       logError('validate-learnings', error);
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'validate-learnings',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'validate-learnings',
         },
         id: 'validate-learnings',
       });
@@ -638,11 +641,11 @@ const generateLearningReportStep = createStep({
     logStepStart('generate-learning-report', { learningsCount: inputData.learnings.length });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: 'workflow',
-        data: 'generate-learning-report',
-        id: 'generate-learning-report',
+        status: 'in-progress',
+        message: `Starting report generation for ${inputData.learnings.length} learnings (validated=${inputData.validationSummary.totalValidated})...`,
+        stage: 'generate-learning-report',
       },
       id: 'generate-learning-report',
     });
@@ -660,8 +663,8 @@ const generateLearningReportStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Generating learning report...',
-          stage: 'workflow',
+          message: `Generating learning report for ${inputData.learnings.length} learnings...`,
+          stage: 'generate-learning-report',
         },
         id: 'generate-learning-report',
       });
@@ -751,9 +754,9 @@ const generateLearningReportStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
-          message: 'Report complete...',
-          stage: 'workflow',
+          status: 'done',
+          message: `Report complete: ${inputData.learnings.length} learnings`,
+          stage: 'generate-learning-report',
         },
         id: 'generate-learning-report',
       });
@@ -778,16 +781,6 @@ const generateLearningReportStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'generate-learning-report',
-          success: true,
-          duration: Date.now() - startTime,
-        },
-        id: 'generate-learning-report',
-      });
-
       logStepEnd('generate-learning-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -798,10 +791,11 @@ const generateLearningReportStep = createStep({
       logError('generate-learning-report', error);
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'generate-learning-report',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'generate-learning-report',
         },
         id: 'generate-learning-report',
       });

@@ -81,14 +81,14 @@ const researchTopicStep = createStep({
     logStepStart('research-topic', { topic: inputData.topic });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "research-topic",
-        id: "research-topic",
+        status: 'in-progress',
+        message: `Starting research for topic: ${inputData.topic}`,
+        stage: 'research-topic',
       },
-      id: "research-topic",
-    });
+      id: 'research-topic',
+    })
 
     const tracer = trace.getTracer('content-review');
     const span = tracer.startSpan('research-agent-call', {
@@ -99,12 +99,12 @@ const researchTopicStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "in-progress",
+          status: 'in-progress',
           message: `Researching topic: ${inputData.topic}...`,
-          stage: "researchAgent",
+          stage: 'research-topic',
         },
-        id: "research-topic",
-      });
+        id: 'research-topic',
+      })
 
       const agent = mastra?.getAgent('researchAgent');
       const research = {
@@ -118,13 +118,12 @@ const researchTopicStep = createStep({
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
-            status: "50%",
-            message: "AI researching topic...",
-          stage: "researchAgent",
+            status: 'in-progress',
+            message: `AI researching topic: ${inputData.topic}...`,
+            stage: 'research-topic',
           },
-          id: "research-topic",
-
-        });
+          id: 'research-topic',
+        })
 
         const prompt = `Research the topic "${inputData.topic}" for a ${inputData.contentType}
         ${inputData.targetAudience ? `targeting ${inputData.targetAudience}` : ''}.
@@ -162,11 +161,11 @@ const researchTopicStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: "Research complete.",
-          stage: "researchAgent",
+          status: 'done',
+          message: `Research complete for topic: ${inputData.topic}`,
+          stage: 'research-topic',
         },
-        id: "research-topic",
+        id: 'research-topic',
       });
 
       const result: z.infer<typeof researchOutputSchema> = {
@@ -182,16 +181,6 @@ const researchTopicStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-          stepId: 'research-topic',
-          success: true,
-          duration: Date.now() - startTime,
-      },
-      id: "research-topic",
-      });
-
       logStepEnd('research-topic', { keyPointsCount: research.keyPoints.length }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -201,12 +190,13 @@ const researchTopicStep = createStep({
       logError('research-topic', error, { topic: inputData.topic });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-        stepId: 'research-topic',
-        error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'research-topic',
         },
-        id: "research-topic",
+        id: 'research-topic',
       });
 
       throw error;
@@ -224,14 +214,14 @@ const draftContentStep = createStep({
     logStepStart('draft-content', { topic: inputData.topic, contentType: inputData.contentType });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "draft-content",
-        id: "draft-content",
+        status: 'in-progress',
+        message: `Starting content draft for ${inputData.contentType}: ${inputData.topic}`,
+        stage: 'draft-content',
       },
-      id: "draft-content",
-    });
+      id: 'draft-content',
+    })
 
     const tracer = trace.getTracer('content-review');
     const span = tracer.startSpan('copywriter-agent-call', {
@@ -245,11 +235,11 @@ const draftContentStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "in-progress",
-          message: "Starting content drafting",
-          stage: "first",
+          status: 'in-progress',
+          message: `Drafting content for ${inputData.contentType}: ${inputData.topic}`,
+          stage: 'draft-content',
         },
-        id: "draft-content",
+        id: 'draft-content',
       });
 
       const agent = mastra?.getAgent('copywriterAgent');
@@ -260,12 +250,12 @@ const draftContentStep = createStep({
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
-            status: "40%",
-            message: "AI writing content draft...",
-            stage: "second",
+            status: 'in-progress',
+            message: `AI writing ${inputData.contentType} draft for ${inputData.topic}...`,
+            stage: 'draft-content',
           },
-          id: "draft-content",
-        });
+          id: 'draft-content',
+        })
 
         const prompt = `Write a ${inputData.contentType} about "${inputData.topic}".
 
@@ -302,11 +292,11 @@ const draftContentStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: "Drafting complete.",
-          stage: "third",
+          status: 'done',
+          message: `Drafting complete for ${inputData.contentType}: ${inputData.topic}`,
+          stage: 'draft-content',
         },
-        id: "draft-content",
+        id: 'draft-content',
       });
 
       const wordCount = content.split(/\s+/).length;
@@ -325,16 +315,6 @@ const draftContentStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.custom({
-        type: 'data-workflow-step-complete',
-        data: {
-        stepId: 'draft-content',
-        success: true,
-        duration: Date.now() - startTime,
-        },
-        id: "draft-content",
-      });
-
       logStepEnd('draft-content', { wordCount }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -344,12 +324,13 @@ const draftContentStep = createStep({
       logError('draft-content', error, { topic: inputData.topic });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'draft-content',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'draft-content',
         },
-        id: "draft-content",
+        id: 'draft-content',
       });
 
       throw error;
@@ -367,13 +348,14 @@ const initialReviewStep = createStep({
     logStepStart('initial-review', { topic: inputData.topic });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "initial-review",
-        id: "initial-review",
-      }
-    });
+        status: 'in-progress',
+        message: `Starting initial review for ${inputData.contentType}: ${inputData.topic}`,
+        stage: 'initial-review',
+      },
+      id: 'initial-review',
+    })
 
     const tracer = trace.getTracer('content-review');
     const span = tracer.startSpan('editor-agent-review', {
@@ -384,12 +366,12 @@ const initialReviewStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "30%",
-          message: 'Evaluating content quality...',
-          stage: "researchAgent",
+          status: 'in-progress',
+          message: `Evaluating content quality for ${inputData.contentType}: ${inputData.topic}...`,
+          stage: 'initial-review',
         },
-        id: "initial-review",
-      });
+        id: 'initial-review',
+      })
 
       const editorAgent = mastra?.getAgent('editorAgent');
       const evaluationAgent = mastra?.getAgent('evaluationAgent');
@@ -450,11 +432,11 @@ const initialReviewStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: `Initial score: ${score}/100...`,
-          stage: "researchAgent",
+          status: 'in-progress',
+          message: `Initial score: ${score}/100 for ${inputData.contentType}: ${inputData.topic}...`,
+          stage: 'initial-review',
         },
-        id: "initial-review",
+        id: 'initial-review',
       });
 
       const approved = score >= inputData.qualityThreshold;
@@ -483,14 +465,14 @@ const initialReviewStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "100%",
-          message: `Iteration 1: Score ${score}/${inputData.qualityThreshold}`,
-          stage: "researchAgent",
+          status: 'done',
+          message: `Iteration 1: Score ${score}/${inputData.qualityThreshold} - ${approved ? 'APPROVED' : 'needs refinement'}`,
+          stage: 'initial-review',
         },
-        id: "initial-review",
+        id: 'initial-review',
       });
 
-      
+
       logStepEnd('initial-review', { score, approved, iteration: 1 }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -500,11 +482,13 @@ const initialReviewStep = createStep({
       logError('initial-review', error, { topic: inputData.topic });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'initial-review',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'initial-review',
+        },
+        id: 'initial-review',
       });
 
       throw error;
@@ -523,14 +507,14 @@ const refineContentStep = createStep({
     logStepStart('refine-content', { topic: inputData.topic, iteration: nextIteration });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "refine-content",
-        id: "refine-content",
+        status: 'in-progress',
+        message: `Starting refinement iteration ${nextIteration} for ${inputData.contentType}: ${inputData.topic}`,
+        stage: 'refine-content',
       },
-      id: "refine-content",
-    });
+      id: 'refine-content',
+    })
 
     if (nextIteration > MAX_ITERATIONS) {
       const error = new Error(`Maximum iterations (${MAX_ITERATIONS}) exceeded. Final score: ${inputData.score}`);
@@ -550,11 +534,11 @@ const refineContentStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "in-progress",
-          message: `Starting iteration ${nextIteration}...`,
-          stage: "researchAgent",
+          status: 'in-progress',
+          message: `Applying feedback and rewriting content for ${inputData.contentType}: ${inputData.topic} (iteration ${nextIteration})`,
+          stage: 'refine-content',
         },
-        id: "refine-content",
+        id: 'refine-content',
       });
 
       const copywriterAgent = mastra?.getAgent('copywriterAgent');
@@ -584,15 +568,15 @@ Rewrite with improvements.`;
         const rewrittenText = await stream.text;
         refinedContent = rewrittenText;
       }
-// FIXME: @Copilot statu
+
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "60%",
-          message: 'Re-evaluating refined content...',
-          stage: "researchAgent",
+          status: 'in-progress',
+          message: `Re-evaluating refined content for iteration ${nextIteration}...`,
+          stage: 'refine-content',
         },
-        id: "refine-content",
+        id: 'refine-content',
       });
 
       let newScore = inputData.score + 5;
@@ -646,10 +630,11 @@ Rewrite with improvements.`;
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "90%",
-          message: `Iteration ${nextIteration}: Score ${newScore}/100...`,
-          stage: "researchAgent",
-        }
+          status: 'in-progress',
+          message: `Iteration ${nextIteration}: Score ${newScore}/100 for ${inputData.contentType}: ${inputData.topic}...`,
+          stage: 'refine-content',
+        },
+        id: 'refine-content',
       });
 
       const approved = newScore >= inputData.qualityThreshold;
@@ -680,13 +665,14 @@ Rewrite with improvements.`;
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "100%",
+          status: 'done',
           message: `Iteration ${nextIteration}: Score ${newScore}/${inputData.qualityThreshold} - ${approved ? 'APPROVED' : 'needs refinement'}`,
-          stage: "researchAgent",
-        }
+          stage: 'refine-content',
+        },
+        id: 'refine-content',
       });
 
-      
+
       logStepEnd('refine-content', { score: newScore, approved, iteration: nextIteration }, Date.now() - startTime);
       return result;
     } catch (error) {
@@ -696,11 +682,13 @@ Rewrite with improvements.`;
       logError('refine-content', error, { iteration: nextIteration });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'refine-content',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'refine-content',
+        },
+        id: 'refine-content',
       });
 
       throw error;
@@ -718,22 +706,24 @@ const finalizeContentStep = createStep({
     logStepStart('finalize-content', { topic: inputData.topic, finalScore: inputData.score });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "finalize-content",
-        id: "finalize-content",
-      }
-    });
+        status: 'in-progress',
+        message: `Finalizing approved ${inputData.contentType}: ${inputData.topic}`,
+        stage: 'finalize-content',
+      },
+      id: 'finalize-content',
+    })
 
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "50%",
-        message: 'Finalizing content...',
-        stage: "researchAgent",
-      }
-    });
+        status: 'in-progress',
+        message: `Formatting final ${inputData.contentType} with score ${inputData.score}/${inputData.qualityThreshold}...`,
+        stage: 'finalize-content',
+      },
+      id: 'finalize-content',
+    })
 
     const result: z.infer<typeof finalOutputSchema> = {
       content: inputData.content,
@@ -752,12 +742,13 @@ const finalizeContentStep = createStep({
     };
 
     await writer?.custom({
-      type: 'data-workflow-step-complete',
+      type: 'data-tool-progress',
       data: {
-        stepId: 'finalize-content',
-        success: true,
-        duration: Date.now() - startTime,
-      }
+        status: 'done',
+        message: `Finalized ${inputData.contentType}: ${inputData.topic} (${inputData.iteration} iterations)`,
+        stage: 'finalize-content',
+      },
+      id: 'finalize-content',
     });
 
     logStepEnd('finalize-content', { iterations: inputData.iteration, finalScore: inputData.score }, Date.now() - startTime);

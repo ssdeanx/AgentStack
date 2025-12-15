@@ -21,29 +21,28 @@ const stepA1 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer }) => {
     const startTime = Date.now();
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "stepA1",
-        id: "stepA1",
+        status: 'in-progress',
+        message: `Starting git diff for channel ${inputData.channelId}...`,
+        stage: 'stepA1',
       },
-      id: "stepA1",
-    });
+      id: 'stepA1',
+    })
 
     await writer?.custom({
-      type: "data-tool-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "20%",
-        message: "Starting Get a git diff",
-        stage: "gitDiffAgent",
-        stepId: "stepA1",
+        status: 'in-progress',
+        message: `Fetching git diff for channel ${inputData.channelId}...`,
+        stage: 'stepA1',
       },
-      id: "stepA1",
-    });
+      id: 'stepA1',
+    })
 
     // For today
     try {
@@ -211,14 +210,13 @@ const stepA1 = createStep({
     writeFileSync(`generated-changelogs/changelog-${today}`, combinedChangelog);
 
     await writer?.custom({
-      type: "data-tool-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "100%",
-        message: "Get a git diff completed",
-        stage: "gitDiffAgent",
-        stepId: "stepA1",
+        status: 'done',
+        message: `Git diff completed for channel ${inputData.channelId}`,
+        stage: 'stepA1',
       },
-      id: "stepA1",
+      id: 'stepA1',
     });
 
     
@@ -241,25 +239,24 @@ const stepA2 = createStep({
     const startTime = Date.now();
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "stepA2",
-        id: "stepA2",
+        status: 'in-progress',
+        message: `Starting changelog generation (input length: ${inputData.message.length})...`,
+        stage: 'stepA2',
       },
-      id: "stepA2",
-    });
+      id: 'stepA2',
+    })
 
     await writer?.custom({
-      type: "data-tool-progress",
+      type: 'data-tool-progress',
       data: {
-        status: "50%",
-        message: "Starting Make changelog",
-        stage: "gitDiffAgent",
-        stepId: "stepA2",
+        status: 'in-progress',
+        message: `Generating changelog from git diff (input length: ${inputData.message.length})...`,
+        stage: 'stepA2',
       },
-      id: "stepA2",
-    });
+      id: 'stepA2',
+    })
 
     const agent = mastra?.getAgent('daneChangeLog');
 
@@ -324,14 +321,13 @@ const stepA2 = createStep({
       log.info(chalk.green(result.text));
 
       await writer?.custom({
-        type: "data-tool-progress",
+        type: 'data-tool-progress',
         data: {
-          status: "100%",
-          message: "Make changelog completed",
-          stage: "gitDiffAgent",
-          stepId: "stepA2",
+          status: 'done',
+          message: `Changelog generation completed`,
+          stage: 'stepA2',
         },
-        id: "stepA2",
+        id: 'stepA2',
       });
 
       
@@ -342,14 +338,13 @@ const stepA2 = createStep({
       log.error(e instanceof Error ? e.message : String(e));
 
       await writer?.custom({
-        type: "data-tool-progress",
+        type: 'data-tool-progress',
         data: {
-          status: "100%",
-          message: "Make changelog completed",
-          stage: "gitDiffAgent",
-          stepId: "stepA2",
+          status: 'done',
+          message: `Error generating changelog: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          stage: 'stepA2',
         },
-        id: "stepA2",
+        id: 'stepA2',
       });
 
       

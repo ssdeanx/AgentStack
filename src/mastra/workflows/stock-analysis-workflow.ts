@@ -99,7 +99,7 @@ const fetchStockDataStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: 'Processing stock data...',
+          message: `Processing stock data for ${inputData.symbol}...`,
           stage: 'fetch-stock-data',
         },
         id: 'fetch-stock-data',
@@ -136,8 +136,8 @@ const fetchStockDataStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
+          message: `Error fetching stock data for ${inputData.symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           stage: 'fetch-stock-data',
-          error: error instanceof Error ? error.message : 'Unknown error',
         },
         id: 'fetch-stock-data',
       });
@@ -192,7 +192,7 @@ const getCompanyNewsStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'done',
-            message: 'FINNHUB_API_KEY not set; returning empty news and neutral sentiment.',
+            message: `FINNHUB_API_KEY not set; returning empty news for ${inputData.symbol} and neutral sentiment.`,
             stage: 'get-company-news',
           },
           id: 'get-company-news',
@@ -202,17 +202,6 @@ const getCompanyNewsStep = createStep({
         span.setAttribute('sentiment', 'neutral');
         span.setAttribute('responseTimeMs', Date.now() - startTime);
         span.end();
-
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            stage: 'get-company-news',
-            success: true,
-            duration: Date.now() - startTime,
-            status: 'done',
-          },
-          id: 'get-company-news',
-        });
 
         return { stockData: inputData, newsData };
       }
@@ -228,7 +217,7 @@ const getCompanyNewsStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Analyzing news sentiment...',
+          message: `Analyzing news sentiment for ${inputData.symbol}...`,
           stage: 'get-company-news',
         },
         id: 'get-company-news',
@@ -267,9 +256,9 @@ const getCompanyNewsStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          stage: 'get-company-news',
           status: 'done',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          message: `Error fetching company news for ${inputData.symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'get-company-news',
         },
         id: 'get-company-news',
       });
@@ -307,7 +296,7 @@ const runAnalysisStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Starting technical analysis...',
+          message: `Starting technical analysis for ${inputData.stockData.symbol}...`,
           stage: 'run-analysis',
         },
         id: 'run-analysis',
@@ -323,7 +312,7 @@ const runAnalysisStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'Running AI-powered analysis...',
+            message: `Running AI-powered analysis for ${inputData.stockData.symbol}...`,
             stage: 'run-analysis',
           },
           id: 'run-analysis',
@@ -383,7 +372,7 @@ const runAnalysisStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: 'Finalizing analysis...',
+          message: `Finalizing analysis for ${inputData.stockData.symbol}...`,
           stage: 'run-analysis',
         },
         id: 'run-analysis',
@@ -416,9 +405,9 @@ const runAnalysisStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
+          status: 'done',
+          message: `Error running analysis for ${inputData.stockData.symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           stage: 'run-analysis',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          status: 'done'
         },
         id: 'run-analysis',
       });
@@ -450,7 +439,7 @@ const generateReportStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Generating investment report...',
+          message: `Generating investment report for ${inputData.symbol}...`,
           stage: 'generate-report',
         },
         id: 'generate-report',
@@ -470,7 +459,7 @@ const generateReportStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'AI generating comprehensive report...',
+            message: `AI generating comprehensive report for ${inputData.symbol}...`,
             stage: 'generate-report',
           },
           id: 'generate-report',
@@ -532,7 +521,7 @@ const generateReportStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: 'Finalizing report...',
+          message: `Finalizing report for ${inputData.symbol}...`,
           stage: 'generate-report',
         },
         id: 'generate-report',
@@ -568,9 +557,9 @@ const generateReportStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          stage: 'generate-report',
-          error: error instanceof Error ? error.message : 'Unknown error',
           status: 'done',
+          message: `Error generating report for ${inputData.symbol}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'generate-report',
         },
         id: 'generate-report',
       });

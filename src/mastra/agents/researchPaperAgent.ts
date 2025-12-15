@@ -4,8 +4,8 @@ import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchPaperAgentRuntimeContext {
@@ -119,7 +119,11 @@ Physics:
   options: {
     tracingPolicy: {},
   },
-  outputProcessors: [new TokenLimiterProcessor(1000000)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({
+    batchSize: 5,
+    maxWaitTime: 75,
+    emitOnNonText: true
+  })]
 })
 
 log.info('Research Paper Agent initialized')

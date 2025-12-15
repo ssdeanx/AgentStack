@@ -146,24 +146,14 @@ const fetchPriceDataStep = createStep({
     logStepStart('fetch-price-data', { symbols: inputData.symbols });
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
-      data: {
-        type: 'step-start',
-        data: "Starting parallel price fetch...",
-        id: 'fetch-price-data',
-      },
-      id: 'fetch-price-data',
-    });
-
-    await writer?.custom({
       type: 'data-tool-progress',
       data: {
         status: 'in-progress',
-        message: `Fetching prices for ${inputData.symbols.length} symbols...`,
+        message: `Starting price fetch for ${inputData.symbols.length} symbols...`,
         stage: 'fetch-price-data',
       },
       id: 'fetch-price-data',
-    })
+    });
 
     const tracer = trace.getTracer('financial-report');
     const parentSpan = tracer.startSpan('parallel-price-fetch', {
@@ -175,10 +165,11 @@ const fetchPriceDataStep = createStep({
       const apiKey = process.env.POLYGON_API_KEY;
 
       await writer?.custom({
-        type: 'data-workflow-parallel-progress',
+        type: 'data-tool-progress',
         data: {
-          type: 'progress',
-          data: "Fetching prices for ${inputData.symbols.length} symbols...",
+          status: 'in-progress',
+          message: `Fetching prices for ${inputData.symbols.length} symbols...`,
+          stage: 'fetch-price-data',
         },
         id: 'fetch-price-data',
       });
@@ -231,13 +222,14 @@ const fetchPriceDataStep = createStep({
           symbolSpan.end();
           priceData.push({ symbol, timestamp: new Date().toISOString() });
         }
- // 
-        await writer?.write({
-          type: 'parallel-progress',
-          stepId: 'fetch-price-data',
-          total: inputData.symbols.length,
-          completed: i + 1,
-          message: `Fetched ${i + 1}/${inputData.symbols.length} prices...`,
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: `Fetched ${i + 1}/${inputData.symbols.length} prices...`,
+            stage: 'fetch-price-data',
+          },
+          id: 'fetch-price-data',
         });
       }
 
@@ -249,8 +241,8 @@ const fetchPriceDataStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: '50%',
-          message: `Fetched ${priceData.length} price snapshots.`,
+          status: 'in-progress',
+          message: `Fetched ${priceData.length} price snapshots. (50%)`,
           stage: 'fetch-price-data',
         },
         id: 'fetch-price-data',
@@ -273,10 +265,14 @@ const fetchPriceDataStep = createStep({
       parentSpan.end();
       logError('fetch-price-data', error, { symbols: inputData.symbols });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'fetch-price-data',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'fetch-price-data',
+        },
+        id: 'fetch-price-data',
       });
 
       throw error;
@@ -302,12 +298,6 @@ const fetchCompanyMetricsStep = createStep({
     const startTime = Date.now();
     logStepStart('fetch-company-metrics', { symbols: inputData.symbols });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'fetch-company-metrics',
-      timestamp: Date.now(),
-    });
-
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
@@ -327,12 +317,14 @@ const fetchCompanyMetricsStep = createStep({
       const companyMetrics: Array<z.infer<typeof companyMetricsSchema>> = [];
       const apiKey = process.env.FINNHUB_API_KEY;
 
-      await writer?.write({
-        type: 'parallel-progress',
-        stepId: 'fetch-company-metrics',
-        total: inputData.symbols.length,
-        completed: 0,
-        message: `Fetching metrics for ${inputData.symbols.length} symbols...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Fetching metrics for ${inputData.symbols.length} symbols...`,
+          stage: 'fetch-company-metrics',
+        },
+        id: 'fetch-company-metrics',
       });
 
       for (let i = 0; i < inputData.symbols.length; i++) {
@@ -369,12 +361,14 @@ const fetchCompanyMetricsStep = createStep({
           companyMetrics.push({ symbol });
         }
 
-        await writer?.write({
-          type: 'parallel-progress',
-          stepId: 'fetch-company-metrics',
-          total: inputData.symbols.length,
-          completed: i + 1,
-          message: `Fetched ${i + 1}/${inputData.symbols.length} metrics...`,
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: `Fetched ${i + 1}/${inputData.symbols.length} metrics...`,
+            stage: 'fetch-company-metrics',
+          },
+          id: 'fetch-company-metrics',
         });
       }
 
@@ -382,18 +376,11 @@ const fetchCompanyMetricsStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'fetch-company-metrics',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: '50%',
-          message: `Fetched ${companyMetrics.length} company metric snapshots.`,
+          status: 'in-progress',
+          message: `Fetched ${companyMetrics.length} company metric snapshots. (50%)`,
           stage: 'fetch-company-metrics',
         },
         id: 'fetch-company-metrics',
@@ -416,10 +403,14 @@ const fetchCompanyMetricsStep = createStep({
       span.end();
       logError('fetch-company-metrics', error, { symbols: inputData.symbols });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'fetch-company-metrics',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'fetch-company-metrics',
+        },
+        id: 'fetch-company-metrics',
       });
 
       throw error;
@@ -444,12 +435,6 @@ const fetchNewsSentimentStep = createStep({
   execute: async ({ inputData, writer }) => {
     const startTime = Date.now();
     logStepStart('fetch-news-sentiment', { symbols: inputData.symbols });
-
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'fetch-news-sentiment',
-      timestamp: Date.now(),
-    });
 
     await writer?.custom({
       type: 'data-tool-progress',
@@ -482,13 +467,6 @@ const fetchNewsSentimentStep = createStep({
         span.setAttribute('responseTimeMs', Date.now() - startTime);
         span.end();
 
-        await writer?.write({
-          type: 'step-complete',
-          stepId: 'fetch-news-sentiment',
-          success: true,
-          duration: Date.now() - startTime,
-        });
-
         return {
           newsSentiment,
           metadata: {
@@ -500,12 +478,14 @@ const fetchNewsSentimentStep = createStep({
         };
       }
 
-      await writer?.write({
-        type: 'parallel-progress',
-        stepId: 'fetch-news-sentiment',
-        total: inputData.symbols.length,
-        completed: 0,
-        message: `Fetching news for ${inputData.symbols.length} symbols...`,
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Fetching news for ${inputData.symbols.length} symbols...`,
+          stage: 'fetch-news-sentiment',
+        },
+        id: 'fetch-news-sentiment',
       });
 
       const today = new Date().toISOString().split('T')[0];
@@ -547,12 +527,14 @@ const fetchNewsSentimentStep = createStep({
           newsSentiment.push({ symbol, articles: [], overallSentiment: 'neutral' });
         }
 
-        await writer?.write({
-          type: 'parallel-progress',
-          stepId: 'fetch-news-sentiment',
-          total: inputData.symbols.length,
-          completed: i + 1,
-          message: `Fetched ${i + 1}/${inputData.symbols.length} news...`,
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: `Fetched ${i + 1}/${inputData.symbols.length} news...`,
+            stage: 'fetch-news-sentiment',
+          },
+          id: 'fetch-news-sentiment',
         });
       }
 
@@ -560,18 +542,11 @@ const fetchNewsSentimentStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'fetch-news-sentiment',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: '50%',
-          message: `Fetched news sentiment for ${newsSentiment.length} symbols.`,
+          status: 'in-progress',
+          message: `Fetched news sentiment for ${newsSentiment.length} symbols. (50%)`,
           stage: 'fetch-news-sentiment',
         },
         id: 'fetch-news-sentiment',
@@ -594,10 +569,14 @@ const fetchNewsSentimentStep = createStep({
       span.end();
       logError('fetch-news-sentiment', error, { symbols: inputData.symbols });
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'fetch-news-sentiment',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'fetch-news-sentiment',
+        },
+        id: 'fetch-news-sentiment',
       });
 
       throw error;
@@ -614,29 +593,17 @@ const mergeDataStep = createStep({
     const startTime = Date.now();
     logStepStart('merge-data', { symbolsCount: inputData.metadata.symbols.length });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'merge-data',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('financial-report');
     const span = tracer.startSpan('data-merge', {
       attributes: { symbolsCount: inputData.metadata.symbols.length },
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Merging price, metrics, and sentiment data...',
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Merging price, metrics, and sentiment data...',
+          message: `Merging price, metrics, and sentiment data for ${inputData.metadata.symbols.length} symbols...`,
           stage: 'merge-data',
         },
         id: 'merge-data',
@@ -648,12 +615,6 @@ const mergeDataStep = createStep({
         const sentiment = inputData.newsSentiment.find(s => s.symbol === symbol) ?? { symbol };
 
         return { symbol, price, metrics, sentiment };
-      });
-
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Data merge complete...',
       });
 
       const result: z.infer<typeof mergedDataSchema> = {
@@ -670,17 +631,10 @@ const mergeDataStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'merge-data',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
+          status: 'done',
           message: `Merged data for ${stocks.length} symbols.`,
           stage: 'merge-data',
         },
@@ -695,10 +649,14 @@ const mergeDataStep = createStep({
       span.end();
       logError('merge-data', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'merge-data',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'merge-data',
+        },
+        id: 'merge-data',
       });
 
       throw error;
@@ -715,29 +673,17 @@ const analyzeDataStep = createStep({
     const startTime = Date.now();
     logStepStart('analyze-data', { totalSymbols: inputData.metadata.totalSymbols });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'analyze-data',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('financial-report');
     const span = tracer.startSpan('stock-analysis', {
       attributes: { symbols: inputData.metadata.symbols },
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Analyzing stock data...',
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Analyzing stock data...',
+          message: `Analyzing stock data for ${inputData.metadata.totalSymbols} symbols...`,
           stage: 'analyze-data',
         },
         id: 'analyze-data',
@@ -762,17 +708,11 @@ const analyzeDataStep = createStep({
       const marketTrend: 'bullish' | 'bearish' | 'neutral' =
         averageChange > 1 ? 'bullish' : averageChange < -1 ? 'bearish' : 'neutral';
 
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Generating recommendations...',
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Generating recommendations...',
+          message: `Generating recommendations for ${inputData.metadata.totalSymbols} symbols...`,
           stage: 'analyze-data',
         },
         id: 'analyze-data',
@@ -817,12 +757,7 @@ const analyzeDataStep = createStep({
         }));
       }
 
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Analysis complete...',
-      });
-
+      
       const result: z.infer<typeof analysisResultSchema> = {
         stocks: inputData.stocks,
         analysis: {
@@ -842,17 +777,10 @@ const analyzeDataStep = createStep({
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'analyze-data',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
+          status: 'done',
           message: `Generated ${recommendations.length} recommendations.`,
           stage: 'analyze-data',
         },
@@ -867,10 +795,14 @@ const analyzeDataStep = createStep({
       span.end();
       logError('analyze-data', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'analyze-data',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'analyze-data',
+        },
+        id: 'analyze-data',
       });
 
       throw error;
@@ -887,29 +819,17 @@ const generateReportStep = createStep({
     const startTime = Date.now();
     logStepStart('generate-report', { symbols: inputData.metadata.symbols });
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'generate-report',
-      timestamp: Date.now(),
-    });
-
     const tracer = trace.getTracer('financial-report');
     const span = tracer.startSpan('report-generation', {
       attributes: { symbolsCount: inputData.metadata.totalSymbols },
     });
 
     try {
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Generating financial report...',
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Generating financial report...',
+          message: `Generating ${inputData.metadata.reportType} financial report for ${inputData.metadata.totalSymbols} symbols...`,
           stage: 'generate-report',
         },
         id: 'generate-report',
@@ -922,17 +842,11 @@ const generateReportStep = createStep({
       let report = '';
 
       if (agent) {
-        await writer?.write({
-          type: 'progress',
-          status: 'in-progress',
-          message: 'AI generating comprehensive report...',
-        });
-
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'AI generating comprehensive report...',
+            message: `AI generating comprehensive ${inputData.metadata.reportType} report...`,
             stage: 'generate-report',
           },
           id: 'generate-report',
@@ -987,12 +901,6 @@ Provide a concise summary and detailed report.`;
           }\n\n## Recommendations\n\n${inputData.analysis.recommendations.map(r => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`;
       }
 
-      await writer?.write({
-        type: 'progress',
-        status: 'in-progress',
-        message: 'Report complete...',
-      });
-
       const result: z.infer<typeof finalReportSchema> = {
         reportId,
         generatedAt: new Date().toISOString(),
@@ -1014,17 +922,10 @@ Provide a concise summary and detailed report.`;
       span.setAttribute('responseTimeMs', Date.now() - startTime);
       span.end();
 
-      await writer?.write({
-        type: 'step-complete',
-        stepId: 'generate-report',
-        success: true,
-        duration: Date.now() - startTime,
-      });
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: 'completed',
+          status: 'done',
           message: `Report generated (${reportId}).`,
           stage: 'generate-report',
         },
@@ -1039,10 +940,14 @@ Provide a concise summary and detailed report.`;
       span.end();
       logError('generate-report', error);
 
-      await writer?.write({
-        type: 'step-error',
-        stepId: 'generate-report',
-        error: error instanceof Error ? error.message : 'Unknown error',
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'generate-report',
+        },
+        id: 'generate-report',
       });
 
       throw error;
@@ -1084,12 +989,15 @@ const parallelMergeStep = createStep({
   }),
   outputSchema: parallelResultsSchema,
   execute: async ({ inputData, writer }) => {
-    const startTime = Date.now();
 
-    await writer?.write({
-      type: 'step-start',
-      stepId: 'parallel-merge',
-      timestamp: Date.now(),
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Merging results from ${Object.keys(inputData).length} parallel steps...`,
+        stage: 'parallel-merge',
+      },
+      id: 'parallel-merge',
     });
 
     const priceResult = inputData['fetch-price-data'];
@@ -1109,11 +1017,14 @@ const parallelMergeStep = createStep({
       },
     };
 
-    await writer?.write({
-      type: 'step-complete',
-      stepId: 'parallel-merge',
-      success: true,
-      duration: Date.now() - startTime,
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Merged ${result.priceData.length} price, ${result.companyMetrics.length} metrics, and ${result.newsSentiment.length} sentiment results.`,
+        stage: 'parallel-merge',
+      },
+      id: 'parallel-merge',
     });
 
     return result;

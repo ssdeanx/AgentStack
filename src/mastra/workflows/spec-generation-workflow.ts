@@ -57,6 +57,16 @@ const planStep = createStep({
       throw new Error('Agent code-architect not found');
     }
 
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Creating plan for request: ${request.slice(0, 120)}${request.length > 120 ? '…' : ''}`,
+        stage: 'create-plan',
+      },
+      id: 'create-plan',
+    });
+
     const userTierSchema = z.enum(['free', 'pro', 'enterprise']).default('free');
     const userTier = userTierSchema.parse(
       (requestContext as RequestContext<SpecRuntimeContext>)?.get('user-tier')
@@ -84,10 +94,10 @@ const planStep = createStep({
       - "documentsNeeded": An array of strings ["PRD", "Architecture", "Tasks"] based on complexity.
     `;
 
-    const stream = await agent.stream(prompt);
-    await stream.textStream?.pipeTo?.(writer);
-    const finalText = await stream.text;
-    const result = { text: finalText };
+    try {
+      const stream = await agent.stream(prompt);
+      const finalText = await stream.text;
+      const result = { text: finalText };
 
     // Parse the result assuming the agent returns JSON or we need to extract it
     // For now, we'll assume the agent is configured to return structured output or we parse the text
@@ -96,26 +106,71 @@ const planStep = createStep({
 
     // Note: In a real scenario, we should pass the schema to agent.generate for structured output.
     // But to keep it simple and compatible with the existing pattern:
-    try {
-      const { text } = result;
-      // Simple heuristic to find JSON in markdown code blocks if present
-      const jsonMatch = (/```json\n([\s\S]*?)\n```/.exec(text)) ?? (/\{[\s\S]*\}/.exec(text));
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      try {
+        const { text } = result;
+        // Simple heuristic to find JSON in markdown code blocks if present
+        const jsonMatch = (/```json\n([\s\S]*?)\n```/.exec(text)) ?? (/\{[\s\S]*\}/.exec(text));
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+
+          await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+              status: 'done',
+              message: `Plan created (documents: ${(parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']).join(', ')})`,
+              stage: 'create-plan',
+            },
+            id: 'create-plan',
+          });
+
+          return {
+            plan: parsed.plan ?? text,
+            documentsNeeded: parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']
+          };
+        }
+
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: 'Plan created (unstructured output parsed as text)',
+            stage: 'create-plan',
+          },
+          id: 'create-plan',
+        });
+
         return {
-          plan: parsed.plan ?? text,
-          documentsNeeded: parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']
+          plan: text,
+          documentsNeeded: ['PRD', 'Architecture', 'Tasks']
+        };
+      } catch (e) {
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: `Plan parsing failed; returning text output. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+            stage: 'create-plan',
+          },
+          id: 'create-plan',
+        });
+
+        return {
+          plan: result.text,
+          documentsNeeded: ['PRD', 'Architecture', 'Tasks']
         };
       }
-      return {
-        plan: text,
-        documentsNeeded: ['PRD', 'Architecture', 'Tasks']
-      };
     } catch (e) {
-      return {
-        plan: result.text,
-        documentsNeeded: ['PRD', 'Architecture', 'Tasks']
-      };
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Failed to create plan. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          stage: 'create-plan',
+        },
+        id: 'create-plan',
+      });
+
+      throw e;
     }
   },
 });
@@ -141,6 +196,16 @@ const prdStep = createStep({
       throw new Error('Agent code-architect not found');
     }
 
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Generating PRD for request: ${(request ?? '').slice(0, 120)}${(request ?? '').length > 120 ? '…' : ''}`,
+        stage: 'generate-prd',
+      },
+      id: 'generate-prd',
+    });
+
     const prompt = `
       [ROLE]
       You are an elite Product Manager using the TCREI framework.
@@ -163,15 +228,47 @@ const prdStep = createStep({
     // If PRD isn't needed according to the plan, return an empty PRD
     // to keep the workflow types consistent.
     if (!documentsNeeded?.includes('PRD')) {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: 'PRD skipped (not requested by plan)',
+          stage: 'generate-prd',
+        },
+        id: 'generate-prd',
+      });
       return { prd: '' };
     }
 
-    const stream = await agent.stream(prompt);
-    // stream partial output to the workflow writer if available so callers see progress
-    await stream.textStream?.pipeTo?.(writer);
-    const finalText = await stream.text;
-    const result = { text: finalText };
-    return { prd: result?.text || '# PRD\n\n(Generated PRD content)' };
+    try {
+      const stream = await agent.stream(prompt);
+      const finalText = await stream.text;
+      const result = { text: finalText };
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `PRD generated (length: ${(result?.text ?? '').length})`,
+          stage: 'generate-prd',
+        },
+        id: 'generate-prd',
+      });
+
+      return { prd: result?.text || '# PRD\n\n(Generated PRD content)' };
+    } catch (e) {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `PRD generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          stage: 'generate-prd',
+        },
+        id: 'generate-prd',
+      });
+
+      throw e;
+    }
   },
 });
 
@@ -188,6 +285,16 @@ const archStep = createStep({
     if (!agent) {
       throw new Error('Agent code-architect not found');
     }
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Generating architecture from PRD (length: ${prd.length})...`,
+        stage: 'generate-architecture',
+      },
+      id: 'generate-architecture',
+    });
 
     const prompt = `
       [ROLE]
@@ -207,11 +314,35 @@ const archStep = createStep({
       5. Output the final design document (ADR style or System Design doc).
     `;
 
-    const stream = await agent.stream(prompt);
-    await stream.textStream?.pipeTo?.(writer);
-    const finalText = await stream.text;
-    const result = { text: finalText };
-    return { architecture: result?.text || '# Architecture\n\n(Generated Architecture content)', prd: inputData.prd };
+    try {
+      const stream = await agent.stream(prompt);
+      const finalText = await stream.text;
+      const result = { text: finalText };
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Architecture generated (length: ${(result?.text ?? '').length})`,
+          stage: 'generate-architecture',
+        },
+        id: 'generate-architecture',
+      });
+
+      return { architecture: result?.text || '# Architecture\n\n(Generated Architecture content)', prd: inputData.prd };
+    } catch (e) {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Architecture generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          stage: 'generate-architecture',
+        },
+        id: 'generate-architecture',
+      });
+
+      throw e;
+    }
   },
 });
 
@@ -228,6 +359,16 @@ const tasksStep = createStep({
     if (!agent) {
       throw new Error('Agent code-architect not found');
     }
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Generating tasks (architecture length: ${architecture.length}, prd length: ${prd.length})...`,
+        stage: 'generate-tasks',
+      },
+      id: 'generate-tasks',
+    });
 
     const prompt = `
       [ROLE]
@@ -248,11 +389,35 @@ const tasksStep = createStep({
       Each task should have a clear "Definition of Done".
     `;
 
-    const stream = await agent.stream(prompt);
-    await stream.textStream?.pipeTo?.(writer);
-    const finalText = await stream.text;
-    const result = { text: finalText };
-    return { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' };
+    try {
+      const stream = await agent.stream(prompt);
+      const finalText = await stream.text;
+      const result = { text: finalText };
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Tasks generated (length: ${(result?.text ?? '').length})`,
+          stage: 'generate-tasks',
+        },
+        id: 'generate-tasks',
+      });
+
+      return { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' };
+    } catch (e) {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Task generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          stage: 'generate-tasks',
+        },
+        id: 'generate-tasks',
+      });
+
+      throw e;
+    }
   },
 });
 
