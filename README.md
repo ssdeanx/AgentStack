@@ -1023,122 +1023,219 @@ npm run mcp-server
 
 _Last updated: 2025-12-05 | v1.1.0_
 
-## 🧠 **Architecture Diagram**
+## 🧠 **Chat**
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 classDiagram
-    class WorkflowRun {
-      +string id
-      +string workflowId
-      +string status
-      +Date startedAt
-      +Date finishedAt
-      +string error
-    }
+  direction LR
 
-    class WorkflowDataPart {
-      +string messageId
-      +number partIndex
-      +DataPart part
-    }
+  class AgentPlanData {
+    +string title
+    +string description
+    +PlanStep[] steps
+    +bool isStreaming
+    +number currentStep
+  }
 
-    class DataPart {
-      +string type
-      +unknown data
-    }
+  class PlanStep {
+    +string text
+    +bool completed
+  }
 
-    class WorkflowProgressEvent {
-      +string id
-      +string stage
-      +string status
-      +string message
-      +string stepId
-      +Date timestamp
-      +unknown data
-    }
+  class AgentTaskData {
+    +string title
+    +TaskStep[] steps
+  }
 
-    class WorkflowSuspendPayload {
-      +string message
-      +string requestId
-      +string stepId
-    }
+  class TaskStep {
+    +string id
+    +string text
+    +TaskStepStatus status
+    +string file_name
+    +string file_icon
+  }
 
-    class WorkflowContextValue {
-      +string selectedWorkflow
-      +WorkflowRun currentRun
-      +string status
-      +number activeStepIndex
-      +WorkflowProgressEvent[] progressEvents
-      +WorkflowSuspendPayload suspendPayload
-      +WorkflowDataPart[] dataParts
-      +selectWorkflow(workflowId)
-      +runWorkflow(inputData)
-      +pauseWorkflow()
-      +resumeWorkflow()
-      +stopWorkflow()
-      +runStep(stepId)
-    }
+  class TaskStepStatus {
+    <<enumeration>>
+    pending
+    running
+    completed
+    error
+  }
 
-    class WorkflowProvider {
-      -WorkflowRun currentRun
-      -WorkflowProgressEvent[] progressEvents
-      -WorkflowDataPart[] dataParts
-      -WorkflowSuspendPayload suspendPayload
-      +useEffect_parseMessages()
-      +useEffect_syncStatus()
-      +runWorkflow(inputData)
-      +pauseWorkflow()
-      +resumeWorkflow()
-      +stopWorkflow()
-      +runStep(stepId)
-    }
+  class ArtifactData {
+    +string id
+    +string title
+    +string description
+    +string type
+    +string language
+    +string content
+  }
 
-    class WriterCustomPayload {
-      +string type
-      +unknown data
-      +string id
-    }
+  class Citation {
+    +string id
+    +string number
+    +string title
+    +string url
+    +string description
+    +string quote
+  }
 
-    class Writer {
-      +custom(payload)
-    }
+  class QueuedTask {
+    +string id
+    +string title
+    +string description
+    +string status
+    +Date createdAt
+    +Date completedAt
+    +string error
+  }
 
-    class StepExecutionContext {
-      +unknown inputData
-      +Writer writer
-      +unknown mastra
-    }
+  class WebPreviewData {
+    +string id
+    +string url
+    +string title
+    +string code
+    +string language
+    +string html
+    +bool editable
+    +bool showConsole
+    +number height
+  }
 
-    class WorkflowStep {
-      +string id
-      +execute(context)
-    }
+  class ReasoningStep {
+    +string id
+    +string label
+    +string description
+    +string status
+    +string[] searchResults
+    +number duration
+  }
 
-    class UpstashVector {
-      +createIndex(indexName, dimension, metric)
-    }
+  class AgentSuggestionsProps {
+    +string[] suggestions
+    +onSelect(suggestion)
+    +bool disabled
+    +string className
+  }
 
-    class UpstashConfig {
-      +initializeUpstashVector()
-      +UpstashVector upstashVector
-    }
+  class AgentSourcesProps {
+    +SourceItem[] sources
+    +string className
+    +number maxVisible
+  }
 
-    WorkflowProvider ..> WorkflowContextValue : provides
-    WorkflowProvider --> WorkflowRun : manages
-    WorkflowProvider --> WorkflowProgressEvent : aggregates
-    WorkflowProvider --> WorkflowDataPart : collects
-    WorkflowProvider --> WorkflowSuspendPayload : handles
+  class SourceItem {
+    +string url
+    +string title
+  }
 
-    WorkflowContextValue o--> WorkflowRun
-    WorkflowContextValue o--> WorkflowProgressEvent
-    WorkflowContextValue o--> WorkflowDataPart
-    WorkflowContextValue o--> WorkflowSuspendPayload
+  class AgentReasoningProps {
+    +string reasoning
+    +bool isStreaming
+    +number duration
+    +string className
+  }
 
-    WorkflowStep --> StepExecutionContext : uses
-    StepExecutionContext o--> Writer
+  class AgentToolsProps {
+    +ToolInvocation[] tools
+    +string className
+  }
 
-    Writer --> WriterCustomPayload : sends
+  class ConfirmationSeverity {
+    <<enumeration>>
+    info
+    warning
+    danger
+  }
 
-    UpstashConfig o--> UpstashVector
+  class InlineCitationToken {
+    <<union>>
+    text
+    citation
+  }
+
+  class ChatUtils {
+    +extractPlanFromText(text) AgentPlanData
+    +parseReasoningToSteps(reasoning) ReasoningStep[]
+    +tokenizeInlineCitations(content, sources) InlineCitationToken[]
+    +getSuggestionsForAgent(agentId) string[]
+  }
+
+  class AgentPlan {
+    +AgentPlanData plan
+    +onExecuteCurrentStep()
+    +onCancel()
+    +onApprove()
+  }
+
+  class AgentTask {
+    +AgentTaskData task
+  }
+
+  class AgentArtifact {
+    +ArtifactData artifact
+    +onCodeUpdate(artifactId, newCode)
+  }
+
+  class AgentInlineCitation {
+    +Citation[] citations
+    +string text
+  }
+
+  class AgentSuggestions {
+    +AgentSuggestionsProps props
+  }
+
+  class AgentSources {
+    +AgentSourcesProps props
+  }
+
+  class AgentReasoning {
+    +AgentReasoningProps props
+  }
+
+  class AgentTools {
+    +AgentToolsProps props
+  }
+
+  class AgentQueue {
+    +QueuedTask[] tasks
+  }
+
+  class AgentWebPreview {
+    +WebPreviewData preview
+    +onCodeChange(code)
+  }
+
+  class AgentCodeSandbox {
+    +onCodeChange(code)
+  }
+
+  %% Relationships between data types
+  AgentPlanData --> "*" PlanStep
+  AgentTaskData --> "*" TaskStep
+  TaskStep --> TaskStepStatus
+  AgentSourcesProps --> "*" SourceItem
+  AgentToolsProps --> "*" ToolInvocation
+
+  %% Components depending on shared chat types
+  AgentPlan --> AgentPlanData
+  AgentTask --> AgentTaskData
+  AgentArtifact --> ArtifactData
+  AgentInlineCitation --> Citation
+  AgentSuggestions --> AgentSuggestionsProps
+  AgentSources --> AgentSourcesProps
+  AgentReasoning --> AgentReasoningProps
+  AgentTools --> AgentToolsProps
+  AgentQueue --> QueuedTask
+  AgentWebPreview --> WebPreviewData
+  AgentCodeSandbox --> WebPreviewData
+
+  %% Utilities using shared types
+  ChatUtils --> AgentPlanData
+  ChatUtils --> ReasoningStep
+  ChatUtils --> InlineCitationToken
+  ChatUtils --> AgentSuggestionsProps
 ```

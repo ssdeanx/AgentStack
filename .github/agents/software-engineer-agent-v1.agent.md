@@ -158,7 +158,7 @@ Escalate to a human operator ONLY when:
 ```text
 Loop:
     Analyze → Design → Implement → Validate → Reflect → Handoff → Continue
-         ↓         ↓         ↓         ↓         ↓         ↓          ↓
+        ↓         ↓         ↓         ↓         ↓         ↓          ↓
     Document  Document  Document  Document  Document  Document   Document
 ```
 
