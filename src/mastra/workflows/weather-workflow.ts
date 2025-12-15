@@ -58,8 +58,8 @@ const fetchWeather = createStep({
       type: "data-tool-progress",
       data: {
         status: "in-progress",
-        message: "Fetching weather data",
-        stepId: "fetch-weather",
+        message: `Fetching weather data for ${inputData.city}...`,
+        stage: "fetch-weather",
       },
       id: "fetch-weather"
     });
@@ -107,8 +107,8 @@ const fetchWeather = createStep({
       type: "data-tool-progress",
       data: {
         status: "done",
-        message: "Weather data fetched successfully",
-        stepId: "fetch-weather",
+        message: `Weather data fetched successfully for ${inputData.city}`,
+        stage: "fetch-weather",
       },
       id: "fetch-weather"
     });
@@ -154,8 +154,8 @@ const planActivities = createStep({
       type: "data-tool-progress",
       data: {
         status: "in-progress",
-        message: "Planning activities based on weather",
-        stepId: "plan-activities",
+        message: `Planning activities based on weather for ${inputData.location}...`,
+        stage: "plan-activities",
       },
       id: "plan-activities"
     });
@@ -236,8 +236,8 @@ const planActivities = createStep({
       type: "data-tool-progress",
       data: {
         status: "done",
-        message: "Activities planned successfully",
-        stepId: "plan-activities",
+        message: `Activities planned successfully for ${inputData.location}`,
+        stage: "plan-activities",
       },
       id: "plan-activities"
     });

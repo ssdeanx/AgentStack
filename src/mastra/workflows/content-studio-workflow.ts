@@ -106,10 +106,10 @@ const researchStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting research phase",
-        stepId: "research-step",
+        message: `Starting research phase for topic: ${inputData.topic}...`,
+        stage: "research-step",
       },
-      id: 'research-step',
+      id: "research-step",
     });
 
     const prompt = `Research the topic: "${inputData.topic}".
@@ -140,11 +140,11 @@ Return JSON with summary, data, and sources.`;
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Research phase completed",
-        stepId: 'research-step',
+        status: "done",
+        message: `Research phase completed for topic: ${inputData.topic}`,
+        stage: "research-step",
       },
-      id: 'research-step',
+      id: "research-step",
     });
 
     logStepEnd('research-step', output, Date.now() - start);
@@ -163,10 +163,10 @@ const evaluationStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting evaluation phase",
-        stepId: "evaluation-step",
+        message: `Starting evaluation phase for topic: ${inputData.topic}...`,
+        stage: "evaluation-step",
       },
-      id: 'evaluation-step',
+      id: "evaluation-step",
     });
     const prompt = `Evaluate the relevance of this research to the topic "${inputData.topic}".
 Research Summary: ${inputData.researchData.summary}
@@ -196,11 +196,11 @@ Return JSON with isRelevant and reason.`;
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Evaluation phase completed",
-        stepId: 'evaluation-step',
+        status: "done",
+        message: `Evaluation phase completed for topic: ${inputData.topic}`,
+        stage: "evaluation-step",
       },
-      id: 'evaluation-step',
+      id: "evaluation-step",
     });
 
     logStepEnd('evaluation-step', output, Date.now() - start);
@@ -219,10 +219,10 @@ const learningStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting learning extraction phase",
-        stepId: "learning-step",
+        message: `Starting learning extraction phase for topic: ${inputData.topic}...`,
+        stage: "learning-step",
       },
-      id: 'learning-step',
+      id: "learning-step",
     });
     const prompt = `Extract the single most important learning from this research data:
 ${inputData.researchData.data}
@@ -250,11 +250,11 @@ Return JSON with learning and followUpQuestion.`;
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Learning extraction phase completed",
-        stepId: 'learning-step',
+        status: "done",
+        message: `Learning extraction phase completed for topic: ${inputData.topic}`,
+        stage: "learning-step",
       },
-      id: 'learning-step',
+      id: "learning-step",
     });
 
     logStepEnd('learning-step', output, Date.now() - start);
@@ -273,10 +273,10 @@ const strategyStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting content strategy phase",
-        stepId: "strategy-step",
+        message: `Starting content strategy phase for topic: ${inputData.topic}...`,
+        stage: "strategy-step",
       },
-      id: 'strategy-step',
+      id: "strategy-step",
     });
 
     const researchContext = `
@@ -319,11 +319,11 @@ Return JSON with title, targetAudience, angle, and keyPoints.`;
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Content strategy phase completed",
-        stepId: 'strategy-step',
+        status: "done",
+        message: `Content strategy phase completed for topic: ${inputData.topic}`,
+        stage: "strategy-step",
       },
-      id: 'strategy-step',
+      id: "strategy-step",
     });
 
     logStepEnd('strategy-step', output, Date.now() - start);
@@ -342,10 +342,10 @@ const hookStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting hook creation phase",
-        stepId: "hook-step",
+        message: `Starting hook creation phase for topic: ${inputData.plan.title}...`,
+        stage: "hook-step",
       },
-      id: 'hook-step',
+      id: "hook-step",
     });
 
     const prompt = `Write 3 distinct hooks for this plan: ${JSON.stringify(
@@ -373,11 +373,11 @@ const hookStep = createStep({
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Hook creation phase completed",
-        stepId: 'hook-step',
+        status: "done",
+        message: `Hook creation phase completed for topic: ${inputData.plan.title}`,
+        stage: "hook-step",
       },
-      id: 'hook-step',
+      id: "hook-step",
     });
 
     logStepEnd('hook-step', output, Date.now() - start);
@@ -396,10 +396,10 @@ const bodyStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting body script creation phase",
-        stepId: "body-step",
+        message: `Starting body script creation phase for topic: ${inputData.plan.title}...`,
+        stage: "body-step",
       },
-      id: 'body-step',
+      id: "body-step",
     });
 
     const prompt = `Write the main body script for this plan: ${JSON.stringify(inputData.plan)}.
@@ -417,11 +417,11 @@ const bodyStep = createStep({
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Body script creation phase completed",
-        stepId: 'body-step',
+        status: "done",
+        message: `Body script creation phase completed for topic: ${inputData.plan.title}`,
+        stage: "body-step",
       },
-      id: 'body-step',
+      id: "body-step",
     });
 
     logStepEnd('body-step', output, Date.now() - start);
@@ -440,10 +440,10 @@ const reviewStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting review phase",
-        stepId: "review-step",
+        message: `Starting review phase for topic: ${inputData.plan.title}...`,
+        stage: "review-step",
       },
-      id: 'review-step',
+      id: "review-step",
     });
 
     const fullScript = `HOOKS:\n${inputData.hooks.join('\n---\n')}\n\nBODY:\n${inputData.bodyScript}`;
@@ -480,11 +480,11 @@ Return JSON with score, feedback, approved, and finalScript (which is just the i
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Review phase completed",
-        stepId: 'review-step',
+        status: "done",
+        message: `Review phase completed for topic: ${inputData.plan.title}`,
+        stage: "review-step",
       },
-      id: 'review-step',
+      id: "review-step",
     });
 
     logStepEnd('review-step', review, Date.now() - start);
@@ -503,10 +503,10 @@ const refineStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "in-progress",
-        message: "Starting refinement phase",
-        stepId: "refine-step",
+        message: `Starting refinement phase for topic: ${inputData.finalScript.split('\n')[0].slice(0, 50)}...`,
+        stage: "refine-step",
       },
-      id: 'refine-step',
+      id: "refine-step",
     });
 
     // 1. Refine the script based on feedback
@@ -550,11 +550,11 @@ Script: ${refinedScript}`;
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
-        status: "success",
-        message: "Refinement phase completed",
-        stepId: 'refine-step',
+        status: "done",
+        message: `Refinement phase completed for topic: ${inputData.finalScript.split('\n')[0].slice(0, 50)}...`,
+        stage: "refine-step",
       },
-      id: 'refine-step',
+      id: "refine-step",
     });
 
     logStepEnd('refine-step', review, Date.now() - start);

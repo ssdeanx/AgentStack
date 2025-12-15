@@ -46,12 +46,13 @@ const indexDocumentsStep = createStep({
     logStepStart('index-documents', { totalDocuments: totalDocs })
 
     await writer?.custom({
-      type: 'data-workflow-step-start',
+      type: 'data-tool-progress',
       data: {
-        type: "workflow",
-        data: "index-documents",
-        id: "index-documents",
-      }
+        status: 'in-progress',
+        message: `Starting document indexing for ${totalDocs} documents...`,
+        stage: 'index-documents',
+      },
+      id: 'index-documents',
     });
 
     try {
@@ -77,8 +78,9 @@ const indexDocumentsStep = createStep({
           data: {
             status: "in-progress",
             message: `PgVector index ${indexName} created or already exists with 1568 dimensions`,
-            stage: "documentIndexingAgent",
-          }
+            stage: 'index-documents',
+          },
+          id: 'index-documents',
         });
 
       } catch (createError) {
@@ -93,8 +95,9 @@ const indexDocumentsStep = createStep({
           data: {
             status: "in-progress",
             message: `Index creation info (may already exist): ${createError instanceof Error ? createError.message : String(createError)}`,
-            stage: "documentIndexingAgent",
-          }
+            stage: 'index-documents',
+          },
+          id: 'index-documents',
         });
 
         // Index might already exist, continue
@@ -132,8 +135,9 @@ const indexDocumentsStep = createStep({
           data: {
             status: "in-progress",
             message: `Indexing document ${doc.docId}`,
-            stage: "documentIndexingAgent",
-          }
+            stage: 'index-documents',
+          },
+          id: 'index-documents',
         });
 
         const result: IndexingResult =
@@ -157,8 +161,9 @@ const indexDocumentsStep = createStep({
         data: {
           status: "done",
           message: `Indexing complete: ${results.indexed} indexed, ${results.failed} failed`,
-          stage: "documentIndexingAgent",
-        }
+          stage: 'index-documents',
+        },
+        id: 'index-documents',
       });
 
       logStepEnd(
@@ -167,17 +172,18 @@ const indexDocumentsStep = createStep({
         Date.now() - startTime
       )
 
-      
       return results
     } catch (error) {
       logError('index-documents', error, { totalDocuments: totalDocs })
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'index-documents',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'index-documents',
+        },
+        id: 'index-documents',
       });
 
       throw new Error(

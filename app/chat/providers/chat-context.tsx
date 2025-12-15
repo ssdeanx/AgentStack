@@ -92,33 +92,33 @@ export interface ChatContextValue {
   resourceId: string
 
   // Actions
-  sendMessage: (_text: string, _files?: File[]) => void
+  sendMessage: (text: string, files?: File[]) => void
   stopGeneration: () => void
   clearMessages: () => void
-  selectAgent: (_agentId: string) => void
-  selectModel: (_modelId: string) => void
+  selectAgent: (agentId: string) => void
+  selectModel: (modelId: string) => void
   dismissError: () => void
 
   // Task management
-  addTask: (_task: Omit<QueuedTask, "id">) => string
-  updateTask: (_taskId: string, _updates: Partial<QueuedTask>) => void
-  removeTask: (_taskId: string) => void
+  addTask: (task: Omit<QueuedTask, "id">) => string
+  updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
+  removeTask: (taskId: string) => void
 
   // Confirmation management
-  approveConfirmation: (_confirmationId: string) => void
-  rejectConfirmation: (_confirmationId: string, _reason?: string) => void
+  approveConfirmation: (confirmationId: string) => void
+  rejectConfirmation: (confirmationId: string, reason?: string) => void
 
   // Checkpoint management
-  createCheckpoint: (_messageIndex: number, _label?: string) => string
-  restoreCheckpoint: (_checkpointId: string) => void
-  removeCheckpoint: (_checkpointId: string) => void
+  createCheckpoint: (messageIndex: number, label?: string) => string
+  restoreCheckpoint: (checkpointId: string) => void
+  removeCheckpoint: (checkpointId: string) => void
 
   // Web Preview management
-  setWebPreview: (_preview: WebPreviewData | null) => void
+  setWebPreview: (preview: WebPreviewData | null) => void
 
   // Memory management
-  setThreadId: (_threadId: string) => void
-  setResourceId: (_resourceId: string) => void
+  setThreadId: (threadId: string) => void
+  setResourceId: (resourceId: string) => void
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -147,8 +147,8 @@ export function ChatProvider({
   defaultResourceId = "user-1",
 }: ChatProviderProps) {
   const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
-  const [sources, setSources] = useState<Source[]>([])
-  const [usage, setUsage] = useState<TokenUsage | null>(null)
+  // sourcesState is nullable to allow falling back to derived sources from messages.
+  const [sourcesState, setSourcesState] = useState<Source[] | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
   const [queuedTasks, setQueuedTasks] = useState<QueuedTask[]>([])
   const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([])
@@ -253,8 +253,8 @@ export function ChatProvider({
     return result
   }, [messages])
 
-  // Extract sources from source-url parts
-  useEffect(() => {
+  // Derive sources from assistant messages (no synchronous setState in effect).
+  const derivedSources = useMemo<Source[]>(() => {
     const allSources: Source[] = []
     for (const message of messages) {
       if (message.role === "assistant") {
@@ -269,55 +269,57 @@ export function ChatProvider({
         }
       }
     }
-    setSources(allSources)
+    return allSources
   }, [messages])
 
-  // Extract web preview data from tool outputs (for chart/diagram agents)
-  useEffect(() => {
+  // Derive web preview data from tool outputs (for chart/diagram agents)
+  const derivedWebPreview = useMemo<WebPreviewData | null>(() => {
     const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant") {
-      for (const part of lastMessage.parts) {
-        // Check for generated HTML/React code in tool outputs
-        let output: Record<string, unknown> | undefined
+    if (lastMessage?.role !== "assistant") {return null}
 
-        if (part.type === "dynamic-tool") {
-          output = (part as DynamicToolUIPart).output as Record<string, unknown> | undefined
-        } else if (typeof part.type === "string" && part.type.startsWith("tool-")) {
-          const toolPart = part as ToolUIPart
-          output = (toolPart as unknown as { output?: unknown }).output as Record<string, unknown> | undefined
-        } else {
-          continue
-        }
+    const part = lastMessage.parts.find((p) => {
+      if (p.type === "dynamic-tool") {return true}
+      if (typeof p.type === "string" && p.type.startsWith("tool-")) {return true}
+      return false
+    })
 
-        if (output && typeof output === "object") {
-          const out = output
+    if (!part) {return null}
 
-          // Check for preview URL or generated code
-          if ((Boolean(out.previewUrl)) && typeof out.previewUrl === "string") {
-            setWebPreviewState({
-              id: `preview-${Date.now()}`,
-              url: out.previewUrl,
-              title: (out.title as string) || "Generated Preview",
-            })
-          } else if ((Boolean(out.code)) && typeof out.code === "string") {
-            // For code generation (like Recharts), create a data URL or sandbox
-            const language = (out.language as string) || "tsx"
-            const htmlCandidate = (out as { html?: unknown }).html
-            if (language === "html" || typeof htmlCandidate === "string") {
-              const htmlContent = typeof htmlCandidate === "string" ? htmlCandidate : out.code
-              const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
-              setWebPreviewState({
-                id: `preview-${Date.now()}`,
-                url: dataUrl,
-                title: (out.title as string) || "Generated UI",
-                code: out.code,
-                language,
-              })
-            }
-          }
+    let output: Record<string, unknown> | undefined
+
+    if (part.type === "dynamic-tool") {
+      output = (part as DynamicToolUIPart).output as Record<string, unknown>
+    } else {
+      output = (part as ToolUIPart as unknown as { output?: unknown }).output as Record<string, unknown>
+    }
+
+    if (!output || typeof output !== "object") {return null}
+
+    const out = output
+
+    if (out.previewUrl && typeof out.previewUrl === "string") {
+      return {
+        id: "web-preview",
+        url: out.previewUrl,
+        title: (out.title as string) || "Generated Preview",
+      }
+    } else if (out.code && typeof out.code === "string") {
+      const language = (out.language as string) || "tsx"
+      const htmlCandidate = (out as { html?: unknown }).html
+      if (language === "html" || typeof htmlCandidate === "string") {
+        const htmlContent = typeof htmlCandidate === "string" ? htmlCandidate : out.code
+        const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+        return {
+          id: "web-preview",
+          url: dataUrl,
+          title: (out.title as string) || "Generated UI",
+          code: out.code,
+          language,
         }
       }
     }
+
+    return null
   }, [messages])
 
   const sendMessage = useCallback(
@@ -335,8 +337,7 @@ export function ChatProvider({
 
   const clearMessages = useCallback(() => {
     setMessages([])
-    setSources([])
-    setUsage(null)
+    setSourcesState([])
     setChatError(null)
     setQueuedTasks([])
     setPendingConfirmations([])
@@ -349,7 +350,7 @@ export function ChatProvider({
     (agentId: string) => {
       if (Object.prototype.hasOwnProperty.call(AGENT_CONFIGS, agentId)) {
         setSelectedAgent(agentId)
-        setSources([])
+        setSourcesState([])
         setChatError(null)
         setWebPreviewState(null)
       }
@@ -490,105 +491,71 @@ export function ChatProvider({
     [selectedAgent]
   )
 
-  // Extract usage data from completed messages
-  useEffect(() => {
-    const lastMessage = messages[messages.length - 1]
-    if (lastMessage?.role === "assistant" && aiStatus === "ready") {
-      for (const part of lastMessage.parts) {
-        // Look for step-finish part with usage data (from Mastra server)
-        const partAny = part as Record<string, unknown>
-        if (partAny.type === "step-finish" || partAny.type === "finish") {
-          const usageData = partAny.usage as Record<string, number> | undefined
-          if (usageData) {
-            setUsage({
-              inputTokens: usageData.promptTokens ?? usageData.inputTokens ?? 0,
-              outputTokens: usageData.completionTokens ?? usageData.outputTokens ?? 0,
-              totalTokens: usageData.totalTokens ?? 0,
-            })
-            break
-          }
-        }
-      }
-    }
-  }, [messages, aiStatus])
-
   const error = aiError?.message ?? chatError
 
   const value = useMemo<ChatContextValue>(
-    () => ({
-      messages,
-      isLoading,
-      status,
-      selectedAgent,
-      streamingContent,
-      streamingReasoning,
-      toolInvocations,
-      sources,
-      usage,
-      error,
-      agentConfig,
-      selectedModel,
-      queuedTasks,
-      pendingConfirmations,
-      checkpoints,
-      webPreview,
-      threadId,
-      resourceId,
-      sendMessage,
-      stopGeneration,
-      clearMessages,
-      selectAgent,
-      selectModel,
-      dismissError,
-      addTask,
-      updateTask,
-      removeTask,
-      approveConfirmation,
-      rejectConfirmation,
-      createCheckpoint,
-      restoreCheckpoint,
-      removeCheckpoint,
-      setWebPreview,
-      setThreadId,
-      setResourceId,
-    }),
-    [
-      messages,
-      isLoading,
-      status,
-      selectedAgent,
-      streamingContent,
-      streamingReasoning,
-      toolInvocations,
-      sources,
-      usage,
-      error,
-      agentConfig,
-      selectedModel,
-      queuedTasks,
-      pendingConfirmations,
-      checkpoints,
-      webPreview,
-      threadId,
-      resourceId,
-      sendMessage,
-      stopGeneration,
-      clearMessages,
-      selectAgent,
-      selectModel,
-      dismissError,
-      addTask,
-      updateTask,
-      removeTask,
-      approveConfirmation,
-      rejectConfirmation,
-      createCheckpoint,
-      restoreCheckpoint,
-      removeCheckpoint,
-      setWebPreview,
-      setThreadId,
-      setResourceId,
-    ]
+    () => {
+      // Derive usage data from the last completed assistant message.
+      // Avoid calling setState inside an effect to prevent cascading renders.
+      const usage: TokenUsage | null = (() => {
+        const lastMessage = messages[messages.length - 1]
+        if (lastMessage?.role === "assistant" && aiStatus === "ready") {
+          for (const part of lastMessage.parts) {
+            const partAny = part as Record<string, unknown>
+            if (partAny.type === "step-finish" || partAny.type === "finish") {
+              const usageData = partAny.usage as Record<string, number> | undefined
+              if (usageData) {
+                return {
+                  inputTokens: usageData.promptTokens ?? usageData.inputTokens ?? 0,
+                  outputTokens: usageData.completionTokens ?? usageData.outputTokens ?? 0,
+                  totalTokens: usageData.totalTokens ?? 0,
+                }
+              }
+            }
+          }
+        }
+        return null
+      })()
+
+      return {
+        messages,
+        isLoading,
+        status,
+        selectedAgent,
+        streamingContent,
+        streamingReasoning,
+        toolInvocations,
+        sources: sourcesState ?? derivedSources,
+        usage,
+        error,
+        agentConfig,
+        selectedModel,
+        queuedTasks,
+        pendingConfirmations,
+        checkpoints,
+        webPreview: webPreview ?? derivedWebPreview,
+        threadId,
+        resourceId,
+        sendMessage,
+        stopGeneration,
+        clearMessages,
+        selectAgent,
+        selectModel,
+        dismissError,
+        addTask,
+        updateTask,
+        removeTask,
+        approveConfirmation,
+        rejectConfirmation,
+        createCheckpoint,
+        restoreCheckpoint,
+        removeCheckpoint,
+        setWebPreview,
+        setThreadId,
+        setResourceId,
+      }
+    },
+    [messages, isLoading, status, selectedAgent, streamingContent, streamingReasoning, toolInvocations, sourcesState, derivedSources, error, agentConfig, selectedModel, queuedTasks, pendingConfirmations, checkpoints, webPreview, derivedWebPreview, threadId, resourceId, sendMessage, stopGeneration, clearMessages, selectAgent, selectModel, dismissError, addTask, updateTask, removeTask, approveConfirmation, rejectConfirmation, createCheckpoint, restoreCheckpoint, removeCheckpoint, setWebPreview, setThreadId, setResourceId, aiStatus]
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

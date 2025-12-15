@@ -301,6 +301,7 @@ const expressProcessStep = createStep({
         message: `Processing express order ${inputData.orderId}...`,
         stage: "express-processing",
       },
+      id: "express-processing",
     });
 
     await new Promise((resolve) => setTimeout(resolve, 1000));

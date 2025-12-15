@@ -1,5 +1,7 @@
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
-import { TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from "@mastra/pg"
 import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
@@ -18,8 +20,6 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import type { RequestContext } from '@mastra/core/request-context'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ChartRuntimeContext {
@@ -518,5 +518,9 @@ Return comprehensive chart package:
     }),
   ],
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({
+    batchSize: 5,
+    maxWaitTime: 75,
+    emitOnNonText: true
+  })]
 })

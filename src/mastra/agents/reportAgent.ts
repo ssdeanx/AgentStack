@@ -4,8 +4,8 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ReportRuntimeContext {
@@ -112,7 +112,11 @@ export const reportAgent = new Agent({
   tools: {},
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576), new BatchPartsProcessor({
+    batchSize: 5,
+    maxWaitTime: 75,
+    emitOnNonText: true
+  })]
 })
 
 // --- IGNORE ---

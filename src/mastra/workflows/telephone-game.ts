@@ -1,5 +1,3 @@
-
-import { input } from '@inquirer/prompts';
 import { Agent } from '@mastra/core/agent';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
@@ -19,13 +17,35 @@ const telephone = new Agent({
 const stepA1 = createStep({
   id: 'stepA1',
   description: 'Starts the message',
-  inputSchema: z.object({}),
+  inputSchema: z.object({
+    message: z.string(),
+  }),
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async () => {
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Starting message: ${inputData.message}`,
+        stage: 'stepA1',
+      },
+      id: 'stepA1',
+    });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Message received: ${inputData.message}`,
+        stage: 'stepA1',
+      },
+      id: 'stepA1',
+    });
+
     return {
-      message: 'Test',
+      message: inputData.message,
     };
   },
 });
@@ -39,14 +59,29 @@ const stepA2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async () => {
-    const content = await input({
-      message: 'Give me a message',
-      validate: value => value.trim().length > 0 || 'Message cannot be empty',
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Passing message through: ${inputData.message}`,
+        stage: 'stepA2',
+      },
+      id: 'stepA2',
+    });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Message passed through: ${inputData.message}`,
+        stage: 'stepA2',
+      },
+      id: 'stepA2',
     });
 
     return {
-      message: content,
+      message: inputData.message,
     };
   },
 });
@@ -60,7 +95,27 @@ const stepB2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Checking message: ${inputData.message}`,
+        stage: 'stepB2',
+      },
+      id: 'stepB2',
+    });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Message checked: ${inputData.message}`,
+        stage: 'stepB2',
+      },
+      id: 'stepB2',
+    });
+
     return {
       message: inputData.message,
     };
@@ -76,13 +131,34 @@ const stepC2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Modifying message: ${inputData.message}`,
+        stage: 'stepC2',
+      },
+      id: 'stepC2',
+    });
+
     const result = await telephone.generate(`
           You are playing a game of telephone.
           Here is the message the previous person sent ${inputData.message}.
           But you want to change the message.
           Only return the message
           `);
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Message modified: ${result.text}`,
+        stage: 'stepC2',
+      },
+      id: 'stepC2',
+    });
+
       return {
         message: result.text,
       };
@@ -98,14 +174,36 @@ const stepD2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, writer }) => {
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Finalizing message: ${inputData.message}`,
+        stage: 'stepD2',
+      },
+      id: 'stepD2',
+    });
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Message finalized: ${inputData.message}`,
+        stage: 'stepD2',
+      },
+      id: 'stepD2',
+    });
+
     return inputData;
   },
 });
 
 const telephoneGameWorkflow = createWorkflow({
   id: 'telephoneGameWorkflow',
-  inputSchema: z.object({}),
+  inputSchema: z.object({
+    message: z.string(),
+  }),
   outputSchema: z.object({
     message: z.string(),
   }),

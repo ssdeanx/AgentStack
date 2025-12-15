@@ -1,21 +1,16 @@
 
 import { chatRoute, networkRoute, workflowRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core';
 import {
-  DefaultExporter,
-  SamplingStrategyType,
-  SensitiveDataFilter,
   Observability
 } from "@mastra/observability";
-import { Mastra } from '@mastra/core';
-import { PostgresStore } from "@mastra/pg";
 import { OtelExporter } from "@mastra/otel-exporter";
+import { PostgresStore } from "@mastra/pg";
 // Config
 import { log } from './config/logger';
 import { pgVector } from './config/pg-storage';
 
 // Scorers
-import { responseQualityScorer, taskCompletionScorer } from './scorers/custom-scorers';
-import { translationScorer } from './scorers/weather-scorer';
 
 // MCP
 import { a2aCoordinatorMcpServer } from './mcp';
@@ -50,10 +45,11 @@ import { knowledgeIndexingAgent } from './agents/knowledgeIndexingAgent';
 import { researchPaperAgent } from './agents/researchPaperAgent';
 
 // Utility Agents
-import { daneNewContributor } from './workflows/new-contributor';
-import { calendarAgent } from './agents/calendarAgent';
 import { bgColorAgent } from './agents/bgColorAgent';
+import { calendarAgent } from './agents/calendarAgent';
+import { noteTakerAgent } from './agents/noteTakerAgent';
 import { danePackagePublisher } from './agents/package-publisher';
+import { daneNewContributor } from './workflows/new-contributor';
 
 // Financial Chart Agents
 import {
@@ -67,14 +63,13 @@ import {
 import { imageAgent } from './agents/image';
 
 // Networks
-import { agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork, codingTeamNetwork } from './networks';
+import { agentNetwork, codingTeamNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork } from './networks';
 
 // Coding Team
-import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from './agents/codingAgents';
 import { codingA2ACoordinator } from './a2a/codingA2ACoordinator';
+import { codeArchitectAgent, codeReviewerAgent, refactoringAgent, testEngineerAgent } from './agents/codingAgents';
 
 // Workflows
-import { trace } from "@opentelemetry/api";
 import type { RequestContext } from '@mastra/core/request-context';
 import { acpAgent } from './agents/acpAgent';
 import { businessStrategyAgent, complianceMonitoringAgent, contractAnalysisAgent, legalResearchAgent } from "./agents/businessLegalAgents";
@@ -84,15 +79,14 @@ import { contentReviewWorkflow } from './workflows/content-review-workflow';
 import { contentStudioWorkflow } from './workflows/content-studio-workflow';
 import { documentProcessingWorkflow } from './workflows/document-processing-workflow';
 import { financialReportWorkflow } from './workflows/financial-report-workflow';
+import { governedRagIndex } from "./workflows/governed-rag-index.workflow";
 import { learningExtractionWorkflow } from './workflows/learning-extraction-workflow';
+import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
 import { researchSynthesisWorkflow } from './workflows/research-synthesis-workflow';
+import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
-import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow';
-import { specGenerationWorkflow } from './workflows/spec-generation-workflow';
-import { ResearchRuntimeContext } from './agents/index';
-import { governedRagIndex } from "./workflows/governed-rag-index.workflow";
 
 const ml = process.env.MLFLOW_EXPERIMENT_ID
 
@@ -111,7 +105,7 @@ export const mastra = new Mastra({
     repoIngestionWorkflow,
     specGenerationWorkflow,
     governedRagIndex,
-    
+
   },
   agents: {
     // Core Agents
@@ -167,6 +161,9 @@ export const mastra = new Mastra({
     testEngineerAgent,
     refactoringAgent,
 
+    // Note Taker Agent
+    noteTakerAgent,
+
     // Networks (Agent-based routing)
     agentNetwork,
     dataPipelineNetwork,
@@ -177,8 +174,9 @@ export const mastra = new Mastra({
     // A2A Agents (Coordinator)
     a2aCoordinatorAgent,
     codingA2ACoordinator,
+
   },
-  scorers: { translationScorer, responseQualityScorer, taskCompletionScorer },
+  scorers: { },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
 
   storage: new PostgresStore({
@@ -193,7 +191,7 @@ export const mastra = new Mastra({
   vectors: { pgVector },
   logger: log,
   observability: new Observability({
-//    default: { enabled: false },
+    //    default: { enabled: false },
     configs: {
       otel: {
         serviceName: "my-service",
@@ -506,7 +504,7 @@ export const mastra = new Mastra({
           requestContext.set('researchPhase', researchPhaseHeader ?? 'initial')
 
           // runtime API key (for tools that may accept runtimeContext.apiKey)
-        //  if (apiKeyHeader !== null && apiKeyHeader !== '') { requestContext.set('apiKey', apiKeyHeader) }
+          //  if (apiKeyHeader !== null && apiKeyHeader !== '') { requestContext.set('apiKey', apiKeyHeader) }
         }
 
         await next()
@@ -519,7 +517,7 @@ export const mastra = new Mastra({
         log.info(`${c.req.method} ${c.req.url} - ${duration}ms`)
       },
     ]
-    }
+  }
 });
 
 log.info("Mastra instance created");

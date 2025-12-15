@@ -74,7 +74,7 @@ const initializeResearchStep = createStep({
       data: {
         status: "in-progress",
         message: `Researching topic: ${inputData.topics}...`,
-        stage: "researchAgent",
+        stage: 'initialize-research',
       },
       id: 'initialize-research',
     });
@@ -254,7 +254,7 @@ const synthesizeResearchStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Synthesizing research across topics...',
+          message: `Synthesizing research across ${inputData.topics.length} topics...`,
           stage: 'synthesize-research',
         },
         id: 'synthesize-research',
@@ -269,7 +269,7 @@ const synthesizeResearchStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'AI synthesizing findings...',
+            message: `AI synthesizing findings for ${inputData.topics.length} topics...`,
             stage: 'synthesize-research',
           },
           id: 'synthesize-research',
@@ -353,7 +353,7 @@ Provide:
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: 'Synthesis complete...',
+          message: `Synthesis complete for ${inputData.topics.length} topics...`,
           stage: 'synthesize-research',
         },
         id: 'synthesize-research',
@@ -391,9 +391,9 @@ Provide:
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          stage: 'synthesize-research',
-          error: error instanceof Error ? error.message : 'Unknown error',
           status: 'done',
+          message: `Error synthesizing research: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'synthesize-research',
         },
         id: 'synthesize-research',
       });
@@ -424,7 +424,7 @@ const generateResearchReportStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Generating research report...',
+          message: `Generating research report for ${inputData.synthesis.overallSummary.length} topics...`,
           stage: 'generate-research-report',
         },
         id: 'generate-research-report',
@@ -438,7 +438,7 @@ const generateResearchReportStep = createStep({
           type: 'data-tool-progress',
           data: {
             status: 'in-progress',
-            message: 'AI generating comprehensive report...',
+            message: `AI generating comprehensive ${inputData.metadata.synthesisType} report...`,
             stage: 'generate-research-report',
           },
           id: 'generate-research-report',
@@ -507,7 +507,7 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
         type: 'data-tool-progress',
         data: {
           status: 'done',
-          message: 'Report generation complete...',
+          message: `Report generation complete (topics: ${inputData.metadata.topicsCount}, type: ${inputData.metadata.synthesisType})...`,
           stage: 'generate-research-report',
         },
         id: 'generate-research-report',
@@ -541,9 +541,9 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
+          status: 'done',
+          message: `Error generating research report: ${error instanceof Error ? error.message : 'Unknown error'}`,
           stage: 'generate-research-report',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          status: 'done'
         },
         id: 'generate-research-report',
       });

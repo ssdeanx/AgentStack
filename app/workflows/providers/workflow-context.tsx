@@ -257,11 +257,22 @@ export function WorkflowProvider({
   }, [messages])
 
   // Update workflow status based on chat status
-  useMemo(() => {
-    if (status === "streaming") {
-      setWorkflowStatus("running")
+  useEffect(() => {
+    // Defer state updates to avoid synchronous setState inside effects which can
+    // trigger cascading renders. Scheduling the update on the next tick keeps
+    // the update asynchronous and allows cleanup if the effect re-runs.
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    if (status === "streaming" && workflowStatus !== "running") {
+      timer = setTimeout(() => setWorkflowStatus("running"), 0)
     } else if (status === "ready" && workflowStatus === "running") {
-      setWorkflowStatus("completed")
+      timer = setTimeout(() => setWorkflowStatus("completed"), 0)
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
+      }
     }
   }, [status, workflowStatus])
 
@@ -387,7 +398,6 @@ export function WorkflowProvider({
                 requestId: suspendData.requestId,
                 stepId: suspendData.stepId,
               }
-              setWorkflowStatus("paused")
             }
           }
 
@@ -430,10 +440,19 @@ export function WorkflowProvider({
       }
     }
 
-    setProgressEvents(allProgressEvents)
-    setDataParts(allDataParts)
-    if (detectedSuspendPayload) {
-      setSuspendPayload(detectedSuspendPayload)
+    let timer: ReturnType<typeof setTimeout> | null = null
+    // Defer setting state to next tick to avoid cascading renders from sync setState in effects.
+    timer = setTimeout(() => {
+      setProgressEvents(allProgressEvents)
+      setDataParts(allDataParts)
+      // Always update suspendPayload so it's cleared when not present.
+      setSuspendPayload(detectedSuspendPayload ?? null)
+    }, 0)
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
+      }
     }
   }, [messages])
 

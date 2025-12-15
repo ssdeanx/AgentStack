@@ -47,9 +47,19 @@ const scanStep = createStep({
   id: 'scan-repo',
   inputSchema: scanInputSchema,
   outputSchema: scanOutputSchema,
-  execute: async ({ inputData, mastra, requestContext }) => {
+  execute: async ({ inputData, mastra, requestContext, writer }) => {
     const { repoPath, githubRepo, githubBranch, globPattern } = inputData;
     let { limit } = inputData;
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Scanning repo (source: ${githubRepo ? `github:${githubRepo}@${githubBranch}` : `local:${repoPath ?? 'unknown'}`}, limit: ${limit}, pattern: ${globPattern})...`,
+        stage: 'scan-repo',
+      },
+      id: 'scan-repo',
+    });
 
     // Apply runtime context limits
     const context = requestContext as RequestContext<IngestionRuntimeContext> | undefined;
@@ -108,6 +118,17 @@ const scanStep = createStep({
         .slice(0, limit);
 
       log.info(`Found ${tree.length} files in GitHub, processing ${files.length}`);
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Repo scan complete for GitHub repo ${githubRepo}@${githubBranch} (files: ${files.length})`,
+          stage: 'scan-repo',
+        },
+        id: 'scan-repo',
+      });
+
       return { files, githubRepo, githubBranch };
     }
 
@@ -122,10 +143,31 @@ const scanStep = createStep({
 
       const limitedFiles = files.slice(0, limit);
       log.info(`Found ${files.length} files, processing ${limitedFiles.length}`);
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Repo scan complete for local path ${repoPath} (files: ${limitedFiles.length})`,
+          stage: 'scan-repo',
+        },
+        id: 'scan-repo',
+      });
+
       return { files: limitedFiles, repoPath };
     }
 
-    throw new Error("No repo path provided");
+    const error = new Error('No repo path provided');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Repo scan failed: ${error.message}`,
+        stage: 'scan-repo',
+      },
+      id: 'scan-repo',
+    });
+    throw error;
   },
 });
 
@@ -139,11 +181,31 @@ const ingestStep = createStep({
     let totalChunks = 0;
     const errors: Array<{ file: string, error: string }> = [];
 
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Starting ingestion (source: ${githubRepo ? `github:${githubRepo}@${githubBranch}` : `local:${repoPath ?? 'unknown'}`}, files: ${files.length})...`,
+        stage: 'ingest-files',
+      },
+      id: 'ingest-files',
+    });
+
     // Process in batches to avoid memory issues
     const BATCH_SIZE = 10;
 
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
       const batch = files.slice(i, i + BATCH_SIZE);
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Ingesting batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(files.length / BATCH_SIZE)} (batch size: ${batch.length})...`,
+          stage: 'ingest-files',
+        },
+        id: 'ingest-files',
+      });
 
       await Promise.all(batch.map(async (filePath) => {
         try {
@@ -218,6 +280,16 @@ const ingestStep = createStep({
         }
       }));
     }
+
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'done',
+        message: `Ingestion complete (processed: ${processedFiles}/${files.length}, chunks: ${totalChunks}, errors: ${errors.length})`,
+        stage: 'ingest-files',
+      },
+      id: 'ingest-files',
+    });
 
     return { processedFiles, totalChunks, errors };
   },

@@ -3,7 +3,6 @@ import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { z } from 'zod';
 
 import { logError, logStepEnd, logStepStart } from '../config/logger';
-import main from '../../../lib/auth-dev';
 
 // Stream-first approach: inline JSON parsing is performed where needed in step code.
 // We removed the centralized `parseAgentResponse` helper; streaming parsers are now done inline
@@ -186,11 +185,11 @@ const loadDocumentStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          status: "80%",
-          message: 'Document loaded, detecting type...',
-          stage: "documentProcessingAgent",
+          status: 'in-progress',
+          message: `Document loaded, detecting type for ${inputData.source.value}...`,
+          stage: 'load-document',
         },
-        id: "load-document",
+        id: 'load-document',
       });
 
       const wordCount = content.split(/\s+/).length;
@@ -220,10 +219,10 @@ const loadDocumentStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "done",
-          message: "Document loaded successfully",
-          stepId: 'load-document',
+          message: `Document loaded successfully: ${contentType} (${wordCount} words)`,
+          stage: 'load-document',
         },
-        id: "load-document",
+        id: 'load-document',
       });
 
       logStepEnd('load-document', { contentType, wordCount }, Date.now() - startTime);
@@ -235,12 +234,13 @@ const loadDocumentStep = createStep({
       logError('load-document', error, { source: inputData.source });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'load-document',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'load-document',
         },
-        id: "load-document",
+        id: 'load-document',
       });
 
       throw error;
@@ -268,10 +268,10 @@ const convertPdfToMarkdownStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: 'Converting PDF to markdown `...',
-          stage: "convert-pdf-to-markdown",
+          message: `Converting PDF to markdown for ${inputData.source.value}...`,
+          stage: 'convert-pdf-to-markdown',
         },
-        id: "convert-pdf-to-markdown",
+        id: 'convert-pdf-to-markdown',
       });
 
       let markdownContent = inputData.content;
@@ -317,10 +317,10 @@ const convertPdfToMarkdownStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "in-progress",
-          message: 'Markdown conversion complete (90%)...',
-          stage: "convert-pdf-to-markdown",
+          message: `Markdown conversion complete for ${inputData.source.value}...`,
+          stage: 'convert-pdf-to-markdown',
         },
-        id: "convert-pdf-to-markdown",
+        id: 'convert-pdf-to-markdown',
       });
 
       const result: z.infer<typeof markdownContentSchema> = {
@@ -344,10 +344,10 @@ const convertPdfToMarkdownStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "done",
-          message: "PDF converted to markdown successfully",
+          message: `PDF converted to markdown successfully for ${inputData.source.value} (${result.metadata.wordCount} words)`,
           stage: 'convert-pdf-to-markdown',
         },
-        id: "convert-pdf-to-markdown",
+        id: 'convert-pdf-to-markdown',
       });
 
       logStepEnd('convert-pdf-to-markdown', { wordCount: result.metadata.wordCount }, Date.now() - startTime);
@@ -362,11 +362,11 @@ const convertPdfToMarkdownStep = createStep({
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
-          stage: 'convert-pdf-to-markdown',
           status: "done",
-          error: error instanceof Error ? error.message : 'Unknown error',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stage: 'convert-pdf-to-markdown',
         },
-        id: "convert-pdf-to-markdown",
+        id: 'convert-pdf-to-markdown',
       });
 
       throw error;
@@ -387,9 +387,9 @@ const passTextThroughStep = createStep({
       data: {
         status: 'in-progress',
         message: `Processing text content ${startTime}, ${inputData.content}...`,
-        stage: "documentProcessingAgent",
+        stage: 'pass-text-through',
       },
-      id: "pass-text-through",
+      id: 'pass-text-through',
     });
 
     const result: z.infer<typeof markdownContentSchema> = {
@@ -406,10 +406,10 @@ const passTextThroughStep = createStep({
       type: 'data-tool-progress',
       data: {
         status: "done", // must be "done" for the UI to show the step as completed
-        message: "Text passed through successfully ${inputData.content}`,",
-        stepId: 'pass-text-through',
+        message: `Text passed through successfully ${inputData.content}`,
+        stage: 'pass-text-through',
       },
-      id: "pass-text-through",
+      id: 'pass-text-through',
     });
 
     return result;
@@ -442,9 +442,9 @@ const chunkDocumentStep = createStep({
         data: {
           status: 'in-progress',
           message: `Chunking with ${chunkStrategy} strategy...`,
-          stage: "documentProcessingAgent",
+          stage: 'chunk-document',
         },
-        id: "chunk-document",
+        id: 'chunk-document',
       });
 
       const chunks: Array<z.infer<typeof chunkSchema>> = [];
@@ -483,8 +483,9 @@ const chunkDocumentStep = createStep({
               data: {
                 status: 'in-progress',
                 message: `Processed ${chunkIndex} chunks...`,
-                stage: "documentProcessingAgent",
-              }
+                stage: 'chunk-document',
+              },
+              id: 'chunk-document',
             });
           }
         }
@@ -549,9 +550,9 @@ const chunkDocumentStep = createStep({
         data: {
           status: "in-progress",
           message: `Created ${chunks.length} chunks (90%)...`,
-          stage: "documentProcessingAgent",
+          stage: 'chunk-document',
         },
-        id: "chunk-document",
+        id: 'chunk-document',
       });
 
       const avgChunkSize = chunks.reduce((sum, c) => sum + c.content.length, 0) / chunks.length;
@@ -578,10 +579,10 @@ const chunkDocumentStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "done",
-          message: "Document chunked successfully",
-          stepId: 'chunk-document',
+          message: `Document chunked successfully: ${inputData.content.length} chunks created`,
+          stage: 'chunk-document',
         },
-        id: "chunk-document",
+        id: 'chunk-document',
       });
 
       logStepEnd(
@@ -601,9 +602,9 @@ const chunkDocumentStep = createStep({
         data: {
           status: "done",
           message: error instanceof Error ? error.message : 'Unknown error',
-          stepId: 'chunk-document',
+          stage: 'chunk-document',
         },
-        id: "chunk-document",
+        id: 'chunk-document',
       });
 
       throw error;
@@ -634,9 +635,9 @@ const indexChunksStep = createStep({
         data: {
           status: 'in-progress',
           message: `Indexing ${inputData.totalChunks} chunks...`,
-          stage: "documentProcessingAgent",
+          stage: 'index-chunks',
         },
-        id: "index-chunks",
+        id: 'index-chunks',
       });
 
       const documentId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -653,9 +654,9 @@ const indexChunksStep = createStep({
               data: {
                 status: 'in-progress',
                 message: `Indexed ${i + 1}/${inputData.chunks.length} chunks...`,
-                stage: "documentProcessingAgent",
+                stage: 'index-chunks',
               },
-              id: "index-chunks",
+              id: 'index-chunks',
             });
           }
         }
@@ -669,10 +670,10 @@ const indexChunksStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "in-progress",
-          message: 'Generating summary (90%)...',
-          stage: "documentProcessingAgent",
+          message: `Indexing ${inputData.totalChunks} chunks...`,
+          stage: 'index-chunks',
         },
-        id: "index-chunks",
+        id: 'index-chunks',
       });
 
       const sampleContent = inputData.chunks.slice(0, 3).map(c => c.content).join(' ').slice(0, 500);
@@ -703,10 +704,10 @@ const indexChunksStep = createStep({
         type: 'data-tool-progress',
         data: {
           status: "done",
-          message: "Chunks indexed successfully",
-          stepId: 'index-chunks',
+          message: `Chunks indexed successfully: ${inputData.totalChunks} chunks indexed`,
+          stage: 'index-chunks',
         },
-        id: "index-chunks",
+        id: 'index-chunks',
       });
 
       logStepEnd('index-chunks', { documentId, chunksCount: inputData.totalChunks }, Date.now() - startTime);
@@ -718,12 +719,13 @@ const indexChunksStep = createStep({
       logError('index-chunks', error, { totalChunks: inputData.totalChunks });
 
       await writer?.custom({
-        type: 'data-workflow-step-error',
+        type: 'data-tool-progress',
         data: {
-          stepId: 'index-chunks',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          status: 'done',
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          stage: 'index-chunks',
         },
-        id: "index-chunks",
+        id: 'index-chunks',
       });
 
       throw error;

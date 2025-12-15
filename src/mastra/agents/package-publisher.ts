@@ -1,13 +1,12 @@
 import { Agent } from '@mastra/core/agent';
 
-
 import { googleAIFlashLite } from '../config/google.js';
 import { pgMemory } from '../config/pg-storage.js';
 
-import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import type { RequestContext } from '@mastra/core/request-context';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import type { RequestContext } from '@mastra/core/request-context';
+import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface PackagePublisherRuntimeContext {
@@ -194,9 +193,10 @@ export const danePackagePublisher = new Agent({
     pnpmChangesetPublish,
     activeDistTag,
   },
-  // options: { tracingPolicy: { internal: InternalSpans.AGENT } },
-  scorers: {
-
+  options: {
+    // `internal` expects an InternalSpans value (or undefined). Avoid passing a boolean.
+    //    tracingPolicy: { internal: undefined },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  scorers: {},
+  outputProcessors: [new TokenLimiterProcessor(128000)],
 });
