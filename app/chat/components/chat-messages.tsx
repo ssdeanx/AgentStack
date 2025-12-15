@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-console */
 "use client"
 
@@ -23,20 +24,22 @@ import { Image as AIImage } from "@/src/components/ai-elements/image"
 import {
   AgentWebPreview,
   AgentCodeSandbox,
-  type WebPreviewData,
 } from "./agent-web-preview"
+import type { WebPreviewData } from "./chat.types"
 import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/chat-context"
 import { AgentReasoning } from "./agent-reasoning"
-import { AgentChainOfThought, parseReasoningToSteps } from "./agent-chain-of-thought"
+import { AgentChainOfThought } from "./agent-chain-of-thought"
 import { AgentTools } from "./agent-tools"
 import { AgentSources } from "./agent-sources"
-import { AgentArtifact, type ArtifactData } from "./agent-artifact"
-import { AgentPlan, extractPlanFromText } from "./agent-plan"
+import { AgentArtifact } from "./agent-artifact"
+import { AgentPlan } from "./agent-plan"
 import { AgentCheckpoint } from "./agent-checkpoint"
-import { AgentTask, type AgentTaskData, type TaskStep } from "./agent-task"
+import { AgentTask } from "./agent-task"
+import type { AgentTaskData, ArtifactData, TaskStep } from "./chat.types"
 import { AgentQueue } from "./agent-queue"
 import { AgentConfirmation } from "./agent-confirmation"
-import { parseInlineCitations } from "./agent-inline-citation"
+import { AgentInlineCitation } from "./agent-inline-citation"
+import { extractPlanFromText, parseReasoningToSteps, tokenizeInlineCitations } from "./chat.utils"
 import {
   CopyIcon,
   CheckIcon,
@@ -201,10 +204,10 @@ interface MessageItemProps {
   sources: Array<{ url: string; title: string }>
   checkpointIds: string[]
   checkpointMessageIndices: number[]
-  onCreateCheckpoint?: (_index: number) => void
-  onRestoreCheckpoint?: (_checkpointId: string) => void
-  onApproveConfirmation?: (_id: string) => void
-  onRejectConfirmation?: (_id: string) => void
+  onCreateCheckpoint?: (index: number) => void
+  onRestoreCheckpoint?: (checkpointId: string) => void
+  onApproveConfirmation?: (id: string) => void
+  onRejectConfirmation?: (id: string) => void
 }
 
 function MessageItem({
@@ -267,6 +270,7 @@ function MessageItem({
       .filter((p) => (p as { type?: unknown }).type === "data-tool-progress")
       .map((p) => {
         const { data } = p as { data?: unknown }
+        const partId = (p as { id?: unknown }).id
         const messageText =
           (data !== null && typeof data === "object" &&
             Object.prototype.hasOwnProperty.call(data, "message") &&
@@ -279,9 +283,20 @@ function MessageItem({
             typeof (data as { status?: unknown }).status === "string")
             ? (data as { status: string }).status
             : ""
+        const stageText =
+          (data !== null && typeof data === "object" &&
+            Object.prototype.hasOwnProperty.call(data, "stage") &&
+            typeof (data as { stage?: unknown }).stage === "string")
+            ? (data as { stage: string }).stage
+            : ""
+
+        const normalizedStatus: "in-progress" | "done" | "" =
+          statusText === "in-progress" ? "in-progress" : statusText.trim().length > 0 ? "done" : ""
         return {
           message: messageText,
-          status: statusText,
+          status: normalizedStatus,
+          stage: stageText,
+          id: typeof partId === "string" ? partId : "",
         }
       })
       .filter((e) => e.message.trim().length > 0 || e.status.trim().length > 0)
@@ -311,7 +326,27 @@ function MessageItem({
   const hasCitations = isAssistant && showSources && sources.length > 0
   const citationNodes = useMemo(() => {
     if (hasCitations) {
-      return parseInlineCitations(content, sources)
+      const tokens = tokenizeInlineCitations(content, sources)
+      return tokens.map((t, i) => {
+        if (t.type === 'text') {
+          return t.text
+        }
+
+        return (
+          <AgentInlineCitation
+            key={`citation-${i}-${t.number}`}
+            text={t.text}
+            citations={[
+              {
+                id: `cite-${t.number}`,
+                number: t.number,
+                title: t.title,
+                url: t.url,
+              },
+            ]}
+          />
+        )
+      })
     }
     return null
   }, [hasCitations, content, sources])
@@ -515,6 +550,11 @@ function MessageItem({
                         {e.status}
                       </span>
                     )}
+                    {((e.stage ?? '').trim().length > 0 || (e.id ?? '').trim().length > 0) && (
+                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                        {(e.stage ?? e.id).trim()}
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1 wrap-break-word">{e.message}</span>
                   </li>
                 ))}
@@ -662,9 +702,8 @@ function MessageItem({
 function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
   const { setWebPreview, agentConfig } = useChatContext()
 
-  if (!preview || agentConfig?.features.webPreview !== true) {return null}
-
   const handleCodeChange = useCallback((newCode: string) => {
+    if (!preview) {return}
     setWebPreview({
       ...preview,
       code: newCode,
@@ -674,6 +713,8 @@ function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
   const handleClose = useCallback(() => {
     setWebPreview(null)
   }, [setWebPreview])
+
+  if (!preview || agentConfig?.features.webPreview !== true) {return null}
 
   // If we have code, use the enhanced preview with live editing
   if ((preview.code ?? "").length > 0) {

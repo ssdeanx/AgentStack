@@ -11,6 +11,7 @@ import type { ToolInvocationState } from "../providers/chat-context"
 import type { DynamicToolUIPart } from "ai"
 import { cn } from "@/lib/utils"
 import { useMemo } from "react"
+import type { AgentToolsProps } from "./chat.types"
 
 // Import custom tool components
 //import {
@@ -19,11 +20,6 @@ import { useMemo } from "react"
  // SiteMapExtractorTool,
  // LinkExtractorTool,
 //} from "@/src/components/ai-elements/tools"
-
-export interface AgentToolsProps {
-  tools: Array<ToolInvocationState | DynamicToolUIPart>
-  className?: string
-}
 
 function getProgressMessage(tool: ToolInvocationState | DynamicToolUIPart): string | null {
   const { input } = tool
@@ -49,8 +45,6 @@ function formatToolName(toolName: string): string {
 }
 
 export function AgentTools({ tools, className }: AgentToolsProps) {
-  if (tools.length === 0) {return null}
-
   const groups = useMemo(() => {
     const grouped = new Map<string, Array<ToolInvocationState | DynamicToolUIPart>>()
     const order: string[] = []
@@ -66,6 +60,8 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
 
     return order.map((id) => ({ id, items: grouped.get(id) ?? [] }))
   }, [tools])
+
+  if (groups.length === 0) {return null}
 
   return (
     <div className={cn("space-y-2 mt-2", className)}>

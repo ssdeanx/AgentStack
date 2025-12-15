@@ -338,15 +338,27 @@ function NetworkToolDisplay({ tools, setPendingToolConfirmation }: { tools: Tool
   return (
     <div className="space-y-2 mt-2">
       {tools.map((tool) => {
-        const toolName = tool.toolName || "unknown"
-        const toolType = `tool-${toolName}`
+        const toolName = tool.type === 'dynamic-tool'
+          ? tool.toolName
+          : (typeof tool.type === 'string' && tool.type.startsWith('tool-'))
+            ? tool.type.slice('tool-'.length)
+            : 'unknown'
+
+        const toolType = (tool.type === 'dynamic-tool'
+          ? `tool-${toolName}`
+          : tool.type) satisfies ToolUIPart["type"]
+
         const toolState = tool.state
         const hasOutput = toolState === "output-available" || toolState === "output-error"
+
+        const toolInput = tool.type === 'dynamic-tool' ? tool.input : (tool as unknown as { args?: unknown }).args
+        const toolOutput = tool.type === 'dynamic-tool' ? tool.output : (tool as unknown as { result?: unknown }).result
+        const toolErrorText = tool.type === 'dynamic-tool' ? tool.errorText : (tool as unknown as { error?: unknown }).error
 
         if (toolState === "input-available") {
           setPendingToolConfirmation({
             toolName,
-            input: tool.input,
+            input: toolInput,
             onAccept: () => {},
             onReject: () => setPendingToolConfirmation(null)
           })
@@ -356,15 +368,15 @@ function NetworkToolDisplay({ tools, setPendingToolConfirmation }: { tools: Tool
           <Tool key={tool.toolCallId} defaultOpen={false}>
             <ToolHeader
               title={toolName}
-              type={toolType as ToolUIPart["type"]}
+              type={toolType}
               state={toolState}
             />
             <ToolContent>
-              <ToolInput input={tool.input} />
+              <ToolInput input={toolInput} />
               {hasOutput && (
                 <ToolOutput
-                  output={tool.output}
-                  errorText={tool.errorText}
+                  output={toolOutput}
+                  errorText={typeof toolErrorText === 'string' ? toolErrorText : undefined}
                 />
               )}
             </ToolContent>
@@ -389,7 +401,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
 
   // Collect tool parts for this message
   const toolParts: ToolInvocationState[] = []
-  for (const p of message.parts) {
+  for (const [partIndex, p] of message.parts.entries()) {
     if (p.type === "dynamic-tool") {
       toolParts.push(p as ToolInvocationState)
     } else if (typeof p.type === "string" && (p.type.startsWith("data-tool") || p.type === "data-network")) {
@@ -398,7 +410,7 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
       const inner = payload?.data ?? payload
       toolParts.push({
         type: "dynamic-tool",
-        toolCallId: inner?.toolCallId ?? inner?.id ?? `tool-${Date.now()}`,
+        toolCallId: inner?.toolCallId ?? inner?.id ?? `tool-${message.id}-${partIndex}`,
         toolName: inner?.toolName ?? inner?.name ?? inner?.agentName ?? "network-step",
         input: inner?.input ?? inner?.args,
         output: inner?.output ?? inner?.result,
@@ -541,9 +553,13 @@ function NetworkMessageParts({ message, isLastMessage, isStreaming }: {
             }
             return null }
 
-          case "step-start": { throw new Error('Not implemented yet: "step-start" case') }
-          case "dynamic-tool": { throw new Error('Not implemented yet: "dynamic-tool" case') }
-          case "source-document": { throw new Error('Not implemented yet: "source-document" case') }
+          case "step-start":
+          case "source-document":
+            return null
+
+          case "dynamic-tool":
+            // Dynamic tool parts are rendered by NetworkToolDisplay / Tool blocks
+            return null
           case "data-tool-agent":
             // Handle agent tool executions specifically
             return <AgentTool key={key} {...(part as { data: AgentDataPart }).data} />

@@ -33,6 +33,7 @@ import {
   CheckIcon,
   PlayIcon,
   RotateCcwIcon,
+  // eslint-disable-next-line no-unused-vars
   Edit3Icon,
   EyeIcon,
   SplitIcon,
@@ -42,15 +43,7 @@ import {
 } from "lucide-react"
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import type { BundledLanguage } from "shiki"
-
-export interface WebPreviewData {
-  id: string
-  url: string
-  title?: string
-  code?: string
-  language?: string
-  html?: string
-}
+import type { WebPreviewData } from "./chat.types"
 
 type EditorMode = "preview" | "code" | "split"
 type PreviewStatus = "idle" | "running" | "success" | "error"
@@ -58,7 +51,8 @@ type PreviewStatus = "idle" | "running" | "success" | "error"
 interface AgentWebPreviewProps {
   preview: WebPreviewData
   onClose?: () => void
-  onCodeChange?: (_code: string) => void
+  // eslint-disable-next-line no-unused-vars
+  onCodeChange?: (code: string) => void
   defaultTab?: "preview" | "code"
   height?: string | number
   showConsole?: boolean
@@ -96,6 +90,20 @@ export function AgentWebPreview({
   const codeLanguage = (preview.language ?? ((preview.html) ? "html" : "tsx")) as BundledLanguage
   const hasChanges = editedCode !== originalCode
 
+  const handleRunPreview = useCallback(() => {
+    setPreviewStatus("running")
+    setErrorMessage(null)
+    setIframeKey((prev) => prev + 1)
+    setConsoleLogs([])
+
+    // Simulate a brief loading state
+    setTimeout(() => {
+      setPreviewStatus("success")
+    }, 500)
+
+    onCodeChange?.(editedCode)
+  }, [editedCode, onCodeChange])
+
   // Generate preview URL from edited code
   const livePreviewUrl = useMemo(() => {
     if (!editedCode) {return preview.url}
@@ -119,7 +127,7 @@ export function AgentWebPreview({
         clearTimeout(debounceRef.current)
       }
     }
-  }, [editedCode, autoRun, isEditing, hasChanges])
+  }, [editedCode, autoRun, isEditing, hasChanges, handleRunPreview])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -152,20 +160,6 @@ export function AgentWebPreview({
     a.click()
     URL.revokeObjectURL(url)
   }, [editedCode, codeLanguage, preview.title])
-
-  const handleRunPreview = useCallback(() => {
-    setPreviewStatus("running")
-    setErrorMessage(null)
-    setIframeKey((prev) => prev + 1)
-    setConsoleLogs([])
-
-    // Simulate a brief loading state
-    setTimeout(() => {
-      setPreviewStatus("success")
-    }, 500)
-
-    onCodeChange?.(editedCode)
-  }, [editedCode, onCodeChange])
 
   const handleResetCode = useCallback(() => {
     setEditedCode(originalCode)
@@ -699,6 +693,7 @@ interface AgentCodeSandboxProps {
   title?: string
   dependencies?: Record<string, string>
   onClose?: () => void
+  // eslint-disable-next-line no-unused-vars
   onCodeChange?: (code: string) => void
   editable?: boolean
 }
@@ -723,7 +718,7 @@ export function AgentCodeSandbox({
   return (
     <AgentWebPreview
       preview={{
-        id: `sandbox-${Date.now()}`,
+        id: "sandbox",
         url: dataUrl,
         title: title ?? "Code Sandbox",
         code,

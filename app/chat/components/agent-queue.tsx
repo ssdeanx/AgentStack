@@ -27,15 +27,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export interface QueuedTask {
-  id: string
-  title: string
-  description?: string
-  status: "pending" | "running" | "completed" | "failed"
-  createdAt?: Date
-  completedAt?: Date
-  error?: string
-}
+import type { QueuedTask } from "./chat.types"
 
 interface AgentQueueProps {
   tasks: QueuedTask[]

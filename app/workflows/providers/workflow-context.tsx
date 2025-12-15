@@ -36,7 +36,7 @@ export interface StepProgress {
 export interface WorkflowProgressEvent {
   id: string
   stage: string
-  status: "in-progress" | "done" | "error"
+  status: "in-progress" | "done"
   message: string
   stepId?: string
   timestamp: Date
@@ -94,7 +94,7 @@ export interface WorkflowContextValue {
   messages: ReturnType<typeof useChat>["messages"]
   streamingOutput: string
 }
-/* eslint-enable no-unused-vars */
+
 
 export interface WorkflowNode {
   id: string
@@ -118,6 +118,7 @@ export interface WorkflowEdge {
 
 const WorkflowContext = createContext<WorkflowContextValue | null>(null)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useWorkflowContext(): WorkflowContextValue {
   const context = useContext(WorkflowContext)
   if (!context) {
@@ -407,11 +408,13 @@ export function WorkflowProvider({
             const eventData = progressPart.data
 
             if (eventData && eventData.status !== null && typeof eventData.status === "string" &&
-                (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error")) {
+                (eventData.status === "in-progress" || eventData.status === "done" || eventData.status === "error" || eventData.status === "pending")) {
+              const normalizedStatus: WorkflowProgressEvent["status"] =
+                eventData.status === 'in-progress' ? 'in-progress' : 'done'
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
                 stage: eventData.stage ?? "workflow",
-                status: eventData.status,
+                status: normalizedStatus,
                 message: eventData.message ?? `${part.type} ${eventData.status}`,
                 stepId: eventData.stepId,
                 timestamp: new Date(),
@@ -422,15 +425,19 @@ export function WorkflowProvider({
 
           // Handle custom tool progress events
           if (typeof part.type === "string" && part.type.startsWith("data-tool-progress")) {
-            const toolProgressPart = part as { type: string; data?: { status?: string; message?: string; toolName?: string } }
+            const toolProgressPart = part as { type: string; data?: { status?: string; message?: string; stage?: string } }
             const eventData = toolProgressPart.data
 
             if (eventData && eventData.status !== null && typeof eventData.status === "string") {
+              const stage = eventData.stage ?? "tool"
+              const normalizedStatus: WorkflowProgressEvent["status"] =
+                eventData.status === 'in-progress' || eventData.status === 'pending' ? 'in-progress' : 'done'
               allProgressEvents.push({
                 id: `${message.id}-${part.type}-${partIndex}`,
-                stage: "tool",
-                status: eventData.status === "done" ? "done" : (eventData.status === "pending" || eventData.status === "in-progress") ? "in-progress" : "error",
-                message: eventData.message ?? `${eventData.toolName ?? 'Tool'} ${eventData.status}`,
+                stage,
+                status: normalizedStatus,
+                message: eventData.message ?? `${stage} ${eventData.status}`,
+                stepId: stage,
                 timestamp: new Date(),
                 data: eventData,
               })
@@ -440,9 +447,8 @@ export function WorkflowProvider({
       }
     }
 
-    let timer: ReturnType<typeof setTimeout> | null = null
     // Defer setting state to next tick to avoid cascading renders from sync setState in effects.
-    timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       setProgressEvents(allProgressEvents)
       setDataParts(allDataParts)
       // Always update suspendPayload so it's cleared when not present.
@@ -450,9 +456,7 @@ export function WorkflowProvider({
     }, 0)
 
     return () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
+      clearTimeout(timer)
     }
   }, [messages])
 

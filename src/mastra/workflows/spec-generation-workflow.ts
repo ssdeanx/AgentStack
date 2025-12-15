@@ -51,11 +51,10 @@ const planStep = createStep({
   outputSchema: planOutputSchema,
   execute: async ({ inputData, mastra, requestContext, writer }) => {
     const { request, context, githubRepo, githubIssue } = inputData;
-    const agent = mastra?.getAgent('code-architect'); // Use code-architect for planning
+    const agent = mastra.getAgent('code-architect'); // Use code-architect for planning
 
-    if (!agent) {
-      throw new Error('Agent code-architect not found');
-    }
+    const hasGithubRepo = typeof githubRepo === 'string' && githubRepo.length > 0;
+    const hasGithubIssue = typeof githubIssue === 'number' && Number.isFinite(githubIssue);
 
     await writer?.custom({
       type: 'data-tool-progress',
@@ -81,12 +80,12 @@ const planStep = createStep({
       User Tier: ${userTier} (Please provide a ${detailLevel} plan)
       User Request: ${request}
       Additional Context: ${context ?? 'None'}
-      ${githubRepo ? `GitHub Repository: ${githubRepo}` : ''}
-      ${githubIssue ? `GitHub Issue: #${githubIssue}` : ''}
+      ${hasGithubRepo ? `GitHub Repository: ${githubRepo}` : ''}
+      ${hasGithubIssue ? `GitHub Issue: #${githubIssue}` : ''}
 
       [INSTRUCTIONS]
-      ${githubRepo ? `- Use your GitHub tools to inspect the repository '${githubRepo}' for existing architecture and patterns.` : ''}
-      ${githubRepo && githubIssue ? `- Fetch details for issue #${githubIssue} to understand specific requirements.` : ''}
+      ${hasGithubRepo ? `- Use your GitHub tools to inspect the repository '${githubRepo}' for existing architecture and patterns.` : ''}
+      ${hasGithubRepo && hasGithubIssue ? `- Fetch details for issue #${githubIssue} to understand specific requirements.` : ''}
 
       [OUTPUT FORMAT]
       Return a JSON object with:
@@ -190,11 +189,7 @@ const prdStep = createStep({
   outputSchema: prdOutputSchema,
   execute: async ({ inputData, mastra, writer }) => {
     const { request, plan, documentsNeeded } = inputData;
-    const agent = mastra?.getAgent('code-architect');
-
-    if (!agent) {
-      throw new Error('Agent code-architect not found');
-    }
+    const agent = mastra.getAgent('code-architect');
 
     await writer?.custom({
       type: 'data-tool-progress',
@@ -280,11 +275,7 @@ const archStep = createStep({
   outputSchema: archOutputSchema,
   execute: async ({ inputData, mastra, writer }) => {
     const { prd } = inputData;
-    const agent = mastra?.getAgent('code-architect');
-
-    if (!agent) {
-      throw new Error('Agent code-architect not found');
-    }
+    const agent = mastra.getAgent('code-architect');
 
     await writer?.custom({
       type: 'data-tool-progress',
@@ -354,11 +345,7 @@ const tasksStep = createStep({
   outputSchema: tasksOutputSchema,
   execute: async ({ inputData, mastra, writer }) => {
     const { architecture, prd } = inputData;
-    const agent = mastra?.getAgent('code-architect'); // Using code-architect for task breakdown as well
-
-    if (!agent) {
-      throw new Error('Agent code-architect not found');
-    }
+    const agent = mastra.getAgent('code-architect'); // Using code-architect for task breakdown as well
 
     await writer?.custom({
       type: 'data-tool-progress',

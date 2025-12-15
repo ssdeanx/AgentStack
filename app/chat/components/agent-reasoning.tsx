@@ -6,12 +6,7 @@ import {
   ReasoningContent,
 } from "@/src/components/ai-elements/reasoning"
 
-export interface AgentReasoningProps {
-  reasoning: string
-  isStreaming: boolean
-  duration?: number
-  className?: string
-}
+import type { AgentReasoningProps } from "./chat.types"
 
 export function AgentReasoning({
   reasoning,

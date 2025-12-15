@@ -11,7 +11,8 @@ import {
   PromptInputAttachment,
 } from "@/src/components/ai-elements/prompt-input"
 import { useChatContext } from "@/app/chat/providers/chat-context"
-import { AgentSuggestions, getSuggestionsForAgent } from "./agent-suggestions"
+import { AgentSuggestions } from "./agent-suggestions"
+import { getSuggestionsForAgent } from "./chat.utils"
 import { Badge } from "@/ui/badge"
 import { PaperclipIcon, SquareIcon, BotIcon, CpuIcon } from "lucide-react"
 import { useMemo } from "react"

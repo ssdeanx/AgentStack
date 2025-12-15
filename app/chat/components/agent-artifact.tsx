@@ -30,18 +30,12 @@ import { useState, useCallback } from "react"
 import type { BundledLanguage } from "shiki"
 import { AgentCodeSandbox } from "./agent-web-preview"
 
-export interface ArtifactData {
-  id: string
-  title: string
-  description?: string
-  type: "code" | "markdown" | "json" | "text" | "html" | "react"
-  language?: string
-  content: string
-}
+import type { ArtifactData } from "./chat.types"
 
-export interface AgentArtifactProps {
+interface AgentArtifactProps {
   artifact: ArtifactData
   onClose?: () => void
+  // eslint-disable-next-line no-unused-vars
   onCodeUpdate?: (artifactId: string, newCode: string) => void
 }
 
@@ -76,7 +70,7 @@ export function AgentArtifact({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Failed to copy:", err)
+      void err
     }
   }, [editedCode])
 
@@ -240,6 +234,7 @@ export function AgentArtifactCompact({
 // Floating action button for quick access to editor
 interface ArtifactEditorFABProps {
   artifact: ArtifactData
+  // eslint-disable-next-line no-unused-vars
   onCodeChange?: (newCode: string) => void
 }
 
