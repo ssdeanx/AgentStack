@@ -20,7 +20,7 @@ function ProgressEventItem({ event }: { event: WorkflowProgressEvent }) {
       case "done":
         return <CheckCircle2Icon className="size-3 text-green-500" />
       case "in-progress":
-        return <XCircleIcon className="size-3 text-red-500" />
+        return <Loader2Icon className="size-3 animate-spin text-blue-500" />
       default:
         return <CircleIcon className="size-3 text-muted-foreground" />
     }
@@ -31,7 +31,7 @@ function ProgressEventItem({ event }: { event: WorkflowProgressEvent }) {
       case "done":
         return "text-green-700 dark:text-green-300"
       case "in-progress":
-        return "text-red-700 dark:text-red-300"
+        return "text-blue-700 dark:text-blue-300"
       default:
         return "text-muted-foreground"
     }
