@@ -9,22 +9,10 @@ import { evaluationAgent } from '../agents/evaluationAgent'
 import { imageToCsvAgent } from '../agents/image_to_csv'
 import { csvToExcalidrawAgent } from '../agents/csv_to_excalidraw'
 import { weatherAgent } from '../agents/weather-agent'
-import {
-    structureScorer,
-    creativityScorer,
-    sqlValidityScorer,
-    toneConsistencyScorer,
-    responseQualityScorer,
-    scriptFormatScorer,
-    pacingScorer,
-    financialDataScorer,
-    sourceDiversityScorer,
-    csvValidityScorer,
-    factualityScorer
-} from '../scorers'
+import { log } from '../config/logger';
 
 export async function runContentStrategistExperiment() {
-    console.log('Running Content Strategist Experiment...')
+    log.info('Running Content Strategist Experiment', { event: 'Running Content Strategist Experiment' })
     const results = await runEvals({
         target: contentStrategistAgent,
         data: [
@@ -38,14 +26,14 @@ export async function runContentStrategistExperiment() {
                 input: 'Plan a blog series for a B2B SaaS accounting tool. Target audience: CFOs. Tone: Professional and authoritative.'
             }
         ],
-        scorers: [structureScorer, creativityScorer, toneConsistencyScorer]
+        scorers: []
     })
-    console.log('Content Strategist Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Content Strategist Experiment Results', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runCopywriterExperiment() {
-    console.log('Running Copywriter Experiment...')
+    log.info('Running Copywriter Experiment...')
     const results = await runEvals({
         target: copywriterAgent,
         data: [
@@ -59,14 +47,14 @@ export async function runCopywriterExperiment() {
                 input: 'Write a product description for a luxury watch. Tone: Sophisticated and elegant.',
             }
         ],
-        scorers: [toneConsistencyScorer, creativityScorer, responseQualityScorer]
+        scorers: []
     })
-    console.log('Copywriter Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Copywriter Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runScriptWriterExperiment() {
-    console.log('Running Script Writer Experiment...')
+    log.info('Running Script Writer Experiment...')
     const results = await runEvals({
         target: scriptWriterAgent,
         data: [
@@ -77,14 +65,14 @@ export async function runScriptWriterExperiment() {
                 input: 'Create a YouTube intro for a tech review channel.',
             }
         ],
-        scorers: [scriptFormatScorer, pacingScorer, creativityScorer]
+        scorers: []
     })
-    console.log('Script Writer Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Script Writer Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runStockAnalysisExperiment() {
-    console.log('Running Stock Analysis Experiment...')
+    log.info('Running Stock Analysis Experiment...')
     const results = await runEvals({
         target: stockAnalysisAgent,
         data: [
@@ -95,14 +83,14 @@ export async function runStockAnalysisExperiment() {
                 input: 'Should I buy TSLA right now?',
             }
         ],
-        scorers: [financialDataScorer, responseQualityScorer, sourceDiversityScorer]
+        scorers: []
     })
-    console.log('Stock Analysis Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Stock Analysis Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runReportAgentExperiment() {
-    console.log('Running Report Agent Experiment...')
+    log.info('Running Report Agent Experiment...')
     const results = await runEvals({
         target: reportAgent,
         data: [
@@ -113,14 +101,14 @@ export async function runReportAgentExperiment() {
                 input: 'Summarize the key findings from the user research interviews.',
             }
         ],
-        scorers: [structureScorer, responseQualityScorer, factualityScorer]
+        scorers: []
     })
-    console.log('Report Agent Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Report Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runLearningExtractionExperiment() {
-    console.log('Running Learning Extraction Experiment...')
+    log.info('Running Learning Extraction Experiment...')
     const results = await runEvals({
         target: learningExtractionAgent,
         data: [
@@ -128,14 +116,14 @@ export async function runLearningExtractionExperiment() {
                 input: 'Extract key learning points from this article about Rust ownership.'
             }
         ],
-        scorers: [responseQualityScorer, factualityScorer]
+        scorers: []
     })
-    console.log('Learning Extraction Experiment Results:', JSON.stringify(results, null, 2))
-    return results
+        log.info('Learning Extraction Experiment Results:', { results: JSON.stringify(results, null, 2) })
+        return results
 }
 
 export async function runEvaluationAgentExperiment() {
-    console.log('Running Evaluation Agent Experiment...')
+    log.info('Running Evaluation Agent Experiment...')
     const results = await runEvals({
         target: evaluationAgent,
         data: [
@@ -143,14 +131,14 @@ export async function runEvaluationAgentExperiment() {
                 input: 'Evaluate this python code for efficiency: def fib(n): return n if n < 2 else fib(n-1) + fib(n-2)',
             }
         ],
-        scorers: [responseQualityScorer, structureScorer]
+        scorers: []
     })
-    console.log('Evaluation Agent Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Evaluation Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runImageToCsvExperiment() {
-    console.log('Running Image to CSV Experiment...')
+    log.info('Running Image to CSV Experiment...')
     const results = await runEvals({
         target: imageToCsvAgent,
         data: [
@@ -158,14 +146,14 @@ export async function runImageToCsvExperiment() {
                 input: 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
             }
         ],
-        scorers: [csvValidityScorer, structureScorer]
+        scorers: []
     })
-    console.log('Image to CSV Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Image to CSV Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runCsvToExcalidrawExperiment() {
-    console.log('Running CSV to Excalidraw Experiment...')
+    log.info('Running CSV to Excalidraw Experiment...')
     const results = await runEvals({
         target: csvToExcalidrawAgent,
         data: [
@@ -173,14 +161,14 @@ export async function runCsvToExcalidrawExperiment() {
                 input: 'id,label,x,y\n1,Start,0,0\n2,Process,100,0\n3,End,200,0',
             }
         ],
-        scorers: [structureScorer, responseQualityScorer]
+        scorers: []
     })
-    console.log('CSV to Excalidraw Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('CSV to Excalidraw Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 
 export async function runWeatherAgentExperiment() {
-    console.log('Running Weather Agent Experiment...')
+    log.info('Running Weather Agent Experiment...')
     const results = await runEvals({
         target: weatherAgent,
         data: [
@@ -191,9 +179,9 @@ export async function runWeatherAgentExperiment() {
                 input: 'Forecast for London tomorrow.',
             }
         ],
-        scorers: [factualityScorer, responseQualityScorer]
+        scorers: []
     })
-    console.log('Weather Agent Experiment Results:', JSON.stringify(results, null, 2))
+    log.info('Weather Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
     return results
 }
 

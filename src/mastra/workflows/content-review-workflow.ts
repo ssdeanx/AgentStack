@@ -126,7 +126,7 @@ const researchTopicStep = createStep({
         })
 
         const prompt = `Research the topic "${inputData.topic}" for a ${inputData.contentType}
-        ${inputData.targetAudience ? `targeting ${inputData.targetAudience}` : ''}.
+        ${inputData.targetAudience !== undefined && inputData.targetAudience !== null && inputData.targetAudience.trim().length > 0 ? `targeting ${inputData.targetAudience}` : ''}.
         Provide a summary, key points, relevant sources, and interesting facts.`;
 
         const stream = await agent.stream(prompt, {
@@ -261,7 +261,7 @@ const draftContentStep = createStep({
 
         Research Summary: ${inputData.research.summary}
         Key Points to Cover: ${inputData.research.keyPoints.join(', ')}
-        ${inputData.targetAudience ? `Target Audience: ${inputData.targetAudience}` : ''}
+        ${inputData.targetAudience !== undefined && inputData.targetAudience !== null && inputData.targetAudience.trim().length > 0 ? `Target Audience: ${inputData.targetAudience}` : ''}
 
         Create engaging, well-structured content.`;
 

@@ -757,7 +757,7 @@ const analyzeDataStep = createStep({
         }));
       }
 
-      
+
       const result: z.infer<typeof analysisResultSchema> = {
         stocks: inputData.stocks,
         analysis: {

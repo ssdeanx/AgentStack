@@ -6,6 +6,7 @@ import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { webScraperTool } from '../tools'
 
 export interface DaneContext {
     userId?: string
@@ -191,19 +192,19 @@ export const dane = new Agent({
         google: {
           thinkingConfig: {
             includeThoughts: true,
-            thinkingBudget: -1,
+            thinkingLevel: 'high',
           },
           responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
       }
     }
   },
-  model: googleAIFlashLite,
+  model: 'google/gemini-3-flash-preview',
   memory: pgMemory,
   tools: {
     execaTool,
     browserTool,
-    googleSearch,
+    webScraperTool,
     listEvents,
   },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
