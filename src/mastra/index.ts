@@ -88,8 +88,6 @@ import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow';
 import { telephoneGameWorkflow } from './workflows/telephone-game';
 import { weatherWorkflow } from './workflows/weather-workflow';
 
-const ml = process.env.MLFLOW_EXPERIMENT_ID
-
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -180,7 +178,7 @@ export const mastra = new Mastra({
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
 
   storage: new PostgresStore({
-    id: 'mastra-storage',
+    id: 'main-storage',
     // Connection configuration
     connectionString:
       process.env.SUPABASE ??
@@ -194,7 +192,7 @@ export const mastra = new Mastra({
     //    default: { enabled: false },
     configs: {
       otel: {
-        serviceName: "my-service",
+        serviceName: "ai",
         exporters: [
           new OtelExporter({
             provider: {
@@ -228,8 +226,8 @@ export const mastra = new Mastra({
         defaultOptions: {
           memory: {
             thread: {
-              id: 'network',
-              resourceId: 'network',
+              id: ':agentId',
+              resourceId: ':agentId',
               metadata: { agentId: ':agentId' }
             },
             resource: "network",
@@ -249,11 +247,11 @@ export const mastra = new Mastra({
         defaultOptions: {
           memory: {
             thread: {
-              id: ':agentIdChat',
-              resourceId: 'chat',
+              id: ':agentId',
+              resourceId: ':agentId',
               metadata: { agent: ':agentId' }
             },
-            resource: "chat",
+            resource: ":agentId",
             options:
               { lastMessages: 500, semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true } },
             readOnly: false,
@@ -313,143 +311,18 @@ export const mastra = new Mastra({
         sendSources: true,
       }),
       chatRoute({
-        path: "/chat/reportAgent",
-        agent: "reportAgent",
+        path: "/chat/bgColorAgent",
+        agent: "bgColorAgent",
         defaultOptions: {
           memory: {
             thread: {
-              id: 'reportAgentChat',
-              resourceId: 'chat',
+              id: 'bgColorAgent',
+              resourceId: 'bgColorAgent',
             },
-            resource: "chat",
+            resource: "bgColorAgent",
             options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/excalidrawValidatorAgent",
-        agent: "excalidrawValidatorAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "chat",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/editorAgent",
-        agent: "editorAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "chat",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/copywriterAgent",
-        agent: "copywriterAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "chat",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/scriptWriterAgent",
-        agent: "scriptWriterAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "chat",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/knowledgeIndexingAgent",
-        agent: "knowledgeIndexingAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "chat",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
-          },
-          maxSteps: 50,
-          includeRawChunks: true,
-        },
-        sendStart: true,
-        sendFinish: true,
-        sendReasoning: true,
-        sendSources: true,
-      }),
-      chatRoute({
-        path: "/chat/documentProcessingAgent",
-        agent: "documentProcessingAgent",
-        defaultOptions: {
-          memory: {
-            thread: {
-              id: 'chat',
-              resourceId: 'chat',
-            },
-            resource: "network",
-            options:
-              { semanticRecall: true, workingMemory: { enabled: true, } }
+              { lastMessages: 500, semanticRecall: true, workingMemory: { enabled: true, }, threads: { generateTitle: true } },
+            readOnly: false,
           },
           maxSteps: 50,
           includeRawChunks: true,
