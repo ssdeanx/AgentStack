@@ -120,7 +120,7 @@ Tailor your editing style to the content type:
     return google.chat('gemini-2.5-flash-preview-09-2025')
   },
   memory: pgMemory,
-  tools: [],
+//  tools: [],
   scorers: {
 
   },

@@ -98,11 +98,12 @@ const scanStep = createStep({
       );
 
       // Type guard to narrow to the success shape
-      const isScanSuccess = (r: any): r is { success: boolean; tree?: GitTreeItem[]; error?: string } =>
-        (Boolean(r)) && typeof r === 'object' && 'success' in r;
+      const isScanSuccess = (r: unknown): r is { success: boolean; tree?: GitTreeItem[]; error?: string } =>
+        r !== null && typeof r === 'object' && 'success' in r;
 
       if (!isScanSuccess(scanResultRaw) || !scanResultRaw.success || !scanResultRaw.tree) {
-        throw new Error(`Failed to scan GitHub repo: ${(scanResultRaw as any)?.error ?? 'unknown error'}`);
+        const errorMessage = isScanSuccess(scanResultRaw) ? (scanResultRaw.error ?? 'unknown error') : 'unknown error';
+        throw new Error(`Failed to scan GitHub repo: ${errorMessage}`);
       }
 
       // At this point, scanResultRaw.tree is present
@@ -229,7 +230,7 @@ const ingestStep = createStep({
             }
 
             const successResult = result as { success: boolean; content?: string; encoding?: string; sha?: string; size?: number; error?: string };
-            if (!successResult.success || !successResult.content) {
+            if (!successResult.success || successResult.content === null || successResult.content === undefined || successResult.content === '') {
               throw new Error(`Failed to fetch file from GitHub: ${successResult.error}`);
             }
             content = successResult.content;

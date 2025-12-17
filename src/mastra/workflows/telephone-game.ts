@@ -10,7 +10,7 @@ const telephone = new Agent({
   instructions: `Telephone game agent`,
   model: googleAIFlashLite,
   memory: pgMemory,
-  tools: [],
+//  tools: [],
   scorers: {},
 });
 

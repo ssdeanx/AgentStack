@@ -2,7 +2,6 @@ import { Agent } from '@mastra/core/agent';
 import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
-import { scorers } from '../scorers/weather-scorer';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
@@ -62,7 +61,7 @@ export const weatherAgent = new Agent({
   scorers: {
 
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  outputProcessors: [new TokenLimiterProcessor(128000)],
   memory: pgMemory,
   options: {},
   maxRetries: 5

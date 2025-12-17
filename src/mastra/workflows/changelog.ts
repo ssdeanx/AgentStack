@@ -219,7 +219,7 @@ const stepA1 = createStep({
       id: 'stepA1',
     });
 
-    
+
     return {
       message: combinedChangelog,
     };
@@ -314,7 +314,7 @@ const stepA2 = createStep({
     try {
       const result = await agent.generate(prompt, {
         toolsets: {
-          slack: tools,
+//          slack: tools,
         },
       });
 
@@ -330,7 +330,7 @@ const stepA2 = createStep({
         id: 'stepA2',
       });
 
-      
+
       return {
         message: result.text,
       };
@@ -347,7 +347,7 @@ const stepA2 = createStep({
         id: 'stepA2',
       });
 
-      
+
       return {
         message: e as string,
       };
