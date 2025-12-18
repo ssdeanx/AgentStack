@@ -2,15 +2,24 @@
 
 import Link from "next/link"
 import type { Route } from "next"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, startTransition } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/ui/button"
 import { ThemeToggle } from "@/ui/theme-toggle"
 import { cn } from "@/lib/utils"
+import {
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuTrigger,
+  NavigationMenuContent,
+  NavigationMenuLink,
+} from "@/ui/navigation-menu"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   MenuIcon,
-  XIcon
+  XIcon,
+  ChevronDownIcon
 } from "lucide-react"
 
 export function Navbar() {
@@ -27,10 +36,24 @@ export function Navbar() {
 
   useEffect(() => {
     if (prevPathnameRef.current !== pathname) {
-      setMobileOpen(false)
+      startTransition(() => setMobileOpen(false))
       prevPathnameRef.current = pathname
     }
   }, [pathname])
+
+  const docsLinks = [
+    { href: "/docs", label: "All Docs", desc: "Full documentation" },
+    { href: "/docs/getting-started", label: "Getting started", desc: "Quick start and tutorials" },
+    { href: "/docs/ai-sdk", label: "AI SDK", desc: "AI SDK integration" },
+    { href: "/docs/components", label: "Components", desc: "UI components & patterns" },
+    { href: "/docs/configuration", label: "Configuration", desc: "Config & setup" },
+    { href: "/docs/core-concepts", label: "Core concepts", desc: "Architecture & concepts" },
+    { href: "/docs/prompts/kiro-lite", label: "Prompts", desc: "Prompt patterns" },
+    { href: "/docs/rag", label: "RAG", desc: "Retrieval-augmented generation" },
+    { href: "/docs/runtime-context", label: "Runtime context", desc: "RuntimeContext patterns" },
+    { href: "/docs/security", label: "Security", desc: "Security practices" },
+    { href: "/docs/ui", label: "UI", desc: "Design & UI" },
+  ]
 
   return (
     <header
@@ -52,70 +75,113 @@ export function Navbar() {
 
         {/* Desktop Nav - Action Oriented */}
         <nav className="hidden md:flex items-center gap-2">
-             <Link href="/chat">
-                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-primary/5 transition-all duration-200 ${pathname === "/chat" ? "bg-primary/10 shadow-sm" : ""}`}>
-                    <svg className="mr-2 size-5 text-primary group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        <circle cx="9" cy="10" r="1"/>
-                        <circle cx="12" cy="10" r="1"/>
-                        <circle cx="15" cy="10" r="1"/>
-                    </svg>
-                    <span className="font-medium">Chat</span>
-                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === "/chat" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
-                </Button>
-             </Link>
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger asChild>
+                  <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 transition-all duration-200 ${(pathname === "/chat" || pathname === "/networks" || pathname === "/workflows" || pathname === "/docs" || pathname === "/pricing") ? "bg-primary/10 shadow-sm" : ""}`}>
+                    <span className="font-medium">Products</span>
+                    <ChevronDownIcon className="ml-2 size-3" />
+                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${(pathname === "/chat" || pathname === "/networks" || pathname === "/workflows" || pathname === "/docs" || pathname === "/pricing") ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
+                  </Button>
+                </NavigationMenuTrigger>
 
-             <Link href="/networks">
-                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-blue-500/5 transition-all duration-200 ${pathname === "/networks" ? "bg-blue-500/10 shadow-sm" : ""}`}>
-                    <svg className="mr-2 size-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="2" r="1"/>
-                        <circle cx="5" cy="7" r="1"/>
-                        <circle cx="19" cy="7" r="1"/>
-                        <circle cx="3" cy="12" r="1"/>
-                        <circle cx="12" cy="12" r="1"/>
-                        <circle cx="21" cy="12" r="1"/>
-                        <circle cx="5" cy="17" r="1"/>
-                        <circle cx="19" cy="17" r="1"/>
-                        <circle cx="12" cy="22" r="1"/>
-                        <path d="M7 7h10"/>
-                        <path d="M5 12h14"/>
-                        <path d="M7 17h10"/>
-                        <path d="M12 2v4"/>
-                        <path d="M12 18v4"/>
-                        <path d="M5 7v5"/>
-                        <path d="M19 7v5"/>
-                        <path d="M5 17v-5"/>
-                        <path d="M19 17v-5"/>
-                        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.2"/>
-                    </svg>
-                    <span className="font-medium">Networks</span>
-                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 transition-transform duration-200 ${pathname === "/networks" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
-                </Button>
-             </Link>
+                <NavigationMenuContent>
+                  <div className="grid grid-cols-[auto,200px] gap-4 p-2 items-start">
+                    <div className="flex flex-col gap-2">
+                      <Link href="/chat" className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === "/chat" ? "bg-primary/10 shadow-sm" : "hover:bg-primary/5"}`}>
+                        <svg className="size-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          <circle cx="9" cy="10" r="1"/>
+                          <circle cx="12" cy="10" r="1"/>
+                          <circle cx="15" cy="10" r="1"/>
+                        </svg>
+                        <div>
+                          <div className="font-medium">Chat</div>
+                          <div className="text-xs text-muted-foreground">Chat Agents</div>
+                        </div>
+                      </Link>
 
-             <Link href="/workflows">
-                <Button variant="ghost" className={`relative group overflow-hidden h-9 px-4 hover:bg-red-500/5 transition-all duration-200 ${pathname === "/workflows" ? "bg-red-500/10 shadow-sm" : ""}`}>
-                    <svg className="mr-2 size-5 text-red-500 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="6" height="6" rx="2"/>
-                        <path d="M7 9V21"/>
-                        <rect x="15" y="3" width="6" height="6" rx="2"/>
-                        <path d="M17 9V21"/>
-                        <path d="M7 15h10"/>
-                        <path d="M9 12l2-2 2 2"/>
-                        <path d="M15 12l2-2 2 2"/>
-                    </svg>
-                    <span className="font-medium">Workflows</span>
-                    <span className={`absolute inset-x-0 bottom-0 h-0.5 bg-orange-500 transition-transform duration-200 ${pathname === "/workflows" ? "scale-x-100" : "scale-x-0"} group-hover:scale-x-100`} />
-                </Button>
-             </Link>
+                      <Link href="/networks" className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === "/networks" ? "bg-blue-500/10 shadow-sm" : "hover:bg-blue-500/5"}`}>
+                        <svg className="size-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="2" r="1"/>
+                          <circle cx="5" cy="7" r="1"/>
+                          <circle cx="19" cy="7" r="1"/>
+                          <circle cx="3" cy="12" r="1"/>
+                          <circle cx="12" cy="12" r="1"/>
+                          <circle cx="21" cy="12" r="1"/>
+                          <circle cx="5" cy="17" r="1"/>
+                          <circle cx="19" cy="17" r="1"/>
+                          <circle cx="12" cy="22" r="1"/>
+                          <path d="M7 7h10"/>
+                          <path d="M5 12h14"/>
+                          <path d="M7 17h10"/>
+                          <path d="M12 2v4"/>
+                          <path d="M12 18v4"/>
+                          <path d="M5 7v5"/>
+                          <path d="M19 7v5"/>
+                          <path d="M5 17v-5"/>
+                          <path d="M19 17v-5"/>
+                          <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.2"/>
+                        </svg>
+                        <div>
+                          <div className="font-medium">Networks</div>
+                          <div className="text-xs text-muted-foreground">Agent Networks</div>
+                        </div>
+                      </Link>
+
+                      <Link href="/workflows" className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === "/workflows" ? "bg-red-500/10 shadow-sm" : "hover:bg-red-500/5"}`}>
+                        <svg className="size-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="6" height="6" rx="2"/>
+                          <path d="M7 9V21"/>
+                          <rect x="15" y="3" width="6" height="6" rx="2"/>
+                          <path d="M17 9V21"/>
+                          <path d="M7 15h10"/>
+                          <path d="M9 12l2-2 2 2"/>
+                          <path d="M15 12l2-2 2 2"/>
+                        </svg>
+                        <div>
+                          <div className="font-medium">Workflows</div>
+                          <div className="text-xs text-muted-foreground">Workflow Studio</div>
+                        </div>
+                      </Link>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Docs</div>
+                      {docsLinks.map((dl) => (
+                        <NavigationMenuLink asChild key={dl.href}>
+                          <Link href={dl.href} className={`flex flex-col gap-0 p-2 rounded-sm text-sm ${pathname === dl.href ? "bg-muted/10 shadow-sm" : "hover:bg-muted/5"}`}>
+                            <span className="font-medium">{dl.label}</span>
+                            <span className="text-xs text-muted-foreground">{dl.desc}</span>
+                          </Link>
+                        </NavigationMenuLink>
+                      ))}
+
+                      <div className="h-px bg-border my-2" />
+
+                      <NavigationMenuLink asChild>
+                        <Link href="/pricing" className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === "/pricing" ? "bg-muted/10 shadow-sm" : "hover:bg-muted/5"}`}>
+                          <div>
+                            <div className="font-medium">Pricing</div>
+                            <div className="text-xs text-muted-foreground">Pricing & Plans</div>
+                          </div>
+                        </Link>
+                      </NavigationMenuLink>
+                    </div>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
         </nav>
 
         <div className="hidden md:flex flex-1" />
 
         {/* Actions */}
         <div className="hidden md:flex items-center gap-3">
-             <Link href="/docs" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mr-2">Docs</Link>
-             <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mr-2">Pricing</Link>
+             <Link href="/docs" className={cn("text-sm font-medium hover:text-foreground transition-colors mr-2", pathname?.startsWith("/docs") ? "text-foreground" : "text-muted-foreground")}>Docs</Link>
+             <Link href="/pricing" className={cn("text-sm font-medium hover:text-foreground transition-colors mr-2", pathname === "/pricing" ? "text-foreground" : "text-muted-foreground")}>Pricing</Link>
 
             <ThemeToggle />
             <div className="h-6 w-px bg-border/50 mx-2" />
@@ -218,8 +284,8 @@ export function Navbar() {
 
              <div className="h-px bg-border my-2" />
 
-             <Link href="/docs" className="text-lg font-medium p-2" onClick={() => setMobileOpen(false)}>Documentation</Link>
-             <Link href="/pricing" className="text-lg font-medium p-2" onClick={() => setMobileOpen(false)}>Pricing</Link>
+             <Link href="/docs" className={cn("text-lg font-medium p-2", pathname?.startsWith("/docs") ? "text-foreground" : "text-muted-foreground")} onClick={() => setMobileOpen(false)}>Documentation</Link>
+             <Link href="/pricing" className={cn("text-lg font-medium p-2", pathname === "/pricing" ? "text-foreground" : "text-muted-foreground")} onClick={() => setMobileOpen(false)}>Pricing</Link>
 
              <div className="mt-auto flex flex-col gap-3">
                  <Button className="w-full h-12 text-base rounded-xl" asChild>

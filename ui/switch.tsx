@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils"
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  // eslint-disable-next-line no-unused-vars
   onCheckedChange?: (checked: boolean) => void
 }
 
 export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
   ({ className, checked, defaultChecked, onCheckedChange, onChange, ...props }, ref) => {
     const [isChecked, setIsChecked] = React.useState(defaultChecked ?? false)
-    const controlledChecked = checked !== undefined ? checked : isChecked
+    const controlledChecked = checked ?? isChecked
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newChecked = e.target.checked
