@@ -21,6 +21,7 @@ function useTabsContext() {
 export interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultValue?: string
   value?: string
+  // eslint-disable-next-line no-unused-vars
   onValueChange?: (value: string) => void
 }
 
@@ -32,7 +33,7 @@ export function Tabs({
   children,
   ...props
 }: TabsProps) {
-  const [activeTab, setActiveTabState] = React.useState(defaultValue || "")
+  const [activeTab, setActiveTabState] = React.useState(defaultValue ?? "")
   const controlledActive = value !== undefined ? value : activeTab
 
   const setActiveTab = React.useCallback(

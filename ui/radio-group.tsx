@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 
 interface RadioGroupContextValue {
   value: string
+  // eslint-disable-next-line no-unused-vars
   onChange: (value: string) => void
   name: string
 }
@@ -22,6 +23,7 @@ function useRadioGroupContext() {
 export interface RadioGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: string
   defaultValue?: string
+  // eslint-disable-next-line no-unused-vars
   onValueChange?: (value: string) => void
   name?: string
 }
@@ -36,7 +38,7 @@ export function RadioGroup({
   ...props
 }: RadioGroupProps) {
   const [internalValue, setInternalValue] = React.useState(defaultValue)
-  const controlledValue = value !== undefined ? value : internalValue
+  const controlledValue = value ?? internalValue
 
   const onChange = React.useCallback(
     (newValue: string) => {
