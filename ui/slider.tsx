@@ -11,14 +11,15 @@ function Slider({
   max = 100,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
+  const finalValue = value ?? defaultValue
   const _values = React.useMemo(
     () =>
-      Array.isArray(value)
-        ? value
-        : Array.isArray(defaultValue)
-          ? defaultValue
-          : [min, max],
-    [value, defaultValue, min, max]
+      Array.isArray(finalValue)
+        ? finalValue
+        : typeof finalValue === "number"
+          ? [finalValue]
+          : [50], // Default to a single thumb
+    [finalValue]
   )
 
   return (
