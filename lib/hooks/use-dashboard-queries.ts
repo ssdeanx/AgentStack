@@ -2,6 +2,19 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { mastraClient } from "@/lib/mastra-client"
+import {
+  listAgentsTyped,
+  listWorkflowsTyped,
+  listToolsTyped,
+  getTracesTyped,
+  listMemoryThreadsTyped,
+  getThreadMessagesTyped,
+  listLogsTypedPaged,
+  getMcpServersTyped,
+  getMcpServerToolsTyped,
+  agentGenerateTyped,
+  agentExecuteToolTyped,
+} from "@/lib/api"
 import type {
   Agent,
   Workflow,
@@ -41,17 +54,21 @@ export const queryKeys = {
 }
 
 // Agents Queries
-export function useAgentsQuery() {
+export function useAgentsQuery(opts?: { page?: number; perPage?: number; orderBy?: { field: string; direction?: 'ASC' | 'DESC' } }) {
   return useQuery({
     queryKey: queryKeys.agents,
     queryFn: async (): Promise<Agent[]> => {
-      const agents = await mastraClient.listAgents()
-      return Object.entries(agents).map(([id, agent]) => {
+      const data = await listAgentsTyped(opts)
+      // data can be { agents: {...}, pagination? } or Record<string,Agent>
+      const records = (data as { agents?: Record<string, Agent> }).agents ?? (data as Record<string, Agent>)
+      return Object.entries(records).map(([id, agent]) => {
         const rec = agent as unknown as Record<string, unknown>
         let modelStr: string | undefined = undefined
-        if (typeof (rec as any).modelId === "string") {modelStr = (rec as any).modelId}
-        else if (typeof rec.model === "string") {modelStr = rec.model}
-        else if (typeof rec.model === "object" && rec.model !== null && typeof (rec.model as Record<string, unknown>).name === "string") {
+        if (typeof rec.modelId === 'string') {
+          modelStr = rec.modelId
+        } else if (typeof rec.model === 'string') {
+          modelStr = rec.model
+        } else if (typeof rec.model === 'object' && rec.model !== null && typeof (rec.model as Record<string, unknown>).name === 'string') {
           modelStr = (rec.model as Record<string, unknown>).name as string
         }
         return {
@@ -105,15 +122,16 @@ export function useAgentQuery(agentId: string | null) {
 }
 
 // Workflows Queries
-export function useWorkflowsQuery() {
+export function useWorkflowsQuery(opts?: { page?: number; perPage?: number }) {
   return useQuery({
     queryKey: queryKeys.workflows,
     queryFn: async (): Promise<Workflow[]> => {
-      const workflows = await mastraClient.listWorkflows()
-      return Object.entries(workflows).map(([id, wf]) => ({
+      const data = await listWorkflowsTyped(opts)
+      const records = (data as { workflows?: Record<string, Workflow> }).workflows ?? (data as Record<string, Workflow>)
+      return Object.entries(records).map(([id, wf]) => ({
         id,
-        name: (wf as unknown as Record<string, unknown>).name as string | undefined,
-        description: (wf as unknown as Record<string, unknown>).description as string | undefined,
+        name: (wf as Record<string, unknown>).name as string | undefined,
+        description: (wf as Record<string, unknown>).description as string | undefined,
       })) as Workflow[]
     },
   })
@@ -144,15 +162,16 @@ export function useWorkflowQuery(workflowId: string | null) {
 }
 
 // Tools Queries
-export function useToolsQuery() {
+export function useToolsQuery(opts?: { page?: number; perPage?: number }) {
   return useQuery({
     queryKey: queryKeys.tools,
     queryFn: async (): Promise<Tool[]> => {
-      const tools = await mastraClient.listTools()
-      return Object.entries(tools).map(([toolId, tool]) => ({
+      const data = await listToolsTyped(opts)
+      const records = (data as { tools?: Record<string, Tool> }).tools ?? (data as Record<string, Tool>)
+      return Object.entries(records).map(([toolId, tool]) => ({
         id: toolId,
-        name: (tool as unknown as Record<string, unknown>).name as string | undefined ?? toolId,
-        description: (tool as unknown as Record<string, unknown>).description as string | undefined,
+        name: (tool as Record<string, unknown>).name as string | undefined ?? toolId,
+        description: (tool as Record<string, unknown>).description as string | undefined,
       })) as Tool[]
     },
   })
@@ -180,23 +199,18 @@ export function useTracesQuery(params?: {
   page?: number
   perPage?: number
   dateRange?: { start: Date; end: Date }
+  filters?: Record<string, unknown>
 }) {
   return useQuery({
     queryKey: queryKeys.traces(params),
     queryFn: async () => {
-      const result = await mastraClient.getTraces({
-        pagination: {
-          page: params?.page ?? 1,
-          perPage: params?.perPage ?? 20,
-          dateRange: params?.dateRange,
-        },
-      })
+      const result = await getTracesTyped({ page: params?.page, perPage: params?.perPage, filters: params?.filters, dateRange: params?.dateRange })
       return {
         spans: result.spans ?? [],
         pagination: {
           page: result.pagination?.page ?? 1,
           perPage: result.pagination?.perPage ?? 20,
-          totalPages: (result.pagination as unknown as Record<string, number>)?.totalPages ?? 1,
+          totalPages: result.pagination?.totalPages ?? 1,
           total: result.pagination?.total,
         },
       }
@@ -216,11 +230,11 @@ export function useTraceQuery(traceId: string | null) {
 }
 
 // Memory Queries
-export function useMemoryThreadsQuery(resourceId: string, agentId: string) {
+export function useMemoryThreadsQuery(resourceId: string, agentId: string, opts?: { page?: number; perPage?: number }) {
   return useQuery({
     queryKey: queryKeys.threads(resourceId, agentId),
     queryFn: async (): Promise<MemoryThread[]> => {
-      const threads = await mastraClient.listMemoryThreads({ resourceId, agentId })
+      const threads = await listMemoryThreadsTyped(resourceId, agentId, opts)
       if (Array.isArray(threads)) {
         return threads.map(t => ({
           ...t,
@@ -243,10 +257,8 @@ export function useMemoryMessagesQuery(
     queryKey: queryKeys.messages(threadId ?? "", agentId),
     queryFn: async (): Promise<Message[]> => {
       if (threadId === null || threadId === undefined) { return [] }
-      const thread = mastraClient.getMemoryThread({ threadId, agentId })
-      // v1 uses paginated listMessages with page/perPage instead of getMessages(limit)
-      const result = await thread.listMessages({ page: 1, perPage: limit })
-      const dbMessages: unknown[] = result.messages ?? []
+      const result = await getThreadMessagesTyped(threadId, { page: 1, perPage: limit })
+      const dbMessages: unknown[] = (result).messages ?? []
       const uiMessages: Message[] = dbMessages.map((m: unknown) => {
         const record = m as Record<string, unknown>
         const contentRaw = record.content
@@ -307,12 +319,12 @@ export function useMemoryStatusQuery(agentId: string) {
 }
 
 // Logs Queries
-export function useLogsQuery(transportId?: string) {
+export function useLogsQuery(params?: { transportId?: string; page?: number; perPage?: number }) {
   return useQuery({
-    queryKey: queryKeys.logs(transportId),
+    queryKey: queryKeys.logs(params?.transportId),
     queryFn: async () => {
-      const logs = await mastraClient.listLogs({ transportId: transportId ?? "" })
-      return Array.isArray(logs) ? logs : []
+      const data = await listLogsTypedPaged({ transportId: params?.transportId, page: params?.page, perPage: params?.perPage })
+      return Array.isArray(data) ? data : (data as { logs?: unknown[] }).logs ?? []
     },
   })
 }
@@ -332,6 +344,88 @@ export function useLogTransportsQuery() {
   return useQuery({
     queryKey: queryKeys.logTransports,
     queryFn: async () => await mastraClient.listLogTransports(),
+  })
+}
+
+
+// API Health
+export function useApiHealthQuery() {
+  return useQuery({
+    queryKey: ["api-health"],
+    queryFn: async () => {
+      const { apiHealthCheck } = await import("@/lib/api")
+      return apiHealthCheck()
+    },
+    staleTime: 1000 * 10,
+    refetchInterval: 1000 * 30,
+  })
+}
+
+// MCP servers
+export function useMcpServersQuery() {
+  return useQuery({
+    queryKey: ["mcp-servers"],
+    queryFn: async () => {
+      return await getMcpServersTyped()
+    },
+    staleTime: 1000 * 20,
+    refetchInterval: 1000 * 60,
+  })
+}
+
+export function useMcpServerToolsQuery(serverId: string | null) {
+  return useQuery({
+    queryKey: ["mcp-server-tools", serverId],
+    queryFn: async () => {
+      if (serverId === null) { return {} }
+      return await getMcpServerToolsTyped(serverId)
+    },
+    enabled: serverId !== null,
+  })
+}
+
+// Agent mutations
+export function useAgentGenerateMutation() {
+  return useMutation({
+    mutationFn: async ({ agentId, body }: { agentId: string; body: Record<string, unknown> }) => {
+      return await agentGenerateTyped(agentId, body)
+    },
+  })
+}
+
+export function useAgentExecuteToolMutation() {
+  return useMutation({
+    mutationFn: async ({ agentId, toolId, data, opts }: { agentId: string; toolId: string; data: Record<string, unknown>; opts?: { threadId?: string; resourceId?: string; runId?: string } }) => {
+      return await agentExecuteToolTyped(agentId, toolId, data, opts)
+    },
+  })
+}
+
+// Vector mutations
+export function useVectorUpsertMutation() {
+  return useMutation({
+    mutationFn: async ({ vectorName, params }: { vectorName: string; params: { indexName: string; vectors: number[][]; metadata?: Array<Record<string, unknown>>; ids?: string[] } }) => {
+      const vector = mastraClient.getVector(vectorName)
+      const upsertParams = params as unknown as Parameters<typeof vector.upsert>[0]
+      return await vector.upsert(upsertParams)
+    },
+  })
+}
+
+export function useVectorDeleteMutation() {
+  return useMutation({
+    mutationFn: async ({ vectorName, indexName, ids }: { vectorName: string; indexName: string; ids?: string[] }) => {
+      // Use HTTP endpoint for flexible delete by ids
+      const base = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
+      const res = await fetch(`${base.replace(/\/$/, "")}/api/vectors/${encodeURIComponent(vectorName)}/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ indexName, ids }),
+      })
+      if (!res.ok) { throw new Error(`Status ${res.status}`) }
+      return await res.json()
+    },
   })
 }
 
