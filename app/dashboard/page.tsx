@@ -274,7 +274,7 @@ export default function DashboardPage() {
                           <Bot className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <span className="font-medium text-sm">{agent.name || agent.id}</span>
+                          <span className="font-medium text-sm">{agent.name ?? agent.id}</span>
                           {agent.description && (
                             <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                               {agent.description}
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                           <Workflow className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <span className="font-medium text-sm">{wf.name || wf.id}</span>
+                          <span className="font-medium text-sm">{wf.name ?? wf.id}</span>
                           {wf.description && (
                             <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                               {wf.description}
@@ -410,10 +410,10 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <span className="font-medium text-sm">
-                          {span.name || span.traceId}
+                          {span.name ?? span.traceId}
                         </span>
                         <div className="text-xs text-muted-foreground">
-                          {(span as unknown as Record<string, unknown>).startTime
+                          {((span as unknown as Record<string, unknown>).startTime)
                             ? new Date((span as unknown as Record<string, unknown>).startTime as string).toLocaleString()
                             : "No timestamp"}
                         </div>
