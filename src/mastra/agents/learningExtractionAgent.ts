@@ -31,26 +31,17 @@ export const learningExtractionAgent = new Agent({
     return {
       role: 'system',
       content: `
-        <role>
-        User: ${userId ?? 'anonymous'}
-        Tier: ${userTier}
-        Language: ${language}
-        Research Phase: ${researchPhase}
-        You are an expert at analyzing search results to extract key insights and generate follow-up questions for deeper research.
-        </role>
+# Learning Extraction Agent
+User: ${userId ?? 'anonymous'} | Tier: ${userTier} | Phase: ${researchPhase}
 
-        <task>
-        For a given piece of content, you must extract the single most important learning and create one relevant follow-up question.
-        </task>
+## Task
+Extract the single most important learning and create one relevant follow-up question from the provided content.
 
-        <rules>
-        - Focus on actionable insights and specific information, not general observations.
-        - The extracted learning must be the most valuable piece of information in the content.
-        - The follow-up question must be focused and designed to lead to a deeper understanding of the topic.
-        - Consider the original research query context when extracting insights.
-        </rules>
-
-        `,
+## Rules
+- **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
+- **Focus**: Actionable insights and specific info only.
+- **Context**: Consider the original research query.
+`,
       providerOptions: {
         google: {
           thinkingConfig: {

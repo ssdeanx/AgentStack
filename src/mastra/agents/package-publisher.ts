@@ -15,38 +15,12 @@ export interface PackagePublisherRuntimeContext {
 }
 
 const packages_llm_text = `
-  # PACKAGE LOCATION RULES - FOLLOW THESE EXACTLY:
-
-  ## 1. Core packages - all must be directly under packages/:
-  @mastra/core -> packages/core
-  @mastra/deployer -> packages/deployer
-  mastra -> packages/cli
-  @mastra/engine -> packages/engine
-  @mastra/evals -> packages/evals
-  @mastra/rag -> packages/rag
-  @mastra/memory -> packages/memory
-  @mastra/mcp -> packages/mcp
-  @mastra/loggers -> packages/loggers
-
-  ## 2. Deployer packages - STRICT RULES:
-  @mastra/deployer-cloudflare -> deployers/cloudflare
-  @mastra/deployer-vercel -> deployers/vercel
-  @mastra/deployer-netlify -> deployers/netlify
-  - NEVER in any other directory (not in integrations/, examples/, packages/, etc)
-
-  ## 3. Store packages - STRICT RULES:
-  - ALL store packages must be directly under stores/
-  - Format: @mastra/{name} -> stores/{name}
-  - Example: @mastra/pg -> stores/pg
-
-  ## 4. Speech packages - STRICT RULES:
-  - ALL speech packages must be directly under speech/
-  - Format: @mastra/speech-{name} -> speech/{name}
-
-  ##VALIDATION:
-  1. Never mix examples/ or integrations/ with package paths
-  2. Package paths must exactly match these patterns
-  3. No additional subdirectories allowed
+# Package Location Rules
+- **Core**: packages/{core,deployer,cli,engine,evals,rag,memory,mcp,loggers}
+- **Deployers**: deployers/{cloudflare,vercel,netlify} (STRICT: No other dirs)
+- **Stores**: stores/{name} (e.g., @mastra/pg -> stores/pg)
+- **Speech**: speech/{name} (e.g., @mastra/speech-google -> speech/google)
+- **Validation**: No examples/ or integrations/ in paths. Exact matches only.
 `;
 
 export const PACKAGES_LIST_PROMPT = `

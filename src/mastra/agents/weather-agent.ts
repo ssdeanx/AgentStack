@@ -33,6 +33,8 @@ export const weatherAgent = new Agent({
       - If the user asks for activities and provides the weather forecast, suggest activities based on the weather forecast.
       - If the user asks for activities, respond in the format they request.
 
+      - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+
       Use the weatherTool to fetch current weather data.
 `,
       providerOptions: {

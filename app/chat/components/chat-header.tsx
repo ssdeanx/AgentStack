@@ -116,7 +116,7 @@ export function ChatHeader() {
   const usedTokens = usage ? usage.inputTokens + usage.outputTokens : 0
 
   return (
-    <header className="flex items-center justify-between border-b border-border px-4 py-3">
+    <header className="flex items-center justify-between border-b border-border px-4 py-3 mt-16">
       <div className="flex items-center gap-3">
         <MessageSquareIcon className="size-5 text-muted-foreground" />
         <div className="flex flex-col">
@@ -201,15 +201,15 @@ export function ChatHeader() {
             <Button
               variant="outline"
               size="sm"
-              className="min-w-[140px] justify-between gap-2"
+              className="min-w-35 justify-between gap-2"
             >
               <CpuIcon className="size-3.5 text-muted-foreground" />
               <span className="truncate text-xs">{selectedModel.name}</span>
             </Button>
           </ModelSelectorTrigger>
-          <ModelSelectorContent className="w-[340px]">
+          <ModelSelectorContent className="w-85">
             <ModelSelectorInput placeholder="Search models..." />
-            <ModelSelectorList className="max-h-[400px]">
+            <ModelSelectorList className="max-h-100">
               <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
               {PROVIDER_ORDER.map((provider) => {
                 const models = modelsByProvider[provider]
@@ -266,9 +266,9 @@ export function ChatHeader() {
               <span className="truncate">{agentConfig?.name ?? selectedAgent}</span>
             </Button>
           </ModelSelectorTrigger>
-          <ModelSelectorContent className="w-[320px]">
+          <ModelSelectorContent className="w-80">
             <ModelSelectorInput placeholder="Search agents..." />
-            <ModelSelectorList className="max-h-[400px]">
+            <ModelSelectorList className="max-h-100">
               <ModelSelectorEmpty>No agents found.</ModelSelectorEmpty>
               {CATEGORY_ORDER.map((category) => {
                 const agents = agentsByCategory[category]
@@ -282,7 +282,7 @@ export function ChatHeader() {
                     {agents.map((agent) => (
                       <ModelSelectorItem
                         key={agent.id}
-                        value={agent.id}
+                        value={agent.name}
                         onSelect={() => handleSelectAgent(agent)}
                         className="flex items-center justify-between"
                       >

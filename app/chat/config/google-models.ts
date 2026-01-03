@@ -16,6 +16,24 @@ export const GOOGLE_PROVIDER_CONFIG: ProviderConfig = {
 export const GOOGLE_MODELS: ModelConfig[] = [
   // Gemini Series
   {
+    id: "google/gemini-3-flash-preview",
+    name: "Gemini 3 Flash Preview",
+    provider: "google",
+    contextWindow: 1048576,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    pricing: { input: 0.10, output: 0.40 },
+    description: "Next-gen fast preview model",
+  },
+  {
+    id: "google/gemini-3-pro-preview",
+    name: "Gemini 3 Pro Preview",
+    provider: "google",
+    contextWindow: 1048576,
+    capabilities: ["chat", "reasoning", "vision", "code"],
+    pricing: { input: 2.00, output: 12.00 },
+    description: "Next-gen high-performance preview model",
+  },
+  {
     id: "google/gemini-2.5-flash-lite-preview-09-2025",
     name: "Gemini 2.5 Flash Lite Preview (Sep 09 2025)",
     provider: "google",
@@ -33,15 +51,7 @@ export const GOOGLE_MODELS: ModelConfig[] = [
     pricing: { input: 0.30, output: 3.00 },
     description: "September 2025 preview model",
   },
-  {
-    id: "google/gemini-3-pro-preview",
-    name: "Gemini 3 Pro Preview",
-    provider: "google",
-    contextWindow: 1048576,
-    capabilities: ["chat", "reasoning", "vision", "code"],
-    pricing: { input: 2.00, output: 12.00 },
-    description: "Next-gen preview model",
-  },
+  
   {
     id: "google/gemini-2.5-pro-latest",
     name: "Gemini 2.5 Pro Latest",

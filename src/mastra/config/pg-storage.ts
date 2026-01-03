@@ -96,9 +96,9 @@ export const pgMemory = new Memory({
             scope: 'resource', // 'resource' | 'thread'
             // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
             indexConfig: {
-                type: 'flat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
+                type: 'hnsw', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
-                ivf: {lists: parseInt(process.env.LISTS ?? '3072')}, // IVF configuration for flat index
+                hnsw: { m: 16, efConstruction: 64 } // hnsw configuration
                 },
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: 'memory_messages_3072', // Index name for semantic recall
@@ -108,36 +108,18 @@ export const pgMemory = new Memory({
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
             version: 'vnext',
-            template: `# User Profile & Context
-## Personal Information
- - **Name**:
- - **Role/Title**:
- - **Organization**:
- - **Location**:
- - **Time Zone**:
-## Communication Preferences
- - **Preferred Communication Style**:
- - **Response Length Preference**:
- - **Technical Level**:
-
-## Current Context
- - **Active Projects**:
- - **Current Goals**:
- - **Deadlines**:
- - **Recent Activities**:
- - **Pain Points**:
-
-## Long-term Memory
- - **Key Achievements**:
- - **Important Relationships**:
- - **Recurring Patterns**:
- - **Preferences & Habits**:
-
-## Session Notes
- - **Today's Focus**:
- - **Outstanding Questions**:
- - **Action Items**:
- - **Follow-ups Needed**:
+            template: `# User Context
+## Profile
+- Name/Role:
+- Org/Loc:
+- Style/Level:
+## Active
+- Goals/Projects:
+- Recent/Deadlines:
+## Insights
+- Patterns/Habits:
+- Session Focus:
+- Action Items:
 `,
     },
   }
@@ -157,9 +139,9 @@ log.info('PG Store and Memory initialized with PgVector support', {
             },
             scope: 'resource',
             indexConfig: {
-                type: 'flat',
+                type: 'hnsw',
                 metric: 'cosine',
-                ivf: { lists: parseInt(process.env.LISTS ?? '2600') }, // Adjust list count based on your needs
+                hnsw: { m: 16, efConstruction: 64 } // hnsw configuration
             }
         },
         workingMemory: {

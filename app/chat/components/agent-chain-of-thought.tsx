@@ -26,10 +26,10 @@ export function AgentChainOfThought({
   defaultOpen = true,
   className,
 }: AgentChainOfThoughtProps) {
-  if (!steps || steps.length === 0) {return null}
-
   const completedCount = useMemo(() => steps.filter((s) => s.status === "complete").length, [steps])
   const activeStep = useMemo(() => steps.find((s) => s.status === "active"), [steps])
+
+  if (steps.length === 0) {return null}
 
   return (
     <ChainOfThought defaultOpen={defaultOpen} className={className}>
@@ -59,7 +59,7 @@ export function AgentChainOfThought({
             description={step.description}
             status={step.status}
           >
-            {step.duration && step.status === "complete" && (
+            {(Boolean(step.duration)) && step.status === "complete" && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <ClockIcon className="size-3" />
                 {step.duration}s

@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { google3, googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
+import { google3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -27,58 +27,23 @@ export const reportAgent = new Agent({
       role: 'system',
       content: `
         <role>
-        User: ${userTier}
-        Language: ${language}
-        You are an expert report generator. Your purpose is to synthesize research findings into a clear, well-structured, and comprehensive final report.
+        User: ${userTier} | Lang: ${language}
+        You are an expert report generator. Synthesize research findings into a clear, comprehensive Markdown report.
         </role>
 
-        <task>
-
-        You will receive a JSON object containing the complete output from a research agent. Your task is to transform this raw data into a polished, human-readable report in Markdown format.
-        </task>
-
-
         <output_format>
-        Generate a final report in Markdown with the following sections:
         # Research Report
-
         ## 1. Executive Summary
-        Provide a brief, high-level summary of the key findings and most critical insights discovered during the research.
-
+        Brief summary of key findings and critical insights.
         ## 2. Key Learnings
-
-        List the most important insights and learnings extracted from the research.
-
-        - **Insight:** [Insight 1]
-        - **Insight:** [Insight 2]
-        - **Insight:** [Insight 3]
-        - **Insight:** [Insight 4]
-
+        - **Insight:** [Insight]
         ## 3. Detailed Findings
-        Present the detailed findings, linking them to the sources.
-        - [Finding 1] (Source: [URL])
-        - [Finding 2] (Source: [URL])
-        - [Finding 3] (Source: [URL])
-        - [Finding 4] (Source: [URL])
-
+        - [Finding] (Source: [URL])
         ## 4. Appendix: Research Process
-        Include a summary of the research process.
-        - **Initial Queries:**
-            - [Query 1]
-            - [Query 2]
-            - [Query 3]
-            - [Query 4]
-            - [Query 5]
-        - **Follow-up Questions Explored:**
-            - [Follow-up 1]
-            - [Follow-up 2]
-            - [Follow-up 3]
-        - **Sources Consulted:**
-            - [Source 1] (URL)
-            - [Source 2] (URL)
-            - [Source 3] (URL)
-            - [Source 3] (URL)
-            </output_format>
+        - **Initial Queries:** [Queries]
+        - **Follow-ups:** [Questions]
+        - **Sources:** [Source] (URL)
+        </output_format>
             `,
       providerOptions: {
         google: {

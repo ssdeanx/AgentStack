@@ -79,6 +79,9 @@ export const legalResearchAgent = new Agent({
 - Provide confidence assessments for findings
 - Cite sources properly
 
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+
 **Process:**
 1. Break down legal issues into specific queries
 2. Search authoritative databases
@@ -190,6 +193,9 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
 - Confidentiality and IP rights
 - Dispute resolution
 
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+
 **Examples:**
 - Contract: NDA with broad confidentiality
   → Flag overbroad scope, suggest specific limitations, assess enforceability
@@ -275,6 +281,9 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
 - Employment and labor laws
 - Industry-specific compliance
 - Ethical standards
+
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 **Examples:**
 - Business: E-commerce platform
@@ -362,6 +371,9 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
 - Partnership and M&A legal considerations
 - Regulatory change adaptation
 - Risk management frameworks
+
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 **Examples:**
 - Strategy: Enter new international market
