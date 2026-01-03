@@ -54,8 +54,7 @@ export const alphaVantageCryptoTool = createTool({
       interval: z.string().optional(),
       output_size: z.string().optional(),
       time_zone: z.string().optional()
-    }).optional(),
-    error: z.string().optional()
+    }).optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('alpha-vantage-crypto-tool', '1.0.0').startSpan('alpha-vantage-crypto', {
@@ -72,10 +71,7 @@ export const alphaVantageCryptoTool = createTool({
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
       await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
-      return {
-        data: null,
-        error: "ALPHA_VANTAGE_API_KEY environment variable is required"
-      };
+      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
     }
     toolCallCounters.set('alpha-vantage-crypto', (toolCallCounters.get('alpha-vantage-crypto') ?? 0) + 1);
     try {
@@ -114,20 +110,14 @@ export const alphaVantageCryptoTool = createTool({
       if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>)) {
         const errorMessage = (dataObj as Record<string, unknown>)["Error Message"];
         if (errorMessage !== null && errorMessage !== undefined && String(errorMessage).trim() !== '') {
-          return {
-            data: null,
-            error: String(errorMessage)
-          };
+          throw new Error(String(errorMessage));
         }
       }
 
       if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>)) {
         const note = (dataObj as Record<string, unknown>)["Note"];
         if (note !== null && note !== undefined && String(note).trim() !== '') {
-          return {
-            data: null,
-            error: String(note) // API limit reached
-          };
+          throw new Error(String(note)); // API limit reached
         }
       }
 
@@ -180,10 +170,7 @@ export const alphaVantageCryptoTool = createTool({
       }
       span.setStatus({ code: 2, message: errMsg }); // ERROR status
       span.end();
-      return {
-        data: null,
-        error: errMsg
-      };
+      throw error instanceof Error ? error : new Error(errMsg);
     }
   }
 });
@@ -240,8 +227,7 @@ export const alphaVantageStockTool = createTool({
       indicator: z.string().optional(),
       time_period: z.string().optional(),
       series_type: z.string().optional()
-    }).optional(),
-    error: z.string().optional()
+    }).optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('alpha-vantage-stock-tool', '1.0.0').startSpan('alpha-vantage-stock', {
@@ -257,10 +243,7 @@ export const alphaVantageStockTool = createTool({
 
     if (typeof apiKey !== "string" || apiKey.trim() === '') {
       await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-stock' }, id: 'alpha-vantage-stock' });
-      return {
-        data: null,
-        error: "ALPHA_VANTAGE_API_KEY environment variable is required"
-      };
+      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
     }
     toolCallCounters.set('alpha-vantage-stock', (toolCallCounters.get('alpha-vantage-stock') ?? 0) + 1);
     try {
@@ -309,23 +292,17 @@ export const alphaVantageStockTool = createTool({
       const dataObj = data as unknown;
 
       // Check for API-specific errors
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in dataObj) {
+      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>)) {
         const errorMessage = (dataObj as Record<string, unknown>)["Error Message"];
         if (errorMessage !== null && errorMessage !== undefined && String(errorMessage).trim() !== '') {
-          return {
-            data: null,
-            error: String(errorMessage)
-          };
+          throw new Error(String(errorMessage));
         }
       }
 
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in dataObj) {
+      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>)) {
         const note = (dataObj as Record<string, unknown>)["Note"];
         if (note !== null && note !== undefined && String(note).trim() !== '') {
-          return {
-            data: null,
-            error: String(note) // API limit reached
-          };
+          throw new Error(String(note)); // API limit reached
         }
       }
 
@@ -360,10 +337,7 @@ export const alphaVantageStockTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMessage }); // ERROR status
       span.end();
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -441,8 +415,7 @@ export const alphaVantageTool = createTool({
       interval: z.string().optional(),
       output_size: z.string().optional(),
       time_zone: z.string().optional()
-    }).optional(),
-    error: z.string().optional()
+    }).optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('alpha-vantage-tool', '1.0.0').startSpan('alpha-vantage', {
@@ -458,10 +431,7 @@ export const alphaVantageTool = createTool({
 
     if (typeof apiKey !== "string" || apiKey.trim() === "") {
       await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
-      return {
-        data: null,
-        error: "ALPHA_VANTAGE_API_KEY environment variable is required"
-      };
+      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
     }
     toolCallCounters.set('alpha-vantage', (toolCallCounters.get('alpha-vantage') ?? 0) + 1);
     try {
@@ -519,17 +489,11 @@ export const alphaVantageTool = createTool({
 
       // Check for API-specific errors
       if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>) && Boolean((dataObj as Record<string, unknown>)["Error Message"])) {
-        return {
-          data: null,
-          error: String((dataObj as Record<string, unknown>)["Error Message"])
-        };
+        throw new Error(String((dataObj as Record<string, unknown>)["Error Message"]));
       }
 
       if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>) && Boolean((dataObj as Record<string, unknown>)["Note"])) {
-        return {
-          data: null,
-          error: String((dataObj as Record<string, unknown>)["Note"]) // API limit reached
-        };
+        throw new Error(String((dataObj as Record<string, unknown>)["Note"])); // API limit reached
       }
 
       // Extract metadata if available
@@ -562,10 +526,7 @@ export const alphaVantageTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMessage }); // ERROR status
       span.end();
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });

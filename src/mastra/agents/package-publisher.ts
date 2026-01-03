@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 
-import { googleAIFlashLite } from '../config/google.js';
-import { pgMemory } from '../config/pg-storage.js';
+import { googleAIFlashLite } from '../config/google';
+import { pgMemory } from '../config/pg-storage';
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { TokenLimiterProcessor } from '@mastra/core/processors';

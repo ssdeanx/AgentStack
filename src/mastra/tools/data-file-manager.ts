@@ -15,9 +15,9 @@
 //import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import { pipeline } from 'stream/promises';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import * as zlib from 'zlib';
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -783,7 +783,7 @@ export const archiveDataTool = createTool({
       const archiveDir = path.dirname(archiveFullPath)
       await fs.mkdir(archiveDir, { recursive: true })
 
-      const { createReadStream, createWriteStream } = await import('fs')
+      const { createReadStream, createWriteStream } = await import('node:fs')
       const gzip = zlib.createGzip()
       const sourceStream = createReadStream(sourceFullPath)
       const archiveStream = createWriteStream(archiveFullPath)

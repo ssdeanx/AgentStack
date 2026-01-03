@@ -1,9 +1,9 @@
 import { Project } from 'ts-morph';
-import * as path from 'path';
+import * as path from 'node:path';
 import { exec, spawn } from 'child_process';
 import fg from 'fast-glob';
 import { promisify } from 'util';
-import { writeFile, unlink } from 'fs/promises';
+import { writeFile, unlink } from 'node:fs/promises';
 import { existsSync, unlinkSync } from 'node:fs';
 import * as os from 'os';
 import * as crypto from 'crypto';

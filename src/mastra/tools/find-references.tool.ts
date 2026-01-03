@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { ProjectCache, PythonParser } from './semantic-utils';
 import type { SourceFile } from 'ts-morph';
 import { Node } from 'ts-morph';
-import * as path from 'path';
+import * as path from 'node:path';
 import fg from 'fast-glob';
-import { readFile } from 'fs/promises';
+import { readFile } from 'node:fs/promises';
 import { log } from '../config/logger';
 
 import { trace, SpanStatusCode } from "@opentelemetry/api";

@@ -4,13 +4,7 @@ import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { google } from '@ai-sdk/google';
-
-
-const model = google('gemini-2.5-flash');
-
-
-import { googleAI, googleAI3, googleAIFlashLite } from '../config/google'
+import { google3, googleAI, googleAI3, googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -102,7 +96,7 @@ Always consider maintainability, scalability, and testability in your recommenda
   },
   model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
+    return userTier === 'enterprise' ? googleAI3 : google3
   },
   tools: {
     codeAnalysisTool,

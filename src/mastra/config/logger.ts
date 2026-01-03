@@ -6,7 +6,7 @@ import * as path from 'node:path'
 //const __dirname: string = path.resolve(path.dirname(''));
 
 // Ensure logs directory exists
-const logsDir: string = path.join(process.cwd(), 'logs')
+const logsDir: string = path.join(process.cwd(), 'data', 'logs')
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true })
 }

@@ -163,10 +163,10 @@ export const researchAgent = new Agent({
       return google.chat('gemini-3-pro-preview')
     } else if (userTier === 'pro') {
       // cheaper/faster model for pro tier
-      return 'google/gemini-2.5-flash-preview-09-2025'
+      return 'google/gemini-3-flash-preview'
     }
     // cheaper/faster model for free tier
-    return google.chat('gemini-2.5-flash-preview-09-2025')
+    return google.chat('gemini-3-flash-preview')
   },
   tools: {
     webScraperTool,

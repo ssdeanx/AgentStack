@@ -5,7 +5,6 @@ import { editorAgent } from '../agents/editorAgent'
 import { researchAgent } from '../agents/researchAgent'
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
-import { researchCompletenessScorer, sourceDiversityScorer, summaryQualityScorer, taskCompletionScorer } from '../scorers/custom-scorers'
 import type { RequestContext } from '@mastra/core/request-context';
 // Import all agents
 
@@ -86,22 +85,6 @@ Use Promise.all() pattern for parallel execution.
         safety: {
             scorer: createToxicityScorer({ model: googleAIFlashLite }),
             sampling: { type: "ratio", rate: 0.3 }
-        },
-        sourceDiversity: {
-            scorer: sourceDiversityScorer,
-            sampling: { type: "ratio", rate: 0.4 }
-        },
-        researchCompleteness: {
-            scorer: researchCompletenessScorer,
-            sampling: { type: "ratio", rate: 0.4 }
-        },
-        summaryQuality: {
-            scorer: summaryQualityScorer,
-            sampling: { type: "ratio", rate: 0.5 }
-        },
-        taskCompletion: {
-            scorer: taskCompletionScorer,
-            sampling: { type: 'ratio', rate: 0.3 },
-        },
+        }
     },
 })

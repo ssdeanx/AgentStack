@@ -1,8 +1,8 @@
 import type { RequestContext } from '@mastra/core/request-context';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { readFile } from 'fs/promises';
+import { readFile } from 'node:fs/promises';
 import { glob } from 'glob';
-import * as path from 'path';
+import * as path from 'node:path';
 import { z, ZodError } from 'zod';
 import { log } from '../config/logger';
 import { mdocumentChunker } from '../tools/document-chunking.tool';

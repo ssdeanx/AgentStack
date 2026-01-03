@@ -1,28 +1,14 @@
 
 import { createTool } from '@mastra/core/tools'
 import chalk from 'chalk'
-import { existsSync, readFileSync } from 'fs'
-import  * as path from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import  * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { RequestContext } from '@mastra/core/request-context';
 
-type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{ numpages: number; text: string }>
-
-// Lazy-loaded pdf-parse to avoid ESM export issues
-let pdfParse: PdfParseFunction | null = null
-
-async function getPdfParse(): Promise<PdfParseFunction> {
-  if (pdfParse) {return pdfParse}
-  try {
-    const mod = await import('pdf-parse') as unknown as { default?: PdfParseFunction }
-    pdfParse = (mod.default ?? mod) as unknown as PdfParseFunction
-    return pdfParse
-  } catch {
-    throw new Error('pdf-parse module not available')
-  }
-}
+import { extractText, getDocumentProxy } from 'unpdf'
 
 export const readPDF = createTool({
   id: 'readPDF',
@@ -39,7 +25,7 @@ export const readPDF = createTool({
 
     const tracer = trace.getTracer('tools/read-pdf');
     const span = tracer.startSpan('read-pdf', {
-      attributes: { pdfPath: inputData.pdfPath, service: 'pdf-parse' },
+      attributes: { pdfPath: inputData.pdfPath, service: 'unpdf' },
     });
 
     const { pdfPath } = inputData
@@ -58,19 +44,19 @@ export const readPDF = createTool({
       // Read the PDF file
       const dataBuffer = readFileSync(pdfPath)
 
-      // Parse PDF content
-      const parser = await getPdfParse()
-      const data = await parser(dataBuffer)
+      // Parse PDF content using unpdf
+      const pdf = await getDocumentProxy(new Uint8Array(dataBuffer))
+      const { totalPages, text } = await extractText(pdf, { mergePages: true })
 
       log.info(chalk.blue('\n'))
       log.info(chalk.blue('PDF Information:'))
       log.info(chalk.blue('-----------------'))
-      log.info(chalk.blue(`Number of pages: ${data.numpages}`))
+      log.info(chalk.blue(`Number of pages: ${totalPages}`))
 
-      span?.setAttribute('pageCount', data.numpages);
-      span?.setAttribute('textLength', data.text.length);
+      span?.setAttribute('pageCount', totalPages);
+      span?.setAttribute('textLength', text.length);
       span?.end();
-      return { content: data.text }
+      return { content: text }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       log.error(

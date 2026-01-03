@@ -157,14 +157,14 @@ const loadDocumentStep = createStep({
             content = inputData.source.value;
           } else if (path.endsWith('.md')) {
             contentType = 'markdown';
-            const fs = await import('fs/promises');
+            const fs = await import('node:fs/promises');
             content = await fs.readFile(inputData.source.value, 'utf-8');
           } else if (path.endsWith('.html') || path.endsWith('.htm')) {
             contentType = 'html';
-            const fs = await import('fs/promises');
+            const fs = await import('node:fs/promises');
             content = await fs.readFile(inputData.source.value, 'utf-8');
           } else {
-            const fs = await import('fs/promises');
+            const fs = await import('node:fs/promises');
             content = await fs.readFile(inputData.source.value, 'utf-8');
           }
           break;

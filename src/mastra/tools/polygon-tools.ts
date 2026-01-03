@@ -147,10 +147,7 @@ export const polygonStockQuotesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -182,10 +179,7 @@ export const polygonStockQuotesTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -254,10 +248,7 @@ export const polygonStockQuotesTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -308,10 +299,7 @@ export const polygonStockQuotesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -417,10 +405,7 @@ export const polygonStockAggregatesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     if (inputData.multiplier === undefined || inputData.multiplier === null || inputData.multiplier <= 0 || isNaN(inputData.multiplier)) {
@@ -435,10 +420,7 @@ export const polygonStockAggregatesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -508,10 +490,7 @@ export const polygonStockAggregatesTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -563,10 +542,7 @@ export const polygonStockAggregatesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -606,8 +582,7 @@ export const polygonStockFundamentalsTool = createTool({
       status: z.string().optional(),
       request_id: z.string().optional(),
       count: z.number().optional()
-    }).optional(),
-    error: z.string().optional()
+    }).optional()
   }),
   execute: async (inputData, context) => {
     const startTime = Date.now();
@@ -668,10 +643,7 @@ export const polygonStockFundamentalsTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -691,10 +663,7 @@ export const polygonStockFundamentalsTool = createTool({
             });
             rootSpan.end();
 
-            return {
-              data: null,
-              error
-            };
+            throw new Error(error);
           }
           url = `https://api.polygon.io/v3/reference/tickers/${inputData.symbol}`;
           break;
@@ -717,10 +686,7 @@ export const polygonStockFundamentalsTool = createTool({
             });
             rootSpan.end();
 
-            return {
-              data: null,
-              error
-            };
+            throw new Error(error);
           }
           url = `https://api.polygon.io/v3/reference/financials`;
           break;
@@ -736,10 +702,7 @@ export const polygonStockFundamentalsTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -808,10 +771,7 @@ export const polygonStockFundamentalsTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -823,8 +783,7 @@ export const polygonStockFundamentalsTool = createTool({
           status: data.status,
           request_id: data.request_id,
           count: data.count
-        },
-        error: undefined
+        }
       };
 
       const totalDuration = Date.now() - startTime;
@@ -861,10 +820,7 @@ export const polygonStockFundamentalsTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -964,10 +920,7 @@ export const polygonCryptoQuotesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -995,10 +948,7 @@ export const polygonCryptoQuotesTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -1062,10 +1012,7 @@ export const polygonCryptoQuotesTool = createTool({
           });
           rootSpan.end();
 
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -1077,8 +1024,7 @@ export const polygonCryptoQuotesTool = createTool({
           status: data.status,
           request_id: data.request_id,
           count: data.count
-        },
-        error: undefined
+        }
       };
 
       const totalDuration = Date.now() - startTime;
@@ -1115,10 +1061,7 @@ export const polygonCryptoQuotesTool = createTool({
       });
       rootSpan.end();
 
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -1218,10 +1161,7 @@ export const polygonCryptoAggregatesTool = createTool({
       });
       rootSpan.end();
       logError('polygon-crypto-aggregates', new Error(error), { symbol: inputData.symbol });
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     if (inputData.multiplier === undefined || inputData.multiplier === null || inputData.multiplier <= 0 || isNaN(inputData.multiplier)) {
@@ -1235,10 +1175,7 @@ export const polygonCryptoAggregatesTool = createTool({
       });
       rootSpan.end();
       logError('polygon-crypto-aggregates', new Error(error), { symbol: inputData.symbol, multiplier: inputData.multiplier });
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -1292,19 +1229,21 @@ export const polygonCryptoAggregatesTool = createTool({
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
           const error = String(errorValue);
+          logError('polygon-crypto-aggregates', new Error(error), {
+            input: inputData,
+            responseStatus: response.status
+          });
+
           rootSpan.recordException(new Error(error));
           rootSpan.setAttributes({
             'error': true,
             'error.message': error,
             'reason': 'api-error',
-            'symbol': inputData.symbol
+            'http.status_code': response.status
           });
           rootSpan.end();
-          logError('polygonCryptoAggregatesTool', new Error(error), { symbol: inputData.symbol, apiError: error });
-          return {
-            data: null,
-            error
-          };
+
+          throw new Error(error);
         }
       }
 
@@ -1319,8 +1258,7 @@ export const polygonCryptoAggregatesTool = createTool({
           timespan: inputData.timespan,
           from: inputData.from,
           to: inputData.to
-        },
-        error: undefined
+        }
       };
 
       rootSpan.setAttributes({
@@ -1345,10 +1283,7 @@ export const polygonCryptoAggregatesTool = createTool({
       });
       rootSpan.end();
       logError('polygonCryptoAggregatesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: inputData.symbol });
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -1433,10 +1368,7 @@ export const polygonCryptoSnapshotsTool = createTool({
       });
       rootSpan.end();
       logError('polygon-crypto-snapshots', new Error(error), {});
-      return {
-        data: null,
-        error
-      };
+      throw new Error(error);
     }
 
     try {
@@ -1494,10 +1426,7 @@ export const polygonCryptoSnapshotsTool = createTool({
           });
           rootSpan.end();
           logError('polygon-crypto-snapshots', new Error(error), { apiError: error });
-          return {
-            data: null,
-            error
-          };
+          throw new Error(error);
         }
       }
 
@@ -1507,8 +1436,7 @@ export const polygonCryptoSnapshotsTool = createTool({
           status: data.status,
           request_id: data.request_id,
           count: data.count
-        },
-        error: undefined
+        }
       };
 
       rootSpan.setAttributes({
@@ -1531,10 +1459,7 @@ export const polygonCryptoSnapshotsTool = createTool({
       });
       rootSpan.end();
       logError('polygonCryptoSnapshotsTool', error instanceof Error ? error : new Error(errorMessage), {});
-      return {
-        data: null,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });

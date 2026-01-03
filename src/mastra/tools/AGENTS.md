@@ -31,7 +31,7 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 | Name | Description | Status | Exports | Dependencies | Links |
 |------|-------------|--------|---------|--------------|-------|
 | Document Chunking | Split docs into chunks with metadata (10+ strategies) | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `mdocumentChunker` | `@langchain/text-splitter` | [document-chunking.tool.ts](./document-chunking.tool.ts) |
-| PDF Conversion | PDF to Markdown extraction | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfToMarkdownTool` | `pdf-parse` | [pdf-data-conversion.tool.ts](./pdf-data-conversion.tool.ts) |
+| PDF Conversion | PDF to Markdown extraction | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfToMarkdownTool` | `unpdf` | [pdf-data-conversion.tool.ts](./pdf-data-conversion.tool.ts) |
 | Data File Manager | Versioned data file management | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | `dataFileManager` | `fs-extra` | [data-file-manager.ts](./data-file-manager.ts) |
 | Data Validator | Schema-based data validation | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `dataValidatorTool` | `zod` | [data-validator.tool.ts](./data-validator.tool.ts) |
 | PG SQL | PostgreSQL query execution | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pgSqlTool` | `@mastra/pg` | [pg-sql-tool.ts](./pg-sql-tool.ts) |
@@ -70,12 +70,12 @@ Encapsulate 30+ atomic operational capabilities (security checks, vector queries
 | Editor Agent Tool | Text editing | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `editorAgentTool` | - | [editor-agent-tool.ts](./editor-agent-tool.ts) |
 | Execa Tool | Shell command execution | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | `execaTool` | `execa` | [execa-tool.ts](./execa-tool.ts) |
 | Pnpm Tool | PNPM package management | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pnpmTool` | `execa` | [pnpm-tool.ts](./pnpm-tool.ts) |
-| Github | GitHub API interactions | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `githubTool` | `octokit` | [github.ts](./github.ts) |
+| Github | GitHub API interactions | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `listRepositories`, `listPullRequests`, `listCommits`, `listIssues`, `createIssue`, `createRelease`, `getRepositoryInfo`, `searchCode`, `getFileContent`, `getRepoFileTree`, `createPullRequest`, `mergePullRequest`, `addIssueComment`, `getPullRequest`, `getIssue` | `octokit` | [github.ts](./github.ts) |
 | FS | Filesystem operations | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `fsTool` | `fs-extra` | [fs.ts](./fs.ts) |
 | Write Note | Note writing utility | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | `writeNoteTool` | `fs` | [write-note.ts](./write-note.ts) |
 | Calendar Tool | Calendar management | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `calendarTool` | - | [calendar-tool.ts](./calendar-tool.ts) |
 | Data Processing Tools | General data processing | ![experimental](https://img.shields.io/badge/status-experimental-lightblue?style=flat&logo=appwrite) | Various | - | [data-processing-tools.ts](./data-processing-tools.ts) |
-| PDF | PDF utilities | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfTool` | `pdf-parse` | [pdf.ts](./pdf.ts) |
+| PDF | PDF utilities | ![alpha](https://img.shields.io/badge/status-alpha-yellow?style=flat&logo=appwrite) | `pdfTool` | `unpdf` | [pdf.ts](./pdf.ts) |
 | SerpAPI Config | SerpAPI configuration | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | Config exports | `serpapi` | [serpapi-config.ts](./serpapi-config.ts) |
 | Code Search | Search for patterns across source files. Supports string and regex patterns with context lines. Use for finding usages, identifying patterns, and code exploration. | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `codeSearchTool` | `fast-glob`, `zod`, `re2` | [code-search.tool.ts](./code-search.tool.ts) |
 | Find Symbol | Find symbol definitions (functions, classes, variables) across the codebase using semantic analysis. | ![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite) | `findSymbolTool` | `ts-morph`, `zod`, `fast-glob` | [find-symbol.tool.ts](./find-symbol.tool.ts) |
@@ -144,7 +144,7 @@ npm run coverage  # Report
 ```
 
 ## Dependencies
-From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, `pdf-parse`, `axios`, `@mastra/pg`, financial SDKs.
+From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, `unpdf`, `axios`, `@mastra/pg`, financial SDKs.
 
 ---
 

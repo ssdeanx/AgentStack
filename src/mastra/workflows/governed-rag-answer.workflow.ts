@@ -10,7 +10,7 @@ import {
   documentContextSchema,
   ragAnswerSchema
 } from '../config/agent-schemas'
-import { AuthenticationService } from '../config/AuthenticationService'
+import { AuthenticationService } from '../services/AuthenticationService';
 import {
   log,
   logAgentActivity,

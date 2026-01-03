@@ -1,7 +1,7 @@
 import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli'
 import { logError } from './logger'
 import os from 'os'
-import { withSupermemory } from "@supermemory/tools/ai-sdk"
+
 
 const useApiKey =
     (process.env.GOOGLE_GENERATIVE_AI_API_KEY !== undefined) ||
@@ -9,7 +9,7 @@ const useApiKey =
 const gemini = createGeminiProvider({
     authType: useApiKey ? 'api-key' : 'oauth-personal', // Use OAuth in dev, production use API key
     apiKey: useApiKey ? process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '' : undefined, // Provide API key if using API key auth
-    cacheDir: process.env.GEMINI_OAUTH_CACHE ?? os.homedir() + '/.gemini/oauth-cache', // directory to store cached tokens
+//    cacheDir: process.env.GEMINI_OAUTH_CACHE ?? os.homedir() + '/.gemini/oauth-cache', // directory to store cached tokens
 })
 
 // Gemini CLI Models organized by capabilities
@@ -90,13 +90,6 @@ export function getGeminiCliModel(modelId: keyof typeof geminiCliModels) {
   return geminiCliModels[modelId];
 }
 
-// Enhanced models with memory
-export const googleWithMemory = withSupermemory(geminiCliModels.gemini3Pro, "geminiCLI", {
-   conversationId: "geminiCLI-conversation",
-   verbose: true,
-   mode: "full",
-   addMemory: "always"
-});
 
 // Backward compatibility exports
 export const geminiAI = geminiCliModels.gemini25Pro;

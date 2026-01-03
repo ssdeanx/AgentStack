@@ -5,7 +5,7 @@ import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals
 import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
-import { taskCompletionScorer } from '../scorers/custom-scorers'
+
 
 import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
@@ -73,10 +73,10 @@ export const codingA2ACoordinator = new Agent({
 \`\`\`
 Phase 1 (Parallel):
   - codeArchitectAgent: Design architecture
-  
+
 Phase 2 (Sequential after Phase 1):
   - refactoringAgent: Implement changes
-  
+
 Phase 3 (Parallel after Phase 2):
   - codeReviewerAgent: Review implementation
   - testEngineerAgent: Generate tests
@@ -146,10 +146,6 @@ This coordinator also exposes higher-level workflows (researchSynthesisWorkflow,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-          maxOutputTokens: 64000,
-          temperature: 0.2,
-          topP: 0.95,
-          topK: 40,
         }
       }
     }
@@ -180,11 +176,7 @@ This coordinator also exposes higher-level workflows (researchSynthesisWorkflow,
     safety: {
       scorer: createToxicityScorer({ model: googleAIFlashLite }),
       sampling: { type: 'ratio', rate: 0.3 }
-    },
-    taskCompletion: {
-      scorer: taskCompletionScorer,
-      sampling: { type: 'ratio', rate: 0.8 },
-    },
+    }
   },
 })
 

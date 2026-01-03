@@ -7,7 +7,7 @@
 // sideEffects:
 //  - network: false
 //  - write: false
-//  - sideload: pdf-parse (dynamic import required)
+//  - sideload: unpdf (serverless-optimized, no dynamic import required)
 // inputSchema: src/mastra/schemas/tool-schemas.ts::PdfConversionInput
 // outputSchema: src/mastra/schemas/tool-schemas.ts::PdfConversionOutput
 // approvedBy: sam
@@ -27,49 +27,9 @@ import {
 } from '../config/logger';
 import { trace, SpanStatusCode, context as otelContext } from "@opentelemetry/api";
 
-// Lazy-loaded pdf-parse to avoid demo parsing errors
-let pdfParse: unknown = null
-let pdfParseError: Error | null = null
+// Use `unpdf` for parsing PDFs (serverless-optimized PDF.js build)
+import { extractText, getDocumentProxy } from 'unpdf'
 
-type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{
-  text: string;
-  numpages: number;
-  metadata?: unknown;
-  info?: unknown;
-  producedBy?: string;
-  creationDate?: unknown;
-  modificationDate?: unknown;
-}>;
-
-/**
- * Safely load pdf-parse with error handling
- * Must be called at runtime, not at module load time
- */
-async function getPdfParseModule(): Promise<PdfParseFunction> {
-  if (pdfParse !== null) {
-    return pdfParse as PdfParseFunction
-  }
-  if (pdfParseError) {
-    throw pdfParseError
-  }
-
-  try {
-    // Dynamic import to avoid parsing demo content on import
-    // NOTE: Avoid importing internal paths like 'pdf-parse/lib/pdf-parse.js' which may not exist
-    const pdfMod = await import("pdf-parse") as unknown as { default?: PdfParseFunction };
-    pdfParse = (pdfMod.default ?? pdfMod) as unknown as PdfParseFunction;
-    return pdfParse as PdfParseFunction;
-  } catch (error) {
-    const err =
-      error instanceof Error
-        ? error
-        : new Error('Failed to load pdf-parse module')
-    pdfParseError = err
-    throw new Error(
-      'pdf-parse module not available. Install with: npm install pdf-parse'
-    )
-  }
-}
 
 // Type definitions
 export interface PdfContent {
@@ -131,44 +91,25 @@ async function extractPdfText(
   const maxPages = options.maxPages ?? MAX_PAGES_DEFAULT
 
   try {
-    const pdfModule = await getPdfParseModule()
-    // pdfModule may be a function (default export) – call as any
-    const data = await (pdfModule)(pdfBuffer, {
-      max: maxPages,
-      version: 'v2.0.550',
-    })
-    const pdfData = data as {
-      text: string;
-      numpages: number;
-      metadata?: { getAll?: () => unknown };
-      info?: unknown;
-      producedBy?: string;
-      creationDate?: unknown;
-      modificationDate?: unknown;
-    };
+    const pdf = await getDocumentProxy(new Uint8Array(pdfBuffer));
+    const { totalPages, text } = await extractText(pdf, { mergePages: true });
 
     logStepStart('pdf-text-extraction', {
-      pages: data.numpages,
-      textLength: data.text?.length ?? 0,
+      pages: totalPages,
+      textLength: text?.length ?? 0,
     })
 
-    // Robust metadata extraction: prefer metadata.getAll() when available, otherwise fallback to data.info
-    const rawMeta =
-      pdfData?.metadata && typeof pdfData.metadata.getAll === 'function'
-        ? pdfData.metadata.getAll()
-        : pdfData?.info ?? {}
-
     return {
-      text: data.text ?? '',
-      numpages: data.numpages ?? 1,
-      metadata: rawMeta as Record<string, string | number | boolean>,
-      producedBy: data.producedBy ?? (rawMeta as Record<string, unknown>)?.Producer as string,
-      creationDate: (data.creationDate as Date | undefined) ?? (rawMeta as Record<string, unknown>)?.CreationDate as Date,
-      modificationDate: (data.modificationDate as Date | undefined) ?? (rawMeta as Record<string, unknown>)?.ModDate as Date,
-      title: (rawMeta as Record<string, unknown>)?.Title as string ?? (rawMeta as Record<string, unknown>)?.title as string,
-      author: (rawMeta as Record<string, unknown>)?.Author as string ?? (rawMeta as Record<string, unknown>)?.author as string,
-      subject: (rawMeta as Record<string, unknown>)?.Subject as string ?? (rawMeta as Record<string, unknown>)?.subject as string,
-      keywords: (rawMeta as Record<string, unknown>)?.Keywords as string ?? (rawMeta as Record<string, unknown>)?.keywords as string,
+      text: text ?? '',
+      numpages: Math.min(totalPages ?? 1, maxPages),
+      metadata: {},
+      producedBy: undefined,
+      creationDate: undefined,
+      modificationDate: undefined,
+      title: undefined,
+      author: undefined,
+      subject: undefined,
+      keywords: undefined,
     }
   } catch (error) {
     logError('pdf-text-extraction', error, {
@@ -557,7 +498,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
       readSpan.end();
       // Provide size and read duration to match logger signature (name, payload, durationMs)
       logStepEnd('pdf-file-read', { size: pdfBuffer.length }, readDuration)
-      // Extract text using sideloaded pdf-parse
+      // Extract text using unpdf (serverless PDF.js build)
       const extractSpan = tracer.startSpan('extract-pdf-text', {
         attributes: { maxPages: inputData.maxPages }
       }, ctx);
@@ -742,7 +683,6 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         },
         warnings:
           warnings.length > 0 ? [...warnings, errorMessage] : [errorMessage],
-        error: errorMessage,
       }
     }
   },
@@ -754,6 +694,6 @@ export type PdfToMarkdownUITool = InferUITool<typeof pdfToMarkdownTool>;
 // ============================================================================
 
 export {
-  convertTableToMarkdown, convertToMarkdown, extractImageReferences, extractPdfMetadata, extractPdfText, extractTables, getPdfParseModule, normalizePdfText
+  convertTableToMarkdown, convertToMarkdown, extractImageReferences, extractPdfMetadata, extractPdfText, extractTables, normalizePdfText
 };
 

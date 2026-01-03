@@ -94,7 +94,7 @@ export const mastra = new Mastra({
     contentStudioWorkflow,
     changelogWorkflow,
     contentReviewWorkflow,
-    documentProcessingWorkflow,
+  documentProcessingWorkflow,
     financialReportWorkflow,
     learningExtractionWorkflow,
     researchSynthesisWorkflow,
@@ -138,7 +138,7 @@ export const mastra = new Mastra({
     dane,
     // Calendar and misc
     calendarAgent,
-    bgColorAgent,
+//    bgColorAgent,
     // Package publisher
     danePackagePublisher,
     // Financial Chart Agents
@@ -175,7 +175,7 @@ export const mastra = new Mastra({
 
   },
   scorers: { },
-  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
+//  mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
 
   storage: new PostgresStore({
     id: 'main-storage',
@@ -335,60 +335,60 @@ export const mastra = new Mastra({
     ],
     middleware: [
       // Populate RequestContext with real runtime values derived from headers (used by agents/tools)
-      async (c, next) => {
-        const country = c.req.header('CF-IPCountry') ?? ''
-        const authHeader = c.req.header('Authorization') ?? ''
-        const headerUserId = c.req.header('x-user-id')
-        const headerUserTier = c.req.header('x-user-tier')
-        const acceptLanguage = c.req.header('accept-language') ?? ''
-        const researchPhaseHeader = c.req.header('x-research-phase')
+//      async (c, next) => {
+//        const country = c.req.header('CF-IPCountry') ?? ''
+//        const authHeader = c.req.header('Authorization') ?? ''
+//        const headerUserId = c.req.header('x-user-id')
+//        const headerUserTier = c.req.header('x-user-tier')
+//        const acceptLanguage = c.req.header('accept-language') ?? ''
+//        const researchPhaseHeader = c.req.header('x-research-phase')
 
-        const requestContext = c.get('requestContext') as RequestContext | undefined
-        if (requestContext?.set) {
-          // Temperature unit (from Cloudflare geo header)
-          const unit = country === 'US' ? 'fahrenheit' : 'celsius'
-          requestContext.set('temperature-unit', unit)
+//        const requestContext = c.get('requestContext') as RequestContext | undefined
+//        if (requestContext?.set) {
+//          // Temperature unit (from Cloudflare geo header)
+//          const unit = country === 'US' ? 'fahrenheit' : 'celsius'
+//          requestContext.set('temperature-unit', unit)
 
           // userId: prefer explicit header, otherwise try to parse from a bearer token (format: "Bearer user:<id>")
-          let userId = headerUserId
-          if (!userId && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.slice('Bearer '.length)
-            const exec = /user:([^;\s]+)/.exec(token)
-            if (exec) { userId = exec[1] }
-          }
-          if (userId !== null && userId !== '') { requestContext.set('userId', userId) }
+//          let userId = headerUserId
+//          if (!userId && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
+//            const token = authHeader.slice('Bearer '.length)
+//            const exec = /user:([^;\s]+)/.exec(token)
+//            if (exec) { userId = exec[1] }
+//          }
+//          if (userId !== null && userId !== '') { requestContext.set('userId', userId) }
 
           // user-tier: prefer explicit header, otherwise derive from token hints
-          let userTier = headerUserTier
-          if (!userTier && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.slice('Bearer '.length)
-            if (token.includes('enterprise')) { userTier = 'enterprise' }
-            else if (token.includes('pro')) { userTier = 'pro' }
-            else { userTier = 'free' }
-          }
-          if (userTier !== null && userTier !== '') { requestContext.set('user-tier', userTier) }
+//          let userTier = headerUserTier
+//          if (!userTier && authHeader !== null && authHeader !== '' && authHeader.startsWith('Bearer ')) {
+//            const token = authHeader.slice('Bearer '.length)
+//            if (token.includes('enterprise')) { userTier = 'enterprise' }
+//            else if (token.includes('pro')) { userTier = 'pro' }
+//            else { userTier = 'free' }
+//          }
+//          if (userTier !== null && userTier !== '') { requestContext.set('user-tier', userTier) }
 
           // language: prefer Accept-Language header (primary language subtag), fallback to 'en'
-          const language = acceptLanguage.split(',')[0]?.split('-')[0] ?? 'en'
-          const supported = ['en', 'es', 'ja', 'fr']
-          requestContext.set('language', supported.includes(language) ? language : 'en')
+//          const language = acceptLanguage.split(',')[0]?.split('-')[0] ?? 'en'
+//          const supported = ['en', 'es', 'ja', 'fr']
+//          requestContext.set('language', supported.includes(language) ? language : 'en')
 
           // research phase
-          requestContext.set('researchPhase', researchPhaseHeader ?? 'initial')
+//          requestContext.set('researchPhase', researchPhaseHeader ?? 'initial')
 
           // runtime API key (for tools that may accept runtimeContext.apiKey)
           //  if (apiKeyHeader !== null && apiKeyHeader !== '') { requestContext.set('apiKey', apiKeyHeader) }
-        }
+//        }
 
-        await next()
-      },
+//        await next()
+//      },
       // Request timing logger
-      async (c, next) => {
-        const start = Date.now()
-        await next()
-        const duration = Date.now() - start
-        log.info(`${c.req.method} ${c.req.url} - ${duration}ms`)
-      },
+//      async (c, next) => {
+//        const start = Date.now()
+//        await next()
+//        const duration = Date.now() - start
+ //       log.info(`${c.req.method} ${c.req.url} - ${duration}ms`)
+ //     },
     ]
   }
 });

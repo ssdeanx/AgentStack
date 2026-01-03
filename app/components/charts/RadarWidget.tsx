@@ -2,13 +2,13 @@
 
 import { Legend, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-export type RadarPoint = { subject: string; a: number; b?: number }
+export interface RadarPoint { subject: string; a: number; b?: number }
 
 interface RadarWidgetProps {
   data: RadarPoint[]
   height?: number
-  seriesA?: { key?: 'a'; label?: string; color?: string }
-  seriesB?: { key?: 'b'; label?: string; color?: string }
+  seriesA?: { key: 'a'; label?: string; color?: string }
+  seriesB?: { key: 'b'; label?: string; color?: string }
 }
 
 export function RadarWidget({

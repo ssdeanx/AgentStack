@@ -13,6 +13,9 @@ let browserInstance: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browserInstance?.isConnected()) {
+    if (browserInstance) {
+      await browserInstance.close().catch(() => {}); // Close the old instance if it's not connected
+    }
     browserInstance = await chromium.launch({
       headless: true,
       chromiumSandbox: false,
@@ -20,6 +23,7 @@ async function getBrowser(): Promise<Browser> {
   }
   return browserInstance;
 }
+
 
 export const browserTool = createTool({
   id: 'browserTool',
@@ -101,7 +105,7 @@ export const screenshotTool = createTool({
   outputSchema: z.object({
     success: z.boolean(),
     screenshot: z.string().optional(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('screenshot-tool', '1.0.0');
@@ -142,7 +146,7 @@ export const screenshotTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, error: errorMsg };
+      return { success: false, message: errorMsg };
     }
   },
 });
@@ -159,7 +163,7 @@ export const pdfGeneratorTool = createTool({
   outputSchema: z.object({
     success: z.boolean(),
     pdf: z.string().optional(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('pdf-generator-tool', '1.0.0');
@@ -200,7 +204,7 @@ export const pdfGeneratorTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, error: errorMsg };
+      return { success: false, message: errorMsg };
     }
   },
 });
@@ -218,7 +222,7 @@ export const clickAndExtractTool = createTool({
   outputSchema: z.object({
     success: z.boolean(),
     content: z.string().optional(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('click-extract-tool', '1.0.0');
@@ -265,7 +269,7 @@ export const clickAndExtractTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, error: errorMsg };
+      return { success: false, message: errorMsg };
     }
   },
 });
@@ -285,7 +289,7 @@ export const fillFormTool = createTool({
   outputSchema: z.object({
     success: z.boolean(),
     finalUrl: z.string().optional(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('fill-form-tool', '1.0.0');
@@ -336,7 +340,7 @@ export const fillFormTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, error: errorMsg };
+      return { success: false, message: errorMsg };
     }
   },
 });
@@ -429,7 +433,7 @@ export const extractTablesTool = createTool({
       headers: z.array(z.string()),
       rows: z.array(z.array(z.string())),
     })).optional(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('extract-tables-tool', '1.0.0');
@@ -490,7 +494,7 @@ export const extractTablesTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, error: errorMsg };
+      return { success: false, message: errorMsg };
     }
   },
 });
@@ -510,7 +514,7 @@ export const monitorPageTool = createTool({
     previousContent: z.string().optional(),
     currentContent: z.string().optional(),
     checkCount: z.number(),
-    error: z.string().optional(),
+    message: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('monitor-page-tool', '1.0.0');
@@ -562,7 +566,7 @@ export const monitorPageTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMsg });
       span.end();
-      return { success: false, changed: false, checkCount: 0, error: errorMsg };
+      return { success: false, changed: false, checkCount: 0, message: errorMsg };
     }
   },
 });

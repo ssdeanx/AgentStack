@@ -5,7 +5,7 @@ import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag'
 import type { UIMessage } from 'ai'
 import { embedMany } from 'ai'
 import { log } from './logger'
-import { google } from '@ai-sdk/google'
+import { google } from './google'
 //import type { CoreMessage } from '@mastra/core';
 // import { maskStreamTags } from '@mastra/core';
 import { trace, SpanStatusCode } from "@opentelemetry/api";
@@ -48,7 +48,7 @@ log.info('Loading PG Storage config with PgVector support')
 export const pgStore = new PostgresStore({
     id: 'pg:store',
     connectionString:
-        process.env.SUPABASE ??
+        process.env.SUPABASE! ??
         'postgresql://user:password@localhost:5432/mydb',
     // Schema management
     schemaName: process.env.DB_SCHEMA ?? 'mastra',
@@ -63,14 +63,8 @@ export const pgStore = new PostgresStore({
     keepAliveInitialDelayMillis: 0,
 });
 
-await pgStore.init();
-const allIndexes = await pgStore.listIndexes();
-// eslint-disable-next-line no-console
-console.log(allIndexes);
-log.info('PostgreSQL Store initialized with PgVector support, all indexes:', {
-    indexCount: allIndexes.length,
-    indexes: allIndexes,
-});
+//await pgStore.init();
+
 
 // PgVector configuration for 3072 dimension embeddings (gemini-embedding-001)
 /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
@@ -152,7 +146,7 @@ export const pgMemory = new Memory({
 log.info('PG Store and Memory initialized with PgVector support', {
     schema: process.env.DB_SCHEMA ?? 'mastra',
     maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
-    
+
     memoryOptions: {
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         semanticRecall: {
@@ -165,7 +159,7 @@ log.info('PG Store and Memory initialized with PgVector support', {
             indexConfig: {
                 type: 'flat',
                 metric: 'cosine',
-                ivf: { lists: parseInt(process.env.LISTS ?? '3072') }, // Adjust list count based on your needs
+                ivf: { lists: parseInt(process.env.LISTS ?? '2600') }, // Adjust list count based on your needs
             }
         },
         workingMemory: {
@@ -173,7 +167,7 @@ log.info('PG Store and Memory initialized with PgVector support', {
             scope: 'resource',
             version: 'vnext',
         }
-        
+
     },
 })
 // In-memory counter to track tool calls per request
@@ -266,7 +260,7 @@ export async function generateEmbeddings(
     try {
         const { embeddings } = await embedMany({
             values: chunks.map((chunk) => chunk.text),
-            model: google.textEmbedding('gemini-embedding-001'),
+            model: google.textEmbedding("gemini-embedding-001"),
             maxRetries: parseInt(process.env.EMBEDDING_MAX_RETRIES ?? '3'),
             abortSignal: new AbortController().signal,
             maxParallelCalls: 20,

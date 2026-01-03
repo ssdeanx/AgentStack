@@ -5,8 +5,8 @@ import { createTool } from "@mastra/core/tools"
 import chalk from 'chalk'
 import execa from 'execa'
 import type { ExecaError as ExecaErrorType } from 'execa'
-import { readFileSync } from 'fs'
-import * as path from 'path'
+import { readFileSync } from 'node:fs'
+import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
 

@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
     "playwright-core",
     "re2",
     "svgjson",
+    "unpdf"
   ],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: false,

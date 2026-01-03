@@ -1,6 +1,6 @@
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { createTool } from "@mastra/core/tools";
-import { promises as fsPromises } from 'fs';
+import { promises as fsPromises } from 'node:fs';
 import { z } from 'zod';
 import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
