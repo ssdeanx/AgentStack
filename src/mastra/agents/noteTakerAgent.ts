@@ -12,6 +12,6 @@ export const noteTakerAgent = new Agent({
   instructions: instructions1,
   memory: pgMemory,
 //  tools: [],
-  model: "google/gemini-2.5-flash-lite-preview-09-2025",
+  model: "google/gemini-3-flash-preview",
   voice: new GoogleVoice(), // Add OpenAI voice provider with default configuration
 });

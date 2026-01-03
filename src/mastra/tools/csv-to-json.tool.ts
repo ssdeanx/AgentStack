@@ -33,7 +33,6 @@ export const csvToJsonTool = createTool({
   }),
   outputSchema: z.object({
     data: z.array(z.any()).describe("Parsed JSON data"),
-    error: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const writer = context?.writer;
@@ -92,7 +91,7 @@ export const csvToJsonTool = createTool({
       rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
       rootSpan.setStatus({ code: 2, message: errorMessage });
       rootSpan.end();
-      return { data: [], error: errorMessage };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   },
 });

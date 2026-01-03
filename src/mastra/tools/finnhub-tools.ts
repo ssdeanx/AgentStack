@@ -29,7 +29,7 @@ export const finnhubQuotesTool = createTool({
     metadata: z.object({
       symbol: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -55,14 +55,14 @@ export const finnhubQuotesTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubQuotesTool', new Error(error), { symbol: inputData.symbol });
+      logError('finnhubQuotesTool', new Error(message), { symbol: inputData.symbol });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -114,13 +114,13 @@ export const finnhubQuotesTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubQuotesTool', new Error(error), { symbol: inputData.symbol, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubQuotesTool', new Error(message), { symbol: inputData.symbol, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -130,7 +130,7 @@ export const finnhubQuotesTool = createTool({
         metadata: {
           symbol: inputData.symbol
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -147,7 +147,7 @@ export const finnhubQuotesTool = createTool({
       logError('finnhubQuotesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: inputData.symbol });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }
@@ -182,7 +182,7 @@ export const finnhubCompanyTool = createTool({
       from: z.string().optional(),
       to: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -209,14 +209,14 @@ export const finnhubCompanyTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubCompanyTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+      logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -242,14 +242,14 @@ export const finnhubCompanyTool = createTool({
           break;
         }
         default: {
-          const error = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+          const message = `Unsupported function: ${inputData.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
           rootSpan.end();
-          logError('finnhubCompanyTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+          logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -289,13 +289,13 @@ export const finnhubCompanyTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubCompanyTool', new Error(error), { function: inputData.function, symbol: inputData.symbol, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -308,7 +308,7 @@ export const finnhubCompanyTool = createTool({
           from: inputData.from,
           to: inputData.to
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -325,7 +325,7 @@ export const finnhubCompanyTool = createTool({
       logError('finnhubCompanyTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }
@@ -360,7 +360,7 @@ export const finnhubFinancialsTool = createTool({
       function: z.string(),
       symbol: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -387,14 +387,14 @@ export const finnhubFinancialsTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubFinancialsTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+      logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -422,14 +422,14 @@ export const finnhubFinancialsTool = createTool({
           break;
         }
         default: {
-          const error = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+          const message = `Unsupported function: ${inputData.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
           rootSpan.end();
-          logError('finnhubFinancialsTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+          logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -464,13 +464,13 @@ export const finnhubFinancialsTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubFinancialsTool', new Error(error), { function: inputData.function, symbol: inputData.symbol, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -481,7 +481,7 @@ export const finnhubFinancialsTool = createTool({
           function: inputData.function,
           symbol: inputData.symbol
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -498,7 +498,7 @@ export const finnhubFinancialsTool = createTool({
       logError('finnhubFinancialsTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }
@@ -529,7 +529,7 @@ export const finnhubAnalysisTool = createTool({
       function: z.string(),
       symbol: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -556,14 +556,14 @@ export const finnhubAnalysisTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubAnalysisTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+      logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -583,14 +583,14 @@ export const finnhubAnalysisTool = createTool({
           break;
         }
         default: {
-          const error = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+          const message = `Unsupported function: ${inputData.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
           rootSpan.end();
-          logError('finnhubAnalysisTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+          logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -625,13 +625,13 @@ export const finnhubAnalysisTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubAnalysisTool', new Error(error), { function: inputData.function, symbol: inputData.symbol, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -642,7 +642,7 @@ export const finnhubAnalysisTool = createTool({
           function: inputData.function,
           symbol: inputData.symbol
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -659,7 +659,7 @@ export const finnhubAnalysisTool = createTool({
       logError('finnhubAnalysisTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }
@@ -702,7 +702,7 @@ export const finnhubTechnicalTool = createTool({
       timeperiod: z.number().optional(),
       series_type: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -729,14 +729,14 @@ export const finnhubTechnicalTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubTechnicalTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+      logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -752,14 +752,14 @@ export const finnhubTechnicalTool = createTool({
           if (inputData.indicator === undefined || inputData.indicator === null || inputData.indicator.trim() === '' ||
             inputData.timeperiod === undefined || inputData.timeperiod === null ||
             inputData.series_type === undefined || inputData.series_type === null || inputData.series_type.trim() === '') {
-            const error = "TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters";
-            rootSpan.recordException(new Error(error));
-            rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+            const message = "TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters";
+            rootSpan.recordException(new Error(message));
+            rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
             rootSpan.end();
-            logError('finnhubTechnicalTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+            logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
             return {
               data: null,
-              error
+              message
             };
           }
           params.append('indicator', inputData.indicator);
@@ -781,14 +781,14 @@ export const finnhubTechnicalTool = createTool({
           break;
         }
         default: {
-          const error = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+          const message = `Unsupported function: ${inputData.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
           rootSpan.end();
-          logError('finnhubTechnicalTool', new Error(error), { function: inputData.function, symbol: inputData.symbol });
+          logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -823,13 +823,13 @@ export const finnhubTechnicalTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubTechnicalTool', new Error(error), { function: inputData.function, symbol: inputData.symbol, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -844,7 +844,7 @@ export const finnhubTechnicalTool = createTool({
           timeperiod: inputData.timeperiod,
           series_type: inputData.series_type
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -861,7 +861,7 @@ export const finnhubTechnicalTool = createTool({
       logError('finnhubTechnicalTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }
@@ -886,7 +886,7 @@ export const finnhubEconomicTool = createTool({
     metadata: z.object({
       economic_code: z.string().optional()
     }).optional(),
-    error: z.string().optional()
+    message: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
@@ -912,14 +912,14 @@ export const finnhubEconomicTool = createTool({
     const apiKey = process.env.FINNHUB_API_KEY;
 
     if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const error = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(error));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
       rootSpan.end();
-      logError('finnhubEconomicTool', new Error(error), { economic_code: inputData.economic_code });
+      logError('finnhubEconomicTool', new Error(message), { economic_code: inputData.economic_code });
       return {
         data: null,
-        error
+        message
       };
     }
 
@@ -959,13 +959,13 @@ export const finnhubEconomicTool = createTool({
       if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
         const errorValue = (data as Record<string, unknown>)['error'];
         if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const error = String(errorValue);
-          rootSpan.recordException(new Error(error));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: error });
-          logError('finnhubEconomicTool', new Error(error), { economic_code: inputData.economic_code, apiError: error });
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubEconomicTool', new Error(message), { economic_code: inputData.economic_code, apiError: message });
           return {
             data: null,
-            error
+            message
           };
         }
       }
@@ -975,7 +975,7 @@ export const finnhubEconomicTool = createTool({
         metadata: {
           economic_code: inputData.economic_code
         },
-        error: undefined
+        message: undefined
       };
 
       rootSpan.end();
@@ -992,7 +992,7 @@ export const finnhubEconomicTool = createTool({
       logError('finnhubEconomicTool', error instanceof Error ? error : new Error(errorMessage), { economic_code: inputData.economic_code });
       return {
         data: null,
-        error: errorMessage
+        message: errorMessage
       };
     }
   }

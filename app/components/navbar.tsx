@@ -87,8 +87,9 @@ export function Navbar() {
                 </NavigationMenuTrigger>
 
                 <NavigationMenuContent>
-                  <div className="grid grid-cols-[auto,200px] gap-4 p-2 items-start">
-                    <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row gap-8 p-6 min-w-max">
+                    <div className="flex flex-col gap-3 w-64">
+                      <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Products</div>
                       <Link href="/chat" className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === "/chat" ? "bg-primary/10 shadow-sm" : "hover:bg-primary/5"}`}>
                         <svg className="size-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -147,8 +148,8 @@ export function Navbar() {
                       </Link>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Docs</div>
+                    <div className="flex flex-col gap-2 w-56">
+                      <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Docs</div>
                       {docsLinks.map((dl) => (
                         <NavigationMenuLink asChild key={dl.href}>
                           <Link href={dl.href} className={`flex flex-col gap-0 p-2 rounded-sm text-sm ${pathname === dl.href ? "bg-muted/10 shadow-sm" : "hover:bg-muted/5"}`}>

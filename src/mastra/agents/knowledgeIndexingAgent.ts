@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAIFlashLite } from '../config/google'
+import { google3, googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
@@ -128,7 +128,7 @@ When indexing, include relevant metadata:
 - Query failures: Return empty results with error message
 `
   },
-  model: googleAIFlashLite,
+  model: google3,
   memory: pgMemory,
   tools: {
     mdocumentChunker,

@@ -4,7 +4,7 @@ import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { z } from 'zod';
 import { log } from '../config/logger';
-import { chartSupervisorAgent, chartGeneratorAgent, chartDataProcessorAgent, chartTypeAdvisorAgent } from '../agents'
+// Agents are retrieved from context to avoid circular dependencies
 
 
 log.info('Initializing Financial Chart Tools...')
@@ -78,8 +78,7 @@ export const chartSupervisorTool = createTool({
     sources: z.array(z.object({
       provider: z.string(),
       timestamp: z.string(),
-    })),
-    error: z.string().optional(),
+    }))
   }),
   execute: async (inputData, context) => {
     const {
@@ -105,15 +104,16 @@ export const chartSupervisorTool = createTool({
     })
 
     try {
-      const agentCandidate = context?.mastra?.getAgent?.('chartSupervisorAgent')
-      const agent = agentCandidate ?? chartSupervisorAgent
+      const agent = context?.mastra?.getAgent?.('chartSupervisorAgent')
+
+      if (!agent) {
+         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent not found', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
+         throw new Error('Agent chartSupervisorAgent not found');
+      }
+
       if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent not found', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-        return {
-          success: false,
-          sources: [],
-          error: 'Agent chartSupervisorAgent not found',
-        }
+        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent invalid', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
+        throw new Error('Agent chartSupervisorAgent invalid');
       }
 
       const prompt = `Create a financial chart visualization with the following requirements:
@@ -196,11 +196,7 @@ Please:
       span.recordException(error instanceof Error ? error : new Error(errorMsg))
       span.setStatus({ code: 2, message: errorMsg })
       span.end()
-      return {
-        success: false,
-        sources: [],
-        error: `Failed to generate chart: ${errorMsg}`,
-      }
+      throw error instanceof Error ? error : new Error(`Failed to generate chart: ${errorMsg}`);
     }
   },
 })
@@ -275,8 +271,8 @@ export const chartGeneratorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent?.('chartGeneratorAgent') ?? chartGeneratorAgent
-      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
+      const agent = context?.mastra?.getAgent?.('chartGeneratorAgent')
+      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartGeneratorAgent not found', stage: 'chart-generator' }, id: 'chart-generator' })
         throw new Error('Agent chartGeneratorAgent not found');
       }
@@ -411,7 +407,6 @@ export const chartDataProcessorTool = createTool({
       interval: z.string(),
     }),
     calculations: z.record(z.string(), z.unknown()).optional(),
-    error: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const {
@@ -434,22 +429,10 @@ export const chartDataProcessorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent?.('chartDataProcessorAgent') ?? chartDataProcessorAgent
-      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
+      const agent = context?.mastra?.getAgent?.('chartDataProcessorAgent')
+      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartDataProcessorAgent not found', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
-        return {
-          chartData: [],
-          dataKeys: [],
-          domain: { x: [], y: [0, 100] },
-          metadata: {
-            symbols,
-            timeRange,
-            dataPoints: 0,
-            lastUpdated: new Date().toISOString(),
-            interval: aggregation,
-          },
-          error: 'Agent chartDataProcessorAgent not found',
-        }
+        throw new Error('Agent chartDataProcessorAgent not found');
       }
 
       const prompt = `Fetch and process financial data for Recharts visualization:
@@ -545,19 +528,7 @@ Return JSON with:
       span.recordException(error instanceof Error ? error : new Error(errorMsg))
       span.setStatus({ code: 2, message: errorMsg })
       span.end()
-      return {
-        chartData: [],
-        dataKeys: [],
-        domain: { x: [], y: [0, 100] },
-        metadata: {
-          symbols,
-          timeRange,
-          dataPoints: 0,
-          lastUpdated: new Date().toISOString(),
-          interval: aggregation,
-        },
-        error: `Failed to process data: ${errorMsg}`,
-      }
+      throw error instanceof Error ? error : new Error(`Failed to process data: ${errorMsg}`);
     }
   },
 })
@@ -627,8 +598,8 @@ export const chartTypeAdvisorTool = createTool({
     })
 
     try {
-      const agent = context?.mastra?.getAgent?.('chartTypeAdvisorAgent') ?? chartTypeAdvisorAgent
-      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
+      const agent = context?.mastra?.getAgent?.('chartTypeAdvisorAgent')
+      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartTypeAdvisorAgent not found', stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
         throw new Error('Agent chartTypeAdvisorAgent not found');
       }

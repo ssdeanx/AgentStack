@@ -1,5 +1,5 @@
-import * as fs from "fs/promises";
-import * as path from "path";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import type { MCPServerResources, Resource } from "@mastra/mcp";
 
 const NOTES_DIR = path.join(process.cwd(), "notes");

@@ -304,7 +304,12 @@ export function ChatProvider({
       output = (part as ToolUIPart as unknown as { output?: unknown }).output as Record<string, unknown>
     }
 
-    if (!output || typeof output !== "object") {return null}
+    const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+      v !== null && typeof v === "object" && !Array.isArray(v)
+
+    if (!isPlainObject(output)) {
+      return null
+    }
 
     const out = output
 

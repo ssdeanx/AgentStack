@@ -1,43 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { logError } from './logger'
-//import { GoogleAICacheManager } from '@google/generative-ai/server';
-//import { GoogleVoice } from "@mastra/voice-google";
-import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
-import { experimental_generateImage as generateImage } from 'ai';
 import { GoogleVoice } from "@mastra/voice-google";
-// Initialize with custom configuration
-//export const gvoice = new GoogleVoice({
-//  speechModel: {
-//    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
-//  },
-//  listeningModel: {
-//    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "your-speech-api-key",
-//  },
-//  speaker: "en-US-Casual-K",
-//});
-
-// Text-to-Speech
-//const audioStream = await gvoice.speak("Hello, world!", {
-//  languageCode: "en-US",
-//  audioConfig: {
-//    audioEncoding: "LINEAR16",
-//  },
-//});
-
-// Speech-to-Text
-//export const transcript = await gvoice.listen(audioStream, {
-//  config: {
-//    encoding: "LINEAR16",
-//    languageCode: "en-US",
-//  },
-//});
-
-// Get available voices for a specific language
-//export const voices = await gvoice.getSpeakers({ languageCode: "en-US" });
-
-//export const cacheManager = new GoogleAICacheManager(
-//  process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '',
-//);
 
 export const google = createGoogleGenerativeAI({
     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -58,6 +21,8 @@ export const voice = new GoogleVoice({
 export const googleChatModels = {
   // Gemini 3 Pro model for higher-performance applications
   gemini3Pro: google('gemini-3-pro-preview'),
+  // Gemini 3 Flash model
+  gemini3Flash: google('gemini-3-flash-preview'),
   // Gemini 2.5 Pro model for higher-performance applications
   gemini25Pro: google('gemini-2.5-pro'),
   // Gemini 2.5 Flash model for general-purpose applications
@@ -72,7 +37,7 @@ export const googleChatModels = {
 
 // Image Generation Models
 export const googleImageModels = {
-  // Gemini Nano Banana model for low-cost image generation
+  // Gemini Flash Image model
   gemini25FlashImage: google('gemini-2.5-flash-image'),
   gemini3ProImage: google('gemini-3-pro-image-preview'),
   // Imagen 4.0 models
@@ -102,6 +67,7 @@ export function getGoogleEmbeddingModel(modelId: keyof typeof googleEmbeddingMod
 // Default models
 export const googleAI = googleChatModels.gemini25Flash; // Main Gemini 2.5 Flash
 export const googleAIPro = googleChatModels.gemini3Pro; // Gemini 3 Pro
+export const google3 = googleChatModels.gemini3Flash; // Gemini 3 Flash
 export const googleAIFlashLite = googleChatModels.gemini25FlashLite; // Gemini 2.5 Flash Lite
 export const googleAIEmbedding = googleEmbeddingModels.geminiEmbedding001; // Embedding
 export const googleAIComputerUse = googleChatModels.gemini25ComputerUse; // Computer Use

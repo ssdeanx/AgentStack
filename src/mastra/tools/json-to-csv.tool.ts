@@ -26,7 +26,6 @@ export const jsonToCsvTool = createTool({
   }),
   outputSchema: z.object({
     csv: z.string().describe("Generated CSV string"),
-    error: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     const writer = context?.writer;
@@ -105,7 +104,7 @@ export const jsonToCsvTool = createTool({
       rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
       rootSpan.setStatus({ code: 2, message: errorMessage });
       rootSpan.end();
-      return { csv: "", error: errorMessage };
+      throw new Error(errorMessage);
     }
   },
 });

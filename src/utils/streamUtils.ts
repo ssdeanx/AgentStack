@@ -1,4 +1,4 @@
-import type { StreamTextResult, ToolSet } from 'ai'
+import type { StreamTextResult, ToolSet, Output } from 'ai'
 
 // ------------------- Functions for Data-Only SSE Format -------------------
 
@@ -97,10 +97,11 @@ export function streamJSONEvent<T>(
  * const fullText = await handleTextStream(result, controller);
  * ```
  */
-export async function handleTextStream<TOOLS extends ToolSet = ToolSet>(
-    streamResult:
-        | StreamTextResult<TOOLS, unknown>
-        | { textStream: AsyncIterable<string> },
+export async function handleTextStream<
+    TOOLS extends ToolSet = ToolSet,
+    TOutput extends Output<any, any> = Output<any, any>
+>(
+    streamResult: StreamTextResult<TOOLS, TOutput> | { textStream: AsyncIterable<string> },
     streamController: ReadableStreamDefaultController<Uint8Array>
 ): Promise<string> {
     const encoder = new TextEncoder()

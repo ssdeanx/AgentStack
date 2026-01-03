@@ -1,6 +1,6 @@
 import * as crypto from 'crypto'
 
-import * as fs from 'fs/promises'
+import * as fs from 'node:fs/promises'
 
 import type { ChunkingOptions } from './ChunkingService'
 import { ChunkingService } from './ChunkingService'

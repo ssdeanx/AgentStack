@@ -22,50 +22,11 @@ const toolCallCounters = new Map<string, number>()
  * No API key required - uses arXiv's public API
  */
 
-// Lazy-loaded pdf-parse to avoid demo parsing errors
-let pdfParse: unknown = null
-let pdfParseError: Error | null = null
-
-type PdfParseFunction = (buffer: Buffer, options?: { max?: number; version?: string }) => Promise<{
-  text: string;
-  numpages: number;
-  metadata?: unknown;
-  info?: unknown;
-  producedBy?: string;
-  creationDate?: unknown;
-  modificationDate?: unknown;
-}>;
+// Use `unpdf` for parsing PDFs (serverless-optimized PDF.js build)
+import { extractText, getDocumentProxy } from 'unpdf'
 
 /**
- * Safely load pdf-parse with error handling
- * Must be called at runtime, not at module load time
- */
-async function getPdfParseModule(): Promise<PdfParseFunction> {
-  if (pdfParse !== null) {
-    return pdfParse as PdfParseFunction
-  }
-  if (pdfParseError) {
-    throw pdfParseError
-  }
-
-  try {
-    // NOTE: Avoid importing internal paths like 'pdf-parse/lib/pdf-parse.js' which may not exist
-    const pdfMod = await import("pdf-parse") as unknown as { default?: PdfParseFunction };
-    pdfParse = (pdfMod.default ?? pdfMod) as unknown as PdfParseFunction;
-    return pdfParse as PdfParseFunction;
-  } catch (error) {
-    const err =
-      error instanceof Error
-        ? error
-        : new Error('Failed to load pdf-parse module')
-    pdfParseError = err
-    throw new Error(
-      'pdf-parse module not available. Install with: npm install pdf-parse'
-    )
-  }
-}
-/**
- * Extract text content from PDF buffer
+ * Extract text content from PDF buffer using `unpdf`
  */
 async function extractPdfText(pdfBuffer: Buffer, maxPages = 1000): Promise<{
   text: string;
@@ -73,21 +34,19 @@ async function extractPdfText(pdfBuffer: Buffer, maxPages = 1000): Promise<{
   metadata?: Record<string, unknown>;
 }> {
   try {
-    const pdfModule = await getPdfParseModule()
-    const data = await pdfModule(pdfBuffer, {
-      max: maxPages,
-      version: 'v2.0.550',
-    })
+    const pdf = await getDocumentProxy(new Uint8Array(pdfBuffer));
+    const { totalPages, text } = await extractText(pdf, { mergePages: true });
 
     return {
-      text: data.text ?? '',
-      numpages: data.numpages ?? 1,
-      metadata: (data.metadata as Record<string, unknown>) ?? (data.info as Record<string, unknown>),
-    }
+      text: text ?? '',
+      numpages: Math.min(totalPages ?? 1, maxPages),
+      metadata: undefined,
+    };
   } catch (error) {
     throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
+
 
 /**
  * Convert extracted PDF text to markdown format
@@ -169,7 +128,6 @@ export const arxivTool = createTool({
     total_results: z.number(),
     start_index: z.number(),
     max_results: z.number(),
-    error: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('arxiv-tool', '1.0.0').startSpan('arxiv-search', {
@@ -213,13 +171,7 @@ export const arxivTool = createTool({
         params.append("search_query", searchTerms.join(" AND "));
       } else {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ No search terms provided', stage: 'arxiv' }, id: 'arxiv' });
-        return {
-          papers: [],
-          total_results: 0,
-          start_index: 0,
-          max_results: inputData.max_results ?? 10,
-          error: "Either query, id, author, title, or category must be provided"
-        };
+        throw new Error("Either query, id, author, title, or category must be provided");
       }
 
       // Add other parameters
@@ -276,13 +228,7 @@ export const arxivTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMessage }); // ERROR status
       span.end();
-      return {
-        papers: [],
-        total_results: 0,
-        start_index: 0,
-        max_results: inputData.max_results ?? 10,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -293,12 +239,12 @@ export type ArxivUITool = InferUITool<typeof arxivTool>;
  * ArXiv PDF Parser Tool
  *
  * Downloads and parses arXiv PDF papers to markdown format
- * Requires pdf-parse module to be installed
+ * Requires unpdf module to be installed
  */
 
 export const arxivPdfParserTool = createTool({
   id: "arxiv-pdf-parser",
-  description: "Download and parse arXiv PDF papers to markdown format with lazy-loaded pdf-parse",
+  description: "Download and parse arXiv PDF papers to markdown format using unpdf",
   inputSchema: z.object({
     arxivId: z.string().describe("ArXiv paper ID (e.g., '2103.12345' or '2103.12345v1')"),
     maxPages: z.number().min(1).max(1000).optional().default(100).describe("Maximum number of pages to parse (default: 100)"),
@@ -320,7 +266,6 @@ export const arxivPdfParserTool = createTool({
       textLength: z.number(),
       processingTimeMs: z.number()
     }),
-    error: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('arxiv-pdf-parser-tool', '1.0.0').startSpan('arxiv-pdf-parser', {
@@ -347,17 +292,7 @@ export const arxivPdfParserTool = createTool({
       if (!response.ok) {
         await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ PDF download failed', stage: 'arxiv-pdf-parser' }, id: 'arxiv-pdf-parser' });
         if (response.status === 404) {
-          return {
-            success: false,
-            arxivId: inputData.arxivId,
-            markdown: "",
-            statistics: {
-              pageCount: 0,
-              textLength: 0,
-              processingTimeMs: Date.now() - startTime
-            },
-            error: `Paper not found: ${inputData.arxivId}`
-          };
+          throw new Error(`Paper not found: ${inputData.arxivId}`);
         }
         throw new Error(`Failed to download PDF: ${response.status} ${response.statusText}`);
       }
@@ -449,17 +384,7 @@ export const arxivPdfParserTool = createTool({
       span.setStatus({ code: 2, message: errorMessage }); // ERROR status
       span.end();
 
-      return {
-        success: false,
-        arxivId: inputData.arxivId,
-        markdown: "",
-        statistics: {
-          pageCount: 0,
-          textLength: 0,
-          processingTimeMs: processingTime
-        },
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });
@@ -502,7 +427,6 @@ export const arxivPaperDownloaderTool = createTool({
       pageCount: z.number(),
       textLength: z.number()
     }).optional(),
-    error: z.string().optional()
   }),
   execute: async (inputData, context) => {
     const span = trace.getTracer('arxiv-paper-downloader-tool', '1.0.0').startSpan('arxiv-paper-downloader', {
@@ -531,11 +455,7 @@ export const arxivPaperDownloaderTool = createTool({
       const papers = parseArxivXml(xmlText, true);
 
       if (papers?.length === 0) {
-        return {
-          success: false,
-          arxivId: inputData.arxivId,
-          error: `Paper not found: ${inputData.arxivId}`
-        };
+        throw new Error(`Paper not found: ${inputData.arxivId}`);
       }
 
       const paperMetadata = papers[0];
@@ -577,7 +497,6 @@ export const arxivPaperDownloaderTool = createTool({
         arxivId: string;
         metadata?: typeof paperMetadata;
         pdfContent?: { markdown: string; pageCount: number; textLength: number };
-        error?: string;
       } = {
         success: true,
         arxivId: inputData.arxivId
@@ -602,11 +521,7 @@ export const arxivPaperDownloaderTool = createTool({
       }
       span.setStatus({ code: 2, message: errorMessage }); // ERROR status
       span.end();
-      return {
-        success: false,
-        arxivId: inputData.arxivId,
-        error: errorMessage
-      };
+      throw error instanceof Error ? error : new Error(errorMessage);
     }
   }
 });

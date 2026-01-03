@@ -107,7 +107,6 @@ const CustomDocumentChunkingOutputSchema = z.object({
     })
   ),
   processingTimeMs: z.number(),
-  error: z.string().optional(),
 })
 
 /**
@@ -155,7 +154,6 @@ const MastraDocumentChunkingOutputSchema = z.object({
     })
   ),
   processingTimeMs: z.number(),
-  error: z.string().optional(),
 })
 
 /**
@@ -398,14 +396,7 @@ Use this tool when you need advanced document processing with metadata extractio
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
-      return {
-        success: false,
-        chunkCount: 0,
-        totalTextLength: inputData.documentContent.length,
-        chunks: [],
-        processingTimeMs: processingTime,
-        error: errorMessage,
-      }
+      throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
       span.end();
     }
@@ -734,14 +725,7 @@ content indexing, or semantic search capabilities.
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
-      return {
-        success: false,
-        chunkCount: 0,
-        totalTextLength: inputData.documentContent.length,
-        chunks: [],
-        processingTimeMs: processingTime,
-        error: errorMessage,
-      }
+      throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
       span.end();
     }
@@ -804,7 +788,6 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       })
     ),
     processingTimeMs: z.number(),
-    error: z.string().optional(),
   }),
   execute: async (inputData, context) => {
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Starting document reranking', stage: 'document:reranker' }, id: 'document:reranker' });
@@ -952,13 +935,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
 
-      return {
-        success: false,
-        userQuery: inputData.userQuery,
-        rerankedDocuments: [],
-        processingTimeMs: processingTime,
-        error: errorMessage,
-      }
+      throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
       span.end();
     }

@@ -41,7 +41,7 @@ const testGeneratorOutputSchema = z.object({
     exports: z.array(z.string()),
   }),
   runCommand: z.string(),
-})
+}).describe('Test generator output')
 
 export type TestGeneratorInput = z.infer<typeof testGeneratorInputSchema>
 export type TestGeneratorOutput = z.infer<typeof testGeneratorOutputSchema>
@@ -234,7 +234,7 @@ Supports edge case generation and mock setup for external dependencies.
 Use for increasing test coverage and establishing testing patterns.`,
   inputSchema: testGeneratorInputSchema,
   outputSchema: testGeneratorOutputSchema,
-  execute: async (inputData, context) => {
+  execute: async (inputData, context?) => {
     const { sourceFile, outputPath, options } = inputData
     const { includeEdgeCases, mockExternals, testStyle } = options ?? {}
 
@@ -277,7 +277,7 @@ Use for increasing test coverage and establishing testing patterns.`,
     return {
       testFile,
       sourceFile,
-      framework: 'vitest',
+      framework: 'vitest' as const,
       content: testContent,
       tests,
       coverage: {

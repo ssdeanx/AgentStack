@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
+import { google3, googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -99,7 +99,7 @@ export const reportAgent = new Agent({
       return googleAIPro
     } else if (userTier === 'pro') {
       // Chat bison for pro as well
-      return googleAI
+      return google3
     }
     // cheaper/faster model for free tier
     return googleAIFlashLite

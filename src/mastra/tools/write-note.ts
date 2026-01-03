@@ -3,7 +3,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { trace } from "@opentelemetry/api";
 import * as path from "node:path";
-import * as fs from "fs/promises";
+import * as fs from "node:fs/promises";
 import type { RequestContext } from '@mastra/core/request-context';
 
 const NOTES_DIR = path.join(process.cwd(), "notes");

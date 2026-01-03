@@ -1,8 +1,8 @@
 import { trace } from "@opentelemetry/api";
 import type { InferUITool} from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { z } from 'zod';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -50,7 +50,7 @@ interface ProcessSVGResult {
   elementCount: number
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+const DATA_DIR = path.join(process.cwd(), 'file: ./data')
 
 /**
  * Ensures the given filePath is within the DATA_DIR.

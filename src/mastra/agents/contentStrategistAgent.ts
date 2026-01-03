@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { googleAI } from '../config/google';
+import { google3, googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 
@@ -91,7 +91,7 @@ EXAMPLE FLOW:
       }
     }
   },
-  model: googleAI,
+  model: google3,
   memory: pgMemory,
   tools: {
     webScraperTool,

@@ -2,7 +2,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import chalk from 'chalk';
 import execa from 'execa';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { log } from '../config/logger';
 

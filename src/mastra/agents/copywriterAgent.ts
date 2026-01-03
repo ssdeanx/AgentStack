@@ -9,7 +9,7 @@ import {
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { googleAIFlashLite } from '../config/google'
+import { google3, googleAIFlashLite } from '../config/google'
 
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
@@ -125,7 +125,7 @@ Provide the final content in a clear, well-structured format appropriate for the
             }
         }
     },
-    model: googleAIFlashLite,
+    model: google3,
     memory: pgMemory,
     tools: {
         webScraperTool,
