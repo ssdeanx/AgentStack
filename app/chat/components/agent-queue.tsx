@@ -117,10 +117,10 @@ function TaskSection({
                   )}
                 </QueueItemActions>
               </div>
-              {task.description && (
+              {(Boolean(task.description)) && (
                 <QueueItemDescription>{task.description}</QueueItemDescription>
               )}
-              {task.error && (
+              {(Boolean(task.error)) && (
                 <QueueItemDescription className="text-destructive">
                   {task.error}
                 </QueueItemDescription>

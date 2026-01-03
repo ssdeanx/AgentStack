@@ -57,7 +57,7 @@ export function AgentCheckpoint({
   onRestore,
   className,
 }: AgentCheckpointProps) {
-  const date = timestamp ? (typeof timestamp === 'string' ? new Date(timestamp) : timestamp) : undefined
+  const date = timestamp !== undefined ? (typeof timestamp === 'string' ? new Date(timestamp) : timestamp) : undefined
   const displayLabel = label ?? (date
     ? `Checkpoint at ${formatTime(date)}`
     : `Checkpoint ${messageIndex + 1}`)

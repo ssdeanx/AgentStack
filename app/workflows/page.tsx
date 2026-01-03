@@ -9,7 +9,7 @@ export default function WorkflowsPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
     <WorkflowProvider defaultWorkflow="contentStudioWorkflow">
-      <main className="flex h-screen flex-col bg-background">
+      <main className="flex h-screen flex-col bg-background pt-16">
         <WorkflowHeader />
         <WorkflowCanvas />
       </main>

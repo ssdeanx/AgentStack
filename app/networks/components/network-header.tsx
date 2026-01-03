@@ -98,15 +98,15 @@ export function NetworkHeader() {
             <Button
               variant="outline"
               size="sm"
-              className="hidden min-w-[120px] justify-between gap-2 sm:flex"
+              className="hidden min-w-30 justify-between gap-2 sm:flex"
             >
               <CpuIcon className="size-3.5 text-muted-foreground" />
               <span className="truncate text-xs">{selectedModel.name}</span>
             </Button>
           </ModelSelectorTrigger>
-          <ModelSelectorContent className="w-[340px]">
+          <ModelSelectorContent className="w-85">
             <ModelSelectorInput placeholder="Search models..." />
-            <ModelSelectorList className="max-h-[400px]">
+            <ModelSelectorList className="max-h-100">
               <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
               {PROVIDER_ORDER.map((provider) => {
                 const models = modelsByProvider[provider]

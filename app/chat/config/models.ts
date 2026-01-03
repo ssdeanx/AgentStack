@@ -102,7 +102,7 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
 }
 
 export function getDefaultModel(): ModelConfig {
-  return MODEL_CONFIGS.find((m) => m.isDefault) ?? MODEL_CONFIGS[0]
+  return MODEL_CONFIGS.find((m) => m.isDefault === true) ?? MODEL_CONFIGS[0]
 }
 
 export function formatContextWindow(tokens: number): string {

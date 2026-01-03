@@ -80,6 +80,9 @@ Provide structured responses with:
 - Implementation steps
 - Risk assessment
 
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+
 Always consider maintainability, scalability, and testability in your recommendations.`,
       providerOptions: {
         google: {
@@ -186,6 +189,9 @@ export const codeReviewerAgent = new Agent({
 - Warnings (should fix)
 - Suggestions (nice to have)
 - Positive observations
+
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 Be constructive and educational in feedback.`,
       providerOptions: {
@@ -298,6 +304,9 @@ Provide:
 - Mock setup instructions
 - Run commands (npx vitest <path>)
 
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+
 Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
       providerOptions: {
         google: {
@@ -404,7 +413,10 @@ For each refactoring:
 - Proposed solution
 - Before/after diff
 - Risk assessment
-- Verification steps`,
+- Verification steps
+
+**Rules:**
+- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.`,
       providerOptions: {
         google: {
           thinkingConfig: {

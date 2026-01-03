@@ -24,8 +24,7 @@ interface AgentInlineCitationProps {
 }
 
 export function AgentInlineCitation({ citations, text }: AgentInlineCitationProps) {
-  const citation = citations[0]
-  if (!citation) {return <span>{text}</span>}
+  if (citations.length === 0) {return <span>{text}</span>}
 
   return (
     <InlineCitation>

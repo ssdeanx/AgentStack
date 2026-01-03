@@ -31,23 +31,22 @@ Instructions also mention Unreal Engine ThirdPerson template project and UE C++ 
   - [x] Update `src/mastra/config/google.ts` to use `createGoogleGenerativeAI`.
   - [x] Update `src/mastra/config/pg-storage.ts` to use local provider instance instead of legacy facade.
 - [x] Update documentation
+- [x] Improve Chat UI and Google 3 Model Support:
+  - [x] Add Gemini 3 Flash and update Gemini 3 Pro in `google-models.ts`.
+  - [x] Improve `ChatInput` with `ModelSelector`, `Context`, `SpeechButton`, and `ActionMenu`.
+  - [x] Create `ChatSidebar` for agent details, checkpoints, and memory settings.
+  - [x] Update `ChatPage` layout to include sidebar and adjust height for Navbar.
+  - [x] Restore all features to `ChatHeader` and add `mt-16` to lower it below the Navbar.
+  - [x] Add `gemini3Expert` agent to `agents.ts`.
 
 ## Summary
 
-Enhanced the GitHub toolset in `src/mastra/tools/github.ts` by adding 5 new tools:
+Enhanced the Chat UI and added support for Google Gemini 3 models:
 
-1. `createPullRequest`: Create a new PR with title, head, base, and body.
-2. `mergePullRequest`: Merge an existing PR using merge, squash, or rebase methods.
-3. `addIssueComment`: Add comments to issues or PRs.
-4. `getPullRequest`: Retrieve detailed information about a specific PR.
-5. `getIssue`: Retrieve detailed information about a specific issue.
-
-Fixed a TypeScript error in `src/mastra/agents/bgColorAgent.ts` where `colorChangeTool` was incompatible with the `Agent` class.
-
-Fixed a runtime error in `app/components/navbar.tsx` caused by `NavigationMenuTrigger` receiving multiple children when `asChild` was true. The `NavigationMenuTrigger` component in `ui/navigation-menu.tsx` was updated to only render the chevron icon when `asChild` is false.
-
-Updated `src/mastra/config/google.ts` and `src/mastra/config/pg-storage.ts` to be compatible with `@ai-sdk/google` v3. This involved:
-
-- Using `createGoogleGenerativeAI` to create a provider instance in `google.ts`.
-- Updating `pg-storage.ts` to import the `google` provider from the local config instead of the removed facade in `@ai-sdk/google`.
-- Removing unnecessary type casts in `pg-storage.ts`.
+1. **Google 3 Models**: Added `gemini-3-flash-preview` and updated `gemini-3-pro-preview` in the model configuration.
+2. **Chat UI Improvement**:
+   - **Rich Input**: The `ChatInput` now features a model selector, token usage context, speech-to-text button, and an action menu for attachments.
+   - **Sidebar Layout**: Added a `ChatSidebar` that displays agent capabilities, conversation checkpoints, and memory configuration (Thread ID/Resource ID).
+   - **Lowered Header**: The `ChatHeader` now has a top margin (`mt-16`) to sit perfectly below the fixed global Navbar. All original features (checkpoints, memory settings, usage) have been restored to the header while also being available in the sidebar.
+   - **Layout Adjustment**: Updated the `ChatPage` height to `h-[calc(100vh-4rem)]` to account for the Navbar height and prevent unwanted scrolling.
+3. **New Agent**: Added a specialized `Gemini 3 Expert` agent configuration.

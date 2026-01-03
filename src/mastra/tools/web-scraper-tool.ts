@@ -377,6 +377,43 @@ export class ValidationUtils {
 }
 
 // Input Schema
+const crawlingOptionsSchema = z.object({
+  depth: z.number().min(1).max(5).optional().describe('Maximum crawling depth for following links (default: 1, max: 5).'),
+  maxPages: z.number().min(1).max(100).optional().describe('Maximum number of pages to crawl (default: 1, max: 100).'),
+  followLinks: z.boolean().optional().describe('Whether to follow and crawl internal links (default: false).'),
+  respectRobotsTxt: z.boolean().optional().describe('Whether to check and respect robots.txt (default: true).'),
+  delayBetweenRequests: z.number().min(0).max(10000).optional().describe('Delay between requests in milliseconds for rate limiting (default: 1000).'),
+}).optional();
+
+const extractionOptionsSchema = z.object({
+  includeImages: z.boolean().optional().describe('Whether to extract image URLs and metadata (default: false).'),
+  extractMetadata: z.boolean().optional().describe('Whether to extract page metadata (title, description, keywords, etc.) (default: true).'),
+  contentType: z.enum(['text', 'links', 'images', 'metadata', 'structured', 'all']).optional().describe('Type of content to prioritize extracting (default: "all").'),
+  extractStructuredData: z.boolean().optional().describe('Whether to extract structured data (JSON-LD, microdata, RDFa) (default: false).'),
+  languageDetection: z.boolean().optional().describe('Whether to detect and return content language (default: false).'),
+  contentFiltering: z.object({
+    minLength: z.number().optional(),
+    maxLength: z.number().optional(),
+    keywords: z.array(z.string()).optional(),
+    excludePatterns: z.array(z.string()).optional(),
+  }).optional().describe('Content filtering options (min/max length, keywords, exclude patterns).'),
+}).optional();
+
+const requestOptionsSchema = z.object({
+  timeout: z.number().min(1000).max(60000).optional().describe('Request timeout in milliseconds (default: 30000, max: 60000).'),
+  userAgent: z.string().optional().describe('Custom User-Agent string for requests.'),
+  headers: z.record(z.string(), z.string()).optional().describe('Custom HTTP headers to send with requests.'),
+  retryAttempts: z.number().min(0).max(5).optional().describe('Number of retry attempts for failed requests (default: 2, max: 5).'),
+  compression: z.boolean().optional().describe('Whether to handle compressed responses (gzip, deflate) (default: true).'),
+  cookies: z.record(z.string(), z.string()).optional().describe('Custom cookies to send with requests.'),
+}).optional();
+
+const storageOptionsSchema = z.object({
+  saveMarkdown: z.boolean().optional().describe('Whether to save the scraped content as markdown to the data directory.'),
+  markdownFileName: z.string().optional().describe('Optional filename for the markdown file (relative to data/ directory).'),
+  outputFormat: z.enum(['json', 'markdown', 'html', 'text']).optional().describe('Output format for extracted content (default: "json").'),
+}).optional();
+
 const webScraperInputSchema = z
   .object({
     url: z
@@ -397,106 +434,10 @@ const webScraperInputSchema = z
       .describe(
         "Array of HTML attributes to extract from selected elements (e.g., 'href', 'src', 'alt')."
       ),
-    saveMarkdown: z
-      .boolean()
-      .optional()
-      .describe(
-        'Whether to save the scraped content as markdown to the data directory.'
-      ),
-    markdownFileName: z
-      .string()
-      .optional()
-      .describe(
-        'Optional filename for the markdown file (relative to data/ directory). If not provided, a default name will be generated.'
-      ),
-    // Enhanced search tool options
-    depth: z
-      .number()
-      .min(1)
-      .max(5)
-      .optional()
-      .describe('Maximum crawling depth for following links (default: 1, max: 5).'),
-    maxPages: z
-      .number()
-      .min(1)
-      .max(100)
-      .optional()
-      .describe('Maximum number of pages to crawl (default: 1, max: 100).'),
-    followLinks: z
-      .boolean()
-      .optional()
-      .describe('Whether to follow and crawl internal links (default: false).'),
-    includeImages: z
-      .boolean()
-      .optional()
-      .describe('Whether to extract image URLs and metadata (default: false).'),
-    extractMetadata: z
-      .boolean()
-      .optional()
-      .describe('Whether to extract page metadata (title, description, keywords, etc.) (default: true).'),
-    contentType: z
-      .enum(['text', 'links', 'images', 'metadata', 'structured', 'all'])
-      .optional()
-      .describe('Type of content to prioritize extracting (default: "all").'),
-    timeout: z
-      .number()
-      .min(1000)
-      .max(60000)
-      .optional()
-      .describe('Request timeout in milliseconds (default: 30000, max: 60000).'),
-    userAgent: z
-      .string()
-      .optional()
-      .describe('Custom User-Agent string for requests.'),
-    headers: z
-      .record(z.string(), z.string())
-      .optional()
-      .describe('Custom HTTP headers to send with requests.'),
-    retryAttempts: z
-      .number()
-      .min(0)
-      .max(5)
-      .optional()
-      .describe('Number of retry attempts for failed requests (default: 2, max: 5).'),
-    delayBetweenRequests: z
-      .number()
-      .min(0)
-      .max(10000)
-      .optional()
-      .describe('Delay between requests in milliseconds for rate limiting (default: 1000).'),
-    respectRobotsTxt: z
-      .boolean()
-      .optional()
-      .describe('Whether to check and respect robots.txt (default: true).'),
-    extractStructuredData: z
-      .boolean()
-      .optional()
-      .describe('Whether to extract structured data (JSON-LD, microdata, RDFa) (default: false).'),
-    languageDetection: z
-      .boolean()
-      .optional()
-      .describe('Whether to detect and return content language (default: false).'),
-    contentFiltering: z
-      .object({
-        minLength: z.number().optional(),
-        maxLength: z.number().optional(),
-        keywords: z.array(z.string()).optional(),
-        excludePatterns: z.array(z.string()).optional(),
-      })
-      .optional()
-      .describe('Content filtering options (min/max length, keywords, exclude patterns).'),
-    outputFormat: z
-      .enum(['json', 'markdown', 'html', 'text'])
-      .optional()
-      .describe('Output format for extracted content (default: "json").'),
-    compression: z
-      .boolean()
-      .optional()
-      .describe('Whether to handle compressed responses (gzip, deflate) (default: true).'),
-    cookies: z
-      .record(z.string(), z.string())
-      .optional()
-      .describe('Custom cookies to send with requests.'),
+    crawling: crawlingOptionsSchema,
+    extraction: extractionOptionsSchema,
+    request: requestOptionsSchema,
+    storage: storageOptionsSchema,
   })
   .strict()
 
@@ -504,27 +445,6 @@ const webScraperInputSchema = z
 const webScraperOutputSchema = z
   .object({
     url: z.url().describe('The URL that was scraped.'),
-    extractedData: z
-      .array(z.record(z.string(), z.string()))
-      .describe(
-        'Array of extracted data, where each object represents an element and its extracted attributes/text.'
-      ),
-    rawContent: z
-      .string()
-      .optional()
-      .describe(
-        'The full raw HTML content of the page (if no selector is provided).'
-      ),
-    markdownContent: z
-      .string()
-      .optional()
-      .describe('The scraped content converted to markdown format.'),
-    savedFilePath: z
-      .string()
-      .optional()
-      .describe(
-        'Path to the saved markdown file (if saveMarkdown was true).'
-      ),
     status: z
       .string()
       .describe(
@@ -534,27 +454,53 @@ const webScraperOutputSchema = z
       .string()
       .optional()
       .describe('Error message if the operation failed.'),
-    // Enhanced output fields
-    metadata: z
-      .record(z.string(), z.string())
-      .optional()
-      .describe('Page metadata (title, description, keywords, etc.) extracted from meta tags.'),
-    images: z
-      .array(z.object({
-        src: z.string(),
-        alt: z.string().optional(),
-        title: z.string().optional(),
-      }))
-      .optional()
-      .describe('Array of image URLs and metadata found on the page.'),
-    structuredData: z
-      .array(z.unknown())
-      .optional()
-      .describe('Structured data extracted from JSON-LD and microdata.'),
-    detectedLanguage: z
-      .string()
-      .optional()
-      .describe('Detected content language from HTML lang attribute or meta tags.'),
+    content: z.object({
+      extractedData: z
+        .array(z.record(z.string(), z.string()))
+        .describe(
+          'Array of extracted data, where each object represents an element and its extracted attributes/text.'
+        ),
+      rawContent: z
+        .string()
+        .optional()
+        .describe(
+          'The full raw HTML content of the page (if no selector is provided).'
+        ),
+      markdownContent: z
+        .string()
+        .optional()
+        .describe('The scraped content converted to markdown format.'),
+    }).describe('Scraped content results.'),
+    storage: z.object({
+      savedFilePath: z
+        .string()
+        .optional()
+        .describe(
+          'Path to the saved markdown file (if saveMarkdown was true).'
+        ),
+    }).optional().describe('Storage information.'),
+    analysis: z.object({
+      metadata: z
+        .record(z.string(), z.string().optional())
+        .optional()
+        .describe('Page metadata (title, description, keywords, etc.) extracted from meta tags.'),
+      images: z
+        .array(z.object({
+          src: z.string(),
+          alt: z.string().optional(),
+          title: z.string().optional(),
+        }))
+        .optional()
+        .describe('Array of image URLs and metadata found on the page.'),
+      structuredData: z
+        .array(z.unknown())
+        .optional()
+        .describe('Structured data extracted from JSON-LD and microdata.'),
+      detectedLanguage: z
+        .string()
+        .optional()
+        .describe('Detected content language from HTML lang attribute or meta tags.'),
+    }).optional().describe('Analysis results.'),
   })
   .strict()
 
@@ -590,7 +536,7 @@ export const webScraperTool = createTool({
     log.info('Starting enhanced web scraping with JSDOM', {
       url: inputData.url,
       selector: inputData.selector,
-      saveMarkdown: inputData.saveMarkdown,
+      saveMarkdown: inputData.storage?.saveMarkdown,
     })
 
     let rawContent: string | undefined
@@ -609,24 +555,24 @@ export const webScraperTool = createTool({
 
     try {
       const headers: Record<string, string> = {
-        ...(inputData.headers ?? {}),
+        ...(inputData.request?.headers ?? {}),
       };
-      if (typeof inputData.userAgent === 'string' && inputData.userAgent.trim() !== '') {
-        headers['user-agent'] = inputData.userAgent;
+      if (typeof inputData.request?.userAgent === 'string' && inputData.request.userAgent.trim() !== '') {
+        headers['user-agent'] = inputData.request.userAgent;
       }
 
-      const maxDepth = inputData.depth ?? 1;
-      const maxPages = inputData.maxPages ?? 1;
-      const followLinks = inputData.followLinks ?? false;
-      const retryAttempts = inputData.retryAttempts ?? 2;
-      const delayBetweenRequests = inputData.delayBetweenRequests ?? 1000;
+      const maxDepth = inputData.crawling?.depth ?? 1;
+      const maxPages = inputData.crawling?.maxPages ?? 1;
+      const followLinks = inputData.crawling?.followLinks ?? false;
+      const retryAttempts = inputData.request?.retryAttempts ?? 2;
+      const delayBetweenRequests = inputData.crawling?.delayBetweenRequests ?? 1000;
 
       const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: followLinks ? Math.min(maxPages, 50) : 1,
         maxConcurrency: 10,
         maxRequestRetries: retryAttempts,
         sameDomainDelaySecs: delayBetweenRequests / 1000,
-        requestHandlerTimeoutSecs: (inputData?.timeout ?? 30000) / 1000,
+        requestHandlerTimeoutSecs: (inputData.request?.timeout ?? 30000) / 1000,
         async requestHandler({ request, body, response, enqueueLinks }) {
           try {
             scrapedUrl = request.url
@@ -694,7 +640,7 @@ export const webScraperTool = createTool({
             }
 
             // Extract metadata if requested
-            if (inputData.extractMetadata !== false) {
+            if (inputData.extraction?.extractMetadata !== false) {
               const dom = new JSDOM(rawContent, { includeNodeLocations: false })
               const { document } = dom.window
 
@@ -709,7 +655,7 @@ export const webScraperTool = createTool({
             }
 
             // Extract images if requested
-            if (inputData.includeImages ?? false) {
+            if (inputData.extraction?.includeImages ?? false) {
               const dom = new JSDOM(rawContent, { includeNodeLocations: false })
               const { document } = dom.window
               const imgElements = document.querySelectorAll('img')
@@ -727,7 +673,7 @@ export const webScraperTool = createTool({
             }
 
             // Extract structured data if requested
-            if (inputData.extractStructuredData ?? false) {
+            if (inputData.extraction?.extractStructuredData ?? false) {
               const dom = new JSDOM(rawContent, { includeNodeLocations: false })
               const { document } = dom.window
 
@@ -767,7 +713,7 @@ export const webScraperTool = createTool({
             }
 
             // Language detection (basic)
-            if (inputData.languageDetection ?? false) {
+            if (inputData.extraction?.languageDetection ?? false) {
               const dom = new JSDOM(rawContent, { includeNodeLocations: false })
               const { document } = dom.window
               detectedLanguage = document.documentElement.getAttribute('lang') ??
@@ -899,16 +845,16 @@ export const webScraperTool = createTool({
 
         await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '✂️ Converting to markdown...', stage: 'web:scraper' }, id: 'web:scraper' });
         if (
-          inputData.saveMarkdown === true &&
+          inputData.storage?.saveMarkdown === true &&
           typeof markdownContent === 'string' &&
           markdownContent.trim() !== ''
         ) {
           try {
             const fileName =
-              typeof inputData.markdownFileName === 'string' &&
-                inputData.markdownFileName.trim() !== ''
+              typeof inputData.storage?.markdownFileName === 'string' &&
+                inputData.storage.markdownFileName.trim() !== ''
                 ? ValidationUtils.sanitizeFileName(
-                  inputData.markdownFileName
+                  inputData.storage.markdownFileName
                 )
                 : `scraped_${new Date().toISOString().replace(/[:.]/g, '-')}.md`
 
@@ -949,27 +895,31 @@ export const webScraperTool = createTool({
         }
       }
 
-await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Scraping complete: ${extractedData.length} elements${(savedFilePath !== null) ? ', saved to ' + savedFilePath : ''}`, stage: 'web:scraper' }, id: 'web:scraper' });
+await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Scraping complete: ${extractedData.length} elements${(typeof savedFilePath === 'string') ? ', saved to ' + savedFilePath : ''}`, stage: 'web:scraper' }, id: 'web:scraper' });
 
 
     return webScraperOutputSchema.parse({
       url: scrapedUrl,
-      extractedData,
-      rawContent:
-        inputData.selector !== null
-          ? undefined
-          : typeof rawContent === 'string' &&
-            rawContent.trim().length > 0
-            ? rawContent
-            : undefined,
-      markdownContent,
-      savedFilePath,
       status,
       errorMessage,
-      metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-      images: images.length > 0 ? images : undefined,
-      structuredData: structuredData.length > 0 ? structuredData : undefined,
-      detectedLanguage,
+      content: {
+        extractedData,
+        rawContent:
+          (typeof inputData.selector === 'string' && inputData.selector.trim() !== '')
+            ? undefined
+            : typeof rawContent === 'string' &&
+              rawContent.trim().length > 0
+              ? rawContent
+              : undefined,
+        markdownContent,
+      },
+      storage: typeof savedFilePath === 'string' ? { savedFilePath } : undefined,
+      analysis: {
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        images: images.length > 0 ? images : undefined,
+        structuredData: structuredData.length > 0 ? structuredData : undefined,
+        detectedLanguage,
+      }
     })
   } catch (error) {
     errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`
