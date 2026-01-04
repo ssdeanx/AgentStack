@@ -12,6 +12,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { getClientIdentity, getOrCreateLocalStorageId } from "@/lib/client-identity"
 import type {
   Source,
   TokenUsage,
@@ -64,9 +65,11 @@ function extractThoughtSummaryFromParts(parts: UIMessage["parts"] | undefined): 
 export function ChatProvider({
   children,
   defaultAgent = DEFAULT_AGENT_ID,
-  defaultThreadId = "user-1",
-  defaultResourceId = "user-1",
+  defaultThreadId,
+  defaultResourceId,
 }: ChatProviderProps) {
+  const identity = useMemo(() => getClientIdentity(), [])
+
   const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
   // sourcesState is nullable to allow falling back to derived sources from messages.
   const [sourcesState, setSourcesState] = useState<Source[] | null>(null)
@@ -75,8 +78,26 @@ export function ChatProvider({
   const [pendingConfirmations, setPendingConfirmations] = useState<PendingConfirmation[]>([])
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([])
   const [webPreview, setWebPreviewState] = useState<WebPreviewData | null>(null)
-  const [threadId, setThreadIdState] = useState(defaultThreadId)
-  const [resourceId, setResourceIdState] = useState(defaultResourceId)
+
+  const [resourceId, setResourceIdState] = useState(() => {
+    return defaultResourceId ?? identity.resourceId
+  })
+
+  const threadStorageKey = useCallback(
+    (agentId: string) => `agentstack.chat.threadId.${agentId}`,
+    []
+  )
+
+  const [threadId, setThreadIdState] = useState(() => {
+    if (defaultThreadId !== undefined && defaultThreadId.trim().length > 0) {
+      return defaultThreadId
+    }
+    return getOrCreateLocalStorageId(
+      threadStorageKey(defaultAgent),
+      `thread:${identity.userId}:${defaultAgent}`
+    )
+  })
+
   const [selectedModel, setSelectedModel] = useState<ModelConfig>(getDefaultModel())
   const [isFocusMode, setFocusMode] = useState(false)
 
@@ -294,12 +315,23 @@ export function ChatProvider({
     (agentId: string) => {
       if (Object.prototype.hasOwnProperty.call(AGENT_CONFIGS, agentId)) {
         setSelectedAgent(agentId)
+
+        // Keep per-agent thread IDs stable by default (but never hard-coded).
+        if (!(defaultThreadId !== undefined && defaultThreadId.trim().length > 0)) {
+          setThreadIdState(
+            getOrCreateLocalStorageId(
+              threadStorageKey(agentId),
+              `thread:${identity.userId}:${agentId}`
+            )
+          )
+        }
+
         setSourcesState([])
         setChatError(null)
         setWebPreviewState(null)
       }
     },
-    []
+    [defaultThreadId, identity.userId, threadStorageKey]
   )
 
   const selectModel = useCallback(
@@ -424,10 +456,20 @@ export function ChatProvider({
   // Memory management
   const setThreadId = useCallback((newThreadId: string) => {
     setThreadIdState(newThreadId)
-  }, [])
+    try {
+      window.localStorage.setItem(threadStorageKey(selectedAgent), newThreadId)
+    } catch {
+      // ignore
+    }
+  }, [selectedAgent, threadStorageKey])
 
   const setResourceId = useCallback((newResourceId: string) => {
     setResourceIdState(newResourceId)
+    try {
+      window.localStorage.setItem('agentstack.resourceId', newResourceId)
+    } catch {
+      // ignore
+    }
   }, [])
 
   const agentConfig = useMemo(

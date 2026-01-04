@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react"
 import type { AgentDataPart } from "@mastra/ai-sdk"
+import { getClientIdentity } from "@/lib/client-identity"
 import {
   getWorkflowConfig,
   WORKFLOW_CONFIGS,
@@ -210,6 +211,8 @@ export function WorkflowProvider({
   children,
   defaultWorkflow = "contentStudioWorkflow",
 }: WorkflowProviderProps) {
+  const identity = useMemo(() => getClientIdentity(), [])
+
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowId>(defaultWorkflow)
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("idle")
   const [currentRun, setCurrentRun] = useState<WorkflowRun | null>(null)
@@ -238,9 +241,15 @@ export function WorkflowProvider({
         // Build inputData based on workflow type
         const inputData = buildWorkflowInputData(selectedWorkflow, inputText)
 
+        const metadata = (last as unknown as { metadata?: Record<string, unknown> })?.metadata
+        const runId = typeof metadata?.runId === "string" ? metadata.runId : ""
+        const hasRunId = runId.trim().length > 0
+
         return {
           body: {
             inputData,
+            resourceId: identity.resourceId,
+            ...(hasRunId ? { runId } : {}),
           },
         }
       },
@@ -493,7 +502,12 @@ export function WorkflowProvider({
 
       // Send message to trigger workflow via AI SDK
       const inputText = inputData?.input?.toString() ?? `Run ${workflowConfig.name}`
-      sendMessage({ text: inputText })
+      sendMessage({
+        text: inputText,
+        // AI SDK v5 supports message metadata; we use it to pass runId through prepareSendMessagesRequest.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: { runId: run.id } as any,
+      })
     },
     [workflowConfig, selectedWorkflow, sendMessage]
   )
@@ -515,9 +529,16 @@ export function WorkflowProvider({
         prev ? { ...prev, status: "running" } : null
       )
       setSuspendPayload(null)
-      sendMessage({ text: resumeData ? `resume ${JSON.stringify(resumeData)}` : "resume" })
+      const runId = currentRun?.id
+      const hasRunId = typeof runId === 'string' && runId.trim().length > 0
+
+      sendMessage({
+        text: resumeData ? `resume ${JSON.stringify(resumeData)}` : "resume",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: (hasRunId ? { runId } : {}) as any,
+      })
     }
-  }, [workflowStatus, workflowConfig, sendMessage])
+  }, [workflowStatus, workflowConfig, sendMessage, currentRun?.id])
 
   const approveWorkflow = useCallback((approved: boolean, approverName?: string) => {
     if (suspendPayload) {

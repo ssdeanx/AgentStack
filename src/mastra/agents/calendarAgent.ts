@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { listEvents, getTodayEvents, getUpcomingEvents, findFreeSlots } from '../tools/calendar-tool';
 import { googleAIFlashLite, pgMemory } from '../config';
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 

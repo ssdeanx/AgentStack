@@ -78,7 +78,7 @@ ${PGVECTOR_PROMPT}
           responseModalities: ['TEXT'],
           thinkingConfig: {
             includeThoughts: true,
-            thinkingBudget: -1,
+            thinkingLevel: 'medium',
           }
         } satisfies GoogleGenerativeAIProviderOptions,
       }
