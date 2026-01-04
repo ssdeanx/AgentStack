@@ -26,7 +26,8 @@ import {
   AgentCodeSandbox,
 } from "./agent-web-preview"
 import type { WebPreviewData } from "./chat.types"
-import { useChatContext, type ToolInvocationState } from "@/app/chat/providers/chat-context"
+import { useChatContext } from "@/app/chat/providers/chat-context-hooks"
+import type { ToolInvocationState } from "@/app/chat/providers/chat-context-types"
 import { AgentReasoning } from "./agent-reasoning"
 import { AgentChainOfThought } from "./agent-chain-of-thought"
 import { AgentTools } from "./agent-tools"
@@ -68,8 +69,35 @@ import type {
   WorkflowDataPart,
   NetworkDataPart,
 } from "@mastra/ai-sdk"
+import { cn } from "@/lib/utils"
 
 type MastraDataPart = AgentDataPart | WorkflowDataPart | NetworkDataPart | { type: `data-${string}`; id?: string; data: unknown }
+
+function extractThoughtSummaryFromParts(parts: UIMessage["parts"] | undefined): string {
+  if (!parts || parts.length === 0) {return ""}
+
+  for (const part of parts) {
+    const pm = (part as { providerMetadata?: unknown }).providerMetadata
+    if (pm === null || typeof pm !== "object") {continue}
+
+    const googleMeta = (pm as Record<string, unknown>).google
+    if (googleMeta === null || typeof googleMeta !== "object") {continue}
+
+    const candidates = [
+      (googleMeta as Record<string, unknown>).thoughtSummary,
+      (googleMeta as Record<string, unknown>).thoughts,
+      (googleMeta as Record<string, unknown>).thinkingSummary,
+    ]
+
+    for (const c of candidates) {
+      if (typeof c === "string" && c.trim().length > 0) {
+        return c
+      }
+    }
+  }
+
+  return ""
+}
 
 function resolveToolDisplayName(tool: ToolInvocationState): string {
   const dynamicName = (tool as { toolName?: unknown }).toolName
@@ -246,6 +274,14 @@ function MessageItem({
   }, [rawContent, isAssistant, showArtifacts])
 
   const messageReasoning = message.parts?.find(isReasoningUIPart)
+
+  const resolvedReasoningText = useMemo(() => {
+    const direct = messageReasoning?.text
+    if (typeof direct === "string" && direct.trim().length > 0) {
+      return direct
+    }
+    return extractThoughtSummaryFromParts(message.parts)
+  }, [messageReasoning, message.parts])
   const messageTools = useMemo(() => {
     const parts = message.parts ?? []
     const tools: ToolInvocationState[] = []
@@ -307,14 +343,12 @@ function MessageItem({
   const otherFileParts = fileParts?.filter((f) => !f.mediaType?.startsWith("image/"))
 
   const reasoningSteps = useMemo(() => {
-    const reasoningText = messageReasoning?.text ?? ""
-    if (reasoningText.length > 0) {return parseReasoningToSteps(reasoningText)}
+    if (resolvedReasoningText.length > 0) {return parseReasoningToSteps(resolvedReasoningText)}
     return []
-  }, [messageReasoning])
+  }, [resolvedReasoningText])
 
   const hasChainOfThoughtSteps = showChainOfThought && reasoningSteps.length > 0
-  const shouldShowReasoningFallback =
-    showReasoning && (!showChainOfThought || !hasChainOfThoughtSteps) && (messageReasoning?.text ?? "").length > 0
+  const hasReasoningText = showReasoning && resolvedReasoningText.length > 0
 
   const plan = useMemo(() => {
     if (isAssistant) {
@@ -388,8 +422,16 @@ function MessageItem({
 
   return (
     <Fragment>
-      <Message from={message.role}>
-        <MessageContent>
+      <div className="perspective-distant preserve-3d py-2 reveal-on-scroll">
+        <Message
+          from={message.role}
+          className={cn(
+            "transition-all duration-500 ease-spring",
+            isAssistant ? "rotate-y-2 translate-z-2 liquid-glass shadow-2xl" : "-rotate-y-2 translate-z-1 shadow-md",
+            "hover:rotate-y-0 hover:translate-z-4"
+          )}
+        >
+          <MessageContent>
           {/* User file attachments */}
           {isUser && fileParts && fileParts.length > 0 && (
             <MessageAttachments>
@@ -454,11 +496,11 @@ function MessageItem({
           )}
 
           {/* Chain of Thought / Reasoning - mutually exclusive display */}
-          {isAssistant && messageReasoning && (hasChainOfThoughtSteps || shouldShowReasoningFallback) && (
+          {isAssistant && hasReasoningText && (
             hasChainOfThoughtSteps ? (
               <AgentChainOfThought steps={reasoningSteps} isStreaming={false} />
             ) : (
-              <AgentReasoning reasoning={messageReasoning.text || ""} isStreaming={false} />
+              <AgentReasoning reasoning={resolvedReasoningText} isStreaming={false} />
             )
           )}
 
@@ -688,8 +730,9 @@ function MessageItem({
           </MessageToolbar>
         )}
       </Message>
+    </div>
 
-      {isCheckpoint && checkpointId !== null && onRestoreCheckpoint && (
+    {isCheckpoint && checkpointId !== null && onRestoreCheckpoint && (
         <AgentCheckpoint
           messageIndex={messageIndex}
           onRestore={() => onRestoreCheckpoint(checkpointId)}

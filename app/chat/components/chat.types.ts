@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import type { DynamicToolUIPart } from "ai"
-import type { ToolInvocationState as ChatToolInvocationState } from "../providers/chat-context"
+import type { ToolInvocationState as ChatToolInvocationState } from "../providers/chat-context-types"
 
 export interface Citation {
   id: string

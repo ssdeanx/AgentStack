@@ -33,7 +33,7 @@
 | `agent-queue.tsx`            | Relative time, TaskSection extraction, status badges           |
 | `agent-confirmation.tsx`     | Severity levels (info/warning/danger), styled status           |
 | `agent-checkpoint.tsx`       | Relative time, message count badge                             |
-| `chat-input.tsx`             | Compact status bar showing agent/model/tokens                  |
+| `chat-input.tsx`             | Compact status bar showing agent/model/tokens. **Fixed background/noise issue.** |
 
 ## Workflow System Audit (Dec 8, 2025)
 
@@ -48,7 +48,7 @@
 
 **Bug Fixed:**
 
-- `workflow-node.tsx`: `getStatusIcon()` and `getStatusBadgeVariant()` threw errors for pending/skipped status
+- `workflow-node.tsx`: `getStatusIcon()` and `getStatusBadgeVariant()` threw errors for pending/skipped status. **Fixed blurriness issue by removing liquid-glass effect.**
 
 **Workflows Added to Frontend Config:**
 

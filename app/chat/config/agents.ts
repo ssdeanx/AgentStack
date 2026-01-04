@@ -473,6 +473,8 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
   },
 }
 
+export const DEFAULT_AGENT_ID = Object.keys(AGENT_CONFIGS)[0] || "weatherAgent";
+
 export const CATEGORY_LABELS: Record<AgentCategory, string> = {
   core: 'Core',
   research: 'Research & Documents',

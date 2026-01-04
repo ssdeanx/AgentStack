@@ -642,18 +642,28 @@ function NetworkMessage({
   isStreaming: boolean
 }) {
   const textPart = message.parts?.find((p): p is TextUIPart => p.type === "text")
+  const isAssistant = message.role === "assistant"
 
   return (
     <Fragment key={message.id}>
-      <Message from={message.role}>
-        <MessageContent>
-          <NetworkMessageParts
-            message={message}
-            isLastMessage={isLastMessage}
-            isStreaming={isStreaming}
-          />
-        </MessageContent>
-      </Message>
+      <div className="perspective-distant preserve-3d py-2 reveal-on-scroll">
+        <Message 
+          from={message.role}
+          className={cn(
+            "transition-all duration-500 ease-spring",
+            isAssistant ? "rotate-y-2 translate-z-2 glass shadow-xl" : "-rotate-y-2 translate-z-1 shadow-md",
+            "hover:rotate-y-0 hover:translate-z-4"
+          )}
+        >
+          <MessageContent>
+            <NetworkMessageParts
+              message={message}
+              isLastMessage={isLastMessage}
+              isStreaming={isStreaming}
+            />
+          </MessageContent>
+        </Message>
+      </div>
 
       {message.role === "assistant" && isLastMessage && !isStreaming && textPart && (
         <MessageActions>
@@ -960,7 +970,7 @@ export function NetworkChat() {
       <div className="border-t p-4">
         <PromptInput
           onSubmit={handleSubmit}
-          className="mx-auto max-w-4xl"
+          className="mx-auto max-w-4xl rounded-lg border shadow-sm transition-all duration-300 focus-within:glow-primary focus-within:ring-2 focus-within:ring-primary/20 noise"
           accept="image/*,.pdf,.csv,.json,.txt,.md"
           multiple
           globalDrop

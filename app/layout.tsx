@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Navbar } from "@/app/components/navbar";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -90,7 +91,7 @@ export default function RootLayout({
           ]
         }) }} />
       </head>
-      <body className={inter.className}>
+      <body className={cn(inter.className, "mesh-gradient")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -98,8 +99,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="relative flex min-h-screen flex-col">
-            <Navbar />
-            <div className="flex-1">{children}</div>
+            <div className="hide-on-focus">
+              <Navbar />
+            </div>
+            <div className="flex-1 view-transition-fade">{children}</div>
           </div>
         </ThemeProvider>
       </body>

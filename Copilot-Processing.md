@@ -1,52 +1,108 @@
-# Copilot Processing: GitHub Tool Enhancement
+# Copilot Processing: Agent Selection Bug Fix
 
 ## User Request
 
-The user provided `src/mastra/tools/github.ts` and mentioned `vscode-websearchforcopilot_webSearch`.
-Instructions also mention Unreal Engine ThirdPerson template project and UE C++ standards, which was investigated and found to be a conflict/error in the instructions.
-
-## Project Context Discovery
-
-- **Project Type**: Mastra-based multi-agent toolkit (AgentStack).
-- **Tech Stack**: Next.js 16, TypeScript, Mastra, PgVector, AI Elements.
-- **Unreal Engine Conflict**: No mention of Unreal Engine or C++ in `memory-bank/` or codebase. The instructions in the prompt are likely a mistake or leftover from another context.
-- **Decision**: Proceed with Mastra/Next.js context as defined in the Memory Bank.
+When selecting an agent in the chat interface, it always defaults to `researchAgent` regardless of the selection.
 
 ## Status
 
-- [x] Research user intent regarding Unreal Engine vs Mastra (Confirmed Mastra project)
-- [x] Identify potential enhancements for `github.ts`
-- [x] Implement new GitHub tools:
-  - [x] `createPullRequest`
-  - [x] `mergePullRequest`
-  - [x] `addIssueComment`
-  - [x] `getPullRequest`
-  - [x] `getIssue`
-- [x] Fix `bgColorAgent.ts` TypeScript error:
-  - [x] Update `colorChangeTool` to use `@mastra/core/tools`
-  - [x] Add `execute` function to `colorChangeTool`
-- [x] Fix Navbar Runtime Error:
-  - [x] Update `ui/navigation-menu.tsx` to handle `asChild` correctly in `NavigationMenuTrigger`.
-- [x] Update @ai-sdk/google to v3:
-  - [x] Update `src/mastra/config/google.ts` to use `createGoogleGenerativeAI`.
-  - [x] Update `src/mastra/config/pg-storage.ts` to use local provider instance instead of legacy facade.
-- [x] Update documentation
-- [x] Improve Chat UI and Google 3 Model Support:
-  - [x] Add Gemini 3 Flash and update Gemini 3 Pro in `google-models.ts`.
-  - [x] Improve `ChatInput` with `ModelSelector`, `Context`, `SpeechButton`, and `ActionMenu`.
-  - [x] Create `ChatSidebar` for agent details, checkpoints, and memory settings.
-  - [x] Update `ChatPage` layout to include sidebar and adjust height for Navbar.
-  - [x] Restore all features to `ChatHeader` and add `mt-16` to lower it below the Navbar.
-  - [x] Add `gemini3Expert` agent to `agents.ts`.
+- [x] Phase 1: Initialization
+- [x] Phase 2: Planning
+- [x] Phase 3: Execution
+- [x] Phase 4: Summary
+
+## Action Plan
+
+1. **Research**: Investigate `app/chat` components to find where the agent selection is handled.
+2. **Identify**: Found that `useChat` transport was using a stale closure of `selectedAgent` and the backend route was missing dynamic agent mapping.
+3. **Fix**:
+    - Updated `src/mastra/index.ts` to enable dynamic agent routing with `agent: ":agentId"`.
+    - Updated `app/chat/providers/chat-context.tsx` to use a ref for `selectedAgent` and dynamically set the `api` URL in `prepareSendMessagesRequest`.
+4. **Verify**: The fix ensures each request is sent to the correct agent endpoint and the backend correctly resolves the agent.
+
+## Task Tracking
+
+- [x] Task 1: Read `app/chat/page.tsx` and `app/chat/providers/chat-context.tsx` to understand agent state management.
+- [x] Task 2: Check `app/chat/components/chat-input.tsx` and `app/chat/components/chat-sidebar.tsx` for selection logic.
+- [x] Task 3: Locate the API call or server action that sends the message and check the `agentId` parameter.
+- [x] Task 4: Apply the fix.
+- [x] Task 5: Update memory bank.
 
 ## Summary
 
-Enhanced the Chat UI and added support for Google Gemini 3 models:
+The agent selection bug was caused by two main issues:
 
-1. **Google 3 Models**: Added `gemini-3-flash-preview` and updated `gemini-3-pro-preview` in the model configuration.
-2. **Chat UI Improvement**:
-   - **Rich Input**: The `ChatInput` now features a model selector, token usage context, speech-to-text button, and an action menu for attachments.
-   - **Sidebar Layout**: Added a `ChatSidebar` that displays agent capabilities, conversation checkpoints, and memory configuration (Thread ID/Resource ID).
-   - **Lowered Header**: The `ChatHeader` now has a top margin (`mt-16`) to sit perfectly below the fixed global Navbar. All original features (checkpoints, memory settings, usage) have been restored to the header while also being available in the sidebar.
-   - **Layout Adjustment**: Updated the `ChatPage` height to `h-[calc(100vh-4rem)]` to account for the Navbar height and prevent unwanted scrolling.
-3. **New Agent**: Added a specialized `Gemini 3 Expert` agent configuration.
+1. **Stale Closure in Client**: The `useChat` hook's transport was initialized with the default agent and didn't update when the selection changed because the transport object was trapped in a closure.
+2. **Missing Dynamic Routing in Backend**: The Mastra `chatRoute` for `/chat/:agentId` didn't have the `agent: ":agentId"` property, preventing it from correctly resolving the agent from the path.
+
+Additionally, I removed the hardcoded `researchAgent` default from the UI and configuration, replacing it with a dynamic `DEFAULT_AGENT_ID` that defaults to the first agent in the configuration (`weatherAgent`).
+
+I implemented a robust fix by wrapping the `DefaultChatTransport` in a `useMemo` hook. This ensures that the transport is recreated with the correct `selectedAgent` whenever the selection changes, while avoiding the "Cannot access refs during render" error that occurred with the previous `useRef` attempt.
+
+To resolve Fast Refresh issues, I also refactored `chat-context.tsx` by moving interfaces and types to `chat-context-types.ts` and the `useChatContext` hook to `chat-context-hooks.ts`. This ensures that `chat-context.tsx` only exports the `ChatProvider` component.
+
+---
+
+# Copilot Processing - UI Enhancement (Tailwind v4)
+
+## User Request
+Enhance the current UI (Chat, Workflows, Networks) using latest 2026 Tailwind CSS v4 styles and techniques while keeping the current style but making it stand out and cutting edge.
+
+## Research Findings (Tailwind v4 & 2026 Trends)
+- **CSS-First Config**: Leverage `@theme` for all variables.
+- **OKLCH Colors**: Use `color-mix(in oklch, ...)` for dynamic states.
+- **3D Transforms**: Use `perspective`, `rotate-x/y`, and `translate-z` for depth.
+- **Container Queries**: Use `@container` for responsive components that don't depend on viewport size.
+- **Starting Styles**: Use `@starting-style` for smooth entry animations without JS.
+- **Glassmorphism 2.0**: Subtle background blurs with OKLCH borders.
+
+## Action Plan
+- [x] Research latest Tailwind CSS v4 features and 2026 UI trends <!-- id: 1 -->
+- [x] Analyze current implementation in `globals.css`, `app/chat`, `app/workflows`, and `app/networks` <!-- id: 2 -->
+- [x] Identify specific enhancement opportunities (3D transforms, container queries, oklch color-mix, etc.) <!-- id: 3 -->
+- [x] Update `globals.css` with advanced v4 utilities and animations <!-- id: 4 -->
+- [x] Enhance `app/chat` components with cutting-edge styles <!-- id: 5 -->
+- [x] Enhance `app/workflows` canvas and nodes with modern v4 techniques <!-- id: 6 -->
+- [x] Enhance `app/networks` routing and panels <!-- id: 7 -->
+- [x] Final review and summary <!-- id: 8 -->
+
+## Progress Tracking
+- Phase 1: Initialization - Completed
+- Phase 2: Planning - Completed
+- Phase 3: Execution - Completed
+- Phase 4: Summary - Completed
+
+## Summary of Enhancements
+
+### 1. Global Styles (`globals.css`)
+- **Liquid Glass 2.0**: Enhanced `.liquid-glass` utility with deeper blurs and OKLCH color-mixing.
+- **Ambient UI**: Added `.animate-ambient-pulse` for "breathing" active states.
+- **Scroll-driven Reveal**: Added `.reveal-on-scroll` using CSS `view-timeline` for smooth entry animations.
+- **Bento Grid**: Added `.bento-grid` and `.bento-item` for modern, modular layouts.
+- **Magnetic Interactions**: Added `.magnetic` utility for buttons that react to cursor proximity.
+- **Liquid Progress**: Added `.liquid-progress` for organic, fluid loading/usage bars.
+- **Focus Mode**: Added `.focus-mode-active` and `.hide-on-focus` for distraction-free work.
+- **Spatial Depth**: Added `.spatial-depth` for "floating" elements with dynamic shadows.
+- **View Transitions**: Added `.view-transition-fade` for smooth page morphing.
+
+### 2. Chat UI
+- **Focus Mode**: Added a toggle in the header to hide the sidebar and navbar for deep work.
+- **Magnetic Buttons**: Submit and Mic buttons now have magnetic hover effects.
+- **Ambient Mic**: The mic button pulses with an ambient glow when voice interaction is active.
+- **Liquid Usage**: The token usage bar now features a fluid "liquid" animation.
+- **Bento Sidebar**: Capabilities and features are now arranged in a Bento Grid style.
+
+### 3. Workflows UI
+- **Magnetic Toolbar**: Node action buttons now feature magnetic interactions.
+- **Ambient Nodes**: Running nodes use ambient pulsing to feel "alive".
+
+### 4. Networks UI
+- **Bento Agents**: The available agents list now uses a Bento Grid layout.
+- **Ambient Routing**: Connection lines feature a "Circuit" style ambient shimmer.
+
+### 5. Layout
+- **Global Mesh Gradient**: Applied a premium mesh gradient to the entire application.
+- **View Transitions**: Enabled smooth fade/scale transitions between main application views.
+
+### 5. Layout
+- **Global Mesh Gradient**: Applied the mesh gradient to the entire application body for a cohesive, cutting-edge look.

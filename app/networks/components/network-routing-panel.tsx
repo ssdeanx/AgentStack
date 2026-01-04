@@ -77,10 +77,12 @@ function ProgressEventItem({ event }: { event: ProgressEvent }) {
 
 function RoutingStepItem({ step, isLast }: { step: RoutingStep; isLast: boolean }) {
   return (
-    <div className="relative flex gap-3">
+    <div className="relative flex gap-3 group/step">
       {/* Connection line */}
       {!isLast && (
-        <div className="absolute left-2 top-6 h-[calc(100%-12px)] w-px bg-border" />
+        <div className="absolute left-2 top-6 h-[calc(100%-12px)] w-px bg-border overflow-hidden">
+          <div className="h-full w-full bg-primary/40 animate-ambient-pulse" />
+        </div>
       )}
 
       <div className="relative z-10 mt-0.5">
@@ -143,7 +145,7 @@ export function NetworkRoutingPanel() {
   }[networkStatus]
 
   return (
-    <Card className="h-full">
+    <Card className="h-full liquid-glass noise border-primary/10 transition-all duration-500 hover:shadow-2xl">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -159,20 +161,19 @@ export function NetworkRoutingPanel() {
         <ScrollArea className="h-[calc(100vh-280px)]">
           <div className="space-y-1 px-4 pb-4">
             {/* Network agents preview */}
-            <div className="mb-4 rounded-md border bg-muted/30 p-3">
+            <div className="mb-4 rounded-md border bg-muted/30 p-3 noise">
               <p className="mb-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
                 Available Agents
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="bento-grid !grid-cols-2 !gap-2">
                 {networkConfig.agents.map((agent) => (
-                  <Badge
+                  <div
                     key={agent.id}
-                    variant="outline"
-                    className="text-xs font-normal"
+                    className="bento-item !p-2 flex items-center gap-2"
                   >
-                    <BotIcon className="mr-1 size-3" />
-                    {agent.name}
-                  </Badge>
+                    <BotIcon className="size-3 text-primary" />
+                    <span className="text-[10px] font-medium truncate">{agent.name}</span>
+                  </div>
                 ))}
               </div>
             </div>
