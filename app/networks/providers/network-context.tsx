@@ -12,6 +12,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { getClientIdentity, getOrCreateLocalStorageId } from "@/lib/client-identity"
 import type { UIMessage, TextUIPart, ReasoningUIPart, DynamicToolUIPart, SourceUrlUIPart, ToolUIPart } from "ai"
 import {
   getNetworkConfig,
@@ -181,11 +182,25 @@ export function NetworkProvider({
   children,
   defaultNetwork = "agent-network",
 }: NetworkProviderProps) {
+  const identity = useMemo(() => getClientIdentity(), [])
+
   // Validate default network exists
   const validDefaultNetwork = NETWORK_CONFIGS[defaultNetwork] !== undefined ? defaultNetwork : Object.keys(NETWORK_CONFIGS)[0]
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkId>(validDefaultNetwork)
   const [routingSteps, setRoutingSteps] = useState<RoutingStep[]>([])
   const [networkError, setNetworkError] = useState<string | null>(null)
+
+  const threadStorageKey = useCallback(
+    (networkId: string) => `agentstack.network.threadId.${networkId}`,
+    []
+  )
+
+  const [threadId, setThreadId] = useState(() =>
+    getOrCreateLocalStorageId(
+      threadStorageKey(validDefaultNetwork),
+      `network:${identity.userId}:${validDefaultNetwork}`
+    )
+  )
 
   const networkConfig = useMemo(
     () => NETWORK_CONFIGS[selectedNetwork],
@@ -211,9 +226,16 @@ export function NetworkProvider({
         return {
           body: {
             messages: msgs,
-            resourceId: selectedNetwork,
+            resourceId: identity.resourceId,
+            threadId,
+            memory: {
+              thread: threadId,
+              resource: identity.resourceId,
+            },
             data: {
               networkId: selectedNetwork,
+              userId: identity.userId,
+              threadId,
               input: textPart?.text ?? "",
             },
           },
@@ -440,10 +462,16 @@ export function NetworkProvider({
     const config = getNetworkConfig(networkId)
     if (config) {
       setSelectedNetwork(networkId)
+      setThreadId(
+        getOrCreateLocalStorageId(
+          threadStorageKey(networkId),
+          `network:${identity.userId}:${networkId}`
+        )
+      )
       setRoutingSteps([])
       setNetworkError(null)
     }
-  }, [])
+  }, [identity.userId, threadStorageKey])
 
   const sendMessage = useCallback(
     (text: string) => {

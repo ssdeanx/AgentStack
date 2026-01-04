@@ -17,21 +17,31 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
+  const getNextPath = () => {
+    if (typeof window === "undefined") {return "/admin" as Route}
+    const params = new URLSearchParams(window.location.search)
+    const next = params.get("next")?.trim()
+    if (next?.startsWith("/") === true) {
+      return next as Route
+    }
+    return "/admin" as Route
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
+
     // Stub: simulate login delay then redirect to dashboard
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    router.push("/dashboard" as Route)
+    router.push(getNextPath())
   }
 
-  const handleSocialLogin = async (provider: string) => {
+  const handleSocialLogin = async () => {
     setIsLoading(true)
-    
+
     // Stub: simulate social login then redirect to dashboard
     await new Promise((resolve) => setTimeout(resolve, 800))
-    router.push("/dashboard" as Route)
+    router.push(getNextPath())
   }
 
   return (
@@ -58,14 +68,14 @@ export default function LoginPage() {
               Choose your preferred sign-in method
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             {/* Social Login Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => handleSocialLogin("github")}
+                onClick={() => handleSocialLogin()}
                 disabled={isLoading}
               >
                 <Github className="mr-2 h-4 w-4" />
@@ -74,7 +84,7 @@ export default function LoginPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => handleSocialLogin("google")}
+                onClick={() => handleSocialLogin()}
                 disabled={isLoading}
               >
                 <Mail className="mr-2 h-4 w-4" />
@@ -156,7 +166,7 @@ export default function LoginPage() {
         {/* Dev Notice */}
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-center">
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            <strong>Development Mode:</strong> This is a stub login page. 
+            <strong>Development Mode:</strong> This is a stub login page.
             Click any button to proceed to the dashboard.
           </p>
         </div>

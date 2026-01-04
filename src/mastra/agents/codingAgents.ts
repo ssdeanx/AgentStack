@@ -123,7 +123,6 @@ Always consider maintainability, scalability, and testability in your recommenda
   },
   maxRetries: 3,
   inputProcessors: [
-    new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
   ],
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
