@@ -7,7 +7,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/src/components/ai-elements/tool"
-import type { ToolInvocationState } from "../providers/chat-context"
+import type { ToolInvocationState } from "../providers/chat-context-types"
 import type { DynamicToolUIPart } from "ai"
 import { cn } from "@/lib/utils"
 import { useMemo } from "react"

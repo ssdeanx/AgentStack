@@ -101,6 +101,11 @@
     /* Shadow Tokens with color-mix */
     --shadow-color: oklch(0 0 0 / 10%);
     --shadow-color-dark: oklch(0 0 0 / 25%);
+
+    /* Glassmorphism Tokens */
+    --glass-opacity: 0.4;
+    --glass-blur: 12px;
+    --glass-border: oklch(1 0 0 / 10%);
 }
 
 :root {
@@ -136,6 +141,22 @@
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.129 0.042 264.695);
+
+    /* Advanced OKLCH Semantic Colors */
+    --glow-primary: oklch(0.6 0.2 260 / 50%);
+    --surface-glass: oklch(1 0 0 / var(--glass-opacity));
+
+    /* Liquid Glass Tokens */
+    --liquid-glass-opacity: 0.15;
+    --liquid-glass-blur: 24px;
+    --liquid-glass-border: oklch(1 0 0 / 20%);
+    
+    /* Ambient Animation Tokens */
+    --ambient-pulse-duration: 6s;
+
+    /* Bento Grid Tokens */
+    --bento-gap: 1rem;
+    --bento-radius: 1.5rem;
 }
 
 .dark {
@@ -170,6 +191,11 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.2 0 0);
     --sidebar-ring: oklch(0.8 0 0);
+
+    /* Dark Mode Glass */
+    --surface-glass: oklch(0.1 0 0 / var(--glass-opacity));
+    --glass-border: oklch(1 0 0 / 5%);
+    --glow-primary: oklch(0.7 0.2 260 / 30%);
 }
 
 @layer base {
@@ -330,6 +356,260 @@
 
     .color-scheme-auto {
         color-scheme: light dark;
+    }
+
+    /* Glassmorphism Utility */
+    .glass {
+        background: var(--surface-glass);
+        backdrop-filter: none;
+        border: 1px solid var(--glass-border);
+    }
+
+    /* Glow Utility */
+    .glow-primary {
+        box-shadow: 0 0 20px var(--glow-primary);
+    }
+
+    /* Liquid Glass Utility */
+    .liquid-glass {
+        background: color-mix(in oklch, var(--surface-glass), transparent 10%);
+        backdrop-filter: none;
+        border: 1px solid var(--liquid-glass-border);
+        box-shadow: 
+            0 8px 32px -1px oklch(0 0 0 / 15%),
+            inset 0 0 0 1px var(--liquid-glass-border);
+    }
+
+    /* Ambient Pulse Animation */
+    .animate-ambient-pulse {
+        animation: ambient-pulse var(--ambient-pulse-duration) ease-in-out infinite;
+    }
+
+    @keyframes ambient-pulse {
+        0%, 100% { 
+            opacity: 0.9; 
+            filter: brightness(1) saturate(1);
+            transform: scale(1);
+        }
+        50% { 
+            opacity: 1; 
+            filter: brightness(1.1) saturate(1.2) drop-shadow(0 0 15px var(--glow-primary));
+            transform: scale(1.01);
+        }
+    }
+
+    /* Kinetic Typography */
+    .kinetic-text {
+        transition: font-variation-settings 0.3s ease;
+    }
+    .kinetic-text:hover {
+        font-variation-settings: "wght" 700, "wdth" 120;
+    }
+
+    /* Scroll-driven Reveal */
+    .reveal-on-scroll {
+        view-timeline-name: --reveal;
+        view-timeline-axis: block;
+        animation-name: reveal;
+        animation-fill-mode: both;
+        animation-timeline: --reveal;
+        animation-range: entry 10% cover 30%;
+    }
+
+    @keyframes reveal {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Bento Grid Utility */
+    .bento-grid {
+        display: grid;
+        gap: var(--bento-gap);
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-auto-rows: minmax(160px, auto);
+    }
+
+    .bento-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--bento-radius);
+        border: 1px solid var(--border);
+        background: var(--card);
+        padding: 1.5rem;
+        transition: all 0.5s var(--ease-smooth);
+        background: var(--surface-glass);
+        backdrop-filter: none;
+    }
+
+    .bento-item:hover {
+        transform: translateY(-0.25rem);
+        box-shadow: var(--shadow-2xl);
+        border-color: var(--primary);
+    }
+
+    /* Magnetic Interaction (CSS-only approximation) */
+    .magnetic {
+        transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .magnetic:hover {
+        transform: scale(1.05) translateZ(20px);
+    }
+
+    /* Liquid Progress Animation */
+    .liquid-progress {
+        position: relative;
+        overflow: hidden;
+    }
+    .liquid-progress::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 200%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            oklch(var(--primary) / 20%),
+            transparent
+        );
+        animation: liquid-flow 2s infinite linear;
+    }
+
+    @keyframes liquid-flow {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+    }
+
+    /* Focus Mode Utility */
+    .focus-mode-active .hide-on-focus {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-10px);
+        transition: all 0.5s ease;
+    }
+
+    /* Spatial Depth Utility */
+    .spatial-depth {
+        transform: translateZ(50px);
+        box-shadow: 
+            0 20px 50px -10px oklch(0 0 0 / 30%),
+            0 10px 20px -5px oklch(0 0 0 / 20%);
+        transition: transform 0.5s var(--ease-spring);
+    }
+    .spatial-depth:hover {
+        transform: translateZ(70px) translateY(-5px);
+    }
+
+    /* View Transitions (CSS-only approximation for SPA) */
+    .view-transition-fade {
+        view-transition-name: main-content;
+    }
+
+    ::view-transition-old(main-content) {
+        animation: 0.3s ease-out both fade-out;
+    }
+    ::view-transition-new(main-content) {
+        animation: 0.5s var(--ease-spring) both fade-in;
+    }
+
+    @keyframes fade-out {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.98); }
+    }
+    @keyframes fade-in {
+        from { opacity: 0; transform: scale(1.02); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Noise Texture Overlay */
+    .noise {
+        position: relative;
+    }
+
+    .noise::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        opacity: 0.03;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* Mesh Gradient Background */
+    .mesh-gradient {
+        background-color: var(--background);
+        background-image: 
+            radial-gradient(at 0% 0%, oklch(0.7 0.2 260 / 15%) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, oklch(0.6 0.2 300 / 15%) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, oklch(0.8 0.2 100 / 10%) 0px, transparent 50%),
+            radial-gradient(at 0% 100%, oklch(0.5 0.2 200 / 15%) 0px, transparent 50%);
+        background-attachment: fixed;
+    }
+
+    /*
+      Crisp mode (scoped): prevents Windows text softening caused by
+      GPU compositing + 3D transforms + overlay noise.
+      Applied via the `ui-crisp` wrapper on /chat and /workflows.
+    */
+    .ui-crisp {
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .ui-crisp .noise::before {
+        display: none;
+    }
+
+    .ui-crisp .card-3d,
+    .ui-crisp .perspective-none,
+    .ui-crisp .perspective-dramatic,
+    .ui-crisp .perspective-near,
+    .ui-crisp .perspective,
+    .ui-crisp .perspective-distant,
+    .ui-crisp .preserve-3d {
+        perspective: none;
+        transform-style: flat;
+    }
+
+    .ui-crisp .card-3d-inner,
+    .ui-crisp .translate-z-0,
+    .ui-crisp .translate-z-1,
+    .ui-crisp .translate-z-2,
+    .ui-crisp .translate-z-4,
+    .ui-crisp .translate-z-8,
+    .ui-crisp .-translate-z-1,
+    .ui-crisp .-translate-z-2,
+    .ui-crisp .rotate-x-0,
+    .ui-crisp .rotate-x-1,
+    .ui-crisp .rotate-x-2,
+    .ui-crisp .rotate-x-3,
+    .ui-crisp .rotate-x-6,
+    .ui-crisp .rotate-x-12,
+    .ui-crisp .-rotate-x-1,
+    .ui-crisp .-rotate-x-2,
+    .ui-crisp .-rotate-x-3,
+    .ui-crisp .-rotate-x-6,
+    .ui-crisp .rotate-y-0,
+    .ui-crisp .rotate-y-1,
+    .ui-crisp .rotate-y-2,
+    .ui-crisp .rotate-y-3,
+    .ui-crisp .rotate-y-6,
+    .ui-crisp .rotate-y-12,
+    .ui-crisp .-rotate-y-1,
+    .ui-crisp .-rotate-y-2,
+    .ui-crisp .-rotate-y-3,
+    .ui-crisp .-rotate-y-6 {
+        transform: none !important;
+        filter: none;
     }
 }
 

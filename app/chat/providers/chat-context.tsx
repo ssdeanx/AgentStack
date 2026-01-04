@@ -2,145 +2,28 @@
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { getAgentConfig, AGENT_CONFIGS } from "../config/agents"
+import { getAgentConfig, AGENT_CONFIGS, DEFAULT_AGENT_ID } from "../config/agents"
 import { getDefaultModel, getModelConfig, type ModelConfig } from "../config/models"
 import type { UIMessage, DynamicToolUIPart, TextUIPart, ReasoningUIPart, ToolUIPart } from "ai"
 import {
-  createContext,
   useCallback,
-  useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react"
-
-export interface Source {
-  url: string
-  title: string
-}
-
-export interface TokenUsage {
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-}
-
-export type ChatStatus = "ready" | "submitted" | "streaming" | "error"
-
-export type ToolInvocationState = ToolUIPart | DynamicToolUIPart
-
-export interface QueuedTask {
-  id: string
-  title: string
-  description?: string
-  status: "pending" | "running" | "completed" | "failed"
-}
-
-export interface PendingConfirmation {
-  id: string
-  toolName: string
-  description: string
-  approval: { id: string; approved?: boolean; reason?: string }
-  state: ToolUIPart["state"]
-}
-
-export interface Checkpoint {
-  id: string
-  messageIndex: number
-  timestamp: Date
-  messageCount: number
-  label?: string
-}
-
-export interface WebPreviewData {
-  id: string
-  url: string
-  title?: string
-  code?: string
-  language?: string
-}
-
-export interface ChatContextValue {
-  // Core state
-  messages: UIMessage[]
-  isLoading: boolean
-  status: ChatStatus
-  selectedAgent: string
-  streamingContent: string
-  streamingReasoning: string
-  toolInvocations: ToolInvocationState[]
-  sources: Source[]
-  usage: TokenUsage | null
-  error: string | null
-  agentConfig: ReturnType<typeof getAgentConfig>
-  selectedModel: ModelConfig
-
-  // Queue & Tasks
-  queuedTasks: QueuedTask[]
-  pendingConfirmations: PendingConfirmation[]
-
-  // Checkpoints
-  checkpoints: Checkpoint[]
-
-  // Web Preview
-  webPreview: WebPreviewData | null
-
-  // Memory settings
-  threadId: string
-  resourceId: string
-
-  // Actions
-  // eslint-disable-next-line no-unused-vars
-  sendMessage: (text: string, files?: File[]) => void
-  stopGeneration: () => void
-  clearMessages: () => void
-  // eslint-disable-next-line no-unused-vars
-  selectAgent: (agentId: string) => void
-  // eslint-disable-next-line no-unused-vars
-  selectModel: (modelId: string) => void
-  dismissError: () => void
-
-  // Task management
-  // eslint-disable-next-line no-unused-vars
-  addTask: (task: Omit<QueuedTask, "id">) => string
-  // eslint-disable-next-line no-unused-vars
-  updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
-  // eslint-disable-next-line no-unused-vars
-  removeTask: (taskId: string) => void
-
-  // Confirmation management
-  // eslint-disable-next-line no-unused-vars
-  approveConfirmation: (confirmationId: string) => void
-  // eslint-disable-next-line no-unused-vars
-  rejectConfirmation: (confirmationId: string, reason?: string) => void
-  // Checkpoint management
-  // eslint-disable-next-line no-unused-vars
-  createCheckpoint: (messageIndex: number, label?: string) => string
-  // eslint-disable-next-line no-unused-vars
-  restoreCheckpoint: (checkpointId: string) => void
-  // eslint-disable-next-line no-unused-vars
-  removeCheckpoint: (checkpointId: string) => void
-  // Web Preview management
-  // eslint-disable-next-line no-unused-vars
-  setWebPreview: (preview: WebPreviewData | null) => void
-  // Memory management
-  // eslint-disable-next-line no-unused-vars
-  setThreadId: (threadId: string) => void
-  // eslint-disable-next-line no-unused-vars
-  setResourceId: (resourceId: string) => void
-}
-
-const ChatContext = createContext<ChatContextValue | null>(null)
-
-export function useChatContext(): ChatContextValue {
-  const context = useContext(ChatContext)
-  if (!context) {
-    throw new Error("useChatContext must be used within a ChatProvider")
-  }
-  return context
-}
+import type {
+  Source,
+  TokenUsage,
+  ChatStatus,
+  ToolInvocationState,
+  QueuedTask,
+  PendingConfirmation,
+  Checkpoint,
+  WebPreviewData,
+  ChatContextValue,
+} from "./chat-context-types"
+import { ChatContext } from "./chat-context-hooks"
 
 export interface ChatProviderProps {
   children: ReactNode
@@ -151,9 +34,36 @@ export interface ChatProviderProps {
 
 const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
 
+function extractThoughtSummaryFromParts(parts: UIMessage["parts"] | undefined): string {
+  if (!parts || parts.length === 0) {return ""}
+
+  for (const part of parts) {
+    const pm = (part as { providerMetadata?: unknown }).providerMetadata
+    if (pm === null || typeof pm !== "object") {continue}
+
+    const googleMeta = (pm as Record<string, unknown>).google
+    if (googleMeta === null || typeof googleMeta !== "object") {continue}
+
+    // Different SDKs/versions surface this under slightly different keys.
+    const candidates = [
+      (googleMeta as Record<string, unknown>).thoughtSummary,
+      (googleMeta as Record<string, unknown>).thoughts,
+      (googleMeta as Record<string, unknown>).thinkingSummary,
+    ]
+
+    for (const c of candidates) {
+      if (typeof c === "string" && c.trim().length > 0) {
+        return c
+      }
+    }
+  }
+
+  return ""
+}
+
 export function ChatProvider({
   children,
-  defaultAgent = "researchAgent",
+  defaultAgent = DEFAULT_AGENT_ID,
   defaultThreadId = "user-1",
   defaultResourceId = "user-1",
 }: ChatProviderProps) {
@@ -168,9 +78,50 @@ export function ChatProvider({
   const [threadId, setThreadIdState] = useState(defaultThreadId)
   const [resourceId, setResourceIdState] = useState(defaultResourceId)
   const [selectedModel, setSelectedModel] = useState<ModelConfig>(getDefaultModel())
+  const [isFocusMode, setFocusMode] = useState(false)
 
   // Ref to track message snapshots for checkpoint restore
   const messageSnapshotsRef = useRef<Map<string, UIMessage[]>>(new Map())
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
+        // Match the network provider's request shape so the server can pick the
+        // correct agent by reading body.data.agentId. Avoid sending extra
+        // top-level fields which can confuse the MAStra chatRoute router.
+        prepareSendMessagesRequest({ messages: outgoingMessages }) {
+          const last = outgoingMessages[outgoingMessages.length - 1]
+          const textPart = last?.parts?.find((p): p is TextUIPart => p.type === "text")
+
+          return {
+            api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
+            body: {
+              // id at top-level is used by chatRoute to select the agent when
+              // multiple chatRoute handlers are registered at the same path.
+              id: selectedAgent,
+              messages: outgoingMessages,
+              memory: {
+                thread: threadId,
+                resource: resourceId,
+              },
+              requestMetadata: {
+                agentId: selectedAgent,
+                resourceId,
+              },
+              // set resourceId so server can use it for tracing/memory if needed
+              resourceId,
+              data: {
+                agentId: selectedAgent,
+                threadId,
+                input: textPart?.text ?? "",
+              },
+            },
+          }
+        },
+      }),
+    [selectedAgent, threadId, resourceId]
+  )
 
   const {
     messages,
@@ -180,40 +131,7 @@ export function ChatProvider({
     error: aiError,
     stop,
   } = useChat({
-    transport: new DefaultChatTransport({
-      api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
-      // Match the network provider's request shape so the server can pick the
-      // correct agent by reading body.data.agentId. Avoid sending extra
-      // top-level fields which can confuse the MAStra chatRoute router.
-      prepareSendMessagesRequest({ messages: outgoingMessages }) {
-        const last = outgoingMessages[outgoingMessages.length - 1]
-        const textPart = last?.parts?.find((p): p is TextUIPart => p.type === "text")
-
-        return {
-              body: {
-                // id at top-level is used by chatRoute to select the agent when
-                // multiple chatRoute handlers are registered at the same path.
-                id: selectedAgent,
-            messages: outgoingMessages,
-            memory: {
-            thread: threadId,
-            resource: resourceId,
-          },
-          requestMetadata: {
-            agentId: selectedAgent,
-            resourceId,
-          },
-            // set resourceId so server can use it for tracing/memory if needed
-            resourceId,
-            data: {
-              agentId: selectedAgent,
-              threadId,
-              input: textPart?.text ?? "",
-            },
-          },
-        }
-      },
-    }),
+    transport,
   })
 
   const status: ChatStatus = useMemo(() => {
@@ -240,7 +158,13 @@ export function ChatProvider({
       const reasoningPart = lastMessage.parts?.find(
         (p): p is ReasoningUIPart => p.type === "reasoning"
       )
-      return reasoningPart?.text ?? ""
+
+      const direct = reasoningPart?.text
+      if (typeof direct === "string" && direct.trim().length > 0) {
+        return direct
+      }
+
+      return extractThoughtSummaryFromParts(lastMessage.parts)
     }
     return ""
   }, [messages])
@@ -313,13 +237,13 @@ export function ChatProvider({
 
     const out = output
 
-    if (out.previewUrl && typeof out.previewUrl === "string") {
+    if (typeof out.previewUrl === "string") {
       return {
         id: "web-preview",
         url: out.previewUrl,
         title: (out.title as string) || "Generated Preview",
       }
-    } else if (out.code && typeof out.code === "string") {
+    } else if (typeof out.code === "string") {
       const language = (out.language as string) || "tsx"
       const htmlCandidate = (out as { html?: unknown }).html
       if (language === "html" || typeof htmlCandidate === "string") {
@@ -342,7 +266,11 @@ export function ChatProvider({
     (text: string, files?: File[]) => {
       if (!text.trim() || isLoading) {return}
       setChatError(null)
-      aiSendMessage({ text: text.trim() })
+      aiSendMessage({
+        text: text.trim(),
+        // @ts-ignore - attachments support in AI SDK v5
+        attachments: files
+      })
     },
     [isLoading, aiSendMessage]
   )
@@ -552,6 +480,7 @@ export function ChatProvider({
         webPreview: webPreview ?? derivedWebPreview,
         threadId,
         resourceId,
+        isFocusMode,
         sendMessage,
         stopGeneration,
         clearMessages,
@@ -569,9 +498,10 @@ export function ChatProvider({
         setWebPreview,
         setThreadId,
         setResourceId,
+        setFocusMode,
       }
     },
-    [messages, isLoading, status, selectedAgent, streamingContent, streamingReasoning, toolInvocations, sourcesState, derivedSources, error, agentConfig, selectedModel, queuedTasks, pendingConfirmations, checkpoints, webPreview, derivedWebPreview, threadId, resourceId, sendMessage, stopGeneration, clearMessages, selectAgent, selectModel, dismissError, addTask, updateTask, removeTask, approveConfirmation, rejectConfirmation, createCheckpoint, restoreCheckpoint, removeCheckpoint, setWebPreview, setThreadId, setResourceId, aiStatus]
+    [messages, isLoading, status, selectedAgent, streamingContent, streamingReasoning, toolInvocations, sourcesState, derivedSources, error, agentConfig, selectedModel, queuedTasks, pendingConfirmations, checkpoints, webPreview, derivedWebPreview, threadId, resourceId, isFocusMode, sendMessage, stopGeneration, clearMessages, selectAgent, selectModel, dismissError, addTask, updateTask, removeTask, approveConfirmation, rejectConfirmation, createCheckpoint, restoreCheckpoint, removeCheckpoint, setWebPreview, setThreadId, setResourceId, setFocusMode, aiStatus]
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

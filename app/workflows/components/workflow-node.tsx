@@ -85,16 +85,17 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
   }
 
   return (
-    <Node
-      handles={handles}
-      className={cn(
-        "w-70 transition-all",
-        status === "running" && "ring-2 ring-yellow-500/50",
-        status === "completed" && "ring-2 ring-green-500/50",
-        status === "error" && "ring-2 ring-red-500/50"
-      )}
-    >
-      <NodeHeader>
+    <div className="card-3d">
+      <Node
+        handles={handles}
+        className={cn(
+          "w-70 transition-all card-3d-inner bg-card border shadow-sm",
+          status === "running" && "ring-2 ring-yellow-500/50 glow-primary animate-ambient-pulse",
+          status === "completed" && "ring-2 ring-green-500/50",
+          status === "error" && "ring-2 ring-red-500/50"
+        )}
+      >
+        <NodeHeader>
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             {getStatusIcon(status)}
@@ -139,7 +140,7 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-xs magnetic"
           title="View step details"
         >
           <InfoIcon className="size-3 mr-1" />
@@ -148,7 +149,7 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-xs magnetic"
           onClick={handleRunStep}
           disabled={!canRunStep || status === "running"}
           title="Run this step"
@@ -158,6 +159,7 @@ export function WorkflowNode({ data }: WorkflowNodeProps) {
         </Button>
       </Toolbar>
     </Node>
+    </div>
   )
 }
 

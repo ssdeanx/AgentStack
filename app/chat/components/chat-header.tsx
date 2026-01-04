@@ -39,7 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/ui/popover"
-import { useChatContext } from "@/app/chat/providers/chat-context"
+import { useChatContext } from "@/app/chat/providers/chat-context-hooks"
 import {
   getAgentsByCategory,
   CATEGORY_LABELS,
@@ -65,8 +65,11 @@ import {
   HashIcon,
   CpuIcon,
   BotIcon,
+  Maximize2Icon,
+  Minimize2Icon,
 } from "lucide-react"
 import { useMemo, useState, useCallback } from "react"
+import { cn } from "@/lib/utils"
 
 const DEFAULT_MAX_TOKENS = 128000
 
@@ -112,6 +115,8 @@ export function ChatHeader() {
     setResourceId(tempResourceId)
     setSettingsOpen(false)
   }, [tempThreadId, tempResourceId, setThreadId, setResourceId])
+
+  const { isFocusMode, setFocusMode } = useChatContext()
 
   const usedTokens = usage ? usage.inputTokens + usage.outputTokens : 0
 
@@ -303,6 +308,21 @@ export function ChatHeader() {
             </ModelSelectorList>
           </ModelSelectorContent>
         </ModelSelector>
+
+        {/* Focus Mode Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setFocusMode(!isFocusMode)}
+          title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
+          className={cn(isFocusMode && "text-primary")}
+        >
+          {isFocusMode ? (
+            <Minimize2Icon className="size-4" />
+          ) : (
+            <Maximize2Icon className="size-4" />
+          )}
+        </Button>
 
         {/* Memory Settings */}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>

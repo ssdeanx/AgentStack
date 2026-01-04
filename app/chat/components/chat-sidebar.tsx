@@ -1,6 +1,6 @@
 "use client"
 
-import { useChatContext } from "@/app/chat/providers/chat-context"
+import { useChatContext } from "@/app/chat/providers/chat-context-hooks"
 import { Badge } from "@/ui/badge"
 import { Button } from "@/ui/button"
 import { Input } from "@/ui/input"
@@ -55,7 +55,7 @@ export function ChatSidebar() {
   ]
 
   return (
-    <aside className="flex h-full w-80 flex-col border-l bg-muted/10 overflow-y-auto">
+    <aside className="flex h-full w-80 flex-col border-l glass responsive-card overflow-y-auto noise">
       {/* Agent Info Section */}
       <div className="p-4 border-b">
         <div className="flex items-center gap-2 mb-2">
@@ -93,7 +93,7 @@ export function ChatSidebar() {
             <div
               key={feature.id}
               className={cn(
-                "flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors",
+                "flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium transition-all duration-300 bento-item p-2",
                 feature.enabled
                   ? "bg-primary/5 border-primary/20 text-primary"
                   : "bg-muted/50 border-transparent text-muted-foreground opacity-60"

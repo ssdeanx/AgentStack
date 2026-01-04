@@ -36,7 +36,7 @@ import {
   ContextInputUsage,
   ContextOutputUsage,
 } from "@/src/components/ai-elements/context"
-import { useChatContext } from "@/app/chat/providers/chat-context"
+import { useChatContext } from "@/app/chat/providers/chat-context-hooks"
 import { AgentSuggestions } from "./agent-suggestions"
 import { getSuggestionsForAgent } from "./chat.utils"
 import { Badge } from "@/ui/badge"
@@ -71,6 +71,7 @@ export function ChatInput() {
   } = useChatContext()
 
   const [input, setInput] = useState("")
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const supportsFiles = agentConfig?.features.fileUpload ?? false
@@ -85,9 +86,9 @@ export function ChatInput() {
   const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
 
   /* Agent Selector - compact dropdown in input toolbar */
-  
+
   // Model Selector
-  
+
 
   const handleSubmit = async (message: { text: string; files: unknown[] }) => {
     if (message.text.trim()) {
@@ -101,7 +102,7 @@ export function ChatInput() {
   }
 
   return (
-    <footer className="border-t border-border p-4">
+    <footer className="border-t border-border p-4 bg-background">
       <div className="mx-auto max-w-4xl space-y-3">
         {showSuggestions && (
           <AgentSuggestions
@@ -132,7 +133,7 @@ export function ChatInput() {
 
         <PromptInput
           onSubmit={handleSubmit}
-          className="rounded-lg border shadow-sm"
+          className="rounded-lg border shadow-sm transition-all duration-300 focus-within:glow-primary focus-within:ring-2 focus-within:ring-primary/20 bg-background"
           accept={supportsFiles ? "image/*,.pdf,.txt,.csv,.json,.md" : undefined}
           multiple={supportsFiles}
           globalDrop
@@ -171,6 +172,11 @@ export function ChatInput() {
               <PromptInputSpeechButton
                 onTranscriptionChange={setInput}
                 textareaRef={textareaRef}
+                className={cn(
+                  "magnetic transition-all duration-300",
+                  isSpeaking && "text-primary glow-primary animate-ambient-pulse scale-110"
+                )}
+                onClick={() => setIsSpeaking(!isSpeaking)}
               >
                 <MicIcon className="size-4" />
               </PromptInputSpeechButton>
@@ -257,7 +263,7 @@ export function ChatInput() {
                 usedTokens={totalTokens}
                 maxTokens={selectedModel.contextWindow}
               >
-                <ContextTrigger />
+                <ContextTrigger className="liquid-progress" />
                 <ContextContent>
                   <ContextContentHeader />
                   <ContextContentBody>
@@ -272,6 +278,7 @@ export function ChatInput() {
                   onClick={stopGeneration}
                   variant="ghost"
                   title="Stop generation"
+                  className="magnetic"
                 >
                   <SquareIcon className="size-4" />
                 </PromptInputButton>
@@ -280,6 +287,7 @@ export function ChatInput() {
             <PromptInputSubmit
               status={status}
               disabled={isLoading && status !== "streaming"}
+              className="magnetic"
             />
           </PromptInputFooter>
         </PromptInput>
