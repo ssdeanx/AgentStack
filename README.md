@@ -8,6 +8,7 @@
 ![Networks Custom Tool v1.0.0](networksCustomToolv1.png)
 
 <!-- Core Project Badges -->
+
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.9.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -15,25 +16,29 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <!-- Stats Badges -->
-[![Agents](https://img.shields.io/badge/Agents-30+-blue?logo=robot&logoColor=white)](src/mastra/agents)
+
+[![Agents](https://img.shields.io/badge/Agents-31+-blue?logo=robot&logoColor=white)](src/mastra/agents)
 [![Tools](https://img.shields.io/badge/Tools-60+-orange?logo=hammer&logoColor=white)](src/mastra/tools)
-[![Workflows](https://img.shields.io/badge/Workflows-14-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
-[![Networks](https://img.shields.io/badge/Networks-4-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
+[![Workflows](https://img.shields.io/badge/Workflows-15-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
+[![Networks](https://img.shields.io/badge/Networks-13-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
 [![UI Components](https://img.shields.io/badge/UI%20Components-65-pink?logo=react&logoColor=white)](ui/)
 
 <!-- Quality Badges -->
+
 [![Tests](https://img.shields.io/badge/Tests-97%25%20Coverage-brightgreen?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Zod](https://img.shields.io/badge/Schema-Zod-3E67B1?logo=zod&logoColor=white)](https://zod.dev/)
 [![ESLint](https://img.shields.io/badge/Lint-ESLint-4B32C3?logo=eslint&logoColor=white)](https://eslint.org/)
 
 <!-- Repository Links -->
+
 [![GitHub](https://img.shields.io/badge/GitHub-ssdeanx/AgentStack-181717?logo=github)](https://github.com/ssdeanx/AgentStack)
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 [![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **60+ enterprise tools**, **30+ specialized agents**, **14 workflows**, **4 agent networks**, **65 UI components** (30+ AI Elements + 35+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **60+ enterprise tools**, **31+ specialized agents**, **15 workflows**, **13 agent networks**, **65 UI components** (30+ AI Elements + 35+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 <!-- Mastra Ecosystem -->
+
 [![@mastra/core](https://img.shields.io/npm/v/@mastra/core?label=@mastra/core&logo=npm)](https://www.npmjs.com/package/@mastra/core)
 [![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg?label=@mastra/pg&logo=postgresql&logoColor=white)](https://www.npmjs.com/package/@mastra/pg)
 [![@mastra/rag](https://img.shields.io/npm/v/@mastra/rag?label=@mastra/rag&logo=npm)](https://www.npmjs.com/package/@mastra/rag)
@@ -41,12 +46,14 @@
 [![@mastra/ai-sdk](https://img.shields.io/npm/v/@mastra/ai-sdk?label=@mastra/ai-sdk&logo=npm)](https://www.npmjs.com/package/@mastra/ai-sdk)
 
 <!-- AI/ML Stack -->
+
 [![@ai-sdk/google](https://img.shields.io/npm/v/@ai-sdk/google?label=AI%20SDK%20Google&logo=google&logoColor=white)](https://www.npmjs.com/package/@ai-sdk/google)
 [![@ai-sdk/react](https://img.shields.io/npm/v/@ai-sdk/react?label=AI%20SDK%20React&logo=react)](https://www.npmjs.com/package/@ai-sdk/react)
 [![Langfuse](https://img.shields.io/badge/Observability-Langfuse-FF6B6B?logo=opentelemetry&logoColor=white)](https://langfuse.com/)
 [![PgVector](https://img.shields.io/badge/Vector-PgVector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 
 <!-- LLM Providers -->
+
 [![Gemini](https://img.shields.io/badge/LLM-Gemini%202.5-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 [![OpenAI](https://img.shields.io/badge/LLM-OpenAI-412991?logo=openai&logoColor=white)](https://openai.com/)
 [![Anthropic](https://img.shields.io/badge/LLM-Claude-D4A373?logo=anthropic&logoColor=white)](https://anthropic.com/)
@@ -60,7 +67,7 @@
 | **Production Observability** | ✅ **Full Langfuse tracing + custom scorers**        | ⚠️ Partial    | ❌ Basic      | ❌ Limited |
 | **Financial Tools**          | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**  | ❌ None       | ❌ None       | ❌ None    |
 | **RAG Pipeline**             | ✅ **PgVector HNSW + rerank + graphRAG**             | ⚠️ External   | ❌ Basic      | ❌ None    |
-| **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration (30+ agents)**  | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
+| **Multi-Agent**              | ✅ **A2A MCP + parallel orchestration (30+ agents)** | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
 | **Governance**               | ✅ **JWT/RBAC + path traversal + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
 | **TypeScript**               | ✅ **Zod schemas everywhere (94+ tools)**            | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
 | **UI Components**            | ✅ **65 components (AI Elements + shadcn/ui)**       | ❌ None       | ❌ None       | ❌ None    |
@@ -72,9 +79,9 @@
 
 - **💰 Financial Intelligence**: 30+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
 - **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
-- **🤖 30+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane)
-- **📋 14 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis
-- **🌐 4 Agent Networks**: Coding team, data pipeline, report generation, research pipeline
+- **🤖 31+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane/social media/SEO/translation/customer support/project management)
+- **📋 15 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis, marketing campaign
+- **🌐 13 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline, content creation, financial intelligence, learning, marketing automation, DevOps, business intelligence, security
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report), A2A coordinator for cross-agent communication
 - **🎨 65 UI Components**: AI Elements (30 chat/reasoning/canvas components) + shadcn/ui (35 base primitives)
 - **📊 Full Observability**: Langfuse traces + 10+ custom scorers (diversity/quality/completeness) + TanStack Query for state management
@@ -147,25 +154,25 @@ sequenceDiagram
 
     User->>Workflow: Execute workflow step
     Workflow->>Logger: logStepStart()
-    
+
     Workflow->>Writer: custom({ type: "data-tool-progress" })
     Note over Writer: status: "in-progress"<br/>message: "Starting..."<br/>stage: "step-id"
     Writer-->>User: Stream progress update
-    
+
     Workflow->>Agent/Tool: Execute operation
     Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
     Note over Writer: Tool emits progress<br/>with same format
     Writer-->>User: Stream tool progress
-    
+
     Agent/Tool-->>Workflow: Return result
-    
+
     Workflow->>Writer: custom({ type: "data-tool-progress" })
     Note over Writer: status: "done"<br/>message: "Completed..."<br/>stage: "step-id"
     Writer-->>User: Stream completion
-    
+
     Workflow->>Logger: logStepEnd()
     Workflow-->>User: Return final output
-    
+
     alt Error occurs
         Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
         Note over Writer: status: "error"<br/>message: error details
@@ -184,34 +191,34 @@ flowchart TD
     A -->|components| D[chat-input.tsx]
     A -->|config| E[agents.ts]
     A -->|providers| F[chat-context.tsx]
-    
+
     G[app/networks] -->|components| H[network-header.tsx]
     G -->|components| I[network-messages.tsx]
     G -->|config| J[networks.ts]
     G -->|providers| K[network-context.tsx]
-    
+
     L[app/workflows] -->|components| M[workflow-canvas.tsx]
     L -->|components| N[workflow-header.tsx]
     L -->|config| O[workflows.ts]
     L -->|providers| P[workflow-context.tsx]
-    
+
     Q[app/dashboard] -->|components| R[dashboard.tsx]
     Q -->|components| S[agent-list.tsx]
     Q -->|providers| T[dashboard-context.tsx]
-    
+
     U[lib] -->|hooks| V[use-mastra.ts]
     U -->|hooks| W[use-dashboard-queries.ts]
     U -->|utils| X[utils.ts]
     U -->|client| Y[mastra-client.ts]
-    
+
     Z[src/types] -->|api| AA[mastra-api.ts]
-    
+
     AB[src/mastra/index.ts] -->|imports| AC[agents/*]
     AB -->|imports| AD[tools/*]
     AB -->|imports| AE[workflows/*]
     AB -->|imports| AF[networks/*]
     AB -->|imports| AG[config/*]
-    
+
     style A stroke:#64b5f6
     style B stroke:#64b5f6
     style C stroke:#64b5f6
@@ -335,54 +342,62 @@ The frontend uses `@mastra/client-js` with TanStack Query for robust state manag
 
 ```typescript
 // lib/mastra-client.ts - Base client configuration
-import { MastraClient } from "@mastra/client-js";
+import { MastraClient } from '@mastra/client-js'
 
 export const mastraClient = new MastraClient({
-  baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111",
-});
+    baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
+})
 
 // lib/hooks/use-dashboard-queries.ts - TanStack Query hooks
-import { useQuery } from "@tanstack/react-query";
-import { mastraClient } from "@/lib/mastra-client";
+import { useQuery } from '@tanstack/react-query'
+import { mastraClient } from '@/lib/mastra-client'
 
 // Query keys for cache management
 export const queryKeys = {
-  agents: ["agents"] as const,
-  agent: (id: string) => ["agents", id] as const,
-  workflows: ["workflows"] as const,
-  tools: ["tools"] as const,
-  traces: (filters?: Record<string, unknown>) => ["traces", filters] as const,
-  threads: (resourceId: string, agentId: string) => ["threads", resourceId, agentId] as const,
-  vectors: (vectorName: string) => ["vectors", vectorName] as const,
-};
+    agents: ['agents'] as const,
+    agent: (id: string) => ['agents', id] as const,
+    workflows: ['workflows'] as const,
+    tools: ['tools'] as const,
+    traces: (filters?: Record<string, unknown>) => ['traces', filters] as const,
+    threads: (resourceId: string, agentId: string) =>
+        ['threads', resourceId, agentId] as const,
+    vectors: (vectorName: string) => ['vectors', vectorName] as const,
+}
 
 // Type-safe query hooks
 export function useAgentsQuery() {
-  return useQuery({
-    queryKey: queryKeys.agents,
-    queryFn: async (): Promise<Agent[]> => {
-      const agents = await mastraClient.listAgents();
-      return Object.entries(agents).map(([id, agent]) => ({
-        id,
-        name: agent.name,
-        description: agent.description,
-        model: agent.model,
-      }));
-    },
-  });
+    return useQuery({
+        queryKey: queryKeys.agents,
+        queryFn: async (): Promise<Agent[]> => {
+            const agents = await mastraClient.listAgents()
+            return Object.entries(agents).map(([id, agent]) => ({
+                id,
+                name: agent.name,
+                description: agent.description,
+                model: agent.model,
+            }))
+        },
+    })
 }
 
 // lib/types/mastra-api.ts - Zod schemas for type safety
-import { z } from "zod";
+import { z } from 'zod'
 
 export const AgentSchema = z.object({
-  id: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  model: z.union([z.string(), z.object({ provider: z.string(), name: z.string() })]).optional(),
-  tools: z.union([z.array(z.string()), z.record(z.string(), z.unknown())]).optional(),
-});
-export type Agent = z.infer<typeof AgentSchema>;
+    id: z.string(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    model: z
+        .union([
+            z.string(),
+            z.object({ provider: z.string(), name: z.string() }),
+        ])
+        .optional(),
+    tools: z
+        .union([z.array(z.string()), z.record(z.string(), z.unknown())])
+        .optional(),
+})
+export type Agent = z.infer<typeof AgentSchema>
 
 // Available hooks:
 // - useAgentsQuery(), useAgentQuery(id)
@@ -413,10 +428,10 @@ import { useAgentsQuery } from "@/lib/hooks/use-dashboard-queries";
 
 export function AgentsList() {
   const { data: agents, isLoading, error } = useAgentsQuery();
-  
+
   if (isLoading) return <div>Loading agents...</div>;
   if (error) return <div>Error: {error.message}</div>;
-  
+
   return agents.map(agent => <AgentCard key={agent.id} agent={agent} />);
 }
 ```
@@ -437,10 +452,10 @@ export function AgentsList() {
 
 - `lib/mastra-client.ts` - MastraClient configuration for frontend
 - `lib/hooks/` - TanStack Query hooks for data fetching (15+ hooks)
-  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-  - `use-mastra.ts` - Generic fetch hook with loading/error states
+    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+    - `use-mastra.ts` - Generic fetch hook with loading/error states
 - `lib/types/` - Zod schemas and TypeScript types
-  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - `lib/utils.ts` - Shared utilities (cn, formatDate, etc.)
 - `lib/a2a.ts` - Agent-to-agent coordination utilities
 - `lib/auth.ts` - Authentication utilities
@@ -798,21 +813,35 @@ The admin dashboard provides comprehensive observability and management:
 
 ```typescript
 // Shared components (_components/)
-- data-table.tsx        // Reusable TanStack Table with sorting/filtering
-- detail-panel.tsx      // Slide-over panel for item details
-- empty-state.tsx       // Consistent empty states
-- error-fallback.tsx    // Error boundary with retry
-- loading-skeleton.tsx  // Skeleton loaders
-- sidebar.tsx           // Navigation sidebar
-- stat-card.tsx         // Metric display cards
-
-// Agent-specific (agents/_components/)
-- agent-list.tsx        // Filterable agent list
-- agent-list-item.tsx   // Individual agent card
-- agent-details.tsx     // Agent configuration details
-- agent-tab.tsx         // Agent overview tab
-- agent-tools-tab.tsx   // Agent tools tab
-- agent-evals-tab.tsx   // Agent evaluations tab
+;-data -
+    table.tsx - // Reusable TanStack Table with sorting/filtering
+    detail -
+    panel.tsx - // Slide-over panel for item details
+    empty -
+    state.tsx - // Consistent empty states
+    error -
+    fallback.tsx - // Error boundary with retry
+    loading -
+    skeleton.tsx - // Skeleton loaders
+    sidebar.tsx - // Navigation sidebar
+    stat -
+    card.tsx - // Metric display cards
+    // Agent-specific (agents/_components/)
+    agent -
+    list.tsx - // Filterable agent list
+    agent -
+    list -
+    item.tsx - // Individual agent card
+    agent -
+    details.tsx - // Agent configuration details
+    agent -
+    tab.tsx - // Agent overview tab
+    agent -
+    tools -
+    tab.tsx - // Agent tools tab
+    agent -
+    evals -
+    tab.tsx // Agent evaluations tab
 ```
 
 **Data Fetching:**
@@ -820,29 +849,33 @@ The admin dashboard provides comprehensive observability and management:
 All dashboard pages use TanStack Query hooks from `lib/hooks/use-dashboard-queries.ts`:
 
 ```typescript
-import { useAgentsQuery, useToolsQuery, useTracesQuery } from "@/lib/hooks/use-dashboard-queries";
+import {
+    useAgentsQuery,
+    useToolsQuery,
+    useTracesQuery,
+} from '@/lib/hooks/use-dashboard-queries'
 
 function AgentsPage() {
-  const { data: agents, isLoading } = useAgentsQuery();
-  const { data: tools } = useToolsQuery();
-  
-  // Automatic caching, refetching, and error handling
+    const { data: agents, isLoading } = useAgentsQuery()
+    const { data: tools } = useToolsQuery()
+
+    // Automatic caching, refetching, and error handling
 }
 ```
 
 ## 🌐 **Integrations Matrix**
 
-| Category             | Tools                                                  | Agents                                    | Frontend                                  |
-| -------------------- | ------------------------------------------------------ | ----------------------------------------- | ----------------------------------------- |
-| **🔍 Search**        | SerpAPI (News/Trends/Shopping/Scholar/Local/Yelp)      | ResearchAgent                             | Chat interface with citations             |
-| **💰 Financial**     | Polygon (10+), Finnhub (6+), AlphaVantage (indicators) | StockAnalysis, CryptoAnalysis             | Dashboard with charts and metrics         |
-| **📄 RAG**           | PgVector chunk/rerank/query/graph                      | Retrieve/Rerank/Answerer                  | Vector search interface                   |
-| **📝 Content**       | PDF→MD, Web Scraper, Copywriter/Editor                 | CopywriterAgent, EditorAgent, ReportAgent | Chat with artifact preview                |
-| **🎨 Visual**        | CSV↔Excalidraw, SVG/XML process                       | csvToExcalidrawAgent, imageToCsvAgent     | Workflow canvas visualization             |
-| **🌐 Orchestration** | A2A MCP Server                                         | a2aCoordinatorAgent, codingA2ACoordinator | Network routing panel                     |
-| **💻 UI**            | AI Elements (30), shadcn/ui (35), Radix primitives     | Chat/Reasoning/Canvas interfaces          | 65 components across 10+ app routes       |
-| **📊 Observability** | Langfuse traces, Custom scorers                        | All agents instrumented                   | Dashboard with traces/logs/telemetry      |
-| **🔄 State Mgmt**    | TanStack Query                                         | Memory threads, working memory            | 15+ hooks with caching and invalidation   |
+| Category             | Tools                                                  | Agents                                    | Frontend                                |
+| -------------------- | ------------------------------------------------------ | ----------------------------------------- | --------------------------------------- |
+| **🔍 Search**        | SerpAPI (News/Trends/Shopping/Scholar/Local/Yelp)      | ResearchAgent                             | Chat interface with citations           |
+| **💰 Financial**     | Polygon (10+), Finnhub (6+), AlphaVantage (indicators) | StockAnalysis, CryptoAnalysis             | Dashboard with charts and metrics       |
+| **📄 RAG**           | PgVector chunk/rerank/query/graph                      | Retrieve/Rerank/Answerer                  | Vector search interface                 |
+| **📝 Content**       | PDF→MD, Web Scraper, Copywriter/Editor                 | CopywriterAgent, EditorAgent, ReportAgent | Chat with artifact preview              |
+| **🎨 Visual**        | CSV↔Excalidraw, SVG/XML process                        | csvToExcalidrawAgent, imageToCsvAgent     | Workflow canvas visualization           |
+| **🌐 Orchestration** | A2A MCP Server                                         | a2aCoordinatorAgent, codingA2ACoordinator | Network routing panel                   |
+| **💻 UI**            | AI Elements (30), shadcn/ui (35), Radix primitives     | Chat/Reasoning/Canvas interfaces          | 65 components across 10+ app routes     |
+| **📊 Observability** | Langfuse traces, Custom scorers                        | All agents instrumented                   | Dashboard with traces/logs/telemetry    |
+| **🔄 State Mgmt**    | TanStack Query                                         | Memory threads, working memory            | 15+ hooks with caching and invalidation |
 
 ## 🤝 **Advanced Usage**
 
@@ -886,12 +919,20 @@ The chat interface (`/chat`) provides a production-ready AI chat experience with
 
 Advanced agent network orchestration (`/networks`) with routing and coordination:
 
-**4 Pre-configured Networks:**
+**13 Pre-configured Networks:**
 
-1. **Coding Team Network** (4 agents): Architecture → Review → Testing → Refactoring
-2. **Data Pipeline Network** (3 agents): Ingestion → Transformation → Export
-3. **Report Generation Network** (3 agents): Research → Analysis → Report
-4. **Research Pipeline Network** (4 agents): Research → Learning → Knowledge Indexing → Synthesis
+1. **Primary Agent Network** (8 agents): General routing to specialized agents
+2. **Coding Team Network** (4 agents): Architecture → Review → Testing → Refactoring
+3. **Data Pipeline Network** (3 agents): Ingestion → Transformation → Export
+4. **Report Generation Network** (3 agents): Research → Analysis → Report
+5. **Research Pipeline Network** (4 agents): Research → Learning → Knowledge Indexing → Synthesis
+6. **Content Creation Network** (5 agents): Writing → Editing → Strategy → Scripting
+7. **Financial Intelligence Network** (7 agents): Stock analysis → Charts → Research → Reporting
+8. **Learning Network** (5 agents): Learning extraction → Knowledge indexing → Research
+9. **Marketing Automation Network** (6 agents): Social media → SEO → Content → Translation
+10. **DevOps Network** (7 agents): Architecture → Testing → Deployment → Monitoring
+11. **Business Intelligence Network** (7 agents): Data ingestion → Analytics → Visualization
+12. **Security Network** (4 agents): Code review → Compliance → Vulnerability management
 
 **Features:**
 
@@ -903,7 +944,7 @@ Advanced agent network orchestration (`/networks`) with routing and coordination
 
 Interactive workflow visualization (`/workflows`) with AI Elements Canvas:
 
-**11 Pre-built Workflows:**
+**15 Pre-built Workflows:**
 
 1. **Weather Workflow**: Fetch weather → Analyze → Suggest activities
 2. **Content Studio**: Research → Write → Edit → Review
@@ -916,6 +957,10 @@ Interactive workflow visualization (`/workflows`) with AI Elements Canvas:
 9. **Governed RAG Answer**: Query → Retrieve → Rerank → Answer
 10. **Spec Generation**: Requirements → Design → Spec → Validation
 11. **Stock Analysis**: Fetch data → Technical analysis → Report
+12. **Repo Ingestion**: Repository analysis → Code indexing → Knowledge base
+13. **Telephone Game**: Interactive user input workflows
+14. **Changelog Generation**: Git diff analysis → AI changelog creation
+15. **Marketing Campaign**: End-to-end campaign orchestration
 
 **AI Elements Components** (8 for workflows):
 
@@ -982,10 +1027,10 @@ npm run mcp-server
 **Shared Libraries:**
 
 - **[lib/hooks](lib/hooks/)**: TanStack Query hooks for data fetching (15+ hooks)
-  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-  - `use-mastra.ts` - Generic fetch hook with loading/error states
+    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+    - `use-mastra.ts` - Generic fetch hook with loading/error states
 - **[lib/types](lib/types/)**: Zod schemas and TypeScript types
-  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - **[lib/](lib/)**: Client SDK, utilities, auth, A2A coordination
 
 **Core Components:**
@@ -1005,12 +1050,16 @@ npm run mcp-server
 - [x] **Financial Suite**: Polygon/Finnhub/AlphaVantage (✅ Live - 30+ endpoints)
 - [x] **RAG Pipeline**: PgVector + rerank/graph (✅ Live)
 - [x] **A2A MCP**: Parallel orchestration (✅ Live)
-- [x] **11 Workflows**: Sequential, parallel, branch, loop, foreach, suspend/resume (✅ Live)
-- [x] **4 Agent Networks**: Routing and coordination (✅ Live)
+- [x] **15 Workflows**: Sequential, parallel, branch, loop, foreach, suspend/resume (✅ Live)
+- [x] **13 Agent Networks**: Routing and coordination (✅ Live)
 - [x] **65 UI Components**: AI Elements + shadcn/ui (✅ Live)
 - [x] **Chat Interface**: Full agent chat UI with AI Elements (✅ Live - 48+ agents)
 - [x] **Dashboard**: Admin dashboard with TanStack Query (✅ Live - 8 routes)
 - [x] **MastraClient SDK**: Type-safe client with Zod schemas (✅ Live)
+- [x] **Marketing Suite**: Social media, SEO, translation, customer support (✅ Live)
+- [x] **DevOps Suite**: CI/CD, testing, deployment, monitoring (✅ Live)
+- [x] **Business Intelligence**: Data analytics, visualization, reporting (✅ Live)
+- [x] **Security Suite**: Code review, compliance, vulnerability management (✅ Live)
 - [ ] **LangSmith/Phoenix**: Enhanced eval dashboards
 - [ ] **Docker/Helm**: K8s deployment templates
 - [ ] **Multi-tenancy**: Tenant isolation and resource management
@@ -1021,7 +1070,7 @@ npm run mcp-server
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-_Last updated: 2025-12-05 | v1.1.0_
+_Last updated: 2025-12-15 | v1.2.0_
 
 ## 🧠 **Chat**
 

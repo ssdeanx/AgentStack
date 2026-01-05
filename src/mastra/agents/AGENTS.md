@@ -10,7 +10,7 @@ Agent Developer — objective: Implement higher-level behaviors by composing too
 
 This directory contains 22+ agent definitions that map use-case intents to sequences of tool invocations, policies, and memory usage.
 
-## Current Agents (26 files)
+## Current Agents (31 files)
 
 | File                         | Export                     | Agent ID                   | Purpose                                                          | Dependencies                      |
 | ---------------------------- | -------------------------- | -------------------------- | ---------------------------------------------------------------- | --------------------------------- |
@@ -38,6 +38,11 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 | `researchPaperAgent.ts`      | `researchPaperAgent`       | `researchPaperAgent`       | Search arXiv, download papers, parse PDFs to markdown            | arXiv Tools, PDF Tools            |
 | `documentProcessingAgent.ts` | `documentProcessingAgent`  | `documentProcessingAgent`  | Convert PDFs to markdown, chunk documents for RAG                | PDF Tools, Chunking Tools         |
 | `knowledgeIndexingAgent.ts`  | `knowledgeIndexingAgent`   | `knowledgeIndexingAgent`   | Index documents into PgVector, semantic search with reranking    | RAG Tools, PgVector               |
+| `socialMediaAgent.ts`        | `socialMediaAgent`         | `social-media-agent`       | Creates and schedules social media content across platforms      | Content Tools, Calendar Tools     |
+| `seoAgent.ts`                | `seoAgent`                 | `seo-agent`                | Optimizes content for search engines and performance tracking    | Research Tools, Content Tools     |
+| `translationAgent.ts`        | `translationAgent`         | `translation-agent`        | Professional translation with cultural adaptation                | Evaluation Tools, Research Tools  |
+| `customerSupportAgent.ts`    | `customerSupportAgent`     | `customer-support-agent`   | Handles customer inquiries and technical support                 | Research Tools, Report Tools      |
+| `projectManagementAgent.ts`  | `projectManagementAgent`   | `project-management-agent` | Manages projects, tasks, timelines, and team coordination        | Calendar Tools, Report Tools      |
 | `dane.ts`                    | `dane`                     | `dane`                     | Utility agent for development and testing                        | Various                           |
 | `sql.ts`                     | `sqlAgent`                 | `sqlAgent`                 | SQL query generation and database operations                     | pg-sql-tool                       |
 
@@ -46,36 +51,36 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 ### How to Add a New Agent
 
 1. **Create Agent File**
-   - Create `src/mastra/agents/your-agent-name.ts`
-   - Follow the pattern from existing agents
+    - Create `src/mastra/agents/your-agent-name.ts`
+    - Follow the pattern from existing agents
 
-   ```typescript
-   import { Agent } from '@mastra/core/agent'
+    ```typescript
+    import { Agent } from '@mastra/core/agent'
 
-   export const yourAgent = new Agent({
-     id: 'your-agent-id',
-     name: 'Your Agent Name',
-     description: 'Brief description of what this agent does',
-     // ... other configurations
-   })
-   ```
+    export const yourAgent = new Agent({
+        id: 'your-agent-id',
+        name: 'Your Agent Name',
+        description: 'Brief description of what this agent does',
+        // ... other configurations
+    })
+    ```
 
 2. **Register the Agent**
-   - Add your agent to `src/mastra/index.ts` in the agents object
+    - Add your agent to `src/mastra/index.ts` in the agents object
 
-   ```typescript
-   export const mastra = new Mastra({
-     agents: {
-       // ... other agents
-       yourAgent
-     },
-     // ... rest of config
-   })
-   ```
+    ```typescript
+    export const mastra = new Mastra({
+        agents: {
+            // ... other agents
+            yourAgent,
+        },
+        // ... rest of config
+    })
+    ```
 
 3. **Add Tests**
-   - Create tests in `src/mastra/__tests__/agents/your-agent.test.ts`
-   - Test both success and error cases
+    - Create tests in `src/mastra/__tests__/agents/your-agent.test.ts`
+    - Test both success and error cases
 
 ## Best Practices
 
@@ -114,7 +119,8 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 2.1.0   | 2025-11-28 | Added 4 Financial Chart agents: chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent.          |
+| 2.2.0   | 2025-12-15 | Added 5 new specialized agents: socialMediaAgent, seoAgent, translationAgent, customerSupportAgent, projectManagementAgent.          |
+| 2.1.0   | 2025-11-28 | Added 4 Financial Chart agents: chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent.           |
 | 2.0.0   | 2025-11-26 | Major update: 22 agents documented. Added data pipeline, research paper, document processing, knowledge indexing agents.             |
 | 1.2.0   | 2025-11-19 | Added content creation and stock analysis agents.                                                                                    |
 | 1.1.0   | 2025-11-16 | Complete reorganization of agents documentation. Added detailed sections for each agent, development guidelines, and best practices. |
