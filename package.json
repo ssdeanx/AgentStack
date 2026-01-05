@@ -48,6 +48,7 @@
     "@ai-sdk/openai-compatible": "^2.0.2",
     "@ai-sdk/react": "^3.0.7",
     "@dotenvx/dotenvx": "^1.51.4",
+    "@e2b/code-interpreter": "^2.3.3",
     "@emotion/react": "^11.14.0",
     "@mastra/ai-sdk": "^1.0.0-beta.12",
     "@mastra/auth-supabase": "^1.0.0-beta.1",
