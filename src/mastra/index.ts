@@ -113,6 +113,7 @@ import { specGenerationWorkflow } from './workflows/spec-generation-workflow'
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow'
 import { telephoneGameWorkflow } from './workflows/telephone-game'
 import { weatherWorkflow } from './workflows/weather-workflow'
+import { marketingCampaignWorkflow } from './workflows'
 
 export const mastra = new Mastra({
     workflows: {
