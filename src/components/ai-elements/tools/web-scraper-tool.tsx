@@ -4,7 +4,7 @@ import { Badge } from "@/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs"
 import { ExternalLink, FileText, Globe, Image as ImageIcon, Link } from "lucide-react"
-import type { WebScraperUITool } from "@/src/mastra/tools/web-scraper-tool"
+import type { WebScraperUITool } from "./types"
 import { CodeBlock } from "../code-block"
 
 interface WebScraperToolProps {

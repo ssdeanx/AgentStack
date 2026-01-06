@@ -16,6 +16,7 @@ import { codeSearchTool } from '../tools/code-search.tool'
 import { findReferencesTool } from '../tools/find-references.tool'
 import { findSymbolTool } from '../tools/find-symbol.tool'
 import { execaTool } from '../tools/execa-tool'
+import * as e2bTools from '../tools/e2b'
 import {
   listRepositories,
   listIssues,
@@ -124,7 +125,7 @@ Always consider maintainability, scalability, and testability in your recommenda
   maxRetries: 3,
   inputProcessors: [
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 //log.info('Cached tokens:', providerMetadata.google?.usageMetadata);
@@ -235,9 +236,9 @@ Be constructive and educational in feedback.`,
   },
   maxRetries: 3,
   inputProcessors: [
-    new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
+
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 /**
@@ -285,16 +286,25 @@ export const testEngineerAgent = new Agent({
    - Edge case coverage
 
 5. **Test Execution**
-   - Run tests using execaTool
+   - Run tests using execaTool or E2B sandbox tools
+   - Use E2B sandboxes for isolated and safe test execution
    - Analyze test failures
    - Verify fixes
 
 **Process:**
 1. Analyze source code using codeAnalysisTool
-2. Generate test scaffolds using testGeneratorTool
-3. Identify edge cases and error conditions
-4. Create comprehensive test suites
-5. Run tests to verify correctness
+2. Create isolated E2B sandbox for testing if needed
+3. Generate test scaffolds using testGeneratorTool
+4. Identify edge cases and error conditions
+5. Create comprehensive test suites
+6. Run tests to verify correctness
+
+**Sandbox Workflow (Safe Testing):**
+1. \`createSandbox\`: Start a new isolation environment
+2. \`writeFiles\`: Push code and tests to sandbox
+3. \`runCommand\`: Execute \`npm test\` or \`vitest\` in sandbox
+4. \`readFile\`: Retrieve test results or logs
+5. \`deleteFile\`: Cleanup (or let sandbox timeout)
 
 **Output Format:**
 Provide:
@@ -327,6 +337,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     testGeneratorTool,
     codeSearchTool,
     execaTool,
+    ...e2bTools,
 //    ...githubMCP.getTools(),
   },
   memory: pgMemory,
@@ -339,10 +350,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
 
   },
   maxRetries: 3,
-  inputProcessors: [
-    new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
-  ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 /**
@@ -403,8 +411,17 @@ export const refactoringAgent = new Agent({
 **Process:**
 1. Analyze code with codeAnalysisTool to identify issues
 2. Generate diff preview with diffReviewTool
-3. Apply changes with multiStringEditTool (dry-run first)
-4. Verify changes don't break functionality (run tests if possible)
+3. Use E2B sandboxes to verify changes before local application
+4. Apply changes with multiStringEditTool (dry-run first)
+5. Verify changes don't break functionality (run tests in sandbox)
+
+**Sandbox Workflow (Safe Refactoring):**
+1. \`createSandbox\`: Start a new isolation environment
+2. \`writeFiles\`: Push original code to sandbox
+3. \`runCode\`: Run snippets or tests to establish baseline
+4. \`writeFiles\`: Push refactored code
+5. \`runCode\` or \`runCommand\`: Verify behavior remains correct
+6. If verified, proceed to local \`multiStringEditTool\`
 
 **Output Format:**
 For each refactoring:
@@ -439,6 +456,7 @@ For each refactoring:
     findReferencesTool,
     findSymbolTool,
     execaTool,
+    ...e2bTools,
   },
   memory: pgMemory,
 
@@ -450,10 +468,7 @@ For each refactoring:
 
   },
   maxRetries: 3,
-  inputProcessors: [
-    new UnicodeNormalizer({ stripControlChars: true, collapseWhitespace: true }),
-  ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent')

@@ -4,7 +4,9 @@
 
 # 🚀 AgentStack
 
-![Networks v1.0.0](networksv1.png)
+<img src="assets/logo.png" width="128" height="128" alt="AgentStack Logo" />
+
+![Home](assets/image-1767685860512.png)
 ![Networks Custom Tool v1.0.0](networksCustomToolv1.png)
 
 <!-- Core Project Badges -->

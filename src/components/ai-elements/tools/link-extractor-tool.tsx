@@ -3,7 +3,7 @@
 import { Badge } from "@/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card"
 import { ExternalLink, Link, CheckCircle, XCircle } from "lucide-react"
-import type { LinkExtractorUITool } from "@/src/mastra/tools/web-scraper-tool"
+import type { LinkExtractorUITool } from "./types"
 
 interface LinkExtractorToolProps {
   toolCallId: string
@@ -98,9 +98,9 @@ export function LinkExtractorTool({ input, output, errorText }: LinkExtractorToo
                 }`}
               >
                 {link.isValid ? (
-                  <CheckCircle className="size-4 text-green-600 flex-shrink-0" />
+                  <CheckCircle className="size-4 text-green-600 shrink-0" />
                 ) : (
-                  <XCircle className="size-4 text-red-600 flex-shrink-0" />
+                  <XCircle className="size-4 text-red-600 shrink-0" />
                 )}
 
                 <div className="flex-1 min-w-0">
@@ -127,7 +127,7 @@ export function LinkExtractorTool({ input, output, errorText }: LinkExtractorToo
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 flex-shrink-0"
+                    className="text-blue-600 hover:text-blue-800 shrink-0"
                   >
                     <ExternalLink className="size-4" />
                   </a>

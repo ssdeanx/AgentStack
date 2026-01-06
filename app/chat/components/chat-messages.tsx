@@ -69,6 +69,7 @@ import type {
   WorkflowDataPart,
   NetworkDataPart,
 } from "@mastra/ai-sdk"
+import { AgentTool } from "@/ui/agent-tool"
 import { cn } from "@/lib/utils"
 
 type MastraDataPart = AgentDataPart | WorkflowDataPart | NetworkDataPart | { type: `data-${string}`; id?: string; data: unknown }
@@ -516,37 +517,14 @@ function MessageItem({
                 }
 
                 if (partType === "data-tool-agent" || partType === "data-tool-workflow" || partType === "data-tool-network") {
-                  const nestedPart = part as MastraDataPart
-                  const label =
-                    partType === "data-tool-agent"
-                      ? "Tool Nested Agent Stream"
-                      : partType === "data-tool-workflow"
-                        ? "Tool Nested Workflow Stream"
-                        : "Tool Nested Network Stream"
-
+                  const nestedPart = part as any;
                   return (
-                    <Collapsible
+                    <AgentTool
                       key={`${message.id}-${partType}-${index}`}
-                      className="rounded-lg border bg-muted/40"
-                      defaultOpen={false}
-                    >
-                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
-                        <span>{label}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">Data Part</Badge>
-                          <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                        </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="px-4 pb-4 pt-2">
-                        <CodeBlock
-                          code={JSON.stringify((nestedPart as { data?: unknown }).data ?? {}, null, 2)}
-                          language={"json" as BundledLanguage}
-                          className="my-2"
-                        >
-                          <CodeBlockCopyButton />
-                        </CodeBlock>
-                      </CollapsibleContent>
-                    </Collapsible>
+                      id={nestedPart.id ?? partType}
+                      type={partType as any}
+                      data={nestedPart.data}
+                    />
                   )
                 }
 

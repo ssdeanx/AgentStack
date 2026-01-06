@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI, googleAIFlashLite } from '../config/google'
+import { google3, googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
@@ -97,7 +97,7 @@ export const codingTeamNetwork = new Agent({
 - Chain agents when the task requires multiple steps
 - Preserve context when passing between agents
 `,
-  model: googleAIFlashLite,
+  model: google3,
   memory: pgMemory,
   options: {
 

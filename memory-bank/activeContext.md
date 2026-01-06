@@ -1,12 +1,14 @@
 # Active Context
 
-## Current Focus (Dec 2025)
+## Current Focus (Jan 2026)
 
+- **[NEW]** Enhanced Task Manager and Spec Generator skills with persona-driven logic and automation scripts.
 - **[Synced Dec 8, 2025]** Chat Components Production Grade - 11 components improved with enhanced UX.
 - **[Synced Dec 8, 2025]** Workflow System Audit complete - 12 workflows verified, 2 added to frontend config.
 - **[Synced Dec 5, 2025]** AI Elements Integration 92% complete (12/13 tasks). Chat interface fully functional.
 - **[NEW]** Models Configuration System: 150+ models from 6 providers, shared between `/chat` and `/networks`.
 - **[COMPLETED]** Workflows UI 100% complete - 12 workflows with Canvas visualization, input panels, streaming output.
+- **[COMPLETED]** Unified Tool Exports: Consolidated 40+ tools into `src/mastra/tools/index.ts` and updated `src/components/ai-elements/tools/types.ts` with all tool types.
 - **[v1 - 50%]** Mastra Admin Dashboard v1 - MastraClient-based dashboard for observability, memory, logs, telemetry.
 - **[v2 - PLANNED]** Dashboard v2 feature spec created - 33 tasks, modular components, React Query, auth prep.
 - `/memory-bank` fully aligned with codebase: 22+ agents; 30+ tools; 12 workflows; 4 networks; config/pg-storage active.
@@ -18,6 +20,16 @@
 
 **Status:** ✅ Complete
 **Session:** Production-grade improvements to 11 chat components
+
+**Recent Changes:**
+
+- 2026-01-06: Upgraded `generative-ui-architect`, `multi-agent-orchestrator`, and `webapp-testing` with automation scripts (`scaffold_genui.py`, `visualize_network.py`, `generate_test_plan.py`).
+- 2026-01-06: Added Multi-Perspective Review and Quality Scorecards to `spec-generator`.
+- 2026-01-06: Added Dependency Mapping and Complexity Estimation into `task-manager`.
+- 2026-01-06: Enhanced `task-manager` and `spec-generator` skills with persona-driven logic and automation scripts (`persona_engine.py`, `task_generator.py`).
+- 2026-01-06: Created `skills/task-manager/` with `SKILL.md` and `TASK-TEMPLATE.md`.
+- 2026-01-06: Created `skills/spec-generator/` with `SKILL.md`, `PRD-TEMPLATE.md`, and `DESIGN-TEMPLATE.md`.
+- 2025-12-08: Improved 11 chat components with production-grade enhancements and fixed input background noise.
 
 **Components Improved:**
 

@@ -8,6 +8,8 @@ import { log } from '../config/logger'
 
 
 import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
+import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
+import * as e2bTools from '../tools/e2b'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
@@ -28,7 +30,7 @@ log.info('Initializing Coding A2A Coordinator...')
  * - Refactoring with test coverage (refactor + generate tests)
  */
 export const codingA2ACoordinator = new Agent({
-  id: 'codingA2ACoordinator',
+  id: 'codingA2A',
   name: 'Coding A2A Coordinator',
   description: 'A2A Coordinator that orchestrates multiple coding agents in parallel for complex development tasks like full feature development, comprehensive reviews, and refactoring with tests.',
   instructions: ({ requestContext }) => {
@@ -90,15 +92,23 @@ All Parallel:
   - testEngineerAgent: Test coverage analysis
 \`\`\`
 
-### 3. Refactoring with Tests (Sequential)
+### 3. Refactoring with Verification (Hybrid)
 \`\`\`
 Sequential:
   1. codeReviewerAgent: Identify issues
-  2. refactoringAgent: Apply improvements
-  3. testEngineerAgent: Generate tests for changes
+  2. refactoringAgent: Apply improvements (verifying in E2B sandbox)
+  3. testEngineerAgent: Generate and run tests in sandbox
 \`\`\`
 
-### 4. Quick Analysis (Parallel)
+### 4. Sandbox Code Execution (Isolated)
+\`\`\`
+Parallel:
+  - createSandbox: Prepare environment
+  - runCode: Execute untrusted or experimental code
+  - testEngineerAgent: Verify output
+\`\`\`
+
+### 5. Quick Analysis (Parallel)
 \`\`\`
 All Parallel:
   - codeArchitectAgent: Structure analysis
@@ -107,35 +117,43 @@ All Parallel:
 
 ## Execution Guidelines
 
-1. **Analyze Request**: Determine which orchestration pattern fits best
+1. **Analyze Request**: Determine which orchestration pattern fits best. Prefer patterns that involve sandbox verification for destructive or critical changes.
 2. **Decompose Tasks**: Create specific subtasks for each agent
-3. **Execute**: Run agents (parallel when independent, sequential when dependent)
+3. **Execute**: Run agents (parallel when independent, sequential when dependent). Use Promise.all() for parallel steps.
 4. **Synthesize**: Combine all results into comprehensive response
 5. **Summarize**: Provide executive summary with key findings and recommendations
+
+## E2B Sandbox Usage
+As a coordinator, you can use E2B tools directly or instruct agents to use them. Sandboxes are preferred for:
+- Running untrusted code
+- Verifying refactorings before local application
+- Executing generated tests in isolation
+- Scraping or processing data in a clean environment
 
 ## Output Format
 
 For each orchestration:
 1. **Workflow Selected**: Which pattern and why
-2. **Agent Tasks**: What each agent is doing
-3. **Individual Results**: Summary from each agent
-4. **Synthesis**: Combined insights and recommendations
-5. **Action Items**: Prioritized next steps
+2. **Sandbox Used**: Details of any E2B session (if applicable)
+3. **Agent Tasks**: What each agent is doing
+4. **Individual Results**: Summary from each agent
+5. **Synthesis**: Combined insights and recommendations
+6. **Action Items**: Prioritized next steps
 
 ## Example
 
-**Request:** "Analyze the user service and suggest improvements with tests"
+**Request:** "Analyze the user service and suggest improvements with verified tests"
 
 **Orchestration:**
-- Pattern: Comprehensive Review + Refactoring
+- Pattern: Comprehensive Review + Refactoring with Verification
 - Phase 1 (Parallel):
   - codeArchitectAgent: Analyze service architecture
   - codeReviewerAgent: Review code quality and security
 - Phase 2 (Sequential):
-  - refactoringAgent: Generate improvement plan based on Phase 1
-  - testEngineerAgent: Generate tests for proposed changes
+  - refactoringAgent: Generate improvement plan + verify behavior in E2B sandbox
+  - testEngineerAgent: Generate and run Vitest tests in sandbox for proposed changes
 
-CRITICAL: Prefer parallel execution for independent tasks. Only use sequential when results depend on previous agent outputs.
+CRITICAL: Prefer parallel execution for independent tasks. Only use sequential when results depend on previous agent outputs. Use E2B sandboxes for any execution-related tasks to ensure safety and repeatability.
 
 This coordinator also exposes higher-level workflows (researchSynthesisWorkflow, specGenerationWorkflow, repoIngestionWorkflow, learningExtractionWorkflow, financialReportWorkflow) that handle multi-topic research, spec generation, repo ingestion (RAG ingestion), learning extraction, and financial reports. When a user's request requires prolonged, structured work across multiple subtasks, prefer invoking these workflows and orchestrating agents around them.`,
       providerOptions: {
@@ -166,7 +184,9 @@ This coordinator also exposes higher-level workflows (researchSynthesisWorkflow,
     repoIngestionWorkflow,
     learningExtractionWorkflow,
   },
-  tools: {},
+  tools: {
+    ...e2bTools,
+  },
   maxRetries: 5,
   scorers: {
     relevancy: {
