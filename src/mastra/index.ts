@@ -114,6 +114,8 @@ import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow'
 import { telephoneGameWorkflow } from './workflows/telephone-game'
 import { weatherWorkflow } from './workflows/weather-workflow'
 import { marketingCampaignWorkflow } from './workflows'
+import { dataAnalysisWorkflow } from './workflows/data-analysis-workflow'
+import { automatedReportingWorkflow } from './workflows/automated-reporting-workflow'
 
 export const mastra = new Mastra({
     workflows: {
@@ -131,6 +133,8 @@ export const mastra = new Mastra({
         specGenerationWorkflow,
         governedRagIndex,
         marketingCampaignWorkflow,
+        dataAnalysisWorkflow,
+        automatedReportingWorkflow,
     },
     agents: {
         // Core Agents

@@ -15,6 +15,10 @@ import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
+import { safeRefactoringWorkflow } from '../workflows/safe-refactoring-workflow'
+import { testGenerationWorkflow } from '../workflows/test-generation-workflow'
+import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
+import { automatedReportingWorkflow } from '../workflows/automated-reporting-workflow'
 
 log.info('Initializing Coding A2A Coordinator...')
 
@@ -155,7 +159,16 @@ For each orchestration:
 
 CRITICAL: Prefer parallel execution for independent tasks. Only use sequential when results depend on previous agent outputs. Use E2B sandboxes for any execution-related tasks to ensure safety and repeatability.
 
-This coordinator also exposes higher-level workflows (researchSynthesisWorkflow, specGenerationWorkflow, repoIngestionWorkflow, learningExtractionWorkflow, financialReportWorkflow) that handle multi-topic research, spec generation, repo ingestion (RAG ingestion), learning extraction, and financial reports. When a user's request requires prolonged, structured work across multiple subtasks, prefer invoking these workflows and orchestrating agents around them.`,
+This coordinator also exposes higher-level workflows:
+- **researchSynthesisWorkflow**: Multi-topic research synthesis
+- **specGenerationWorkflow**: SPARC-based spec generation
+- **repoIngestionWorkflow**: Ingest repositories for RAG
+- **learningExtractionWorkflow**: Extract learnings from documents
+- **financialReportWorkflow**: Financial analysis reports
+- **safeRefactoringWorkflow**: Refactor code with E2B sandbox verification
+- **testGenerationWorkflow**: Generate and verify tests in E2B sandbox
+
+When a user's request requires prolonged, structured work across multiple subtasks, prefer invoking these workflows and orchestrating agents around them.`,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -183,6 +196,10 @@ This coordinator also exposes higher-level workflows (researchSynthesisWorkflow,
     specGenerationWorkflow,
     repoIngestionWorkflow,
     learningExtractionWorkflow,
+    safeRefactoringWorkflow,
+    testGenerationWorkflow,
+    dataAnalysisWorkflow,
+    automatedReportingWorkflow,
   },
   tools: {
     ...e2bTools,
