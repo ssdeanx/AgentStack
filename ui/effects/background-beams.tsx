@@ -13,8 +13,8 @@ export const BackgroundBeams = ({ className }: { className?: string }) => {
     >
       <div className="absolute inset-0 bg-linear-to-b from-transparent via-neutral-950 to-neutral-950 z-0 pointer-events-none" />
       <div className="absolute inset-0 z-0 opacity-30">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50rem] h-[50rem] bg-indigo-500/20 rounded-full blur-[10rem] animate-pulse-glow" />
-        <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-pink-500/20 rounded-full blur-[8rem] animate-pulse-glow [animation-delay:2s]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-indigo-500/20 rounded-full blur-[10rem] animate-pulse-glow" />
+        <div className="absolute top-1/4 left-1/4 w-120 h-120 bg-pink-500/20 rounded-full blur-[8rem] animate-pulse-glow [animation-delay:2s]" />
       </div>
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />

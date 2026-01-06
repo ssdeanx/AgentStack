@@ -12,7 +12,7 @@ export interface CheckboxProps
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, checked, defaultChecked, onCheckedChange, onChange, ...props }, ref) => {
     const [isChecked, setIsChecked] = React.useState(defaultChecked ?? false)
-    const controlledChecked = checked !== undefined ? checked : isChecked
+    const controlledChecked = checked ?? isChecked
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newChecked = e.target.checked

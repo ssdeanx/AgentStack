@@ -59,7 +59,7 @@ export function AspectRatio({
 }: AspectRatioProps) {
   const ratioKey = ratio.toFixed(3)
   const aspectClass = ratioClasses[ratioKey] || `aspect-[${ratio}]`
-  
+
   return (
     <div
       className={cn("relative w-full", aspectClass, className)}

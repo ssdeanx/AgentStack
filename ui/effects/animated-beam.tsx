@@ -37,8 +37,8 @@ export const AnimatedBeam = ({
   pathColor = "gray",
   pathWidth = 2,
   pathOpacity = 0.2,
-  gradientStartColor = "#ffaa40",
-  gradientStopColor = "#9c40ff",
+  gradientStartColor = "#000000",
+  gradientStopColor = "#9c0000",
   startXOffset = 0,
   startYOffset = 0,
   endXOffset = 0,
@@ -51,10 +51,11 @@ export const AnimatedBeam = ({
   // Calculate the path d attribute
   useEffect(() => {
     const updatePath = () => {
-      if (containerRef.current && fromRef.current && toRef.current) {
+      if (containerRef.current !== null && fromRef.current !== null && toRef.current !== null) {
         const containerRect = containerRef.current.getBoundingClientRect();
-        const rectA = fromRef.current.getBoundingClientRect();
-        const rectB = toRef.current.getBoundingClientRect();
+        const [refA, refB] = reverse ? [toRef, fromRef] : [fromRef, toRef];
+        const rectA = refA.current.getBoundingClientRect();
+        const rectB = refB.current.getBoundingClientRect();
 
         const svgWidth = containerRect.width;
         const svgHeight = containerRect.height;
@@ -81,7 +82,7 @@ export const AnimatedBeam = ({
     updatePath();
 
     // Update on resize
-    const resizeObserver = new ResizeObserver((entries) => {
+    const resizeObserver = new ResizeObserver(() => {
       // Create a debounce/requestAnimationFrame to prevent ResizeObserver loop error
       requestAnimationFrame(() => updatePath());
     });
@@ -98,14 +99,15 @@ export const AnimatedBeam = ({
       window.removeEventListener("resize", updatePath);
     };
   }, [
-    containerRef,
-    fromRef,
-    toRef,
     curvature,
     startXOffset,
     startYOffset,
     endXOffset,
     endYOffset,
+    reverse,
+    containerRef,
+    fromRef,
+    toRef,
   ]);
 
   return (

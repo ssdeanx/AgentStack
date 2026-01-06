@@ -27,7 +27,7 @@ export function Avatar({
 }: AvatarProps) {
   const [hasError, setHasError] = React.useState(false)
 
-  const initials = fallback || alt?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+  const initials = fallback ?? alt?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 
   return (
     <div
@@ -38,7 +38,7 @@ export function Avatar({
       )}
       {...props}
     >
-      {src && !hasError ? (
+      {(src !== null) && !hasError ? (
         <img
           src={src}
           alt={alt}
