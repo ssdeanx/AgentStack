@@ -10,7 +10,7 @@ import { pgVector } from './config/pg-storage'
 // Scorers
 
 // MCP
-import { a2aCoordinatorMcpServer } from './mcp'
+import { a2aCoordinatorMcpServer, codingA2AMcpServer } from './mcp'
 import { notesMCP } from './mcp/server'
 
 // A2A Coordinator
@@ -208,7 +208,7 @@ export const mastra = new Mastra({
         codingA2ACoordinator,
     },
     scorers: {},
-    mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP },
+    mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP, codingA2A: codingA2AMcpServer },
 
     storage: new PostgresStore({
         id: 'main-storage',

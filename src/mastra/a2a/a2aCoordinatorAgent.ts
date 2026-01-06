@@ -3,6 +3,13 @@ import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
 import { researchAgent } from '../agents/researchAgent'
+import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
+import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
+import { contentStrategistAgent } from '../agents/contentStrategistAgent'
+import { projectManagementAgent } from '../agents/projectManagementAgent'
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
+import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
+import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
 import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import type { RequestContext } from '@mastra/core/request-context';
@@ -44,38 +51,71 @@ ORCHESTRATION PATTERNS (NOT SEQUENTIAL):
 5. Provide comprehensive final response
 
 AVAILABLE AGENTS:
-
+- researchAgent: Fact finding and information gathering
+- knowledgeIndexingAgent: Document chunking, vector embedding, and semantic reranking (RAG)
+- editorAgent: Reviewing and polishing content
+- copywriterAgent: High-quality marketing and technical writing
+- contentStrategistAgent: Strategic planning for content campaigns
+- codeArchitectAgent: System design and architectural planning
+- codeReviewerAgent: Deep analysis of code quality and security
+- testEngineerAgent: Automated test generation and verification
+- refactoringAgent: Safe and efficient code modernization
+- projectManagementAgent: Task decomposition and roadmap creation
 
 AVAILABLE WORKFLOWS:
-
+- researchSynthesisWorkflow: Multi-source research consolidation
+- repoIngestionWorkflow: Knowledge indexing for RAG from codebases
+- specGenerationWorkflow: Detailed product and technical specification generation
 
 AVAILABLE NETWORKS (Multi-agent):
-
+- Coding Team Network: Orchestrated coding specialists for feature development
 
 ORCHESTRATION WORKFLOWS (PARALLEL):
-
+1. Implementation Planning: codeArchitectAgent + projectManagementAgent
+2. Content Creation: researchAgent + copywriterAgent + editorAgent
+3. Software Modernization: codeReviewerAgent + refactoringAgent + testEngineerAgent
+4. Knowledge Base Building: knowledgeIndexingAgent (for chunking/embeddings) + researchAgent (for verification)
 
 CRITICAL: Always prefer parallel orchestration over sequential execution for efficiency.
 Only use sequential when tasks have strict dependencies on previous results.
 Use Promise.all() pattern for parallel execution.
+Maximize the use of E2B sandboxes via specialized agents for any code-related tasks.
+Use knowledgeIndexingAgent to provide semantic context for complex queries.
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        thinkingLevel: 'high',
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    }
-                }
-            }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT', 'IMAGE'],
         }
-    },
-    model: googleAI,
-    memory: pgMemory,
-    options: {},
-    agents: { researchAgent, editorAgent, copywriterAgent },
-    workflows: {},
-    maxRetries: 5,
+      }
+    }
+  },
+  model: googleAI,
+  memory: pgMemory,
+  options: {},
+  agents: {
+    researchAgent,
+    knowledgeIndexingAgent,
+    editorAgent,
+    copywriterAgent,
+    codeArchitectAgent,
+    codeReviewerAgent,
+    testEngineerAgent,
+    refactoringAgent,
+    contentStrategistAgent,
+    projectManagementAgent,
+  },
+  workflows: {
+    researchSynthesisWorkflow,
+    repoIngestionWorkflow,
+    specGenerationWorkflow,
+  },
+  maxRetries: 5,
     tools: {},
     scorers: {
         relevancy: {

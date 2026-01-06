@@ -9,7 +9,12 @@ coverage/
 # Next.js
 .next/
 out/
+assets/
+assets/*png
+assets/*jpg
 
+.vercel/_build_output/
+.vercel/output/
 # Production
 build/
 dist/

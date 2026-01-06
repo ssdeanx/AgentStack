@@ -3,7 +3,7 @@
 import { Badge } from "@/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card"
 import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react"
-import type { BatchWebScraperUITool } from "@/src/mastra/tools/web-scraper-tool"
+import type { BatchWebScraperUITool } from "./types"
 
 interface BatchWebScraperToolProps {
   toolCallId: string
@@ -97,11 +97,11 @@ export function BatchWebScraperTool({ input, output, errorText }: BatchWebScrape
             <CardContent className="pt-0">
               {result.success ? (
                 <div className="space-y-2">
-                  {result.markdownContent && (
+                  {(Boolean(result.markdownContent)) && (
                     <div>
                       <div className="text-xs font-medium text-muted-foreground mb-1">Content Preview</div>
                       <div className="text-sm line-clamp-3 prose prose-sm max-w-none">
-                        {result.markdownContent.substring(0, 200)}...
+                        {result.markdownContent?.substring(0, 200) ?? ''}...
                       </div>
                     </div>
                   )}
@@ -115,7 +115,7 @@ export function BatchWebScraperTool({ input, output, errorText }: BatchWebScrape
                 </div>
               ) : (
                 <div className="text-sm text-red-600">
-                  {result.errorMessage || "Unknown error occurred"}
+                  {result.errorMessage ?? "Unknown error occurred"}
                 </div>
               )}
             </CardContent>

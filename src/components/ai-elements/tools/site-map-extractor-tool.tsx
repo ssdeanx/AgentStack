@@ -3,7 +3,7 @@
 import { Badge } from "@/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card"
 import { TreePine, Link, ExternalLink, FileText } from "lucide-react"
-import type { SiteMapExtractorUITool } from "@/src/mastra/tools/web-scraper-tool"
+import type { SiteMapExtractorUITool } from "./types"
 
 interface SiteMapExtractorToolProps {
   toolCallId: string
@@ -42,7 +42,7 @@ export function SiteMapExtractorTool({ input, output, errorText }: SiteMapExtrac
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground">
-            Crawling up to depth {input.maxDepth || 2}, max {input.maxPages || 50} pages
+            Crawling up to depth {input.maxDepth ?? 2}, max {input.maxPages ?? 50} pages
           </div>
         </CardContent>
       </Card>
@@ -104,7 +104,7 @@ export function SiteMapExtractorTool({ input, output, errorText }: SiteMapExtrac
                         <FileText className="size-3 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">
-                            {page.title || page.url.split('/').pop() || 'Untitled'}
+                            {page.title ?? page.url.split('/').pop() ?? 'Untitled'}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
                             {page.url}
