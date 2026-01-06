@@ -34,7 +34,7 @@ export function Tabs({
   ...props
 }: TabsProps) {
   const [activeTab, setActiveTabState] = React.useState(defaultValue ?? "")
-  const controlledActive = value !== undefined ? value : activeTab
+  const controlledActive = value ?? activeTab
 
   const setActiveTab = React.useCallback(
     (newValue: string) => {
