@@ -223,6 +223,7 @@ export const arxivTool = createTool({
     log.info('ArXiv tool input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -241,6 +242,7 @@ export const arxivTool = createTool({
       author: input.author,
       category: input.category,
       maxResults: input.max_results,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -252,6 +254,7 @@ export const arxivTool = createTool({
       totalResults: output.total_results,
       startIndex: output.start_index,
       maxResults: output.max_results,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },

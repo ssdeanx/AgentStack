@@ -11,7 +11,7 @@ import { log } from '../config/logger'
 import { ProjectCache, PythonParser } from './semantic-utils'
 
 // Define the expected shape of the runtime context for this tool
-export interface SymbolContext extends RequestContext {
+export interface SymbolContext  {
   maxResults?: number
   excludePatterns?: string[]
   includeNodeModules?: boolean
@@ -19,7 +19,7 @@ export interface SymbolContext extends RequestContext {
   searchType: 'semantic' | 'text' // Required field
 }
 
-interface SymbolInfo extends RequestContext {
+interface SymbolInfo  {
   name: string
   kind: string
   filePath: string
@@ -99,6 +99,7 @@ export const findSymbolTool = createTool({
       symbolType: input.symbolType,
       includeDependencies: input.includeDependencies,
       hook: 'onInputAvailable',
+      abortSignal: abortSignal?.aborted,
     })
   },
   onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
@@ -110,6 +111,7 @@ export const findSymbolTool = createTool({
       searchTime: output.stats.searchTime,
       cacheHits: output.stats.cacheHits,
       hook: 'onOutput',
+      abortSignal: abortSignal?.aborted,
     })
   },
   execute: async (inputData, context) => {

@@ -147,17 +147,19 @@ Mastra tools support **lifecycle hooks** that allow monitoring and reacting to d
 ### Available Hooks
 
 - **`onInputStart`** - Called when tool call input streaming begins
+- **`onInputDelta`** - Called for each incremental chunk of input text as it streams in
 - **`onInputAvailable`** - Called when complete tool input is available and parsed
 - **`onOutput`** - Called after tool execution completes successfully
 
 ### Hook Execution Order
 
-For a typical tool call:
+For a typical streaming tool call, the hooks are invoked in this order:
 
 1. `onInputStart` → Input streaming begins
-2. `onInputAvailable` → Complete input is parsed and validated
-3. Tool's `execute` function runs
-4. `onOutput` → Tool has completed successfully
+2. `onInputDelta` → Called multiple times as chunks arrive
+3. `onInputAvailable` → Complete input is parsed and validated
+4. Tool's `execute` function runs
+5. `onOutput` → Tool has completed successfully
 
 ### Implementation Pattern
 
@@ -179,7 +181,17 @@ export const exampleTool = createTool({
         log.info('Tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
@@ -187,6 +199,7 @@ export const exampleTool = createTool({
             toolCallId,
             messageCount: messages.length,
             inputData: { param: input.param },
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -195,6 +208,7 @@ export const exampleTool = createTool({
             toolCallId,
             toolName,
             outputData: { result: output.result },
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -214,7 +228,8 @@ All hooks receive a parameter object with:
 
 Additional parameters vary by hook:
 
-- `onInputStart`, `onInputAvailable`: `messages` (array): The conversation messages at the time of the tool call
+- `onInputStart`, `onInputDelta`, `onInputAvailable`: `messages` (array): The conversation messages at the time of the tool call
+- `onInputDelta`: `inputTextDelta` (string): The incremental text chunk
 - `onInputAvailable`: `input`: The validated input data (typed according to `inputSchema`)
 - `onOutput`: `output`: The tool's return value (typed according to `outputSchema`) and `toolName` (string)
 
@@ -226,25 +241,25 @@ Hook errors are caught and logged automatically, but do not prevent tool executi
 
 Lifecycle hooks have been implemented in the following tools:
 
-| Tool                             | Hooks Implemented                                 | Purpose                          |
-| -------------------------------- | ------------------------------------------------- | -------------------------------- |
-| `weather-tool.ts`                | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Weather data monitoring          |
-| `github.ts` (listRepositories)   | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Repository listing analytics     |
-| `code-search.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Search analytics                 |
-| `csv-to-json.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Data conversion monitoring       |
-| `web-scraper-tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Scraping analytics               |
-| `jwt-auth.tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Security monitoring              |
-| `alpha-vantage.tool.ts`          | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Financial data monitoring        |
-| `fs.ts`                          | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | File system operation monitoring |
-| `json-to-csv.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Data conversion monitoring       |
-| `serpapi-search.tool.ts`         | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Search query analytics           |
-| `find-symbol.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Symbol search analytics          |
-| `polygon-tools.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Financial market data monitoring |
-| `arxiv.tool.ts`                  | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Academic paper search analytics  |
-| `browser-tool.ts`                | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Browser automation monitoring    |
-| `serpapi-academic-local.tool.ts` | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Google Scholar search analytics  |
-| `serpapi-news-trends.tool.ts`    | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Google News search analytics     |
-| `calendar-tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput` | Calendar events monitoring       |
+| Tool                             | Hooks Implemented                                                  | Purpose                          |
+| -------------------------------- | ------------------------------------------------------------------ | -------------------------------- |
+| `weather-tool.ts`                | ✅ `onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput` | Weather data monitoring          |
+| `github.ts` (listRepositories)   | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Repository listing analytics     |
+| `code-search.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Search analytics                 |
+| `csv-to-json.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Data conversion monitoring       |
+| `web-scraper-tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Scraping analytics               |
+| `jwt-auth.tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Security monitoring              |
+| `alpha-vantage.tool.ts`          | ✅ `onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput` | Financial data monitoring        |
+| `fs.ts`                          | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | File system operation monitoring |
+| `json-to-csv.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Data conversion monitoring       |
+| `serpapi-search.tool.ts`         | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Search query analytics           |
+| `find-symbol.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Symbol search analytics          |
+| `polygon-tools.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Financial market data monitoring |
+| `arxiv.tool.ts`                  | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Academic paper search analytics  |
+| `browser-tool.ts`                | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Browser automation monitoring    |
+| `serpapi-academic-local.tool.ts` | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Google Scholar search analytics  |
+| `serpapi-news-trends.tool.ts`    | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Google News search analytics     |
+| `calendar-tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Calendar events monitoring       |
 
 ### Benefits
 
@@ -278,7 +293,8 @@ onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
       inputField1: input.inputField1,
       inputField2: input.inputField2
     },
-    hook: 'onInputAvailable'
+    abortSignal: abortSignal?.aborted,
+    hook: 'onInputAvailable',
   });
 },
 onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
@@ -288,6 +304,7 @@ onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
     outputData: {
       // Add output fields here
     },
+    abortSignal: abortSignal?.aborted,
     hook: 'onOutput'
   });
 },

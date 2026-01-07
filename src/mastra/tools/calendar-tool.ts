@@ -135,6 +135,7 @@ export const listEvents = createTool({
     log.info('Calendar list events tool input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -143,6 +144,7 @@ export const listEvents = createTool({
       toolCallId,
       inputData: { startDate: input.startDate },
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -151,6 +153,7 @@ export const listEvents = createTool({
       toolCallId,
       toolName,
       eventsFound: output.count || 0,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
