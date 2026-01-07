@@ -127,7 +127,7 @@ opnapi.json
 openapi.json
 
 # GitHub Actions
-.github/workflows/**.yml
+
 .github/workflows/**.yaml
 .github/actions/**/node_modules/
 .github/actions/**/dist/
