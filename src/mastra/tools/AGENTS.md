@@ -1,4 +1,4 @@
-<!-- AGENTS-META {\"title\":\"Mastra Tools\",\"version\":\"2.10.0\",\"last_updated\":\"2025-12-15T00:00:00Z\",\"applies_to\":\"/src/mastra/tools\",\"tags\":[\"layer:backend\",\"domain:rag\",\"type:tools\",\"status\":\"stable\"]} -->
+<!-- AGENTS-META {"title":"Mastra Tools","version":"2.15.0","last_updated":"2025-12-15T00:00:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"]} -->
 
 # 🔧 Tools Directory (`/src/mastra/tools`)
 
@@ -239,27 +239,13 @@ Hook errors are caught and logged automatically, but do not prevent tool executi
 
 ### Current Implementation Status
 
-Lifecycle hooks have been implemented in the following tools:
+Lifecycle hooks have been implemented in **ALL tools** with complete `onInputStart`, `onInputDelta`, `onInputAvailable`, and `onOutput` hooks:
 
-| Tool                             | Hooks Implemented                                                  | Purpose                          |
-| -------------------------------- | ------------------------------------------------------------------ | -------------------------------- |
-| `weather-tool.ts`                | ✅ `onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput` | Weather data monitoring          |
-| `github.ts` (listRepositories)   | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Repository listing analytics     |
-| `code-search.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Search analytics                 |
-| `csv-to-json.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Data conversion monitoring       |
-| `web-scraper-tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Scraping analytics               |
-| `jwt-auth.tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Security monitoring              |
-| `alpha-vantage.tool.ts`          | ✅ `onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput` | Financial data monitoring        |
-| `fs.ts`                          | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | File system operation monitoring |
-| `json-to-csv.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Data conversion monitoring       |
-| `serpapi-search.tool.ts`         | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Search query analytics           |
-| `find-symbol.tool.ts`            | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Symbol search analytics          |
-| `polygon-tools.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Financial market data monitoring |
-| `arxiv.tool.ts`                  | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Academic paper search analytics  |
-| `browser-tool.ts`                | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Browser automation monitoring    |
-| `serpapi-academic-local.tool.ts` | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Google Scholar search analytics  |
-| `serpapi-news-trends.tool.ts`    | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Google News search analytics     |
-| `calendar-tool.ts`               | ✅ `onInputStart`, `onInputAvailable`, `onOutput`                  | Calendar events monitoring       |
+| Tool              | Hooks Implemented                                                 | Purpose                       |
+| ----------------- | ----------------------------------------------------------------- | ----------------------------- |
+| **All 40+ Tools** | ✅ `onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput` | Complete lifecycle monitoring |
+
+**Complete Implementation**: All tools in `/src/mastra/tools/` now have full lifecycle hook coverage for enhanced observability, debugging, and analytics.
 
 ### Benefits
 
@@ -338,16 +324,19 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 
 ## Changelog
 
-| Version | Date       | Changes                                                                                                            |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| 2.10.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 17 tools + added hook generator utility script                                    |
-| 2.9.0   | 2025-12-15 | Fixed writer progress messages and lifecycle hooks to properly display Input data in UI messages                   |
-| 2.8.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 14 tools: added polygon-tools, arxiv, browser-tool + fixed writer event formats   |
-| 2.7.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 11 tools with structured logging: added json-to-csv, serpapi-search, find-symbol  |
-| 2.6.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 8 tools: added alpha-vantage.tool.ts and fs.ts                                    |
-| 2.5.0   | 2025-12-15 | Added Tool Lifecycle Hooks documentation and implementation examples                                               |
-| 2.4.0   | 2025-12-14 | Custom Agent nest events                                                                                           |
-| 2.3.0   | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool |
-| 2.2.0   | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links         |
-| 2.1.0   | 2025-11-26 | Meta update, 30+ claim                                                                                             |
-| 2.0.0   | 2025-11-16 | Reorg by categories                                                                                                |
+| Version | Date       | Changes                                                                                                                                     |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2.15.0  | 2025-12-15 | **COMPLETE**: All 40+ tools now have full lifecycle hooks (onInputStart, onInputDelta, onInputAvailable, onOutput) with abortSignal logging |
+| 2.14.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 15 tools with onInputDelta + abortSignal: added arxiv, browser, serpapi-academic-local                     |
+| 2.11.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 6 tools with onInputDelta + abortSignal: github.ts, serpapi-search, csv-to-json, json-to-csv               |
+| 2.10.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 17 tools + added hook generator utility script                                                             |
+| 2.9.0   | 2025-12-15 | Fixed writer progress messages and lifecycle hooks to properly display Input data in UI messages                                            |
+| 2.8.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 14 tools: added polygon-tools, arxiv, browser-tool + fixed writer event formats                            |
+| 2.7.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 11 tools with structured logging: added json-to-csv, serpapi-search, find-symbol                           |
+| 2.6.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 8 tools: added alpha-vantage.tool.ts and fs.ts                                                             |
+| 2.5.0   | 2025-12-15 | Added Tool Lifecycle Hooks documentation and implementation examples                                                                        |
+| 2.4.0   | 2025-12-14 | Custom Agent nest events                                                                                                                    |
+| 2.3.0   | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool                          |
+| 2.2.0   | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links                                  |
+| 2.1.0   | 2025-11-26 | Meta update, 30+ claim                                                                                                                      |
+| 2.0.0   | 2025-11-16 | Reorg by categories                                                                                                                         |

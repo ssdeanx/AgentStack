@@ -7,170 +7,221 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 
 const csvToolContextSchema = z.object({
-  maxRows: z.number().optional(),
+    maxRows: z.number().optional(),
 })
 
 export const csvToJsonTool = createTool({
-  id: 'csv-to-json',
-  description:
-    'Convert CSV data to JSON format. Accepts either a raw CSV string or a file path.',
-  inputSchema: z.object({
-    csvData: z.string().optional().describe('Raw CSV string data'),
-    filePath: z.string().optional().describe('Absolute path to a CSV file'),
-    options: z
-      .object({
-        delimiter: z
-          .string()
-          .default(',')
-          .describe('CSV delimiter character'),
-        columns: z
-          .boolean()
-          .default(true)
-          .describe('Treat first row as headers'),
-        trim: z
-          .boolean()
-          .default(true)
-          .describe('Trim whitespace from values'),
-        skip_empty_lines: z
-          .boolean()
-          .default(true)
-          .describe('Skip empty lines'),
-      })
-      .optional()
-      .default({
-        delimiter: ',',
-        columns: true,
-        trim: true,
-        skip_empty_lines: true,
-      }),
-  }),
-  outputSchema: z.object({
-    data: z.array(z.any()).describe('Parsed JSON data'),
-  }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('CSV to JSON tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    const source = input.filePath
-      ? `file:${input.filePath}`
-      : 'raw CSV data'
-    const options = input.options || {}
-    log.info('CSV to JSON received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      source,
-      delimiter: options.delimiter,
-      columns: options.columns,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('CSV to JSON conversion completed', {
-      toolCallId,
-      toolName,
-      recordsProcessed: output.data.length,
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
-    const writer = context?.writer
-    const requestContext = context?.requestContext
+    id: 'csv-to-json',
+    description:
+        'Convert CSV data to JSON format. Accepts either a raw CSV string or a file path.',
+    inputSchema: z.object({
+        csvData: z.string().optional().describe('Raw CSV string data'),
+        filePath: z.string().optional().describe('Absolute path to a CSV file'),
+        options: z
+            .object({
+                delimiter: z
+                    .string()
+                    .default(',')
+                    .describe('CSV delimiter character'),
+                columns: z
+                    .boolean()
+                    .default(true)
+                    .describe('Treat first row as headers'),
+                trim: z
+                    .boolean()
+                    .default(true)
+                    .describe('Trim whitespace from values'),
+                skip_empty_lines: z
+                    .boolean()
+                    .default(true)
+                    .describe('Skip empty lines'),
+            })
+            .optional()
+            .default({
+                delimiter: ',',
+                columns: true,
+                trim: true,
+                skip_empty_lines: true,
+            }),
+    }),
+    outputSchema: z.object({
+        data: z.array(z.any()).describe('Parsed JSON data'),
+    }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('CSV to JSON tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('CSV to JSON tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const source = input.filePath
+            ? `file:${input.filePath}`
+            : 'raw CSV data'
+        const options = input.options || {}
+        log.info('CSV to JSON received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            source,
+            delimiter: options.delimiter,
+            columns: options.columns,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('CSV to JSON conversion completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            recordsProcessed: output.data.length,
+            hook: 'onOutput',
+        })
+    },
+    execute: async (inputData, context) => {
+        const writer = context?.writer
+        const requestContext = context?.requestContext
+        const abortSignal = context?.abortSignal
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: '📊 Starting CSV to JSON conversion',
-        stage: 'csv-to-json',
-      },
-      id: 'csv-to-json',
-    })
-    const tracer = trace.getTracer('csv-to-json', '1.0.0')
-    const rootSpan = tracer.startSpan('csv-to-json', {
-      attributes: {
-        'tool.id': 'csv-to-json',
-      },
-    })
-
-    try {
-      const config = requestContext?.get('csvToolContext')
-      const { maxRows } =
-        config !== undefined
-          ? csvToolContextSchema.parse(config)
-          : { maxRows: undefined }
-
-      let contentToParse = inputData.csvData
-
-      if (
-        inputData.filePath !== undefined &&
-        inputData.filePath !== null
-      ) {
-        try {
-          contentToParse = await fs.readFile(
-            inputData.filePath,
-            'utf-8'
-          )
-        } catch (err) {
-          throw new Error(
-            `Failed to read file at ${inputData.filePath}: ${(err as Error).message}`
-          )
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('CSV to JSON conversion cancelled')
         }
-      }
 
-      if (
-        contentToParse === undefined ||
-        contentToParse === null ||
-        contentToParse === ''
-      ) {
-        throw new Error('Either csvData or filePath must be provided')
-      }
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: '📊 Starting CSV to JSON conversion',
+                stage: 'csv-to-json',
+            },
+            id: 'csv-to-json',
+        })
+        const tracer = trace.getTracer('csv-to-json', '1.0.0')
+        const rootSpan = tracer.startSpan('csv-to-json', {
+            attributes: {
+                'tool.id': 'csv-to-json',
+            },
+        })
 
-      const options = inputData.options ?? {
-        delimiter: ',',
-        columns: true,
-        trim: true,
-        skip_empty_lines: true,
-      }
+        try {
+            const config = requestContext?.get('csvToolContext')
+            const { maxRows } =
+                config !== undefined
+                    ? csvToolContextSchema.parse(config)
+                    : { maxRows: undefined }
 
-      const records = parse(contentToParse, {
-        delimiter: options.delimiter,
-        columns: options.columns,
-        trim: options.trim,
-        skip_empty_lines: options.skip_empty_lines,
-      })
+            // Check for cancellation before file operations
+            if (abortSignal && abortSignal.aborted) {
+                rootSpan.setStatus({
+                    code: 2,
+                    message: 'Operation cancelled during file operations',
+                })
+                rootSpan.end()
+                throw new Error(
+                    'CSV to JSON conversion cancelled during file operations'
+                )
+            }
 
-      if (maxRows !== undefined && records.length > maxRows) {
-        throw new Error(
-          `Record count (${records.length}) exceeds maximum allowed (${maxRows})`
-        )
-      }
+            let contentToParse = inputData.csvData
 
-      await writer?.write({
-        type: 'progress',
-        data: { message: `✅ Converted ${records.length} records` },
-      })
-      rootSpan.setAttributes({
-        'tool.output.recordCount': records.length,
-      })
-      rootSpan.end()
-      return { data: records }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Unknown error parsing CSV'
-      rootSpan.recordException(
-        error instanceof Error ? error : new Error(errorMessage)
-      )
-      rootSpan.setStatus({ code: 2, message: errorMessage })
-      rootSpan.end()
-      throw error instanceof Error ? error : new Error(errorMessage)
-    }
-  },
+            if (
+                inputData.filePath !== undefined &&
+                inputData.filePath !== null
+            ) {
+                try {
+                    contentToParse = await fs.readFile(
+                        inputData.filePath,
+                        'utf-8'
+                    )
+                } catch (err) {
+                    throw new Error(
+                        `Failed to read file at ${inputData.filePath}: ${(err as Error).message}`
+                    )
+                }
+            }
+
+            if (
+                contentToParse === undefined ||
+                contentToParse === null ||
+                contentToParse === ''
+            ) {
+                throw new Error('Either csvData or filePath must be provided')
+            }
+
+            const options = inputData.options ?? {
+                delimiter: ',',
+                columns: true,
+                trim: true,
+                skip_empty_lines: true,
+            }
+
+            const records = parse(contentToParse, {
+                delimiter: options.delimiter,
+                columns: options.columns,
+                trim: options.trim,
+                skip_empty_lines: options.skip_empty_lines,
+            })
+
+            if (maxRows !== undefined && records.length > maxRows) {
+                throw new Error(
+                    `Record count (${records.length}) exceeds maximum allowed (${maxRows})`
+                )
+            }
+
+            await writer?.write({
+                type: 'progress',
+                data: { message: `✅ Converted ${records.length} records` },
+            })
+            rootSpan.setAttributes({
+                'tool.output.recordCount': records.length,
+            })
+            rootSpan.end()
+            return { data: records }
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error parsing CSV'
+
+            // Handle AbortError specifically
+            if (error instanceof Error && error.name === 'AbortError') {
+                const cancelMessage = `CSV to JSON conversion cancelled`
+                rootSpan.setStatus({ code: 2, message: cancelMessage })
+                rootSpan.end()
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'csv-to-json',
+                    },
+                    id: 'csv-to-json',
+                })
+
+                log.warn(cancelMessage)
+                throw new Error(cancelMessage)
+            }
+
+            rootSpan.recordException(
+                error instanceof Error ? error : new Error(errorMessage)
+            )
+            rootSpan.setStatus({ code: 2, message: errorMessage })
+            rootSpan.end()
+            throw error instanceof Error ? error : new Error(errorMessage)
+        }
+    },
 })
 
 export type CsvToJsonUITool = InferUITool<typeof csvToJsonTool>

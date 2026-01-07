@@ -90,12 +90,23 @@ export const polygonStockQuotesTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Polygon stock quotes tool input streaming started', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Polygon stock quotes received input', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 symbol: input.symbol,
                 function: input.function,
@@ -111,6 +122,7 @@ export const polygonStockQuotesTool = createTool({
         log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             outputData: {
                 symbol: output.metadata?.symbol,
                 dataPoints,
@@ -124,6 +136,12 @@ export const polygonStockQuotesTool = createTool({
         const startTime = Date.now()
         const writer = context?.writer
         const requestContext = context?.requestContext
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Polygon stock quotes cancelled')
+        }
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -760,6 +778,12 @@ export const polygonStockFundamentalsTool = createTool({
         const startTime = Date.now()
         const writer = context?.writer
         const requestContext = context?.requestContext
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Polygon stock fundamentals cancelled')
+        }
 
         logToolExecution('polygon-stock-fundamentals', { input: inputData })
 
@@ -921,19 +945,34 @@ export const polygonStockFundamentalsTool = createTool({
             }
 
             const finalUrl = `${url}?${params.toString()}`
+            const redactedUrl = apiKey
+                ? finalUrl.replace(apiKey, '[REDACTED]')
+                : finalUrl
 
             // Create child span for API call
             const apiSpan = tracer.startSpan('polygon-api-call', {
                 attributes: {
-                    'http.url': finalUrl.replace(apiKey, '[REDACTED]'),
+                    'http.url': redactedUrl,
                     'http.method': 'GET',
                 },
             })
 
+            // Check for cancellation before API call
+            if (abortSignal && abortSignal.aborted) {
+                rootSpan.setStatus({
+                    code: 2,
+                    message: 'Operation cancelled during API call',
+                })
+                rootSpan.end()
+                throw new Error(
+                    'Polygon stock quotes cancelled during API call'
+                )
+            }
+
             logStepStart('polygon-api-call', {
                 function: inputData.function,
                 symbol: inputData.symbol,
-                url: finalUrl.replace(apiKey, '[REDACTED]'),
+                url: redactedUrl,
             })
 
             const apiStartTime = Date.now()
@@ -1106,6 +1145,12 @@ export const polygonCryptoQuotesTool = createTool({
         const startTime = Date.now()
         const writer = context?.writer
         const requestContext = context?.requestContext
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Polygon crypto quotes cancelled')
+        }
 
         logToolExecution('polygon-crypto-quotes', { input: inputData })
 
@@ -1607,25 +1652,53 @@ export const polygonCryptoAggregatesTool = createTool({
 
             return result
         } catch (error) {
+            // Handle AbortError specifically
+            if (error instanceof Error && error.name === 'AbortError') {
+                const cancelMessage = `Polygon stock fundamentals cancelled for ${inputData.symbol}`
+                const totalDuration = Date.now() - startTime
+                rootSpan.setStatus({ code: 2, message: cancelMessage })
+                rootSpan.end()
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'polygon-stock-fundamentals',
+                    },
+                    id: 'polygon-stock-fundamentals',
+                })
+
+                log.warn(cancelMessage)
+                throw new Error(cancelMessage)
+            }
+
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Unknown error occurred'
+                    : 'Unknown error fetching stock fundamentals'
+            const totalDuration = Date.now() - startTime
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `❌ Fundamentals fetch failed: ${errorMessage}`,
+                    stage: 'polygon-stock-fundamentals',
+                },
+                id: 'polygon-stock-fundamentals',
+            })
+
             rootSpan.recordException(
                 error instanceof Error ? error : new Error(errorMessage)
             )
             rootSpan.setAttributes({
                 error: true,
                 'error.message': errorMessage,
-                reason: 'execution-error',
-                symbol: inputData.symbol,
+                processing_time_ms: totalDuration,
             })
             rootSpan.end()
-            logError(
-                'polygonCryptoAggregatesTool',
-                error instanceof Error ? error : new Error(errorMessage),
-                { symbol: inputData.symbol }
-            )
+
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },

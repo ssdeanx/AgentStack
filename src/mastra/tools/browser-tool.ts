@@ -11,7 +11,7 @@ import { log } from '../config/logger'
 let browserInstance: Browser | null = null
 
 async function getBrowser(): Promise<Browser> {
-    if (!((browserInstance?.isConnected()) ?? false)) {
+    if (!(browserInstance?.isConnected() ?? false)) {
         if (browserInstance) {
             await browserInstance.close().catch(() => {}) // Close the old instance if it's not connected
         }
@@ -41,6 +41,15 @@ export const browserTool = createTool({
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Browser tool received input', {
             toolCallId,
@@ -64,6 +73,13 @@ export const browserTool = createTool({
         })
     },
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Browser operation cancelled')
+        }
+
         const tracer = trace.getTracer('browser-tool', '1.0.0')
         const span = tracer.startSpan('browser-scrape', {
             attributes: {
@@ -82,6 +98,16 @@ export const browserTool = createTool({
             id: 'browserTool',
         })
         try {
+            // Check for cancellation before browser operations
+            if (abortSignal && abortSignal.aborted) {
+                span.setStatus({
+                    code: 2,
+                    message: 'Operation cancelled during browser operations',
+                })
+                span.end()
+                throw new Error('Browser operation cancelled during setup')
+            }
+
             const browser = await getBrowser()
             const page = await browser.newPage()
 
@@ -130,6 +156,26 @@ export const browserTool = createTool({
             span.end()
             return { message: result }
         } catch (e) {
+            // Handle AbortError specifically
+            if (e instanceof Error && e.name === 'AbortError') {
+                const cancelMessage = `Browser operation cancelled for ${inputData.url}`
+                span.setStatus({ code: 2, message: cancelMessage })
+                span.end()
+
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'browserTool',
+                    },
+                    id: 'browserTool',
+                })
+
+                log.warn(cancelMessage)
+                return { message: `Error: ${cancelMessage}` }
+            }
+
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Browser scrape failed: ${errorMsg}`)
             if (e instanceof Error) {
