@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { log } from '../config/logger';
 
 // Type for SVG JSON nodes from svgjson
-interface SvgJsonNode extends RequestContext {
+interface SvgJsonNode {
   name?: string
   attributes?: Record<string, string>
   children?: SvgJsonNode[]
@@ -27,7 +27,7 @@ export interface DataProcessingContext extends RequestContext {
 }
 
 // Type definition for XML element info collected by processXMLTool
-interface XmlElementInfo extends RequestContext {
+interface XmlElementInfo {
   tagName: string
   textContent?: string | null
   attributes: Record<string, string>
@@ -38,7 +38,7 @@ interface XmlElementInfo extends RequestContext {
 type ExtractedData = Record<string, XmlElementInfo[] | Array<{ element: string; value: string }>>
 
 // Type for processSVGTool result
-interface ProcessSVGResult extends RequestContext {
+interface ProcessSVGResult {
   svgJson: SvgJsonNode
   paths?: SvgJsonNode[]
   textElements?: string[]
@@ -143,12 +143,14 @@ export const readCSVDataTool = createTool({
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Read CSV tool input streaming started', {
       toolCallId,
+      messages: messages.length,
       hook: 'onInputStart',
     })
   },
   onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
     log.info('Read CSV received complete input', {
       toolCallId,
+      messageCount: messages.length,
       fileName: input.fileName,
       hasHeaders: input.hasHeaders,
       hook: 'onInputAvailable',

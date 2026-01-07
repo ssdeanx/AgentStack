@@ -86,7 +86,17 @@ export const alphaVantageCryptoTool = createTool({
     log.info('Alpha Vantage tool input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
+    })
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage tool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
     })
   },
   onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
@@ -96,6 +106,7 @@ export const alphaVantageCryptoTool = createTool({
       symbol: input.symbol,
       market: input.market,
       function: input.function,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -106,6 +117,7 @@ export const alphaVantageCryptoTool = createTool({
       toolName,
       symbol: output.metadata?.symbol ?? 'unknown',
       dataKeys,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -399,7 +411,21 @@ export const alphaVantageStockTool = createTool({
       .optional(),
   }),
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageStockTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+    log.info('alphaVantageStockTool tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputStart' });
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageStockTool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
+
+    })
   },
   onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
     log.info('alphaVantageStockTool received input', {
@@ -415,6 +441,7 @@ export const alphaVantageStockTool = createTool({
         time_period: input.time_period,
         series_type: input.series_type,
       },
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable'
     });
   },
@@ -426,6 +453,7 @@ export const alphaVantageStockTool = createTool({
         data: output.data,
         metadata: output.metadata,
       },
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput'
     });
   },
@@ -784,7 +812,19 @@ export const alphaVantageTool = createTool({
       .optional(),
   }),
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+    log.info('alphaVantageTool tool input streaming started', { toolCallId,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputStart' });
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
+    })
   },
   onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
     log.info('alphaVantageTool received input', {
@@ -802,6 +842,7 @@ export const alphaVantageTool = createTool({
         series_type: input.series_type,
         economic_indicator: input.economic_indicator,
       },
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable'
     });
   },
@@ -813,6 +854,7 @@ export const alphaVantageTool = createTool({
         data: output.data,
         metadata: output.metadata,
       },
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput'
     });
   },

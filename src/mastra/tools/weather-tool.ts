@@ -53,12 +53,23 @@ export const weatherTool = createTool({
       toolCallId,
       messageCount: messages.length,
       hook: 'onInputStart',
+      abortSignal: abortSignal?.aborted,
+    })
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('Weather tool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      abortSignal: abortSignal?.aborted,
+      messageCount: messages.length,
+      hook: 'onInputDelta',
     })
   },
   onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
     log.info('Weather tool received complete input', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       inputData: { location: input.location },
       hook: 'onInputAvailable',
     })
@@ -74,11 +85,18 @@ export const weatherTool = createTool({
         conditions: output.conditions,
       },
       hook: 'onOutput',
+      abortSignal: abortSignal?.aborted,
     })
   },
   execute: async (inputData, context) => {
     const writer = context?.writer
     const requestContext = context?.requestContext
+    const abortSignal = context?.abortSignal
+
+    // Check if operation was already cancelled
+    if (abortSignal?.aborted === true) {
+      throw new Error('Weather lookup cancelled')
+    }
 
     await writer?.custom({
       type: 'data-tool-progress',
@@ -118,7 +136,16 @@ export const weatherTool = createTool({
         },
         id: 'get-weather',
       })
-      const result = await getWeather(inputData.location, temperatureUnit)
+
+      // Check for cancellation before geocoding
+      if (abortSignal && abortSignal.aborted) {
+        weatherSpan.setStatus({ code: 2, message: 'Operation cancelled during geocoding' })
+        weatherSpan.end()
+        throw new Error('Weather lookup cancelled during geocoding')
+      }
+
+      const result = await getWeather(inputData.location, temperatureUnit, abortSignal)
+
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -128,17 +155,20 @@ export const weatherTool = createTool({
         },
         id: 'get-weather',
       })
+
       weatherSpan.setAttributes({
         'tool.output.location': result.location,
         'tool.output.temperature': result.temperature,
         'tool.output.conditions': result.conditions,
       })
       weatherSpan.end()
+
       log.info(`Weather fetched successfully for ${inputData.location}`)
       const finalResult = {
         ...result,
         unit: temperatureUnit === 'celsius' ? '°C' : '°F',
       }
+
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -148,15 +178,38 @@ export const weatherTool = createTool({
         },
         id: 'get-weather',
       })
+
       return finalResult
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
+
+      // Handle AbortError specifically
+      if (error instanceof Error && error.name === 'AbortError') {
+        const cancelMessage = `Weather lookup cancelled for ${inputData.location}`
+        weatherSpan.setStatus({ code: 2, message: cancelMessage })
+        weatherSpan.end()
+
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'done',
+            message: `Input: location="${inputData.location}" - 🛑 ${cancelMessage}`,
+            stage: 'get-weather',
+          },
+          id: 'get-weather',
+        })
+
+        log.warn(cancelMessage)
+        throw new Error(cancelMessage)
+      }
+
       if (error instanceof Error) {
         weatherSpan.recordException(error)
       }
       weatherSpan.setStatus({ code: 2, message: errorMessage }) // ERROR status
       weatherSpan.end()
+
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -166,6 +219,7 @@ export const weatherTool = createTool({
         },
         id: 'get-weather',
       })
+
       log.error(
         `Failed to fetch weather for ${inputData.location}: ${errorMessage}`
       )
