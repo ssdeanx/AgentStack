@@ -1,12 +1,11 @@
 
 import { createTool } from '@mastra/core/tools'
+import { SpanStatusCode, trace } from "@opentelemetry/api"
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'node:fs'
-import  * as path from 'node:path'
+import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context';
 
 import { extractText, getDocumentProxy } from 'unpdf'
 
@@ -19,6 +18,28 @@ export const readPDF = createTool({
   outputSchema: z.object({
     content: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('readPDF tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('readPDF received input', {
+      toolCallId,
+      inputData: {
+        pdfPath: input.pdfPath,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('readPDF completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        content: output.content,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 

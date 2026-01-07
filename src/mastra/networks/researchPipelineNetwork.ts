@@ -1,14 +1,14 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { researchPaperAgent } from '../agents/researchPaperAgent'
-import { documentProcessingAgent } from '../agents/documentProcessingAgent'
-import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
-import { researchAgent } from '../agents/researchAgent'
-import { documentProcessingWorkflow } from '../workflows/document-processing-workflow'
-import { contentReviewWorkflow } from '../workflows/content-review-workflow'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { documentProcessingAgent } from '../agents/documentProcessingAgent';
+import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { researchPaperAgent } from '../agents/researchPaperAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
+import { contentReviewWorkflow } from '../workflows/content-review-workflow';
+import { documentProcessingWorkflow } from '../workflows/document-processing-workflow';
 
 log.info('Initializing Research Pipeline Network...')
 
@@ -28,17 +28,17 @@ log.info('Initializing Research Pipeline Network...')
  * - Research synthesis across multiple papers
  */
 export const researchPipelineNetwork = new Agent({
-    id: 'research-pipeline-network',
-    name: 'Research Pipeline Network',
-    description: `Coordinates research paper discovery, PDF parsing, document chunking, and knowledge indexing. Routes requests to:
+  id: 'research-pipeline-network',
+  name: 'Research Pipeline Network',
+  description: `Coordinates research paper discovery, PDF parsing, document chunking, and knowledge indexing. Routes requests to:
 - ResearchPaperAgent: Search arXiv, download papers, parse PDFs to markdown
 - DocumentProcessingAgent: Convert PDFs, chunk documents for RAG
 - KnowledgeIndexingAgent: Index content into PgVector, semantic search with reranking
 - ResearchAgent: General research and information synthesis
 
 Use for: building research knowledge bases, literature reviews, indexing academic papers, semantic search over research content.`,
-    instructions: () => {
-        return `You are the Research Pipeline Network Coordinator. Your role is to orchestrate complex research workflows by delegating to specialist agents.
+  instructions: () => {
+    return `You are the Research Pipeline Network Coordinator. Your role is to orchestrate complex research workflows by delegating to specialist agents.
 
 ## Network Agents
 
@@ -129,21 +129,22 @@ Use for: building research knowledge bases, literature reviews, indexing academi
 - Include relevant statistics (papers found, chunks indexed, etc.)
 - Suggest next steps when appropriate
 `
-    },
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        researchPaperAgent,
-        documentProcessingAgent,
-        knowledgeIndexingAgent,
-        researchAgent,
-    },
-    workflows: {
-        documentProcessingWorkflow,
-        contentReviewWorkflow,
-    },
-    options: {
-    },
+  },
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    researchPaperAgent,
+    documentProcessingAgent,
+    knowledgeIndexingAgent,
+    researchAgent,
+  },
+  workflows: {
+    documentProcessingWorkflow,
+    contentReviewWorkflow,
+  },
+  options: {
+  },
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Research Pipeline Network initialized')

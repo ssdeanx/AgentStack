@@ -1,99 +1,176 @@
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { parse } from "csv-parse/sync";
-import { trace } from "@opentelemetry/api";
-import * as fs from "node:fs/promises";
-import { z } from "zod";
-import type { RequestContext } from '@mastra/core/request-context';
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
+import { trace } from '@opentelemetry/api'
+import { parse } from 'csv-parse/sync'
+import * as fs from 'node:fs/promises'
+import { z } from 'zod'
+import { log } from '../config/logger'
 
 const csvToolContextSchema = z.object({
   maxRows: z.number().optional(),
-});
+})
 
 export const csvToJsonTool = createTool({
-  id: "csv-to-json",
-  description: "Convert CSV data to JSON format. Accepts either a raw CSV string or a file path.",
+  id: 'csv-to-json',
+  description:
+    'Convert CSV data to JSON format. Accepts either a raw CSV string or a file path.',
   inputSchema: z.object({
-    csvData: z.string().optional().describe("Raw CSV string data"),
-    filePath: z.string().optional().describe("Absolute path to a CSV file"),
+    csvData: z.string().optional().describe('Raw CSV string data'),
+    filePath: z.string().optional().describe('Absolute path to a CSV file'),
     options: z
       .object({
-        delimiter: z.string().default(",").describe("CSV delimiter character"),
-        columns: z.boolean().default(true).describe("Treat first row as headers"),
-        trim: z.boolean().default(true).describe("Trim whitespace from values"),
-        skip_empty_lines: z.boolean().default(true).describe("Skip empty lines"),
+        delimiter: z
+          .string()
+          .default(',')
+          .describe('CSV delimiter character'),
+        columns: z
+          .boolean()
+          .default(true)
+          .describe('Treat first row as headers'),
+        trim: z
+          .boolean()
+          .default(true)
+          .describe('Trim whitespace from values'),
+        skip_empty_lines: z
+          .boolean()
+          .default(true)
+          .describe('Skip empty lines'),
       })
       .optional()
       .default({
-        delimiter: ",",
+        delimiter: ',',
         columns: true,
         trim: true,
         skip_empty_lines: true,
       }),
   }),
   outputSchema: z.object({
-    data: z.array(z.any()).describe("Parsed JSON data"),
+    data: z.array(z.any()).describe('Parsed JSON data'),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('CSV to JSON tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    const source = input.filePath
+      ? `file:${input.filePath}`
+      : 'raw CSV data'
+    const options = input.options || {}
+    log.info('CSV to JSON received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      source,
+      delimiter: options.delimiter,
+      columns: options.columns,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('CSV to JSON conversion completed', {
+      toolCallId,
+      toolName,
+      recordsProcessed: output.data.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
-    const writer = context?.writer;
-    const requestContext = context?.requestContext;
+    const writer = context?.writer
+    const requestContext = context?.requestContext
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📊 Starting CSV to JSON conversion', stage: 'csv-to-json' }, id: 'csv-to-json' });
-    const tracer = trace.getTracer('csv-to-json', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '📊 Starting CSV to JSON conversion',
+        stage: 'csv-to-json',
+      },
+      id: 'csv-to-json',
+    })
+    const tracer = trace.getTracer('csv-to-json', '1.0.0')
     const rootSpan = tracer.startSpan('csv-to-json', {
       attributes: {
         'tool.id': 'csv-to-json',
-      }
-    });
+      },
+    })
 
     try {
-      const config = requestContext?.get("csvToolContext");
-      const { maxRows } = config !== undefined ? csvToolContextSchema.parse(config) : { maxRows: undefined };
+      const config = requestContext?.get('csvToolContext')
+      const { maxRows } =
+        config !== undefined
+          ? csvToolContextSchema.parse(config)
+          : { maxRows: undefined }
 
-      let contentToParse = inputData.csvData;
+      let contentToParse = inputData.csvData
 
-      if (inputData.filePath !== undefined && inputData.filePath !== null) {
+      if (
+        inputData.filePath !== undefined &&
+        inputData.filePath !== null
+      ) {
         try {
-          contentToParse = await fs.readFile(inputData.filePath, "utf-8");
+          contentToParse = await fs.readFile(
+            inputData.filePath,
+            'utf-8'
+          )
         } catch (err) {
-          throw new Error(`Failed to read file at ${inputData.filePath}: ${(err as Error).message}`);
+          throw new Error(
+            `Failed to read file at ${inputData.filePath}: ${(err as Error).message}`
+          )
         }
       }
 
-      if (contentToParse === undefined || contentToParse === null || contentToParse === "") {
-        throw new Error("Either csvData or filePath must be provided");
+      if (
+        contentToParse === undefined ||
+        contentToParse === null ||
+        contentToParse === ''
+      ) {
+        throw new Error('Either csvData or filePath must be provided')
       }
 
       const options = inputData.options ?? {
-        delimiter: ",",
+        delimiter: ',',
         columns: true,
         trim: true,
         skip_empty_lines: true,
-      };
+      }
 
       const records = parse(contentToParse, {
         delimiter: options.delimiter,
         columns: options.columns,
         trim: options.trim,
         skip_empty_lines: options.skip_empty_lines,
-      });
+      })
 
       if (maxRows !== undefined && records.length > maxRows) {
-        throw new Error(`Record count (${records.length}) exceeds maximum allowed (${maxRows})`);
+        throw new Error(
+          `Record count (${records.length}) exceeds maximum allowed (${maxRows})`
+        )
       }
 
-      await writer?.write({ type: 'progress', data: { message: `✅ Converted ${records.length} records` } });
-      rootSpan.setAttributes({ 'tool.output.recordCount': records.length });
-      rootSpan.end();
-      return { data: records };
+      await writer?.write({
+        type: 'progress',
+        data: { message: `✅ Converted ${records.length} records` },
+      })
+      rootSpan.setAttributes({
+        'tool.output.recordCount': records.length,
+      })
+      rootSpan.end()
+      return { data: records }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error parsing CSV";
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: 2, message: errorMessage });
-      rootSpan.end();
-      throw error instanceof Error ? error : new Error(errorMessage);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error parsing CSV'
+      rootSpan.recordException(
+        error instanceof Error ? error : new Error(errorMessage)
+      )
+      rootSpan.setStatus({ code: 2, message: errorMessage })
+      rootSpan.end()
+      throw error instanceof Error ? error : new Error(errorMessage)
     }
   },
-});
+})
 
-export type CsvToJsonUITool = InferUITool<typeof csvToJsonTool>;
+export type CsvToJsonUITool = InferUITool<typeof csvToJsonTool>

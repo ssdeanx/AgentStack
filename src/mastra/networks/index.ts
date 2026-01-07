@@ -1,13 +1,13 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI } from '../config/google'
-import { weatherWorkflow } from '../workflows/weather-workflow'
-import { researchAgent } from '../agents/researchAgent'
-import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
-import { weatherAgent } from '../agents/weather-agent'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
 import { reportAgent } from '../agents/reportAgent'
+import { researchAgent } from '../agents/researchAgent'
+import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
+import { weatherAgent } from '../agents/weather-agent'
 import { pgMemory } from '../config'
+import { googleAI } from '../config/google'
+import { weatherWorkflow } from '../workflows/weather-workflow'
 
 // CSV/Data Pipeline Networks
 export { dataPipelineNetwork } from './dataPipelineNetwork'
@@ -40,12 +40,14 @@ export { businessIntelligenceNetwork } from './businessIntelligenceNetwork'
 // Security Network
 export { securityNetwork } from './securityNetwork'
 
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
+
 export const agentNetwork = new Agent({
-    id: 'agent-network',
-    name: 'Primary Agent Network',
-    description:
-        'A routing agent that coordinates specialized agents and workflows.',
-    instructions: `
+  id: 'agent-network',
+  name: 'Primary Agent Network',
+  description:
+    'A routing agent that coordinates specialized agents and workflows.',
+  instructions: `
     You are the Primary Network Coordinator. Your goal is to route user requests to the most appropriate specialist agent or workflow.
 
     Available Capabilities:
@@ -65,18 +67,19 @@ export const agentNetwork = new Agent({
     - If the user wants text checked or fixed, delegate to 'editorAgent'.
     - If the request is simple, general, or conversational (like "hello", "what's up"), respond directly and naturally to the user without explaining your routing logic.
   `,
-    model: googleAI,
-    memory: pgMemory, // Required for network capabilities
-    options: {},
-    agents: {
-        researchAgent,
-        stockAnalysisAgent,
-        weatherAgent,
-        copywriterAgent,
-        editorAgent,
-        reportAgent,
-    },
-    tools: {},
-    scorers: {},
-    workflows: { weatherWorkflow },
+  model: googleAI,
+  memory: pgMemory, // Required for network capabilities
+  options: {},
+  agents: {
+    researchAgent,
+    stockAnalysisAgent,
+    weatherAgent,
+    copywriterAgent,
+    editorAgent,
+    reportAgent,
+  },
+  tools: {},
+  scorers: {},
+  workflows: { weatherWorkflow },
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })

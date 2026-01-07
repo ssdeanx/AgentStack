@@ -5,13 +5,12 @@
  *
  * @module serpapi-shopping-tool
  */
-import type { RequestContext } from '@mastra/core/request-context';
-import { createTool } from '@mastra/core/tools'
-import { getJson } from 'serpapi'
-import { z } from 'zod'
+import { createTool } from '@mastra/core/tools';
 import { trace } from "@opentelemetry/api";
-import { log } from '../config/logger'
-import { validateSerpApiKey } from './serpapi-config'
+import { getJson } from 'serpapi';
+import { z } from 'zod';
+import { log } from '../config/logger';
+import { validateSerpApiKey } from './serpapi-config';
 
 // Amazon Search Tool
 const amazonSearchInputSchema = z.object({
@@ -44,6 +43,33 @@ export const amazonSearchTool = createTool({
     'Search Amazon for products. Filter by price range, sort by relevance/price/rating, and show only Prime eligible items. Returns product title, ASIN, price, rating, review count, and Prime status.',
   inputSchema: amazonSearchInputSchema,
   outputSchema: amazonSearchOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('amazonSearchTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('amazonSearchTool received input', {
+      toolCallId,
+      inputData: {
+        query: input.query,
+        sortBy: input.sortBy,
+        minPrice: input.minPrice,
+        maxPrice: input.maxPrice,
+        primeOnly: input.primeOnly,
+        numResults: input.numResults,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('amazonSearchTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        products: output.products,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -167,6 +193,32 @@ export const walmartSearchTool = createTool({
     'Search Walmart for products. Filter by price range and sort by relevance, price, or rating. Returns product information including title, price, rating, and links.',
   inputSchema: walmartSearchInputSchema,
   outputSchema: walmartSearchOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('walmartSearchTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('walmartSearchTool received input', {
+      toolCallId,
+      inputData: {
+        query: input.query,
+        sortBy: input.sortBy,
+        minPrice: input.minPrice,
+        maxPrice: input.maxPrice,
+        numResults: input.numResults,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('walmartSearchTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        products: output.products,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -276,6 +328,32 @@ export const ebaySearchTool = createTool({
     'Search eBay for products and listings. Filter by condition (new/used/refurbished), show only Buy It Now items, and sort by relevance or price. Returns item details including price, bids, time left, and condition.',
   inputSchema: ebaySearchInputSchema,
   outputSchema: ebaySearchOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('ebaySearchTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('ebaySearchTool received input', {
+      toolCallId,
+      inputData: {
+        query: input.query,
+        condition: input.condition,
+        sortBy: input.sortBy,
+        buyNowOnly: input.buyNowOnly,
+        numResults: input.numResults,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('ebaySearchTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        products: output.products,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -315,7 +393,7 @@ export const ebaySearchTool = createTool({
           'price-desc': 'PricePlusShippingHighest',
         }
         const sortVal = sortMap[inputData.sortBy]
-        if (sortVal) {params._sop = sortVal}
+        if (sortVal) { params._sop = sortVal }
       }
 
       const response = await getJson(params)
@@ -388,6 +466,31 @@ export const homeDepotSearchTool = createTool({
     'Search Home Depot for home improvement products. Filter by in-stock availability and sort by relevance, price, or rating. Returns product details including price, rating, availability, and links.',
   inputSchema: homeDepotSearchInputSchema,
   outputSchema: homeDepotSearchOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('homeDepotSearchTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('homeDepotSearchTool received input', {
+      toolCallId,
+      inputData: {
+        query: input.query,
+        sortBy: input.sortBy,
+        inStockOnly: input.inStockOnly,
+        numResults: input.numResults,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('homeDepotSearchTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        products: output.products,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 

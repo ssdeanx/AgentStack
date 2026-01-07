@@ -1,14 +1,14 @@
-import { Agent } from '@mastra/core/agent'
-import { google3, googleAI, googleAIFlashLite } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
-import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
-import { financialReportWorkflow } from '../workflows/financial-report-workflow'
-import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
-import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
-import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { codeArchitectAgent, codeReviewerAgent, refactoringAgent, testEngineerAgent } from '../agents/codingAgents';
+import { google3 } from '../config/google';
+import { log } from '../config/logger';
+import { upstashMemory } from '../config/upstash';
+import { financialReportWorkflow } from '../workflows/financial-report-workflow';
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow';
+import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow';
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
+import { specGenerationWorkflow } from '../workflows/spec-generation-workflow';
 
 log.info('Initializing Coding Team Network...')
 
@@ -85,7 +85,7 @@ Invoke these for structured, multi-phase processes:
 - Preservation of all technical context across the agent chain.
 `,
   model: google3,
-  memory: pgMemory,
+  memory: upstashMemory,
   options: {
 
   },
@@ -104,6 +104,7 @@ Invoke these for structured, multi-phase processes:
     financialReportWorkflow,
   },
   scorers: {},
+  outputProcessors: [new TokenLimiterProcessor(256000), new BatchPartsProcessor({ batchSize: 50, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Coding Team Network initialized')

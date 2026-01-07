@@ -1,26 +1,23 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
-import { researchAgent } from '../agents/researchAgent'
-import { chartSupervisorAgent } from '../agents/recharts'
-import { chartDataProcessorAgent } from '../agents/recharts'
-import { chartGeneratorAgent } from '../agents/recharts'
-import { chartTypeAdvisorAgent } from '../agents/recharts'
-import { reportAgent } from '../agents/reportAgent'
-import { financialReportWorkflow } from '../workflows/financial-report-workflow'
-import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent, chartTypeAdvisorAgent } from '../agents/recharts';
+import { reportAgent } from '../agents/reportAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { stockAnalysisAgent } from '../agents/stockAnalysisAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
+import { financialReportWorkflow } from '../workflows/financial-report-workflow';
+import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow';
 
 log.info('Initializing Financial Intelligence Network...')
 
 export const financialIntelligenceNetwork = new Agent({
-    id: 'financial-intelligence-network',
-    name: 'Financial Intelligence Network',
-    description:
-        'A routing agent that coordinates financial analysis agents for market intelligence and reporting. Routes requests to stock analysis, research, charting, and reporting agents.',
-    instructions: `You are a Financial Intelligence Coordinator. Your role is to orchestrate financial analysis and market intelligence workflows by coordinating specialized financial agents.
+  id: 'financial-intelligence-network',
+  name: 'Financial Intelligence Network',
+  description:
+    'A routing agent that coordinates financial analysis agents for market intelligence and reporting. Routes requests to stock analysis, research, charting, and reporting agents.',
+  instructions: `You are a Financial Intelligence Coordinator. Your role is to orchestrate financial analysis and market intelligence workflows by coordinating specialized financial agents.
 
 ## Available Agents
 
@@ -128,22 +125,23 @@ export const financialIntelligenceNetwork = new Agent({
 - Generate professional reports with executive summaries
 - Include forward-looking disclaimers for market predictions
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        stockAnalysisAgent,
-        researchAgent,
-        chartSupervisorAgent,
-        chartDataProcessorAgent,
-        chartGeneratorAgent,
-        chartTypeAdvisorAgent,
-        reportAgent,
-    },
-    workflows: {
-        financialReportWorkflow,
-        stockAnalysisWorkflow,
-    },
-    options: {},
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    stockAnalysisAgent,
+    researchAgent,
+    chartSupervisorAgent,
+    chartDataProcessorAgent,
+    chartGeneratorAgent,
+    chartTypeAdvisorAgent,
+    reportAgent,
+  },
+  workflows: {
+    financialReportWorkflow,
+    stockAnalysisWorkflow,
+  },
+  options: {},
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Financial Intelligence Network initialized')

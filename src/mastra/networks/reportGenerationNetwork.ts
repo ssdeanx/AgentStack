@@ -1,26 +1,26 @@
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@mastra/core/agent';
 
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { dataIngestionAgent } from '../agents/dataIngestionAgent'
-import { dataTransformationAgent } from '../agents/dataTransformationAgent'
-import { researchAgent } from '../agents/researchAgent'
-import { reportAgent } from '../agents/reportAgent'
-import { weatherWorkflow } from '../workflows/weather-workflow'
-import { financialReportWorkflow } from '../workflows/financial-report-workflow'
-import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
-import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { dataIngestionAgent } from '../agents/dataIngestionAgent';
+import { dataTransformationAgent } from '../agents/dataTransformationAgent';
+import { reportAgent } from '../agents/reportAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
+import { financialReportWorkflow } from '../workflows/financial-report-workflow';
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow';
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
+import { weatherWorkflow } from '../workflows/weather-workflow';
 
 log.info('Initializing Report Generation Network...')
 
 export const reportGenerationNetwork = new Agent({
-    id: 'report-generation-network',
-    name: 'Report Generation Network',
-    description:
-        'A routing agent that coordinates research, data transformation, and report generation. Use for complex multi-step report workflows that require data gathering, processing, and formatted output.',
-    instructions: `You are a Report Generation Coordinator. Your role is to orchestrate multi-step report generation workflows by coordinating specialized agents.
+  id: 'report-generation-network',
+  name: 'Report Generation Network',
+  description:
+    'A routing agent that coordinates research, data transformation, and report generation. Use for complex multi-step report workflows that require data gathering, processing, and formatted output.',
+  instructions: `You are a Report Generation Coordinator. Your role is to orchestrate multi-step report generation workflows by coordinating specialized agents.
 
 ## Available Agents
 
@@ -114,24 +114,25 @@ export const reportGenerationNetwork = new Agent({
 - Combine multiple data sources when comprehensive coverage is needed
 - Explain each step in the workflow to the user
 `,
-    model: googleAI3,
-    memory: pgMemory,
-//    options: {
-//        tracingPolicy: { internal: InternalSpans.ALL },
-//   },
-    agents: {
-        dataIngestionAgent,
-        dataTransformationAgent,
-        researchAgent,
-        reportAgent,
-    },
-    tools: {},
-    workflows: {
-        weatherWorkflow,
-        financialReportWorkflow,
-        researchSynthesisWorkflow,
-        learningExtractionWorkflow,
-    },
+  model: googleAI3,
+  memory: pgMemory,
+  //    options: {
+  //        tracingPolicy: { internal: InternalSpans.ALL },
+  //   },
+  agents: {
+    dataIngestionAgent,
+    dataTransformationAgent,
+    researchAgent,
+    reportAgent,
+  },
+  tools: {},
+  workflows: {
+    weatherWorkflow,
+    financialReportWorkflow,
+    researchSynthesisWorkflow,
+    learningExtractionWorkflow,
+  },
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Report Generation Network initialized')

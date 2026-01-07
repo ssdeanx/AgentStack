@@ -1,7 +1,8 @@
-import { createTool } from '@mastra/core/tools'
-import { z } from 'zod'
-import { createPatch, structuredPatch } from 'diff'
-import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { createTool } from '@mastra/core/tools';
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { createPatch, structuredPatch } from 'diff';
+import { z } from 'zod';
+import { log } from '../config/logger';
 
 const diffReviewInputSchema = z.object({
   original: z.string().describe('Original code content'),
@@ -46,6 +47,35 @@ Returns structured diff data with hunks, individual changes, and statistics.
 Use for code review, comparing versions, and analyzing modifications.`,
   inputSchema: diffReviewInputSchema,
   outputSchema: diffReviewOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('diffReviewTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('diffReviewTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        filename: input.filename,
+        context: input.context,
+        originalLength: input.original.length,
+        modifiedLength: input.modified.length,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('diffReviewTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        additions: output.stats.additions,
+        deletions: output.stats.deletions,
+        totalChanges: output.stats.totalChanges,
+        summary: output.summary,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context): Promise<DiffReviewOutput> => {
     const { original, modified, filename = 'file', context: contextLines = 3 } = inputData
     const writer = context?.writer
@@ -56,115 +86,115 @@ Use for code review, comparing versions, and analyzing modifications.`,
 
     try {
 
-    const unifiedDiff = createPatch(
-      filename,
-      original,
-      modified,
-      'original',
-      'modified',
-      { context: contextLines }
-    )
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🧩 Unified diff generated (${filename})`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
+      const unifiedDiff = createPatch(
+        filename,
+        original,
+        modified,
+        'original',
+        'modified',
+        { context: contextLines }
+      )
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🧩 Unified diff generated (${filename})`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
 
-    const structured = structuredPatch(
-      filename,
-      filename,
-      original,
-      modified,
-      'original',
-      'modified',
-      { context: contextLines }
-    )
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Structured patch created with ${structured.hunks.length} hunk(s)`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
+      const structured = structuredPatch(
+        filename,
+        filename,
+        original,
+        modified,
+        'original',
+        'modified',
+        { context: contextLines }
+      )
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Structured patch created with ${structured.hunks.length} hunk(s)`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
 
-    interface DiffHunk {
-      oldStart: number
-      oldLines: number
-      newStart: number
-      newLines: number
-      lines: string[]
-    }
+      interface DiffHunk {
+        oldStart: number
+        oldLines: number
+        newStart: number
+        newLines: number
+        lines: string[]
+      }
 
-    const hunks: Array<z.infer<typeof hunkSchema>> = (structured.hunks as DiffHunk[]).map(hunk => ({
-      oldStart: hunk.oldStart,
-      oldLines: hunk.oldLines,
-      newStart: hunk.newStart,
-      newLines: hunk.newLines,
-      lines: hunk.lines,
-    }))
+      const hunks: Array<z.infer<typeof hunkSchema>> = (structured.hunks as DiffHunk[]).map(hunk => ({
+        oldStart: hunk.oldStart,
+        oldLines: hunk.oldLines,
+        newStart: hunk.newStart,
+        newLines: hunk.newLines,
+        lines: hunk.lines,
+      }))
 
-    const changes: Array<z.infer<typeof changeSchema>> = []
-    let additions = 0
-    let deletions = 0
+      const changes: Array<z.infer<typeof changeSchema>> = []
+      let additions = 0
+      let deletions = 0
 
-    for (const hunk of structured.hunks) {
-      let oldLine = hunk.oldStart
-      let newLine = hunk.newStart
+      for (const hunk of structured.hunks) {
+        let oldLine = hunk.oldStart
+        let newLine = hunk.newStart
 
-      for (const line of hunk.lines) {
-        if (line.startsWith('+')) {
-          changes.push({
-            type: 'addition',
-            lineNumber: newLine,
-            content: line.substring(1),
-          })
-          additions++
-          newLine++
-        } else if (line.startsWith('-')) {
-          changes.push({
-            type: 'deletion',
-            lineNumber: oldLine,
-            content: line.substring(1),
-          })
-          deletions++
-          oldLine++
-        } else if (line.startsWith(' ')) {
-          changes.push({
-            type: 'context',
-            lineNumber: newLine,
-            content: line.substring(1),
-          })
-          oldLine++
-          newLine++
+        for (const line of hunk.lines) {
+          if (line.startsWith('+')) {
+            changes.push({
+              type: 'addition',
+              lineNumber: newLine,
+              content: line.substring(1),
+            })
+            additions++
+            newLine++
+          } else if (line.startsWith('-')) {
+            changes.push({
+              type: 'deletion',
+              lineNumber: oldLine,
+              content: line.substring(1),
+            })
+            deletions++
+            oldLine++
+          } else if (line.startsWith(' ')) {
+            changes.push({
+              type: 'context',
+              lineNumber: newLine,
+              content: line.substring(1),
+            })
+            oldLine++
+            newLine++
+          }
         }
       }
+
+      const totalChanges = additions + deletions
+      let summary: string
+
+      if (totalChanges === 0) {
+        summary = 'No changes detected between the two versions.'
+      } else {
+        const parts: string[] = []
+        if (additions > 0) { parts.push(`${additions} addition${additions !== 1 ? 's' : ''}`) }
+        if (deletions > 0) { parts.push(`${deletions} deletion${deletions !== 1 ? 's' : ''}`) }
+        summary = `${totalChanges} change${totalChanges !== 1 ? 's' : ''}: ${parts.join(', ')} across ${hunks.length} hunk${hunks.length !== 1 ? 's' : ''}.`
+      }
+
+      span?.setAttribute('additions', additions);
+      span?.setAttribute('deletions', deletions);
+      span?.setAttribute('totalChanges', totalChanges);
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Diff generated: ${additions} additions, ${deletions} deletions`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
+      span?.end();
+
+      return {
+        unifiedDiff,
+        hunks,
+        changes,
+        stats: {
+          additions,
+          deletions,
+          totalChanges,
+        },
+        summary,
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span?.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span?.end();
+      throw error;
     }
-
-    const totalChanges = additions + deletions
-    let summary: string
-
-    if (totalChanges === 0) {
-      summary = 'No changes detected between the two versions.'
-    } else {
-      const parts: string[] = []
-      if (additions > 0) {parts.push(`${additions} addition${additions !== 1 ? 's' : ''}`)}
-      if (deletions > 0) {parts.push(`${deletions} deletion${deletions !== 1 ? 's' : ''}`)}
-      summary = `${totalChanges} change${totalChanges !== 1 ? 's' : ''}: ${parts.join(', ')} across ${hunks.length} hunk${hunks.length !== 1 ? 's' : ''}.`
-    }
-
-    span?.setAttribute('additions', additions);
-    span?.setAttribute('deletions', deletions);
-    span?.setAttribute('totalChanges', totalChanges);
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Diff generated: ${additions} additions, ${deletions} deletions`, stage: 'coding:diffReview' }, id: 'coding:diffReview' });
-    span?.end();
-
-    return {
-      unifiedDiff,
-      hunks,
-      changes,
-      stats: {
-        additions,
-        deletions,
-        totalChanges,
-      },
-      summary,
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    span?.recordException(error instanceof Error ? error : new Error(errorMessage));
-    span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-    span?.end();
-    throw error;
-  }
   }
 });

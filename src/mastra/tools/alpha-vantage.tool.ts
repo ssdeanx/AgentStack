@@ -1,8 +1,8 @@
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import { trace } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context';
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
+import { trace } from '@opentelemetry/api'
+import { z } from 'zod'
+import { log } from '../config/logger'
 
 /**
  * Alpha Vantage Tools
@@ -13,7 +13,6 @@ import type { RequestContext } from '@mastra/core/request-context';
  *
  * Requires ALPHA_VANTAGE_API_KEY environment variable
  */
-
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -28,152 +27,291 @@ const toolCallCounters = new Map<string, number>()
  * - Crypto-to-fiat and crypto-to-crypto exchange rates
  */
 export const alphaVantageCryptoTool = createTool({
-  id: "alpha-vantage-crypto",
-  description: "Access cryptocurrency market data from Alpha Vantage including crypto prices, exchange rates, and historical data",
+  id: 'alpha-vantage-crypto',
+  description:
+    'Access cryptocurrency market data from Alpha Vantage including crypto prices, exchange rates, and historical data',
   inputSchema: z.object({
-    function: z.enum([
-      "CRYPTO_INTRADAY",
-      "CRYPTO_DAILY",
-      "CRYPTO_WEEKLY",
-      "CRYPTO_MONTHLY",
-      "CURRENCY_EXCHANGE_RATE"
-    ]).describe("Crypto-specific Alpha Vantage API function"),
-    symbol: z.string().describe("Cryptocurrency symbol (e.g., 'BTC', 'ETH', 'ADA')"),
-    market: z.string().default("USD").describe("Quote currency for exchange rates (e.g., 'USD', 'EUR', 'BTC')"),
-    interval: z.enum(["1min", "5min", "15min", "30min", "60min"]).optional().describe("Time interval for intraday data"),
-    outputsize: z.enum(["compact", "full"]).optional().describe("Amount of data to return (compact=latest 100, full=all available)"),
-    datatype: z.enum(["json", "csv"]).optional().describe("Response format")
+    function: z
+      .enum([
+        'CRYPTO_INTRADAY',
+        'CRYPTO_DAILY',
+        'CRYPTO_WEEKLY',
+        'CRYPTO_MONTHLY',
+        'CURRENCY_EXCHANGE_RATE',
+      ])
+      .describe('Crypto-specific Alpha Vantage API function'),
+    symbol: z
+      .string()
+      .describe("Cryptocurrency symbol (e.g., 'BTC', 'ETH', 'ADA')"),
+    market: z
+      .string()
+      .default('USD')
+      .describe(
+        "Quote currency for exchange rates (e.g., 'USD', 'EUR', 'BTC')"
+      ),
+    interval: z
+      .enum(['1min', '5min', '15min', '30min', '60min'])
+      .optional()
+      .describe('Time interval for intraday data'),
+    outputsize: z
+      .enum(['compact', 'full'])
+      .optional()
+      .describe(
+        'Amount of data to return (compact=latest 100, full=all available)'
+      ),
+    datatype: z
+      .enum(['json', 'csv'])
+      .optional()
+      .describe('Response format'),
   }),
   outputSchema: z.object({
-    data: z.any().describe("The cryptocurrency data returned from Alpha Vantage API"),
-    metadata: z.object({
-      function: z.string(),
-      symbol: z.string(),
-      market: z.string().optional(),
-      last_refreshed: z.string().optional(),
-      interval: z.string().optional(),
-      output_size: z.string().optional(),
-      time_zone: z.string().optional()
-    }).optional()
+    data: z
+      .any()
+      .describe(
+        'The cryptocurrency data returned from Alpha Vantage API'
+      ),
+    metadata: z
+      .object({
+        function: z.string(),
+        symbol: z.string(),
+        market: z.string().optional(),
+        last_refreshed: z.string().optional(),
+        interval: z.string().optional(),
+        output_size: z.string().optional(),
+        time_zone: z.string().optional(),
+      })
+      .optional(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage crypto received input', {
+      toolCallId,
+      messageCount: messages.length,
+      symbol: input.symbol,
+      market: input.market,
+      function: input.function,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    const dataKeys = output.data ? Object.keys(output.data).length : 0
+    log.info('Alpha Vantage crypto completed', {
+      toolCallId,
+      toolName,
+      symbol: output.metadata?.symbol ?? 'unknown',
+      dataKeys,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
-    const span = trace.getTracer('alpha-vantage-crypto-tool', '1.0.0').startSpan('alpha-vantage-crypto', {
-      attributes: {
-        'tool.id': 'alpha-vantage-crypto',
-        'tool.input.symbol': inputData.symbol,
-        'tool.input.market': inputData.market,
-        'tool.input.function': inputData.function,
-      }
-    });
+    const span = trace
+      .getTracer('alpha-vantage-crypto-tool', '1.0.0')
+      .startSpan('alpha-vantage-crypto', {
+        attributes: {
+          'tool.id': 'alpha-vantage-crypto',
+          'tool.input.symbol': inputData.symbol,
+          'tool.input.market': inputData.market,
+          'tool.input.function': inputData.function,
+        },
+      })
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}`, status: 'in-progress', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}`,
+        status: 'in-progress',
+        stage: 'alpha-vantage-crypto',
+      },
+      id: 'alpha-vantage-crypto',
+    })
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
-    if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
-      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
+    if (typeof apiKey !== 'string' || apiKey.trim() === '') {
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: '❌ Missing ALPHA_VANTAGE_API_KEY',
+          status: 'done',
+          stage: 'alpha-vantage-crypto',
+        },
+        id: 'alpha-vantage-crypto',
+      })
+      throw new Error(
+        'ALPHA_VANTAGE_API_KEY environment variable is required'
+      )
     }
-    toolCallCounters.set('alpha-vantage-crypto', (toolCallCounters.get('alpha-vantage-crypto') ?? 0) + 1);
+    toolCallCounters.set(
+      'alpha-vantage-crypto',
+      (toolCallCounters.get('alpha-vantage-crypto') ?? 0) + 1
+    )
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
         function: inputData.function,
         symbol: inputData.symbol,
-        market: inputData.market
-      });
+        market: inputData.market,
+      })
 
       // Add optional parameters
       if (inputData.interval !== undefined) {
-        params.append("interval", inputData.interval);
+        params.append('interval', inputData.interval)
       }
       if (inputData.outputsize !== undefined) {
-        params.append("outputsize", inputData.outputsize);
+        params.append('outputsize', inputData.outputsize)
       }
       if (inputData.datatype !== undefined) {
-        params.append("datatype", inputData.datatype);
+        params.append('datatype', inputData.datatype)
       }
 
-      const url = `https://www.alphavantage.co/query?${params.toString()}`;
+      const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...', status: 'in-progress', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
-      const response = await fetch(url);
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: '📡 Querying Alpha Vantage API...',
+          status: 'in-progress',
+          stage: 'alpha-vantage-crypto',
+        },
+        id: 'alpha-vantage-crypto',
+      })
+      const response = await fetch(url)
 
       if (!response.ok) {
-        throw new Error(`Alpha Vantage API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Alpha Vantage API error: ${response.status} ${response.statusText}`
+        )
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
-      const dataObj = data as unknown;
+      const dataObj = data as unknown
 
       // Check for API-specific errors
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>)) {
-        const errorMessage = (dataObj as Record<string, unknown>)["Error Message"];
-        if (errorMessage !== null && errorMessage !== undefined && String(errorMessage).trim() !== '') {
-          throw new Error(String(errorMessage));
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Error Message' in (dataObj as Record<string, unknown>)
+      ) {
+        const errorMessage = (dataObj as Record<string, unknown>)[
+          'Error Message'
+        ]
+        if (
+          errorMessage !== null &&
+          errorMessage !== undefined &&
+          String(errorMessage).trim() !== ''
+        ) {
+          throw new Error(String(errorMessage))
         }
       }
 
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>)) {
-        const note = (dataObj as Record<string, unknown>)["Note"];
-        if (note !== null && note !== undefined && String(note).trim() !== '') {
-          throw new Error(String(note)); // API limit reached
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Note' in (dataObj as Record<string, unknown>)
+      ) {
+        const note = (dataObj as Record<string, unknown>)['Note']
+        if (
+          note !== null &&
+          note !== undefined &&
+          String(note).trim() !== ''
+        ) {
+          throw new Error(String(note)) // API limit reached
         }
       }
 
       // Extract metadata if available
-      let metadata: unknown = null;
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null) {
-        const dataRecord = dataObj as Record<string, unknown>;
-        if ("Meta Data" in dataRecord) {
-          metadata = dataRecord["Meta Data"];
-        } else if ("meta" in dataRecord) {
-          metadata = dataRecord["meta"];
+      let metadata: unknown = null
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null
+      ) {
+        const dataRecord = dataObj as Record<string, unknown>
+        if ('Meta Data' in dataRecord) {
+          metadata = dataRecord['Meta Data']
+        } else if ('meta' in dataRecord) {
+          metadata = dataRecord['meta']
         }
       }
 
-      const metadataObj = metadata;
+      const metadataObj = metadata
 
       // Helper function to safely extract metadata values
       const getMetadataValue = (key: string): string | null => {
-        if ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null) {
-          const metaRecord = metadataObj as Record<string, unknown>;
+        if (
+          Boolean(metadataObj) &&
+          typeof metadataObj === 'object' &&
+          metadataObj !== null
+        ) {
+          const metaRecord = metadataObj as Record<string, unknown>
           if (key in metaRecord) {
-            const value = metaRecord[key];
-            return value !== null && value !== undefined ? String(value) : null;
+            const value = metaRecord[key]
+            return value !== null && value !== undefined
+              ? String(value)
+              : null
           }
         }
-        return null;
-      };
+        return null
+      }
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Crypto data ready for ${inputData.symbol}`, status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: `✅ Crypto data ready for ${inputData.symbol}`,
+          status: 'done',
+          stage: 'alpha-vantage-crypto',
+        },
+        id: 'alpha-vantage-crypto',
+      })
       const result = {
         data,
         metadata: {
-          function: getMetadataValue("1. Information") ?? inputData.function,
-          symbol: getMetadataValue("2. Symbol") ?? inputData.symbol,
-          market: getMetadataValue("3. Market") ?? inputData.market,
-          last_refreshed: getMetadataValue("4. Last Refreshed") ?? undefined,
-          interval: getMetadataValue("5. Interval") ?? undefined,
-          output_size: getMetadataValue("6. Output Size") ?? undefined,
-          time_zone: getMetadataValue("7. Time Zone") ?? undefined
-        }
-      };
-      span.end();
-      return result;
-
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : "Unknown error occurred";
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Crypto fetch error: ${errMsg}`, status: 'done', stage: 'alpha-vantage-crypto' }, id: 'alpha-vantage-crypto' });
-      if (error instanceof Error) {
-        span.recordException(error);
+          function:
+            getMetadataValue('1. Information') ??
+            inputData.function,
+          symbol: getMetadataValue('2. Symbol') ?? inputData.symbol,
+          market: getMetadataValue('3. Market') ?? inputData.market,
+          last_refreshed:
+            getMetadataValue('4. Last Refreshed') ?? undefined,
+          interval: getMetadataValue('5. Interval') ?? undefined,
+          output_size:
+            getMetadataValue('6. Output Size') ?? undefined,
+          time_zone: getMetadataValue('7. Time Zone') ?? undefined,
+        },
       }
-      span.setStatus({ code: 2, message: errMsg }); // ERROR status
-      span.end();
-      throw error instanceof Error ? error : new Error(errMsg);
+      span.end()
+      return result
+    } catch (error) {
+      const errMsg =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred'
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: `❌ Crypto fetch error: ${errMsg}`,
+          status: 'done',
+          stage: 'alpha-vantage-crypto',
+        },
+        id: 'alpha-vantage-crypto',
+      })
+      if (error instanceof Error) {
+        span.recordException(error)
+      }
+      span.setStatus({ code: 2, message: errMsg }) // ERROR status
+      span.end()
+      throw error instanceof Error ? error : new Error(errMsg)
     }
-  }
-});
+  },
+})
 
 /**
  * Alpha Vantage Stock Tool
@@ -186,161 +324,347 @@ export const alphaVantageCryptoTool = createTool({
  * - Fundamental data
  */
 export const alphaVantageStockTool = createTool({
-  id: "alpha-vantage-stock",
-  description: "Access stock market data from Alpha Vantage including stock prices, quotes, technical indicators, and fundamental data",
+  id: 'alpha-vantage-stock',
+  description:
+    'Access stock market data from Alpha Vantage including stock prices, quotes, technical indicators, and fundamental data',
   inputSchema: z.object({
-    function: z.enum([
-      "TIME_SERIES_INTRADAY",
-      "TIME_SERIES_DAILY",
-      "TIME_SERIES_DAILY_ADJUSTED",
-      "TIME_SERIES_WEEKLY",
-      "TIME_SERIES_MONTHLY",
-      "GLOBAL_QUOTE",
-      "SYMBOL_SEARCH",
-      "SMA",
-      "EMA",
-      "RSI",
-      "MACD",
-      "STOCH",
-      "BBANDS",
-      "ADX",
-      "CCI"
-    ]).describe("Stock-specific Alpha Vantage API function"),
-    symbol: z.string().describe("Stock symbol (e.g., 'IBM', 'AAPL', 'GOOGL')"),
-    interval: z.enum(["1min", "5min", "15min", "30min", "60min"]).optional().describe("Time interval for intraday data"),
-    outputsize: z.enum(["compact", "full"]).optional().describe("Amount of data to return (compact=latest 100, full=all available)"),
-    datatype: z.enum(["json", "csv"]).optional().describe("Response format"),
+    function: z
+      .enum([
+        'TIME_SERIES_INTRADAY',
+        'TIME_SERIES_DAILY',
+        'TIME_SERIES_DAILY_ADJUSTED',
+        'TIME_SERIES_WEEKLY',
+        'TIME_SERIES_MONTHLY',
+        'GLOBAL_QUOTE',
+        'SYMBOL_SEARCH',
+        'SMA',
+        'EMA',
+        'RSI',
+        'MACD',
+        'STOCH',
+        'BBANDS',
+        'ADX',
+        'CCI',
+      ])
+      .describe('Stock-specific Alpha Vantage API function'),
+    symbol: z
+      .string()
+      .describe("Stock symbol (e.g., 'IBM', 'AAPL', 'GOOGL')"),
+    interval: z
+      .enum(['1min', '5min', '15min', '30min', '60min'])
+      .optional()
+      .describe('Time interval for intraday data'),
+    outputsize: z
+      .enum(['compact', 'full'])
+      .optional()
+      .describe(
+        'Amount of data to return (compact=latest 100, full=all available)'
+      ),
+    datatype: z
+      .enum(['json', 'csv'])
+      .optional()
+      .describe('Response format'),
     // Technical indicator parameters
-    indicator: z.string().optional().describe("Technical indicator name (e.g., 'SMA', 'EMA', 'RSI', 'MACD')"),
-    time_period: z.number().optional().describe("Time period for technical indicators"),
-    series_type: z.enum(["close", "open", "high", "low"]).optional().describe("Price series type for technical indicators")
+    indicator: z
+      .string()
+      .optional()
+      .describe(
+        "Technical indicator name (e.g., 'SMA', 'EMA', 'RSI', 'MACD')"
+      ),
+    time_period: z
+      .number()
+      .optional()
+      .describe('Time period for technical indicators'),
+    series_type: z
+      .enum(['close', 'open', 'high', 'low'])
+      .optional()
+      .describe('Price series type for technical indicators'),
   }),
   outputSchema: z.object({
-    data: z.any().describe("The stock data returned from Alpha Vantage API"),
-    metadata: z.object({
-      function: z.string(),
-      symbol: z.string().optional(),
-      last_refreshed: z.string().optional(),
-      interval: z.string().optional(),
-      output_size: z.string().optional(),
-      time_zone: z.string().optional(),
-      indicator: z.string().optional(),
-      time_period: z.string().optional(),
-      series_type: z.string().optional()
-    }).optional()
+    data: z
+      .any()
+      .describe('The stock data returned from Alpha Vantage API'),
+    metadata: z
+      .object({
+        function: z.string(),
+        symbol: z.string().optional(),
+        last_refreshed: z.string().optional(),
+        interval: z.string().optional(),
+        output_size: z.string().optional(),
+        time_zone: z.string().optional(),
+        indicator: z.string().optional(),
+        time_period: z.string().optional(),
+        series_type: z.string().optional(),
+      })
+      .optional(),
   }),
-  execute: async (inputData, context) => {
-    const span = trace.getTracer('alpha-vantage-stock-tool', '1.0.0').startSpan('alpha-vantage-stock', {
-      attributes: {
-        'tool.id': 'alpha-vantage-stock',
-        'tool.input.symbol': inputData.symbol,
-        'tool.input.function': inputData.function,
-      }
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageStockTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageStockTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        function: input.function,
+        symbol: input.symbol,
+        interval: input.interval,
+        outputsize: input.outputsize,
+        datatype: input.datatype,
+        indicator: input.indicator,
+        time_period: input.time_period,
+        series_type: input.series_type,
+      },
+      hook: 'onInputAvailable'
     });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('alphaVantageStockTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        data: output.data,
+        metadata: output.metadata,
+      },
+      hook: 'onOutput'
+    });
+  },
+  execute: async (inputData, context) => {
+    const span = trace
+      .getTracer('alpha-vantage-stock-tool', '1.0.0')
+      .startSpan('alpha-vantage-stock', {
+        attributes: {
+          'tool.id': 'alpha-vantage-stock',
+          'tool.input.symbol': inputData.symbol,
+          'tool.input.function': inputData.function,
+        },
+      })
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `📈 Fetching Alpha Vantage stock data for ${inputData.symbol || 'symbol'}`, status: 'in-progress', stage: 'alpha-vantage-stock' }, id: 'alpha-vantage-stock' });
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        message: `📈 Fetching Alpha Vantage stock data for ${inputData.symbol || 'symbol'}`,
+        status: 'in-progress',
+        stage: 'alpha-vantage-stock',
+      },
+      id: 'alpha-vantage-stock',
+    })
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
-    if (typeof apiKey !== "string" || apiKey.trim() === '') {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage-stock' }, id: 'alpha-vantage-stock' });
-      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
+    if (typeof apiKey !== 'string' || apiKey.trim() === '') {
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: '❌ Missing ALPHA_VANTAGE_API_KEY',
+          status: 'done',
+          stage: 'alpha-vantage-stock',
+        },
+        id: 'alpha-vantage-stock',
+      })
+      throw new Error(
+        'ALPHA_VANTAGE_API_KEY environment variable is required'
+      )
     }
-    toolCallCounters.set('alpha-vantage-stock', (toolCallCounters.get('alpha-vantage-stock') ?? 0) + 1);
+    toolCallCounters.set(
+      'alpha-vantage-stock',
+      (toolCallCounters.get('alpha-vantage-stock') ?? 0) + 1
+    )
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
-        function: inputData.function
-      });
+        function: inputData.function,
+      })
 
       // Add required symbol parameter
       if (inputData.symbol) {
-        params.append("symbol", inputData.symbol);
+        params.append('symbol', inputData.symbol)
       }
 
       // Add optional parameters
       if (inputData.interval !== undefined) {
-        params.append("interval", inputData.interval);
+        params.append('interval', inputData.interval)
       }
       if (inputData.outputsize !== undefined) {
-        params.append("outputsize", inputData.outputsize);
+        params.append('outputsize', inputData.outputsize)
       }
       if (inputData.datatype !== undefined) {
-        params.append("datatype", inputData.datatype);
+        params.append('datatype', inputData.datatype)
       }
 
       // Technical indicator parameters
-      if (inputData.indicator !== undefined && inputData.indicator !== null) {
-        params.append("indicator", inputData.indicator);
+      if (
+        inputData.indicator !== undefined &&
+        inputData.indicator !== null
+      ) {
+        params.append('indicator', inputData.indicator)
       }
-      if (inputData.time_period !== undefined && inputData.time_period !== null) {
-        params.append("time_period", inputData.time_period.toString());
+      if (
+        inputData.time_period !== undefined &&
+        inputData.time_period !== null
+      ) {
+        params.append('time_period', inputData.time_period.toString())
       }
       if (inputData.series_type !== undefined) {
-        params.append("series_type", inputData.series_type);
+        params.append('series_type', inputData.series_type)
       }
 
-      const url = `https://www.alphavantage.co/query?${params.toString()}`;
+      const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-      const response = await fetch(url);
+      const response = await fetch(url)
 
       if (!response.ok) {
-        throw new Error(`Alpha Vantage API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Alpha Vantage API error: ${response.status} ${response.statusText}`
+        )
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
-      const dataObj = data as unknown;
+      const dataObj = data as unknown
 
       // Check for API-specific errors
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>)) {
-        const errorMessage = (dataObj as Record<string, unknown>)["Error Message"];
-        if (errorMessage !== null && errorMessage !== undefined && String(errorMessage).trim() !== '') {
-          throw new Error(String(errorMessage));
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Error Message' in (dataObj as Record<string, unknown>)
+      ) {
+        const errorMessage = (dataObj as Record<string, unknown>)[
+          'Error Message'
+        ]
+        if (
+          errorMessage !== null &&
+          errorMessage !== undefined &&
+          String(errorMessage).trim() !== ''
+        ) {
+          throw new Error(String(errorMessage))
         }
       }
 
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>)) {
-        const note = (dataObj as Record<string, unknown>)["Note"];
-        if (note !== null && note !== undefined && String(note).trim() !== '') {
-          throw new Error(String(note)); // API limit reached
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Note' in (dataObj as Record<string, unknown>)
+      ) {
+        const note = (dataObj as Record<string, unknown>)['Note']
+        if (
+          note !== null &&
+          note !== undefined &&
+          String(note).trim() !== ''
+        ) {
+          throw new Error(String(note)) // API limit reached
         }
       }
 
       // Extract metadata if available
-      const metadata = ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Meta Data" in dataObj ? (dataObj as Record<string, unknown>)["Meta Data"] : null) ??
-        ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
-        {};
+      const metadata =
+        (Boolean(dataObj) &&
+          typeof dataObj === 'object' &&
+          dataObj !== null &&
+          'Meta Data' in dataObj
+          ? (dataObj as Record<string, unknown>)['Meta Data']
+          : null) ??
+        (Boolean(dataObj) &&
+          typeof dataObj === 'object' &&
+          dataObj !== null &&
+          'meta' in dataObj
+          ? (dataObj as Record<string, unknown>)['meta']
+          : null) ??
+        {}
 
-      const metadataObj = metadata as unknown;
+      const metadataObj = metadata as unknown
 
       const result = {
         data,
         metadata: {
-          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? inputData.function,
-          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? inputData.symbol,
-          last_refreshed: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "3. Last Refreshed" in metadataObj ? String((metadataObj as Record<string, unknown>)["3. Last Refreshed"]) : undefined,
-          interval: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "4. Interval" in metadataObj ? String((metadataObj as Record<string, unknown>)["4. Interval"]) : undefined,
-          output_size: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "5. Output Size" in metadataObj ? String((metadataObj as Record<string, unknown>)["5. Output Size"]) : undefined,
-          time_zone: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "6. Time Zone" in metadataObj ? String((metadataObj as Record<string, unknown>)["6. Time Zone"]) : undefined,
+          function:
+            (Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '1. Information' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '1. Information'
+                ]
+              )
+              : null) ?? inputData.function,
+          symbol:
+            (Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '2. Symbol' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '2. Symbol'
+                ]
+              )
+              : null) ?? inputData.symbol,
+          last_refreshed:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '3. Last Refreshed' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '3. Last Refreshed'
+                ]
+              )
+              : undefined,
+          interval:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '4. Interval' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '4. Interval'
+                ]
+              )
+              : undefined,
+          output_size:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '5. Output Size' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '5. Output Size'
+                ]
+              )
+              : undefined,
+          time_zone:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '6. Time Zone' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '6. Time Zone'
+                ]
+              )
+              : undefined,
           indicator: inputData.indicator,
           time_period: inputData.time_period?.toString(),
-          series_type: inputData.series_type
-        }
-      };
-      span.end();
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      if (error instanceof Error) {
-        span.recordException(error);
+          series_type: inputData.series_type,
+        },
       }
-      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      span.end();
-      throw error instanceof Error ? error : new Error(errorMessage);
+      span.end()
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred'
+      if (error instanceof Error) {
+        span.recordException(error)
+      }
+      span.setStatus({ code: 2, message: errorMessage }) // ERROR status
+      span.end()
+      throw error instanceof Error ? error : new Error(errorMessage)
     }
-  }
-});
+  },
+})
 
 /**
  * Legacy Alpha Vantage Tool (General Purpose)
@@ -357,180 +681,395 @@ export const alphaVantageStockTool = createTool({
  * Requires ALPHA_VANTAGE_API_KEY environment variable
  */
 export const alphaVantageTool = createTool({
-  id: "alpha-vantage",
-  description: "Access real-time and historical financial market data from Alpha Vantage including stocks, forex, crypto, and economic indicators. For specialized use cases, consider using alphaVantageCryptoTool or alphaVantageStockTool.",
+  id: 'alpha-vantage',
+  description:
+    'Access real-time and historical financial market data from Alpha Vantage including stocks, forex, crypto, and economic indicators. For specialized use cases, consider using alphaVantageCryptoTool or alphaVantageStockTool.',
   inputSchema: z.object({
-    function: z.enum([
-      "TIME_SERIES_INTRADAY",
-      "TIME_SERIES_DAILY",
-      "TIME_SERIES_WEEKLY",
-      "TIME_SERIES_MONTHLY",
-      "GLOBAL_QUOTE",
-      "SYMBOL_SEARCH",
-      "CURRENCY_EXCHANGE_RATE",
-      "FX_INTRADAY",
-      "FX_DAILY",
-      "FX_WEEKLY",
-      "FX_MONTHLY",
-      "CRYPTO_INTRADAY",
-      "CRYPTO_DAILY",
-      "CRYPTO_WEEKLY",
-      "CRYPTO_MONTHLY",
-      "DIGITAL_CURRENCY_DAILY",
-      "DIGITAL_CURRENCY_WEEKLY",
-      "DIGITAL_CURRENCY_MONTHLY",
-      "ECONOMIC_INDICATORS",
-      "TECHNICAL_INDICATOR",
-      "FUNDAMENTAL_DATA"
-    ]).describe("Alpha Vantage API function to call"),
-    symbol: z.string().optional().describe("Stock symbol, currency pair (e.g., 'IBM', 'EURUSD'), or crypto symbol (e.g., 'BTC')"),
-    market: z.string().optional().describe("Physical currency or digital/crypto currency (e.g., 'USD', 'EUR', 'BTC')"),
-    interval: z.enum(["1min", "5min", "15min", "30min", "60min"]).optional().describe("Time interval for intraday data"),
-    outputsize: z.enum(["compact", "full"]).optional().describe("Amount of data to return (compact=latest 100, full=all available)"),
-    datatype: z.enum(["json", "csv"]).optional().describe("Response format"),
-    indicator: z.string().optional().describe("Technical indicator name (e.g., 'SMA', 'EMA', 'RSI', 'MACD')"),
-    time_period: z.number().optional().describe("Time period for technical indicators"),
-    series_type: z.enum(["close", "open", "high", "low"]).optional().describe("Price series type for technical indicators"),
-    economic_indicator: z.enum([
-      "REAL_GDP",
-      "REAL_GDP_PER_CAPITA",
-      "TREASURY_YIELD",
-      "FEDERAL_FUNDS_RATE",
-      "CPI",
-      "INFLATION",
-      "INFLATION_EXPECTATION",
-      "CONSUMER_SENTIMENT",
-      "RETAIL_SALES",
-      "DURABLES",
-      "UNEMPLOYMENT",
-      "NONFARM_PAYROLL"
-    ]).optional().describe("Economic indicator to retrieve")
+    function: z
+      .enum([
+        'TIME_SERIES_INTRADAY',
+        'TIME_SERIES_DAILY',
+        'TIME_SERIES_WEEKLY',
+        'TIME_SERIES_MONTHLY',
+        'GLOBAL_QUOTE',
+        'SYMBOL_SEARCH',
+        'CURRENCY_EXCHANGE_RATE',
+        'FX_INTRADAY',
+        'FX_DAILY',
+        'FX_WEEKLY',
+        'FX_MONTHLY',
+        'CRYPTO_INTRADAY',
+        'CRYPTO_DAILY',
+        'CRYPTO_WEEKLY',
+        'CRYPTO_MONTHLY',
+        'DIGITAL_CURRENCY_DAILY',
+        'DIGITAL_CURRENCY_WEEKLY',
+        'DIGITAL_CURRENCY_MONTHLY',
+        'ECONOMIC_INDICATORS',
+        'TECHNICAL_INDICATOR',
+        'FUNDAMENTAL_DATA',
+      ])
+      .describe('Alpha Vantage API function to call'),
+    symbol: z
+      .string()
+      .optional()
+      .describe(
+        "Stock symbol, currency pair (e.g., 'IBM', 'EURUSD'), or crypto symbol (e.g., 'BTC')"
+      ),
+    market: z
+      .string()
+      .optional()
+      .describe(
+        "Physical currency or digital/crypto currency (e.g., 'USD', 'EUR', 'BTC')"
+      ),
+    interval: z
+      .enum(['1min', '5min', '15min', '30min', '60min'])
+      .optional()
+      .describe('Time interval for intraday data'),
+    outputsize: z
+      .enum(['compact', 'full'])
+      .optional()
+      .describe(
+        'Amount of data to return (compact=latest 100, full=all available)'
+      ),
+    datatype: z
+      .enum(['json', 'csv'])
+      .optional()
+      .describe('Response format'),
+    indicator: z
+      .string()
+      .optional()
+      .describe(
+        "Technical indicator name (e.g., 'SMA', 'EMA', 'RSI', 'MACD')"
+      ),
+    time_period: z
+      .number()
+      .optional()
+      .describe('Time period for technical indicators'),
+    series_type: z
+      .enum(['close', 'open', 'high', 'low'])
+      .optional()
+      .describe('Price series type for technical indicators'),
+    economic_indicator: z
+      .enum([
+        'REAL_GDP',
+        'REAL_GDP_PER_CAPITA',
+        'TREASURY_YIELD',
+        'FEDERAL_FUNDS_RATE',
+        'CPI',
+        'INFLATION',
+        'INFLATION_EXPECTATION',
+        'CONSUMER_SENTIMENT',
+        'RETAIL_SALES',
+        'DURABLES',
+        'UNEMPLOYMENT',
+        'NONFARM_PAYROLL',
+      ])
+      .optional()
+      .describe('Economic indicator to retrieve'),
   }),
   outputSchema: z.object({
-    data: z.any().describe("The financial data returned from Alpha Vantage API"),
-    metadata: z.object({
-      function: z.string(),
-      symbol: z.string().optional(),
-      last_refreshed: z.string().optional(),
-      interval: z.string().optional(),
-      output_size: z.string().optional(),
-      time_zone: z.string().optional()
-    }).optional()
+    data: z
+      .any()
+      .describe('The financial data returned from Alpha Vantage API'),
+    metadata: z
+      .object({
+        function: z.string(),
+        symbol: z.string().optional(),
+        last_refreshed: z.string().optional(),
+        interval: z.string().optional(),
+        output_size: z.string().optional(),
+        time_zone: z.string().optional(),
+      })
+      .optional(),
   }),
-  execute: async (inputData, context) => {
-    const span = trace.getTracer('alpha-vantage-tool', '1.0.0').startSpan('alpha-vantage', {
-      attributes: {
-        'tool.id': 'alpha-vantage',
-        'tool.input.function': inputData.function,
-        'tool.input.symbol': inputData.symbol,
-      }
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        function: input.function,
+        symbol: input.symbol,
+        market: input.market,
+        interval: input.interval,
+        outputsize: input.outputsize,
+        datatype: input.datatype,
+        indicator: input.indicator,
+        time_period: input.time_period,
+        series_type: input.series_type,
+        economic_indicator: input.economic_indicator,
+      },
+      hook: 'onInputAvailable'
     });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('alphaVantageTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        data: output.data,
+        metadata: output.metadata,
+      },
+      hook: 'onOutput'
+    });
+  },
+  execute: async (inputData, context) => {
+    const span = trace
+      .getTracer('alpha-vantage-tool', '1.0.0')
+      .startSpan('alpha-vantage', {
+        attributes: {
+          'tool.id': 'alpha-vantage',
+          'tool.input.function': inputData.function,
+          'tool.input.symbol': inputData.symbol,
+        },
+      })
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `💰 Fetching general Alpha Vantage data for ${inputData.function}`, status: 'in-progress', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        message: `💰 Fetching general Alpha Vantage data for ${inputData.function}`,
+        status: 'in-progress',
+        stage: 'alpha-vantage',
+      },
+      id: 'alpha-vantage',
+    })
+    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
-    if (typeof apiKey !== "string" || apiKey.trim() === "") {
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '❌ Missing ALPHA_VANTAGE_API_KEY', status: 'done', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
-      throw new Error("ALPHA_VANTAGE_API_KEY environment variable is required");
+    if (typeof apiKey !== 'string' || apiKey.trim() === '') {
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: '❌ Missing ALPHA_VANTAGE_API_KEY',
+          status: 'done',
+          stage: 'alpha-vantage',
+        },
+        id: 'alpha-vantage',
+      })
+      throw new Error(
+        'ALPHA_VANTAGE_API_KEY environment variable is required'
+      )
     }
-    toolCallCounters.set('alpha-vantage', (toolCallCounters.get('alpha-vantage') ?? 0) + 1);
+    toolCallCounters.set(
+      'alpha-vantage',
+      (toolCallCounters.get('alpha-vantage') ?? 0) + 1
+    )
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
-        function: inputData.function
-      });
+        function: inputData.function,
+      })
 
       // Add function-specific parameters
       if (inputData.symbol !== undefined && inputData.symbol !== null) {
-        params.append("symbol", inputData.symbol);
+        params.append('symbol', inputData.symbol)
       }
       if (inputData.market !== undefined && inputData.market !== null) {
-        params.append("market", inputData.market);
+        params.append('market', inputData.market)
       }
       if (inputData.interval !== undefined) {
-        params.append("interval", inputData.interval);
+        params.append('interval', inputData.interval)
       }
       if (inputData.outputsize !== undefined) {
-        params.append("outputsize", inputData.outputsize);
+        params.append('outputsize', inputData.outputsize)
       }
       if (inputData.datatype !== undefined) {
-        params.append("datatype", inputData.datatype ?? "json");
+        params.append('datatype', inputData.datatype ?? 'json')
       }
 
       // Technical indicator parameters
-      if (inputData.indicator !== undefined && inputData.indicator !== null) {
-        params.append("indicator", inputData.indicator);
+      if (
+        inputData.indicator !== undefined &&
+        inputData.indicator !== null
+      ) {
+        params.append('indicator', inputData.indicator)
       }
-      if (inputData.time_period !== undefined && inputData.time_period !== null) {
-        params.append("time_period", inputData.time_period.toString());
+      if (
+        inputData.time_period !== undefined &&
+        inputData.time_period !== null
+      ) {
+        params.append('time_period', inputData.time_period.toString())
       }
       if (inputData.series_type !== undefined) {
-        params.append("series_type", inputData.series_type);
+        params.append('series_type', inputData.series_type)
       }
 
       // Economic indicator
       if (inputData.economic_indicator !== undefined) {
-        params.append("function", inputData.economic_indicator);
+        params.append('function', inputData.economic_indicator)
       }
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: '📡 Querying Alpha Vantage API...', status: 'in-progress', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: '📡 Querying Alpha Vantage API...',
+          status: 'in-progress',
+          stage: 'alpha-vantage',
+        },
+        id: 'alpha-vantage',
+      })
 
-      const url = `https://www.alphavantage.co/query?${params.toString()}`;
+      const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-      const response = await fetch(url);
+      const response = await fetch(url)
 
       if (!response.ok) {
-        throw new Error(`Alpha Vantage API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Alpha Vantage API error: ${response.status} ${response.statusText}`
+        )
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
-      const dataObj = data as unknown;
+      const dataObj = data as unknown
 
       // Check for API-specific errors
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Error Message" in (dataObj as Record<string, unknown>) && Boolean((dataObj as Record<string, unknown>)["Error Message"])) {
-        throw new Error(String((dataObj as Record<string, unknown>)["Error Message"]));
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Error Message' in (dataObj as Record<string, unknown>) &&
+        Boolean((dataObj as Record<string, unknown>)['Error Message'])
+      ) {
+        throw new Error(
+          String(
+            (dataObj as Record<string, unknown>)['Error Message']
+          )
+        )
       }
 
-      if ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Note" in (dataObj as Record<string, unknown>) && Boolean((dataObj as Record<string, unknown>)["Note"])) {
-        throw new Error(String((dataObj as Record<string, unknown>)["Note"])); // API limit reached
+      if (
+        Boolean(dataObj) &&
+        typeof dataObj === 'object' &&
+        dataObj !== null &&
+        'Note' in (dataObj as Record<string, unknown>) &&
+        Boolean((dataObj as Record<string, unknown>)['Note'])
+      ) {
+        throw new Error(
+          String((dataObj as Record<string, unknown>)['Note'])
+        ) // API limit reached
       }
 
       // Extract metadata if available
-      const metadata = ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "Meta Data" in dataObj ? (dataObj as Record<string, unknown>)["Meta Data"] : null) ??
-        ((Boolean(dataObj)) && typeof dataObj === 'object' && dataObj !== null && "meta" in dataObj ? (dataObj as Record<string, unknown>)["meta"] : null) ??
-        {};
+      const metadata =
+        (Boolean(dataObj) &&
+          typeof dataObj === 'object' &&
+          dataObj !== null &&
+          'Meta Data' in dataObj
+          ? (dataObj as Record<string, unknown>)['Meta Data']
+          : null) ??
+        (Boolean(dataObj) &&
+          typeof dataObj === 'object' &&
+          dataObj !== null &&
+          'meta' in dataObj
+          ? (dataObj as Record<string, unknown>)['meta']
+          : null) ??
+        {}
 
-      const metadataObj = metadata as unknown;
+      const metadataObj = metadata as unknown
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { message: `✅ General data ready for ${inputData.function}`, status: 'done', stage: 'alpha-vantage' }, id: 'alpha-vantage' });
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          message: `✅ General data ready for ${inputData.function}`,
+          status: 'done',
+          stage: 'alpha-vantage',
+        },
+        id: 'alpha-vantage',
+      })
 
       const result = {
         data,
         metadata: {
-          function: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "1. Information" in metadataObj ? String((metadataObj as Record<string, unknown>)["1. Information"]) : null) ?? inputData.function,
-          symbol: ((Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "2. Symbol" in metadataObj ? String((metadataObj as Record<string, unknown>)["2. Symbol"]) : null) ?? inputData.symbol,
-          last_refreshed: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "3. Last Refreshed" in metadataObj ? String((metadataObj as Record<string, unknown>)["3. Last Refreshed"]) : undefined,
-          interval: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "4. Interval" in metadataObj ? String((metadataObj as Record<string, unknown>)["4. Interval"]) : undefined,
-          output_size: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "5. Output Size" in metadataObj ? String((metadataObj as Record<string, unknown>)["5. Output Size"]) : undefined,
-          time_zone: (Boolean(metadataObj)) && typeof metadataObj === 'object' && metadataObj !== null && "6. Time Zone" in metadataObj ? String((metadataObj as Record<string, unknown>)["6. Time Zone"]) : undefined
-        }
-      };
-      span.end();
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      if (error instanceof Error) {
-        span.recordException(error);
+          function:
+            (Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '1. Information' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '1. Information'
+                ]
+              )
+              : null) ?? inputData.function,
+          symbol:
+            (Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '2. Symbol' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '2. Symbol'
+                ]
+              )
+              : null) ?? inputData.symbol,
+          last_refreshed:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '3. Last Refreshed' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '3. Last Refreshed'
+                ]
+              )
+              : undefined,
+          interval:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '4. Interval' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '4. Interval'
+                ]
+              )
+              : undefined,
+          output_size:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '5. Output Size' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '5. Output Size'
+                ]
+              )
+              : undefined,
+          time_zone:
+            Boolean(metadataObj) &&
+              typeof metadataObj === 'object' &&
+              metadataObj !== null &&
+              '6. Time Zone' in metadataObj
+              ? String(
+                (metadataObj as Record<string, unknown>)[
+                '6. Time Zone'
+                ]
+              )
+              : undefined,
+        },
       }
-      span.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      span.end();
-      throw error instanceof Error ? error : new Error(errorMessage);
+      span.end()
+      return result
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred'
+      if (error instanceof Error) {
+        span.recordException(error)
+      }
+      span.setStatus({ code: 2, message: errorMessage }) // ERROR status
+      span.end()
+      throw error instanceof Error ? error : new Error(errorMessage)
     }
-  }
-});
+  },
+})
 
-export type AlphaVantageCryptoUITool = InferUITool<typeof alphaVantageCryptoTool>;
-export type AlphaVantageStockUITool = InferUITool<typeof alphaVantageStockTool>;
-export type AlphaVantageUITool = InferUITool<typeof alphaVantageTool>;
+export type AlphaVantageCryptoUITool = InferUITool<
+  typeof alphaVantageCryptoTool
+>
+export type AlphaVantageStockUITool = InferUITool<typeof alphaVantageStockTool>
+export type AlphaVantageUITool = InferUITool<typeof alphaVantageTool>

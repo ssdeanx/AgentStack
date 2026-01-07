@@ -1,6 +1,7 @@
 import { Memory } from '@mastra/memory';
 import { UpstashStore, UpstashVector } from '@mastra/upstash';
 // import { ToolCallFilter } from '@mastra/memory/processors';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { google } from '@ai-sdk/google';
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag';
 /**
@@ -64,7 +65,7 @@ export async function initializeUpstashVector() {
 export const upstashMemory = new Memory({
   storage: upstashStorage,
   vector: upstashVector,
-  embedder: google.textEmbedding('gemini-embedding-001'),
+  embedder: google.textEmbedding('gemini-embedding-001',),
   options: {
     lastMessages: 500, // Enhanced for better context retention
     generateTitle: true, // Auto-generate thread titles
@@ -89,38 +90,20 @@ export const upstashMemory = new Memory({
     workingMemory: {
       enabled: true, // Persistent user information across conversations
       version: 'vnext', // Enable the improved/experimental tooling
-      template: `# User Profile & Context
-## Personal Information
- - **Name**:
- - **Role/Title**:
- - **Organization**:
- - **Location**:
- - **Time Zone**:
-## Communication Preferences
- - **Preferred Communication Style**:
- - **Response Length Preference**:
- - **Technical Level**:
-
-            ## Current Context
-            - **Active Projects**:
-            - **Current Goals**:
-            - **Deadlines**:
-            - **Recent Activities**:
-            - **Pain Points**:
-
-            ## Long-term Memory
-            - **Key Achievements**:
-            - **Important Relationships**:
-            - **Recurring Patterns**:
-            - **Preferences & Habits**:
-
-            ## Session Notes
-            - **Today's Focus**:
-            - **Outstanding Questions**:
-            - **Action Items**:
-            - **Follow-ups Needed**:
-            `,
-    },
+      template: `# User Context
+## Profile
+- Name/Role:
+- Org/Loc:
+- Style/Level:
+## Active
+- Goals/Projects:
+- Recent/Deadlines:
+## Insights
+- Patterns/Habits:
+- Session Focus:
+- Action Items:
+`,
+    }
   }
 });
 
@@ -135,7 +118,7 @@ export const graphupstashQueryTool = createGraphRAGTool({
   model: google.textEmbedding('gemini-embedding-001'),
   // Supported graph options (updated for 1568 dimensions)
   providerOptions: {
-    google: { dimensions: 1536},
+    google: { dimensions: 1536 },
   },
   graphOptions: {
     dimension: 1536, // gemini-embedding-001 dimension (1568)
@@ -160,8 +143,10 @@ export const upstashQueryTool = createVectorQueryTool({
   model: google.textEmbedding('gemini-embedding-001'),
   // Supported database configuration for PgVector
   providerOptions: {
-    google: { dimensions: 1536},
-  },
+    google: { retrievalConfig: { dimensions: 1536 } },
+  } satisfies GoogleGenerativeAIProviderOptions,
+
+
   databaseConfig: {
   },
   includeVectors: true,

@@ -11,6 +11,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react"
+import { applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } from "@xyflow/react"
 import type { AgentDataPart } from "@mastra/ai-sdk"
 import { getClientIdentity } from "@/lib/client-identity"
 import {
@@ -90,6 +91,9 @@ export interface WorkflowContextValue {
   runStep: (stepId: string) => Promise<void>
   getStepStatus: (stepId: string) => StepStatus
   approveWorkflow: (approved: boolean, approverName?: string) => void
+  layoutNodes: (direction: "LR" | "TB" | "GRID") => void
+  onNodesChange: (changes: NodeChange[]) => void
+  onEdgesChange: (changes: EdgeChange[]) => void
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   messages: ReturnType<typeof useChat>["messages"]
@@ -133,7 +137,6 @@ export interface WorkflowProviderProps {
   defaultWorkflow?: WorkflowId
 }
 
-const NODE_SPACING = 350
 const MASTRA_API_URL = process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111"
 
 function buildWorkflowInputData(workflowId: string, inputText: string): Record<string, unknown> {
@@ -159,6 +162,19 @@ function buildWorkflowInputData(workflowId: string, inputText: string): Record<s
       return { message: inputText }
     case "changelogWorkflow":
       return { repository: inputText }
+    case "governedRagIndex":
+      try {
+        return { documents: JSON.parse(inputText) }
+      } catch {
+        return { documents: [{ docId: "doc-1", filePath: inputText, classification: "internal", allowedRoles: ["admin"], tenant: "mastra" }] }
+      }
+    case "marketingCampaignWorkflow":
+      { const [topic, audience] = inputText.split(",").map(s => s.trim())
+      return { topic: topic || inputText, targetAudience: audience || "general public" } }
+    case "dataAnalysisWorkflow":
+      return { data: inputText, query: "Analyze trends and provide insights", dataFormat: "csv" }
+    case "automatedReportingWorkflow":
+      return { topic: inputText, sections: ["Introduction", "Analysis", "Conclusion"], depth: "detailed" }
     default:
       return { input: inputText }
   }
@@ -166,23 +182,41 @@ function buildWorkflowInputData(workflowId: string, inputText: string): Record<s
 
 function generateNodes(
   workflow: WorkflowConfig,
-  stepProgress: Record<string, StepProgress>
+  stepProgress: Record<string, StepProgress>,
+  layout: "LR" | "TB" | "GRID" = "LR"
 ): WorkflowNode[] {
-  return workflow.steps.map((step, index) => ({
-    id: step.id,
-    type: "workflow",
-    position: { x: index * NODE_SPACING, y: 0 },
-    data: {
-      step,
-      stepIndex: index,
-      totalSteps: workflow.steps.length,
-      status: stepProgress[step.id]?.status ?? "pending",
-      handles: {
-        target: index > 0,
-        source: index < workflow.steps.length - 1,
+  const NODE_SPACING_X = 350
+  const NODE_SPACING_Y = 250
+  const COLS = 3
+
+  return workflow.steps.map((step, index) => {
+    let x = index * NODE_SPACING_X
+    let y = 0
+
+    if (layout === "TB") {
+      x = 0
+      y = index * NODE_SPACING_Y
+    } else if (layout === "GRID") {
+      x = (index % COLS) * NODE_SPACING_X
+      y = Math.floor(index / COLS) * NODE_SPACING_Y
+    }
+
+    return {
+      id: step.id,
+      type: "workflow",
+      position: { x, y },
+      data: {
+        step,
+        stepIndex: index,
+        totalSteps: workflow.steps.length,
+        status: stepProgress[step.id]?.status ?? "pending",
+        handles: {
+          target: index > 0,
+          source: index < workflow.steps.length - 1,
+        },
       },
-    },
-  }))
+    }
+  })
 }
 
 function generateEdges(
@@ -220,11 +254,38 @@ export function WorkflowProvider({
   const [progressEvents, setProgressEvents] = useState<WorkflowProgressEvent[]>([])
   const [suspendPayload, setSuspendPayload] = useState<WorkflowSuspendPayload | null>(null)
   const [dataParts, setDataParts] = useState<WorkflowDataPart[]>([])
+  const [layout, setLayout] = useState<"LR" | "TB" | "GRID">("LR")
+  const [nodes, setNodes] = useState<WorkflowNode[]>([])
+  const [edges, setEdges] = useState<WorkflowEdge[]>([])
 
   const workflowConfig = useMemo(
     () => getWorkflowConfig(selectedWorkflow),
     [selectedWorkflow]
   )
+
+  // Initialize/Update nodes & edges when config, progress, or layout changes
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    
+    if (workflowConfig) {
+      timer = setTimeout(() => {
+        setNodes(generateNodes(workflowConfig, currentRun?.stepProgress ?? {}, layout))
+        setEdges(generateEdges(workflowConfig, currentRun?.stepProgress ?? {}))
+      }, 0)
+    }
+
+    return () => {
+      if (timer) {clearTimeout(timer)}
+    }
+  }, [workflowConfig, currentRun?.stepProgress, layout])
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds) as WorkflowNode[])
+  }, [])
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds) as WorkflowEdge[])
+  }, [])
 
   // useChat from @ai-sdk/react with DefaultChatTransport for workflow streaming
   const { messages, sendMessage, stop, status } = useChat({
@@ -617,15 +678,9 @@ export function WorkflowProvider({
     [currentRun]
   )
 
-  const nodes = useMemo(() => {
-    if (!workflowConfig) {return []}
-    return generateNodes(workflowConfig, currentRun?.stepProgress ?? {})
-  }, [workflowConfig, currentRun?.stepProgress])
-
-  const edges = useMemo(() => {
-    if (!workflowConfig) {return []}
-    return generateEdges(workflowConfig, currentRun?.stepProgress ?? {})
-  }, [workflowConfig, currentRun?.stepProgress])
+  const layoutNodes = useCallback((dir: "LR" | "TB" | "GRID") => {
+    setLayout(dir)
+  }, [])
 
   const value = useMemo<WorkflowContextValue>(
     () => ({
@@ -645,6 +700,9 @@ export function WorkflowProvider({
       runStep,
       getStepStatus,
       approveWorkflow,
+      layoutNodes,
+      onNodesChange,
+      onEdgesChange,
       nodes,
       edges,
       messages,
@@ -667,6 +725,9 @@ export function WorkflowProvider({
       runStep,
       getStepStatus,
       approveWorkflow,
+      layoutNodes,
+      onNodesChange,
+      onEdgesChange,
       nodes,
       edges,
       messages,

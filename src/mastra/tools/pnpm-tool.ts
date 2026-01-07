@@ -1,14 +1,14 @@
-import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool } from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools"
-import chalk from 'chalk'
-import execa from 'execa'
-import type { ExecaError as ExecaErrorType } from 'execa'
-import { readFileSync } from 'node:fs'
-import * as path from 'node:path'
-import { z } from 'zod'
-import { log } from '../config/logger'
+import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import chalk from 'chalk';
+import type { ExecaError as ExecaErrorType } from 'execa';
+import execa from 'execa';
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
+import { z } from 'zod';
+import { log } from '../config/logger';
 
 
 const pnpmContextSchema = z.object({
@@ -27,6 +27,29 @@ export const pnpmBuild = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('pnpmBuild tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('pnpmBuild received input', {
+      toolCallId,
+      inputData: {
+        name: input.name,
+        packagePath: input.packagePath,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('pnpmBuild completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        message: output.message,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const requestContext = context?.requestContext as RequestContext<{ pnpmToolContext: PnpmContext }>;
@@ -43,17 +66,17 @@ export const pnpmBuild = createTool({
     });
 
     const { name, packagePath } = inputData
-    if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔨 Building ${name} at ${packagePath}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' });}
+    if (verbose) { await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔨 Building ${name} at ${packagePath}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' }); }
     try {
-      if (verbose) {log.info(chalk.green(`\n Building: ${name} at ${packagePath}`))}
+      if (verbose) { log.info(chalk.green(`\n Building: ${name} at ${packagePath}`)) }
       const p = execa(`pnpm`, ['build'], {
         stdio: 'inherit',
         cwd: packagePath,
         reject: false,
       })
-      if (verbose) {log.info(`\n`)}
+      if (verbose) { log.info(`\n`) }
       await p
-      if (verbose) {await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Build complete for ${name}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' });}
+      if (verbose) { await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Build complete for ${name}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' }); }
 
       span.end();
       return { message: 'Done' }
@@ -78,13 +101,33 @@ export const pnpmChangesetStatus = createTool({
   outputSchema: z.object({
     message: z.array(z.string()),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('pnpmChangesetStatus tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('pnpmChangesetStatus received input', {
+      toolCallId,
+      inputData: input,
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('pnpmChangesetStatus completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        message: output.message,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const tracer = trace.getTracer('pnpm-tool');
     const span = tracer.startSpan('pnpm-changeset-status', {
-        attributes: {
-            operation: 'pnpm-changeset-status'
-        }
+      attributes: {
+        operation: 'pnpm-changeset-status'
+      }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Checking changeset status...', stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
@@ -135,13 +178,33 @@ export const pnpmChangesetPublish = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('pnpmChangesetPublish tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('pnpmChangesetPublish received input', {
+      toolCallId,
+      inputData: input,
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('pnpmChangesetPublish completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        message: output.message,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const tracer = trace.getTracer('pnpm-tool');
     const span = tracer.startSpan('pnpm-changeset-publish', {
-        attributes: {
-            operation: 'pnpm-changeset-publish'
-        }
+      attributes: {
+        operation: 'pnpm-changeset-publish'
+      }
     });
 
     // const {value} = input // unused
@@ -184,14 +247,36 @@ export const activeDistTag = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('activeDistTag tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('activeDistTag received input', {
+      toolCallId,
+      inputData: {
+        packagePath: input.packagePath,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('activeDistTag completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        message: output.message,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (input, context) => {
     const writer = context?.writer;
     const tracer = trace.getTracer('pnpm-tool');
     const span = tracer.startSpan('active-dist-tag', {
-        attributes: {
-            packagePath: input.packagePath,
-            operation: 'active-dist-tag'
-        }
+      attributes: {
+        packagePath: input.packagePath,
+        operation: 'active-dist-tag'
+      }
     });
 
     const { packagePath } = input
@@ -200,7 +285,7 @@ export const activeDistTag = createTool({
       const pkgJson = JSON.parse(
         readFileSync(path.join(packagePath, 'package.json'), 'utf-8')
       )
-      const {version} = pkgJson
+      const { version } = pkgJson
       log.info(
         chalk.green(
           `Setting active tag to latest for ${pkgJson.name}@${version}`
@@ -247,16 +332,40 @@ export const pnpmRun = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('pnpmRun tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('pnpmRun received input', {
+      toolCallId,
+      inputData: {
+        script: input.script,
+        args: input.args,
+        packagePath: input.packagePath,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('pnpmRun completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        message: output.message,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (input, context) => {
     const writer = context?.writer;
     const tracer = trace.getTracer('pnpm-tool');
     const span = tracer.startSpan('pnpm-run', {
-        attributes: {
-            script: input.script,
-            args: JSON.stringify(input.args),
-            packagePath: input.packagePath,
-            operation: 'pnpm-run'
-        }
+      attributes: {
+        script: input.script,
+        args: JSON.stringify(input.args),
+        packagePath: input.packagePath,
+        operation: 'pnpm-run'
+      }
     });
 
     const { script, args = [], packagePath } = input

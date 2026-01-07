@@ -1,23 +1,23 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { socialMediaAgent } from '../agents/socialMediaAgent'
-import { seoAgent } from '../agents/seoAgent'
-import { copywriterAgent } from '../agents/copywriterAgent'
-import { contentStrategistAgent } from '../agents/contentStrategistAgent'
-import { researchAgent } from '../agents/researchAgent'
-import { translationAgent } from '../agents/translationAgent'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { contentStrategistAgent } from '../agents/contentStrategistAgent';
+import { copywriterAgent } from '../agents/copywriterAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { seoAgent } from '../agents/seoAgent';
+import { socialMediaAgent } from '../agents/socialMediaAgent';
+import { translationAgent } from '../agents/translationAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
 
 log.info('Initializing Marketing Automation Network...')
 
 export const marketingAutomationNetwork = new Agent({
-    id: 'marketing-automation-network',
-    name: 'Marketing Automation Network',
-    description:
-        'Orchestrates end-to-end marketing campaigns across content creation, SEO optimization, social media management, and multilingual marketing.',
-    instructions: `You are a Chief Marketing Technology Officer. Your role is to orchestrate comprehensive marketing campaigns that integrate content creation, SEO optimization, social media management, and global market expansion.
+  id: 'marketing-automation-network',
+  name: 'Marketing Automation Network',
+  description:
+    'Orchestrates end-to-end marketing campaigns across content creation, SEO optimization, social media management, and multilingual marketing.',
+  instructions: `You are a Chief Marketing Technology Officer. Your role is to orchestrate comprehensive marketing campaigns that integrate content creation, SEO optimization, social media management, and global market expansion.
 
 ## Marketing Automation Capabilities
 
@@ -152,17 +152,18 @@ export const marketingAutomationNetwork = new Agent({
 - Include risk assessment and contingency planning
 - Provide clear next steps and implementation roadmaps
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        socialMediaAgent,
-        seoAgent,
-        copywriterAgent,
-        contentStrategistAgent,
-        researchAgent,
-        translationAgent,
-    },
-    options: {},
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    socialMediaAgent,
+    seoAgent,
+    copywriterAgent,
+    contentStrategistAgent,
+    researchAgent,
+    translationAgent,
+  },
+  options: {},
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Marketing Automation Network initialized')

@@ -1,14 +1,14 @@
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { InferUITool} from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { z } from "zod";
 import {
+  log,
   logError,
   logStepEnd,
   logStepStart,
   logToolExecution,
 } from "../config/logger";
-import type { RequestContext } from '@mastra/core/request-context';
 
 /**
  * Finnhub Quotes Tool
@@ -31,6 +31,29 @@ export const finnhubQuotesTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub quotes input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub quotes received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      symbol: input.symbol,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub quotes completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-quotes', {
@@ -184,6 +207,30 @@ export const finnhubCompanyTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub company input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub company received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      function: input.function,
+      symbol: input.symbol,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub company completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-company', {
@@ -362,6 +409,30 @@ export const finnhubFinancialsTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub financials input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub financials received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      function: input.function,
+      symbol: input.symbol,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub financials completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-financials', {
@@ -531,6 +602,30 @@ export const finnhubAnalysisTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub analysis input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub analysis received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      function: input.function,
+      symbol: input.symbol,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub analysis completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-analysis', {
@@ -704,6 +799,31 @@ export const finnhubTechnicalTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub technical input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub technical received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      function: input.function,
+      symbol: input.symbol,
+      resolution: input.resolution,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub technical completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-technical', {
@@ -888,6 +1008,29 @@ export const finnhubEconomicTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub economic input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Finnhub economic received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      economic_code: input.economic_code,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Finnhub economic completed', {
+      toolCallId,
+      toolName,
+      hasData: !!output.data,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const tracer = trace.getTracer('finnhub-tools');
     const rootSpan = tracer.startSpan('finnhub-economic', {

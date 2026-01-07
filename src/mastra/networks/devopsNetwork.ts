@@ -1,24 +1,21 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { codeArchitectAgent } from '../agents/codingAgents'
-import { codeReviewerAgent } from '../agents/codingAgents'
-import { testEngineerAgent } from '../agents/codingAgents'
-import { refactoringAgent } from '../agents/codingAgents'
-import { danePackagePublisher } from '../agents/package-publisher'
-import { projectManagementAgent } from '../agents/projectManagementAgent'
-import { evaluationAgent } from '../agents/evaluationAgent'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { codeArchitectAgent, codeReviewerAgent, refactoringAgent, testEngineerAgent } from '../agents/codingAgents';
+import { evaluationAgent } from '../agents/evaluationAgent';
+import { danePackagePublisher } from '../agents/package-publisher';
+import { projectManagementAgent } from '../agents/projectManagementAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
 
 log.info('Initializing DevOps Network...')
 
 export const devopsNetwork = new Agent({
-    id: 'devops-network',
-    name: 'DevOps Network',
-    description:
-        'Manages software development lifecycle from planning to deployment, including testing, CI/CD, monitoring, and infrastructure management.',
-    instructions: `You are a DevOps Engineering Lead. Your role is to orchestrate the complete software delivery pipeline, from development planning through production deployment and monitoring.
+  id: 'devops-network',
+  name: 'DevOps Network',
+  description:
+    'Manages software development lifecycle from planning to deployment, including testing, CI/CD, monitoring, and infrastructure management.',
+  instructions: `You are a DevOps Engineering Lead. Your role is to orchestrate the complete software delivery pipeline, from development planning through production deployment and monitoring.
 
 ## DevOps Lifecycle Management
 
@@ -153,18 +150,19 @@ export const devopsNetwork = new Agent({
 - Include migration strategies for organizations moving to DevOps practices
 - Recommend training and organizational change management approaches
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        codeArchitectAgent,
-        codeReviewerAgent,
-        testEngineerAgent,
-        refactoringAgent,
-        danePackagePublisher,
-        projectManagementAgent,
-        evaluationAgent,
-    },
-    options: {},
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    codeArchitectAgent,
+    codeReviewerAgent,
+    testEngineerAgent,
+    refactoringAgent,
+    danePackagePublisher,
+    projectManagementAgent,
+    evaluationAgent,
+  },
+  options: {},
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('DevOps Network initialized')

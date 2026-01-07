@@ -1,32 +1,30 @@
-import { Agent } from '@mastra/core/agent'
+import { Agent } from '@mastra/core/agent';
 
-import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { google3, googleAI, googleAI3, googleAIFlashLite } from '../config/google'
-import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import type { RequestContext } from '@mastra/core/request-context';
+import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt';
+import { google3, googleAI, googleAI3, googleAIFlashLite } from '../config/google';
+import { log } from '../config/logger';
+import { upstashMemory } from '../config/upstash';
 
-import { multiStringEditTool } from '../tools/multi-string-edit.tool'
-import { codeAnalysisTool } from '../tools/code-analysis.tool'
-import { testGeneratorTool } from '../tools/test-generator.tool'
-import { diffReviewTool } from '../tools/diff-review.tool'
-import { codeSearchTool } from '../tools/code-search.tool'
-import { findReferencesTool } from '../tools/find-references.tool'
-import { findSymbolTool } from '../tools/find-symbol.tool'
-import { execaTool } from '../tools/execa-tool'
-import * as e2bTools from '../tools/e2b'
+import { codeAnalysisTool } from '../tools/code-analysis.tool';
+import { codeSearchTool } from '../tools/code-search.tool';
+import { diffReviewTool } from '../tools/diff-review.tool';
+import * as e2bTools from '../tools/e2b';
+import { execaTool } from '../tools/execa-tool';
+import { findReferencesTool } from '../tools/find-references.tool';
+import { findSymbolTool } from '../tools/find-symbol.tool';
 import {
-  listRepositories,
+  getFileContent,
+  getRepositoryInfo,
   listIssues,
   listPullRequests,
-  createIssue,
-  getRepositoryInfo,
-  searchCode,
-  getFileContent
-} from '../tools/github'
-import { githubMCP } from '../mcp/mcp-client'
+  listRepositories,
+  searchCode
+} from '../tools/github';
+import { multiStringEditTool } from '../tools/multi-string-edit.tool';
+import { testGeneratorTool } from '../tools/test-generator.tool';
 
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface CodingRuntimeContext {
@@ -113,9 +111,9 @@ Always consider maintainability, scalability, and testability in your recommenda
     getRepositoryInfo,
     searchCode,
     getFileContent,
-//    ...githubMCP.getTools(),
+    //    ...githubMCP.getTools(),
   },
-  memory: pgMemory,
+  memory: upstashMemory,
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -222,7 +220,7 @@ Be constructive and educational in feedback.`,
     searchCode,
     getFileContent,
   },
-  memory: pgMemory,
+  memory: upstashMemory,
 
   scorers: {
     relevancy: {
@@ -338,9 +336,9 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     codeSearchTool,
     execaTool,
     ...e2bTools,
-//    ...githubMCP.getTools(),
+    //    ...githubMCP.getTools(),
   },
-  memory: pgMemory,
+  memory: upstashMemory,
 
   scorers: {
     relevancy: {
@@ -458,7 +456,7 @@ For each refactoring:
     execaTool,
     ...e2bTools,
   },
-  memory: pgMemory,
+  memory: upstashMemory,
 
   scorers: {
     relevancy: {

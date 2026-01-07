@@ -1,11 +1,10 @@
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import {
   MDocument,
   rerank,
 } from '@mastra/rag';
+import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { randomUUID } from 'crypto';
 
 import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from "@mastra/core/llm";
@@ -21,6 +20,7 @@ import {
 import { pgVector } from '../config/pg-storage';
 
 import { google } from '@ai-sdk/google';
+import { RequestContext } from "@mastra/core/request-context";
 import type { ExtractParams } from '@mastra/rag';
 
 log.info('Initializing Document Chunking Tool...')
@@ -56,7 +56,7 @@ export function normalizeWeights(semantic: number, vector: number, position: num
 }
 
 // Define runtime context for this tool
-export interface DocumentChunkingContext {
+export interface DocumentChunkingContext extends RequestContext {
   userId?: string
   chunkStrategy?: string
 }
@@ -193,6 +193,29 @@ Use this tool when you need advanced document processing with metadata extractio
   `,
   inputSchema: MastraDocumentChunkingInputSchema,
   outputSchema: MastraDocumentChunkingOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Mastra chunker tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Mastra chunker received complete input', {
+      toolCallId,
+      documentLength: input.documentContent.length,
+      chunkingStrategy: input.chunkingStrategy,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Mastra chunker completed', {
+      toolCallId,
+      toolName,
+      chunkCount: output.chunkCount,
+      processingTimeMs: output.processingTimeMs,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📄 Starting Mastra chunker', stage: 'mastra:chunker' }, id: 'mastra:chunker' });
     const startTime = Date.now()
@@ -443,6 +466,30 @@ content indexing, or semantic search capabilities.
   `,
   inputSchema: CustomDocumentChunkingInputSchema,
   outputSchema: CustomDocumentChunkingOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('MDocument chunker tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('MDocument chunker received complete input', {
+      toolCallId,
+      documentLength: input.documentContent.length,
+      chunkingStrategy: input.chunkingStrategy,
+      generateEmbeddings: input.generateEmbeddings,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('MDocument chunker completed', {
+      toolCallId,
+      toolName,
+      chunkCount: output.chunkCount,
+      processingTimeMs: output.processingTimeMs,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📄 Starting MDocument chunker', stage: 'mdocument:chunker' }, id: 'mdocument:chunker' });
     const startTime = Date.now()
@@ -789,6 +836,30 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     ),
     processingTimeMs: z.number(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Document reranker tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Document reranker received complete input', {
+      toolCallId,
+      userQuery: input.userQuery,
+      indexName: input.indexName,
+      topK: input.topK,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Document reranker completed', {
+      toolCallId,
+      toolName,
+      documentCount: output.rerankedDocuments.length,
+      processingTimeMs: output.processingTimeMs,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Starting document reranking', stage: 'document:reranker' }, id: 'document:reranker' });
     const startTime = Date.now()

@@ -1,8 +1,8 @@
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { z } from 'zod';
 import type { MastraModelOutput } from '@mastra/core/stream';
+import type { InferUITool } from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { z } from 'zod';
 import { log } from '../config/logger';
 
 export const extractLearningsTool = createTool({
@@ -19,6 +19,34 @@ export const extractLearningsTool = createTool({
       })
       .describe('The search result to process'),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('extractLearningsTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('extractLearningsTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        query: input.query,
+        result: {
+          title: input.result.title,
+          url: input.result.url,
+        },
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('extractLearningsTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        learning: output.learning,
+        followUpQuestions: output.followUpQuestions,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const mastra = context?.mastra;
     const writer = context?.writer;

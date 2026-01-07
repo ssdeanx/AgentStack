@@ -15,20 +15,21 @@
 
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, context as otelContext, trace } from "@opentelemetry/api";
 import { marked } from 'marked';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { z } from 'zod';
 import {
+  log,
   logError,
   logStepEnd,
   logStepStart,
-  logToolExecution,
+  logToolExecution
 } from '../config/logger';
-import { trace, SpanStatusCode, context as otelContext } from "@opentelemetry/api";
 
 // Use `unpdf` for parsing PDFs (serverless-optimized PDF.js build)
-import { extractText, getDocumentProxy } from 'unpdf'
+import { extractText, getDocumentProxy } from 'unpdf';
 
 
 // Type definitions
@@ -440,6 +441,39 @@ Perfect for RAG indexing, documentation conversion, and content processing.
   `,
   inputSchema: PdfToMarkdownInputSchema,
   outputSchema: PdfToMarkdownOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('pdfToMarkdownTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('pdfToMarkdownTool received input', {
+      toolCallId,
+      inputData: {
+        pdfPath: input.pdfPath,
+        maxPages: input.maxPages,
+        includeMetadata: input.includeMetadata,
+        includeTables: input.includeTables,
+        includeImages: input.includeImages,
+        outputFormat: input.outputFormat,
+        normalizeText: input.normalizeText,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('pdfToMarkdownTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        success: output.success,
+        format: output.format,
+        metadata: output.metadata,
+        statistics: output.statistics,
+        warnings: output.warnings,
+        error: output.error,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const startTime = Date.now()
     logToolExecution('pdf-to-markdown', { input: inputData })
@@ -696,4 +730,3 @@ export type PdfToMarkdownUITool = InferUITool<typeof pdfToMarkdownTool>;
 export {
   convertTableToMarkdown, convertToMarkdown, extractImageReferences, extractPdfMetadata, extractPdfText, extractTables, normalizePdfText
 };
-
