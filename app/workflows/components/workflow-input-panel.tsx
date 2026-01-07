@@ -9,8 +9,9 @@ import {
 } from "@/src/components/ai-elements/prompt-input"
 import { Button } from "@/ui/button"
 import { useWorkflowContext } from "@/app/workflows/providers/workflow-context"
-import { PlayIcon, Loader2Icon, SparklesIcon } from "lucide-react"
+import { PlayIcon, Loader2Icon, SparklesIcon, CpuIcon, CommandIcon } from "lucide-react"
 import { useCallback, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export function WorkflowInputPanel() {
   const {
@@ -57,21 +58,21 @@ export function WorkflowInputPanel() {
   }, [])
 
   const getPlaceholder = () => {
-    if (!workflowConfig) {return "Select a workflow..."}
+    if (!workflowConfig) {return "Awaiting Engine selection..."}
 
     switch (workflowConfig.category) {
       case "content":
-        return "Enter your topic or content idea..."
+        return "Initialize content generation parameters..."
       case "financial":
-        return "Enter stock symbol (e.g., AAPL, TSLA)..."
+        return "Input ticker symbol for market analysis..."
       case "research":
-        return "Enter your research topic or question..."
+        return "Define research query or intelligence objective..."
       case "data":
-        return "Enter document path or data source..."
+        return "Set source path for ingest pipeline..."
       case "utility":
-        return "Enter your input for the workflow..."
+        return "Configure utility input settings..."
       default:
-        return `Enter input for ${workflowConfig.name}...`
+        return `Initialize parameters for ${workflowConfig.name}...`
     }
   }
 
@@ -82,96 +83,125 @@ export function WorkflowInputPanel() {
       case "weatherWorkflow":
         return ["San Francisco", "Tokyo", "London"]
       case "contentStudioWorkflow":
-        return ["AI trends 2025", "Remote work tips", "Sustainable tech"]
+        return ["AI trends 2026", "Synthetic Media", "Neural UX"]
       case "stockAnalysisWorkflow":
       case "financialReportWorkflow":
-        return ["AAPL", "TSLA", "NVDA"]
+        return ["AAPL", "NVDA", "MSTR"]
       case "researchSynthesisWorkflow":
-        return ["ML best practices", "Climate solutions", "Future of AI"]
+        return ["Quantum computing 2026", "Bio-interfaces", "Fusion Energy"]
       case "documentProcessingWorkflow":
-        return ["./docs/report.pdf", "./data/analysis.pdf"]
+        return ["./internal/specs.pdf", "./cloud/manifest.json"]
       case "telephoneGameWorkflow":
-        return ["The quick brown fox", "Hello world"]
+        return ["Synthesize this context", "Mastra Engine v1.0"]
       case "changelogWorkflow":
-        return ["main..HEAD", "v1.0.0..v2.0.0"]
-      case "contentReviewWorkflow":
-      case "learningExtractionWorkflow":
-        return ["Paste your content here"]
+        return ["v1.0.0..HEAD", "alpha..stable"]
+      case "governedRagIndex":
+        return ["Public Documents", "Security Tier 1"]
+      case "dataAnalysisWorkflow":
+        return ["Financial Dataset v2", "User metrics.csv"]
+      case "automatedReportingWorkflow":
+        return ["Annual Tech Review", "Quarterly Intelligence Report"]
       default:
-        return []
+        return ["Default Vector Input"]
     }
   }
 
   const examples = getExampleInputs()
 
   return (
-    <Panel position="bottom-left" className="w-96 p-0">
-      <div className="border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <SparklesIcon className="size-4 text-primary" />
-          <h3 className="font-semibold text-sm">Workflow Input</h3>
+    <Panel position="bottom-left" className="w-96 p-0 bg-card/40 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="relative border-b border-border/10 px-5 py-4 bg-muted/20 overflow-hidden">
+        <div className="absolute top-0 right-0 p-2 opacity-5">
+          <CpuIcon className="size-20 text-primary rotate-12" />
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {workflowConfig?.description ?? "Select a workflow to get started"}
-        </p>
+        <div className="relative flex items-center gap-3">
+          <div className="size-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]">
+            <SparklesIcon className="size-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-bold text-xs uppercase tracking-[0.2em] text-foreground">Initiate Sequence</h3>
+            <p className="text-[10px] text-muted-foreground font-medium mt-0.5 opacity-70">
+              {workflowConfig?.id ?? "CORE_ID: NONE"}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="p-3">
+      <div className="p-4 space-y-4">
         <PromptInput
           onSubmit={handleSubmit}
-          className="rounded-lg border shadow-sm"
+          className="rounded-xl border border-border/30 bg-background/20 shadow-inner group transition-all duration-300 focus-within:ring-1 focus-within:ring-primary/50"
         >
           <PromptInputTextarea
             ref={textareaRef}
             placeholder={getPlaceholder()}
             disabled={isDisabled}
-            className="min-h-15 max-h-30"
+            className="min-h-16 max-h-32 text-xs font-medium bg-transparent border-0 ring-0 focus:ring-0 placeholder:text-muted-foreground/40"
           />
-          <PromptInputFooter>
+          <PromptInputFooter className="bg-muted/5 border-t border-border/5">
             <div className="flex items-center justify-between w-full">
-              <span className="text-xs text-muted-foreground">
-                {isRunning ? (
-                  <span className="flex items-center gap-1">
-                    <Loader2Icon className="size-3 animate-spin" />
-                    Processing...
-                  </span>
-                ) : isCompleted ? (
-                  <span className="text-green-600 dark:text-green-400">✓ Complete</span>
-                ) : isError ? (
-                  <span className="text-red-600 dark:text-red-400">✗ Error</span>
-                ) : (
-                  "Press Enter to run"
-                )}
-              </span>
-              <PromptInputSubmit disabled={isDisabled} className="h-8" />
+              <div className="flex items-center gap-2">
+                <CommandIcon className="size-3 text-muted-foreground/30" />
+                <span className="text-[9px] font-mono tracking-tighter text-muted-foreground/60">
+                  {isRunning ? (
+                    <span className="flex items-center gap-1 text-primary">
+                      <Loader2Icon className="size-2.5 animate-spin" />
+                      CORE_EXECUTING...
+                    </span>
+                  ) : isCompleted ? (
+                    <span className="text-green-500 font-bold tracking-widest uppercase">SYC_DONE</span>
+                  ) : isError ? (
+                    <span className="text-red-500 font-bold tracking-widest uppercase">ERR_HALT</span>
+                  ) : (
+                    "CTL_ENTER TO FIRE"
+                  )}
+                </span>
+              </div>
+              <PromptInputSubmit disabled={isDisabled} className="h-7 w-7 rounded-lg bg-primary/90 hover:bg-primary shadow-lg shadow-primary/20 transition-all active:scale-95" />
             </div>
           </PromptInputFooter>
         </PromptInput>
 
-        {/* Quick run button */}
-        {!isRunning && workflowConfig && (
-          <Button
-            variant={isCompleted ? "default" : "outline"}
-            size="sm"
-            className="w-full mt-2 h-8"
-            onClick={handleQuickRun}
-            disabled={isDisabled}
-          >
-            <PlayIcon className="size-3 mr-2" />
-            {isCompleted ? "Run Again" : "Quick Run"}
-          </Button>
-        )}
+        <AnimatePresence>
+          {!isRunning && workflowConfig && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <Button
+                variant={isCompleted ? "default" : "outline"}
+                size="sm"
+                className={`w-full h-9 rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all group overflow-hidden relative ${
+                  isCompleted ? "bg-primary shadow-lg shadow-primary/30" : "bg-background/40 hover:bg-muted/20 border-border/30"
+                }`}
+                onClick={handleQuickRun}
+                disabled={isDisabled}
+              >
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                <PlayIcon className={`size-3 mr-2 transition-transform group-hover:scale-125 ${isCompleted ? "text-primary-foreground" : "text-primary"}`} />
+                {isCompleted ? "Re-Deploy Unit" : "Engage Protocol"}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Example inputs */}
         {examples.length > 0 && !isRunning && (
-          <div className="mt-3 pt-3 border-t">
-            <span className="text-xs text-muted-foreground">Examples:</span>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="pt-4 border-t border-border/5 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em]">Quick Params</span>
+              <div className="size-1 bg-primary/20 rounded-full" />
+            </div>
+            <div className="flex flex-wrap gap-2">
               {examples.slice(0, 3).map((example) => (
                 <button
                   key={example}
                   onClick={() => handleExampleClick(example)}
-                  className="text-xs px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 transition-colors truncate max-w-30"
+                  className="text-[10px] px-3 py-1.5 rounded-lg bg-muted/10 hover:bg-primary/10 border border-border/20 text-foreground/70 hover:text-primary transition-all duration-300 truncate max-w-30 font-medium"
                   disabled={isDisabled}
                   title={example}
                 >
@@ -179,7 +209,7 @@ export function WorkflowInputPanel() {
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </Panel>

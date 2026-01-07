@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
 import MonacoWebpackPlugin from "monaco-editor-webpack-plugin";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
@@ -20,7 +20,11 @@ const nextConfig: NextConfig = {
     "playwright-core",
     "re2",
     "svgjson",
-    "unpdf"
+    "unpdf",
+    "uuid",
+    "zod",
+    "@e2b/code-interpreter",
+    "ai"
   ],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: false,
@@ -59,11 +63,11 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   trailingSlash: false,
-//  exportPathMap: async function () {
-//    return {
-//      "/": { page: "/" },
-//    };
-//  },
+  //  exportPathMap: async function () {
+  //    return {
+  //      "/": { page: "/" },
+  //    };
+  //  },
   experimental: {
     useSkewCookie: true,
     multiZoneDraftMode: true,
@@ -77,27 +81,27 @@ const nextConfig: NextConfig = {
     workerThreads: true,
     disableOptimizedLoading: true,
     hideLogsAfterAbort: true,
-//    optimizeCss: true,
+    //    optimizeCss: true,
     esmExternals: true,
     scrollRestoration: true,
     cpus: 16,
-//    cssChunking: true,
- //   craCompat: true,
-//    validateRSCRequestHeaders: true,
- //   webpackMemoryOptimizations: true,
- //7   webpackBuildWorker: true,
- //   turbopackTreeShaking: true,
-//    turbopackMinify: true,
-//    turbopackImportTypeBytes: true,
-//    turbopackMemoryLimit: 8192,
-//    turbopackRemoveUnusedExports: true,
+    //    cssChunking: true,
+    //   craCompat: true,
+    //    validateRSCRequestHeaders: true,
+    //   webpackMemoryOptimizations: true,
+    //7   webpackBuildWorker: true,
+    //   turbopackTreeShaking: true,
+    //    turbopackMinify: true,
+    //    turbopackImportTypeBytes: true,
+    //    turbopackMemoryLimit: 8192,
+    //    turbopackRemoveUnusedExports: true,
     turbopackFileSystemCacheForDev: true,
-  //  turbopackFileSystemCacheForBuild: true,
+    //  turbopackFileSystemCacheForBuild: true,
     useCache: true,
-//    useLightningcss: true,
+    //    useLightningcss: true,
     useWasmBinary: true,
-//    swcTraceProfiling: true,
-//    forceSwcTransforms: true,
+    //    swcTraceProfiling: true,
+    //    forceSwcTransforms: true,
     ppr: false,
   },
 };

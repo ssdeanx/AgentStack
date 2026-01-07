@@ -1,14 +1,13 @@
 
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import chalk from 'chalk';
-import execa from 'execa';
-import type { ExecaError as ExecaErrorType } from 'execa';
 import { trace } from "@opentelemetry/api";
+import chalk from 'chalk';
+import type { ExecaError as ExecaErrorType } from 'execa';
+import execa from 'execa';
 import { Transform } from 'stream';
 import { z } from 'zod';
 import { log } from '../config/logger';
-import type { RequestContext } from '@mastra/core/request-context';
 
 // Create transform stream that applies chalk
 const colorTransform = new Transform({
@@ -33,7 +32,30 @@ export const execaTool = createTool({
   outputSchema: z.object({
     message: z.string(),
   }),
-
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Execa tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Execa tool received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      command: input.command,
+      argsCount: input.args.length,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Execa tool completed', {
+      toolCallId,
+      toolName,
+      outputLength: output.message.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const requestContext = context?.requestContext;

@@ -1,10 +1,10 @@
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { z } from 'zod';
 import type { MastraModelOutput } from '@mastra/core/stream';
-import { log } from '../config/logger';
+import type { InferUITool } from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { z } from 'zod';
 import { evaluationAgent } from '../agents/evaluationAgent';
+import { log } from '../config/logger';
 
 export const evaluateResultTool = createTool({
   id: 'evaluate-result',
@@ -24,6 +24,30 @@ export const evaluateResultTool = createTool({
       .describe('URLs that have already been processed')
       .optional(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Evaluate result tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Evaluate result received complete input', {
+      toolCallId,
+      query: input.query,
+      url: input.result.url,
+      existingUrlsCount: input.existingUrls?.length || 0,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Evaluate result completed', {
+      toolCallId,
+      toolName,
+      isRelevant: output.isRelevant,
+      reason: output.reason,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🤔 Evaluating relevance of result: ' + inputData.result.title, stage: 'evaluate-result' }, id: 'evaluate-result' });
 

@@ -1,16 +1,17 @@
-import { trace } from "@opentelemetry/api";
-import type { InferUITool} from "@mastra/core/tools";
+import { RequestContext } from "@mastra/core/request-context";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { trace } from "@opentelemetry/api";
+import excalidrawToSvg from 'excalidraw-to-svg';
+import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import { z } from 'zod';
-import type { RequestContext } from '@mastra/core/request-context';
 import svgjson from 'svgjson';
-import excalidrawToSvg from 'excalidraw-to-svg';
+import { z } from 'zod';
+import { log } from '../config/logger';
 
 // Type for SVG JSON nodes from svgjson
-interface SvgJsonNode {
+interface SvgJsonNode extends RequestContext {
   name?: string
   attributes?: Record<string, string>
   children?: SvgJsonNode[]
@@ -19,14 +20,14 @@ interface SvgJsonNode {
 }
 
 // Define runtime context for these tools
-export interface DataProcessingContext {
+export interface DataProcessingContext extends RequestContext {
   userId?: string
   workspaceId?: string
   format?: 'csv' | 'json' | 'xml' | 'svg' | 'excalidraw'
 }
 
 // Type definition for XML element info collected by processXMLTool
-interface XmlElementInfo {
+interface XmlElementInfo extends RequestContext {
   tagName: string
   textContent?: string | null
   attributes: Record<string, string>
@@ -37,7 +38,7 @@ interface XmlElementInfo {
 type ExtractedData = Record<string, XmlElementInfo[] | Array<{ element: string; value: string }>>
 
 // Type for processSVGTool result
-interface ProcessSVGResult {
+interface ProcessSVGResult extends RequestContext {
   svgJson: SvgJsonNode
   paths?: SvgJsonNode[]
   textElements?: string[]
@@ -139,6 +140,29 @@ export const readCSVDataTool = createTool({
     rows: z.array(CSVRowSchema),
     rawCSV: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Read CSV tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Read CSV received complete input', {
+      toolCallId,
+      fileName: input.fileName,
+      hasHeaders: input.hasHeaders,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Read CSV completed', {
+      toolCallId,
+      toolName,
+      rowCount: output.rows.length,
+      headerCount: output.headers?.length || 0,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -229,6 +253,29 @@ export const csvToExcalidrawTool = createTool({
       elementSpacing: z.number(),
     }),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('CSV to Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('CSV to Excalidraw received complete input', {
+      toolCallId,
+      layoutType: input.layoutType,
+      hasHeaders: input.hasHeaders,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('CSV to Excalidraw completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      filename: output.filename,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -504,6 +551,29 @@ export const imageToCSVTool = createTool({
     elementCount: z.number(),
     columns: z.array(z.string()),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Image to CSV tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Image to CSV received complete input', {
+      toolCallId,
+      elementCount: input.elements.length,
+      filename: input.filename,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Image to CSV completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      filename: output.filename,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -571,15 +641,38 @@ export const validateExcalidrawTool = createTool({
     warnings: z.array(z.string()),
     elementCount: z.number(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Validate Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Validate Excalidraw received complete input', {
+      toolCallId,
+      autoFix: input.autoFix,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Validate Excalidraw completed', {
+      toolCallId,
+      toolName,
+      isValid: output.isValid,
+      errorCount: output.errors.length,
+      elementCount: output.elementCount,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
     const tracer = trace.getTracer('data-processing');
     const span = tracer.startSpan('validate-excalidraw', {
-        attributes: {
-            'tool.id': 'validate-excalidraw',
-            'tool.input.autoFix': inputData.autoFix,
-        }
+      attributes: {
+        'tool.id': 'validate-excalidraw',
+        'tool.input.autoFix': inputData.autoFix,
+      }
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Validating Excalidraw data', stage: 'validate-excalidraw' }, id: 'validate-excalidraw' });
@@ -722,6 +815,29 @@ export const processSVGTool = createTool({
     }),
     elementCount: z.number(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Process SVG tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Process SVG received complete input', {
+      toolCallId,
+      extractPaths: input.extractPaths,
+      extractText: input.extractText,
+      extractStyles: input.extractStyles,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Process SVG completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -846,6 +962,29 @@ export const processXMLTool = createTool({
     extractedData: z.any(),
     rootElement: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Process XML tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Process XML received complete input', {
+      toolCallId,
+      extractElements: input.extractElements?.join(','),
+      extractAttributes: input.extractAttributes?.join(','),
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Process XML completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elements.length,
+      rootElement: output.rootElement,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1011,6 +1150,29 @@ export const convertDataFormatTool = createTool({
       conversionType: z.string(),
     }),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Convert data format tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Convert data format received complete input', {
+      toolCallId,
+      inputFormat: input.inputFormat,
+      outputFormat: input.outputFormat,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Convert data format completed', {
+      toolCallId,
+      toolName,
+      success: true,
+      format: output.format,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1120,7 +1282,7 @@ export const convertDataFormatTool = createTool({
           metadata.conversionType = 'no-conversion'
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: {status: 'done', message: '✅ Data conversion successful', stage: 'convert-data-format' }, id: 'convert-data-format' });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Data conversion successful', stage: 'convert-data-format' }, id: 'convert-data-format' });
 
       const result = {
         convertedData,
@@ -1132,11 +1294,11 @@ export const convertDataFormatTool = createTool({
       span.end();
       return result;
     } catch (error) {
-       const errorMessage = error instanceof Error ? error.message : String(error);
-       span.recordException(error instanceof Error ? error : new Error(errorMessage));
-       span.setStatus({ code: 2, message: errorMessage });
-       span.end();
-       throw new Error(`Data conversion failed: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      span.recordException(error instanceof Error ? error : new Error(errorMessage));
+      span.setStatus({ code: 2, message: errorMessage });
+      span.end();
+      throw new Error(`Data conversion failed: ${errorMessage}`)
     }
   },
 })
@@ -1158,6 +1320,29 @@ export const validateDataTool = createTool({
     warnings: z.array(z.string()),
     validatedData: z.any().optional(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Validate data tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Validate data received complete input', {
+      toolCallId,
+      schemaType: input.schemaType,
+      strict: input.strict,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Validate data completed', {
+      toolCallId,
+      toolName,
+      isValid: output.isValid,
+      errorCount: output.errors.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1219,12 +1404,12 @@ export const validateDataTool = createTool({
               for (let i = 1; i < lines.length; i++) {
                 const columns = lines[i].split(',').length
                 if (columns !== headerColumns) {
-                   // Duplicated checking logic in original code, simplifying
-                   if (strict) {
-                     errors.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
-                   } else {
-                     warnings.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
-                   }
+                  // Duplicated checking logic in original code, simplifying
+                  if (strict) {
+                    errors.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
+                  } else {
+                    warnings.push(`Row ${i + 1} has ${columns} columns, expected ${headerColumns}`)
+                  }
                 }
               }
 
@@ -1392,6 +1577,30 @@ export const excalidrawToSVGTool = createTool({
     }).describe('SVG dimensions'),
     elementCount: z.number().describe('Number of Excalidraw elements converted'),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Excalidraw to SVG tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Excalidraw to SVG received complete input', {
+      toolCallId,
+      elementCount: input.excalidrawData.elements.length,
+      saveToFile: input.saveToFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Excalidraw to SVG completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      width: output.dimensions.width,
+      height: output.dimensions.height,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1495,6 +1704,28 @@ export const svgToExcalidrawTool = createTool({
     elementCount: z.number(),
     warnings: z.array(z.string()).optional(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('SVG to Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('SVG to Excalidraw received complete input', {
+      toolCallId,
+      title: input.title,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('SVG to Excalidraw completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      warningsCount: output.warnings?.length || 0,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 

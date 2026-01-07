@@ -1,5 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import z from "zod";
+import { log } from '../config/logger';
 
 export function changeBgColor(color: string) {
   if (typeof window !== "undefined") {
@@ -13,6 +14,30 @@ export const colorChangeTool = createTool({
   inputSchema: z.object({
     color: z.string(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Color change tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Color change received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      color: input.color,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Color change completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      color: output.color,
+      hook: 'onOutput',
+    })
+  },
   execute: async ({ color }, context) => {
     await context?.writer?.custom({
       type: "data-tool-progress",
@@ -26,7 +51,7 @@ export const colorChangeTool = createTool({
 
     // On the server, we just return the color.
     // The client-side UI will handle the actual style change when it receives the tool result or call.
-    
+
     await context?.writer?.custom({
       type: "data-tool-progress",
       data: {

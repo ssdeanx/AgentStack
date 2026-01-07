@@ -1,14 +1,14 @@
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
-import { ProjectCache, PythonParser } from './semantic-utils';
-import type { SourceFile } from 'ts-morph';
-import { Node } from 'ts-morph';
-import * as path from 'node:path';
 import fg from 'fast-glob';
 import { readFile } from 'node:fs/promises';
+import * as path from 'node:path';
+import type { SourceFile } from 'ts-morph';
+import { Node } from 'ts-morph';
+import { z } from 'zod';
 import { log } from '../config/logger';
+import { ProjectCache, PythonParser } from './semantic-utils';
 
-import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
 
 const referenceContextSchema = z.object({
   maxReferences: z.number().default(500),
@@ -60,6 +60,34 @@ export const findReferencesTool = createTool({
   description: 'Find all references to a symbol (function, class, variable) across the codebase using semantic analysis.',
   inputSchema: findReferencesInputSchema,
   outputSchema: findReferencesOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('findReferencesTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('findReferencesTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        symbolName: input.symbolName,
+        projectPath: input.projectPath,
+        filePath: input.filePath,
+        line: input.line,
+        includeDependencies: input.includeDependencies,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('findReferencesTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        references: output.references,
+        summary: output.summary,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔎 Starting semantic find-references for '${inputData.symbolName}' at ${inputData.projectPath}`, stage: 'semantic:find-references' }, id: 'semantic:find-references' });
@@ -107,23 +135,23 @@ export const findReferencesTool = createTool({
               const references = project.getLanguageService().findReferencesAtPosition(sourceFile, position);
               for (const ref of references ?? []) {
                 for (const reference of ref.getReferences()) {
-                    const refSourceFile = reference.getSourceFile();
-                    const refNode = reference.getNode();
-                    const start = refNode.getStartLinePos();
-                    const pos = refSourceFile.getLineAndColumnAtPos(start);
+                  const refSourceFile = reference.getSourceFile();
+                  const refNode = reference.getNode();
+                  const start = refNode.getStartLinePos();
+                  const pos = refSourceFile.getLineAndColumnAtPos(start);
 
-                    const codeContext = getCodeContext(refSourceFile, pos.line, 2);
-                    const kind = getReferenceKind(refNode);
+                  const codeContext = getCodeContext(refSourceFile, pos.line, 2);
+                  const kind = getReferenceKind(refNode);
 
-                    allReferences.push({
-                      filePath: refSourceFile.getFilePath(),
-                      line: pos.line,
-                      column: pos.column,
-                      text: refNode.getParent()?.getText().substring(0, 100) ?? refNode.getText(),
-                      isDefinition: reference.isDefinition() ?? false,
-                      context: codeContext,
-                      kind
-                    });
+                  allReferences.push({
+                    filePath: refSourceFile.getFilePath(),
+                    line: pos.line,
+                    column: pos.column,
+                    text: refNode.getParent()?.getText().substring(0, 100) ?? refNode.getText(),
+                    isDefinition: reference.isDefinition() ?? false,
+                    context: codeContext,
+                    kind
+                  });
                 }
               }
             }
@@ -135,13 +163,13 @@ export const findReferencesTool = createTool({
         const sourceFiles = project.getSourceFiles();
 
         for (const sourceFile of sourceFiles) {
-          if (allReferences.length >= maxReferences) {break;}
+          if (allReferences.length >= maxReferences) { break; }
 
           const sourceFilePath = sourceFile.getFilePath();
 
           // Skip excluded patterns
-          if (!(includeNodeModules) && sourceFilePath.includes('node_modules')) {continue;}
-          if (sourceFilePath.includes('.git') || sourceFilePath.includes('dist') || sourceFilePath.includes('build')) {continue;}
+          if (!(includeNodeModules) && sourceFilePath.includes('node_modules')) { continue; }
+          if (sourceFilePath.includes('.git') || sourceFilePath.includes('dist') || sourceFilePath.includes('build')) { continue; }
 
           try {
             const fileReferences = await analyzeTypeScriptReferences(sourceFile, searchTerm, caseSensitive, maxReferences - allReferences.length);
@@ -231,16 +259,16 @@ export const findReferencesTool = createTool({
 
 function isSymbolDefinition(node: Node): boolean {
   const parent = node.getParent();
-  if (!parent) {return false;}
+  if (!parent) { return false; }
 
   return Node.isFunctionDeclaration(parent) ||
-         Node.isClassDeclaration(parent) ||
-         Node.isInterfaceDeclaration(parent) ||
-         Node.isTypeAliasDeclaration(parent) ||
-         Node.isVariableDeclaration(parent) ||
-         Node.isMethodDeclaration(parent) ||
-         Node.isPropertyDeclaration(parent) ||
-         Node.isParameterDeclaration(parent);
+    Node.isClassDeclaration(parent) ||
+    Node.isInterfaceDeclaration(parent) ||
+    Node.isTypeAliasDeclaration(parent) ||
+    Node.isVariableDeclaration(parent) ||
+    Node.isMethodDeclaration(parent) ||
+    Node.isPropertyDeclaration(parent) ||
+    Node.isParameterDeclaration(parent);
 }
 
 async function analyzeTypeScriptReferences(
@@ -248,11 +276,11 @@ async function analyzeTypeScriptReferences(
   searchTerm: string,
   caseSensitive: boolean,
   maxResults: number
-): Promise<Array<{line: number; column: number; text: string; isDefinition: boolean; context: string; kind: string}>> {
-  const references: Array<{line: number; column: number; text: string; isDefinition: boolean; context: string; kind: string}> = [];
+): Promise<Array<{ line: number; column: number; text: string; isDefinition: boolean; context: string; kind: string }>> {
+  const references: Array<{ line: number; column: number; text: string; isDefinition: boolean; context: string; kind: string }> = [];
 
   sourceFile.forEachDescendant((node: Node) => {
-    if (references.length >= maxResults) {return;}
+    if (references.length >= maxResults) { return; }
 
     if (Node.isIdentifier(node)) {
       const name = node.getText();
@@ -292,7 +320,7 @@ function getCodeContext(sourceFile: SourceFile, lineNumber: number, contextLines
 
 function getReferenceKind(node: Node): string {
   const parent = node.getParent();
-  if (!parent) {return 'usage';}
+  if (!parent) { return 'usage'; }
 
   if (Node.isFunctionDeclaration(parent) || Node.isMethodDeclaration(parent)) {
     return 'function';

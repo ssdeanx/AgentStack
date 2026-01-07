@@ -1,6 +1,7 @@
+import { FilesystemEventType, FileType, Sandbox } from '@e2b/code-interpreter';
 import { createTool } from '@mastra/core/tools';
 import z from 'zod';
-import { FilesystemEventType, FileType, Sandbox } from '@e2b/code-interpreter';
+import { log } from '../config/logger';
 
 export const createSandbox = createTool({
   id: 'createSandbox',
@@ -19,8 +20,30 @@ export const createSandbox = createTool({
     `),
   }),
   outputSchema: z.object({
-      sandboxId: z.string(),
-    }),
+    sandboxId: z.string(),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Create sandbox tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Create sandbox received complete input', {
+      toolCallId,
+      hasMetadata: !!input.metadata,
+      hasEnvs: !!input.envs,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Create sandbox completed', {
+      toolCallId,
+      toolName,
+      sandboxId: output.sandboxId,
+      hook: 'onOutput',
+    })
+  },
   execute: async (sandboxOptions) => {
     try {
       const sandbox = await Sandbox.create(sandboxOptions);
@@ -61,8 +84,31 @@ export const runCode = createTool({
       .describe('Run code options'),
   }),
   outputSchema: z.object({
-      execution: z.string().describe('Serialized representation of the execution results'),
-    }),
+    execution: z.string().describe('Serialized representation of the execution results'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Run code tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Run code received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      codeLength: input.code.length,
+      language: input.runCodeOpts?.language,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Run code completed', {
+      toolCallId,
+      toolName,
+      executionLength: output.execution.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -87,9 +133,32 @@ export const readFile = createTool({
     path: z.string().describe('The path to the file to read'),
   }),
   outputSchema: z.object({
-      content: z.string().describe('The content of the file'),
-      path: z.string().describe('The path of the file that was read'),
-    }),
+    content: z.string().describe('The content of the file'),
+    path: z.string().describe('The path of the file that was read'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Read file tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Read file received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Read file completed', {
+      toolCallId,
+      toolName,
+      contentLength: output.content.length,
+      path: output.path,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -115,9 +184,33 @@ export const writeFile = createTool({
     content: z.string().describe('The content to write to the file'),
   }),
   outputSchema: z.object({
-      success: z.boolean().describe('Whether the file was written successfully'),
-      path: z.string().describe('The path where the file was written'),
-    }),
+    success: z.boolean().describe('Whether the file was written successfully'),
+    path: z.string().describe('The path where the file was written'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Write file tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Write file received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      contentLength: input.content.length,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Write file completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      path: output.path,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -149,9 +242,32 @@ export const writeFiles = createTool({
       .describe('Array of files to write, each with path and data'),
   }),
   outputSchema: z.object({
-      success: z.boolean().describe('Whether all files were written successfully'),
-      filesWritten: z.array(z.string()).describe('Array of file paths that were written'),
-    }),
+    success: z.boolean().describe('Whether all files were written successfully'),
+    filesWritten: z.array(z.string()).describe('Array of file paths that were written'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Write files tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Write files received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      fileCount: input.files.length,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Write files completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      filesWrittenCount: output.filesWritten.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -176,17 +292,40 @@ export const listFiles = createTool({
     path: z.string().default('/').describe('The directory path to list files from'),
   }),
   outputSchema: z.object({
-      files: z
-        .array(
-          z.object({
-            name: z.string().describe('The name of the file or directory'),
-            path: z.string().describe('The full path of the file or directory'),
-            isDirectory: z.boolean().describe('Whether this is a directory'),
-          }),
-        )
-        .describe('Array of files and directories'),
-      path: z.string().describe('The path that was listed'),
-    }),
+    files: z
+      .array(
+        z.object({
+          name: z.string().describe('The name of the file or directory'),
+          path: z.string().describe('The full path of the file or directory'),
+          isDirectory: z.boolean().describe('Whether this is a directory'),
+        }),
+      )
+      .describe('Array of files and directories'),
+    path: z.string().describe('The path that was listed'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('List files tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('List files received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('List files completed', {
+      toolCallId,
+      toolName,
+      fileCount: output.files.length,
+      path: output.path,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -215,9 +354,32 @@ export const deleteFile = createTool({
     path: z.string().describe('The path to the file or directory to delete'),
   }),
   outputSchema: z.object({
-      success: z.boolean().describe('Whether the file was deleted successfully'),
-      path: z.string().describe('The path that was deleted'),
-    }),
+    success: z.boolean().describe('Whether the file was deleted successfully'),
+    path: z.string().describe('The path that was deleted'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Delete file tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Delete file received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Delete file completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      path: output.path,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -242,9 +404,32 @@ export const createDirectory = createTool({
     path: z.string().describe('The path where the directory should be created'),
   }),
   outputSchema: z.object({
-      success: z.boolean().describe('Whether the directory was created successfully'),
-      path: z.string().describe('The path where the directory was created'),
-    }),
+    success: z.boolean().describe('Whether the directory was created successfully'),
+    path: z.string().describe('The path where the directory was created'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Create directory tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Create directory received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Create directory completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      path: output.path,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -269,17 +454,40 @@ export const getFileInfo = createTool({
     path: z.string().describe('The path to the file or directory to get information about'),
   }),
   outputSchema: z.object({
-      name: z.string().describe('The name of the file or directory'),
-      type: z.enum(FileType).optional().describe('Whether this is a file or directory'),
-      path: z.string().describe('The full path of the file or directory'),
-      size: z.number().describe('The size of the file or directory in bytes'),
-      mode: z.number().describe('The file mode (permissions as octal number)'),
-      permissions: z.string().describe('Human-readable permissions string'),
-      owner: z.string().describe('The owner of the file or directory'),
-      group: z.string().describe('The group of the file or directory'),
-      modifiedTime: z.date().optional().describe('The last modified time in ISO string format'),
-      symlinkTarget: z.string().optional().describe('The target path if this is a symlink, null otherwise'),
-    }),
+    name: z.string().describe('The name of the file or directory'),
+    type: z.enum(FileType).optional().describe('Whether this is a file or directory'),
+    path: z.string().describe('The full path of the file or directory'),
+    size: z.number().describe('The size of the file or directory in bytes'),
+    mode: z.number().describe('The file mode (permissions as octal number)'),
+    permissions: z.string().describe('Human-readable permissions string'),
+    owner: z.string().describe('The owner of the file or directory'),
+    group: z.string().describe('The group of the file or directory'),
+    modifiedTime: z.date().optional().describe('The last modified time in ISO string format'),
+    symlinkTarget: z.string().optional().describe('The target path if this is a symlink, null otherwise'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Get file info tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Get file info received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Get file info completed', {
+      toolCallId,
+      toolName,
+      name: output.name,
+      size: output.size,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -322,6 +530,29 @@ export const checkFileExists = createTool({
         error: z.string().describe('The error from a failed existence check'),
       }),
     ),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Check file exists tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Check file exists received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Check file exists completed', {
+      toolCallId,
+      toolName,
+      exists: 'exists' in output ? output.exists : false,
+      path: 'path' in output ? output.path : '',
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -370,6 +601,30 @@ export const getFileSize = createTool({
         error: z.string().describe('The error from a failed size check'),
       }),
     ),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Get file size tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Get file size received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      humanReadable: input.humanReadable,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Get file size completed', {
+      toolCallId,
+      toolName,
+      size: 'size' in output ? output.size : 0,
+      path: 'path' in output ? output.path : '',
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -435,6 +690,31 @@ export const watchDirectory = createTool({
         error: z.string().describe('The error from a failed directory watch'),
       }),
     ),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Watch directory tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Watch directory received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      path: input.path,
+      recursive: input.recursive,
+      watchDuration: input.watchDuration,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Watch directory completed', {
+      toolCallId,
+      toolName,
+      watchStarted: 'watchStarted' in output ? output.watchStarted : false,
+      eventCount: 'events' in output ? output.events.length : 0,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     try {
       const sandbox = await Sandbox.connect(inputData.sandboxId);
@@ -484,13 +764,37 @@ export const runCommand = createTool({
     captureOutput: z.boolean().default(true).describe('Whether to capture stdout and stderr output'),
   }),
   outputSchema: z.object({
-      success: z.boolean().describe('Whether the command executed successfully'),
-      exitCode: z.number().describe('The exit code of the command'),
-      stdout: z.string().describe('The standard output from the command'),
-      stderr: z.string().describe('The standard error from the command'),
-      command: z.string().describe('The command that was executed'),
-      executionTime: z.number().describe('How long the command took to execute in milliseconds'),
-    }),
+    success: z.boolean().describe('Whether the command executed successfully'),
+    exitCode: z.number().describe('The exit code of the command'),
+    stdout: z.string().describe('The standard output from the command'),
+    stderr: z.string().describe('The standard error from the command'),
+    command: z.string().describe('The command that was executed'),
+    executionTime: z.number().describe('How long the command took to execute in milliseconds'),
+  }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Run command tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Run command received complete input', {
+      toolCallId,
+      sandboxId: input.sandboxId,
+      command: input.command,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Run command completed', {
+      toolCallId,
+      toolName,
+      success: output.success,
+      exitCode: output.exitCode,
+      executionTime: output.executionTime,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData) => {
     const startTime = Date.now();
     try {

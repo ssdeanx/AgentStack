@@ -1,14 +1,15 @@
-import { z } from 'zod'
-import { promises as fs } from 'node:fs'
-import * as path from 'node:path'
-import { createPatch } from 'diff'
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import { createTool } from '@mastra/core/tools';
-import RE2 from 're2'
 import type { RequestContext } from '@mastra/core/request-context';
+import { createTool } from '@mastra/core/tools';
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { createPatch } from 'diff';
+import { promises as fs } from 'node:fs';
+import * as path from 'node:path';
+import RE2 from 're2';
+import { z } from 'zod';
+import { log } from '../config/logger';
 
 // Define the expected shape of the runtime context for this tool
-export interface MultiStringEditContext {
+export interface MultiStringEditContext extends RequestContext {
   maxFileSize?: number;
   createBackup?: boolean;
   dryRun?: boolean;
@@ -229,6 +230,34 @@ Supports dry-run mode to preview changes and automatic backup creation.
 Use for batch refactoring, multi-file updates, and coordinated code changes.`,
   inputSchema: multiStringEditInputSchema,
   outputSchema: multiStringEditOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('multiStringEditTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('multiStringEditTool received input', {
+      toolCallId,
+      inputData: {
+        edits: input.edits,
+        dryRun: input.dryRun,
+        createBackup: input.createBackup,
+        projectRoot: input.projectRoot,
+        maxFileSize: input.maxFileSize,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('multiStringEditTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        success: output.success,
+        results: output.results,
+        summary: output.summary,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
     const { edits, dryRun = false, createBackup = true, projectRoot } = inputData;
     const writer = context?.writer;
@@ -241,7 +270,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     await ensureDataDir();
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔁 Starting multi-string edit: ${inputData.edits.length} edits${inputData.dryRun === true ? ' (dry run)' : ''}`, stage: 'coding:multiStringEdit' }, id: 'coding:multiStringEdit' });
-    
+
     const tracer = trace.getTracer('coding-tools');
     const span = tracer.startSpan('multi_string_edit', {
       attributes: {

@@ -1,9 +1,10 @@
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { z } from 'zod';
-import { trace, SpanStatusCode } from "@opentelemetry/api";
 import type { MastraModelOutput } from '@mastra/core/stream';
+import type { InferUITool } from "@mastra/core/tools";
+import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { z } from 'zod';
 import { editorAgent } from '../agents/editorAgent';
+import { log } from '../config/logger';
 
 export const editorTool = createTool({
   id: 'editor-agent',
@@ -35,6 +36,34 @@ export const editorTool = createTool({
       .optional()
       .describe('Additional suggestions for improvement'),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('editorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('editorTool received input', {
+      toolCallId,
+      inputData: {
+        content: input.content,
+        contentType: input.contentType,
+        instructions: input.instructions,
+        tone: input.tone,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('editorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        editedContent: output.editedContent,
+        contentType: output.contentType,
+        changes: output.changes,
+        suggestions: output.suggestions,
+      },
+      hook: 'onOutput'
+    });
+  },
   // Streaming: Pipe a nested agent's textStream into the tool writer so the UI
   // receives nested agent chunks while the tool is running. See:
   // https://mastra.ai/docs/streaming/tool-streaming#tool-using-an-agent

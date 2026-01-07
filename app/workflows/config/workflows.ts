@@ -472,6 +472,98 @@ export const WORKFLOW_CONFIGS: Record<string, WorkflowConfig> = {
       },
     ],
   },
+  governedRagIndex: {
+    id: "governedRagIndex",
+    name: "Governed RAG Index",
+    description: "Index documents with security tags and classifications",
+    category: "data",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "index-documents",
+        label: "Index Documents",
+        description: "Index with security tags",
+        content: "PgVector + HNSW indexing",
+        footer: "Service: DocumentIndexingService",
+      },
+    ],
+  },
+  marketingCampaignWorkflow: {
+    id: "marketingCampaignWorkflow",
+    name: "Marketing Campaign",
+    description: "Simple marketing campaign workflow",
+    category: "content",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "campaign-planning",
+        label: "Campaign Planning",
+        description: "Plan the strategy",
+        content: "Topic and audience analysis",
+        footer: "Step: campaign-planning",
+      },
+      {
+        id: "content-creation",
+        label: "Content Creation",
+        description: "Create campaign content",
+        content: "Based on campaign plan",
+        footer: "Step: content-creation",
+      },
+    ],
+  },
+  dataAnalysisWorkflow: {
+    id: "dataAnalysisWorkflow",
+    name: "Data Analysis",
+    description: "Production-grade data analysis using E2B sandboxes",
+    category: "research",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "generate-analysis-code",
+        label: "Generate Analysis Code",
+        description: "Python code generation",
+        content: "Uses pandas and data science best practices",
+        footer: "Agent: codeArchitectAgent",
+      },
+      {
+        id: "execute-analysis",
+        label: "Execute Analysis",
+        description: "Run in E2B Sandbox",
+        content: "Isolated execution environment",
+        footer: "Tool: e2b/runCode",
+      },
+      {
+        id: "generate-data-report",
+        label: "Generate Report",
+        description: "Synthesis of results",
+        content: "MD report with plot artifacts",
+        footer: "Agent: reportAgent",
+      },
+    ],
+  },
+  automatedReportingWorkflow: {
+    id: "automatedReportingWorkflow",
+    name: "Automated Reporting",
+    description: "Multi-section research and synthesis",
+    category: "research",
+    features: { ...defaultFeatures },
+    steps: [
+      {
+        id: "research-topic",
+        label: "Research Topic",
+        description: "Gather section data",
+        content: "Iterative research for each section",
+        footer: "Agent: researchAgent",
+      },
+      {
+        id: "synthesize-report",
+        label: "Synthesize Report",
+        description: "Professional synthesis",
+        content: "Executive summary + full report",
+        footer: "Agent: reportAgent",
+      },
+    ],
+  },
 }
 
 export const CATEGORY_LABELS: Record<WorkflowCategory, string> = {

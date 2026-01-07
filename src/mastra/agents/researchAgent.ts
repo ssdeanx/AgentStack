@@ -1,13 +1,12 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
-import { BatchPartsProcessor, TokenLimiterProcessor, UnicodeNormalizer } from '@mastra/core/processors';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
-import { PGVECTOR_PROMPT } from "@mastra/pg";
+
 import { google } from '../config/google';
 import { log } from '../config/logger';
-import { pgMemory, pgQueryTool } from '../config/pg-storage';
+import { pgMemory } from '../config/pg-storage';
 import { alphaVantageCryptoTool, alphaVantageStockTool } from '../tools/alpha-vantage.tool';
-import { arxivTool } from '../tools/arxiv.tool';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { extractLearningsTool } from '../tools/extractLearningsTool';
@@ -15,7 +14,7 @@ import { finnhubAnalysisTool, finnhubCompanyTool, finnhubFinancialsTool, finnhub
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool';
 import { polygonCryptoAggregatesTool, polygonCryptoQuotesTool, polygonCryptoSnapshotsTool, polygonStockAggregatesTool, polygonStockFundamentalsTool, polygonStockQuotesTool } from '../tools/polygon-tools';
 import { googleFinanceTool, googleScholarTool } from '../tools/serpapi-academic-local.tool';
-import { googleNewsLiteTool, googleNewsTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool';
+import { googleNewsLiteTool, googleTrendsTool } from '../tools/serpapi-news-trends.tool';
 import {
   batchWebScraperTool,
   contentCleanerTool,
@@ -61,7 +60,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 ## Tool Selection Guide
 - **Web**: 'webScraperTool' (single URL), 'batchWebScraperTool' (multiple).
 - **News/Trends**: 'googleNewsTool', 'googleTrendsTool', 'googleFinanceTool'.
-- **Academic**: 'googleScholarTool', 'arxivTool'.
+- **Academic**: 'googleScholarTool'.
 - **Financial**: Use 'polygon*', 'finnhub*', or 'alphaVantage*' for stocks/crypto.
 - **Internal**: 'pgQueryTool' for previously indexed knowledge.
 - **Processing**: 'pdfToMarkdownTool' for PDFs; 'evaluateResultTool' for quality checks.
@@ -70,8 +69,6 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 - **Efficiency**: No repetitive or back-to-back tool calls for the same query.
 - **Specificity**: Use focused queries; cite sources with confidence levels.
 - **Fallback**: If tools fail, use internal knowledge and state failure.
-
-${PGVECTOR_PROMPT}
 `,
       providerOptions: {
         google: {
@@ -102,7 +99,6 @@ ${PGVECTOR_PROMPT}
     linkExtractorTool,
     htmlToMarkdownTool,
     contentCleanerTool,
-    pgQueryTool,
     batchWebScraperTool,
     mdocumentChunker,
     evaluateResultTool,
@@ -111,13 +107,13 @@ ${PGVECTOR_PROMPT}
     googleTrendsTool,
     googleFinanceTool,
     googleNewsLiteTool,
-    googleNewsTool,
+
     alphaVantageCryptoTool,
     alphaVantageStockTool,
     polygonCryptoQuotesTool,
     polygonCryptoAggregatesTool,
     polygonCryptoSnapshotsTool,
-    arxivTool,
+
     pdfToMarkdownTool,
     finnhubAnalysisTool,
     polygonStockQuotesTool,
@@ -134,16 +130,10 @@ ${PGVECTOR_PROMPT}
   },
   maxRetries: 5,
   //voice: gvoice,
-  inputProcessors: [
-    new UnicodeNormalizer({
-      stripControlChars: true,
-      collapseWhitespace: true,
-    }),
-  ],
   outputProcessors: [
-    new TokenLimiterProcessor(1000000),
+    new TokenLimiterProcessor(128000),
     new BatchPartsProcessor({
-      batchSize: 5,
+      batchSize: 10,
       maxWaitTime: 75,
       emitOnNonText: true
     }),

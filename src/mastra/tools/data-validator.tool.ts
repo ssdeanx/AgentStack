@@ -1,8 +1,9 @@
-import type { InferUITool} from "@mastra/core/tools";
+import type { RequestContext } from '@mastra/core/request-context';
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { trace } from "@opentelemetry/api";
 import { z } from "zod";
-import type { RequestContext } from '@mastra/core/request-context';
+import { log } from '../config/logger';
 
 const validatorContextSchema = z.object({
   maxErrors: z.number().optional(),
@@ -118,6 +119,29 @@ export const dataValidatorToolJSON = createTool({
     errors: z.array(z.string()).optional(),
     cleanedData: z.any().optional(),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Data validator tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Data validator received complete input', {
+      toolCallId,
+      hasData: input.data !== undefined,
+      hasSchema: input.schema !== undefined,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Data validator completed', {
+      toolCallId,
+      toolName,
+      valid: output.valid,
+      errorCount: output.errors?.length || 0,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     const requestContext = context?.requestContext as RequestContext<{ validatorContext: unknown }>; // TODO: unknown is not a type

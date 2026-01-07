@@ -1,10 +1,10 @@
-import type { InferUITool} from "@mastra/core/tools";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
 import { trace } from "@opentelemetry/api";
-import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import type { RequestContext } from '@mastra/core/request-context';
+import * as path from "node:path";
+import { z } from "zod";
+import { log } from '../config/logger';
 
 const NOTES_DIR = path.join(process.cwd(), "notes");
 
@@ -22,6 +22,32 @@ export const writeNoteTool = createTool({
       .describe("The markdown content of the note."),
   }),
   outputSchema: z.string().nonempty(),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('writeNoteTool tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart'
+    });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('writeNoteTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        title: input.title,
+        content: input.content,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('writeNoteTool completed', {
+      toolCallId,
+      toolName,
+      outputData: output,
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData) => {
     const startTime = Date.now();
 

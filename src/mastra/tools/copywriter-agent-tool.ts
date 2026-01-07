@@ -1,10 +1,10 @@
+import type { MastraModelOutput } from '@mastra/core/stream';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { z } from 'zod';
-import { log } from '../config/logger';
-import { trace, SpanStatusCode } from "@opentelemetry/api";
-import type { MastraModelOutput } from '@mastra/core/stream';
 import { copywriterAgent } from '../agents/copywriterAgent';
+import { log } from '../config/logger';
 
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
@@ -68,8 +68,40 @@ export const copywriterTool = createTool({
       .optional()
       .describe('Approximate word count of the content'),
   }),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('copywriterTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('copywriterTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        topic: input.topic,
+        contentType: input.contentType,
+        targetAudience: input.targetAudience,
+        tone: input.tone,
+        length: input.length,
+        specificRequirements: input.specificRequirements,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('copywriterTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        contentType: output.contentType,
+        title: output.title,
+        summary: output.summary,
+        keyPoints: output.keyPoints,
+        wordCount: output.wordCount,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context) => {
-   const writer = context?.writer;
+    const writer = context?.writer;
     const mastra = context?.mastra;
 
     const userIdVal = context?.requestContext?.get('userId')

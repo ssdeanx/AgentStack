@@ -1,24 +1,24 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { log } from '../config/logger'
-
-import { learningExtractionAgent } from '../agents/learningExtractionAgent'
-import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
-import { researchAgent } from '../agents/researchAgent'
-import { documentProcessingAgent } from '../agents/documentProcessingAgent'
-import { evaluationAgent } from '../agents/evaluationAgent'
-import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
-import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
+import { Agent } from '@mastra/core/agent';
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
+import { documentProcessingAgent } from '../agents/documentProcessingAgent';
+import { evaluationAgent } from '../agents/evaluationAgent';
+import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent';
+import { learningExtractionAgent } from '../agents/learningExtractionAgent';
+import { researchAgent } from '../agents/researchAgent';
+import { googleAI3 } from '../config/google';
+import { log } from '../config/logger';
+import { pgMemory } from '../config/pg-storage';
+import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow';
+import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
 
 log.info('Initializing Learning Network...')
 
 export const learningNetwork = new Agent({
-    id: 'learning-network',
-    name: 'Learning Network',
-    description:
-        'A routing agent that coordinates learning and knowledge agents for educational content and knowledge management. Routes requests to learning extraction, knowledge indexing, and research agents.',
-    instructions: `You are a Learning Coordinator. Your role is to orchestrate knowledge acquisition and learning workflows by coordinating specialized educational agents.
+  id: 'learning-network',
+  name: 'Learning Network',
+  description:
+    'A routing agent that coordinates learning and knowledge agents for educational content and knowledge management. Routes requests to learning extraction, knowledge indexing, and research agents.',
+  instructions: `You are a Learning Coordinator. Your role is to orchestrate knowledge acquisition and learning workflows by coordinating specialized educational agents.
 
 ## Available Agents
 
@@ -114,20 +114,21 @@ export const learningNetwork = new Agent({
 - Include progress tracking and milestone achievements
 - Suggest additional resources for deeper learning
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        learningExtractionAgent,
-        knowledgeIndexingAgent,
-        researchAgent,
-        documentProcessingAgent,
-        evaluationAgent,
-    },
-    workflows: {
-        learningExtractionWorkflow,
-        researchSynthesisWorkflow,
-    },
-    options: {},
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    learningExtractionAgent,
+    knowledgeIndexingAgent,
+    researchAgent,
+    documentProcessingAgent,
+    evaluationAgent,
+  },
+  workflows: {
+    learningExtractionWorkflow,
+    researchSynthesisWorkflow,
+  },
+  options: {},
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 
 log.info('Learning Network initialized')

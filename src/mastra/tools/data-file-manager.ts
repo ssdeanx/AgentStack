@@ -13,19 +13,20 @@
 // approvedBy: sam
 // approvalDate: 9/22
 //import type { RequestContext } from '@mastra/core/request-context';
-import type { InferUITool} from "@mastra/core/tools";
+import { RequestContext } from "@mastra/core/request-context";
+import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import { trace } from "@opentelemetry/api";
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import * as zlib from 'zlib';
 import { z } from 'zod';
 import { log } from '../config/logger';
-import { trace } from "@opentelemetry/api";
 
 
 // Define runtime context for these tools
-export interface DataFileManagerContext {
+export interface DataFileManagerContext extends RequestContext {
   userId?: string
   workspaceId?: string
 }
@@ -74,6 +75,29 @@ export const readDataFileTool = createTool({
       ),
   }),
   outputSchema: z.string().describe('The content of the file as a string.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Read file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Read file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Read file completed', {
+      toolCallId,
+      toolName,
+      fileSize: output.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await ensureDataDir();
@@ -134,6 +158,30 @@ export const writeDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Write file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Write file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      contentLength: input.content.length,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Write file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -201,6 +249,29 @@ export const deleteDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Delete file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Delete file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Delete file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Deleting file: ' + inputData.fileName, stage: 'delete:file' }, id: 'delete:file' });
@@ -259,6 +330,29 @@ export const listDataDirTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of file and directory names.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('List directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('List directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('List directory completed', {
+      toolCallId,
+      toolName,
+      itemCount: output.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing directory: ' + (inputData.dirPath ?? 'docs/data'), stage: 'list:directory' }, id: 'list:directory' });
@@ -320,6 +414,30 @@ export const copyDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Copy file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Copy file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourceFile: input.sourceFile,
+      destFile: input.destFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Copy file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📋 Copying file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'copy:file' }, id: 'copy:file' });
@@ -388,6 +506,30 @@ export const moveDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Move file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Move file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourceFile: input.sourceFile,
+      destFile: input.destFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Move file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🚚 Moving file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'move:file' }, id: 'move:file' });
@@ -462,6 +604,31 @@ export const searchDataFilesTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of matching file paths.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Search files tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Search files received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      pattern: input.pattern,
+      searchContent: input.searchContent,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Search files completed', {
+      toolCallId,
+      toolName,
+      resultCount: output.length,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching for pattern: "${inputData.pattern}"`, stage: 'search:files' }, id: 'search:files' });
@@ -571,6 +738,30 @@ export const getDataFileInfoTool = createTool({
       isDirectory: z.boolean(),
     })
     .describe('File metadata information.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Get file info tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Get file info received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Get file info completed', {
+      toolCallId,
+      toolName,
+      fileSize: output.size,
+      isFile: output.isFile,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: 'ℹ️ Getting info for file: ' + inputData.fileName, stage: 'get:fileinfo' }, id: 'get:fileinfo' });
@@ -635,6 +826,29 @@ export const createDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Create directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Create directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Create directory completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📁 Creating directory: ' + inputData.dirPath, stage: 'create:directory' }, id: 'create:directory' });
@@ -690,6 +904,29 @@ export const removeDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Remove directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Remove directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Remove directory completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Removing directory: ' + inputData.dirPath, stage: 'remove:directory' }, id: 'remove:directory' });
@@ -756,6 +993,30 @@ export const archiveDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Archive data tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Archive data received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourcePath: input.sourcePath,
+      archiveName: input.archiveName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Archive data completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📦 Archiving: ${inputData.sourcePath} to ${inputData.archiveName}.gz`, stage: 'archive:data' }, id: 'archive:data' });
@@ -831,6 +1092,30 @@ export const backupDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success with backup path.'),
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Backup data tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Backup data received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourcePath: input.sourcePath,
+      backupDir: input.backupDir,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Backup data completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('Backup created'),
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
     const writer = context?.writer;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💾 Creating backup for: ${inputData.sourcePath}`, stage: 'backup:data' }, id: 'backup:data' });

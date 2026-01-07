@@ -1,8 +1,9 @@
-import { createTool } from '@mastra/core/tools'
-import { z } from 'zod'
-import { promises as fs } from 'node:fs'
-import * as path from 'node:path'
-import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { createTool } from '@mastra/core/tools';
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import { promises as fs } from 'node:fs';
+import * as path from 'node:path';
+import { z } from 'zod';
+import { log } from '../config/logger';
 
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -111,8 +112,8 @@ function parseExports(content: string): string[] {
 
   const defaultExportRegex = /export\s+default\s+(?:function\s+)?(\w+)?/g
   while ((exportMatch = defaultExportRegex.exec(content)) !== null) {
-    if (exportMatch[1]) {exports.push(`default (${exportMatch[1]})`)}
-    else {exports.push('default')}
+    if (exportMatch[1]) { exports.push(`default (${exportMatch[1]})`) }
+    else { exports.push('default') }
   }
 
   return [...new Set(exports)]
@@ -136,10 +137,10 @@ function generateTestCase(
     code: `  it('should work correctly', ${asyncPrefix}() => {
     // Arrange
     ${func.params.length > 0 ? func.params.map(p => `const ${p} = undefined // TODO: Add test value`).join('\n    ') : '// No parameters'}
-    
+
     // Act
     const result = ${awaitPrefix}${func.name}(${func.params.join(', ')})
-    
+
     // Assert
     expect(result).toBeDefined()
   })`,
@@ -234,64 +235,93 @@ Supports edge case generation and mock setup for external dependencies.
 Use for increasing test coverage and establishing testing patterns.`,
   inputSchema: testGeneratorInputSchema,
   outputSchema: testGeneratorOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('testGeneratorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('testGeneratorTool received input', {
+      toolCallId,
+      inputData: {
+        sourceFile: input.sourceFile,
+        outputPath: input.outputPath,
+        options: input.options,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('testGeneratorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        testFile: output.testFile,
+        sourceFile: output.sourceFile,
+        framework: output.framework,
+        tests: output.tests,
+        coverage: output.coverage,
+        runCommand: output.runCommand,
+      },
+      hook: 'onOutput'
+    });
+  },
   execute: async (inputData, context?) => {
     const { sourceFile, outputPath, options } = inputData
     const { includeEdgeCases, mockExternals, testStyle } = options ?? {}
 
     const tracer = trace.getTracer('test-generator-tool');
     const span = tracer.startSpan('test-generator', {
-        attributes: {
-            sourceFile,
-            testStyle,
-            operation: 'generate-tests'
-        }
+      attributes: {
+        sourceFile,
+        testStyle,
+        operation: 'generate-tests'
+      }
     });
 
     try {
-        if (!await fileExists(sourceFile)) {
-          throw new Error(`Source file not found: ${sourceFile}`)
-        }
+      if (!await fileExists(sourceFile)) {
+        throw new Error(`Source file not found: ${sourceFile}`)
+      }
 
-        await context?.writer?.custom({
-            type: 'data-tool-progress',
-            data: { status: 'in-progress', message: `🧪 Generating tests for: ${sourceFile}`, stage: 'coding:testGenerator' },
-            id: 'coding:testGenerator'
-        });
+      await context?.writer?.custom({
+        type: 'data-tool-progress',
+        data: { status: 'in-progress', message: `🧪 Generating tests for: ${sourceFile}`, stage: 'coding:testGenerator' },
+        id: 'coding:testGenerator'
+      });
 
-    const content = await fs.readFile(sourceFile, 'utf-8')
-    const functions = parseTypeScriptFunctions(content)
-    const exports = parseExports(content)
+      const content = await fs.readFile(sourceFile, 'utf-8')
+      const functions = parseTypeScriptFunctions(content)
+      const exports = parseExports(content)
 
-    const { content: testContent, tests } = generateTestFile(
-      sourceFile,
-      functions,
-      exports,
-      { testStyle, mockExternals, includeEdgeCases }
-    )
-
-    const sourceDir = path.dirname(sourceFile)
-    const sourceName = path.basename(sourceFile, path.extname(sourceFile))
-    const testFile = outputPath ?? path.join(sourceDir, '__tests__', `${sourceName}.test.ts`)
-
-    span.end();
-    return {
-      testFile,
-      sourceFile,
-      framework: 'vitest' as const,
-      content: testContent,
-      tests,
-      coverage: {
-        functions: functions.filter(f => f.isExported).map(f => f.name),
+      const { content: testContent, tests } = generateTestFile(
+        sourceFile,
+        functions,
         exports,
-      },
-      runCommand: `npx vitest ${testFile}`,
-    }
-  } catch (error) {
+        { testStyle, mockExternals, includeEdgeCases }
+      )
+
+      const sourceDir = path.dirname(sourceFile)
+      const sourceName = path.basename(sourceFile, path.extname(sourceFile))
+      const testFile = outputPath ?? path.join(sourceDir, '__tests__', `${sourceName}.test.ts`)
+
+      span.end();
+      return {
+        testFile,
+        sourceFile,
+        framework: 'vitest' as const,
+        content: testContent,
+        tests,
+        coverage: {
+          functions: functions.filter(f => f.isExported).map(f => f.name),
+          exports,
+        },
+        runCommand: `npx vitest ${testFile}`,
+      }
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       span.recordException(error instanceof Error ? error : new Error(errorMessage));
       span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
       span.end();
       throw error;
-  }
+    }
   },
 })

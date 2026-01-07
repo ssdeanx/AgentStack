@@ -14,18 +14,18 @@
 // approvedBy: sam
 // approvalDate: 9/22
 
-import { trace } from "@opentelemetry/api";
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import * as cheerio from 'cheerio';
-import { CheerioCrawler, Request } from 'crawlee';
-import { JSDOM } from 'jsdom';
-import { marked } from 'marked';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import RE2 from 're2';
-import { z } from 'zod';
-import { log } from '../config/logger';
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
+import { trace } from '@opentelemetry/api'
+import * as cheerio from 'cheerio'
+import { CheerioCrawler, Request } from 'crawlee'
+import { JSDOM } from 'jsdom'
+import { marked } from 'marked'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
+import RE2 from 're2'
+import { z } from 'zod'
+import { log } from '../config/logger'
 
 // Centralized data directory constant for consistency
 const DATA_DIR = path.resolve(process.cwd(), './data')
@@ -287,17 +287,17 @@ function sanitizeMarkdown(markdown: string): string {
     // Comprehensive HTML entity escaping to prevent XSS and parsing issues
     // Escape dangerous characters that could interfere with JSON or HTML rendering
     return String(markdown)
-      .replace(/&/g, '&amp;')    // Must be first to avoid double-escaping
+      .replace(/&/g, '&amp;') // Must be first to avoid double-escaping
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/'/g, '&#39;')
       .replace(/"/g, '&quot;')
-      .replace(/\\/g, '&#92;')   // Escape backslashes
-      .replace(/\n/g, '\\n')     // Escape newlines for JSON safety
-      .replace(/\r/g, '\\r')     // Escape carriage returns
-      .replace(/\t/g, '\\t')     // Escape tabs
-      .replace(/\f/g, '\\f')     // Escape form feeds
-      .replace(/\0/g, '\\0')     // Escape null characters
+      .replace(/\\/g, '&#92;') // Escape backslashes
+      .replace(/\n/g, '\\n') // Escape newlines for JSON safety
+      .replace(/\r/g, '\\r') // Escape carriage returns
+      .replace(/\t/g, '\\t') // Escape tabs
+      .replace(/\f/g, '\\f') // Escape form feeds
+      .replace(/\0/g, '\\0') // Escape null characters
   } catch {
     return ''
   }
@@ -336,11 +336,11 @@ export class ScrapingError extends Error {
 
 export class ValidationUtils {
   static getAllowedDomains(): string[] {
-    const raw = process.env.WEB_SCRAPER_ALLOWED_DOMAINS ?? '';
+    const raw = process.env.WEB_SCRAPER_ALLOWED_DOMAINS ?? ''
     return raw
       .split(',')
       .map((d) => d.trim().toLowerCase())
-      .filter((d) => d.length > 0);
+      .filter((d) => d.length > 0)
   }
 
   static validateUrl(url: string): boolean {
@@ -354,14 +354,16 @@ export class ValidationUtils {
 
   static isUrlAllowed(url: string, allowedDomains: string[]): boolean {
     if (allowedDomains.length === 0) {
-      return true;
+      return true
     }
     try {
-      const parsedUrl = new URL(url);
-      const hostname = parsedUrl.hostname.toLowerCase();
-      return allowedDomains.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+      const parsedUrl = new URL(url)
+      const hostname = parsedUrl.hostname.toLowerCase()
+      return allowedDomains.some(
+        (d) => hostname === d || hostname.endsWith(`.${d}`)
+      )
     } catch {
-      return false;
+      return false
     }
   }
 
@@ -377,42 +379,152 @@ export class ValidationUtils {
 }
 
 // Input Schema
-const crawlingOptionsSchema = z.object({
-  depth: z.number().min(1).max(5).optional().describe('Maximum crawling depth for following links (default: 1, max: 5).'),
-  maxPages: z.number().min(1).max(100).optional().describe('Maximum number of pages to crawl (default: 1, max: 100).'),
-  followLinks: z.boolean().optional().describe('Whether to follow and crawl internal links (default: false).'),
-  respectRobotsTxt: z.boolean().optional().describe('Whether to check and respect robots.txt (default: true).'),
-  delayBetweenRequests: z.number().min(0).max(10000).optional().describe('Delay between requests in milliseconds for rate limiting (default: 1000).'),
-}).optional();
+const crawlingOptionsSchema = z
+  .object({
+    depth: z
+      .number()
+      .min(1)
+      .max(5)
+      .optional()
+      .describe(
+        'Maximum crawling depth for following links (default: 1, max: 5).'
+      ),
+    maxPages: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe(
+        'Maximum number of pages to crawl (default: 1, max: 100).'
+      ),
+    followLinks: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to follow and crawl internal links (default: false).'
+      ),
+    respectRobotsTxt: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to check and respect robots.txt (default: true).'
+      ),
+    delayBetweenRequests: z
+      .number()
+      .min(0)
+      .max(10000)
+      .optional()
+      .describe(
+        'Delay between requests in milliseconds for rate limiting (default: 1000).'
+      ),
+  })
+  .optional()
 
-const extractionOptionsSchema = z.object({
-  includeImages: z.boolean().optional().describe('Whether to extract image URLs and metadata (default: false).'),
-  extractMetadata: z.boolean().optional().describe('Whether to extract page metadata (title, description, keywords, etc.) (default: true).'),
-  contentType: z.enum(['text', 'links', 'images', 'metadata', 'structured', 'all']).optional().describe('Type of content to prioritize extracting (default: "all").'),
-  extractStructuredData: z.boolean().optional().describe('Whether to extract structured data (JSON-LD, microdata, RDFa) (default: false).'),
-  languageDetection: z.boolean().optional().describe('Whether to detect and return content language (default: false).'),
-  contentFiltering: z.object({
-    minLength: z.number().optional(),
-    maxLength: z.number().optional(),
-    keywords: z.array(z.string()).optional(),
-    excludePatterns: z.array(z.string()).optional(),
-  }).optional().describe('Content filtering options (min/max length, keywords, exclude patterns).'),
-}).optional();
+const extractionOptionsSchema = z
+  .object({
+    includeImages: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to extract image URLs and metadata (default: false).'
+      ),
+    extractMetadata: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to extract page metadata (title, description, keywords, etc.) (default: true).'
+      ),
+    contentType: z
+      .enum(['text', 'links', 'images', 'metadata', 'structured', 'all'])
+      .optional()
+      .describe(
+        'Type of content to prioritize extracting (default: "all").'
+      ),
+    extractStructuredData: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to extract structured data (JSON-LD, microdata, RDFa) (default: false).'
+      ),
+    languageDetection: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to detect and return content language (default: false).'
+      ),
+    contentFiltering: z
+      .object({
+        minLength: z.number().optional(),
+        maxLength: z.number().optional(),
+        keywords: z.array(z.string()).optional(),
+        excludePatterns: z.array(z.string()).optional(),
+      })
+      .optional()
+      .describe(
+        'Content filtering options (min/max length, keywords, exclude patterns).'
+      ),
+  })
+  .optional()
 
-const requestOptionsSchema = z.object({
-  timeout: z.number().min(1000).max(60000).optional().describe('Request timeout in milliseconds (default: 30000, max: 60000).'),
-  userAgent: z.string().optional().describe('Custom User-Agent string for requests.'),
-  headers: z.record(z.string(), z.string()).optional().describe('Custom HTTP headers to send with requests.'),
-  retryAttempts: z.number().min(0).max(5).optional().describe('Number of retry attempts for failed requests (default: 2, max: 5).'),
-  compression: z.boolean().optional().describe('Whether to handle compressed responses (gzip, deflate) (default: true).'),
-  cookies: z.record(z.string(), z.string()).optional().describe('Custom cookies to send with requests.'),
-}).optional();
+const requestOptionsSchema = z
+  .object({
+    timeout: z
+      .number()
+      .min(1000)
+      .max(60000)
+      .optional()
+      .describe(
+        'Request timeout in milliseconds (default: 30000, max: 60000).'
+      ),
+    userAgent: z
+      .string()
+      .optional()
+      .describe('Custom User-Agent string for requests.'),
+    headers: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Custom HTTP headers to send with requests.'),
+    retryAttempts: z
+      .number()
+      .min(0)
+      .max(5)
+      .optional()
+      .describe(
+        'Number of retry attempts for failed requests (default: 2, max: 5).'
+      ),
+    compression: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to handle compressed responses (gzip, deflate) (default: true).'
+      ),
+    cookies: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Custom cookies to send with requests.'),
+  })
+  .optional()
 
-const storageOptionsSchema = z.object({
-  saveMarkdown: z.boolean().optional().describe('Whether to save the scraped content as markdown to the data directory.'),
-  markdownFileName: z.string().optional().describe('Optional filename for the markdown file (relative to data/ directory).'),
-  outputFormat: z.enum(['json', 'markdown', 'html', 'text']).optional().describe('Output format for extracted content (default: "json").'),
-}).optional();
+const storageOptionsSchema = z
+  .object({
+    saveMarkdown: z
+      .boolean()
+      .optional()
+      .describe(
+        'Whether to save the scraped content as markdown to the data directory.'
+      ),
+    markdownFileName: z
+      .string()
+      .optional()
+      .describe(
+        'Optional filename for the markdown file (relative to data/ directory).'
+      ),
+    outputFormat: z
+      .enum(['json', 'markdown', 'html', 'text'])
+      .optional()
+      .describe('Output format for extracted content (default: "json").'),
+  })
+  .optional()
 
 const webScraperInputSchema = z
   .object({
@@ -454,53 +566,73 @@ const webScraperOutputSchema = z
       .string()
       .optional()
       .describe('Error message if the operation failed.'),
-    content: z.object({
-      extractedData: z
-        .array(z.record(z.string(), z.string()))
-        .describe(
-          'Array of extracted data, where each object represents an element and its extracted attributes/text.'
-        ),
-      rawContent: z
-        .string()
-        .optional()
-        .describe(
-          'The full raw HTML content of the page (if no selector is provided).'
-        ),
-      markdownContent: z
-        .string()
-        .optional()
-        .describe('The scraped content converted to markdown format.'),
-    }).describe('Scraped content results.'),
-    storage: z.object({
-      savedFilePath: z
-        .string()
-        .optional()
-        .describe(
-          'Path to the saved markdown file (if saveMarkdown was true).'
-        ),
-    }).optional().describe('Storage information.'),
-    analysis: z.object({
-      metadata: z
-        .record(z.string(), z.string().optional())
-        .optional()
-        .describe('Page metadata (title, description, keywords, etc.) extracted from meta tags.'),
-      images: z
-        .array(z.object({
-          src: z.string(),
-          alt: z.string().optional(),
-          title: z.string().optional(),
-        }))
-        .optional()
-        .describe('Array of image URLs and metadata found on the page.'),
-      structuredData: z
-        .array(z.unknown())
-        .optional()
-        .describe('Structured data extracted from JSON-LD and microdata.'),
-      detectedLanguage: z
-        .string()
-        .optional()
-        .describe('Detected content language from HTML lang attribute or meta tags.'),
-    }).optional().describe('Analysis results.'),
+    content: z
+      .object({
+        extractedData: z
+          .array(z.record(z.string(), z.string()))
+          .describe(
+            'Array of extracted data, where each object represents an element and its extracted attributes/text.'
+          ),
+        rawContent: z
+          .string()
+          .optional()
+          .describe(
+            'The full raw HTML content of the page (if no selector is provided).'
+          ),
+        markdownContent: z
+          .string()
+          .optional()
+          .describe(
+            'The scraped content converted to markdown format.'
+          ),
+      })
+      .describe('Scraped content results.'),
+    storage: z
+      .object({
+        savedFilePath: z
+          .string()
+          .optional()
+          .describe(
+            'Path to the saved markdown file (if saveMarkdown was true).'
+          ),
+      })
+      .optional()
+      .describe('Storage information.'),
+    analysis: z
+      .object({
+        metadata: z
+          .record(z.string(), z.string().optional())
+          .optional()
+          .describe(
+            'Page metadata (title, description, keywords, etc.) extracted from meta tags.'
+          ),
+        images: z
+          .array(
+            z.object({
+              src: z.string(),
+              alt: z.string().optional(),
+              title: z.string().optional(),
+            })
+          )
+          .optional()
+          .describe(
+            'Array of image URLs and metadata found on the page.'
+          ),
+        structuredData: z
+          .array(z.unknown())
+          .optional()
+          .describe(
+            'Structured data extracted from JSON-LD and microdata.'
+          ),
+        detectedLanguage: z
+          .string()
+          .optional()
+          .describe(
+            'Detected content language from HTML lang attribute or meta tags.'
+          ),
+      })
+      .optional()
+      .describe('Analysis results.'),
   })
   .strict()
 
@@ -509,30 +641,75 @@ const webScraperOutputSchema = z
 // toolCallCounters.set('tool-id', (toolCallCounters.get('tool-id') ?? 0) + 1)
 const toolCallCounters = new Map<string, number>()
 
-
 export const webScraperTool = createTool({
   id: 'web:scraper',
   description:
     'Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.',
   inputSchema: webScraperInputSchema,
   outputSchema: webScraperOutputSchema,
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Web scraper tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Web scraper received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      url: input.url,
+      selector: input.selector || 'none',
+      saveMarkdown: input.storage?.saveMarkdown || false,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Web scraper completed', {
+      toolCallId,
+      toolName,
+      status: output.status,
+      elementsExtracted: output.content.extractedData.length,
+      savedFilePath: output.storage?.savedFilePath,
+      hook: 'onOutput',
+    })
+  },
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    const allowedDomains = ValidationUtils.getAllowedDomains();
+    const allowedDomains = ValidationUtils.getAllowedDomains()
     if (!ValidationUtils.isUrlAllowed(inputData.url, allowedDomains)) {
       throw new ScrapingError(
         `Domain is not allowlisted for scraping: ${inputData.url}`,
         'DOMAIN_NOT_ALLOWED',
         undefined,
         inputData.url
-      );
+      )
     }
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Starting web scrape for ${inputData.url}`, stage: 'web:scraper' }, id: 'web:scraper' });
-    toolCallCounters.set('web:scraper', (toolCallCounters.get('web:scraper') ?? 0) + 1)
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🌐 Starting web scrape for ${inputData.url}`,
+        stage: 'web:scraper',
+      },
+      id: 'web:scraper',
+    })
+    toolCallCounters.set(
+      'web:scraper',
+      (toolCallCounters.get('web:scraper') ?? 0) + 1
+    )
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🐛 Initializing crawler...', stage: 'web:scraper' }, id: 'web:scraper' });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🐛 Initializing crawler...',
+        stage: 'web:scraper',
+      },
+      id: 'web:scraper',
+    })
     log.info('Starting enhanced web scraping with JSDOM', {
       url: inputData.url,
       selector: inputData.selector,
@@ -556,28 +733,43 @@ export const webScraperTool = createTool({
     try {
       const headers: Record<string, string> = {
         ...(inputData.request?.headers ?? {}),
-      };
-      if (typeof inputData.request?.userAgent === 'string' && inputData.request.userAgent.trim() !== '') {
-        headers['user-agent'] = inputData.request.userAgent;
+      }
+      if (
+        typeof inputData.request?.userAgent === 'string' &&
+        inputData.request.userAgent.trim() !== ''
+      ) {
+        headers['user-agent'] = inputData.request.userAgent
       }
 
-      const maxDepth = inputData.crawling?.depth ?? 1;
-      const maxPages = inputData.crawling?.maxPages ?? 1;
-      const followLinks = inputData.crawling?.followLinks ?? false;
-      const retryAttempts = inputData.request?.retryAttempts ?? 2;
-      const delayBetweenRequests = inputData.crawling?.delayBetweenRequests ?? 1000;
+      const maxDepth = inputData.crawling?.depth ?? 1
+      const maxPages = inputData.crawling?.maxPages ?? 1
+      const followLinks = inputData.crawling?.followLinks ?? false
+      const retryAttempts = inputData.request?.retryAttempts ?? 2
+      const delayBetweenRequests =
+        inputData.crawling?.delayBetweenRequests ?? 1000
 
       const crawler = new CheerioCrawler({
         maxRequestsPerCrawl: followLinks ? Math.min(maxPages, 50) : 1,
         maxConcurrency: 10,
         maxRequestRetries: retryAttempts,
         sameDomainDelaySecs: delayBetweenRequests / 1000,
-        requestHandlerTimeoutSecs: (inputData.request?.timeout ?? 30000) / 1000,
-        async requestHandler({ request, body, response, enqueueLinks }) {
+        requestHandlerTimeoutSecs:
+          (inputData.request?.timeout ?? 30000) / 1000,
+        async requestHandler({
+          request,
+          body,
+          response,
+          enqueueLinks,
+        }) {
           try {
             scrapedUrl = request.url
 
-            if (!ValidationUtils.isUrlAllowed(request.url, allowedDomains)) {
+            if (
+              !ValidationUtils.isUrlAllowed(
+                request.url,
+                allowedDomains
+              )
+            ) {
               throw new ScrapingError(
                 `Domain is not allowlisted for scraping: ${request.url}`,
                 'DOMAIN_NOT_ALLOWED',
@@ -616,23 +808,37 @@ export const webScraperTool = createTool({
                     selector: 'a[href]',
                     baseUrl: request.url,
                     strategy: 'same-hostname',
-                    limit: Math.max(1, Math.min(maxPages, 100)),
+                    limit: Math.max(
+                      1,
+                      Math.min(maxPages, 100)
+                    ),
                     transformRequestFunction: (req) => {
                       const nextDepth = currentDepth + 1
                       const nextUrl = req.url
-                      if (!ValidationUtils.isUrlAllowed(nextUrl, allowedDomains)) {
+                      if (
+                        !ValidationUtils.isUrlAllowed(
+                          nextUrl,
+                          allowedDomains
+                        )
+                      ) {
                         return null
                       }
                       return {
                         ...req,
                         headers,
-                        userData: { ...(req.userData ?? {}), depth: nextDepth },
+                        userData: {
+                          ...(req.userData ?? {}),
+                          depth: nextDepth,
+                        },
                       }
                     },
                   })
                 } catch (error) {
                   log.warn('Failed to enqueue links', {
-                    error: error instanceof Error ? error.message : String(error),
+                    error:
+                      error instanceof Error
+                        ? error.message
+                        : String(error),
                     url: request.url,
                   })
                 }
@@ -641,22 +847,49 @@ export const webScraperTool = createTool({
 
             // Extract metadata if requested
             if (inputData.extraction?.extractMetadata !== false) {
-              const dom = new JSDOM(rawContent, { includeNodeLocations: false })
+              const dom = new JSDOM(rawContent, {
+                includeNodeLocations: false,
+              })
               const { document } = dom.window
 
-              metadata.title = document.querySelector('title')?.textContent?.trim()
-              metadata.description = document.querySelector('meta[name="description"]')?.getAttribute('content') ?? undefined
-              metadata.keywords = document.querySelector('meta[name="keywords"]')?.getAttribute('content') ?? undefined
-              metadata.author = document.querySelector('meta[name="author"]')?.getAttribute('content') ?? undefined
-              metadata.robots = document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? undefined
-              metadata.viewport = document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? undefined
-              metadata.charset = document.querySelector('meta[charset]')?.getAttribute('charset') ?? undefined
-              metadata.canonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? undefined
+              metadata.title = document
+                .querySelector('title')
+                ?.textContent?.trim()
+              metadata.description =
+                document
+                  .querySelector('meta[name="description"]')
+                  ?.getAttribute('content') ?? undefined
+              metadata.keywords =
+                document
+                  .querySelector('meta[name="keywords"]')
+                  ?.getAttribute('content') ?? undefined
+              metadata.author =
+                document
+                  .querySelector('meta[name="author"]')
+                  ?.getAttribute('content') ?? undefined
+              metadata.robots =
+                document
+                  .querySelector('meta[name="robots"]')
+                  ?.getAttribute('content') ?? undefined
+              metadata.viewport =
+                document
+                  .querySelector('meta[name="viewport"]')
+                  ?.getAttribute('content') ?? undefined
+              metadata.charset =
+                document
+                  .querySelector('meta[charset]')
+                  ?.getAttribute('charset') ?? undefined
+              metadata.canonical =
+                document
+                  .querySelector('link[rel="canonical"]')
+                  ?.getAttribute('href') ?? undefined
             }
 
             // Extract images if requested
             if (inputData.extraction?.includeImages ?? false) {
-              const dom = new JSDOM(rawContent, { includeNodeLocations: false })
+              const dom = new JSDOM(rawContent, {
+                includeNodeLocations: false,
+              })
               const { document } = dom.window
               const imgElements = document.querySelectorAll('img')
               imgElements.forEach((img) => {
@@ -664,24 +897,38 @@ export const webScraperTool = createTool({
                 const trimmedSrc = (src ?? '').trim()
                 if (trimmedSrc !== '') {
                   images.push({
-                    src: new URL(trimmedSrc, request.url).href,
-                    alt: img.getAttribute('alt') ?? undefined,
-                    title: img.getAttribute('title') ?? undefined,
+                    src: new URL(trimmedSrc, request.url)
+                      .href,
+                    alt:
+                      img.getAttribute('alt') ??
+                      undefined,
+                    title:
+                      img.getAttribute('title') ??
+                      undefined,
                   })
                 }
               })
             }
 
             // Extract structured data if requested
-            if (inputData.extraction?.extractStructuredData ?? false) {
-              const dom = new JSDOM(rawContent, { includeNodeLocations: false })
+            if (
+              inputData.extraction?.extractStructuredData ??
+              false
+            ) {
+              const dom = new JSDOM(rawContent, {
+                includeNodeLocations: false,
+              })
               const { document } = dom.window
 
               // JSON-LD
-              const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]')
+              const jsonLdScripts = document.querySelectorAll(
+                'script[type="application/ld+json"]'
+              )
               jsonLdScripts.forEach((script) => {
                 try {
-                  const data = JSON.parse(script.textContent || '')
+                  const data = JSON.parse(
+                    script.textContent || ''
+                  )
                   structuredData.push(data)
                 } catch {
                   // Skip invalid JSON-LD
@@ -689,20 +936,36 @@ export const webScraperTool = createTool({
               })
 
               // Microdata
-              const microdataElements = document.querySelectorAll('[itemscope]')
+              const microdataElements =
+                document.querySelectorAll('[itemscope]')
               microdataElements.forEach((element) => {
-                const itemType = element.getAttribute('itemtype')
+                const itemType =
+                  element.getAttribute('itemtype')
                 const trimmedItemType = (itemType ?? '').trim()
                 if (trimmedItemType !== '') {
-                  const microdata: Record<string, unknown> = { '@type': trimmedItemType }
-                  const props = element.querySelectorAll('[itemprop]')
+                  const microdata: Record<string, unknown> = {
+                    '@type': trimmedItemType,
+                  }
+                  const props =
+                    element.querySelectorAll('[itemprop]')
                   props.forEach((prop) => {
-                    const propName = prop.getAttribute('itemprop')
-                    const trimmedPropName = (propName ?? '').trim()
-                    const propValueRaw = prop.textContent?.trim() ?? prop.getAttribute('content')
-                    const trimmedPropValue = (propValueRaw ?? '').trim()
-                    if (trimmedPropName !== '' && trimmedPropValue !== '') {
-                      microdata[trimmedPropName] = trimmedPropValue
+                    const propName =
+                      prop.getAttribute('itemprop')
+                    const trimmedPropName = (
+                      propName ?? ''
+                    ).trim()
+                    const propValueRaw =
+                      prop.textContent?.trim() ??
+                      prop.getAttribute('content')
+                    const trimmedPropValue = (
+                      propValueRaw ?? ''
+                    ).trim()
+                    if (
+                      trimmedPropName !== '' &&
+                      trimmedPropValue !== ''
+                    ) {
+                      microdata[trimmedPropName] =
+                        trimmedPropValue
                     }
                   })
                   if (Object.keys(microdata).length > 1) {
@@ -714,11 +977,21 @@ export const webScraperTool = createTool({
 
             // Language detection (basic)
             if (inputData.extraction?.languageDetection ?? false) {
-              const dom = new JSDOM(rawContent, { includeNodeLocations: false })
+              const dom = new JSDOM(rawContent, {
+                includeNodeLocations: false,
+              })
               const { document } = dom.window
-              detectedLanguage = document.documentElement.getAttribute('lang') ??
-                              document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ??
-                              document.querySelector('meta[name="language"]')?.getAttribute('content') ?? undefined
+              detectedLanguage =
+                document.documentElement.getAttribute('lang') ??
+                document
+                  .querySelector(
+                    'meta[http-equiv="content-language"]'
+                  )
+                  ?.getAttribute('content') ??
+                document
+                  .querySelector('meta[name="language"]')
+                  ?.getAttribute('content') ??
+                undefined
             }
 
             if (
@@ -799,7 +1072,15 @@ export const webScraperTool = createTool({
         },
       })
 
-      await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📥 Fetching and parsing page...', stage: 'web:scraper' }, id: 'web:scraper' });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: '📥 Fetching and parsing page...',
+          stage: 'web:scraper',
+        },
+        id: 'web:scraper',
+      })
       await crawler.run([
         new Request({
           url: inputData.url,
@@ -815,7 +1096,8 @@ export const webScraperTool = createTool({
       ) {
         try {
           markdownContent = HtmlProcessor.htmlToMarkdown(rawContent)
-          markdownContent = HtmlProcessor.sanitizeMarkdown(markdownContent)
+          markdownContent =
+            HtmlProcessor.sanitizeMarkdown(markdownContent)
         } catch (error) {
           log.warn(
             'Enhanced HTML to markdown conversion failed, using fallback',
@@ -843,7 +1125,15 @@ export const webScraperTool = createTool({
           }
         }
 
-        await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '✂️ Converting to markdown...', stage: 'web:scraper' }, id: 'web:scraper' });
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: '✂️ Converting to markdown...',
+            stage: 'web:scraper',
+          },
+          id: 'web:scraper',
+        })
         if (
           inputData.storage?.saveMarkdown === true &&
           typeof markdownContent === 'string' &&
@@ -851,7 +1141,8 @@ export const webScraperTool = createTool({
         ) {
           try {
             const fileName =
-              typeof inputData.storage?.markdownFileName === 'string' &&
+              typeof inputData.storage?.markdownFileName ===
+                'string' &&
                 inputData.storage.markdownFileName.trim() !== ''
                 ? ValidationUtils.sanitizeFileName(
                   inputData.storage.markdownFileName
@@ -862,7 +1153,10 @@ export const webScraperTool = createTool({
             const fullPath = path.join(DATA_DIR, fileName)
 
             if (
-              !ValidationUtils.validateFilePath(fullPath, DATA_DIR)
+              !ValidationUtils.validateFilePath(
+                fullPath,
+                DATA_DIR
+              )
             ) {
               throw new ScrapingError(
                 'Invalid file path',
@@ -895,41 +1189,54 @@ export const webScraperTool = createTool({
         }
       }
 
-await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Scraping complete: ${extractedData.length} elements${(typeof savedFilePath === 'string') ? ', saved to ' + savedFilePath : ''}`, stage: 'web:scraper' }, id: 'web:scraper' });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `✅ Scraping complete: ${extractedData.length} elements${typeof savedFilePath === 'string' ? ', saved to ' + savedFilePath : ''}`,
+          stage: 'web:scraper',
+        },
+        id: 'web:scraper',
+      })
 
-
-    return webScraperOutputSchema.parse({
-      url: scrapedUrl,
-      status,
-      errorMessage,
-      content: {
-        extractedData,
-        rawContent:
-          (typeof inputData.selector === 'string' && inputData.selector.trim() !== '')
-            ? undefined
-            : typeof rawContent === 'string' &&
-              rawContent.trim().length > 0
-              ? rawContent
-              : undefined,
-        markdownContent,
-      },
-      storage: typeof savedFilePath === 'string' ? { savedFilePath } : undefined,
-      analysis: {
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        images: images.length > 0 ? images : undefined,
-        structuredData: structuredData.length > 0 ? structuredData : undefined,
-        detectedLanguage,
-      }
-    })
-  } catch (error) {
-    errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`
-    log.error(errorMessage)
-    throw error
-  }
-},
+      return webScraperOutputSchema.parse({
+        url: scrapedUrl,
+        status,
+        errorMessage,
+        content: {
+          extractedData,
+          rawContent:
+            typeof inputData.selector === 'string' &&
+              inputData.selector.trim() !== ''
+              ? undefined
+              : typeof rawContent === 'string' &&
+                rawContent.trim().length > 0
+                ? rawContent
+                : undefined,
+          markdownContent,
+        },
+        storage:
+          typeof savedFilePath === 'string'
+            ? { savedFilePath }
+            : undefined,
+        analysis: {
+          metadata:
+            Object.keys(metadata).length > 0 ? metadata : undefined,
+          images: images.length > 0 ? images : undefined,
+          structuredData:
+            structuredData.length > 0 ? structuredData : undefined,
+          detectedLanguage,
+        },
+      })
+    } catch (error) {
+      errorMessage = `Web scraping failed: ${error instanceof Error ? error.message : String(error)}`
+      log.error(errorMessage)
+      throw error
+    }
+  },
 })
 
-export type WebScraperUITool = InferUITool<typeof webScraperTool>;
+export type WebScraperUITool = InferUITool<typeof webScraperTool>
 // ===== BATCH WEB SCRAPER TOOL =====
 
 const batchWebScraperInputSchema = z.object({
@@ -989,21 +1296,40 @@ export const batchWebScraperTool = createTool({
   inputSchema: batchWebScraperInputSchema,
   outputSchema: batchWebScraperOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Batch scraping ${inputData.urls.length} URLs`, stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
-    toolCallCounters.set('batch-web-scraper', (toolCallCounters.get('batch-web-scraper') ?? 0) + 1)
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🌐 Batch scraping ${inputData.urls.length} URLs`,
+        stage: 'batch-web-scraper',
+      },
+      id: 'batch-web-scraper',
+    })
+    toolCallCounters.set(
+      'batch-web-scraper',
+      (toolCallCounters.get('batch-web-scraper') ?? 0) + 1
+    )
 
-    const tracer = trace.getTracer('batch-web-scraper', '1.0.0');
+    const tracer = trace.getTracer('batch-web-scraper', '1.0.0')
     const batchSpan = tracer.startSpan('batch_scrape', {
       attributes: {
         'tool.id': 'batch-web-scraper',
         'tool.input.urlCount': inputData.urls.length,
         'tool.input.maxConcurrent': inputData.maxConcurrent ?? 3,
-      }
-    });
+      },
+    })
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🐛 Initializing batch crawlers...', stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🐛 Initializing batch crawlers...',
+        stage: 'batch-web-scraper',
+      },
+      id: 'batch-web-scraper',
+    })
     log.info('Starting enhanced batch web scraping with JSDOM', {
       urlCount: inputData.urls.length,
       maxConcurrent: inputData.maxConcurrent ?? 3,
@@ -1140,10 +1466,7 @@ export const batchWebScraperTool = createTool({
           } finally {
             await fileHandle.close()
           }
-          savedFilePath = path.relative(
-            DATA_DIR,
-            fullPath
-          )
+          savedFilePath = path.relative(DATA_DIR, fullPath)
           log.info('Batch results saved securely', {
             fileName: savedFilePath,
           })
@@ -1159,14 +1482,22 @@ export const batchWebScraperTool = createTool({
 
       const successful = results.filter((r) => r.success).length
       const failed = results.length - successful
-      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Batch complete: ${successful}/${results.length} successful`, stage: 'batch-web-scraper' }, id: 'batch-web-scraper' });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `✅ Batch complete: ${successful}/${results.length} successful`,
+          stage: 'batch-web-scraper',
+        },
+        id: 'batch-web-scraper',
+      })
 
       batchSpan.setAttributes({
         'tool.output.totalProcessed': results.length,
         'tool.output.successful': successful,
         'tool.output.failed': failed,
-      });
-      batchSpan.end();
+      })
+      batchSpan.end()
 
       return batchWebScraperOutputSchema.parse({
         results,
@@ -1179,16 +1510,16 @@ export const batchWebScraperTool = createTool({
       const errorMessage = `Batch scraping failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        batchSpan.recordException(error);
+        batchSpan.recordException(error)
       }
-      batchSpan.setStatus({ code: 2, message: errorMessage });
-      batchSpan.end();
+      batchSpan.setStatus({ code: 2, message: errorMessage })
+      batchSpan.end()
       throw error
     }
   },
 })
 
-export type BatchWebScraperUITool = InferUITool<typeof batchWebScraperTool>;
+export type BatchWebScraperUITool = InferUITool<typeof batchWebScraperTool>
 
 // ===== SITE MAP EXTRACTOR TOOL =====
 
@@ -1246,22 +1577,42 @@ export const siteMapExtractorTool = createTool({
   inputSchema: siteMapExtractorInputSchema,
   outputSchema: siteMapExtractorOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🗺️ Starting site map extraction for ${inputData.url}`, stage: 'site-map-extractor' }, id: 'site-map-extractor' });
-    toolCallCounters.set('site-map-extractor', (toolCallCounters.get('site-map-extractor') ?? 0) + 1)
-    const tracer = trace.getTracer('site-map-extractor', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🗺️ Starting site map extraction for ${inputData.url}`,
+        stage: 'site-map-extractor',
+      },
+      id: 'site-map-extractor',
+    })
+    toolCallCounters.set(
+      'site-map-extractor',
+      (toolCallCounters.get('site-map-extractor') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('site-map-extractor', '1.0.0')
     const mapSpan = tracer.startSpan('site_map_extraction', {
       attributes: {
         'tool.id': 'site-map-extractor',
         'tool.input.url': inputData.url,
         'tool.input.maxDepth': inputData.maxDepth ?? 2,
         'tool.input.maxPages': inputData.maxPages ?? 50,
-        'tool.input.includeExternal': inputData.includeExternal ?? false,
-      }
+        'tool.input.includeExternal':
+          inputData.includeExternal ?? false,
+      },
     })
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Crawling internal links...', stage: 'site-map-extractor' }, id: 'site-map-extractor' });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🔍 Crawling internal links...',
+        stage: 'site-map-extractor',
+      },
+      id: 'site-map-extractor',
+    })
     log.info('Starting enhanced site map extraction with JSDOM', {
       url: inputData.url,
       maxDepth: inputData.maxDepth ?? 2,
@@ -1411,10 +1762,7 @@ export const siteMapExtractorTool = createTool({
             'utf-8'
           )
 
-          savedFilePath = path.relative(
-            DATA_DIR,
-            fullPath
-          ) // Consistent with other tools
+          savedFilePath = path.relative(DATA_DIR, fullPath) // Consistent with other tools
           log.info('Site map saved securely', {
             fileName: savedFilePath,
           })
@@ -1428,12 +1776,22 @@ export const siteMapExtractorTool = createTool({
         }
       }
 
-      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Site map complete: ${pages.length} pages discovered`, stage: 'site-map-extractor' }, id: 'site-map-extractor' });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `✅ Site map complete: ${pages.length} pages discovered`,
+          stage: 'site-map-extractor',
+        },
+        id: 'site-map-extractor',
+      })
       mapSpan.setAttributes({
         'tool.output.totalPages': pages.length,
-        'tool.output.savedFile': typeof savedFilePath === 'string' && savedFilePath.trim().length > 0,
-      });
-      mapSpan.end();
+        'tool.output.savedFile':
+          typeof savedFilePath === 'string' &&
+          savedFilePath.trim().length > 0,
+      })
+      mapSpan.end()
 
       return siteMapExtractorOutputSchema.parse({
         baseUrl: inputData.url,
@@ -1445,16 +1803,16 @@ export const siteMapExtractorTool = createTool({
       const errorMessage = `Site map extraction failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        mapSpan.recordException(error);
+        mapSpan.recordException(error)
       }
-      mapSpan.setStatus({ code: 2, message: errorMessage });
-      mapSpan.end();
+      mapSpan.setStatus({ code: 2, message: errorMessage })
+      mapSpan.end()
       throw error
     }
   },
 })
 
-export type SiteMapExtractorUITool = InferUITool<typeof siteMapExtractorTool>;
+export type SiteMapExtractorUITool = InferUITool<typeof siteMapExtractorTool>
 // ===== LINK EXTRACTOR TOOL =====
 
 const linkExtractorInputSchema = z.object({
@@ -1505,11 +1863,22 @@ export const linkExtractorTool = createTool({
   inputSchema: linkExtractorInputSchema,
   outputSchema: linkExtractorOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔗 Extracting links from ${inputData.url}`, stage: 'link-extractor' }, id: 'link-extractor' });
-    toolCallCounters.set('link-extractor', (toolCallCounters.get('link-extractor') ?? 0) + 1)
-    const tracer = trace.getTracer('link-extractor', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🔗 Extracting links from ${inputData.url}`,
+        stage: 'link-extractor',
+      },
+      id: 'link-extractor',
+    })
+    toolCallCounters.set(
+      'link-extractor',
+      (toolCallCounters.get('link-extractor') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('link-extractor', '1.0.0')
     const linkSpan = tracer.startSpan('link_extraction', {
       attributes: {
         'tool.id': 'link-extractor',
@@ -1517,7 +1886,7 @@ export const linkExtractorTool = createTool({
         'tool.input.linkTypes': inputData.linkTypes ?? ['all'],
         'tool.input.includeAnchors': inputData.includeAnchors ?? true,
         'tool.input.filterCount': inputData.filterPatterns?.length ?? 0,
-      }
+      },
     })
 
     log.info('Starting enhanced link extraction with JSDOM', {
@@ -1619,12 +1988,14 @@ export const linkExtractorTool = createTool({
             const linkUrl = new URL(absoluteUrl)
 
             if (compiledFilters.length > 0) {
-              const matchesFilter = compiledFilters.some(({ pattern, re2 }) => {
-                if (re2) {
-                  return re2.test(absoluteUrl)
+              const matchesFilter = compiledFilters.some(
+                ({ pattern, re2 }) => {
+                  if (re2) {
+                    return re2.test(absoluteUrl)
+                  }
+                  return wildcardMatch(pattern, absoluteUrl)
                 }
-                return wildcardMatch(pattern, absoluteUrl)
-              })
+              )
 
               if (!matchesFilter) {
                 return
@@ -1653,7 +2024,8 @@ export const linkExtractorTool = createTool({
 
             links.push({
               href: safeHref,
-              text: inputData.includeAnchors !== false ? text : '',
+              text:
+                inputData.includeAnchors !== false ? text : '',
               type: linkType,
               isValid: isValidAbsolute,
             })
@@ -1664,7 +2036,8 @@ export const linkExtractorTool = createTool({
             )
             links.push({
               href: safeHref,
-              text: inputData.includeAnchors !== false ? text : '',
+              text:
+                inputData.includeAnchors !== false ? text : '',
               type: 'external',
               isValid: false,
             })
@@ -1681,8 +2054,8 @@ export const linkExtractorTool = createTool({
       linkSpan.setAttributes({
         'tool.output.linkCount': links.length,
         'tool.output.summary': JSON.stringify(summary),
-      });
-      linkSpan.end();
+      })
+      linkSpan.end()
 
       return linkExtractorOutputSchema.parse({
         url: scrapedUrl,
@@ -1693,15 +2066,15 @@ export const linkExtractorTool = createTool({
       const errorMessage = `Link extraction failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        linkSpan.recordException(error);
+        linkSpan.recordException(error)
       }
-      linkSpan.setStatus({ code: 2, message: errorMessage });
-      linkSpan.end();
+      linkSpan.setStatus({ code: 2, message: errorMessage })
+      linkSpan.end()
       throw error
     }
   },
 })
-export type LinkExtractorUITool = InferUITool<typeof linkExtractorTool>;
+export type LinkExtractorUITool = InferUITool<typeof linkExtractorTool>
 // ===== HTML TO MARKDOWN CONVERTER TOOL =====
 const htmlToMarkdownOutputSchema = z
   .object({
@@ -1747,21 +2120,40 @@ export const htmlToMarkdownTool = createTool({
   inputSchema: htmlToMarkdownInputSchema,
   outputSchema: htmlToMarkdownOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Converting HTML to markdown...', stage: 'html-to-markdown' }, id: 'html-to-markdown' });
-    toolCallCounters.set('html-to-markdown', (toolCallCounters.get('html-to-markdown') ?? 0) + 1)
-    const tracer = trace.getTracer('html-to-markdown', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🔄 Converting HTML to markdown...',
+        stage: 'html-to-markdown',
+      },
+      id: 'html-to-markdown',
+    })
+    toolCallCounters.set(
+      'html-to-markdown',
+      (toolCallCounters.get('html-to-markdown') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('html-to-markdown', '1.0.0')
     const convertSpan = tracer.startSpan('html_to_markdown', {
       attributes: {
         'tool.id': 'html-to-markdown',
         'tool.input.htmlLength': inputData.html.length,
         'tool.input.saveToFile': inputData.saveToFile,
         'tool.input.fileName': inputData.fileName,
-      }
+      },
     })
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧹 Sanitizing HTML...', stage: 'html-to-markdown' }, id: 'html-to-markdown' });
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🧹 Sanitizing HTML...',
+        stage: 'html-to-markdown',
+      },
+      id: 'html-to-markdown',
+    })
     log.info('Converting HTML to markdown with enhanced JSDOM processing', {
       htmlLength: inputData.html.length,
       saveToFile: inputData.saveToFile,
@@ -1798,10 +2190,7 @@ export const htmlToMarkdownTool = createTool({
           } finally {
             await fileHandle.close()
           }
-          savedFilePath = path.relative(
-            DATA_DIR,
-            fullPath
-          )
+          savedFilePath = path.relative(DATA_DIR, fullPath)
           log.info('Markdown saved securely', {
             fileName: savedFilePath,
           })
@@ -1820,9 +2209,11 @@ export const htmlToMarkdownTool = createTool({
 
       convertSpan.setAttributes({
         'tool.output.markdownLength': markdown.length,
-        'tool.output.savedFile': typeof savedFilePath === 'string' && savedFilePath.trim().length > 0,
-      });
-      convertSpan.end();
+        'tool.output.savedFile':
+          typeof savedFilePath === 'string' &&
+          savedFilePath.trim().length > 0,
+      })
+      convertSpan.end()
 
       return htmlToMarkdownOutputSchema.parse({
         markdown,
@@ -1832,16 +2223,16 @@ export const htmlToMarkdownTool = createTool({
       const errorMessage = `HTML to markdown conversion failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        convertSpan.recordException(error);
+        convertSpan.recordException(error)
       }
-      convertSpan.setStatus({ code: 2, message: errorMessage });
-      convertSpan.end();
+      convertSpan.setStatus({ code: 2, message: errorMessage })
+      convertSpan.end()
       throw error
     }
   },
 })
 
-export type HtmlToMarkdownUITool = InferUITool<typeof htmlToMarkdownTool>;
+export type HtmlToMarkdownUITool = InferUITool<typeof htmlToMarkdownTool>
 
 // ===== SCRAPED CONTENT MANAGER TOOL =====
 
@@ -1879,17 +2270,28 @@ export const listScrapedContentTool = createTool({
   inputSchema: listScrapedContentInputSchema,
   outputSchema: listScrapedContentOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing scraped content files...', stage: 'list-scraped-content' }, id: 'list-scraped-content' });
-    toolCallCounters.set('list-scraped-content', (toolCallCounters.get('list-scraped-content') ?? 0) + 1)
-    const tracer = trace.getTracer('list-scraped-content', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '📂 Listing scraped content files...',
+        stage: 'list-scraped-content',
+      },
+      id: 'list-scraped-content',
+    })
+    toolCallCounters.set(
+      'list-scraped-content',
+      (toolCallCounters.get('list-scraped-content') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('list-scraped-content', '1.0.0')
     const listSpan = tracer.startSpan('list_scraped_content', {
       attributes: {
         'tool.id': 'list-scraped-content',
         'tool.input.pattern': inputData.pattern,
         'tool.input.includeMetadata': inputData.includeMetadata ?? true,
-      }
+      },
     })
 
     log.info('Listing scraped content with security validation', {
@@ -2015,8 +2417,8 @@ export const listScrapedContentTool = createTool({
       listSpan.setAttributes({
         'tool.output.totalFiles': files.length,
         'tool.output.totalSize': totalSize,
-      });
-      listSpan.end();
+      })
+      listSpan.end()
 
       return listScrapedContentOutputSchema.parse({
         files,
@@ -2027,16 +2429,18 @@ export const listScrapedContentTool = createTool({
       const errorMessage = `Failed to list scraped content: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        listSpan.recordException(error);
+        listSpan.recordException(error)
       }
-      listSpan.setStatus({ code: 2, message: errorMessage });
-      listSpan.end();
+      listSpan.setStatus({ code: 2, message: errorMessage })
+      listSpan.end()
       throw error
     }
   },
 })
 
-export type ListScrapedContentUITool = InferUITool<typeof listScrapedContentTool>;
+export type ListScrapedContentUITool = InferUITool<
+  typeof listScrapedContentTool
+>
 
 // ===== CONTENT CLEANER TOOL =====
 
@@ -2074,11 +2478,22 @@ export const contentCleanerTool = createTool({
   inputSchema: contentCleanerInputSchema,
   outputSchema: contentCleanerOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🧹 Starting content cleaning...', stage: 'content-cleaner' }, id: 'content-cleaner' });
-    toolCallCounters.set('content-cleaner', (toolCallCounters.get('content-cleaner') ?? 0) + 1)
-    const tracer = trace.getTracer('content-cleaner', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: '🧹 Starting content cleaning...',
+        stage: 'content-cleaner',
+      },
+      id: 'content-cleaner',
+    })
+    toolCallCounters.set(
+      'content-cleaner',
+      (toolCallCounters.get('content-cleaner') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('content-cleaner', '1.0.0')
     const cleanSpan = tracer.startSpan('content_cleaning', {
       attributes: {
         'tool.id': 'content-cleaner',
@@ -2086,7 +2501,7 @@ export const contentCleanerTool = createTool({
         'tool.input.removeScripts': inputData.removeScripts ?? true,
         'tool.input.removeStyles': inputData.removeStyles ?? true,
         'tool.input.removeComments': inputData.removeComments ?? true,
-      }
+      },
     })
 
     log.info('Cleaning HTML content with enhanced JSDOM security', {
@@ -2155,9 +2570,10 @@ export const contentCleanerTool = createTool({
       cleanSpan.setAttributes({
         'tool.output.originalSize': originalSize,
         'tool.output.cleanedSize': cleanedSize,
-        'tool.output.reductionPercent': Math.round(reductionPercent * 100) / 100,
-      });
-      cleanSpan.end();
+        'tool.output.reductionPercent':
+          Math.round(reductionPercent * 100) / 100,
+      })
+      cleanSpan.end()
 
       return contentCleanerOutputSchema.parse({
         cleanedHtml,
@@ -2169,29 +2585,43 @@ export const contentCleanerTool = createTool({
       const errorMessage = `Content cleaning failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        cleanSpan.recordException(error);
+        cleanSpan.recordException(error)
       }
-      cleanSpan.setStatus({ code: 2, message: errorMessage });
-      cleanSpan.end();
+      cleanSpan.setStatus({ code: 2, message: errorMessage })
+      cleanSpan.end()
       throw error
     }
   },
 })
-export type ContentCleanerUITool = InferUITool<typeof contentCleanerTool>;
+export type ContentCleanerUITool = InferUITool<typeof contentCleanerTool>
 
 // ===== API DATA FETCHER TOOL =====
 
 const apiDataFetcherInputSchema = z.object({
   url: z.url().describe('API endpoint URL.'),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional().describe('HTTP method (default: GET).'),
-  headers: z.record(z.string(), z.string()).optional().describe('HTTP headers.'),
+  method: z
+    .enum(['GET', 'POST', 'PUT', 'DELETE'])
+    .optional()
+    .describe('HTTP method (default: GET).'),
+  headers: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe('HTTP headers.'),
   body: z.any().optional().describe('Request body for POST/PUT.'),
-  auth: z.object({
-    type: z.enum(['bearer', 'basic', 'api-key']),
-    token: z.string(),
-    headerName: z.string().optional(),
-  }).optional().describe('Authentication configuration.'),
-  timeout: z.number().min(1000).max(60000).optional().describe('Request timeout in ms (default: 30000).'),
+  auth: z
+    .object({
+      type: z.enum(['bearer', 'basic', 'api-key']),
+      token: z.string(),
+      headerName: z.string().optional(),
+    })
+    .optional()
+    .describe('Authentication configuration.'),
+  timeout: z
+    .number()
+    .min(1000)
+    .max(60000)
+    .optional()
+    .describe('Request timeout in ms (default: 30000).'),
 })
 
 const apiDataFetcherOutputSchema = z.object({
@@ -2203,22 +2633,34 @@ const apiDataFetcherOutputSchema = z.object({
 
 export const apiDataFetcherTool = createTool({
   id: 'api-data-fetcher',
-  description: 'Fetch data from JSON APIs with authentication and error handling.',
+  description:
+    'Fetch data from JSON APIs with authentication and error handling.',
   inputSchema: apiDataFetcherInputSchema,
   outputSchema: apiDataFetcherOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🌐 Fetching data from ${inputData.url}`, stage: 'api-data-fetcher' }, id: 'api-data-fetcher' });
-    toolCallCounters.set('api-data-fetcher', (toolCallCounters.get('api-data-fetcher') ?? 0) + 1)
-    const tracer = trace.getTracer('api-data-fetcher', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `🌐 Fetching data from ${inputData.url}`,
+        stage: 'api-data-fetcher',
+      },
+      id: 'api-data-fetcher',
+    })
+    toolCallCounters.set(
+      'api-data-fetcher',
+      (toolCallCounters.get('api-data-fetcher') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('api-data-fetcher', '1.0.0')
     const fetchSpan = tracer.startSpan('api_data_fetch', {
       attributes: {
         'tool.id': 'api-data-fetcher',
         'tool.input.url': inputData.url,
         'tool.input.method': inputData.method ?? 'GET',
         'tool.input.hasAuth': !!inputData.auth,
-      }
+      },
     })
 
     log.info('Fetching data from API', {
@@ -2236,15 +2678,19 @@ export const apiDataFetcherTool = createTool({
       if (inputData.auth) {
         switch (inputData.auth.type) {
           case 'bearer':
-            headers['Authorization'] = `Bearer ${inputData.auth.token}`
+            headers['Authorization'] =
+              `Bearer ${inputData.auth.token}`
             break
           case 'basic':
-            headers['Authorization'] = `Basic ${Buffer.from(inputData.auth.token).toString('base64')}`
+            headers['Authorization'] =
+              `Basic ${Buffer.from(inputData.auth.token).toString('base64')}`
             break
-          case 'api-key':
-            { const headerName = inputData.auth.headerName ?? 'X-API-Key'
+          case 'api-key': {
+            const headerName =
+              inputData.auth.headerName ?? 'X-API-Key'
             headers[headerName] = inputData.auth.token
-            break }
+            break
+          }
         }
       }
 
@@ -2252,7 +2698,10 @@ export const apiDataFetcherTool = createTool({
       const response = await fetch(inputData.url, {
         method: inputData.method ?? 'GET',
         headers,
-        body: (inputData.body !== null && inputData.body !== undefined) ? JSON.stringify(inputData.body) : undefined,
+        body:
+          inputData.body !== null && inputData.body !== undefined
+            ? JSON.stringify(inputData.body)
+            : undefined,
         signal: AbortSignal.timeout(inputData.timeout ?? 30000),
       })
 
@@ -2270,7 +2719,7 @@ export const apiDataFetcherTool = createTool({
       const contentType = response.headers.get('content-type')
       let data: unknown
 
-      if ((contentType?.includes('application/json')) ?? false) {
+      if (contentType?.includes('application/json') ?? false) {
         data = await response.json()
       } else {
         data = await response.text()
@@ -2285,8 +2734,8 @@ export const apiDataFetcherTool = createTool({
         'tool.output.status': response.status,
         'tool.output.responseTime': responseTime,
         'tool.output.dataType': typeof data,
-      });
-      fetchSpan.end();
+      })
+      fetchSpan.end()
 
       return apiDataFetcherOutputSchema.parse({
         data,
@@ -2298,10 +2747,10 @@ export const apiDataFetcherTool = createTool({
       const errorMessage = `API data fetch failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        fetchSpan.recordException(error);
+        fetchSpan.recordException(error)
       }
-      fetchSpan.setStatus({ code: 2, message: errorMessage });
-      fetchSpan.end();
+      fetchSpan.setStatus({ code: 2, message: errorMessage })
+      fetchSpan.end()
       throw error
     }
   },
@@ -2311,9 +2760,21 @@ export const apiDataFetcherTool = createTool({
 
 const scrapingSchedulerInputSchema = z.object({
   urls: z.array(z.string().url()).describe('URLs to scrape periodically.'),
-  schedule: z.string().describe('Cron expression for scheduling (e.g., "0 */6 * * *" for every 6 hours).'),
-  config: z.record(z.string(), z.any()).optional().describe('Scraping configuration to apply.'),
-  maxRuns: z.number().min(1).max(100).optional().describe('Maximum number of scheduled runs (default: 10).'),
+  schedule: z
+    .string()
+    .describe(
+      'Cron expression for scheduling (e.g., "0 */6 * * *" for every 6 hours).'
+    ),
+  config: z
+    .record(z.string(), z.any())
+    .optional()
+    .describe('Scraping configuration to apply.'),
+  maxRuns: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Maximum number of scheduled runs (default: 10).'),
 })
 
 const scrapingSchedulerOutputSchema = z.object({
@@ -2329,18 +2790,29 @@ export const scrapingSchedulerTool = createTool({
   inputSchema: scrapingSchedulerInputSchema,
   outputSchema: scrapingSchedulerOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⏰ Scheduling scraping for ${inputData.urls.length} URLs`, stage: 'scraping-scheduler' }, id: 'scraping-scheduler' });
-    toolCallCounters.set('scraping-scheduler', (toolCallCounters.get('scraping-scheduler') ?? 0) + 1)
-    const tracer = trace.getTracer('scraping-scheduler', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `⏰ Scheduling scraping for ${inputData.urls.length} URLs`,
+        stage: 'scraping-scheduler',
+      },
+      id: 'scraping-scheduler',
+    })
+    toolCallCounters.set(
+      'scraping-scheduler',
+      (toolCallCounters.get('scraping-scheduler') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('scraping-scheduler', '1.0.0')
     const scheduleSpan = tracer.startSpan('scraping_scheduler', {
       attributes: {
         'tool.id': 'scraping-scheduler',
         'tool.input.urlCount': inputData.urls.length,
         'tool.input.schedule': inputData.schedule,
         'tool.input.maxRuns': inputData.maxRuns ?? 10,
-      }
+      },
     })
 
     log.info('Scheduling periodic scraping', {
@@ -2363,8 +2835,8 @@ export const scrapingSchedulerTool = createTool({
         'tool.output.jobId': jobId,
         'tool.output.nextRun': nextRun,
         'tool.output.totalRuns': maxRuns,
-      });
-      scheduleSpan.end();
+      })
+      scheduleSpan.end()
 
       return scrapingSchedulerOutputSchema.parse({
         jobId,
@@ -2376,10 +2848,10 @@ export const scrapingSchedulerTool = createTool({
       const errorMessage = `Scheduling failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        scheduleSpan.recordException(error);
+        scheduleSpan.recordException(error)
       }
-      scheduleSpan.setStatus({ code: 2, message: errorMessage });
-      scheduleSpan.end();
+      scheduleSpan.setStatus({ code: 2, message: errorMessage })
+      scheduleSpan.end()
       throw error
     }
   },
@@ -2388,10 +2860,19 @@ export const scrapingSchedulerTool = createTool({
 // ===== EXPORT AND INTEGRATION TOOL =====
 
 const dataExporterInputSchema = z.object({
-  data: z.array(z.record(z.string(), z.unknown())).describe('Data to export.'),
-  format: z.enum(['json', 'csv', 'xml', 'database']).describe('Export format.'),
-  destination: z.string().describe('Export destination (file path or DB connection string).'),
-  options: z.record(z.string(), z.unknown()).optional().describe('Format-specific options.'),
+  data: z
+    .array(z.record(z.string(), z.unknown()))
+    .describe('Data to export.'),
+  format: z
+    .enum(['json', 'csv', 'xml', 'database'])
+    .describe('Export format.'),
+  destination: z
+    .string()
+    .describe('Export destination (file path or DB connection string).'),
+  options: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('Format-specific options.'),
 })
 
 const dataExporterOutputSchema = z.object({
@@ -2407,18 +2888,29 @@ export const dataExporterTool = createTool({
   inputSchema: dataExporterInputSchema,
   outputSchema: dataExporterOutputSchema,
   execute: async (inputData, context) => {
-    const writer = context?.writer;
+    const writer = context?.writer
 
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📤 Exporting ${inputData.data.length} records to ${inputData.format}...`, stage: 'data-exporter' }, id: 'data-exporter' });
-    toolCallCounters.set('data-exporter', (toolCallCounters.get('data-exporter') ?? 0) + 1)
-    const tracer = trace.getTracer('data-exporter', '1.0.0');
+    await writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `📤 Exporting ${inputData.data.length} records to ${inputData.format}...`,
+        stage: 'data-exporter',
+      },
+      id: 'data-exporter',
+    })
+    toolCallCounters.set(
+      'data-exporter',
+      (toolCallCounters.get('data-exporter') ?? 0) + 1
+    )
+    const tracer = trace.getTracer('data-exporter', '1.0.0')
     const exportSpan = tracer.startSpan('data_export', {
       attributes: {
         'tool.id': 'data-exporter',
         'tool.input.dataCount': inputData.data.length,
         'tool.input.format': inputData.format,
         'tool.input.destination': inputData.destination,
-      }
+      },
     })
 
     log.info('Exporting data', {
@@ -2432,27 +2924,31 @@ export const dataExporterTool = createTool({
       let message = 'Export completed successfully'
 
       switch (inputData.format) {
-        case 'json':
-          { const jsonContent = JSON.stringify(inputData.data, null, 2)
+        case 'json': {
+          const jsonContent = JSON.stringify(inputData.data, null, 2)
           await ensureDataDir()
           filePath = path.isAbsolute(inputData.destination)
             ? inputData.destination
             : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, jsonContent, 'utf-8')
-          break }
+          break
+        }
 
-        case 'csv':
-          // Simple CSV conversion (in production, use a proper CSV library)
-          { if (inputData.data.length === 0) {
+        case 'csv': { // Simple CSV conversion (in production, use a proper CSV library)
+          if (inputData.data.length === 0) {
             throw new ScrapingError('No data to export', 'NO_DATA')
           }
           const headers = Object.keys(inputData.data[0])
           const csvRows = [
             headers.join(','),
-            ...inputData.data.map(row =>
-              headers.map(header => JSON.stringify(row[header] ?? '')).join(',')
-            )
+            ...inputData.data.map((row) =>
+              headers
+                .map((header) =>
+                  JSON.stringify(row[header] ?? '')
+                )
+                .join(',')
+            ),
           ]
           const csvContent = csvRows.join('\n')
           await ensureDataDir()
@@ -2461,15 +2957,16 @@ export const dataExporterTool = createTool({
             : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, csvContent, 'utf-8')
-          break }
+          break
+        }
 
-        case 'xml':
-          // Simple XML conversion
-          { let xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n<data>\n'
+        case 'xml': { // Simple XML conversion
+          let xmlContent =
+            '<?xml version="1.0" encoding="UTF-8"?>\n<data>\n'
           for (const item of inputData.data) {
             xmlContent += '  <item>\n'
             for (const [key, value] of Object.entries(item)) {
-              xmlContent += `    <${key}>${String(value ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c] ?? c))}</${key}>\n`
+              xmlContent += `    <${key}>${String(value ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c)}</${key}>\n`
             }
             xmlContent += '  </item>\n'
           }
@@ -2480,7 +2977,8 @@ export const dataExporterTool = createTool({
             : path.join(DATA_DIR, inputData.destination)
           await fs.mkdir(path.dirname(filePath), { recursive: true })
           await fs.writeFile(filePath, xmlContent, 'utf-8')
-          break }
+          break
+        }
 
         case 'database':
           // Placeholder for database export (would need DB connection)
@@ -2488,15 +2986,18 @@ export const dataExporterTool = createTool({
           break
 
         default:
-          throw new ScrapingError(`Unsupported format: ${inputData.format}`, 'UNSUPPORTED_FORMAT')
+          throw new ScrapingError(
+            `Unsupported format: ${inputData.format}`,
+            'UNSUPPORTED_FORMAT'
+          )
       }
 
       exportSpan.setAttributes({
         'tool.output.success': true,
         'tool.output.exportedCount': inputData.data.length,
         'tool.output.filePath': filePath,
-      });
-      exportSpan.end();
+      })
+      exportSpan.end()
 
       return dataExporterOutputSchema.parse({
         success: true,
@@ -2508,10 +3009,10 @@ export const dataExporterTool = createTool({
       const errorMessage = `Data export failed: ${error instanceof Error ? error.message : String(error)}`
       log.error(errorMessage)
       if (error instanceof Error) {
-        exportSpan.recordException(error);
+        exportSpan.recordException(error)
       }
-      exportSpan.setStatus({ code: 2, message: errorMessage });
-      exportSpan.end();
+      exportSpan.setStatus({ code: 2, message: errorMessage })
+      exportSpan.end()
       throw error
     }
   },
