@@ -75,12 +75,23 @@ export const googleScholarTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google Scholar tool input streaming started', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Scholar received input', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 query: input.query,
                 yearStart: input.yearStart,
@@ -95,6 +106,7 @@ export const googleScholarTool = createTool({
         log.info('Google Scholar search completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             papersFound: output.papers.length,
             hook: 'onOutput',
         })
@@ -102,6 +114,12 @@ export const googleScholarTool = createTool({
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Google Scholar search cancelled')
+        }
 
         const tracer = trace.getTracer('serpapi-academic-local-tool')
         const scholarSpan = tracer.startSpan('google-scholar-tool', {
@@ -134,6 +152,18 @@ export const googleScholarTool = createTool({
             if (input.sortBy === 'date') {
                 params.scisbd = '1'
             }
+            // Check for cancellation before API call
+            if (abortSignal && abortSignal.aborted) {
+                scholarSpan.setStatus({
+                    code: 2,
+                    message: 'Operation cancelled during API call',
+                })
+                scholarSpan.end()
+                throw new Error(
+                    'Google Scholar search cancelled during API call'
+                )
+            }
+
             if (!input.includePatents) {
                 params.as_sdt = '0,5'
             }
@@ -181,6 +211,26 @@ export const googleScholarTool = createTool({
             })
             return result
         } catch (error) {
+            // Handle AbortError specifically
+            if (error instanceof Error && error.name === 'AbortError') {
+                const cancelMessage = `Google Scholar search cancelled for "${input.query}"`
+                scholarSpan.setStatus({ code: 2, message: cancelMessage })
+                scholarSpan.end()
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'serpapi-academic-local',
+                    },
+                    id: 'serpapi-academic-local',
+                })
+
+                log.warn(cancelMessage)
+                throw new Error(cancelMessage)
+            }
+
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
             scholarSpan.recordException(

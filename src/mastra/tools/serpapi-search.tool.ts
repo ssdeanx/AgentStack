@@ -95,12 +95,23 @@ export const googleSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google search received complete input', {
             toolCallId,
+            abortSignal: abortSignal?.aborted,
             query: input.query,
             numResults: input.numResults,
             location: input.location,
@@ -113,6 +124,7 @@ export const googleSearchTool = createTool({
         log.info('Google search completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             organicResults: output.organicResults.length,
             hasKnowledgeGraph: !!output.knowledgeGraph,
             relatedSearches: output.relatedSearches?.length || 0,
@@ -123,6 +135,12 @@ export const googleSearchTool = createTool({
         // Validate API key
         validateSerpApiKey()
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted === true) {
+            throw new Error('Google search cancelled')
+        }
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -168,6 +186,16 @@ export const googleSearchTool = createTool({
             if (input.device) {
                 params.device = input.device
             }
+            // Check for cancellation before API call
+            if (abortSignal && abortSignal.aborted) {
+                searchSpan.setStatus({
+                    code: 2,
+                    message: 'Operation cancelled during API call',
+                })
+                searchSpan.end()
+                throw new Error('Google search cancelled during API call')
+            }
+
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
@@ -246,6 +274,27 @@ export const googleSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+
+            // Handle AbortError specifically
+            if (error instanceof Error && error.name === 'AbortError') {
+                const cancelMessage = `Google search cancelled for "${input.query}"`
+                searchSpan.setStatus({ code: 2, message: cancelMessage })
+                searchSpan.end()
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'serpapi-search',
+                    },
+                    id: 'serpapi-search',
+                })
+
+                log.warn(cancelMessage)
+                throw new Error(cancelMessage)
+            }
+
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
@@ -265,7 +314,7 @@ export const googleSearchTool = createTool({
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google search failed: ${errorMessage}`)
+            throw error
         }
     },
 })

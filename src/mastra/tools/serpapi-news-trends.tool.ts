@@ -89,6 +89,13 @@ export const googleNewsTool = createTool({
             hook: 'onInputStart',
         })
     },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google News received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            hook: 'onInputDelta',
+        })
+    },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google News received input', {
             toolCallId,
