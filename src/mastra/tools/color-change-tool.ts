@@ -1,6 +1,11 @@
 import { createTool } from '@mastra/core/tools'
 import z from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface ColorChangeRequestContext extends RequestContext {
+    theme?: string
+}
 
 export function changeBgColor(color: string) {
     if (typeof window !== 'undefined') {
@@ -14,7 +19,8 @@ export const colorChangeTool = createTool({
     inputSchema: z.object({
         color: z.string(),
     }),
-    execute: async ({ color }, context) => {
+    execute: async (input, context) => {
+        const { color } = input;
         await context?.writer?.custom({
             type: 'data-tool-progress',
             data: {

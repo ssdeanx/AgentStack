@@ -75,43 +75,22 @@ export const readDataFileTool = createTool({
       ),
   }),
   outputSchema: z.string().describe('The content of the file as a string.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Read file tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Read file received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      fileName: input.fileName,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Read file completed', {
-      toolCallId,
-      toolName,
-      fileSize: output.length,
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
     await ensureDataDir();
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading file: ' + inputData.fileName, stage: 'read:file' }, id: 'read:file' });
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading file: ' + input.fileName, stage: 'read:file' }, id: 'read:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const readSpan = tracer.startSpan('read:file', {
       attributes: {
         'tool.id': 'read:file',
-        'tool.input.fileName': inputData.fileName,
+        'tool.input.fileName': input.fileName,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { fileName } = inputData
+      const { fileName } = input
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -139,6 +118,29 @@ export const readDataFileTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Read file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Read file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Read file completed', {
+      toolCallId,
+      toolName,
+      fileSize: output.length,
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type ReadDataFileUITool = InferUITool<typeof readDataFileTool>;
@@ -158,45 +160,22 @@ export const writeDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Write file tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Write file received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      fileName: input.fileName,
-      contentLength: input.content.length,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Write file completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Writing to file: ' + inputData.fileName, stage: 'write:file' }, id: 'write:file' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Writing to file: ' + input.fileName, stage: 'write:file' }, id: 'write:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const writeSpan = tracer.startSpan('write:file', {
       attributes: {
         'tool.id': 'write:file',
-        'tool.input.fileName': inputData.fileName,
-        'tool.input.contentLength': inputData.content.length,
+        'tool.input.fileName': input.fileName,
+        'tool.input.contentLength': input.content.length,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { fileName, content } = inputData
+      const { fileName, content } = input
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -232,6 +211,30 @@ export const writeDataFileTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Write file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Write file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      contentLength: input.content.length,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Write file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type WriteDataFileUITool = InferUITool<typeof writeDataFileTool>;
@@ -249,42 +252,21 @@ export const deleteDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Delete file tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Delete file received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      fileName: input.fileName,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Delete file completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Deleting file: ' + inputData.fileName, stage: 'delete:file' }, id: 'delete:file' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Deleting file: ' + input.fileName, stage: 'delete:file' }, id: 'delete:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const deleteSpan = tracer.startSpan('delete:file', {
       attributes: {
         'tool.id': 'delete:file',
-        'tool.input.fileName': inputData.fileName,
+        'tool.input.fileName': input.fileName,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { fileName } = inputData
+      const { fileName } = input
       const fullPath = validateDataPath(fileName)
       // Defensive: Ensure fullPath is within DATA_DIR before deleting
       if (!fullPath.startsWith(DATA_DIR)) {
@@ -311,6 +293,29 @@ export const deleteDataFileTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Delete file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Delete file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Delete file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type DeleteDataFileUITool = InferUITool<typeof deleteDataFileTool>;
@@ -330,42 +335,21 @@ export const listDataDirTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of file and directory names.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('List directory tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('List directory received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      dirPath: input.dirPath,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('List directory completed', {
-      toolCallId,
-      toolName,
-      itemCount: output.length,
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing directory: ' + (inputData.dirPath ?? 'docs/data'), stage: 'list:directory' }, id: 'list:directory' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing directory: ' + (input.dirPath ?? 'docs/data'), stage: 'list:directory' }, id: 'list:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const listSpan = tracer.startSpan('list:directory', {
       attributes: {
         'tool.id': 'list:directory',
-        'tool.input.dirPath': inputData.dirPath ?? 'docs/data',
+        'tool.input.dirPath': input.dirPath ?? 'docs/data',
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { dirPath = 'docs/data' } = inputData
+      const { dirPath = 'docs/data' } = input
       const fullPath = validateDataPath(dirPath)
       // Defensive: Ensure fullPath is within DATA_DIR before reading directory
       if (!fullPath.startsWith(DATA_DIR)) {
@@ -392,6 +376,29 @@ export const listDataDirTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('List directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('List directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('List directory completed', {
+      toolCallId,
+      toolName,
+      itemCount: output.length,
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type ListDataDirUITool = InferUITool<typeof listDataDirTool>;
@@ -414,44 +421,22 @@ export const copyDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Copy file tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Copy file received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      sourceFile: input.sourceFile,
-      destFile: input.destFile,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Copy file completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📋 Copying file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'copy:file' }, id: 'copy:file' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📋 Copying file: ${input.sourceFile} to ${input.destFile}`, stage: 'copy:file' }, id: 'copy:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const copySpan = tracer.startSpan('copy:file', {
       attributes: {
         'tool.id': 'copy:file',
-        'tool.input.sourceFile': inputData.sourceFile,
-        'tool.input.destFile': inputData.destFile,
+        'tool.input.sourceFile': input.sourceFile,
+        'tool.input.destFile': input.destFile,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { sourceFile, destFile } = inputData
+      const { sourceFile, destFile } = input
       const sourcePath = validateDataPath(sourceFile)
       const destPath = validateDataPath(destFile)
       // Defensive: Ensure both paths are within DATA_DIR
@@ -484,6 +469,30 @@ export const copyDataFileTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Copy file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Copy file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourceFile: input.sourceFile,
+      destFile: input.destFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Copy file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type CopyDataFileUITool = InferUITool<typeof copyDataFileTool>;
@@ -506,44 +515,22 @@ export const moveDataFileTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Move file tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Move file received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      sourceFile: input.sourceFile,
-      destFile: input.destFile,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Move file completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🚚 Moving file: ${inputData.sourceFile} to ${inputData.destFile}`, stage: 'move:file' }, id: 'move:file' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🚚 Moving file: ${input.sourceFile} to ${input.destFile}`, stage: 'move:file' }, id: 'move:file' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const moveSpan = tracer.startSpan('move:file', {
       attributes: {
         'tool.id': 'move:file',
-        'tool.input.sourceFile': inputData.sourceFile,
-        'tool.input.destFile': inputData.destFile,
+        'tool.input.sourceFile': input.sourceFile,
+        'tool.input.destFile': input.destFile,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { sourceFile, destFile } = inputData
+      const { sourceFile, destFile } = input
       const sourcePath = validateDataPath(sourceFile)
       const destPath = validateDataPath(destFile)
       // Defensive: Ensure both paths are within DATA_DIR
@@ -576,6 +563,30 @@ export const moveDataFileTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Move file tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Move file received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourceFile: input.sourceFile,
+      destFile: input.destFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Move file completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type MoveDataFileUITool = InferUITool<typeof moveDataFileTool>;
@@ -604,41 +615,18 @@ export const searchDataFilesTool = createTool({
   outputSchema: z
     .array(z.string())
     .describe('An array of matching file paths.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Search files tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Search files received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      pattern: input.pattern,
-      searchContent: input.searchContent,
-      dirPath: input.dirPath,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Search files completed', {
-      toolCallId,
-      toolName,
-      resultCount: output.length,
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching for pattern: "${inputData.pattern}"`, stage: 'search:files' }, id: 'search:files' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching for pattern: "${input.pattern}"`, stage: 'search:files' }, id: 'search:files' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const searchSpan = tracer.startSpan('search:files', {
       attributes: {
         'tool.id': 'search:files',
-        'tool.input.pattern': inputData.pattern,
-        'tool.input.searchContent': inputData.searchContent,
-        'tool.input.dirPath': inputData.dirPath,
+        'tool.input.pattern': input.pattern,
+        'tool.input.searchContent': input.searchContent,
+        'tool.input.dirPath': input.dirPath,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
@@ -647,7 +635,7 @@ export const searchDataFilesTool = createTool({
         pattern,
         searchContent = false,
         dirPath = 'docs/data',
-      } = inputData
+      } = input
       const searchPath = validateDataPath(dirPath)
       if (!searchPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -714,6 +702,31 @@ export const searchDataFilesTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Search files tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Search files received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      pattern: input.pattern,
+      searchContent: input.searchContent,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Search files completed', {
+      toolCallId,
+      toolName,
+      resultCount: output.length,
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type SearchFilesUITool = InferUITool<typeof searchDataFilesTool>;
@@ -738,43 +751,21 @@ export const getDataFileInfoTool = createTool({
       isDirectory: z.boolean(),
     })
     .describe('File metadata information.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Get file info tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Get file info received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      fileName: input.fileName,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Get file info completed', {
-      toolCallId,
-      toolName,
-      fileSize: output.size,
-      isFile: output.isFile,
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: 'ℹ️ Getting info for file: ' + inputData.fileName, stage: 'get:fileinfo' }, id: 'get:fileinfo' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: 'ℹ️ Getting info for file: ' + input.fileName, stage: 'get:fileinfo' }, id: 'get:fileinfo' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const infoSpan = tracer.startSpan('get:fileinfo', {
       attributes: {
         'tool.id': 'get:fileinfo',
-        'tool.input.fileName': inputData.fileName,
+        'tool.input.fileName': input.fileName,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { fileName } = inputData
+      const { fileName } = input
       const fullPath = validateDataPath(fileName)
       // Resolve the real path to protect against symlink/relative attacks, then validate it is inside DATA_DIR.
       const realFullPath = await fs.realpath(fullPath)
@@ -810,6 +801,30 @@ export const getDataFileInfoTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Get file info tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Get file info received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Get file info completed', {
+      toolCallId,
+      toolName,
+      fileSize: output.size,
+      isFile: output.isFile,
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type GetDataFileInfoUITool = InferUITool<typeof getDataFileInfoTool>;
@@ -826,42 +841,21 @@ export const createDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Create directory tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Create directory received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      dirPath: input.dirPath,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Create directory completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📁 Creating directory: ' + inputData.dirPath, stage: 'create:directory' }, id: 'create:directory' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📁 Creating directory: ' + input.dirPath, stage: 'create:directory' }, id: 'create:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const createDirSpan = tracer.startSpan('create:directory', {
       attributes: {
         'tool.id': 'create:directory',
-        'tool.input.dirPath': inputData.dirPath,
+        'tool.input.dirPath': input.dirPath,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { dirPath } = inputData
+      const { dirPath } = input
       const fullPath = validateDataPath(dirPath)
       if (!fullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -887,6 +881,29 @@ export const createDataDirTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Create directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Create directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Create directory completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type CreateDataDirUITool = InferUITool<typeof createDataDirTool>;
@@ -904,42 +921,21 @@ export const removeDataDirTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Remove directory tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Remove directory received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      dirPath: input.dirPath,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Remove directory completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Removing directory: ' + inputData.dirPath, stage: 'remove:directory' }, id: 'remove:directory' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Removing directory: ' + input.dirPath, stage: 'remove:directory' }, id: 'remove:directory' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const removeDirSpan = tracer.startSpan('remove:directory', {
       attributes: {
         'tool.id': 'remove:directory',
-        'tool.input.dirPath': inputData.dirPath,
+        'tool.input.dirPath': input.dirPath,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { dirPath } = inputData
+      const { dirPath } = input
       const fullPath = validateDataPath(dirPath)
       if (!fullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -970,6 +966,29 @@ export const removeDataDirTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Remove directory tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Remove directory received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      dirPath: input.dirPath,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Remove directory completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type RemoveDataDirUITool = InferUITool<typeof removeDataDirTool>;
@@ -993,44 +1012,22 @@ export const archiveDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Archive data tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Archive data received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      sourcePath: input.sourcePath,
-      archiveName: input.archiveName,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Archive data completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('successfully'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📦 Archiving: ${inputData.sourcePath} to ${inputData.archiveName}.gz`, stage: 'archive:data' }, id: 'archive:data' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📦 Archiving: ${input.sourcePath} to ${input.archiveName}.gz`, stage: 'archive:data' }, id: 'archive:data' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const archiveSpan = tracer.startSpan('archive:data', {
       attributes: {
         'tool.id': 'archive:data',
-        'tool.input.sourcePath': inputData.sourcePath,
-        'tool.input.archiveName': inputData.archiveName,
+        'tool.input.sourcePath': input.sourcePath,
+        'tool.input.archiveName': input.archiveName,
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { sourcePath, archiveName } = inputData
+      const { sourcePath, archiveName } = input
       const sourceFullPath = validateDataPath(sourcePath)
       const archiveFullPath = validateDataPath(archiveName + '.gz')
       if (
@@ -1068,6 +1065,30 @@ export const archiveDataTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Archive data tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Archive data received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourcePath: input.sourcePath,
+      archiveName: input.archiveName,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Archive data completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('successfully'),
+      hook: 'onOutput',
+    })
+  },
 })
 
 export type ArchiveDataUITool = InferUITool<typeof archiveDataTool>;
@@ -1092,44 +1113,22 @@ export const backupDataTool = createTool({
   outputSchema: z
     .string()
     .describe('A confirmation string indicating success with backup path.'),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Backup data tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Backup data received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      sourcePath: input.sourcePath,
-      backupDir: input.backupDir,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Backup data completed', {
-      toolCallId,
-      toolName,
-      success: output.includes('Backup created'),
-      hook: 'onOutput',
-    })
-  },
-  execute: async (inputData, context) => {
+  execute: async (input, context) => {
     const writer = context?.writer;
-    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💾 Creating backup for: ${inputData.sourcePath}`, stage: 'backup:data' }, id: 'backup:data' });
+    const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💾 Creating backup for: ${input.sourcePath}`, stage: 'backup:data' }, id: 'backup:data' });
     const tracer = trace.getTracer('data-file-manager', '1.0.0');
     const backupSpan = tracer.startSpan('backup:data', {
       attributes: {
         'tool.id': 'backup:data',
-        'tool.input.sourcePath': inputData.sourcePath,
-        'tool.input.backupDir': inputData.backupDir ?? 'backups',
+        'tool.input.sourcePath': input.sourcePath,
+        'tool.input.backupDir': input.backupDir ?? 'backups',
+        'tool.requestContext.userId': requestCtx?.userId,
       }
     });
 
     try {
-      const { sourcePath, backupDir = 'backups' } = inputData
+      const { sourcePath, backupDir = 'backups' } = input
       const sourceFullPath = validateDataPath(sourcePath)
       if (!sourceFullPath.startsWith(DATA_DIR)) {
         throw new Error(
@@ -1168,6 +1167,30 @@ export const backupDataTool = createTool({
       backupSpan.end();
       throw error
     }
+  },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Backup data tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Backup data received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      sourcePath: input.sourcePath,
+      backupDir: input.backupDir,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Backup data completed', {
+      toolCallId,
+      toolName,
+      success: output.includes('Backup created'),
+      hook: 'onOutput',
+    })
   },
 })
 

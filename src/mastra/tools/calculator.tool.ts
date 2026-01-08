@@ -8,6 +8,7 @@ import type { RequestContext } from '@mastra/core/request-context'
 
 // RequestContext interface for Calculator tool
 export interface CalculatorToolContext extends RequestContext {
+    userId?: string
     precision?: number
     allowComplexExpressions?: boolean
     maxExpressionLength?: number
@@ -476,6 +477,8 @@ export const unitConverterTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as CalculatorToolContext | undefined
 
         const tracer = trace.getTracer('unit-converter-tool', '1.0.0')
         const span = tracer.startSpan('convert-units')
@@ -491,6 +494,14 @@ export const unitConverterTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing unit conversion for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Unit conversion operation cancelled')
+            }
             const result = convertUnits(
                 inputData.value,
                 inputData.fromUnit,
@@ -644,6 +655,8 @@ export const matrixCalculatorTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as CalculatorToolContext | undefined
 
         const tracer = trace.getTracer('matrix-calculator-tool', '1.0.0')
         const span = tracer.startSpan('matrix-operation')
@@ -659,6 +672,14 @@ export const matrixCalculatorTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing matrix calculation for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Matrix calculation operation cancelled')
+            }
             let result: number[][] | number
 
             switch (inputData.operation) {

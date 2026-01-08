@@ -1,11 +1,15 @@
-import type { InferUITool } from '@mastra/core/tools'
-import { createTool } from '@mastra/core/tools'
+import { createTool, type InferUITool } from '@mastra/core/tools'
 import { MDocument } from '@mastra/rag'
 import { trace } from '@opentelemetry/api'
 import type { Browser } from 'playwright-core'
 import { chromium } from 'playwright-core'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+export interface BrowserRequestContext extends RequestContext {
+    userId?: string;
+    sessionId?: string;
+}
 
 // Browser instance cache for reuse
 let browserInstance: Browser | null = null
@@ -33,47 +37,9 @@ export const browserTool = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const isSuccess =
-            !output.message.includes('Error:') &&
-            !output.message.includes('Failed')
-        log[isSuccess ? 'info' : 'warn']('Browser tool completed', {
-            toolCallId,
-            toolName,
-            success: isSuccess,
-            message: output.message.substring(0, 100),
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -98,14 +64,10 @@ export const browserTool = createTool({
             id: 'browserTool',
         })
         try {
-            // Check for cancellation before browser operations
-            if (abortSignal && abortSignal.aborted) {
-                span.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during browser operations',
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing browser scrape for user', {
+                    userId: requestCtx.userId,
                 })
-                span.end()
-                throw new Error('Browser operation cancelled during setup')
             }
 
             const browser = await getBrowser()
@@ -186,6 +148,45 @@ export const browserTool = createTool({
             return { message: `Error: ${errorMsg}` }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const isSuccess =
+            !output.message.includes('Error:') &&
+            !output.message.includes('Failed')
+        log[isSuccess ? 'info' : 'warn']('Browser tool completed', {
+            toolCallId,
+            toolName,
+            success: isSuccess,
+            message: output.message.substring(0, 100),
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const screenshotTool = createTool({
@@ -208,6 +209,8 @@ export const screenshotTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('screenshot-tool', '1.0.0')
         const span = tracer.startSpan('browser-screenshot', {
             attributes: {
@@ -223,6 +226,14 @@ export const screenshotTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing browser screenshot for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Screenshot operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.setViewportSize({
@@ -261,6 +272,41 @@ export const screenshotTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Screenshot tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Screenshot tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Screenshot tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('Screenshot tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const pdfGeneratorTool = createTool({
@@ -278,6 +324,8 @@ export const pdfGeneratorTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('pdf-generator-tool', '1.0.0')
         const span = tracer.startSpan('browser-pdf-generate', {
             attributes: {
@@ -293,6 +341,14 @@ export const pdfGeneratorTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing PDF generation for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('PDF generation operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.goto(inputData.url, { waitUntil: 'networkidle' })
@@ -328,6 +384,41 @@ export const pdfGeneratorTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('PDF generator tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('PDF generator tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const clickAndExtractTool = createTool({
@@ -362,6 +453,8 @@ export const clickAndExtractTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('click-extract-tool', '1.0.0')
         const span = tracer.startSpan('browser-click-extract', {
             attributes: {
@@ -377,6 +470,14 @@ export const clickAndExtractTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing click and extract for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Click and extract operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
@@ -439,6 +540,41 @@ export const clickAndExtractTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Click and extract tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Click and extract tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Click and extract tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('Click and extract tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const fillFormTool = createTool({
@@ -468,6 +604,8 @@ export const fillFormTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('fill-form-tool', '1.0.0')
         const span = tracer.startSpan('browser-fill-form', {
             attributes: {
@@ -483,6 +621,14 @@ export const fillFormTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing fill form for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Fill form operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
@@ -534,6 +680,41 @@ export const fillFormTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Fill form tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Fill form tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Fill form tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('Fill form tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const googleSearch = createTool({
@@ -547,6 +728,8 @@ export const googleSearch = createTool({
         message: z.string(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('google-search-tool', '1.0.0')
         const span = tracer.startSpan('google-search', {
             attributes: {
@@ -564,6 +747,14 @@ export const googleSearch = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing Google search for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Google search operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.goto(
@@ -635,6 +826,44 @@ export const googleSearch = createTool({
             return { message: `Error: ${errorMsg}` }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            query: input.query,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const isSuccess =
+            !output.message.includes('Error:') &&
+            !output.message.includes('Failed')
+        log[isSuccess ? 'info' : 'warn']('Google search tool completed', {
+            toolCallId,
+            toolName,
+            success: isSuccess,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const extractTablesTool = createTool({
@@ -663,6 +892,8 @@ export const extractTablesTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('extract-tables-tool', '1.0.0')
         const span = tracer.startSpan('browser-extract-tables', {
             attributes: {
@@ -677,6 +908,14 @@ export const extractTablesTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing table extraction for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Table extraction operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
@@ -741,6 +980,41 @@ export const extractTablesTool = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Extract tables tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Extract tables tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Extract tables tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('Extract tables tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const monitorPageTool = createTool({
@@ -773,6 +1047,8 @@ export const monitorPageTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const abortSignal = context?.abortSignal
+        const requestCtx = context?.requestContext as BrowserRequestContext | undefined
         const tracer = trace.getTracer('monitor-page-tool', '1.0.0')
         const span = tracer.startSpan('browser-monitor-page', {
             attributes: {
@@ -788,6 +1064,14 @@ export const monitorPageTool = createTool({
         })
 
         try {
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing page monitor for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            if (abortSignal?.aborted === true) {
+                throw new Error('Page monitor operation cancelled')
+            }
             const browser = await getBrowser()
             const page = await browser.newPage()
             const selector = inputData.selector ?? 'body'
@@ -855,6 +1139,41 @@ export const monitorPageTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Monitor page tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Monitor page tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Monitor page tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log[output.success ? 'info' : 'warn']('Monitor page tool completed', {
+            toolCallId,
+            toolName,
+            success: output.success,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

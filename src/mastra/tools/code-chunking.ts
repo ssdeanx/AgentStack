@@ -1,10 +1,17 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { Project, SyntaxKind } from 'ts-morph'
+import type { RequestContext } from '@mastra/core/request-context'
+
 import { PythonParser } from './semantic-utils'
 import { MDocument } from '@mastra/rag'
 import { log } from '../config/logger'
 import { trace, SpanStatusCode } from '@opentelemetry/api'
+
+export interface CodeChunkingRequestContext extends RequestContext {
+    chunkSize?: number
+    chunkOverlap?: number
+}
 
 const codeChunkingInputSchema = z.object({
     filePath: z.string(),
@@ -37,43 +44,9 @@ export const codeChunkerTool = createTool({
         'Intelligently chunks code files based on syntax (functions, classes) for TS/JS and Python, falling back to recursive chunking for others.',
     inputSchema: codeChunkingInputSchema,
     outputSchema: codeChunkingOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Code chunker tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Code chunker received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Code chunker received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { filePath: input.filePath },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Code chunker completed', {
-            toolCallId,
-            toolName,
-            chunksCreated: output.chunks.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
-    execute: async (inputData) => {
-        const { filePath, content, options } = inputData
+    execute: async (input: z.infer<typeof codeChunkingInputSchema>, context) => {
+        const { filePath, content, options } = input
+        const requestContext = context?.requestContext as CodeChunkingRequestContext | undefined
         const ext = filePath.split('.').pop()?.toLowerCase()
         interface Chunk {
             text: string
@@ -193,13 +166,13 @@ export const codeChunkerTool = createTool({
 
             const textChunks = await doc.chunk({
                 strategy: 'recursive',
-                maxSize: options?.chunkSize ?? 512,
-                overlap: options?.chunkOverlap ?? 50,
+                maxSize: options?.chunkSize ?? requestContext?.chunkSize ?? 512,
+                overlap: options?.chunkOverlap ?? requestContext?.chunkOverlap ?? 50,
                 separators: ['\n\n', '\n', ' '],
             })
 
             const mapped = textChunks.map((c, i) => ({
-                text: c.text || '',
+                text: c.text ?? '',
                 metadata: {
                     startLine: 0, // MDocument doesn't give line numbers easily
                     endLine: 0,
@@ -243,5 +216,40 @@ export const codeChunkerTool = createTool({
                 ],
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Code chunker tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Code chunker received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Code chunker received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { filePath: input.filePath },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Code chunker completed', {
+            toolCallId,
+            toolName,
+            chunksCreated: output.chunks.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })

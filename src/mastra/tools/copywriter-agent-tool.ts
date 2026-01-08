@@ -3,8 +3,13 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
+import type { RequestContext } from '@mastra/core/request-context'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { log } from '../config/logger'
+
+export interface CopywriterRequestContext extends RequestContext {
+    userId?: string
+}
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
 
@@ -67,14 +72,14 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Approximate word count of the content'),
     }),
-    execute: async (inputData, context) => {
+    execute: async (input, context) => {
         const writer = context?.writer
         const mastra = context?.mastra
+        const requestCtx = context?.requestContext as CopywriterRequestContext | undefined
 
-        const userIdVal = context?.requestContext?.get('userId')
         const userId =
-            typeof userIdVal === 'string' && userIdVal.trim().length > 0
-                ? userIdVal
+            typeof requestCtx?.userId === 'string' && requestCtx.userId.trim().length > 0
+                ? requestCtx.userId
                 : 'anonymous'
         const {
             topic,
@@ -83,7 +88,7 @@ export const copywriterTool = createTool({
             tone,
             length = 'medium',
             specificRequirements,
-        } = inputData
+        } = input
 
         await writer?.custom({
             type: 'data-tool-progress',

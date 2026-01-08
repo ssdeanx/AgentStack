@@ -1,5 +1,6 @@
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
+import type { RequestContext } from "@mastra/core/request-context";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { z } from "zod";
 import {
@@ -9,6 +10,10 @@ import {
   logStepStart,
   logToolExecution,
 } from "../config/logger";
+
+export interface FinnhubRequestContext extends RequestContext {
+  userId?: string;
+}
 
 /**
  * Finnhub Quotes Tool
@@ -31,6 +36,116 @@ export const finnhubQuotesTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-quotes', {
+      attributes: {
+        symbol: input.symbol,
+        operation: 'finnhub-quotes',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching quote for ${input.symbol}`,
+        stage: 'finnhub-quotes'
+      },
+      id: 'finnhub-quotes'
+    });
+
+    logToolExecution('finnhubQuotesTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubQuotesTool', new Error(message), { symbol: input.symbol });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+      params.append('symbol', input.symbol);
+
+      const url = `https://finnhub.io/api/v1/quote?${params.toString()}`;
+
+      // Create child span for API call
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        symbol: input.symbol,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan?.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubQuotesTool', new Error(message), { symbol: input.symbol, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          symbol: input.symbol
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubQuotesTool', { output: { symbol: input.symbol } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubQuotesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: input.symbol });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub quotes input streaming started', {
       toolCallId,
@@ -54,127 +169,7 @@ export const finnhubQuotesTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-quotes', {
-      attributes: {
-        symbol: inputData.symbol,
-        operation: 'finnhub-quotes'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching quote for ${inputData.symbol}`,
-        stage: 'finnhub-quotes'
-      },
-      id: 'finnhub-quotes'
-    });
-
-    logToolExecution('finnhubQuotesTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubQuotesTool', new Error(message), { symbol: inputData.symbol });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-      params.append('symbol', inputData.symbol);
-
-      const url = `https://finnhub.io/api/v1/quote?${params.toString()}`;
-
-      // Create child span for API call
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        symbol: inputData.symbol,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      /*apiSpan.end({
-        output: { ... }
-      }); -> OTEL doesn't accept object in end(). Only timestamp.*/
-
-      // Set attributes on apiSpan
-      // apiSpan.setAttribute('http.status_code', response.status);
-      // ...
-      // But I can't replicate `end({output})` directly.
-      // I will set attributes and then end.
-
-      apiSpan?.end();
-      // Wait, the previous code used `apiSpan?.end({ output: ... })`. This was a custom wrapper.
-      // I will just end it.
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubQuotesTool', new Error(message), { symbol: inputData.symbol, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          symbol: inputData.symbol
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubQuotesTool', { output: { symbol: inputData.symbol } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubQuotesTool', error instanceof Error ? error : new Error(errorMessage), { symbol: inputData.symbol });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 /**
  * Finnhub Company Tool
@@ -207,6 +202,153 @@ export const finnhubCompanyTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-company', {
+      attributes: {
+        function: input.function,
+        symbol: input.symbol,
+        operation: 'finnhub-company',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching company data (${input.function}) for ${input.symbol}`,
+        stage: 'finnhub-company'
+      },
+      id: 'finnhub-company'
+    });
+
+    logToolExecution('finnhubCompanyTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubCompanyTool', new Error(message), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      let url: string;
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+
+      switch (input.function) {
+        case "COMPANY_PROFILE":
+          params.append('symbol', input.symbol);
+          url = `https://finnhub.io/api/v1/stock/profile2?${params.toString()}`;
+          break;
+        case "COMPANY_NEWS": {
+          params.append('symbol', input.symbol);
+          if (input.from !== undefined && input.from !== null && input.from.trim() !== '') {
+            params.append('from', input.from);
+          }
+          if (input.to !== undefined && input.to !== null && input.to.trim() !== '') {
+            params.append('to', input.to);
+          }
+          url = `https://finnhub.io/api/v1/company-news?${params.toString()}`;
+          break;
+        }
+        default: {
+          const message = `Unsupported function: ${input.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          rootSpan.end();
+          logError('finnhubCompanyTool', new Error(message), { function: input.function, symbol: input.symbol });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      // Create child span for API call
+      // Simplifying child span - no explicit parent context for now to keep it simple and avoid import hell,
+      // but if tracing is critical, we should use context.
+      // I will skip child spans for API calls to reduce complexity in this specific migration,
+      // or just create them as root spans (implied child if in async context? no).
+      // I will keep them but just start them. If the runtime propagates context, good. If not, they are siblings or independent properly.
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        function: input.function,
+        symbol: input.symbol,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubCompanyTool', new Error(message), { function: input.function, symbol: input.symbol, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          function: input.function,
+          symbol: input.symbol,
+          from: input.from,
+          to: input.to
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubCompanyTool', { output: { function: input.function, symbol: input.symbol } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubCompanyTool', error instanceof Error ? error : new Error(errorMessage), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub company input streaming started', {
       toolCallId,
@@ -231,152 +373,7 @@ export const finnhubCompanyTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-company', {
-      attributes: {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        operation: 'finnhub-company'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching company data (${inputData.function}) for ${inputData.symbol}`,
-        stage: 'finnhub-company'
-      },
-      id: 'finnhub-company'
-    });
-
-    logToolExecution('finnhubCompanyTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      let url: string;
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-
-      switch (inputData.function) {
-        case "COMPANY_PROFILE":
-          params.append('symbol', inputData.symbol);
-          url = `https://finnhub.io/api/v1/stock/profile2?${params.toString()}`;
-          break;
-        case "COMPANY_NEWS": {
-          params.append('symbol', inputData.symbol);
-          if (inputData.from !== undefined && inputData.from !== null && inputData.from.trim() !== '') {
-            params.append('from', inputData.from);
-          }
-          if (inputData.to !== undefined && inputData.to !== null && inputData.to.trim() !== '') {
-            params.append('to', inputData.to);
-          }
-          url = `https://finnhub.io/api/v1/company-news?${params.toString()}`;
-          break;
-        }
-        default: {
-          const message = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          rootSpan.end();
-          logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      // Create child span for API call
-      // Simplifying child span - no explicit parent context for now to keep it simple and avoid import hell,
-      // but if tracing is critical, we should use context.
-      // I will skip child spans for API calls to reduce complexity in this specific migration,
-      // or just create them as root spans (implied child if in async context? no).
-      // I will keep them but just start them. If the runtime propagates context, good. If not, they are siblings or independent properly.
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      apiSpan.end();
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubCompanyTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          function: inputData.function,
-          symbol: inputData.symbol,
-          from: inputData.from,
-          to: inputData.to
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubCompanyTool', { output: { function: inputData.function, symbol: inputData.symbol } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubCompanyTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 /**
  * Finnhub Financials Tool
@@ -409,6 +406,148 @@ export const finnhubFinancialsTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-financials', {
+      attributes: {
+        function: input.function,
+        symbol: input.symbol,
+        operation: 'finnhub-financials',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching financials (${input.function}) for ${input.symbol}`,
+        stage: 'finnhub-financials'
+      },
+      id: 'finnhub-financials'
+    });
+
+    logToolExecution('finnhubFinancialsTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubFinancialsTool', new Error(message), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      let url: string;
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+      params.append('symbol', input.symbol);
+
+      switch (input.function) {
+        case "FINANCIAL_STATEMENTS": {
+          url = `https://finnhub.io/api/v1/stock/financials?${params.toString()}`;
+          break;
+        }
+        case "METRICS": {
+          url = `https://finnhub.io/api/v1/stock/metric?${params.toString()}`;
+          break;
+        }
+        case "EARNINGS": {
+          url = `https://finnhub.io/api/v1/stock/earnings?${params.toString()}`;
+          break;
+        }
+        case "REVENUE_BREAKDOWN": {
+          url = `https://finnhub.io/api/v1/stock/revenue-breakdown2?${params.toString()}`;
+          break;
+        }
+        default: {
+          const message = `Unsupported function: ${input.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          rootSpan.end();
+          logError('finnhubFinancialsTool', new Error(message), { function: input.function, symbol: input.symbol });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      // Create child span for API call
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        function: input.function,
+        symbol: input.symbol,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubFinancialsTool', new Error(message), { function: input.function, symbol: input.symbol, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          function: input.function,
+          symbol: input.symbol
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubFinancialsTool', { output: { function: input.function, symbol: input.symbol } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubFinancialsTool', error instanceof Error ? error : new Error(errorMessage), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub financials input streaming started', {
       toolCallId,
@@ -433,147 +572,7 @@ export const finnhubFinancialsTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-financials', {
-      attributes: {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        operation: 'finnhub-financials'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching financials (${inputData.function}) for ${inputData.symbol}`,
-        stage: 'finnhub-financials'
-      },
-      id: 'finnhub-financials'
-    });
-
-    logToolExecution('finnhubFinancialsTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      let url: string;
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-      params.append('symbol', inputData.symbol);
-
-      switch (inputData.function) {
-        case "FINANCIAL_STATEMENTS": {
-          url = `https://finnhub.io/api/v1/stock/financials?${params.toString()}`;
-          break;
-        }
-        case "METRICS": {
-          url = `https://finnhub.io/api/v1/stock/metric?${params.toString()}`;
-          break;
-        }
-        case "EARNINGS": {
-          url = `https://finnhub.io/api/v1/stock/earnings?${params.toString()}`;
-          break;
-        }
-        case "REVENUE_BREAKDOWN": {
-          url = `https://finnhub.io/api/v1/stock/revenue-breakdown2?${params.toString()}`;
-          break;
-        }
-        default: {
-          const message = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          rootSpan.end();
-          logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      // Create child span for API call
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      apiSpan.end();
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubFinancialsTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          function: inputData.function,
-          symbol: inputData.symbol
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubFinancialsTool', { output: { function: inputData.function, symbol: inputData.symbol } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubFinancialsTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 /**
  * Finnhub Analysis Tool
@@ -602,6 +601,140 @@ export const finnhubAnalysisTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-analysis', {
+      attributes: {
+        function: input.function,
+        symbol: input.symbol,
+        operation: 'finnhub-analysis',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching analysis (${input.function}) for ${input.symbol}`,
+        stage: 'finnhub-analysis'
+      },
+      id: 'finnhub-analysis'
+    });
+
+    logToolExecution('finnhubAnalysisTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubAnalysisTool', new Error(message), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      let url: string;
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+      params.append('symbol', input.symbol);
+
+      switch (input.function) {
+        case "RECOMMENDATION_TRENDS": {
+          url = `https://finnhub.io/api/v1/stock/recommendation?${params.toString()}`;
+          break;
+        }
+        case "PRICE_TARGET": {
+          url = `https://finnhub.io/api/v1/stock/price-target?${params.toString()}`;
+          break;
+        }
+        default: {
+          const message = `Unsupported function: ${input.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          rootSpan.end();
+          logError('finnhubAnalysisTool', new Error(message), { function: input.function, symbol: input.symbol });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      // Create child span for API call
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        function: input.function,
+        symbol: input.symbol,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubAnalysisTool', new Error(message), { function: input.function, symbol: input.symbol, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          function: input.function,
+          symbol: input.symbol
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubAnalysisTool', { output: { function: input.function, symbol: input.symbol } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubAnalysisTool', error instanceof Error ? error : new Error(errorMessage), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub analysis input streaming started', {
       toolCallId,
@@ -626,139 +759,7 @@ export const finnhubAnalysisTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-analysis', {
-      attributes: {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        operation: 'finnhub-analysis'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching analysis (${inputData.function}) for ${inputData.symbol}`,
-        stage: 'finnhub-analysis'
-      },
-      id: 'finnhub-analysis'
-    });
-
-    logToolExecution('finnhubAnalysisTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      let url: string;
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-      params.append('symbol', inputData.symbol);
-
-      switch (inputData.function) {
-        case "RECOMMENDATION_TRENDS": {
-          url = `https://finnhub.io/api/v1/stock/recommendation?${params.toString()}`;
-          break;
-        }
-        case "PRICE_TARGET": {
-          url = `https://finnhub.io/api/v1/stock/price-target?${params.toString()}`;
-          break;
-        }
-        default: {
-          const message = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          rootSpan.end();
-          logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      // Create child span for API call
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      apiSpan.end();
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubAnalysisTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          function: inputData.function,
-          symbol: inputData.symbol
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubAnalysisTool', { output: { function: inputData.function, symbol: inputData.symbol } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubAnalysisTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 /**
  * Finnhub Technical Tool
@@ -799,6 +800,169 @@ export const finnhubTechnicalTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-technical', {
+      attributes: {
+        function: input.function,
+        symbol: input.symbol,
+        operation: 'finnhub-technical',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching technical data (${input.function}) for ${input.symbol}`,
+        stage: 'finnhub-technical'
+      },
+      id: 'finnhub-technical'
+    });
+
+    logToolExecution('finnhubTechnicalTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubTechnicalTool', new Error(message), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      let url: string;
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+      params.append('symbol', input.symbol);
+      params.append('resolution', input.resolution);
+
+      switch (input.function) {
+        case "TECHNICAL_INDICATOR": {
+          if (input.indicator === undefined || input.indicator === null || input.indicator.trim() === '' ||
+            input.timeperiod === undefined || input.timeperiod === null ||
+            input.series_type === undefined || input.series_type === null || input.series_type.trim() === '') {
+            const message = "TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters";
+            rootSpan.recordException(new Error(message));
+            rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+            rootSpan.end();
+            logError('finnhubTechnicalTool', new Error(message), { function: input.function, symbol: input.symbol });
+            return {
+              data: null,
+              message
+            };
+          }
+          params.append('indicator', input.indicator);
+          params.append('timeperiod', input.timeperiod.toString());
+          params.append('series_type', input.series_type);
+          url = `https://finnhub.io/api/v1/indicator?${params.toString()}`;
+          break;
+        }
+        case "PATTERN_RECOGNITION": {
+          url = `https://finnhub.io/api/v1/scan/pattern?${params.toString()}`;
+          break;
+        }
+        case "SUPPORT_RESISTANCE": {
+          url = `https://finnhub.io/api/v1/scan/support-resistance?${params.toString()}`;
+          break;
+        }
+        case "AGGREGATE_INDICATOR": {
+          url = `https://finnhub.io/api/v1/scan/technical-indicator?${params.toString()}`;
+          break;
+        }
+        default: {
+          const message = `Unsupported function: ${input.function}`;
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          rootSpan.end();
+          logError('finnhubTechnicalTool', new Error(message), { function: input.function, symbol: input.symbol });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      // Create child span for API call
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        function: input.function,
+        symbol: input.symbol,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubTechnicalTool', new Error(message), { function: input.function, symbol: input.symbol, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          function: input.function,
+          symbol: input.symbol,
+          resolution: input.resolution,
+          indicator: input.indicator,
+          timeperiod: input.timeperiod,
+          series_type: input.series_type
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubTechnicalTool', { output: { function: input.function, symbol: input.symbol } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubTechnicalTool', error instanceof Error ? error : new Error(errorMessage), { function: input.function, symbol: input.symbol });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub technical input streaming started', {
       toolCallId,
@@ -824,168 +988,7 @@ export const finnhubTechnicalTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-technical', {
-      attributes: {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        operation: 'finnhub-technical'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching technical data (${inputData.function}) for ${inputData.symbol}`,
-        stage: 'finnhub-technical'
-      },
-      id: 'finnhub-technical'
-    });
-
-    logToolExecution('finnhubTechnicalTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      let url: string;
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-      params.append('symbol', inputData.symbol);
-      params.append('resolution', inputData.resolution);
-
-      switch (inputData.function) {
-        case "TECHNICAL_INDICATOR": {
-          if (inputData.indicator === undefined || inputData.indicator === null || inputData.indicator.trim() === '' ||
-            inputData.timeperiod === undefined || inputData.timeperiod === null ||
-            inputData.series_type === undefined || inputData.series_type === null || inputData.series_type.trim() === '') {
-            const message = "TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters";
-            rootSpan.recordException(new Error(message));
-            rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-            rootSpan.end();
-            logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-            return {
-              data: null,
-              message
-            };
-          }
-          params.append('indicator', inputData.indicator);
-          params.append('timeperiod', inputData.timeperiod.toString());
-          params.append('series_type', inputData.series_type);
-          url = `https://finnhub.io/api/v1/indicator?${params.toString()}`;
-          break;
-        }
-        case "PATTERN_RECOGNITION": {
-          url = `https://finnhub.io/api/v1/scan/pattern?${params.toString()}`;
-          break;
-        }
-        case "SUPPORT_RESISTANCE": {
-          url = `https://finnhub.io/api/v1/scan/support-resistance?${params.toString()}`;
-          break;
-        }
-        case "AGGREGATE_INDICATOR": {
-          url = `https://finnhub.io/api/v1/scan/technical-indicator?${params.toString()}`;
-          break;
-        }
-        default: {
-          const message = `Unsupported function: ${inputData.function}`;
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          rootSpan.end();
-          logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      // Create child span for API call
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        function: inputData.function,
-        symbol: inputData.symbol,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      apiSpan.end();
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubTechnicalTool', new Error(message), { function: inputData.function, symbol: inputData.symbol, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          function: inputData.function,
-          symbol: inputData.symbol,
-          resolution: inputData.resolution,
-          indicator: inputData.indicator,
-          timeperiod: inputData.timeperiod,
-          series_type: inputData.series_type
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubTechnicalTool', { output: { function: inputData.function, symbol: inputData.symbol } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubTechnicalTool', error instanceof Error ? error : new Error(errorMessage), { function: inputData.function, symbol: inputData.symbol });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 /**
  * Finnhub Economic Tool
@@ -1008,6 +1011,116 @@ export const finnhubEconomicTool = createTool({
     }).optional(),
     message: z.string().optional()
   }),
+  execute: async (input, context) => {
+    const requestCtx = context?.requestContext as FinnhubRequestContext | undefined;
+    const tracer = trace.getTracer('finnhub-tools');
+    const rootSpan = tracer.startSpan('finnhub-economic', {
+      attributes: {
+        economic_code: input.economic_code,
+        operation: 'finnhub-economic',
+        'tool.requestContext.userId': requestCtx?.userId,
+      }
+    });
+
+    await context?.writer?.custom({
+      type: 'data-tool-progress',
+      data: {
+        status: 'in-progress',
+        message: `Fetching economic data for ${input.economic_code}`,
+        stage: 'finnhub-economic'
+      },
+      id: 'finnhub-economic'
+    });
+
+    logToolExecution('finnhubEconomicTool', { input: input });
+
+    const apiKey = process.env.FINNHUB_API_KEY;
+
+    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
+      const message = "FINNHUB_API_KEY environment variable is required";
+      rootSpan.recordException(new Error(message));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+      rootSpan.end();
+      logError('finnhubEconomicTool', new Error(message), { economic_code: input.economic_code });
+      return {
+        data: null,
+        message
+      };
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('token', apiKey);
+      params.append('code', input.economic_code);
+
+      const url = `https://finnhub.io/api/v1/economic?${params.toString()}`;
+
+      // Create child span for API call
+      const apiSpan = tracer.startSpan('finnhub-api-call', {
+        attributes: {
+          url: url.replace(apiKey, '[REDACTED]'),
+          method: 'GET'
+        }
+      });
+
+      logStepStart('finnhub-api-call', {
+        economic_code: input.economic_code,
+        url: url.replace(apiKey, '[REDACTED]')
+      });
+
+      const apiStartTime = Date.now();
+      const response = await fetch(url);
+      const data = await response.json();
+      const apiDuration = Date.now() - apiStartTime;
+
+      apiSpan.end();
+
+      logStepEnd('finnhub-api-call', {
+        status: response.status,
+        dataSize: JSON.stringify(data).length
+      }, apiDuration);
+
+      // Check for API errors
+      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+        const errorValue = (data as Record<string, unknown>)['error'];
+        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
+          const message = String(errorValue);
+          rootSpan.recordException(new Error(message));
+          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
+          logError('finnhubEconomicTool', new Error(message), { economic_code: input.economic_code, apiError: message });
+          return {
+            data: null,
+            message
+          };
+        }
+      }
+
+      const result = {
+        data,
+        metadata: {
+          economic_code: input.economic_code
+        },
+        message: undefined
+      };
+
+      rootSpan.end();
+
+      logToolExecution('finnhubEconomicTool', { output: { economic_code: input.economic_code } });
+
+      return result;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      rootSpan.end();
+      logError('finnhubEconomicTool', error instanceof Error ? error : new Error(errorMessage), { economic_code: input.economic_code });
+      return {
+        data: null,
+        message: errorMessage
+      };
+    }
+  },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
     log.info('Finnhub economic input streaming started', {
       toolCallId,
@@ -1031,115 +1144,7 @@ export const finnhubEconomicTool = createTool({
       hook: 'onOutput',
     })
   },
-  execute: async (inputData, context) => {
-    const tracer = trace.getTracer('finnhub-tools');
-    const rootSpan = tracer.startSpan('finnhub-economic', {
-      attributes: {
-        economic_code: inputData.economic_code,
-        operation: 'finnhub-economic'
-      }
-    });
-
-    await context?.writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching economic data for ${inputData.economic_code}`,
-        stage: 'finnhub-economic'
-      },
-      id: 'finnhub-economic'
-    });
-
-    logToolExecution('finnhubEconomicTool', { input: inputData });
-
-    const apiKey = process.env.FINNHUB_API_KEY;
-
-    if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
-      const message = "FINNHUB_API_KEY environment variable is required";
-      rootSpan.recordException(new Error(message));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-      rootSpan.end();
-      logError('finnhubEconomicTool', new Error(message), { economic_code: inputData.economic_code });
-      return {
-        data: null,
-        message
-      };
-    }
-
-    try {
-      const params = new URLSearchParams();
-      params.append('token', apiKey);
-      params.append('code', inputData.economic_code);
-
-      const url = `https://finnhub.io/api/v1/economic?${params.toString()}`;
-
-      // Create child span for API call
-      const apiSpan = tracer.startSpan('finnhub-api-call', {
-        attributes: {
-          url: url.replace(apiKey, '[REDACTED]'),
-          method: 'GET'
-        }
-      });
-
-      logStepStart('finnhub-api-call', {
-        economic_code: inputData.economic_code,
-        url: url.replace(apiKey, '[REDACTED]')
-      });
-
-      const apiStartTime = Date.now();
-      const response = await fetch(url);
-      const data = await response.json();
-      const apiDuration = Date.now() - apiStartTime;
-
-      apiSpan.end();
-
-      logStepEnd('finnhub-api-call', {
-        status: response.status,
-        dataSize: JSON.stringify(data).length
-      }, apiDuration);
-
-      // Check for API errors
-      if (data !== null && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
-        const errorValue = (data as Record<string, unknown>)['error'];
-        if (errorValue !== null && errorValue !== undefined && String(errorValue).trim() !== '') {
-          const message = String(errorValue);
-          rootSpan.recordException(new Error(message));
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR, message });
-          logError('finnhubEconomicTool', new Error(message), { economic_code: inputData.economic_code, apiError: message });
-          return {
-            data: null,
-            message
-          };
-        }
-      }
-
-      const result = {
-        data,
-        metadata: {
-          economic_code: inputData.economic_code
-        },
-        message: undefined
-      };
-
-      rootSpan.end();
-
-      logToolExecution('finnhubEconomicTool', { output: { economic_code: inputData.economic_code } });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      rootSpan.recordException(error instanceof Error ? error : new Error(errorMessage));
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
-      rootSpan.end();
-      logError('finnhubEconomicTool', error instanceof Error ? error : new Error(errorMessage), { economic_code: inputData.economic_code });
-      return {
-        data: null,
-        message: errorMessage
-      };
-    }
-  }
-});
+})
 
 export type FinnhubEconomicUITool = InferUITool<typeof finnhubEconomicTool>;
 export type FinnhubTechnicalUITool = InferUITool<typeof finnhubTechnicalTool>;

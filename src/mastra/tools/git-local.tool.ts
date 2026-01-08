@@ -16,6 +16,14 @@ export interface GitToolContext extends RequestContext {
     timeout?: number
 }
 
+const gitToolContextSchema = z.object({
+    defaultBranch: z.string().optional(),
+    allowForce: z.boolean().optional(),
+    allowAmend: z.boolean().optional(),
+    maxCommits: z.number().optional(),
+    timeout: z.number().optional(),
+})
+
 // Enhanced Git Status Tool with more detailed information
 export const gitStatusTool = createTool({
     id: 'git:status',
@@ -82,7 +90,7 @@ export const gitStatusTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
+            const cwd = inputData.repoPath ?? process.cwd()
             const args = ['status', '--porcelain']
 
             if (!inputData.porcelain) {
@@ -355,7 +363,7 @@ export const gitDiffTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
+            const cwd = inputData.repoPath ?? process.cwd()
             const args = ['diff']
 
             if (inputData.target) {
@@ -559,7 +567,7 @@ export const gitCommitTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
+            const cwd = inputData.repoPath ?? process.cwd()
 
             // Validate amend permission
             if (inputData.amend && !allowAmend) {
@@ -1094,7 +1102,7 @@ export const gitBranchTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
+            const cwd = inputData.repoPath ?? process.cwd()
             let result: any = {}
 
             switch (inputData.operation) {
@@ -1296,7 +1304,7 @@ export const gitBranchTool = createTool({
                     const mergeResult = await execa('git', args, {
                         cwd,
                         stdio: 'pipe',
-                        timeout: timeout * 2, // Merges can take longer
+                        timeout: (timeout ?? 30000) * 2, // Merges can take longer
                     })
 
                     // Check for conflicts
@@ -1335,7 +1343,7 @@ export const gitBranchTool = createTool({
                     await execa('git', ['rebase', inputData.targetBranch], {
                         cwd,
                         stdio: 'pipe',
-                        timeout: timeout * 2,
+                        timeout: (timeout ?? 30000) * 2, // Merges can take longer
                     })
 
                     result = {

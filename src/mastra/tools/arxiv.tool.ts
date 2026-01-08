@@ -4,6 +4,12 @@ import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface ArxivRequestContext extends RequestContext {
+    userId?: string
+}
+
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
 // toolCallCounters.set('tool-id', (toolCallCounters.get('tool-id') ?? 0) + 1)
@@ -219,58 +225,21 @@ export const arxivTool = createTool({
         start_index: z.number(),
         max_results: z.number(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('ArXiv tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('ArXiv tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const searchType = input.id
-            ? 'by-id'
-            : input.query
-              ? 'by-query'
-              : 'general'
-        log.info('ArXiv tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            searchType,
-            query: input.query,
-            id: input.id,
-            author: input.author,
-            category: input.category,
-            maxResults: input.max_results,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('ArXiv search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            papersFound: output.papers.length,
-            totalResults: output.total_results,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
+        const writer = context?.writer
+        const requestCtx =
+            context?.requestContext as ArxivRequestContext | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
             throw new Error('ArXiv search cancelled')
+        }
+
+        if (requestCtx) {
+            log.debug('ArXiv search request context available', {
+                tool: 'arxiv',
+            })
         }
 
         const span = trace
@@ -285,7 +254,7 @@ export const arxivTool = createTool({
                 },
             })
 
-        await context?.writer?.custom({
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
@@ -323,7 +292,7 @@ export const arxivTool = createTool({
             } else if (searchTerms.length > 0) {
                 params.append('search_query', searchTerms.join(' AND '))
             } else {
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'done',
@@ -359,7 +328,7 @@ export const arxivTool = createTool({
             const url = `http://export.arxiv.org/api/query?${params.toString()}`
 
             // Check for cancellation before API call
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span.setStatus({
                     code: 2,
                     message: 'Operation cancelled during API call',
@@ -368,7 +337,7 @@ export const arxivTool = createTool({
                 throw new Error('ArXiv search cancelled during API call')
             }
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -377,7 +346,7 @@ export const arxivTool = createTool({
                 },
                 id: 'arxiv',
             })
-            const response = await fetch(url)
+            const response = await fetch(url, { signal: abortSignal })
 
             if (!response.ok) {
                 throw new Error(
@@ -425,7 +394,7 @@ export const arxivTool = createTool({
                 span.setStatus({ code: 2, message: cancelMessage })
                 span.end()
 
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'done',
@@ -450,6 +419,52 @@ export const arxivTool = createTool({
             span.end()
             throw error instanceof Error ? error : new Error(errorMessage)
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const searchType = input.id
+            ? 'by-id'
+            : input.query
+              ? 'by-query'
+              : 'general'
+        log.info('ArXiv tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            searchType,
+            query: input.query,
+            id: input.id,
+            author: input.author,
+            category: input.category,
+            maxResults: input.max_results,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('ArXiv search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            papersFound: output.papers.length,
+            totalResults: output.total_results,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -507,6 +522,9 @@ export const arxivPdfParserTool = createTool({
         }),
     }),
     execute: async (inputData, context) => {
+        const writer = context?.writer
+        const requestCtx =
+            context?.requestContext as ArxivRequestContext | undefined
         const span = trace
             .getTracer('arxiv-pdf-parser-tool', '1.0.0')
             .startSpan('arxiv-pdf-parser', {
@@ -517,7 +535,7 @@ export const arxivPdfParserTool = createTool({
                 },
             })
 
-        await context?.writer?.custom({
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
@@ -534,20 +552,16 @@ export const arxivPdfParserTool = createTool({
         const startTime = Date.now()
 
         try {
-            await context?.writer?.custom({
-                type: 'data-tool-progress',
-                data: {
-                    status: 'in-progress',
-                    message: '📥 Downloading PDF from arXiv...',
-                    stage: 'arxiv-pdf-parser',
-                },
-                id: 'arxiv-pdf-parser',
-            })
+            if (requestCtx) {
+                log.debug('Arxiv PDF parser request context available', {
+                    tool: 'arxiv-pdf-parser',
+                })
+            }
             // Construct PDF URL
             const pdfUrl = `https://arxiv.org/pdf/${inputData.arxivId}`
 
             // Download PDF
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -559,7 +573,7 @@ export const arxivPdfParserTool = createTool({
             const response = await fetch(pdfUrl)
 
             if (!response.ok) {
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'done',
@@ -658,7 +672,7 @@ export const arxivPdfParserTool = createTool({
                 markdown = frontmatter + markdown
             }
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
@@ -695,7 +709,6 @@ export const arxivPdfParserTool = createTool({
             span.end()
             return result
         } catch (error) {
-            const processingTime = Date.now() - startTime
             const errorMessage =
                 error instanceof Error
                     ? error.message
@@ -708,6 +721,44 @@ export const arxivPdfParserTool = createTool({
 
             throw error instanceof Error ? error : new Error(errorMessage)
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv PDF parser input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv PDF parser received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv PDF parser received input', {
+            toolCallId,
+            messageCount: messages.length,
+            arxivId: input.arxivId,
+            maxPages: input.maxPages,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('ArXiv PDF parsing completed', {
+            toolCallId,
+            toolName,
+            arxivId: output.arxivId,
+            success: output.success,
+            pageCount: output.statistics.pageCount,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -772,6 +823,10 @@ export const arxivPaperDownloaderTool = createTool({
             .optional(),
     }),
     execute: async (inputData, context) => {
+        const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const requestCtx =
+            context?.requestContext as ArxivRequestContext | undefined
         const span = trace
             .getTracer('arxiv-paper-downloader-tool', '1.0.0')
             .startSpan('arxiv-paper-downloader', {
@@ -783,7 +838,7 @@ export const arxivPaperDownloaderTool = createTool({
                 },
             })
 
-        await context?.writer?.custom({
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
@@ -799,7 +854,12 @@ export const arxivPaperDownloaderTool = createTool({
             (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1
         )
         try {
-            await context?.writer?.custom({
+            if (typeof requestCtx?.userId === 'string') {
+                log.debug('Executing arXiv paper downloader for user', {
+                    userId: requestCtx.userId,
+                })
+            }
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -810,7 +870,7 @@ export const arxivPaperDownloaderTool = createTool({
             })
             // Get metadata from arXiv API
             const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`
-            const apiResponse = await fetch(apiUrl)
+            const apiResponse = await fetch(apiUrl, { signal: abortSignal })
 
             if (!apiResponse.ok) {
                 throw new Error(
@@ -832,7 +892,7 @@ export const arxivPaperDownloaderTool = createTool({
                 | { markdown: string; pageCount: number; textLength: number }
                 | undefined
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -843,7 +903,7 @@ export const arxivPaperDownloaderTool = createTool({
             })
             // Download and parse PDF if requested
             if (inputData.includePdfContent) {
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'in-progress',
@@ -930,6 +990,45 @@ export const arxivPaperDownloaderTool = createTool({
             span.end()
             throw error instanceof Error ? error : new Error(errorMessage)
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv paper downloader input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv paper downloader received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('ArXiv paper downloader received input', {
+            toolCallId,
+            messageCount: messages.length,
+            arxivId: input.arxivId,
+            includePdf: input.includePdfContent,
+            format: input.format,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('ArXiv paper download completed', {
+            toolCallId,
+            toolName,
+            arxivId: output.arxivId,
+            success: output.success,
+            hasPdf: !!output.pdfContent,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

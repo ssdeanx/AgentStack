@@ -1,8 +1,10 @@
-import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
+import type { InferUITool } from '@mastra/core/tools'
 import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
+
+import type { RequestContext } from '@mastra/core/request-context'
 
 /**
  * Alpha Vantage Tools
@@ -13,6 +15,13 @@ import { log } from '../config/logger'
  *
  * Requires ALPHA_VANTAGE_API_KEY environment variable
  */
+
+/**
+ * Base Request Context for Alpha Vantage
+ */
+export interface AlphaVantageRequestContext extends RequestContext {
+    apiKey?: string
+}
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -83,6 +92,7 @@ export const alphaVantageCryptoTool = createTool({
       .optional(),
   }),
   execute: async (inputData, context) => {
+    const requestContext = context?.requestContext as AlphaVantageRequestContext
     const span = trace
       .getTracer('alpha-vantage-crypto-tool', '1.0.0')
       .startSpan('alpha-vantage-crypto', {
@@ -103,7 +113,7 @@ export const alphaVantageCryptoTool = createTool({
       },
       id: 'alpha-vantage-crypto',
     })
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
+    const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
       await context?.writer?.custom({
@@ -313,7 +323,7 @@ export const alphaVantageCryptoTool = createTool({
     })
   },
   onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    const dataKeys = output.data ? Object.keys(output.data).length : 0
+    const dataKeys = (output.data !== null && typeof output.data === 'object') ? Object.keys(output.data as object).length : 0
     log.info('Alpha Vantage crypto completed', {
       toolCallId,
       toolName,
@@ -412,6 +422,7 @@ export const alphaVantageStockTool = createTool({
   }),
 
   execute: async (inputData, context) => {
+    const requestContext = context?.requestContext as AlphaVantageRequestContext
     const span = trace
       .getTracer('alpha-vantage-stock-tool', '1.0.0')
       .startSpan('alpha-vantage-stock', {
@@ -431,7 +442,7 @@ export const alphaVantageStockTool = createTool({
       },
       id: 'alpha-vantage-stock',
     })
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
+    const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
       await context?.writer?.custom({
@@ -674,7 +685,7 @@ export const alphaVantageStockTool = createTool({
     })
   },
   onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    const dataKeys = output.data ? Object.keys(output.data).length : 0
+    const dataKeys = (output.data !== null && typeof output.data === 'object') ? Object.keys(output.data as object).length : 0
     log.info('Alpha Vantage stock completed', {
       toolCallId,
       toolName,
@@ -804,6 +815,7 @@ export const alphaVantageTool = createTool({
       .optional(),
   }),
   execute: async (inputData, context) => {
+    const requestContext = context?.requestContext as AlphaVantageRequestContext
     const span = trace
       .getTracer('alpha-vantage-tool', '1.0.0')
       .startSpan('alpha-vantage', {
@@ -823,7 +835,7 @@ export const alphaVantageTool = createTool({
       },
       id: 'alpha-vantage',
     })
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY
+    const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
       await context?.writer?.custom({
