@@ -2,7 +2,7 @@ import { QdrantVector } from '@mastra/qdrant';
 import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag';
 import { google } from '@ai-sdk/google';
 import { embedMany } from 'ai';
-import { log } from '../logger';
+import { log } from './logger';
 
 /**
  * Qdrant-compatible filter format for vector queries

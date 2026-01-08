@@ -46,7 +46,7 @@ export const codeArchitectAgent = new Agent({
   instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
-    const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
+   // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
     return {
       role: 'system',
@@ -55,7 +55,6 @@ export const codeArchitectAgent = new Agent({
 **Context:**
 - User Tier: ${userTier}
 - Language: ${language}
-- Project Root: ${projectRoot}
 
 **Core Capabilities:**
 1. **Architecture Analysis**: Evaluate existing code structure, identify patterns and anti-patterns

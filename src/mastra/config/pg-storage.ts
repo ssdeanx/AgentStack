@@ -96,9 +96,9 @@ export const pgMemory = new Memory({
       scope: 'resource', // 'resource' | 'thread'
       // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
       indexConfig: {
-        type: 'hnsw', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
+        type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
         metric: 'cosine', // Distance metric for normalized embeddings
-        hnsw: { m: parseFloat(process.env.PG_M ?? '32'), efConstruction: parseInt(process.env.PG_EF ?? '96') }, // hnsw configuration
+        ivf: { lists: 1080 }, // IVFFlat configuration
       },
       threshold: 0.75, // Similarity threshold for semantic recall
       indexName: 'memory_messages_3072', // Index name for semantic recall
