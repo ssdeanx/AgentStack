@@ -180,5 +180,8 @@ Structure:
   },
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

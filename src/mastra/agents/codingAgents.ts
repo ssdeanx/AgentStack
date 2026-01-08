@@ -347,7 +347,10 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
 
   },
   maxRetries: 3,
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 /**
@@ -465,7 +468,10 @@ For each refactoring:
 
   },
   maxRetries: 3,
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 log.info('Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent')

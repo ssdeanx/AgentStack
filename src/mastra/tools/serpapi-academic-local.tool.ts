@@ -14,6 +14,10 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 
+export interface SerpApiContext extends RequestContext {
+    userId?: string
+}
+
 // Google Scholar Tool
 const googleScholarInputSchema = z.object({
     query: z.string().min(1).describe('Academic search query'),
@@ -72,49 +76,12 @@ export const googleScholarTool = createTool({
         'Search Google Scholar for academic papers and citations. Filter by year range, include/exclude patents, and sort by relevance or date. Returns paper title, authors, publication, year, citation count, and PDF links when available. Useful for research and finding academic sources.',
     inputSchema: googleScholarInputSchema,
     outputSchema: googleScholarOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar received input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                query: input.query,
-                yearStart: input.yearStart,
-                yearEnd: input.yearEnd,
-                sortBy: input.sortBy,
-                numResults: input.numResults,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google Scholar search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            papersFound: output.papers.length,
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const requestContext = context?.requestContext as SerpApiContext | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -153,7 +120,7 @@ export const googleScholarTool = createTool({
                 params.scisbd = '1'
             }
             // Check for cancellation before API call
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 scholarSpan.setStatus({
                     code: 2,
                     message: 'Operation cancelled during API call',
@@ -248,6 +215,45 @@ export const googleScholarTool = createTool({
             throw new Error(`Google Scholar search failed: ${errorMessage}`)
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            inputData: {
+                query: input.query,
+                yearStart: input.yearStart,
+                yearEnd: input.yearEnd,
+                sortBy: input.sortBy,
+                numResults: input.numResults,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Scholar search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            papersFound: output.papers.length,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type GoogleScholarUITool = InferUITool<typeof googleScholarTool>
@@ -296,6 +302,7 @@ export const googleFinanceTool = createTool({
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
+        const requestContext = context?.requestContext as SerpApiContext | undefined
 
         const tracer = trace.getTracer('serpapi-academic-local-tool')
         const financeSpan = tracer.startSpan('google-finance-tool', {
@@ -431,10 +438,10 @@ export const yelpSearchTool = createTool({
     description:
         'Search Yelp for local businesses and reviews. Requires location parameter. Filter by price range, open now status, and sort by recommended, rating, or review count. Returns business name, rating, reviews, address, phone, hours, and photos. Best for finding local services and restaurants.',
     inputSchema: yelpSearchInputSchema,
-    outputSchema: yelpSearchOutputSchema,
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
+        const requestContext = context?.requestContext as SerpApiContext | undefined
 
         const tracer = trace.getTracer('serpapi-academic-local-tool')
         const yelpSpan = tracer.startSpan('yelp-search-tool', {

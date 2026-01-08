@@ -5,6 +5,11 @@ import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface EvaluateResultContext extends RequestContext {
+    userId?: string
+}
 
 export const evaluateResultTool = createTool({
     id: 'evaluate-result',
@@ -56,6 +61,7 @@ export const evaluateResultTool = createTool({
         })
     },
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as EvaluateResultContext | undefined
         await context?.writer?.custom({
             type: 'data-tool-progress',
             data: {

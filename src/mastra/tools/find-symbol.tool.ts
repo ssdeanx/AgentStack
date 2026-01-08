@@ -83,47 +83,7 @@ export const findSymbolTool = createTool({
         'Find symbol definitions (functions, classes, variables) across the codebase using semantic analysis.',
     inputSchema: findSymbolInputSchema,
     outputSchema: findSymbolOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            symbolName: input.symbolName,
-            projectPath: input.projectPath,
-            symbolType: input.symbolType,
-            includeDependencies: input.includeDependencies,
-            hook: 'onInputAvailable',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Find symbol search completed', {
-            toolCallId,
-            toolName,
-            symbolsFound: output.symbols.length,
-            totalFiles: output.stats.totalFiles,
-            searchTime: output.stats.searchTime,
-            cacheHits: output.stats.cacheHits,
-            hook: 'onOutput',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
+
     execute: async (inputData, context) => {
         const { symbolName, projectPath, symbolType, includeDependencies } =
             inputData
@@ -170,7 +130,7 @@ export const findSymbolTool = createTool({
 
         try {
             // Check for cancellation before symbol search
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span.setStatus({
                     code: 2,
                     message: 'Operation cancelled during symbol search',
@@ -389,6 +349,47 @@ export const findSymbolTool = createTool({
             span.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            symbolName: input.symbolName,
+            projectPath: input.projectPath,
+            symbolType: input.symbolType,
+            includeDependencies: input.includeDependencies,
+            hook: 'onInputAvailable',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Find symbol search completed', {
+            toolCallId,
+            toolName,
+            symbolsFound: output.symbols.length,
+            totalFiles: output.stats.totalFiles,
+            searchTime: output.stats.searchTime,
+            cacheHits: output.stats.cacheHits,
+            hook: 'onOutput',
+            abortSignal: abortSignal?.aborted,
+        })
     },
 })
 

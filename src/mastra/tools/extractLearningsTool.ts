@@ -4,6 +4,11 @@ import { createTool } from '@mastra/core/tools'
 import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface ExtractLearningsContext extends RequestContext {
+    userId?: string
+}
 
 export const extractLearningsTool = createTool({
     id: 'extract-learnings',
@@ -19,49 +24,12 @@ export const extractLearningsTool = createTool({
             })
             .describe('The search result to process'),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('extractLearningsTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                query: input.query,
-                result: {
-                    title: input.result.title,
-                    url: input.result.url,
-                },
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('extractLearningsTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                learning: output.learning,
-                followUpQuestions: output.followUpQuestions,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
+        const requestContext = context?.requestContext as ExtractLearningsContext | undefined
+
         // Emit progress start event
         await writer?.custom({
             type: 'data-tool-progress',
@@ -79,6 +47,7 @@ export const extractLearningsTool = createTool({
                 url: inputData?.result?.url,
                 contentLength: inputData?.result?.content?.length,
                 operation: 'extract_learnings',
+                'tool.requestContext.userId': requestContext?.userId,
             },
         })
 
@@ -285,6 +254,50 @@ export const extractLearningsTool = createTool({
                 followUpQuestions: [],
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('extractLearningsTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('extractLearningsTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('extractLearningsTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                query: input.query,
+                result: {
+                    title: input.result.title,
+                    url: input.result.url,
+                },
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('extractLearningsTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                learning: output.learning,
+                followUpQuestions: output.followUpQuestions,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

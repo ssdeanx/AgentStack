@@ -160,7 +160,10 @@ ${PGVECTOR_PROMPT}
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128000)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 export const contractAnalysisAgent = new Agent({
@@ -247,7 +250,10 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 export const complianceMonitoringAgent = new Agent({
@@ -337,7 +343,10 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 export const businessStrategyAgent = new Agent({
@@ -422,7 +431,10 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 

@@ -87,51 +87,7 @@ export const polygonStockQuotesTool = createTool({
             .optional(),
         error: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Polygon stock quotes received input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                symbol: input.symbol,
-                function: input.function,
-                limit: input.limit,
-                sort: input.sort,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const hasError = !!output.error
-        const dataPoints = output.metadata?.count ?? 0
-        log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                symbol: output.metadata?.symbol,
-                dataPoints,
-                hasError,
-                error: output.error,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context) => {
         const startTime = Date.now()
         const writer = context?.writer
@@ -404,6 +360,51 @@ export const polygonStockQuotesTool = createTool({
 
             throw error instanceof Error ? error : new Error(errorMessage)
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Polygon stock quotes received input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            inputData: {
+                symbol: input.symbol,
+                function: input.function,
+                limit: input.limit,
+                sort: input.sort,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const hasError = !!output.error
+        const dataPoints = output.metadata?.count ?? 0
+        log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                symbol: output.metadata?.symbol,
+                dataPoints,
+                hasError,
+                error: output.error,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 

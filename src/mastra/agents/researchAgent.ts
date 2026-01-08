@@ -138,4 +138,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
       emitOnNonText: true
     }),
   ],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })

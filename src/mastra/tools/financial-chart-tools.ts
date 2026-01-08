@@ -4,8 +4,13 @@ import { createTool } from "@mastra/core/tools";
 import { trace } from "@opentelemetry/api";
 import { z } from 'zod';
 import { log } from '../config/logger';
+import type { RequestContext } from '@mastra/core/request-context';
+
 // Agents are retrieved from context to avoid circular dependencies
 
+export interface FinancialChartContext extends RequestContext {
+    userId?: string
+}
 
 log.info('Initializing Financial Chart Tools...')
 
@@ -80,39 +85,9 @@ export const chartSupervisorTool = createTool({
       timestamp: z.string(),
     }))
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartSupervisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartSupervisorTool received input', {
-      toolCallId,
-      inputData: {
-        symbols: input.symbols,
-        chartType: input.chartType,
-        timeRange: input.timeRange,
-        metrics: input.metrics,
-        theme: input.theme,
-        responsive: input.responsive,
-        includeCode: input.includeCode,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartSupervisorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        success: output.success,
-        data: output.data,
-        component: output.component,
-        chartRecommendation: output.chartRecommendation,
-        sources: output.sources,
-      },
-      hook: 'onOutput'
-    });
-  },
+
   execute: async (inputData, context) => {
+    const requestContext = context?.requestContext as FinancialChartContext | undefined
     const {
       symbols,
       chartType = 'auto',
@@ -231,6 +206,38 @@ Please:
       throw error instanceof Error ? error : new Error(`Failed to generate chart: ${errorMsg}`);
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('chartSupervisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('chartSupervisorTool received input', {
+      toolCallId,
+      inputData: {
+        symbols: input.symbols,
+        chartType: input.chartType,
+        timeRange: input.timeRange,
+        metrics: input.metrics,
+        theme: input.theme,
+        responsive: input.responsive,
+        includeCode: input.includeCode,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('chartSupervisorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        success: output.success,
+        data: output.data,
+        component: output.component,
+        chartRecommendation: output.chartRecommendation,
+        sources: output.sources,
+      },
+      hook: 'onOutput'
+    });
+  },
 })
 
 /**
@@ -279,43 +286,11 @@ export const chartGeneratorTool = createTool({
     props: z.record(z.string(), z.unknown()),
     dependencies: z.array(z.string()),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartGeneratorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartGeneratorTool received input', {
-      toolCallId,
-      inputData: {
-        chartType: input.chartType,
-        data: input.data,
-        dataKeys: input.dataKeys,
-        componentName: input.componentName,
-        theme: input.theme,
-        features: input.features,
-        xAxisKey: input.xAxisKey,
-        height: input.height,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartGeneratorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        componentName: output.componentName,
-        code: output.code,
-        usage: output.usage,
-        props: output.props,
-        dependencies: output.dependencies,
-      },
-      hook: 'onOutput'
-    });
-  },
-  execute: async (inputData, context) => {
-    const {
-      chartType,
-      data,
+
+      execute: async (inputData, context) => {
+      const requestContext = context?.requestContext as FinancialChartContext | undefined
+      const {
+        chartType,      data,
       dataKeys,
       componentName = 'FinancialChart',
       theme = 'light',
@@ -425,6 +400,39 @@ Return JSON with: componentName, code, usage, props, dependencies`
       throw new Error(`Failed to generate chart component: ${errorMsg}`)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('chartGeneratorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('chartGeneratorTool received input', {
+      toolCallId,
+      inputData: {
+        chartType: input.chartType,
+        data: input.data,
+        dataKeys: input.dataKeys,
+        componentName: input.componentName,
+        theme: input.theme,
+        features: input.features,
+        xAxisKey: input.xAxisKey,
+        height: input.height,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('chartGeneratorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        componentName: output.componentName,
+        code: output.code,
+        usage: output.usage,
+        props: output.props,
+        dependencies: output.dependencies,
+      },
+      hook: 'onOutput'
+    });
+  },
 })
 
 /**
@@ -473,37 +481,9 @@ export const chartDataProcessorTool = createTool({
     }),
     calculations: z.record(z.string(), z.unknown()).optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartDataProcessorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartDataProcessorTool received input', {
-      toolCallId,
-      inputData: {
-        symbols: input.symbols,
-        timeRange: input.timeRange,
-        metrics: input.metrics,
-        aggregation: input.aggregation,
-        calculations: input.calculations,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartDataProcessorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        chartData: output.chartData,
-        dataKeys: output.dataKeys,
-        domain: output.domain,
-        metadata: output.metadata,
-        calculations: output.calculations,
-      },
-      hook: 'onOutput'
-    });
-  },
+
   execute: async (inputData, context) => {
+    const requestContext = context?.requestContext as FinancialChartContext | undefined
     const {
       symbols,
       timeRange = '1M',
@@ -626,6 +606,36 @@ Return JSON with:
       throw error instanceof Error ? error : new Error(`Failed to process data: ${errorMsg}`);
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('chartDataProcessorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('chartDataProcessorTool received input', {
+      toolCallId,
+      inputData: {
+        symbols: input.symbols,
+        timeRange: input.timeRange,
+        metrics: input.metrics,
+        aggregation: input.aggregation,
+        calculations: input.calculations,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('chartDataProcessorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        chartData: output.chartData,
+        dataKeys: output.dataKeys,
+        domain: output.domain,
+        metadata: output.metadata,
+        calculations: output.calculations,
+      },
+      hook: 'onOutput'
+    });
+  },
 })
 
 /**
@@ -679,36 +689,10 @@ export const chartTypeAdvisorTool = createTool({
       suggestedHeight: z.number(),
     }),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartTypeAdvisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartTypeAdvisorTool received input', {
-      toolCallId,
-      inputData: {
-        dataDescription: input.dataDescription,
-        visualizationGoal: input.visualizationGoal,
-        dataCharacteristics: input.dataCharacteristics,
-        constraints: input.constraints,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartTypeAdvisorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        primaryRecommendation: output.primaryRecommendation,
-        alternatives: output.alternatives,
-        configuration: output.configuration,
-      },
-      hook: 'onOutput'
-    });
-  },
-  execute: async (inputData, context) => {
-    const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
 
+      execute: async (inputData, context) => {
+      const requestContext = context?.requestContext as FinancialChartContext | undefined
+      const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🎯 Analyzing visualization requirements...`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
 
     const tracer = trace.getTracer('chart-type-advisor-tool')
@@ -818,6 +802,33 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
       span.end()
       throw new Error(`Failed to recommend chart type: ${errorMsg}`)
     }
+  },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('chartTypeAdvisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('chartTypeAdvisorTool received input', {
+      toolCallId,
+      inputData: {
+        dataDescription: input.dataDescription,
+        visualizationGoal: input.visualizationGoal,
+        dataCharacteristics: input.dataCharacteristics,
+        constraints: input.constraints,
+      },
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('chartTypeAdvisorTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        primaryRecommendation: output.primaryRecommendation,
+        alternatives: output.alternatives,
+        configuration: output.configuration,
+      },
+      hook: 'onOutput'
+    });
   },
 })
 

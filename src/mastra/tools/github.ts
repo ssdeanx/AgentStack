@@ -9,6 +9,11 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface GithubToolContext extends RequestContext {
+    userId?: string
+}
 
 interface GitHubRepo {
     name: string
@@ -196,56 +201,9 @@ export const listRepositories = createTool({
             .optional(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('GitHub list repositories tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('GitHub list repositories tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const scope = input.org ? `org:${input.org}` : 'user'
-        log.info('GitHub list repositories received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            scope,
-            type: input.type,
-            sort: input.sort,
-            perPage: input.perPage,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        if (output.success && output.repositories) {
-            log.info('GitHub list repositories completed', {
-                toolCallId,
-                toolName,
-                abortSignal: abortSignal?.aborted,
-                repositoriesFound: output.repositories.length,
-                hook: 'onOutput',
-            })
-        } else {
-            log.warn('GitHub list repositories failed', {
-                toolCallId,
-                toolName,
-                abortSignal: abortSignal?.aborted,
-                errorMessage: output.message,
-                hook: 'onOutput',
-            })
-        }
-    },
+
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-list-repos', {
             attributes: {
@@ -275,7 +233,7 @@ export const listRepositories = createTool({
 
         try {
             // Check for cancellation before API call
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span.setStatus({
                     code: 2,
                     message: 'Operation cancelled during API call',
@@ -357,6 +315,55 @@ export const listRepositories = createTool({
             return { success: false, message: errorMsg }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('GitHub list repositories tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('GitHub list repositories tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const scope = input.org ? `org:${input.org}` : 'user'
+        log.info('GitHub list repositories received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            scope,
+            type: input.type,
+            sort: input.sort,
+            perPage: input.perPage,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        if (output.success && output.repositories) {
+            log.info('GitHub list repositories completed', {
+                toolCallId,
+                toolName,
+                abortSignal: abortSignal?.aborted,
+                repositoriesFound: output.repositories.length,
+                hook: 'onOutput',
+            })
+        } else {
+            log.warn('GitHub list repositories failed', {
+                toolCallId,
+                toolName,
+                abortSignal: abortSignal?.aborted,
+                errorMessage: output.message,
+                hook: 'onOutput',
+            })
+        }
+    },
 })
 
 interface GitHubPR {
@@ -418,6 +425,7 @@ export const listPullRequests = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-list-prs', {
             attributes: {
@@ -527,6 +535,7 @@ export const listCommits = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-list-commits', {
             attributes: {
@@ -633,6 +642,7 @@ export const listIssues = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-list-issues', {
             attributes: {
@@ -747,6 +757,7 @@ export const createIssue = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-create-issue', {
             attributes: {
@@ -844,6 +855,7 @@ export const createRelease = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-create-release', {
             attributes: {
@@ -954,6 +966,7 @@ export const getRepositoryInfo = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-get-repo-info', {
             attributes: {
@@ -1064,6 +1077,7 @@ export const searchCode = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-search-code', {
             attributes: {
@@ -1173,6 +1187,7 @@ export const getFileContent = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-get-file', {
             attributes: {
@@ -1282,6 +1297,7 @@ export const getRepoFileTree = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-get-tree', {
             attributes: {
@@ -1409,6 +1425,7 @@ export const createPullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-create-pr', {
             attributes: {
@@ -1504,6 +1521,7 @@ export const mergePullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-merge-pr', {
             attributes: {
@@ -1590,6 +1608,7 @@ export const addIssueComment = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-add-comment', {
             attributes: {
@@ -1686,6 +1705,7 @@ export const getPullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-get-pr', {
             attributes: {
@@ -1789,6 +1809,7 @@ export const getIssue = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as GithubToolContext | undefined
         const tracer = trace.getTracer('github-tool')
         const span = tracer.startSpan('github-get-issue', {
             attributes: {

@@ -5,6 +5,11 @@ import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { editorAgent } from '../agents/editorAgent'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface EditorAgentContext extends RequestContext {
+    userId?: string
+}
 
 export const editorTool = createTool({
     id: 'editor-agent',
@@ -96,6 +101,7 @@ export const editorTool = createTool({
             tone,
         } = inputData
         const writer = context?.writer
+        const requestContext = context?.requestContext as EditorAgentContext | undefined
 
         const tracer = trace.getTracer('editor-agent-tool')
         const span = tracer.startSpan('editor-agent', {

@@ -15,4 +15,7 @@ export const bgColorAgent = new Agent({
   model: "openai/gpt-4o-mini",
   tools: { colorChangeTool },
   memory: new Memory(),
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

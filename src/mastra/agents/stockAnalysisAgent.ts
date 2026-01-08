@@ -116,5 +116,8 @@ export const stockAnalysisAgent = new Agent({
   memory: pgMemory,
   options: {},
   outputProcessors: [new TokenLimiterProcessor(1048576)],
-  maxRetries: 5
+  maxRetries: 5,
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })

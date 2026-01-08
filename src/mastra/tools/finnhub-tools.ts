@@ -57,7 +57,7 @@ export const finnhubQuotesTool = createTool({
       id: 'finnhub-quotes'
     });
 
-    logToolExecution('finnhubQuotesTool', { input: input });
+    logToolExecution('finnhubQuotesTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -150,6 +150,7 @@ export const finnhubQuotesTool = createTool({
     log.info('Finnhub quotes input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -158,6 +159,7 @@ export const finnhubQuotesTool = createTool({
       toolCallId,
       messageCount: messages.length,
       symbol: input.symbol,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -166,6 +168,7 @@ export const finnhubQuotesTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -224,7 +227,7 @@ export const finnhubCompanyTool = createTool({
       id: 'finnhub-company'
     });
 
-    logToolExecution('finnhubCompanyTool', { input: input });
+    logToolExecution('finnhubCompanyTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -353,6 +356,7 @@ export const finnhubCompanyTool = createTool({
     log.info('Finnhub company input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -362,6 +366,7 @@ export const finnhubCompanyTool = createTool({
       messageCount: messages.length,
       function: input.function,
       symbol: input.symbol,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -370,6 +375,7 @@ export const finnhubCompanyTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -428,7 +434,7 @@ export const finnhubFinancialsTool = createTool({
       id: 'finnhub-financials'
     });
 
-    logToolExecution('finnhubFinancialsTool', { input: input });
+    logToolExecution('finnhubFinancialsTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -552,6 +558,7 @@ export const finnhubFinancialsTool = createTool({
     log.info('Finnhub financials input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -561,6 +568,7 @@ export const finnhubFinancialsTool = createTool({
       messageCount: messages.length,
       function: input.function,
       symbol: input.symbol,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -569,6 +577,7 @@ export const finnhubFinancialsTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -623,7 +632,7 @@ export const finnhubAnalysisTool = createTool({
       id: 'finnhub-analysis'
     });
 
-    logToolExecution('finnhubAnalysisTool', { input: input });
+    logToolExecution('finnhubAnalysisTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -739,6 +748,7 @@ export const finnhubAnalysisTool = createTool({
     log.info('Finnhub analysis input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -748,6 +758,7 @@ export const finnhubAnalysisTool = createTool({
       messageCount: messages.length,
       function: input.function,
       symbol: input.symbol,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -756,6 +767,7 @@ export const finnhubAnalysisTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -822,7 +834,7 @@ export const finnhubTechnicalTool = createTool({
       id: 'finnhub-technical'
     });
 
-    logToolExecution('finnhubTechnicalTool', { input: input });
+    logToolExecution('finnhubTechnicalTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -967,6 +979,7 @@ export const finnhubTechnicalTool = createTool({
     log.info('Finnhub technical input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -977,6 +990,7 @@ export const finnhubTechnicalTool = createTool({
       function: input.function,
       symbol: input.symbol,
       resolution: input.resolution,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -985,6 +999,7 @@ export const finnhubTechnicalTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -1032,7 +1047,7 @@ export const finnhubEconomicTool = createTool({
       id: 'finnhub-economic'
     });
 
-    logToolExecution('finnhubEconomicTool', { input: input });
+    logToolExecution('finnhubEconomicTool', { input });
 
     const apiKey = process.env.FINNHUB_API_KEY;
 
@@ -1125,6 +1140,7 @@ export const finnhubEconomicTool = createTool({
     log.info('Finnhub economic input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -1133,6 +1149,7 @@ export const finnhubEconomicTool = createTool({
       toolCallId,
       messageCount: messages.length,
       economic_code: input.economic_code,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -1141,6 +1158,7 @@ export const finnhubEconomicTool = createTool({
       toolCallId,
       toolName,
       hasData: !!output.data,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
