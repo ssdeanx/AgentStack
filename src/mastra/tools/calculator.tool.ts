@@ -4,15 +4,15 @@ import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const calculatorToolContextSchema = z.object({
-    precision: z.number().default(6),
-    allowComplexExpressions: z.boolean().default(true),
-    maxExpressionLength: z.number().default(1000),
-})
+import type { RequestContext } from '@mastra/core/request-context'
 
-// Infer the TypeScript type from the Zod schema
-export type CalculatorToolContext = z.infer<typeof calculatorToolContextSchema>
+// RequestContext interface for Calculator tool
+export interface CalculatorToolContext extends RequestContext {
+    precision?: number
+    allowComplexExpressions?: boolean
+    maxExpressionLength?: number
+}
+
 
 // Enhanced mathematical functions and constants
 const MATH_CONSTANTS = {
@@ -176,7 +176,7 @@ function convertUnits(value: number, fromUnit: string, toUnit: string): number {
         ['celsius', 'fahrenheit', 'kelvin'].includes(fromUnit) &&
         ['celsius', 'fahrenheit', 'kelvin'].includes(toUnit)
     ) {
-        return convertTemperature(value, fromUnit as any, toUnit as any)
+        return convertTemperature(value, fromUnit as 'celsius' | 'fahrenheit' | 'kelvin', toUnit as 'celsius' | 'fahrenheit' | 'kelvin')
     }
 
     // Regular unit conversion
@@ -319,57 +319,14 @@ export const calculatorTool = createTool({
         variables: z.record(z.string(), z.number()).optional(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                expressionLength: input.expression.length,
-                variableCount: input.variables
-                    ? Object.keys(input.variables).length
-                    : 0,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Calculator tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                success: output.success,
-                result: output.result,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext
 
-        const { precision, allowComplexExpressions, maxExpressionLength } =
-            calculatorToolContextSchema.parse(
-                requestContext?.get('calculatorToolContext')
-            )
+        const requestCtx = context?.requestContext as CalculatorToolContext | undefined
+        const precision = requestCtx?.precision ?? 6
+        const allowComplexExpressions = requestCtx?.allowComplexExpressions ?? true
+        const maxExpressionLength = requestCtx?.maxExpressionLength ?? 1000
 
         const tracer = trace.getTracer('calculator-tool', '1.0.0')
         const span = tracer.startSpan('calculate')
@@ -392,9 +349,10 @@ export const calculatorTool = createTool({
                 )
             }
 
+            const vars = (inputData.variables ?? {})
             const result = evaluateExpression(
                 inputData.expression,
-                (inputData.variables as Record<string, number>) || {}
+                vars
             )
             const actualPrecision = inputData.precision || precision
             const formattedResult = result.toFixed(actualPrecision)
@@ -425,7 +383,9 @@ export const calculatorTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Calculator evaluation failed: ${errorMsg}`)
+            log.error(`Calculator evaluation failed: ${errorMsg}`, {
+                error: errorMsg,
+            })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -442,6 +402,47 @@ export const calculatorTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                expression: input.expression,
+                variablesCount: Object.keys(input.variables ?? {}).length,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Calculator tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                success: output.success,
+                hasResult: output.result !== undefined,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -539,7 +540,9 @@ export const unitConverterTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Unit conversion failed: ${errorMsg}`)
+            log.error(`Unit conversion failed: ${errorMsg}`, {
+                error: errorMsg,
+            })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -558,6 +561,48 @@ export const unitConverterTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Unit Converter tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Unit Converter tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Unit Converter tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                value: input.value,
+                fromUnit: input.fromUnit,
+                toUnit: input.toUnit,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Unit Converter tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                success: output.success,
+                result: output.formattedResult,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -614,28 +659,31 @@ export const matrixCalculatorTool = createTool({
         })
 
         try {
-            let result: any
+            let result: number[][] | number
 
             switch (inputData.operation) {
                 case 'add':
-                    if (!inputData.matrixB)
-                        {throw new Error('Matrix B required for addition')}
+                    if (!inputData.matrixB) {
+                        throw new Error('Matrix B required for addition')
+                    }
                     result = MATRIX_OPERATIONS.add(
                         inputData.matrixA,
                         inputData.matrixB
                     )
                     break
                 case 'subtract':
-                    if (!inputData.matrixB)
-                        {throw new Error('Matrix B required for subtraction')}
+                    if (!inputData.matrixB) {
+                        throw new Error('Matrix B required for subtraction')
+                    }
                     result = MATRIX_OPERATIONS.subtract(
                         inputData.matrixA,
                         inputData.matrixB
                     )
                     break
                 case 'multiply':
-                    if (!inputData.matrixB)
-                        {throw new Error('Matrix B required for multiplication')}
+                    if (!inputData.matrixB) {
+                        throw new Error('Matrix B required for multiplication')
+                    }
                     result = MATRIX_OPERATIONS.multiply(
                         inputData.matrixA,
                         inputData.matrixB
@@ -699,7 +747,9 @@ export const matrixCalculatorTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Matrix operation failed: ${errorMsg}`)
+            log.error(`Matrix operation failed: ${errorMsg}`, {
+                error: errorMsg,
+            })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -730,6 +780,47 @@ export const matrixCalculatorTool = createTool({
             }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Matrix Calculator tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Matrix Calculator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Matrix Calculator tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                operation: input.operation,
+                matrixADims: [input.matrixA.length, input.matrixA[0]?.length || 0],
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Matrix Calculator tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                success: output.success,
+                operation: output.operation,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 // Helper functions
@@ -737,7 +828,9 @@ function factorial(n: number): number {
     if (n < 0 || !Number.isInteger(n)) {
         throw new Error('Factorial requires a non-negative integer')
     }
-    if (n === 0 || n === 1) {return 1}
+    if (n === 0 || n === 1) {
+        return 1
+    }
     let result = 1
     for (let i = 2; i <= n; i++) {
         result *= i
@@ -749,8 +842,12 @@ function fibonacci(n: number): number {
     if (n < 0 || !Number.isInteger(n)) {
         throw new Error('Fibonacci requires a non-negative integer')
     }
-    if (n === 0) {return 0}
-    if (n === 1) {return 1}
+    if (n === 0) {
+        return 0
+    }
+    if (n === 1) {
+        return 1
+    }
     let a = 0,
         b = 1
     for (let i = 2; i <= n; i++) {
@@ -788,11 +885,19 @@ function isPrime(n: number): boolean {
     if (!Number.isInteger(n)) {
         throw new Error('Prime check requires an integer')
     }
-    if (n <= 1) {return false}
-    if (n <= 3) {return true}
-    if (n % 2 === 0 || n % 3 === 0) {return false}
+    if (n <= 1) {
+        return false
+    }
+    if (n <= 3) {
+        return true
+    }
+    if (n % 2 === 0 || n % 3 === 0) {
+        return false
+    }
     for (let i = 5; i * i <= n; i += 6) {
-        if (n % i === 0 || n % (i + 2) === 0) {return false}
+        if (n % i === 0 || n % (i + 2) === 0) {
+            return false
+        }
     }
     return true
 }
@@ -825,9 +930,12 @@ function permutations(n: number, k: number): number {
 
 function calculateDeterminant(matrix: number[][]): number {
     const n = matrix.length
-    if (n === 1) {return matrix[0][0]}
-    if (n === 2)
-        {return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]}
+    if (n === 1) {
+        return matrix[0][0]
+    }
+    if (n === 2) {
+        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    }
 
     let det = 0
     for (let i = 0; i < n; i++) {

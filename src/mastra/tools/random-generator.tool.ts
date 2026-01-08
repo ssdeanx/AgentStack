@@ -2,7 +2,7 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
-import { log } from '../config/logger'
+import { log, logError } from '../config/logger'
 
 // Define the Zod schema for the runtime context
 const randomToolContextSchema = z.object({
@@ -74,53 +74,15 @@ export const randomGeneratorTool = createTool({
         count: z.number(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Random generator tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                type: input.type,
-                count: input.count,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Random generator tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                success: output.success,
-                type: output.type,
-                count: output.count,
-            },
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
-        const writer = context?.writer
+        const requestContext = context?.requestContext as RandomGeneratorRequestContext
+        const localeFromContext = requestContext?.locale ?? 'en'
 
         const tracer = trace.getTracer('random-generator-tool', '1.0.0')
         const span = tracer.startSpan('random-generate')
+        const writer = context?.writer
+
+
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -195,11 +157,11 @@ function generateRandomItem(type: string, options?: any): any {
     switch (type) {
         case 'string':
             return generateRandomString(
-                options?.length || 10,
-                options?.includeSpecial || false
+                options?.length ?? 10,
+                options?.includeSpecial ?? false
             )
         case 'number':
-            return generateRandomNumber(options?.min || 0, options?.max || 100)
+            return generateRandomNumber(options?.min ?? 0, options?.max ?? 100)
         case 'boolean':
             return Math.random() > 0.5
         case 'date':
@@ -209,25 +171,22 @@ function generateRandomItem(type: string, options?: any): any {
         case 'email':
             return generateRandomEmail()
         case 'name':
-            return generateRandomName(options?.locale || 'en')
+            return generateRandomName(options?.locale ?? 'en')
         case 'address':
-            return generateRandomAddress(options?.locale || 'en')
+            return generateRandomAddress(options?.locale ?? 'en')
         case 'array':
             return generateRandomArray(
-                options?.length || 5,
-                options?.itemType || 'string'
+                options?.length ?? 5,
+                options?.itemType ?? 'string'
             )
         case 'object':
-            return generateRandomObject(options?.properties || 3)
+            return generateRandomObject(options?.properties ?? 3)
         default:
             throw new Error(`Unknown type: ${type}`)
     }
 }
 
-function generateRandomString(
-    length: number,
-    includeSpecial = false
-): string {
+function generateRandomString(length: number, includeSpecial = false): string {
     const chars = includeSpecial
         ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()'
         : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -259,14 +218,11 @@ function generateRandomDate(format?: string): string {
 }
 
 function generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
-        /[xy]/g,
-        (c) => {
-            const r = (Math.random() * 16) | 0
-            const v = c === 'x' ? r : (r & 0x3) | 0x8
-            return v.toString(16)
-        }
-    )
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        const v = c === 'x' ? r : (r & 0x3) | 0x8
+        return v.toString(16)
+    })
 }
 
 function generateRandomEmail(): string {
@@ -350,8 +306,8 @@ function generateRandomName(locale = 'en'): string {
     }
 
     const names1 =
-        firstNames[locale as keyof typeof firstNames] || firstNames.en
-    const names2 = lastNames[locale as keyof typeof lastNames] || lastNames.en
+        firstNames[locale as keyof typeof firstNames] ?? firstNames.en
+    const names2 = lastNames[locale as keyof typeof lastNames] ?? lastNames.en
 
     const first = names1[Math.floor(Math.random() * names1.length)]
     const last = names2[Math.floor(Math.random() * names2.length)]
@@ -389,7 +345,7 @@ function generateRandomAddress(locale = 'en'): string {
     }
 
     const street = streets[Math.floor(Math.random() * streets.length)]
-    const cityList = cities[locale as keyof typeof cities] || cities.en
+    const cityList = cities[locale as keyof typeof cities] ?? cities.en
     const city = cityList[Math.floor(Math.random() * cityList.length)]
     const number = generateRandomNumber(1, 9999)
 

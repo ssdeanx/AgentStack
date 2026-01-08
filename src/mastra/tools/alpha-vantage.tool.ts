@@ -82,45 +82,6 @@ export const alphaVantageCryptoTool = createTool({
       })
       .optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Alpha Vantage tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputStart',
-    })
-  },
-  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-    log.info('Alpha Vantage tool received input chunk', {
-      toolCallId,
-      inputTextDelta,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputDelta',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Alpha Vantage crypto received input', {
-      toolCallId,
-      messageCount: messages.length,
-      symbol: input.symbol,
-      market: input.market,
-      function: input.function,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    const dataKeys = output.data ? Object.keys(output.data).length : 0
-    log.info('Alpha Vantage crypto completed', {
-      toolCallId,
-      toolName,
-      symbol: output.metadata?.symbol ?? 'unknown',
-      dataKeys,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onOutput',
-    })
-  },
   execute: async (inputData, context) => {
     const span = trace
       .getTracer('alpha-vantage-crypto-tool', '1.0.0')
@@ -323,6 +284,45 @@ export const alphaVantageCryptoTool = createTool({
       throw error instanceof Error ? error : new Error(errMsg)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputStart',
+    })
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage tool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage crypto received input', {
+      toolCallId,
+      messageCount: messages.length,
+      symbol: input.symbol,
+      market: input.market,
+      function: input.function,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    const dataKeys = output.data ? Object.keys(output.data).length : 0
+    log.info('Alpha Vantage crypto completed', {
+      toolCallId,
+      toolName,
+      symbol: output.metadata?.symbol ?? 'unknown',
+      dataKeys,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -410,53 +410,7 @@ export const alphaVantageStockTool = createTool({
       })
       .optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageStockTool tool input streaming started', {
-      toolCallId,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputStart' });
-  },
-  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageStockTool received input chunk', {
-      toolCallId,
-      inputTextDelta,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputDelta',
 
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageStockTool received input', {
-      toolCallId,
-      messageCount: messages.length,
-      inputData: {
-        function: input.function,
-        symbol: input.symbol,
-        interval: input.interval,
-        outputsize: input.outputsize,
-        datatype: input.datatype,
-        indicator: input.indicator,
-        time_period: input.time_period,
-        series_type: input.series_type,
-      },
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('alphaVantageStockTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        data: output.data,
-        metadata: output.metadata,
-      },
-      abortSignal: abortSignal?.aborted,
-      hook: 'onOutput'
-    });
-  },
   execute: async (inputData, context) => {
     const span = trace
       .getTracer('alpha-vantage-stock-tool', '1.0.0')
@@ -692,6 +646,44 @@ export const alphaVantageStockTool = createTool({
       throw error instanceof Error ? error : new Error(errorMessage)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage stock tool input streaming started', {
+      toolCallId,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputStart',
+    })
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage stock tool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Alpha Vantage stock received input', {
+      toolCallId,
+      messageCount: messages.length,
+      symbol: input.symbol,
+      function: input.function,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    const dataKeys = output.data ? Object.keys(output.data).length : 0
+    log.info('Alpha Vantage stock completed', {
+      toolCallId,
+      toolName,
+      symbol: output.metadata?.symbol ?? 'unknown',
+      dataKeys,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -811,53 +803,6 @@ export const alphaVantageTool = createTool({
       })
       .optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageTool tool input streaming started', { toolCallId,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputStart' });
-  },
-  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageTool received input chunk', {
-      toolCallId,
-      inputTextDelta,
-      messageCount: messages.length,
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputDelta',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageTool received input', {
-      toolCallId,
-      messageCount: messages.length,
-      inputData: {
-        function: input.function,
-        symbol: input.symbol,
-        market: input.market,
-        interval: input.interval,
-        outputsize: input.outputsize,
-        datatype: input.datatype,
-        indicator: input.indicator,
-        time_period: input.time_period,
-        series_type: input.series_type,
-        economic_indicator: input.economic_indicator,
-      },
-      abortSignal: abortSignal?.aborted,
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('alphaVantageTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        data: output.data,
-        metadata: output.metadata,
-      },
-      abortSignal: abortSignal?.aborted,
-      hook: 'onOutput'
-    });
-  },
   execute: async (inputData, context) => {
     const span = trace
       .getTracer('alpha-vantage-tool', '1.0.0')
@@ -1107,6 +1052,53 @@ export const alphaVantageTool = createTool({
       span.end()
       throw error instanceof Error ? error : new Error(errorMessage)
     }
+  },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool tool input streaming started', { toolCallId,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputStart' });
+  },
+  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool received input chunk', {
+      toolCallId,
+      inputTextDelta,
+      messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputDelta',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('alphaVantageTool received input', {
+      toolCallId,
+      messageCount: messages.length,
+      inputData: {
+        function: input.function,
+        symbol: input.symbol,
+        market: input.market,
+        interval: input.interval,
+        outputsize: input.outputsize,
+        datatype: input.datatype,
+        indicator: input.indicator,
+        time_period: input.time_period,
+        series_type: input.series_type,
+        economic_indicator: input.economic_indicator,
+      },
+      abortSignal: abortSignal?.aborted,
+      hook: 'onInputAvailable'
+    });
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('alphaVantageTool completed', {
+      toolCallId,
+      toolName,
+      outputData: {
+        data: output.data,
+        metadata: output.metadata,
+      },
+      abortSignal: abortSignal?.aborted,
+      hook: 'onOutput'
+    });
   },
 })
 

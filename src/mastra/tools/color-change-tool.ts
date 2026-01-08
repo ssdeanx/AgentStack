@@ -14,6 +14,32 @@ export const colorChangeTool = createTool({
     inputSchema: z.object({
         color: z.string(),
     }),
+    execute: async ({ color }, context) => {
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `🎨 Changing background color to ${color}`,
+                stage: 'changeColor',
+            },
+            id: 'changeColor',
+        })
+
+        // On the server, we just return the color.
+        // The client-side UI will handle the actual style change when it receives the tool result or call.
+
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'done',
+                message: `✅ Background color changed to ${color}`,
+                stage: 'changeColor',
+            },
+            id: 'changeColor',
+        })
+
+        return { success: true, color }
+    },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Color change tool input streaming started', {
             toolCallId,
@@ -49,31 +75,5 @@ export const colorChangeTool = createTool({
             color: output.color,
             hook: 'onOutput',
         })
-    },
-    execute: async ({ color }, context) => {
-        await context?.writer?.custom({
-            type: 'data-tool-progress',
-            data: {
-                status: 'in-progress',
-                message: `🎨 Changing background color to ${color}`,
-                stage: 'changeColor',
-            },
-            id: 'changeColor',
-        })
-
-        // On the server, we just return the color.
-        // The client-side UI will handle the actual style change when it receives the tool result or call.
-
-        await context?.writer?.custom({
-            type: 'data-tool-progress',
-            data: {
-                status: 'done',
-                message: `✅ Background color changed to ${color}`,
-                stage: 'changeColor',
-            },
-            id: 'changeColor',
-        })
-
-        return { success: true, color }
     },
 })

@@ -67,54 +67,6 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Approximate word count of the content'),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('copywriterTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                topic: input.topic,
-                contentType: input.contentType,
-                targetAudience: input.targetAudience,
-                tone: input.tone,
-                length: input.length,
-                specificRequirements: input.specificRequirements,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('copywriterTool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                contentType: output.contentType,
-                title: output.title,
-                summary: output.summary,
-                keyPoints: output.keyPoints,
-                wordCount: output.wordCount,
-            },
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const mastra = context?.mastra
@@ -423,6 +375,54 @@ export const copywriterTool = createTool({
             span?.end()
             throw new Error(`Failed to generate content: ${errorMsg}`)
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('copywriterTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('copywriterTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('copywriterTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                topic: input.topic,
+                contentType: input.contentType,
+                targetAudience: input.targetAudience,
+                tone: input.tone,
+                length: input.length,
+                specificRequirements: input.specificRequirements,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('copywriterTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                content: output.content,
+                title: output.title,
+                summary: output.summary,
+                keyPoints: output.keyPoints,
+                wordCount: output.wordCount,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

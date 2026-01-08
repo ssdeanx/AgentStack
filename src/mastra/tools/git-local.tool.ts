@@ -6,17 +6,15 @@ import execa from 'execa'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const gitToolContextSchema = z.object({
-    defaultBranch: z.string().default('main'),
-    allowForce: z.boolean().default(false),
-    allowAmend: z.boolean().default(false),
-    maxCommits: z.number().default(100),
-    timeout: z.number().default(30000),
-})
+import type { RequestContext } from '@mastra/core/request-context'
 
-// Infer the TypeScript type from the Zod schema
-export type GitToolContext = z.infer<typeof gitToolContextSchema>
+export interface GitToolContext extends RequestContext {
+    defaultBranch?: string
+    allowForce?: boolean
+    allowAmend?: boolean
+    maxCommits?: number
+    timeout?: number
+}
 
 // Enhanced Git Status Tool with more detailed information
 export const gitStatusTool = createTool({
@@ -64,54 +62,11 @@ export const gitStatusTool = createTool({
         conflictedFiles: z.array(z.string()),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Git status tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: { repoPath: input.repoPath, porcelain: input.porcelain },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Git status tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                success: output.success,
-                isClean: output.isClean,
-                stagedCount: output.stagedFiles.length,
-                unstagedCount: output.unstagedFiles.length,
-                untrackedCount: output.untrackedFiles.length,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext
-
-        const { timeout } = gitToolContextSchema.parse(
-            requestContext?.get('gitToolContext')
-        )
+        const requestCtx = context?.requestContext as GitToolContext | undefined
+        const timeout = requestCtx?.timeout ?? 30000
 
         const tracer = trace.getTracer('git-tool', '1.0.0')
         const span = tracer.startSpan('git-status')
@@ -279,6 +234,47 @@ export const gitStatusTool = createTool({
             }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Git status tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Git status tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Git status tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { repoPath: input.repoPath, porcelain: input.porcelain },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Git status tool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                success: output.success,
+                isClean: output.isClean,
+                stagedCount: output.stagedFiles.length,
+                unstagedCount: output.unstagedFiles.length,
+                untrackedCount: output.untrackedFiles.length,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 // Enhanced Git Diff Tool with better formatting and options
@@ -419,7 +415,10 @@ export const gitDiffTool = createTool({
                         .filter((line) => line.trim())
                     if (lines.length > 0) {
                         const summaryLine = lines[lines.length - 1]
-                        const match = /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/.exec(summaryLine)
+                        const match =
+                            /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/.exec(
+                                summaryLine
+                            )
                         if (match) {
                             stats = {
                                 files: parseInt(match[1]) || 0,
@@ -466,7 +465,7 @@ export const gitDiffTool = createTool({
                 id: 'git:diff',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-diff')
             span.setAttributes({
                 'tool.output.success': true,
@@ -484,7 +483,7 @@ export const gitDiffTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git diff failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-diff')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -545,9 +544,9 @@ export const gitCommitTool = createTool({
         const writer = context?.writer
         const requestContext = context?.requestContext
 
-        const { allowAmend, timeout } = gitToolContextSchema.parse(
-            requestContext?.get('gitToolContext')
-        )
+        const requestCtx = context?.requestContext as GitToolContext | undefined
+        const allowAmend = requestCtx?.allowAmend ?? false
+        const timeout = requestCtx?.timeout ?? 30000
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -649,7 +648,7 @@ export const gitCommitTool = createTool({
                 id: 'git:commit',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-commit')
             span.setAttributes({
                 'tool.output.success': true,
@@ -667,7 +666,7 @@ export const gitCommitTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git commit failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-commit')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -771,9 +770,9 @@ export const gitLogTool = createTool({
         const writer = context?.writer
         const requestContext = context?.requestContext
 
-        const { maxCommits, timeout } = gitToolContextSchema.parse(
-            requestContext?.get('gitToolContext')
-        )
+        const requestCtx = context?.requestContext as GitToolContext | undefined
+        const maxCommits = requestCtx?.maxCommits ?? 100
+        const timeout = requestCtx?.timeout ?? 30000
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -865,7 +864,17 @@ export const gitLogTool = createTool({
                     const [hash, author, date, ...messageParts] =
                         line.split('|')
                     if (hash && author && date) {
-                        const commit = {
+                        const commit: {
+                            hash: string
+                            author: string
+                            date: string
+                            message: string
+                            stats?: {
+                                insertions?: number
+                                deletions?: number
+                                files?: number
+                            }
+                        } = {
                             hash,
                             author,
                             date,
@@ -885,7 +894,10 @@ export const gitLogTool = createTool({
                                     }
                                 )
                                 const statOutput = statResult.stdout || ''
-                                const statMatch = /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/.exec(statOutput)
+                                const statMatch =
+                                    /(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/.exec(
+                                        statOutput
+                                    )
                                 if (statMatch) {
                                     commit.stats = {
                                         files: parseInt(statMatch[1]),
@@ -893,7 +905,7 @@ export const gitLogTool = createTool({
                                         deletions: parseInt(statMatch[3]) || 0,
                                     }
                                 }
-                            } catch (statError) {
+                            } catch {
                                 // Ignore stat errors
                             }
                         }
@@ -928,7 +940,7 @@ export const gitLogTool = createTool({
                 // Sum insertions and deletions
                 if (commit.stats) {
                     totalInsertions += commit.stats.insertions ?? 0
-                    totalDeletions += commit.stats.deletions || 0
+                    totalDeletions += commit.stats.deletions ?? 0
                 }
             }
 
@@ -952,7 +964,7 @@ export const gitLogTool = createTool({
                 id: 'git:log',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-log')
             span.setAttributes({
                 'tool.output.success': true,
@@ -971,7 +983,7 @@ export const gitLogTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git log failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-log')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -1346,7 +1358,7 @@ export const gitBranchTool = createTool({
                 id: 'git:branch',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-branch')
             span.setAttributes({
                 'tool.output.success': true,
@@ -1362,7 +1374,7 @@ export const gitBranchTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git branch failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-branch')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -1668,7 +1680,7 @@ export const gitStashTool = createTool({
                 id: 'git:stash',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-stash')
             span.setAttributes({
                 'tool.output.success': true,
@@ -1684,7 +1696,7 @@ export const gitStashTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git stash failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-stash')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -1732,7 +1744,7 @@ export const gitConfigTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        config: z.record(z.string()).optional(),
+        config: z.record(z.string(), z.string()).optional(),
         value: z.string().optional(),
         validation: z
             .object({
@@ -1763,7 +1775,7 @@ export const gitConfigTool = createTool({
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
+            const cwd = inputData.repoPath ?? process.cwd()
             let result: any = {}
 
             switch (inputData.operation) {
@@ -1925,7 +1937,7 @@ export const gitConfigTool = createTool({
                 id: 'git:config',
             })
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-config')
             span.setAttributes({
                 'tool.output.success': true,
@@ -1941,7 +1953,7 @@ export const gitConfigTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Git config failed: ${errorMsg}`)
 
-            const tracer = trace.getTracer('git-tool')
+            const tracer = trace.getTracer('git-tool', '1.0.0')
             const span = tracer.startSpan('git-config')
             if (e instanceof Error) {
                 span.recordException(e)
@@ -1963,16 +1975,17 @@ function validateConfigValue(value: string, expectedType: string) {
     let actualType = 'string'
 
     switch (expectedType) {
-        case 'int':
-            { const intVal = parseInt(value)
+        case 'int': {
+            const intVal = parseInt(value)
             if (isNaN(intVal)) {
                 errors.push('Value is not a valid integer')
             } else {
                 actualType = 'int'
             }
-            break }
-        case 'bool':
-            { const boolVal = value.toLowerCase()
+            break
+        }
+        case 'bool': {
+            const boolVal = value.toLowerCase()
             if (
                 !['true', 'false', '1', '0', 'yes', 'no', 'on', 'off'].includes(
                     boolVal
@@ -1982,7 +1995,8 @@ function validateConfigValue(value: string, expectedType: string) {
             } else {
                 actualType = 'bool'
             }
-            break }
+            break
+        }
         case 'string':
         default:
             actualType = 'string'

@@ -118,7 +118,7 @@ export const polygonStockQuotesTool = createTool({
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const hasError = !!output.error
-        const dataPoints = output.metadata?.count || 0
+        const dataPoints = output.metadata?.count ?? 0
         log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
             toolCallId,
             toolName,
@@ -958,7 +958,7 @@ export const polygonStockFundamentalsTool = createTool({
             })
 
             // Check for cancellation before API call
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 rootSpan.setStatus({
                     code: 2,
                     message: 'Operation cancelled during API call',
@@ -1459,6 +1459,7 @@ export const polygonCryptoAggregatesTool = createTool({
         error: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const startTime = Date.now()
         const writer = context?.writer
         const requestContext = context?.requestContext
 
@@ -1739,6 +1740,7 @@ export const polygonCryptoSnapshotsTool = createTool({
         error: z.string().optional(),
     }),
     execute: async (inputData, context) => {
+        const startTime = Date.now()
         const writer = context?.writer
         const requestContext = context?.requestContext
 

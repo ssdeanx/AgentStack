@@ -5,13 +5,11 @@ import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const weatherToolContextSchema = z.object({
-    temperatureUnit: z.enum(['celsius', 'fahrenheit']).default('celsius'),
-})
+export interface WeatherToolContext extends RequestContext {
+    temperatureUnit?: 'celsius' | 'fahrenheit'
+}
 
-// Infer the TypeScript type from the Zod schema
-export type WeatherToolContext = z.infer<typeof weatherToolContextSchema>
+export type WeatherToolContextType = WeatherToolContext
 
 interface GeocodingResponse extends RequestContext {
     results?: Array<{
@@ -48,53 +46,13 @@ export const weatherTool = createTool({
         location: z.string(),
         unit: z.string(), // Add unit to output schema
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: { location: input.location },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Weather tool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                location: output.location,
-                temperature: output.temperature,
-                unit: output.unit,
-                conditions: output.conditions,
-            },
-            hook: 'onOutput',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
+
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext
         const abortSignal = context?.abortSignal
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted) {
+        if (abortSignal?.aborted === true) {
             throw new Error('Weather lookup cancelled')
         }
 
@@ -108,9 +66,8 @@ export const weatherTool = createTool({
             id: 'get-weather',
         })
 
-        const { temperatureUnit } = weatherToolContextSchema.parse(
-            requestContext?.get('weatherToolContext')
-        )
+        const requestCtx = context?.requestContext as WeatherToolContext | undefined
+        const temperatureUnit = requestCtx?.temperatureUnit ?? 'celsius'
 
         log.info(
             `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`
@@ -233,6 +190,46 @@ export const weatherTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            hook: 'onInputStart',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { location: input.location },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Weather tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                location: output.location,
+                temperature: output.temperature,
+                unit: output.unit,
+                conditions: output.conditions,
+            },
+            hook: 'onOutput',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
 })
 
 const getWeather = async (
@@ -241,7 +238,7 @@ const getWeather = async (
     abortSignal?: AbortSignal
 ) => {
     const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`
-    const geocodingResponse = await fetch(geocodingUrl)
+    const geocodingResponse = await fetch(geocodingUrl, { signal: abortSignal })
     const geocodingData = (await geocodingResponse.json()) as GeocodingResponse
 
     if (!geocodingData.results?.[0]) {
@@ -252,7 +249,7 @@ const getWeather = async (
 
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code&temperature_unit=${unit}`
 
-    const response = await fetch(weatherUrl)
+    const response = await fetch(weatherUrl, { signal: abortSignal })
     const data = (await response.json()) as WeatherResponse
 
     return {
