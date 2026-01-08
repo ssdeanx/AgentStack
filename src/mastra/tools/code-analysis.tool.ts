@@ -8,7 +8,11 @@ import stripComments from 'strip-comments'
 import { trace, SpanStatusCode } from '@opentelemetry/api'
 import { PythonParser } from './semantic-utils'
 import { log } from '../config/logger'
-// RequestContext typing not used to avoid incompatibility with ToolExecutionContext
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface CodeAnalysisRequestContext extends RequestContext {
+    userId?: string;
+}
 
 async function fileExists(filePath: string): Promise<boolean> {
     try {
@@ -404,45 +408,10 @@ Supports TypeScript, JavaScript, Python, and other languages.
 Use for code review preparation, quality assessment, and refactoring planning.`,
     inputSchema: codeAnalysisInputSchema,
     outputSchema: codeAnalysisOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Code analysis tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Code analysis tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Code analysis tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { target: input.target, options: input.options },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Code analysis tool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                totalFiles: output.summary.totalFiles,
-                totalLoc: output.summary.totalLoc,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context): Promise<CodeAnalysisOutput> => {
         const writer = context?.writer
+        const requestCtx = context?.requestContext as CodeAnalysisRequestContext | undefined
+
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -452,6 +421,11 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
             },
             id: 'coding:codeAnalysis',
         })
+
+        if (requestCtx?.userId) {
+            log.debug('Executing code analysis for user', { userId: requestCtx.userId })
+        }
+
         const tracer = trace.getTracer('code-analysis-tool', '1.0.0')
         const span = tracer.startSpan('code-analysis', {
             attributes: {
@@ -615,5 +589,43 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
             span?.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Code analysis tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Code analysis tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Code analysis tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { target: input.target, options: input.options },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Code analysis tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                totalFiles: output.summary.totalFiles,
+                totalLoc: output.summary.totalLoc,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })

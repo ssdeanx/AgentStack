@@ -4,6 +4,12 @@ import { execSync } from 'child_process'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface CalendarRequestContext extends RequestContext {
+    userId?: string;
+}
+
 interface CalendarEvent {
     title: string
     startDate: Date
@@ -168,12 +174,17 @@ export const listEvents = createTool({
     },
     execute: async (inputData, context) => {
         const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
         const span = tracer.startSpan('list-calendar-events', {
             attributes: {
                 'tool.id': 'list-calendar-events',
                 'tool.input.startDate': inputData.startDate,
             },
         })
+
+        if (requestCtx?.userId) {
+            log.debug('Executing calendar list events for user', { userId: requestCtx.userId })
+        }
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -248,11 +259,16 @@ export const getTodayEvents = createTool({
     }),
     execute: async (inputData, context) => {
         const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
         const span = tracer.startSpan('get-today-events', {
             attributes: {
                 'tool.id': 'get-today-events',
             },
         })
+
+        if (requestCtx?.userId) {
+            log.debug('Executing get today events for user', { userId: requestCtx.userId })
+        }
 
         await context?.writer?.write({
             type: 'progress',
@@ -303,6 +319,40 @@ export const getTodayEvents = createTool({
             return { events: [], count: 0 }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Today events tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Today events tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Today events tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Today events tool completed', {
+            toolCallId,
+            toolName,
+            eventsFound: output.count,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const getUpcomingEvents = createTool({
@@ -332,6 +382,7 @@ export const getUpcomingEvents = createTool({
     }),
     execute: async (inputData, context) => {
         const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
         const span = tracer.startSpan('get-upcoming-events', {
             attributes: {
                 'tool.id': 'get-upcoming-events',
@@ -339,6 +390,10 @@ export const getUpcomingEvents = createTool({
                 'tool.input.limit': inputData.limit,
             },
         })
+
+        if (requestCtx?.userId) {
+            log.debug('Executing get upcoming events for user', { userId: requestCtx.userId })
+        }
 
         await context?.writer?.write({
             type: 'progress',
@@ -399,6 +454,42 @@ export const getUpcomingEvents = createTool({
             return { events: [], count: 0 }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Upcoming events tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Upcoming events tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Upcoming events tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            days: input.days,
+            limit: input.limit,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Upcoming events tool completed', {
+            toolCallId,
+            toolName,
+            eventsFound: output.count,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const findFreeSlots = createTool({
@@ -440,12 +531,17 @@ export const findFreeSlots = createTool({
     }),
     execute: async (inputData, context) => {
         const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
         const span = tracer.startSpan('find-free-slots', {
             attributes: {
                 'tool.id': 'find-free-slots',
                 'tool.input.date': inputData.date,
             },
         })
+
+        if (requestCtx?.userId) {
+            log.debug('Executing find free slots for user', { userId: requestCtx.userId })
+        }
 
         await context?.writer?.write({
             type: 'progress',
@@ -547,5 +643,42 @@ export const findFreeSlots = createTool({
             span.end()
             return { freeSlots: [], busyPeriods: [] }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Find free slots tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Find free slots tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Find free slots tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            date: input.date,
+            workdayStart: input.workdayStart,
+            workdayEnd: input.workdayEnd,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Find free slots tool completed', {
+            toolCallId,
+            toolName,
+            slotsFound: output.freeSlots.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })

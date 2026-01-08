@@ -2,16 +2,15 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
-import { log, logError } from '../config/logger'
+import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const randomToolContextSchema = z.object({
-    seed: z.number().optional(),
-    locale: z.string().default('en'),
-})
+import type { RequestContext } from '@mastra/core/request-context'
 
-// Infer the TypeScript type from the Zod schema
-export type RandomToolContext = z.infer<typeof randomToolContextSchema>
+// Define the interface for the runtime context
+export interface RandomToolContext extends RequestContext {
+    seed?: number
+    locale?: string
+}
 
 export const randomGeneratorTool = createTool({
     id: 'random-generator',
@@ -75,14 +74,13 @@ export const randomGeneratorTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as RandomGeneratorRequestContext
-        const localeFromContext = requestContext?.locale ?? 'en'
+        const requestContext = context?.requestContext as RandomToolContext
+        const locale =
+            inputData.options?.locale ?? requestContext?.locale ?? 'en'
 
         const tracer = trace.getTracer('random-generator-tool', '1.0.0')
         const span = tracer.startSpan('random-generate')
         const writer = context?.writer
-
-
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -95,17 +93,30 @@ export const randomGeneratorTool = createTool({
         })
 
         try {
-            let result: any
+            let result:
+                | string
+                | number
+                | boolean
+                | unknown[]
+                | Record<string, unknown>
+                | null = null
 
             if (inputData.count === 1) {
-                result = generateRandomItem(inputData.type, inputData.options)
+                result = generateRandomItem(inputData.type, {
+                    ...inputData.options,
+                    locale,
+                })
             } else {
-                result = []
+                const items: unknown[] = []
                 for (let i = 0; i < inputData.count; i++) {
-                    result.push(
-                        generateRandomItem(inputData.type, inputData.options)
+                    items.push(
+                        generateRandomItem(inputData.type, {
+                            ...inputData.options,
+                            locale,
+                        })
                     )
                 }
+                result = items
             }
 
             await writer?.custom({
@@ -150,10 +161,63 @@ export const randomGeneratorTool = createTool({
             }
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Random generator tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Random generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Random generator tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { type: input.type, count: input.count },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Random generator tool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                success: output.success,
+                type: output.type,
+                count: output.count,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
+interface RandomOptions {
+    min?: number
+    max?: number
+    length?: number
+    format?: string
+    includeSpecial?: boolean
+    locale?: string
+    itemType?: string
+    properties?: number
+}
+
 // Helper functions
-function generateRandomItem(type: string, options?: any): any {
+function generateRandomItem(
+    type: string,
+    options?: RandomOptions
+): string | number | boolean | unknown[] | Record<string, unknown> {
     switch (type) {
         case 'string':
             return generateRandomString(
@@ -177,7 +241,7 @@ function generateRandomItem(type: string, options?: any): any {
         case 'array':
             return generateRandomArray(
                 options?.length ?? 5,
-                options?.itemType ?? 'string'
+                (options?.itemType as string) ?? 'string'
             )
         case 'object':
             return generateRandomObject(options?.properties ?? 3)
@@ -352,7 +416,7 @@ function generateRandomAddress(locale = 'en'): string {
     return `${number} ${street}, ${city}`
 }
 
-function generateRandomArray(length: number, itemType: string): any[] {
+function generateRandomArray(length: number, itemType: string): unknown[] {
     const result = []
     for (let i = 0; i < length; i++) {
         result.push(generateRandomItem(itemType))
@@ -360,8 +424,10 @@ function generateRandomArray(length: number, itemType: string): any[] {
     return result
 }
 
-function generateRandomObject(properties: number): Record<string, any> {
-    const result: Record<string, any> = {}
+function generateRandomObject(
+    properties: number
+): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
     for (let i = 0; i < properties; i++) {
         const key = `prop${i + 1}`
         const type = ['string', 'number', 'boolean'][

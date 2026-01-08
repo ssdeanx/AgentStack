@@ -5,7 +5,16 @@ import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import RE2 from 're2'
 import { z } from 'zod'
+import type { RequestContext } from '@mastra/core/request-context'
 import { log } from '../config/logger'
+
+export interface CodeSearchRequestContext extends RequestContext {
+    caseSensitive?: boolean
+    maxResults?: number
+    includeContext?: boolean
+    contextLines?: number
+    maxFileSize?: number
+}
 
 interface RegexLike {
     lastIndex?: number
@@ -104,52 +113,10 @@ Supports string and regex patterns with context lines.
 Use for finding usages, identifying patterns, and code exploration.`,
     inputSchema: codeSearchInputSchema,
     outputSchema: codeSearchOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Code search tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Code search tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const targetDesc = Array.isArray(input.target)
-            ? `${input.target.length} targets`
-            : input.target
-        log.info('Code search received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            pattern: input.pattern,
-            target: targetDesc,
-            isRegex: input.options?.isRegex ?? false,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Code search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            totalMatches: output.stats.totalMatches,
-            filesWithMatches: output.stats.filesWithMatches,
-            filesSearched: output.stats.filesSearched,
-            truncated: output.truncated,
-            hook: 'onOutput',
-        })
-    },
-    execute: async (inputData, context): Promise<CodeSearchOutput> => {
+    execute: async (input: z.infer<typeof codeSearchInputSchema>, context): Promise<CodeSearchOutput> => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const requestContext = context?.requestContext as CodeSearchRequestContext | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -159,7 +126,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `🔎 Starting code search for pattern '${inputData.pattern}'`,
+                message: `🔎 Starting code search for pattern '${input.pattern}'`,
                 stage: 'coding:codeSearch',
             },
             id: 'coding:codeSearch',
@@ -167,22 +134,22 @@ Use for finding usages, identifying patterns, and code exploration.`,
         const tracer = trace.getTracer('code-search')
         const span = tracer.startSpan('code-search', {
             attributes: {
-                pattern: inputData.pattern,
-                targetCount: Array.isArray(inputData.target)
-                    ? inputData.target.length
+                pattern: input.pattern,
+                targetCount: Array.isArray(input.target)
+                    ? input.target.length
                     : 1,
                 operation: 'code-search',
             },
         })
 
         try {
-            const { pattern, target, options } = inputData
+            const { pattern, target, options } = input
             const isRegex = options?.isRegex ?? false
-            const caseSensitive = options?.caseSensitive ?? false
-            const maxResults = options?.maxResults ?? 100
-            const includeContext = options?.includeContext ?? true
-            const contextLines = options?.contextLines ?? 2
-            const maxFileSize = options?.maxFileSize ?? 1_000_000
+            const caseSensitive = options?.caseSensitive ?? requestContext?.caseSensitive ?? false
+            const maxResults = options?.maxResults ?? requestContext?.maxResults ?? 100
+            const includeContext = options?.includeContext ?? requestContext?.includeContext ?? true
+            const contextLines = options?.contextLines ?? requestContext?.contextLines ?? 2
+            const maxFileSize = options?.maxFileSize ?? requestContext?.maxFileSize ?? 1_000_000
 
             let filePaths: string[] = []
             const targets = Array.isArray(target) ? target : [target]
@@ -205,7 +172,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
             filePaths = [...new Set(filePaths)]
 
             // Check for cancellation before file processing
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span.setStatus({
                     code: 2,
                     message: 'Operation cancelled during file processing',
@@ -337,7 +304,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
 
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
-                const cancelMessage = `Code search cancelled for pattern "${inputData.pattern}"`
+                const cancelMessage = `Code search cancelled for pattern "${input.pattern}"`
                 span.setStatus({ code: 2, message: cancelMessage })
                 span.end()
 
@@ -363,5 +330,48 @@ Use for finding usages, identifying patterns, and code exploration.`,
             span.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Code search tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Code search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const targetDesc = Array.isArray(input.target)
+            ? `${input.target.length} targets`
+            : input.target
+        log.info('Code search received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            pattern: input.pattern,
+            target: targetDesc,
+            isRegex: input.options?.isRegex ?? false,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Code search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            totalMatches: output.stats.totalMatches,
+            filesWithMatches: output.stats.filesWithMatches,
+            filesSearched: output.stats.filesSearched,
+            truncated: output.truncated,
+            hook: 'onOutput',
+        })
     },
 })

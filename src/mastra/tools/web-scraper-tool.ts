@@ -27,6 +27,14 @@ import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface ScraperToolContext extends RequestContext {
+    allowedDomains?: string[]
+    userAgent?: string
+    timeout?: number
+}
+
 // Centralized data directory constant for consistency
 const DATA_DIR = path.resolve(process.cwd(), './data')
 
@@ -647,46 +655,8 @@ export const webScraperTool = createTool({
         'Extracts structured data from web pages using JSDOM and Cheerio with enhanced security and error handling.',
     inputSchema: webScraperInputSchema,
     outputSchema: webScraperOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Web scraper tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Web scraper tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Web scraper received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            url: input.url,
-            selector: input.selector || 'none',
-            saveMarkdown: input.storage?.saveMarkdown || false,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Web scraper completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            status: output.status,
-            elementsExtracted: output.content.extractedData.length,
-            savedFilePath: output.storage?.savedFilePath,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as ScraperToolContext
         const writer = context?.writer
         const abortSignal = context?.abortSignal
 
@@ -695,7 +665,8 @@ export const webScraperTool = createTool({
             throw new Error('Web scraping cancelled')
         }
 
-        const allowedDomains = ValidationUtils.getAllowedDomains()
+        const allowedDomains =
+            requestContext?.allowedDomains ?? ValidationUtils.getAllowedDomains()
         if (!ValidationUtils.isUrlAllowed(inputData.url, allowedDomains)) {
             throw new ScrapingError(
                 `Domain is not allowlisted for scraping: ${inputData.url}`,
@@ -1091,7 +1062,7 @@ export const webScraperTool = createTool({
             })
 
             // Check for cancellation before crawling
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted === true) {
                 throw new Error('Web scraping cancelled during crawling')
             }
 
@@ -1264,6 +1235,45 @@ export const webScraperTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Web scraper tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Web scraper tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Web scraper received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            url: input.url,
+            selector: input.selector || 'none',
+            saveMarkdown: input.storage?.saveMarkdown || false,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Web scraper completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            status: output.status,
+            elementsExtracted: output.content.extractedData.length,
+            savedFilePath: output.storage?.savedFilePath,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type WebScraperUITool = InferUITool<typeof webScraperTool>
@@ -1326,6 +1336,7 @@ export const batchWebScraperTool = createTool({
     inputSchema: batchWebScraperInputSchema,
     outputSchema: batchWebScraperOutputSchema,
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as ScraperToolContext
         const writer = context?.writer
 
         await writer?.custom({
@@ -1547,6 +1558,44 @@ export const batchWebScraperTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Batch web scraper tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Batch web scraper tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Batch web scraper received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            urlCount: input.urls.length,
+            selector: input.selector ?? 'none',
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Batch web scraper completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            totalProcessed: output.totalProcessed,
+            successful: output.successful,
+            failed: output.failed,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type BatchWebScraperUITool = InferUITool<typeof batchWebScraperTool>
@@ -1607,6 +1656,7 @@ export const siteMapExtractorTool = createTool({
     inputSchema: siteMapExtractorInputSchema,
     outputSchema: siteMapExtractorOutputSchema,
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as ScraperToolContext
         const writer = context?.writer
 
         await writer?.custom({
@@ -1840,6 +1890,43 @@ export const siteMapExtractorTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Site map extractor tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Site map extractor tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Site map extractor received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            url: input.url,
+            maxDepth: input.maxDepth ?? 2,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Site map extractor completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            totalPages: output.totalPages,
+            savedFilePath: output.savedFilePath,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type SiteMapExtractorUITool = InferUITool<typeof siteMapExtractorTool>
@@ -1893,6 +1980,7 @@ export const linkExtractorTool = createTool({
     inputSchema: linkExtractorInputSchema,
     outputSchema: linkExtractorOutputSchema,
     execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as ScraperToolContext
         const writer = context?.writer
 
         await writer?.custom({
@@ -2103,6 +2191,41 @@ export const linkExtractorTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Link extractor tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Link extractor tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Link extractor received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Link extractor completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            linkCount: output.links.length,
+            hook: 'onOutput',
+        })
+    },
 })
 export type LinkExtractorUITool = InferUITool<typeof linkExtractorTool>
 // ===== HTML TO MARKDOWN CONVERTER TOOL =====
@@ -2259,6 +2382,41 @@ export const htmlToMarkdownTool = createTool({
             convertSpan.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('HTML to Markdown tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('HTML to Markdown tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('HTML to Markdown received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            htmlLength: input.html.length,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('HTML to Markdown completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            markdownLength: output.markdown.length,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -2466,6 +2624,41 @@ export const listScrapedContentTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('List scraped content tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('List scraped content tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('List scraped content received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            pattern: input.pattern,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('List scraped content completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            fileCount: output.files.length,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type ListScrapedContentUITool = InferUITool<
@@ -2621,6 +2814,41 @@ export const contentCleanerTool = createTool({
             cleanSpan.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Content cleaner tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Content cleaner tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Content cleaner received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            htmlLength: input.html.length,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Content cleaner completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            cleanedLength: output.cleanedHtml.length,
+            hook: 'onOutput',
+        })
     },
 })
 export type ContentCleanerUITool = InferUITool<typeof contentCleanerTool>
@@ -2784,6 +3012,41 @@ export const apiDataFetcherTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('API data fetcher tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('API data fetcher tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('API data fetcher received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            url: input.url,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('API data fetcher completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            status: output.status,
+            hook: 'onOutput',
+        })
+    },
 })
 
 // ===== SCRAPING SCHEDULER TOOL =====
@@ -2884,6 +3147,41 @@ export const scrapingSchedulerTool = createTool({
             scheduleSpan.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Scraping scheduler tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Scraping scheduler tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Scraping scheduler received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            urlCount: input.urls.length,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Scraping scheduler completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            jobId: output.jobId,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -3047,5 +3345,42 @@ export const dataExporterTool = createTool({
             exportSpan.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Data exporter tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Data exporter tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Data exporter received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            dataCount: input.data.length,
+            format: input.format,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Data exporter completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            success: output.success,
+            exportedCount: output.exportedCount,
+            hook: 'onOutput',
+        })
     },
 })
