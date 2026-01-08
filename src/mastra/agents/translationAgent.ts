@@ -122,6 +122,9 @@ export const translationAgent = new Agent({
         researchAgent,
     },
     options: {},
+    defaultOptions: {
+      autoResumeSuspendedTools: true,
+    }
 })
 
 log.info('Translation Agent initialized')

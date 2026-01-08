@@ -3,6 +3,11 @@ import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { promises as fsPromises } from 'node:fs'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface FsToolContext extends RequestContext {
+    userId?: string
+}
 
 export const fsTool = createTool({
     id: 'fsTool',
@@ -18,8 +23,7 @@ export const fsTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-
-        // Check if operation was already cancelled
+        const requestContext = context?.requestContext as FsToolContext | undefined
         if (abortSignal?.aborted === true) {
             throw new Error('FS operation cancelled')
         }

@@ -13,7 +13,7 @@
 // approvedBy: sam
 // approvalDate: 9/22
 //import type { RequestContext } from '@mastra/core/request-context';
-import { RequestContext } from "@mastra/core/request-context";
+import type { RequestContext } from "@mastra/core/request-context";
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { trace } from "@opentelemetry/api";

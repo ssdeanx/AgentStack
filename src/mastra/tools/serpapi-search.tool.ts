@@ -14,6 +14,10 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 
+export interface SerpApiContext extends RequestContext {
+    userId?: string
+}
+
 /**
  * Input schema for Google Search
  */
@@ -92,50 +96,13 @@ export const googleSearchTool = createTool({
         'Search Google to find current information, websites, and answers to factual questions. Returns organic search results, knowledge graph data, and related searches. Best for general web search queries.',
     inputSchema: googleSearchInputSchema,
     outputSchema: googleSearchOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Google search received complete input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            query: input.query,
-            numResults: input.numResults,
-            location: input.location,
-            language: input.language,
-            device: input.device,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            organicResults: output.organicResults.length,
-            hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length || 0,
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (input, context) => {
         // Validate API key
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const requestContext = context?.requestContext as SerpApiContext | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -187,7 +154,7 @@ export const googleSearchTool = createTool({
                 params.device = input.device
             }
             // Check for cancellation before API call
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 searchSpan.setStatus({
                     code: 2,
                     message: 'Operation cancelled during API call',
@@ -317,6 +284,45 @@ export const googleSearchTool = createTool({
             throw error
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google search received complete input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            query: input.query,
+            numResults: input.numResults,
+            location: input.location,
+            language: input.language,
+            device: input.device,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            organicResults: output.organicResults.length,
+            hasKnowledgeGraph: !!output.knowledgeGraph,
+            relatedSearches: output.relatedSearches?.length || 0,
+            hook: 'onOutput',
+        })
+    },
 })
 
 /**
@@ -372,6 +378,7 @@ export const googleAiOverviewTool = createTool({
     outputSchema: googleAiOverviewOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer
+        const requestContext = context?.requestContext as SerpApiContext | undefined
         await writer?.custom({
             type: 'data-tool-progress',
             data: {

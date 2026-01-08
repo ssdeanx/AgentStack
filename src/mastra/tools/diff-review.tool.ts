@@ -3,6 +3,11 @@ import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { createPatch, structuredPatch } from 'diff'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface DiffReviewContext extends RequestContext {
+    userId?: string
+}
 
 const diffReviewInputSchema = z.object({
     original: z.string().describe('Original code content'),
@@ -96,6 +101,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
             context: contextLines = 3,
         } = inputData
         const writer = context?.writer
+        const requestContext = context?.requestContext as DiffReviewContext | undefined
 
         const tracer = trace.getTracer('diff-review')
         const span = tracer.startSpan('diff-review', {

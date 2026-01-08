@@ -19,10 +19,31 @@ import {
   BatchWebScraperTool,
   SiteMapExtractorTool,
   LinkExtractorTool,
+  FinancialQuoteCard,
+  FinancialChart,
+  CompanyProfileCard,
+  RepositoryCard,
+  PullRequestList,
+  IssueCard,
+  CommitHistoryList,
+  WeatherCard,
+  ForecastView,
+  ArxivPaperCard,
+
   type WebScraperUITool,
   type BatchWebScraperUITool,
   type SiteMapExtractorUITool,
-  type LinkExtractorUITool
+  type LinkExtractorUITool,
+  type FinnhubQuotesUITool,
+  type PolygonStockQuotesUITool,
+  type ChartSupervisorUITool,
+  type ListRepositoriesUITool,
+  type ListPullRequestsUITool,
+  type GetIssueUITool,
+  type ListCommitsUITool,
+  type WeatherUITool, // Assuming this exists for WeatherCard and ForecastView
+  type ArxivUITool,
+
 } from "@/src/components/ai-elements/tools"
 
 function getProgressMessage(tool: ToolInvocationState | DynamicToolUIPart): string | null {
@@ -138,6 +159,145 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
               toolCallId={id}
               input={latest.input as LinkExtractorUITool["input"]}
               output={latest.output as LinkExtractorUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if ((toolName === "finnhub-quotes" || toolName === "polygon-stock-quotes") && hasOutput) {
+          return (
+            <FinancialQuoteCard
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as FinnhubQuotesUITool["input"]}
+              output={latest.output as FinnhubQuotesUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "chart-supervisor" && hasOutput) {
+          return (
+            <FinancialChart
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as ChartSupervisorUITool["input"]}
+              output={latest.output as ChartSupervisorUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "github-list-repositories" && hasOutput) {
+          return (
+            <RepositoryCard
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as ListRepositoriesUITool["input"]}
+              output={latest.output as ListRepositoriesUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "github-list-pull-requests" && hasOutput) {
+          return (
+            <PullRequestList
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as ListPullRequestsUITool["input"]}
+              output={latest.output as ListPullRequestsUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "github-get-issue" && hasOutput) {
+          return (
+            <IssueCard
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as GetIssueUITool["input"]}
+              output={latest.output as GetIssueUITool["output"]}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if ((toolName === "finnhub-company" || toolName === "polygon-stock-fundamentals") && hasOutput) {
+          return (
+            <CompanyProfileCard
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as any}
+              output={latest.output as any}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "github-list-commits" && hasOutput) {
+          return (
+            <CommitHistoryList
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as any}
+              output={latest.output as any}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "weatherTool" && hasOutput) {
+          return (
+            <div key={`${id}-${toolName}-${toolState}-${groupIdx}`} className="space-y-2">
+              <WeatherCard
+                toolCallId={id}
+                input={latest.input as { location: string }}
+                output={latest.output as any}
+                errorText={errorText}
+              />
+              <ForecastView
+                toolCallId={id}
+                input={latest.input as { location: string }}
+                output={latest.output as any}
+                errorText={errorText}
+              />
+            </div>
+          )
+        }
+
+        if ((toolName === "serpapi-news-trends" || toolName === "finnhub-company-news") && hasOutput) {
+          return (
+            <NewsCarousel
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as any}
+              output={latest.output as any}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "arxiv-search" && hasOutput) {
+          return (
+            <ArxivPaperCard
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as any}
+              output={latest.output as any}
+              errorText={errorText}
+            />
+          )
+        }
+
+        if (toolName === "serpapi-search" && hasOutput) {
+          return (
+            <SearchResultList
+              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              toolCallId={id}
+              input={latest.input as any}
+              output={latest.output as any}
               errorText={errorText}
             />
           )

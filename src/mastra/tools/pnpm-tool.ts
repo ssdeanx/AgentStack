@@ -10,12 +10,15 @@ import * as path from 'node:path';
 import { z } from 'zod';
 import { log } from '../config/logger';
 
-
 const pnpmContextSchema = z.object({
   verbose: z.boolean().default(true),
 });
 
 export type PnpmContext = z.infer<typeof pnpmContextSchema>;
+
+export interface PnpmRequestContext extends RequestContext {
+    pnpmToolContext?: PnpmContext
+}
 
 export const pnpmBuild = createTool({
   id: 'pnpmBuild',
@@ -52,8 +55,8 @@ export const pnpmBuild = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const requestContext = context?.requestContext as RequestContext<{ pnpmToolContext: PnpmContext }>;
-    const pnpmContext = requestContext?.get('pnpmToolContext');
+    const requestContext = context?.requestContext as PnpmRequestContext | undefined;
+    const pnpmContext = requestContext?.pnpmToolContext;
     const { verbose } = pnpmContextSchema.parse(pnpmContext ?? {});
 
     const tracer = trace.getTracer('pnpm-tool');

@@ -31,6 +31,11 @@ import {
     logStepStart,
     logToolExecution,
 } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface PdfDataConversionContext extends RequestContext {
+    userId?: string
+}
 
 // Use `unpdf` for parsing PDFs (serverless-optimized PDF.js build)
 import { extractText, getDocumentProxy } from 'unpdf'
@@ -493,6 +498,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
     execute: async (inputData, context) => {
         const startTime = Date.now()
         logToolExecution('pdf-to-markdown', { input: inputData })
+        const requestContext = context?.requestContext as PdfDataConversionContext | undefined
 
         await context?.writer?.custom({
             type: 'data-tool-progress',

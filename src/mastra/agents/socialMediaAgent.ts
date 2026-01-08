@@ -100,6 +100,9 @@ export const socialMediaAgent = new Agent({
         calendarAgent,
     },
     options: {},
+    defaultOptions: {
+      autoResumeSuspendedTools: true,
+    },
 })
 
 log.info('Social Media Agent initialized')

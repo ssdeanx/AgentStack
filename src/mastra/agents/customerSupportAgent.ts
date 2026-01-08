@@ -131,6 +131,9 @@ export const customerSupportAgent = new Agent({
         reportAgent,
     },
     options: {},
+    defaultOptions: {
+      autoResumeSuspendedTools: true,
+    },
 })
 
 log.info('Customer Support Agent initialized')

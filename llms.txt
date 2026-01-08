@@ -18,8 +18,14 @@
 - [Scorers Documentation](src/mastra/scorers/AGENTS.md): Custom evaluation metrics and scoring guides
 - [Policy Documentation](src/mastra/policy/AGENTS.md): RBAC policies and access control definitions
 - [Vector Store Docs](src/mastra/config/vector/AGENTS.md): Vector store choices, configuration, and integration
+- [Services Documentation](src/mastra/services/AGENTS.md): Backend services for authentication, chunking, embeddings, and validation
+- [Evals Documentation](src/mastra/evals/AGENTS.md): Evaluation framework and custom scorers
+- [CLI Documentation](src/cli/AGENTS.md): Command-line interface for Governed RAG operations
+- [Utils Documentation](src/utils/AGENTS.md): Shared utility functions and stream processing
 - [UI Components](ui/): shadcn/ui-based primitives and frontend components (see `ui/` folder)
- - [AI Elements (components)](src/components/ai-elements/): 30+ specialized UI components (artifact, chain-of-thought, reasoning, message, model-selector, canvas) used by chat/AI pages
+ - [AI Elements (components)](src/components/ai-elements/): 30+ specialized UI components (artifact, chain-of-thought, reasoning, message, model-selector, canvas, checkpoint, confirmation, connection, context, conversation, edge, image, open-in-chat, tool, web-preview) used by chat/AI pages
+ - [AI Elements Tools](src/components/ai-elements/tools/): Tool-specific UI components (batch-web-scraper, link-extractor, site-map-extractor)
+ - [AI Elements Custom](src/components/ai-elements/custom/): Custom AI element implementations (agent-response, code-editor, thinking-indicator, tool-execution-card, workflow-execution)
  - [UI Primitives (shadcn)](ui/): shadcn/ui-based primitives and frontend components (see `ui/` folder)
 - [Memory Bank & Project Context](memory-bank/activeContext.md): active context, productContext.md, techContext.md, and usage notes
 - [Copilot & Project Rules](memory-bank/copilot-rules.md): Internal guidance for CI/automation/coding assistant usage
@@ -32,6 +38,8 @@
 - [AI SDK Integration](docs/ai-sdk-integration.md): Integration guide for AI SDK
 - [Kiro Lite Prompt](docs/kiro-lite.prompt.md): Prompt for Kiro Lite workflow
 - [Runtime Context](docs/runtimeContext.md): Runtime conventions and context documentation
+- [V1 Migration Guide](docs/v1-migration-guide.md): Migration guide for version 1 updates
+- [V1 Documentation](docs/v1.md): Version 1 release documentation
 - [ADR: PgVector and Gemini Embeddings](docs/adr/0001-why-pgvector-and-gemini-embeddings.md): Architectural decision record for vector storage choices
 - [App Chat Components](docs/components/app-chat-documentation.md): Documentation for chat-related components
 - [App Dashboard Components](docs/components/app-dashboard-documentation.md): Documentation for dashboard components
@@ -48,23 +56,47 @@
 ## Agents
 
 - [A2A Coordinator Agent](src/mastra/agents/a2aCoordinatorAgent.ts): Orchestrates and routes tasks across multiple specialized agents
-- [Research Agent](src/mastra/agents/researchAgent.ts): Conducts research using web search and analysis tools
-- [Stock Analysis Agent](src/mastra/agents/stockAnalysisAgent.ts): Analyzes stock market data
+- [ACP Agent](src/mastra/agents/acpAgent.ts): Advanced content processing agent
+- [Background Color Agent](src/mastra/agents/bgColorAgent.ts): Handles background color operations
+- [Business Legal Agents](src/mastra/agents/businessLegalAgents.ts): Legal research, business strategy, compliance monitoring, and contract analysis
+- [Calendar Agent](src/mastra/agents/calendarAgent.ts): Calendar management and scheduling
+- [Coding Agents](src/mastra/agents/codingAgents.ts): Code architecture, review, refactoring, and testing
+- [Content Strategist Agent](src/mastra/agents/contentStrategistAgent.ts): Content strategy and planning
 - [Copywriter Agent](src/mastra/agents/copywriterAgent.ts): Handles content writing and generation
-- [Editor Agent](src/mastra/agents/editorAgent.ts): Manages document editing workflows
-- [Report Agent](src/mastra/agents/reportAgent.ts): Generates reports from processed data
-- [Weather Agent](src/mastra/agents/weather-agent.ts): Fetches weather data and suggests activities
-- [Evaluation Agent](src/mastra/agents/evaluationAgent.ts): Evaluates and scores agent performance
-- [Learning Extraction Agent](src/mastra/agents/learningExtractionAgent.ts): Extracts and processes learning data
 - [CSV to Excalidraw Agent](src/mastra/agents/csv_to_excalidraw.ts): Converts CSV data to Excalidraw diagrams
-- [Image to CSV Agent](src/mastra/agents/image_to_csv.ts): Extracts tabular data from images
+- [Customer Support Agent](src/mastra/agents/customerSupportAgent.ts): Customer service and support operations
+- [DANE Agents](src/mastra/agents/dane.ts): Development automation and engineering agents (commit messages, issue labeling, link checking, changelog)
+- [Data Export Agent](src/mastra/agents/dataExportAgent.ts): Data export and formatting operations
+- [Data Ingestion Agent](src/mastra/agents/dataIngestionAgent.ts): Data ingestion and processing
+- [Data Transformation Agent](src/mastra/agents/dataTransformationAgent.ts): Data transformation and manipulation
+- [Document Processing Agent](src/mastra/agents/documentProcessingAgent.ts): Document analysis and processing
+- [Editor Agent](src/mastra/agents/editorAgent.ts): Manages document editing workflows
+- [Evaluation Agent](src/mastra/agents/evaluationAgent.ts): Evaluates and scores agent performance
 - [Excalidraw Validator Agent](src/mastra/agents/excalidraw_validator.ts): Validates and fixes Excalidraw diagrams
+- [Image Processing Agent](src/mastra/agents/image.ts): Image analysis and processing operations
+- [Image to CSV Agent](src/mastra/agents/image_to_csv.ts): Extracts tabular data from images
+- [Knowledge Indexing Agent](src/mastra/agents/knowledgeIndexingAgent.ts): Knowledge base indexing and management
+- [Learning Extraction Agent](src/mastra/agents/learningExtractionAgent.ts): Extracts and processes learning data
+- [Note Taker Agent](src/mastra/agents/noteTakerAgent.ts): Note taking and organization
+- [Package Publisher Agent](src/mastra/agents/package-publisher.ts): Package publishing and deployment
+- [Project Management Agent](src/mastra/agents/projectManagementAgent.ts): Project planning and management
+- [Recharts Agents](src/mastra/agents/recharts.ts): Chart generation, data processing, type advising, and supervision
+- [Report Agent](src/mastra/agents/reportAgent.ts): Generates reports from processed data
+- [Research Agent](src/mastra/agents/researchAgent.ts): Conducts research using web search and analysis tools
+- [Research Paper Agent](src/mastra/agents/researchPaperAgent.ts): Academic paper research and analysis
+- [Script Writer Agent](src/mastra/agents/scriptWriterAgent.ts): Script writing and content creation
+- [SEO Agent](src/mastra/agents/seoAgent.ts): Search engine optimization operations
+- [Social Media Agent](src/mastra/agents/socialMediaAgent.ts): Social media content and management
+- [Stock Analysis Agent](src/mastra/agents/stockAnalysisAgent.ts): Analyzes stock market data
+- [Translation Agent](src/mastra/agents/translationAgent.ts): Text translation and localization
+- [Weather Agent](src/mastra/agents/weather-agent.ts): Fetches weather data and suggests activities
 
 ## Tools
 
 ### Financial Tools
 - [Alpha Vantage Tools](src/mastra/tools/alpha-vantage.tool.ts): Stock, crypto, and forex data
 - [Finnhub Tools](src/mastra/tools/finnhub-tools.ts): Real-time quotes, company profiles, and financials
+- [Financial Chart Tools](src/mastra/tools/financial-chart-tools.ts): Financial data visualization and charting
 - [Polygon Tools](src/mastra/tools/polygon-tools.ts): Stock and crypto quotes and aggregates
 
 ### Search & Research Tools
@@ -76,29 +108,74 @@
 
 ### Content & Document Tools
 - [Web Scraper Tool](src/mastra/tools/web-scraper-tool.ts): Fetch and parse web content
+- [Browser Tool](src/mastra/tools/browser-tool.ts): Browser automation and interaction
 - [Document Chunking Tool](src/mastra/tools/document-chunking.tool.ts): Split documents into chunks with metadata
 - [PDF Conversion Tool](src/mastra/tools/pdf-data-conversion.tool.ts): Convert PDFs to Markdown
+- [PDF Tool](src/mastra/tools/pdf.ts): PDF processing and manipulation
 - [Data File Manager](src/mastra/tools/data-file-manager.ts): Manage data files with versioning
+- [Code Chunking Tool](src/mastra/tools/code-chunking.ts): Split code into manageable chunks
+- [Code Analysis Tool](src/mastra/tools/code-analysis.tool.ts): Analyze code structure and patterns
+- [Code Search Tool](src/mastra/tools/code-search.tool.ts): Search and find code references
+- [Find References Tool](src/mastra/tools/find-references.tool.ts): Find symbol references in codebase
+- [Find Symbol Tool](src/mastra/tools/find-symbol.tool.ts): Locate symbols and definitions
+- [Semantic Utils](src/mastra/tools/semantic-utils.ts): Semantic analysis utilities
+- [Text Analysis Tool](src/mastra/tools/text-analysis.tool.ts): Text processing and analysis
+- [Write Note Tool](src/mastra/tools/write-note.ts): Note creation and management
 
 ### Utility Tools
 - [Weather Tool](src/mastra/tools/weather-tool.ts): Fetch weather information
+- [Calendar Tool](src/mastra/tools/calendar-tool.ts): Calendar operations and scheduling
 - [JWT Auth Tool](src/mastra/tools/jwt-auth.tool.ts): JWT authentication utilities
+- [Calculator Tool](src/mastra/tools/calculator.tool.ts): Mathematical calculations
+- [DateTime Tool](src/mastra/tools/datetime.tool.ts): Date and time operations
+- [Random Generator Tool](src/mastra/tools/random-generator.tool.ts): Random data generation
+- [URL Tool](src/mastra/tools/url-tool.ts): URL processing and validation
 - [Evaluate Result Tool](src/mastra/tools/evaluateResultTool.ts): Evaluate search results
 - [Extract Learnings Tool](src/mastra/tools/extractLearningsTool.ts): Extract insights from content
+- [Color Change Tool](src/mastra/tools/color-change-tool.ts): Color manipulation operations
+- [Copywriter Agent Tool](src/mastra/tools/copywriter-agent-tool.ts): Content writing assistance
+- [Editor Agent Tool](src/mastra/tools/editor-agent-tool.ts): Document editing operations
+- [Multi String Edit Tool](src/mastra/tools/multi-string-edit.tool.ts): Multiple string editing operations
+- [Test Generator Tool](src/mastra/tools/test-generator.tool.ts): Automated test generation
 
-## Configuration
+### Data Processing Tools
+- [CSV to JSON Tool](src/mastra/tools/csv-to-json.tool.ts): Convert CSV data to JSON format
+- [JSON to CSV Tool](src/mastra/tools/json-to-csv.tool.ts): Convert JSON data to CSV format
+- [Data Processing Tools](src/mastra/tools/data-processing-tools.ts): General data processing utilities
+- [Data Validator Tool](src/mastra/tools/data-validator.tool.ts): Data validation and verification
+- [Diff Review Tool](src/mastra/tools/diff-review.tool.ts): Code diff analysis and review
 
-- [Configuration Guide](src/mastra/config/AGENTS.md): Guidelines for configuration, storage, providers and environment variables
-- [Config README](src/mastra/config/README.md): Model registry system and provider configuration overview
-- [Example Provider Setup](src/mastra/config/google.ts, src/mastra/config/openai.ts, src/mastra/config/vertex.ts): Provider client examples and notes
-- [Postgres Vector Storage](src/mastra/config/pg-storage.ts): PostgreSQL + PgVector storage client and usage notes
-- [Logging & RBAC](src/mastra/config/logger.ts, src/mastra/config/role-hierarchy.ts): Observability and role model docs
+### Development Tools
+- [E2B Tool](src/mastra/tools/e2b.ts): Cloud development environment integration
+- [Execa Tool](src/mastra/tools/execa-tool.ts): Process execution utilities
+- [FS Tool](src/mastra/tools/fs.ts): File system operations
+- [Git Local Tool](src/mastra/tools/git-local.tool.ts): Local Git repository operations
+- [GitHub Tool](src/mastra/tools/github.ts): GitHub API integration
+- [PNPM Tool](src/mastra/tools/pnpm-tool.ts): Package management operations
 
 ## Workflows & MCP
 
 - [Workflows Documentation](src/mastra/workflows/AGENTS.md): Guide to creating and managing multi-step workflows
 - [Weather Workflow](src/mastra/workflows/weather-workflow.ts): Example workflow implementation
 - [Content Studio Workflow](src/mastra/workflows/content-studio-workflow.ts): Multi-agent workflow for content creation and studio operations
+- [Changelog Workflow](src/mastra/workflows/changelog.ts): Automated changelog generation
+- [Content Review Workflow](src/mastra/workflows/content-review-workflow.ts): Content review and approval process
+- [Document Processing Workflow](src/mastra/workflows/document-processing-workflow.ts): Document analysis and processing pipeline
+- [Financial Report Workflow](src/mastra/workflows/financial-report-workflow.ts): Financial data analysis and reporting
+- [Governed RAG Index Workflow](src/mastra/workflows/governed-rag-index.workflow.ts): Governed retrieval-augmented generation indexing
+- [Governed RAG Answer Workflow](src/mastra/workflows/governed-rag-answer.workflow.ts): Governed RAG answer generation
+- [Learning Extraction Workflow](src/mastra/workflows/learning-extraction-workflow.ts): Extract and process learning materials
+- [Marketing Campaign Workflow](src/mastra/workflows/marketingCampaignWorkflow.ts): Marketing campaign planning and execution
+- [New Contributor Workflow](src/mastra/workflows/new-contributor.ts): Onboarding workflow for new contributors
+- [Repo Ingestion Workflow](src/mastra/workflows/repo-ingestion-workflow.ts): Repository content ingestion and processing
+- [Research Synthesis Workflow](src/mastra/workflows/research-synthesis-workflow.ts): Research data synthesis and analysis
+- [Safe Refactoring Workflow](src/mastra/workflows/safe-refactoring-workflow.ts): Safe code refactoring operations
+- [Spec Generation Workflow](src/mastra/workflows/spec-generation-workflow.ts): Technical specification generation
+- [Stock Analysis Workflow](src/mastra/workflows/stock-analysis-workflow.ts): Stock market analysis and reporting
+- [Telephone Game Workflow](src/mastra/workflows/telephone-game.ts): Multi-step communication workflow
+- [Test Generation Workflow](src/mastra/workflows/test-generation-workflow.ts): Automated test case generation
+- [Data Analysis Workflow](src/mastra/workflows/data-analysis-workflow.ts): General data analysis pipeline
+- [Automated Reporting Workflow](src/mastra/workflows/automated-reporting-workflow.ts): Automated report generation
 - [MCP Documentation](src/mastra/mcp/AGENTS.md): Documentation for the Model Context Protocol (MCP)
 - [MCP Client](src/mastra/mcp/mcp-client.ts): Client implementation for MCP
 - [MCP Index](src/mastra/mcp/index.ts): MCP server entry point
@@ -106,21 +183,94 @@
 ## Networks & Data
 
 - [Networks Documentation](src/mastra/networks/AGENTS.md): Documentation for agent networks and routing
+- [Primary Routing Network](src/mastra/networks/index.ts): Main agent routing and orchestration
+- [Business Intelligence Network](src/mastra/networks/businessIntelligenceNetwork.ts): Business intelligence and analytics
+- [Coding Team Network](src/mastra/networks/codingTeamNetwork.ts): Collaborative coding and development
+- [Content Creation Network](src/mastra/networks/contentCreationNetwork.ts): Content creation and management
+- [Data Pipeline Network](src/mastra/networks/dataPipelineNetwork.ts): Data processing and pipeline orchestration
+- [DevOps Network](src/mastra/networks/devopsNetwork.ts): DevOps operations and automation
+- [Financial Intelligence Network](src/mastra/networks/financialIntelligenceNetwork.ts): Financial analysis and intelligence
+- [Learning Network](src/mastra/networks/learningNetwork.ts): Learning and knowledge management
+- [Marketing Automation Network](src/mastra/networks/marketingAutomationNetwork.ts): Marketing automation workflows
+- [Report Generation Network](src/mastra/networks/reportGenerationNetwork.ts): Automated report generation
+- [Research Pipeline Network](src/mastra/networks/researchPipelineNetwork.ts): Research data processing pipeline
+- [Security Network](src/mastra/networks/securityNetwork.ts): Security monitoring and compliance
 - [Data Directory](src/mastra/data/AGENTS.md): Documentation for data files and example datasets
+
+## Services & Infrastructure
+
+- [Authentication Service](src/mastra/services/AuthenticationService.ts): User authentication and authorization
+- [Chunking Service](src/mastra/services/ChunkingService.ts): Document and content chunking
+- [Document Indexing Service](src/mastra/services/DocumentIndexingService.ts): Document indexing and search
+- [Document Processor Service](src/mastra/services/DocumentProcessorService.ts): Document processing pipeline
+- [Embedding Service](src/mastra/services/EmbeddingService.ts): Text and data embedding generation
+- [Rate Limiting Service](src/mastra/services/RateLimitingService.ts): API rate limiting and throttling
+- [Role Service](src/mastra/services/RoleService.ts): User role management and permissions
+- [Tier Management Service](src/mastra/services/tier-management-service.ts): Subscription tier management
+- [Validation Service](src/mastra/services/ValidationService.ts): Data validation and verification
+- [Vector Query Service](src/mastra/services/VectorQueryService.ts): Vector database querying
+- [Vector Storage Service](src/mastra/services/VectorStorageService.ts): Vector data storage and management
+- [Workflow Decorators](src/mastra/services/WorkflowDecorators.ts): Workflow enhancement and monitoring
+
+## Evaluation & Scoring
+
+- [Agent Experiments](src/mastra/evals/agent-experiments.ts): Agent performance experimentation
+- [Custom Scorers](src/mastra/evals/scorers/custom-scorers.ts): Custom evaluation metrics
+- [Factuality Scorer](src/mastra/evals/scorers/factuality.scorer.ts): Fact-checking and accuracy scoring
+- [Financial Scorers](src/mastra/evals/scorers/financial-scorers.ts): Financial data evaluation metrics
+- [Keyword Coverage Scorer](src/mastra/evals/scorers/keyword-coverage.ts): Content coverage analysis
+- [Prebuilt Scorers](src/mastra/evals/scorers/prebuilt.ts): Pre-configured evaluation scorers
+- [Utils](src/mastra/evals/scorers/utils.ts): Scoring utility functions
 
 ## Frontend (Next.js)
 
 - [App Router (pages)](app/AGENTS.md): Next.js 16 App Router pages, layouts and examples
-- [Docs Pages](app/docs/): Developer-facing docs rendered in the Next.js app (getting-started, core-concepts, ai-sdk)
+- [Docs Pages](app/docs/): Developer-facing docs rendered in the Next.js app (getting-started, core-concepts, ai-sdk, components, configuration, prompts, rag, runtime-context, security, ui)
+  - [AI SDK Docs](app/docs/ai-sdk/page.mdx): AI SDK integration and usage
+  - [Core Concepts](app/docs/core-concepts/page.mdx): Fundamental concepts and architecture
+  - [Getting Started](app/docs/getting-started/): Quick start guides and tutorials
+  - [Components Guide](app/docs/components/): Component documentation and examples
+  - [Configuration](app/docs/configuration/): Configuration options and setup
+  - [Prompts](app/docs/prompts/): Prompt engineering and templates
+  - [RAG Documentation](app/docs/rag/): Retrieval-augmented generation guides
+  - [Runtime Context](app/docs/runtime-context/): Runtime configuration and context
+  - [Security](app/docs/security/): Security best practices and guidelines
+  - [UI Documentation](app/docs/ui/): User interface design and components
 - [Chat AGENTS](app/chat/AGENTS.md): Client-side and streaming chat demos using @mastra/client-js
 - [Example Pages](app/examples/page.tsx, app/blog/hello-world-agentstack/page.mdx): UI examples and tutorials
-- [Frontend shared components](app/components/): Reusable page components (navbar, footer, docs-layout, examples-list, chat components)
+- [Blog Content](app/blog/): Blog posts and tutorials
+  - [Hello World AgentStack](app/blog/hello-world-agentstack/): Introduction to AgentStack
+  - [Session Summary](app/blog/session-summary/): Session summaries and insights
+- [Admin Dashboard](app/admin/): Administrative interface with multiple sections
+  - [Admin Agents](app/admin/agents/page.tsx): Agent management interface
+  - [Admin Config](app/admin/config/): Configuration management
+  - [Admin Networks](app/admin/networks/page.tsx): Network administration
+  - [Admin Settings](app/admin/settings/page.tsx): System settings
+  - [Admin Tools](app/admin/tools/page.tsx): Tool management
+  - [Admin Workflows](app/admin/workflows/page.tsx): Workflow administration
+  - [Admin Components](app/admin/_components/): Admin UI components (sidebar, page-shell)
+- [Product Pages](app/product/): Product information and demonstrations
+  - [Product Chat](app/product/chat/): Chat product showcase
+  - [Product Networks](app/product/networks/): Network product features
+  - [Product Workflows](app/product/workflows/): Workflow product demonstrations
+- [Frontend shared components](app/components/): Reusable page components
+  - [Landing Components](app/components/): Hero, features, stats, testimonials, CTA, trust indicators
+  - [Content Components](app/components/): About, careers, privacy, terms, contact form
+  - [Blog Components](app/components/): Blog layout, list, share functionality
+  - [Docs Components](app/components/): Documentation layout and navigation
+  - [Charts Components](app/components/charts/): Data visualization widgets (Area, Bar, Line, Pie, Radar, Scatter, D3 charts)
+  - [Features Components](app/components/features/): Feature showcases (chat, network graph, workflow visualizer)
+  - [Monaco Components](app/components/monaco/): Code editor integration (editor, explorer, panels, themes, workbench)
+- [Dashboard Components](app/dashboard/_components/): Dashboard UI components (data tables, panels, loading states, error handling, sidebar, stats)
+- [Test Components](app/test/): Testing and demonstration components (chat-extra, form, completion, action)
 - [Important API routes](app/api/): server routes used by the frontend and demos
   - [chat API routes](app/api/chat/route.ts, app/api/chat/r.ts): chat streaming and helper endpoints
+  - [chat-extra API](app/api/chat-extra/route.ts): Extended chat functionality
   - [completion API](app/api/completion/route.ts): server-side completion demo
   - [contact API](app/api/contact/route.ts): contact form API route
+  - [audio API](app/api/audio/route.ts): audio processing endpoints
+  - [v0 API](app/api/v0/route.ts): version 0 API endpoints
 - [API Reference](app/api-reference/): API documentation pages (agents, tools, workflows)
-- [Blog](app/blog/): Blog posts and tutorials (e.g., hello-world-agentstack)
 - [Careers](app/careers/): Careers page and job listings
 - [Changelog](app/changelog/): Release notes and updates
 - [Dashboard AGENTS](app/dashboard/AGENTS.md): Admin dashboard for monitoring and management
@@ -128,7 +278,7 @@
 - [Networks AGENTS](app/networks/AGENTS.md): Agent network management and visualization
 - [Pricing](app/pricing/): Pricing tiers and subscription information
 - [Privacy](app/privacy/): Privacy policy and terms
-- [Test AGENTS](app/test/AGENTS.md): Server action and runtime demos
+- [Terms](app/terms/): Terms of service
 - [Tools AGENTS](app/tools/AGENTS.md): Tool documentation and execution
 - [Workflows AGENTS](app/workflows/AGENTS.md): Workflow documentation and execution
 
@@ -137,16 +287,109 @@
 - [package.json](package.json): Scripts, dependencies, and quick-start commands
 - [next.config.ts](next.config.ts): Next.js configuration including MDX and experimental features
 - [tsconfig.json](tsconfig.json): TypeScript config and path aliases
+- [tsconfig.cli.json](tsconfig.cli.json): TypeScript configuration for CLI builds
 - [vitest.config.ts](vitest.config.ts): Test runner configuration and test results output
-- [eslint.config.cjs](eslint.config.cjs): Linting configuration
+- [eslint.config.js](eslint.config.js): Linting configuration
 - [prettier.config.js](prettier.config.js): Formatting rules
+- [components.json](components.json): shadcn/ui component configuration
+- [mdx-components.tsx](mdx-components.tsx): MDX component overrides
+- [postcss.config.mjs](postcss.config.mjs): PostCSS configuration
+- [globalSetup.ts](globalSetup.ts): Global test setup configuration
+- [testSetup.ts](testSetup.ts): Test environment setup
+- [robots.txt](robots.txt): Search engine crawling instructions
+- [sitemap.xml](sitemap.xml): Website sitemap for search engines
+
+## Type Definitions
+
+- [Core Types](src/types.ts): Principal, AccessFilter, Document, Chunk interfaces
+- [Mastra Types](src/mastra/types/excalidraw-to-svg.d.ts, src/mastra/types/svgjson.d.ts): Type definitions for Excalidraw and SVG processing
+
+## CLI & Utilities
+
+- [CLI Index](src/cli/index.ts): Command-line interface entry point
+- [Stream Utils](src/utils/streamUtils.ts): Streaming utility functions
+- [Stream Utils Tests](src/utils/streamUtils.test.ts): Stream utility test cases
+
+## Shared Libraries
+
+- [Mastra Client](lib/mastra-client.ts): Client SDK for Mastra integration
+- [Utils](lib/utils.ts): Shared utility functions used across frontend and SDK
+- [Client Stream to AI SDK](lib/client-stream-to-ai-sdk.ts): Streaming client integration with AI SDK
+- [Core Mastra Hook](lib/hooks/use-mastra.ts): Core hook for Mastra client integration
+- [Dashboard Queries Hook](lib/hooks/use-dashboard-queries.ts): Data-fetching hooks for dashboard
+- [Mobile Hook](lib/hooks/use-mobile.ts): Mobile device detection
+- [A2A Library](lib/a2a.ts): Agent-to-Agent coordination utilities
+- [API Library](lib/api.ts): API client utilities
+- [Auth Library](lib/auth.ts): Authentication utilities
+- [Auth Dev Library](lib/auth-dev.ts): Development authentication helpers
+- [Client Identity](lib/client-identity.ts): Client identity management
+- [Types Library](lib/types/mastra-api.ts): API type definitions
+
+## Shared Hooks
+
+- [Debounce Hook](hooks/use-debounce.ts): Debouncing utility hook
+- [Local Storage Hook](hooks/use-local-storage.ts): Local storage state management
+- [Media Query Hook](hooks/use-media-query.ts): Responsive media query handling
+- [Mobile Hook](hooks/use-mobile.ts): Mobile device detection
+- [Mounted Hook](hooks/use-mounted.ts): Component mount state tracking
+- [Utils Hook](hooks/use-utils.ts): General utility hooks
 
 ## Tests & CI
 
 - [Vitest config](vitest.config.ts): Local test runner and CI configuration
 - [tests/](tests/): Unit and integration test files
-- [test-results/](tests/test-results/): Test artifacts and coverage reports
-- [globalSetup.ts](globalSetup.ts), [testSetup.ts](testSetup.ts): Test initialization helpers
+- [API Chat Test](tests/api-chat-r.test.ts): API chat functionality tests
+- [Docs Hello World Test](tests/docs-hello-world.test.ts): Documentation example tests
+- [Agent Tests](tests/agents/): Agent-specific test suites
+- [Test Results](tests/test-results/): Test artifacts and coverage reports
+- [Global Setup](globalSetup.ts): Global test initialization helpers
+- [Test Setup](testSetup.ts): Test environment setup with mocks
+
+## Assets & Public Files
+
+- [Favicons](assets/favicon-16x16.png, assets/favicon-32x32.png, assets/favicon-96x96.png, assets/favicon.ico): Website favicon assets
+- [Apple Touch Icon](assets/apple-touch-icon.png): iOS home screen icon
+- [Android Chrome Icons](assets/android-chrome-192x192.png, assets/android-chrome-512x512.png): Android home screen icons
+- [Logos](assets/logos/): Brand logo assets (robot, rocket, sparkles, stack, star variants)
+- [Monaco Editor](public/monaco/vs/): Monaco code editor assets
+- [Memories Database](memories/memories.db): Local memory storage database
+
+## Memory Bank (Internal)
+
+- [Active Context](memory-bank/activeContext.md): Current project context and active tasks
+- [Product Context](memory-bank/productContext.md): Product vision and requirements
+- [Technical Context](memory-bank/techContext.md): Technical architecture and decisions
+- [Project Brief](memory-bank/projectbrief.md): Project overview and objectives
+- [System Patterns](memory-bank/systemPatterns.md): System design patterns and conventions
+- [Progress Tracking](memory-bank/progress.md): Project progress and milestones
+- [Copilot Rules](memory-bank/copilot-rules.md): AI assistant usage guidelines
+- [Memory Bank Instructions](memory-bank/memory-bank-instructions.md): Memory bank usage guidelines
+- [AI Elements Integration](memory-bank/ai-elements-integration/): AI Elements integration notes
+- [Coding Team](memory-bank/coding-team/): Coding team coordination and planning
+- [CSV Agents](memory-bank/csv-agents/): CSV processing agent development
+- [Dashboard V2](memory-bank/dashboard-v2/): Dashboard version 2 development
+- [Feature Template](memory-bank/feature-template/): Feature development templates
+- [Mastra Client Integration](memory-bank/mastra-client-integration/): Client integration notes
+- [Mastra Ingestion](memory-bank/mastra-ingestion/): Data ingestion development
+- [Semantic Code Tools](memory-bank/semantic-code-tools/): Code analysis tools
+- [Tasks](memory-bank/tasks/): Task management and tracking
+- [Tool Execute Fix](memory-bank/tool-execute-fix/): Tool execution fixes and improvements
+- [Upgrade to V1](memory-bank/upgrade-to-v1/): Version 1 upgrade planning
+- [Workflows Feature](memory-bank/workflows-feature/): Workflow feature development
+
+## GitHub Automation
+
+- [Copilot Instructions](.github/copilot-instructions.md): GitHub Copilot configuration
+- [Code Review Generic](.github/instructions/code-review-generic.instructions.md): Generic code review guidelines
+- [GitHub Actions CI/CD](.github/instructions/github-actions-ci-cd-best-practices.instructions.md): CI/CD pipeline best practices
+- [Markdown Instructions](.github/instructions/markdown.instructions.md): Markdown formatting guidelines
+- [Next.js Instructions](.github/instructions/next-js.instructions.md): Next.js development guidelines
+- [Self-Explanatory Code](.github/instructions/self-explanatory-code-commenting.instructions.md): Code commenting standards
+- [Update Docs on Code Change](.github/instructions/update-docs-on-code-change.instructions.md): Documentation update automation
+- [Agents Directory](.github/agents/): Specialized agent configurations for various development tasks
+- [Commands Directory](.github/commands/): Custom GitHub commands and automation
+- [Workflows Directory](.github/workflows/): GitHub Actions CI/CD pipelines
+- [Prompts Directory](.github/prompts/): Development and automation prompts
 
 ## Examples & Developer Guides
 
@@ -185,13 +428,6 @@
 - [ui/popover.tsx](ui/popover.tsx): Context menu/popover primitive
 - [ui/tooltip.tsx](ui/tooltip.tsx): Hover tooltip component
 - [ui/layout.tsx](ui/layout.tsx): Page layout wrapper
-
-## Memory Bank & Project Context (developer tooling)
-
-- [memory-bank/activeContext.md](memory-bank/activeContext.md): Active context and project memory
-- [memory-bank/productContext.md](memory-bank/productContext.md): Product brief and goals
-- [memory-bank/techContext.md](memory-bank/techContext.md): Technical constraints and choices
-- [memory-bank/memory-bank-instructions.md](memory-bank/memory-bank-instructions.md): How the memory-bank is used in this repo
 
 ## Optional / Misc
 

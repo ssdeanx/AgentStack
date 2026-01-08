@@ -101,4 +101,7 @@ User: ${userId} | Role: ${roleConstraint}
   scorers: {
 
   },
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

@@ -5,8 +5,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
 
 import { extractText, getDocumentProxy } from 'unpdf'
+
+export interface PdfToolContext extends RequestContext {
+    userId?: string
+}
 
 export const readPDF = createTool({
     id: 'readPDF',
@@ -51,6 +56,7 @@ export const readPDF = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const requestContext = context?.requestContext as PdfToolContext | undefined
 
         const tracer = trace.getTracer('tools/read-pdf')
         const span = tracer.startSpan('read-pdf', {

@@ -12,6 +12,11 @@ import { z } from 'zod'
 import { getJson } from 'serpapi'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface SerpApiContext extends RequestContext {
+    userId?: string
+}
 
 /**
  * Input schema for Google News
@@ -120,6 +125,7 @@ export const googleNewsTool = createTool({
     },
     execute: async (input, context) => {
         const writer = context?.writer
+        const requestContext = context?.requestContext as SerpApiContext | undefined
         await writer?.custom({
             type: 'data-tool-progress',
             data: {

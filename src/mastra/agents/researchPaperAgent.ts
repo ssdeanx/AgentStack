@@ -68,7 +68,10 @@ User: ${userTier} | Lang: ${language}
     batchSize: 5,
     maxWaitTime: 75,
     emitOnNonText: true
-  })]
+  })],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 log.info('Research Paper Agent initialized')

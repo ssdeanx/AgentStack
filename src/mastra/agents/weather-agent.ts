@@ -66,5 +66,8 @@ export const weatherAgent = new Agent({
   outputProcessors: [new TokenLimiterProcessor(128000)],
   memory: pgMemory,
   options: {},
-  maxRetries: 5
+  maxRetries: 5,
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

@@ -72,5 +72,8 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
   scorers: {
 
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

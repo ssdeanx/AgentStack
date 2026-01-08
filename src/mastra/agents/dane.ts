@@ -82,7 +82,10 @@ export const daneIssueLabeler = new Agent({
           maxWaitTime: 75,
           emitOnNonText: true
         }),
-  ]
+  ],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })
 
 export const daneLinkChecker = new Agent({
@@ -158,6 +161,9 @@ export const daneChangeLog = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
   outputProcessors: [new TokenLimiterProcessor(128576),
     new BatchPartsProcessor({
           batchSize: 10,
@@ -228,5 +234,8 @@ export const dane = new Agent({
       maxWaitTime: 75,
       emitOnNonText: true
     }),
-  ]
+  ],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 })

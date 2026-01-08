@@ -9,6 +9,12 @@ const validatorContextSchema = z.object({
     maxErrors: z.number().optional(),
 })
 
+export interface DataValidatorContext extends RequestContext {
+    validatorContext?: {
+        maxErrors?: number
+    }
+}
+
 // Type definitions for the schema builder
 type SchemaType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'enum'
 
@@ -165,9 +171,7 @@ export const dataValidatorToolJSON = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as RequestContext<{
-            validatorContext: unknown
-        }> // TODO: unknown is not a type
+        const requestContext = context?.requestContext as DataValidatorContext | undefined
 
         await writer?.custom({
             type: 'data-tool-progress',

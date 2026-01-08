@@ -77,46 +77,7 @@ export const findReferencesTool = createTool({
         'Find all references to a symbol (function, class, variable) across the codebase using semantic analysis.',
     inputSchema: findReferencesInputSchema,
     outputSchema: findReferencesOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                symbolName: input.symbolName,
-                projectPath: input.projectPath,
-                filePath: input.filePath,
-                line: input.line,
-                includeDependencies: input.includeDependencies,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('findReferencesTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                references: output.references,
-                summary: output.summary,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context) => {
         const writer = context?.writer
         await writer?.custom({
@@ -428,6 +389,50 @@ export const findReferencesTool = createTool({
             span.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                symbolName: input.symbolName,
+                projectPath: input.projectPath,
+                filePath: input.filePath,
+                line: input.line,
+                includeDependencies: input.includeDependencies,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('findReferencesTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                references: output.references,
+                summary: output.summary,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

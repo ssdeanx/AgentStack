@@ -277,45 +277,7 @@ Supports edge case generation and mock setup for external dependencies.
 Use for increasing test coverage and establishing testing patterns.`,
     inputSchema: testGeneratorInputSchema,
     outputSchema: testGeneratorOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('testGeneratorTool tool input streaming started', {
-            toolCallId,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('testGeneratorTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('testGeneratorTool received input', {
-            toolCallId,
-            inputData: {
-                sourceFile: input.sourceFile,
-                outputPath: input.outputPath,
-                options: input.options,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('testGeneratorTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                testFile: output.testFile,
-                sourceFile: output.sourceFile,
-                framework: output.framework,
-                tests: output.tests,
-                coverage: output.coverage,
-                runCommand: output.runCommand,
-            },
-            hook: 'onOutput',
-        })
-    },
+
     execute: async (inputData, context?) => {
         const { sourceFile, outputPath, options } = inputData
         const { includeEdgeCases, mockExternals, testStyle } = options ?? {}
@@ -392,5 +354,44 @@ Use for increasing test coverage and establishing testing patterns.`,
             span.end()
             throw error
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('testGeneratorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('testGeneratorTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('testGeneratorTool received input', {
+            toolCallId,
+            inputData: {
+                sourceFile: input.sourceFile,
+                outputPath: input.outputPath,
+                options: input.options,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('testGeneratorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                testFile: output.testFile,
+                sourceFile: output.sourceFile,
+                framework: output.framework,
+                tests: output.tests,
+                coverage: output.coverage,
+                runCommand: output.runCommand,
+            },
+            hook: 'onOutput',
+        })
     },
 })

@@ -78,6 +78,9 @@ Create compelling content (blog, marketing, social, technical, business, creativ
     },
     workflows: {},
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)]
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    defaultOptions: {
+      autoResumeSuspendedTools: true,
+    },
 })
 

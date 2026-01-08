@@ -1062,7 +1062,7 @@ export const webScraperTool = createTool({
             })
 
             // Check for cancellation before crawling
-            if (abortSignal?.aborted === true) {
+            if (abortSignal?.aborted) {
                 throw new Error('Web scraping cancelled during crawling')
             }
 

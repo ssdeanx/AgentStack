@@ -70,5 +70,8 @@ User: ${userTier} | Lang: ${language}
   tools: {
     webScraperTool
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

@@ -1,4 +1,4 @@
-import { RequestContext } from "@mastra/core/request-context";
+import type { RequestContext } from "@mastra/core/request-context";
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import { trace } from "@opentelemetry/api";
@@ -140,31 +140,7 @@ export const readCSVDataTool = createTool({
     rows: z.array(CSVRowSchema),
     rawCSV: z.string(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Read CSV tool input streaming started', {
-      toolCallId,
-      messages: messages.length,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Read CSV received complete input', {
-      toolCallId,
-      messageCount: messages.length,
-      fileName: input.fileName,
-      hasHeaders: input.hasHeaders,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Read CSV completed', {
-      toolCallId,
-      toolName,
-      rowCount: output.rows.length,
-      headerCount: output.headers?.length || 0,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -230,6 +206,31 @@ export const readCSVDataTool = createTool({
       throw error
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Read CSV tool input streaming started', {
+      toolCallId,
+      messages: messages.length,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Read CSV received complete input', {
+      toolCallId,
+      messageCount: messages.length,
+      fileName: input.fileName,
+      hasHeaders: input.hasHeaders,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Read CSV completed', {
+      toolCallId,
+      toolName,
+      rowCount: output.rows.length,
+      headerCount: output.headers?.length || 0,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -255,29 +256,7 @@ export const csvToExcalidrawTool = createTool({
       elementSpacing: z.number(),
     }),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('CSV to Excalidraw tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('CSV to Excalidraw received complete input', {
-      toolCallId,
-      layoutType: input.layoutType,
-      hasHeaders: input.hasHeaders,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('CSV to Excalidraw completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elementCount,
-      filename: output.filename,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -524,6 +503,29 @@ export const csvToExcalidrawTool = createTool({
       throw error;
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('CSV to Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('CSV to Excalidraw received complete input', {
+      toolCallId,
+      layoutType: input.layoutType,
+      hasHeaders: input.hasHeaders,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('CSV to Excalidraw completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      filename: output.filename,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -553,29 +555,7 @@ export const imageToCSVTool = createTool({
     elementCount: z.number(),
     columns: z.array(z.string()),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Image to CSV tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Image to CSV received complete input', {
-      toolCallId,
-      elementCount: input.elements.length,
-      filename: input.filename,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Image to CSV completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elementCount,
-      filename: output.filename,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -624,6 +604,29 @@ export const imageToCSVTool = createTool({
     span.end();
     return result;
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Image to CSV tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Image to CSV received complete input', {
+      toolCallId,
+      elementCount: input.elements.length,
+      filename: input.filename,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Image to CSV completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      filename: output.filename,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -643,29 +646,7 @@ export const validateExcalidrawTool = createTool({
     warnings: z.array(z.string()),
     elementCount: z.number(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Validate Excalidraw tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Validate Excalidraw received complete input', {
-      toolCallId,
-      autoFix: input.autoFix,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Validate Excalidraw completed', {
-      toolCallId,
-      toolName,
-      isValid: output.isValid,
-      errorCount: output.errors.length,
-      elementCount: output.elementCount,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -791,6 +772,29 @@ export const validateExcalidrawTool = createTool({
       }
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Validate Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Validate Excalidraw received complete input', {
+      toolCallId,
+      autoFix: input.autoFix,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Validate Excalidraw completed', {
+      toolCallId,
+      toolName,
+      isValid: output.isValid,
+      errorCount: output.errors.length,
+      elementCount: output.elementCount,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -817,29 +821,7 @@ export const processSVGTool = createTool({
     }),
     elementCount: z.number(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Process SVG tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Process SVG received complete input', {
-      toolCallId,
-      extractPaths: input.extractPaths,
-      extractText: input.extractText,
-      extractStyles: input.extractStyles,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Process SVG completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elementCount,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -940,6 +922,29 @@ export const processSVGTool = createTool({
       throw new Error(`SVG processing failed: ${errorMessage}`)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Process SVG tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Process SVG received complete input', {
+      toolCallId,
+      extractPaths: input.extractPaths,
+      extractText: input.extractText,
+      extractStyles: input.extractStyles,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Process SVG completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -964,29 +969,7 @@ export const processXMLTool = createTool({
     extractedData: z.any(),
     rootElement: z.string(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Process XML tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Process XML received complete input', {
-      toolCallId,
-      extractElements: input.extractElements?.join(','),
-      extractAttributes: input.extractAttributes?.join(','),
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Process XML completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elements.length,
-      rootElement: output.rootElement,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1129,6 +1112,29 @@ export const processXMLTool = createTool({
       throw new Error(`XML processing failed: ${errorMessage}`)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Process XML tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Process XML received complete input', {
+      toolCallId,
+      extractElements: input.extractElements?.join(','),
+      extractAttributes: input.extractAttributes?.join(','),
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Process XML completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elements.length,
+      rootElement: output.rootElement,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -1152,29 +1158,7 @@ export const convertDataFormatTool = createTool({
       conversionType: z.string(),
     }),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Convert data format tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Convert data format received complete input', {
-      toolCallId,
-      inputFormat: input.inputFormat,
-      outputFormat: input.outputFormat,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Convert data format completed', {
-      toolCallId,
-      toolName,
-      success: true,
-      format: output.format,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1303,6 +1287,29 @@ export const convertDataFormatTool = createTool({
       throw new Error(`Data conversion failed: ${errorMessage}`)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Convert data format tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Convert data format received complete input', {
+      toolCallId,
+      inputFormat: input.inputFormat,
+      outputFormat: input.outputFormat,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Convert data format completed', {
+      toolCallId,
+      toolName,
+      success: true,
+      format: output.format,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -1322,29 +1329,7 @@ export const validateDataTool = createTool({
     warnings: z.array(z.string()),
     validatedData: z.any().optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Validate data tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Validate data received complete input', {
-      toolCallId,
-      schemaType: input.schemaType,
-      strict: input.strict,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Validate data completed', {
-      toolCallId,
-      toolName,
-      isValid: output.isValid,
-      errorCount: output.errors.length,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1498,6 +1483,29 @@ export const validateDataTool = createTool({
       }
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Validate data tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Validate data received complete input', {
+      toolCallId,
+      schemaType: input.schemaType,
+      strict: input.strict,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Validate data completed', {
+      toolCallId,
+      toolName,
+      isValid: output.isValid,
+      errorCount: output.errors.length,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -1579,30 +1587,7 @@ export const excalidrawToSVGTool = createTool({
     }).describe('SVG dimensions'),
     elementCount: z.number().describe('Number of Excalidraw elements converted'),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('Excalidraw to SVG tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('Excalidraw to SVG received complete input', {
-      toolCallId,
-      elementCount: input.excalidrawData.elements.length,
-      saveToFile: input.saveToFile,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('Excalidraw to SVG completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elementCount,
-      width: output.dimensions.width,
-      height: output.dimensions.height,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1689,6 +1674,30 @@ export const excalidrawToSVGTool = createTool({
       throw new Error(`Excalidraw to SVG conversion failed: ${errorMessage}`)
     }
   },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('Excalidraw to SVG tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('Excalidraw to SVG received complete input', {
+      toolCallId,
+      elementCount: input.excalidrawData.elements.length,
+      saveToFile: input.saveToFile,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('Excalidraw to SVG completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      width: output.dimensions.width,
+      height: output.dimensions.height,
+      hook: 'onOutput',
+    })
+  },
 })
 
 /**
@@ -1706,28 +1715,7 @@ export const svgToExcalidrawTool = createTool({
     elementCount: z.number(),
     warnings: z.array(z.string()).optional(),
   }),
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('SVG to Excalidraw tool input streaming started', {
-      toolCallId,
-      hook: 'onInputStart',
-    })
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('SVG to Excalidraw received complete input', {
-      toolCallId,
-      title: input.title,
-      hook: 'onInputAvailable',
-    })
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('SVG to Excalidraw completed', {
-      toolCallId,
-      toolName,
-      elementCount: output.elementCount,
-      warningsCount: output.warnings?.length || 0,
-      hook: 'onOutput',
-    })
-  },
+
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
@@ -1959,6 +1947,28 @@ export const svgToExcalidrawTool = createTool({
       span.end();
       throw new Error(`SVG to Excalidraw conversion failed: ${errorMessage}`)
     }
+  },
+  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    log.info('SVG to Excalidraw tool input streaming started', {
+      toolCallId,
+      hook: 'onInputStart',
+    })
+  },
+  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    log.info('SVG to Excalidraw received complete input', {
+      toolCallId,
+      title: input.title,
+      hook: 'onInputAvailable',
+    })
+  },
+  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    log.info('SVG to Excalidraw completed', {
+      toolCallId,
+      toolName,
+      elementCount: output.elementCount,
+      warningsCount: output.warnings?.length || 0,
+      hook: 'onOutput',
+    })
   },
 })
 

@@ -55,5 +55,8 @@ Current user: ${userId ?? 'anonymous'}`,
     getUpcomingEvents,
     findFreeSlots,
   },
-  outputProcessors: [new TokenLimiterProcessor(128000)]
+  outputProcessors: [new TokenLimiterProcessor(128000)],
+  defaultOptions: {
+    autoResumeSuspendedTools: true,
+  },
 });

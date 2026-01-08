@@ -107,6 +107,9 @@ export const seoAgent = new Agent({
         evaluationAgent,
     },
     options: {},
+    defaultOptions: {
+      autoResumeSuspendedTools: true,
+    }
 })
 
 log.info('SEO Agent initialized')
