@@ -15,50 +15,6 @@ export const fsTool = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('FS tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('FS tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('FS tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            action: input.action,
-            file: input.file,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const isSuccess = !output.message.startsWith('Error:')
-        const logLevel = isSuccess ? 'info' : 'warn'
-        const message =
-            output.message.length > 100
-                ? output.message.substring(0, 100) + '...'
-                : output.message
-
-        log[logLevel]('FS tool operation completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            success: isSuccess,
-            message,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -85,7 +41,7 @@ export const fsTool = createTool({
         })
         try {
             // Check for cancellation before file operations
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span?.setStatus({
                     code: 2,
                     message: 'Operation cancelled during file operations',
@@ -162,5 +118,49 @@ export const fsTool = createTool({
                 message: `Error: ${errorMsg}`,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('FS tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('FS tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('FS tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            action: input.action,
+            file: input.file,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const isSuccess = !output.message.startsWith('Error:')
+        const logLevel = isSuccess ? 'info' : 'warn'
+        const message =
+            output.message.length > 100
+                ? output.message.substring(0, 100) + '...'
+                : output.message
+
+        log[logLevel]('FS tool operation completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            success: isSuccess,
+            message,
+            hook: 'onOutput',
+        })
     },
 })

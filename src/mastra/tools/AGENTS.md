@@ -14,6 +14,59 @@
 
 Encapsulate 30+ atomic operational capabilities (security checks, vector queries, content fetch, data processing) in auditable, schema-validated units invoked by agents. Supports financial intelligence, RAG pipelines, web scraping, document processing, and more with Zod schemas, full test coverage, and production-grade error handling.
 
+## createTool()
+
+The `createTool()` function is used to define custom tools that your Mastra agents can execute. Tools extend an agent's capabilities by allowing it to interact with external systems, perform calculations, or access specific data.
+
+### Usage Example
+
+```typescript
+// src/mastra/tools/reverse-tool.ts
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+export const tool = createTool({
+  id: "test-tool",
+  description: "Reverse the input string",
+  inputSchema: z.object({
+    input: z.string(),
+  }),
+  outputSchema: z.object({
+    output: z.string(),
+  }),
+  execute: async (inputData) => {
+    const reversed = inputData.input.split("").reverse().join("");
+
+    return {
+      output: reversed,
+    };
+  },
+});
+```
+
+### Parameters
+
+- **`id`**: `string` - A unique identifier for the tool.
+- **`description`**: `string` - A description of what the tool does. This is used by the agent to decide when to use the tool.
+- **`inputSchema?`**: `Zod schema` - A Zod schema defining the expected input parameters for the tool's `execute` function.
+- **`outputSchema?`**: `Zod schema` - A Zod schema defining the expected output structure of the tool's `execute` function.
+- **`suspendSchema?`**: `Zod schema` - A Zod schema defining the structure of the payload passed to `suspend()`. This payload is returned to the client when the tool suspends execution.
+- **`resumeSchema?`**: `Zod schema` - A Zod schema defining the expected structure of `resumeData` when the tool is resumed. Used by the agent to extract data from user messages when `autoResumeSuspendedTools` is enabled.
+- **`requireApproval?`**: `boolean` - When true, the tool requires explicit approval before execution. The agent will emit a `tool-call-approval` chunk and pause until approved or declined.
+- **`execute`**: `function` - The function that contains the tool's logic. It receives two parameters: the validated input data (first parameter) and an optional execution context object (second parameter) containing `requestContext`, `tracingContext`, `abortSignal`, and other execution metadata.
+  - **`input`**: `z.infer<TInput>` - The validated input data based on inputSchema
+  - **`context?`**: `ToolExecutionContext` - Optional execution context containing metadata
+- **`onInputStart?`**: `function` - Optional callback invoked when the tool call input streaming begins. Receives `toolCallId`, `messages`, and `abortSignal`.
+- **`onInputDelta?`**: `function` - Optional callback invoked for each incremental chunk of input text as it streams in. Receives `inputTextDelta`, `toolCallId`, `messages`, and `abortSignal`.
+- **`onInputAvailable?`**: `function` - Optional callback invoked when the complete tool input is available and parsed. Receives the validated `input` object, `toolCallId`, `messages`, and `abortSignal`.
+- **`onOutput?`**: `function` - Optional callback invoked after the tool has successfully executed and returned output. Receives the tool's `output`, `toolCallId`, `messages`, and `abortSignal`.
+
+### Returns
+
+The `createTool()` function returns a `Tool` object.
+
+- **`Tool`**: `object` - An object representing the defined tool, ready to be added to an agent.
+
 ## Categories
 
 ### 1. 💰 Financial Data APIs
@@ -161,6 +214,8 @@ For a typical streaming tool call, the hooks are invoked in this order:
 4. Tool's `execute` function runs
 5. `onOutput` → Tool has completed successfully
 
+**Implementation requirement:** Lifecycle hooks (`onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput`) **must be declared after** the tool's `execute` property in the `createTool()` call. This ordering ensures tooling that relies on the execute initialization sees hooks only after the execution context is available.
+
 ### Implementation Pattern
 
 All lifecycle hooks use structured logging with the Mastra logger for consistent, searchable logs:
@@ -177,6 +232,10 @@ export const exampleTool = createTool({
     outputSchema: z.object({
         result: z.string(),
     }),
+    execute: async (inputData, context) => {
+        // Tool implementation
+        return { result: 'success' }
+    },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Tool input streaming started', {
             toolCallId,
@@ -211,10 +270,6 @@ export const exampleTool = createTool({
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
-    },
-    execute: async (inputData, context) => {
-        // Tool implementation
-        return { result: 'success' }
     },
 })
 ```
@@ -269,7 +324,21 @@ node generate-hooks.js my-new-tool.ts myNewTool inputField1 inputField2
 📋 Copy these hooks into your createTool definition:
 
 onInputStart: ({ toolCallId, messages, abortSignal }) => {
-  log.info('myNewTool tool input streaming started', { toolCallId, messageCount: messages.length, hook: 'onInputStart' });
+  log.info('myNewTool tool input streaming started', {
+    toolCallId,
+    messageCount: messages.length,
+    abortSignal: abortSignal?.aborted,
+    hook: 'onInputStart'
+  });
+},
+onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+  log.info('myNewTool received input chunk', {
+    toolCallId,
+    inputTextDelta,
+    messageCount: messages.length,
+    abortSignal: abortSignal?.aborted,
+    hook: 'onInputDelta'
+  });
 },
 onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
   log.info('myNewTool received input', {
@@ -297,6 +366,87 @@ onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
 ```
 
 This ensures consistency across all tools and reduces boilerplate code.
+
+## RequestContext Usage Patterns
+
+All tools should define and use typed RequestContext interfaces to ensure type safety and clear documentation of expected context values. This pattern provides better IntelliSense, prevents runtime errors, and makes the tool's context requirements explicit.
+
+### Interface Definition Pattern
+
+```typescript
+import type { RequestContext } from '@mastra/core/request-context'
+
+export interface ToolNameContext extends RequestContext {
+  userId?: string
+  workspaceId?: string
+  temperatureUnit?: 'celsius' | 'fahrenheit'
+  maxRows?: number
+  // Add other context properties as needed
+}
+```
+
+### Usage in Tools
+
+```typescript
+export const exampleTool = createTool({
+    id: 'example-tool',
+    description: 'Example tool with typed RequestContext',
+    inputSchema: z.object({
+        param: z.string(),
+    }),
+    outputSchema: z.object({
+        result: z.string(),
+    }),
+    execute: async (inputData, context) => {
+        // Extract typed context
+        const requestContext = context?.requestContext as ToolNameContext
+
+        // Access context values with type safety
+        const userId = requestContext?.userId
+        const workspaceId = requestContext?.workspaceId
+        const temperatureUnit = requestContext?.temperatureUnit ?? 'celsius'
+        const maxRows = requestContext?.maxRows ?? 1000
+
+        // Use context values in tool logic
+        log.info('Tool executed with context', {
+            userId,
+            workspaceId,
+            temperatureUnit,
+            maxRows,
+        })
+
+        return { result: 'success' }
+    },
+})
+```
+
+### Benefits
+
+- **Type Safety**: Prevents typos and ensures correct property access
+- **Documentation**: Interface serves as living documentation of context requirements
+- **IntelliSense**: Better IDE support and autocomplete
+- **Runtime Safety**: Catches context usage errors at compile time
+- **Consistency**: Standardized pattern across all tools
+
+### Common Context Properties
+
+- **`userId`** (`string`): Current user identifier for user-specific data filtering
+- **`workspaceId`** (`string`): Workspace/organization ID for multi-tenant data isolation
+- **`temperatureUnit`** (`'celsius' | 'fahrenheit'`): Temperature display preference for weather tools
+- **`maxRows`** (`number`): Maximum result limit for data processing tools
+- **`locale`** (`string`): User locale/language for internationalization
+- **`permissions`** (`string[]`): User permission array for authorization checks
+
+### Implementation Checklist
+
+When adding RequestContext to a tool:
+
+- [ ] Define interface extending `RequestContext`
+- [ ] Include all context properties the tool uses
+- [ ] Use optional properties (`?:`) for non-required context
+- [ ] Cast context in execute function: `as ToolNameContext`
+- [ ] Provide sensible defaults for optional properties
+- [ ] Document context requirements in tool description if needed
 
 ## Testing
 

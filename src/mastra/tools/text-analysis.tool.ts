@@ -4,16 +4,12 @@ import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const textAnalysisToolContextSchema = z.object({
-    defaultLanguage: z.string().default('en'),
-    includeAdvancedMetrics: z.boolean().default(false),
-})
+import type { RequestContext } from '@mastra/core/request-context'
 
-// Infer the TypeScript type from the Zod schema
-export type TextAnalysisToolContext = z.infer<
-    typeof textAnalysisToolContextSchema
->
+export interface TextAnalysisToolContext extends RequestContext {
+    defaultLanguage?: string
+    includeAdvancedMetrics?: boolean
+}
 
 export const textAnalysisTool = createTool({
     id: 'text-analysis',
@@ -64,56 +60,11 @@ export const textAnalysisTool = createTool({
         textLength: z.number(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Text analysis tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                textLength: input.text.length,
-                operationsCount: input.operations.length,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Text analysis tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                success: output.success,
-                operationsCompleted: output.operations.length,
-                textLength: output.textLength,
-            },
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext
-
-        const { defaultLanguage, includeAdvancedMetrics } =
-            textAnalysisToolContextSchema.parse(
-                requestContext?.get('textAnalysisToolContext')
-            )
+        const requestCtx = context?.requestContext as TextAnalysisToolContext | undefined
+        const defaultLanguage = requestCtx?.defaultLanguage ?? 'en'
+        const includeAdvancedMetrics = requestCtx?.includeAdvancedMetrics ?? false
 
         const tracer = trace.getTracer('text-analysis-tool', '1.0.0')
         const span = tracer.startSpan('text-analysis', {
@@ -135,8 +86,14 @@ export const textAnalysisTool = createTool({
         })
 
         try {
-            const results: Record<string, any> = {}
+            type TextAnalysisResult =
+                | string
+                | number
+                | { score: number; level: string; grade?: string }
+                | { polarity: number; subjectivity: number; confidence: number }
+            const results: Record<string, TextAnalysisResult> = {}
             const language = inputData.language ?? defaultLanguage
+            const includeAdvancedMetricsFlag = includeAdvancedMetrics ?? false
 
             for (const operation of inputData.operations) {
                 switch (operation) {
@@ -156,7 +113,7 @@ export const textAnalysisTool = createTool({
                         )
                         break
                     case 'sentiment':
-                        if (includeAdvancedMetrics) {
+                        if (includeAdvancedMetricsFlag) {
                             results[operation] = analyzeSentiment(
                                 inputData.text,
                                 language
@@ -200,7 +157,7 @@ export const textAnalysisTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Text analysis failed: ${errorMsg}`)
+            log.error(`Text analysis failed: ${errorMsg}`, { error: errorMsg })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -216,6 +173,47 @@ export const textAnalysisTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Text analysis tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                textLength: input.text?.length ?? 0,
+                operationsCount: input.operations?.length ?? 0,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Text analysis tool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                success: output.success,
+                operationsCompleted: output.operations?.length ?? 0,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -327,7 +325,8 @@ export const textProcessingTool = createTool({
             }
 
             // Apply options
-            if (inputData.options?.removeNewlines) {
+            const removeNewlinesFlag = inputData.options?.removeNewlines ?? false
+            if (removeNewlinesFlag) {
                 processedText = processedText.replace(/\n/g, ' ')
             }
 
@@ -364,7 +363,9 @@ export const textProcessingTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Text processing failed: ${errorMsg}`)
+            log.error(`Text processing failed: ${errorMsg}`, {
+                error: errorMsg,
+            })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -407,6 +408,7 @@ function countParagraphs(text: string): number {
 }
 
 function calculateReadability(text: string, language: string) {
+
     const words = countWords(text)
     const sentences = countSentences(text)
 
@@ -457,6 +459,7 @@ function calculateReadability(text: string, language: string) {
 }
 
 function analyzeSentiment(text: string, language: string) {
+
     // Simplified sentiment analysis (positive/negative word counting)
     const positiveWords = [
         'good',
@@ -488,8 +491,12 @@ function analyzeSentiment(text: string, language: string) {
     let negativeCount = 0
 
     for (const word of words) {
-        if (positiveWords.includes(word)) {positiveCount++}
-        if (negativeWords.includes(word)) {negativeCount++}
+        if (positiveWords.includes(word)) {
+            positiveCount++
+        }
+        if (negativeWords.includes(word)) {
+            negativeCount++
+        }
     }
 
     const polarity = positiveCount - negativeCount
@@ -556,26 +563,42 @@ function detectLanguage(text: string): string {
     let frenchScore = 0
 
     for (const word of words) {
-        if (englishWords.includes(word)) {englishScore++}
-        if (spanishWords.includes(word)) {spanishScore++}
-        if (frenchWords.includes(word)) {frenchScore++}
+        if (englishWords.includes(word)) {
+            englishScore++
+        }
+        if (spanishWords.includes(word)) {
+            spanishScore++
+        }
+        if (frenchWords.includes(word)) {
+            frenchScore++
+        }
     }
 
     const maxScore = Math.max(englishScore, spanishScore, frenchScore)
-    if (maxScore === 0) {return 'unknown'}
+    if (maxScore === 0) {
+        return 'unknown'
+    }
 
-    if (englishScore === maxScore) {return 'en'}
-    if (spanishScore === maxScore) {return 'es'}
+    if (englishScore === maxScore) {
+        return 'en'
+    }
+    if (spanishScore === maxScore) {
+        return 'es'
+    }
     return 'fr'
 }
 
 function generateSummary(text: string): string {
     const words = text.split(/\s+/)
-    if (words.length <= 50) {return text}
+    if (words.length <= 50) {
+        return text
+    }
 
     // Simple extractive summary - take first and last sentences
     const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0)
-    if (sentences.length <= 2) {return text}
+    if (sentences.length <= 2) {
+        return text
+    }
 
     return (
         sentences[0].trim() +

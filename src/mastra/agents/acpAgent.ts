@@ -96,7 +96,7 @@ User: ${userId} | Role: ${roleConstraint}
     //		containerTags: ['acp-agent']
     //	}),
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  outputProcessors: [new TokenLimiterProcessor(128576)],
   workflows: {},
   scorers: {
 

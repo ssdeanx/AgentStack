@@ -292,8 +292,7 @@ export const mastra = new Mastra({
               semanticRecall: true,
               workingMemory: { enabled: true },
               threads: { generateTitle: true },
-            },
-            readOnly: false,
+            }
           },
           maxSteps: 50,
           includeRawChunks: true,
@@ -319,8 +318,7 @@ export const mastra = new Mastra({
               semanticRecall: true,
               workingMemory: { enabled: true },
               threads: { generateTitle: true },
-            },
-            readOnly: false,
+            }
           },
           maxSteps: 50,
           includeRawChunks: true,

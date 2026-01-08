@@ -4,15 +4,13 @@ import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-// Define the Zod schema for the runtime context
-const urlToolContextSchema = z.object({
-    defaultProtocol: z.string().default('https'),
-    allowLocalhost: z.boolean().default(false),
-    timeout: z.number().default(5000),
-})
+import type { RequestContext } from '@mastra/core/request-context'
 
-// Infer the TypeScript type from the Zod schema
-export type UrlToolContext = z.infer<typeof urlToolContextSchema>
+export interface UrlToolContext extends RequestContext {
+    defaultProtocol?: string
+    allowLocalhost?: boolean
+    timeout?: number
+}
 
 export const urlValidationTool = createTool({
     id: 'url-validation',
@@ -44,7 +42,8 @@ export const urlValidationTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        results: z.record(z.string(),
+        results: z.record(
+            z.string(),
             z.union([
                 z.boolean(),
                 z.string(),
@@ -70,53 +69,14 @@ export const urlValidationTool = createTool({
         originalUrl: z.string(),
         message: z.string().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('URL validation tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('URL validation tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('URL validation tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                url: input.url,
-                operationsCount: input.operations.length,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('URL validation tool completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            outputData: {
-                success: output.success,
-                operationsCompleted: output.operations.length,
-            },
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext
 
-        const { defaultProtocol, allowLocalhost, timeout } =
-            urlToolContextSchema.parse(requestContext?.get('urlToolContext'))
+
+        const requestCtx = context?.requestContext as UrlToolContext | undefined
+        const defaultProtocol = requestCtx?.defaultProtocol ?? 'https'
+        const allowLocalhost = requestCtx?.allowLocalhost ?? false
+        const timeout = requestCtx?.timeout ?? 5000
 
         const tracer = trace.getTracer('url-validation-tool', '1.0.0')
         const span = tracer.startSpan('url-validation')
@@ -132,7 +92,26 @@ export const urlValidationTool = createTool({
         })
 
         try {
-            const results: Record<string, any> = {}
+            type UrlValidationResult =
+                | boolean
+                | string
+                | {
+                      protocol: string
+                      hostname: string
+                      port?: string
+                      pathname: string
+                      search: string
+                      hash: string
+                      query: Record<string, string>
+                  }
+                | {
+                      status?: number
+                      contentType?: string
+                      contentLength?: number
+                      lastModified?: string
+                      title?: string
+                  }
+            const results: Record<string, UrlValidationResult> = {}
 
             for (const operation of inputData.operations) {
                 switch (operation) {
@@ -161,8 +140,9 @@ export const urlValidationTool = createTool({
                             inputData.options?.userAgent
                         )
                         break
-                    case 'get-metadata':
-                        if (inputData.options?.followRedirects) {
+                    case 'get-metadata': {
+                        const followRedirects = inputData.options?.followRedirects ?? false
+                        if (followRedirects) {
                             results[operation] = await getUrlMetadata(
                                 inputData.url,
                                 inputData.options?.timeout ?? timeout,
@@ -173,6 +153,7 @@ export const urlValidationTool = createTool({
                                 'Metadata fetching disabled (followRedirects=false)'
                         }
                         break
+                    }
                     case 'shorten':
                         results[operation] = await shortenUrl(inputData.url)
                         break
@@ -205,7 +186,7 @@ export const urlValidationTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`URL validation failed: ${errorMsg}`)
+            log.error(`URL validation failed: ${errorMsg}`, { error: errorMsg })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -221,6 +202,47 @@ export const urlValidationTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('URL validation tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('URL validation tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('URL validation tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                url: input.url,
+                operationsCount: input.operations.length,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('URL validation tool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                success: output.success,
+                operationsCompleted: output.operations.length,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -298,7 +320,10 @@ export const urlManipulationTool = createTool({
 
                 switch (operation) {
                     case 'add-query':
-                        if (inputData.parameters?.query) {
+                        if (
+                            inputData.parameters &&
+                            'query' in inputData.parameters
+                        ) {
                             currentUrl = addQueryParams(
                                 currentUrl,
                                 inputData.parameters.query as Record<
@@ -309,7 +334,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'remove-query':
-                        if (inputData.parameters?.queryKeys) {
+                        if (
+                            inputData.parameters &&
+                            'queryKeys' in inputData.parameters
+                        ) {
                             currentUrl = removeQueryParams(
                                 currentUrl,
                                 inputData.parameters.queryKeys as string[]
@@ -317,7 +345,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'update-query':
-                        if (inputData.parameters?.query) {
+                        if (
+                            inputData.parameters &&
+                            'query' in inputData.parameters
+                        ) {
                             currentUrl = updateQueryParams(
                                 currentUrl,
                                 inputData.parameters.query as Record<
@@ -328,7 +359,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'add-path':
-                        if (inputData.parameters?.path) {
+                        if (
+                            inputData.parameters &&
+                            'path' in inputData.parameters
+                        ) {
                             currentUrl = addPath(
                                 currentUrl,
                                 inputData.parameters.path as string
@@ -336,7 +370,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'replace-path':
-                        if (inputData.parameters?.path) {
+                        if (
+                            inputData.parameters &&
+                            'path' in inputData.parameters
+                        ) {
                             currentUrl = replacePath(
                                 currentUrl,
                                 inputData.parameters.path as string
@@ -344,7 +381,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'add-fragment':
-                        if (inputData.parameters?.fragment) {
+                        if (
+                            inputData.parameters &&
+                            'fragment' in inputData.parameters
+                        ) {
                             currentUrl = addFragment(
                                 currentUrl,
                                 inputData.parameters.fragment as string
@@ -355,7 +395,10 @@ export const urlManipulationTool = createTool({
                         currentUrl = removeFragment(currentUrl)
                         break
                     case 'change-protocol':
-                        if (inputData.parameters?.protocol) {
+                        if (
+                            inputData.parameters &&
+                            'protocol' in inputData.parameters
+                        ) {
                             currentUrl = changeProtocol(
                                 currentUrl,
                                 inputData.parameters.protocol as string
@@ -363,7 +406,10 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'change-hostname':
-                        if (inputData.parameters?.hostname) {
+                        if (
+                            inputData.parameters &&
+                            'hostname' in inputData.parameters
+                        ) {
                             currentUrl = changeHostname(
                                 currentUrl,
                                 inputData.parameters.hostname as string
@@ -371,13 +417,18 @@ export const urlManipulationTool = createTool({
                         }
                         break
                     case 'change-port':
-                        currentUrl = changePort(
-                            currentUrl,
-                            inputData.parameters?.port as
-                                | string
-                                | number
-                                | undefined
-                        )
+                        if (
+                            inputData.parameters &&
+                            'port' in inputData.parameters
+                        ) {
+                            currentUrl = changePort(
+                                currentUrl,
+                                inputData.parameters.port as
+                                    | string
+                                    | number
+                                    | undefined
+                            )
+                        }
                         break
                     default:
                         throw new Error(`Unknown operation: ${operation}`)
@@ -419,7 +470,9 @@ export const urlManipulationTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`URL manipulation failed: ${errorMsg}`)
+            log.error(`URL manipulation failed: ${errorMsg}`, {
+                error: errorMsg,
+            })
 
             if (e instanceof Error) {
                 span.recordException(e)
@@ -436,6 +489,47 @@ export const urlManipulationTool = createTool({
                 message: errorMsg,
             }
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('URL manipulation tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('URL manipulation tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('URL manipulation tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                baseUrl: input.baseUrl,
+                operationsCount: input.operations.length,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('URL manipulation tool completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            outputData: {
+                success: output.success,
+                resultUrl: output.resultUrl,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -488,7 +582,7 @@ function parseUrl(url: string) {
 function normalizeUrl(url: string, defaultProtocol = 'https'): string {
     try {
         // If no protocol, add default
-        if (!(/^https?:\/\//.exec(url))) {
+        if (!/^https?:\/\//.exec(url)) {
             url = `${defaultProtocol}://${url}`
         }
 
@@ -530,10 +624,11 @@ async function checkUrlReachability(
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), timeout)
 
+        const headers = userAgent ? { 'User-Agent': userAgent } : undefined
         const response = await fetch(url, {
             method: 'HEAD',
             signal: controller.signal,
-            headers: userAgent ? { 'User-Agent': userAgent } : undefined,
+            headers,
         })
 
         clearTimeout(timeoutId)
@@ -543,11 +638,7 @@ async function checkUrlReachability(
     }
 }
 
-async function getUrlMetadata(
-    url: string,
-    timeout = 5000,
-    userAgent?: string
-) {
+async function getUrlMetadata(url: string, timeout = 5000, userAgent?: string) {
     try {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -573,14 +664,15 @@ async function getUrlMetadata(
     }
 }
 
-async function shortenUrl(url: string): Promise<string> {
+async function shortenUrl(_url: string): Promise<string> {
+    void _url
     // For demo purposes, return a mock shortened URL
     // In a real implementation, you'd call a URL shortening service
     const mockShortId = Math.random().toString(36).substring(2, 8)
     return `https://short.ly/${mockShortId}`
 }
 
-function addQueryParams(url: string, params: Record<string, any>): string {
+function addQueryParams(url: string, params: Record<string, unknown>): string {
     const urlObj = new URL(url)
     Object.entries(params).forEach(([key, value]) => {
         urlObj.searchParams.set(key, String(value))
@@ -594,7 +686,7 @@ function removeQueryParams(url: string, keys: string[]): string {
     return urlObj.toString()
 }
 
-function updateQueryParams(url: string, params: Record<string, any>): string {
+function updateQueryParams(url: string, params: Record<string, unknown>): string {
     const urlObj = new URL(url)
     Object.entries(params).forEach(([key, value]) => {
         if (value === null || value === undefined) {
@@ -657,29 +749,35 @@ function changePort(url: string, port?: string | number): string {
 
 function getOperationDescription(
     operation: string,
-    params?: Record<string, any>
+    params?: Record<string, unknown>
 ): string {
     switch (operation) {
-        case 'add-query':
-            return `Added query parameters: ${Object.keys(params?.query ?? {}).join(', ')}`
-        case 'remove-query':
-            return `Removed query parameters: ${((params?.queryKeys as string[]) || []).join(', ')}`
-        case 'update-query':
-            return `Updated query parameters: ${Object.keys(params?.query ?? {}).join(', ')}`
+        case 'add-query': {
+            const queryKeys = params && typeof params.query === 'object' && params.query !== null ? Object.keys(params.query as Record<string, unknown>).join(', ') : ''
+            return `Added query parameters: ${queryKeys}`
+        }
+        case 'remove-query': {
+            const keys = params && 'queryKeys' in params && Array.isArray((params)['queryKeys']) ? ((params)['queryKeys'] as string[]).join(', ') : ''
+            return `Removed query parameters: ${keys}`
+        }
+        case 'update-query': {
+            const updated = params && typeof params.query === 'object' && params.query !== null ? Object.keys(params.query as Record<string, unknown>).join(', ') : ''
+            return `Updated query parameters: ${updated}`
+        }
         case 'add-path':
-            return `Added path segment: ${(params?.path as string) || ''}`
+            return `Added path segment: ${params?.['path'] ?? ''}`
         case 'replace-path':
-            return `Replaced path with: ${(params?.path as string) || ''}`
+            return `Replaced path with: ${params?.['path'] ?? ''}`
         case 'add-fragment':
-            return `Added fragment: ${(params?.fragment as string) || ''}`
+            return `Added fragment: ${params?.['fragment'] ?? ''}`
         case 'remove-fragment':
             return 'Removed fragment'
         case 'change-protocol':
-            return `Changed protocol to: ${(params?.protocol as string) || ''}`
+            return `Changed protocol to: ${params?.['protocol'] ?? ''}`
         case 'change-hostname':
-            return `Changed hostname to: ${(params?.hostname as string) || ''}`
+            return `Changed hostname to: ${params?.['hostname'] ?? ''}`
         case 'change-port':
-            return `Changed port to: ${params?.port ?? 'default'}`
+            return `Changed port to: ${params?.['port'] ?? 'default'}`
         default:
             return operation
     }

@@ -22,41 +22,8 @@ export const writeNoteTool = createTool({
             .describe('The markdown content of the note.'),
     }),
     outputSchema: z.string().nonempty(),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                title: input.title,
-                content: input.content,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('writeNoteTool completed', {
-            toolCallId,
-            toolName,
-            outputData: output,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData) => {
+
         const startTime = Date.now()
 
         // Get tracer from OpenTelemetry API
@@ -98,6 +65,44 @@ export const writeNoteTool = createTool({
             span.end()
             return `Error writing note: ${errorMessage}`
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                title: input.title,
+                content: input.content,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('writeNoteTool completed', {
+            toolCallId,
+            toolName,
+            outputData: output,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

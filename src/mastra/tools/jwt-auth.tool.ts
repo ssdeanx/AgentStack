@@ -23,43 +23,6 @@ export const jwtAuthTool = createTool({
         exp: z.number().optional(),
         iat: z.number().optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            note: 'no parameters required',
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('JWT auth completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            user: output.sub,
-            roles: output.roles,
-            tenant: output.tenant || 'none',
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -102,7 +65,7 @@ export const jwtAuthTool = createTool({
 
         try {
             // Check for cancellation before JWT verification
-            if (abortSignal && abortSignal.aborted) {
+            if (abortSignal?.aborted) {
                 span?.setStatus({
                     code: 2,
                     message: 'Operation cancelled during JWT verification',
@@ -158,5 +121,42 @@ export const jwtAuthTool = createTool({
             span?.end()
             throw new Error('JWT verification failed: Unknown error')
         }
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            note: 'no parameters required',
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('JWT auth completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            user: output.sub,
+            roles: output.roles,
+            tenant: output.tenant ?? 'none',
+            hook: 'onOutput',
+        })
     },
 })
