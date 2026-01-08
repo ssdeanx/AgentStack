@@ -5,7 +5,7 @@ import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import { webScraperTool } from '../tools'
 
 export interface DaneContext {
@@ -41,7 +41,13 @@ export const daneCommitMessage = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128576),
+    new BatchPartsProcessor({
+          batchSize: 10,
+          maxWaitTime: 75,
+          emitOnNonText: true
+        }),
+  ]
 })
 
 export const daneIssueLabeler = new Agent({
@@ -70,7 +76,13 @@ export const daneIssueLabeler = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128576),
+    new BatchPartsProcessor({
+          batchSize: 10,
+          maxWaitTime: 75,
+          emitOnNonText: true
+        }),
+  ]
 })
 
 export const daneLinkChecker = new Agent({
@@ -104,7 +116,13 @@ export const daneLinkChecker = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128576),
+    new BatchPartsProcessor({
+      batchSize: 10,
+      maxWaitTime: 75,
+      emitOnNonText: true
+    }),
+  ]
 })
 
 export const daneChangeLog = new Agent({
@@ -140,7 +158,13 @@ export const daneChangeLog = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128576),
+    new BatchPartsProcessor({
+          batchSize: 10,
+          maxWaitTime: 75,
+          emitOnNonText: true
+        }),
+  ]
 })
 
 export const dane = new Agent({
@@ -160,18 +184,8 @@ export const dane = new Agent({
 
     # Our tools:
 
-    ## readPDF
-    Makes you a powerful agent capable of reading PDF files.
-
-    ## fsTool
-    Makes you a powerful agent capable of reading and writing files to the local filesystem.
-
     ## execaTool
     Makes you a powerful agent capabale of executing files on the local system.
-
-    ## googleSearch
-    Makes you a powerful agent capabale answering all questions by finding the answer on Google search.
-    Pass the query as a JS object. If you have links, ALWAYS CITE YOUR SOURCES.
 
     ## browserTool
     Makes you a powerful agent capable of scraping the web. Pass the url as a JS object.
@@ -180,12 +194,12 @@ export const dane = new Agent({
     Makes you a powerful agent capable of listing events on a calendar. When using this tool ONLY RETURN RELEVANT EVENTS.
     DO NOT ATTEMPT TO DO ANYTHING MORE.
 
-    ## imageTool
-    Makes you a powerful agent capable of generating images and saving them to disk. Pass the directory and an image prompt.
+    ## webScraperTool
+    Makes you a powerful agent capable of scraping web pages. Use this tool to get information from web pages.
 
     # Rules
     * **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
-    * DO NOT ATTEMPT TO USE GENERAL KNOWLEDGE. Use the 'googleSearch' tool to find the answer.
+    * DO NOT ATTEMPT TO USE GENERAL KNOWLEDGE. Use the 'webScraperTool' tool to find the answer.
     * Don't reference tools when you communicate with the user. Do not mention what tools you are using.
     * Tell the user what you are doing.
     `,
@@ -193,7 +207,7 @@ export const dane = new Agent({
         google: {
           thinkingConfig: {
             includeThoughts: true,
-            thinkingLevel: 'high',
+            thinkingLevel: 'low',
           },
           responseModalities: ['TEXT'],
         } satisfies GoogleGenerativeAIProviderOptions,
@@ -208,5 +222,11 @@ export const dane = new Agent({
     webScraperTool,
     listEvents,
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
+  outputProcessors: [new TokenLimiterProcessor(128576),
+    new BatchPartsProcessor({
+      batchSize: 10,
+      maxWaitTime: 75,
+      emitOnNonText: true
+    }),
+  ]
 })

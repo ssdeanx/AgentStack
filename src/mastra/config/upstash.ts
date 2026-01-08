@@ -144,7 +144,7 @@ export const upstashQueryTool = createVectorQueryTool({
   // Supported database configuration for PgVector
   providerOptions: {
     google: { retrievalConfig: { dimensions: 1536 } },
-  } satisfies GoogleGenerativeAIProviderOptions,
+  },
 
 
   databaseConfig: {
