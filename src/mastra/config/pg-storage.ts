@@ -1,4 +1,3 @@
-
 import { Memory } from '@mastra/memory'
 import { PgVector, PostgresStore } from '@mastra/pg'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
@@ -53,7 +52,7 @@ export const pgStore = new PostgresStore({
   // Schema management
   schemaName: process.env.DB_SCHEMA ?? 'mastra',
   // Connection pooling (using supported pg.Pool options)
-  max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '30'), // Maximum connections in pool
+  max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'), // Maximum connections in pool
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT ?? '30000'), // 30 seconds
   connectionTimeoutMillis: parseInt(
     process.env.DB_CONNECTION_TIMEOUT ?? '2000'
@@ -85,7 +84,7 @@ export const pgMemory = new Memory({
   options: {
     // Message management
     lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
-    generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',
+    generateTitle: true,
     // Advanced semantic recall with HNSW index configuration
     semanticRecall: {
       topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
@@ -98,7 +97,7 @@ export const pgMemory = new Memory({
       indexConfig: {
         type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
         metric: 'cosine', // Distance metric for normalized embeddings
-        ivf: { lists: 1080 }, // IVFFlat configuration
+        ivf: { lists: 3200 }, // IVFFlat configuration
       },
       threshold: 0.75, // Similarity threshold for semantic recall
       indexName: 'memory_messages_3072', // Index name for semantic recall
@@ -139,9 +138,8 @@ log.info('PG Store and Memory initialized with PgVector support', {
       },
       scope: 'resource',
       indexConfig: {
-        type: 'hnsw',
-        metric: 'cosine',
-        hnsw: { m: 16, efConstruction: 64 } // hnsw configuration
+        type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
+        metric: 'cosine', // Distance metric for normalized embeddings
       }
     },
     workingMemory: {
@@ -190,7 +188,8 @@ export const pgQueryTool = createVectorQueryTool({
   databaseConfig: {
     pgVector: {
       minScore: parseFloat(process.env.PG_MIN_SCORE ?? '0.7'),
-      ef: parseInt(process.env.PG_EF ?? '100'), // HNSW search parameter - higher = better recall, slower queries
+      probes: 1000
+//      ef: parseInt(process.env.PG_EF ?? '100'), // HNSW search parameter - higher = better recall, slower queries
       // Note: probes parameter is only for IVFFlat, not HNSW
     },
   },
