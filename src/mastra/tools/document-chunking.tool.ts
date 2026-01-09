@@ -20,7 +20,7 @@ import {
 import { pgVector } from '../config/pg-storage';
 
 import { google } from '@ai-sdk/google';
-import { RequestContext } from "@mastra/core/request-context";
+import type { RequestContext } from "@mastra/core/request-context";
 import type { ExtractParams } from '@mastra/rag';
 
 log.info('Initializing Document Chunking Tool...')

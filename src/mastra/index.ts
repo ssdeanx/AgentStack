@@ -1,6 +1,6 @@
 import { chatRoute, networkRoute, workflowRoute } from '@mastra/ai-sdk'
 import { Mastra } from '@mastra/core'
-import { Observability } from '@mastra/observability'
+import { Observability, SamplingStrategyType, SensitiveDataFilter } from '@mastra/observability'
 import { OtelExporter } from '@mastra/otel-exporter'
 import { PostgresStore } from '@mastra/pg'
 // Config
@@ -116,7 +116,10 @@ import { specGenerationWorkflow } from './workflows/spec-generation-workflow'
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow'
 import { telephoneGameWorkflow } from './workflows/telephone-game'
 import { weatherWorkflow } from './workflows/weather-workflow'
-
+import { OtelBridge } from "@mastra/otel-bridge";
+import { DefaultExporter } from "@mastra/observability";
+import type { SpanOptions } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api'
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -226,28 +229,97 @@ export const mastra = new Mastra({
   vectors: { pgVector },
   logger: log,
   observability: new Observability({
-    //    default: { enabled: false },
+
     configs: {
-      otel: {
-        serviceName: 'ai',
+      default: {
+        serviceName: "ai",
+
+        sampling: { type: SamplingStrategyType.RATIO, probability: 0.5 }, // 50% sampling
+        requestContextKeys: ["userId", "environment", "tenantId"],
+        spanOutputProcessors: [
+          new SensitiveDataFilter(
+            {
+              sensitiveFields: [
+              // Default fields
+              "password",
+              "token",
+              "secret",
+              "key",
+              "apikey",
+              // Custom fields for your application
+              "creditCard",
+              "bankAccount",
+              "routingNumber",
+              "email",
+              "phoneNumber",
+              "dateOfBirth",
+            ],
+            // Custom redaction token
+            redactionToken: "***SENSITIVE***",
+            // Redaction style
+            redactionStyle: "full", // or 'partial'
+            }
+          ), // Redacts sensitive fields before export
+        ],
         exporters: [
-          new OtelExporter({
-            provider: {
-              traceloop: {
-                apiKey: process.env.TRACELOOP_API_KEY,
-                destinationId: 'my-destination',
-              },
-            },
-            batchSize: 500,
-            timeout: 50000,
+          new DefaultExporter(
+            {
+              logger: log,
+              logLevel: 'info',
+//              strategy: 'realtime',
+//              maxBatchSize: 500,
+//              maxBufferSize: 1000,
+//              maxBatchWaitMs: 6000,
+              maxRetries: 5,
+            }
+          ), // Studio access0
+        ],
+        includeInternalSpans: true,
+
+        bridge: new OtelBridge(
+          {
+            name: "mastra-otel-bridge",
+//            otelTracer: {
+//              startSpan: (name: string, options: SpanOptions | undefined) => {
+//                const tracer = trace.getTracer("mastra-otel-bridge-tracer");
+//                return tracer.startSpan(name, options);
+//              },
+//            },
             logger: log,
-            logLevel: 'debug',
+            logLevel: 'info',
+//            batchsize: 500,
+            timeout: 50000,
+            serializationOptions: {
+              maxStringLength: 1024,   // Maximum length for string values (default: 1024)
+              maxDepth: 6,            // Maximum depth for nested objects (default: 6)
+              maxArrayLength: 50,     // Maximum number of items in arrays (default: 50)
+              maxObjectKeys: 50,       // Maximum number of keys in objects (default: 50)
+            },
             resourceAttributes: {
               'deployment.environment': 'dev',
             },
-          }),
-        ],
+          }
+        ),
       },
+//      exporters: [
+//          new DefaultExporter(), // Studio access
+
+//         new OtelExporter({
+//            provider: {
+//              traceloop: {
+//                apiKey: process.env.TRACELOOP_API_KEY,
+//                destinationId: 'my-destination',
+//              },
+//            },
+//            batchSize: 500,
+//            timeout: 50000,
+//            logger: log,
+//            logLevel: 'debug',
+//            resourceAttributes: {
+//              'deployment.environment': 'dev',
+//            },
+//          }),
+//        ],
     },
   }),
   server: {
