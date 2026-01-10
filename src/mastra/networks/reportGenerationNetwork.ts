@@ -12,6 +12,7 @@ import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow';
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
 import { weatherWorkflow } from '../workflows/weather-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Report Generation Network...')
 
@@ -125,7 +126,7 @@ export const reportGenerationNetwork = new Agent({
     researchAgent,
     reportAgent,
   },
-  tools: {},
+  tools: { confirmationTool },
   workflows: {
     weatherWorkflow,
     financialReportWorkflow,

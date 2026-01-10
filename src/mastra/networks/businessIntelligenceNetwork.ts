@@ -10,6 +10,7 @@ import { stockAnalysisAgent } from '../agents/stockAnalysisAgent';
 import { googleAI3 } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Business Intelligence Network...')
 
@@ -179,6 +180,7 @@ export const businessIntelligenceNetwork = new Agent({
     chartSupervisorAgent,
   },
   options: {},
+  tools: { confirmationTool },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 

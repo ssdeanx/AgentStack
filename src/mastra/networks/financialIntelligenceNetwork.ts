@@ -9,6 +9,7 @@ import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { financialReportWorkflow } from '../workflows/financial-report-workflow';
 import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Financial Intelligence Network...')
 
@@ -140,6 +141,7 @@ export const financialIntelligenceNetwork = new Agent({
     financialReportWorkflow,
     stockAnalysisWorkflow,
   },
+  tools: { confirmationTool },
   options: {},
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })

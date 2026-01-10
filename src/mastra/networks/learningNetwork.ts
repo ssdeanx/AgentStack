@@ -10,6 +10,7 @@ import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow';
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Learning Network...')
 
@@ -127,6 +128,7 @@ export const learningNetwork = new Agent({
     learningExtractionWorkflow,
     researchSynthesisWorkflow,
   },
+  tools: { confirmationTool },
   options: {},
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })

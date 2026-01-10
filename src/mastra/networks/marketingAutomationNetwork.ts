@@ -9,6 +9,7 @@ import { translationAgent } from '../agents/translationAgent';
 import { googleAI3 } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Marketing Automation Network...')
 
@@ -163,6 +164,7 @@ export const marketingAutomationNetwork = new Agent({
     translationAgent,
   },
   options: {},
+  tools: { confirmationTool },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 

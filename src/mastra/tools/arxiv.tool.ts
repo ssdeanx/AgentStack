@@ -6,7 +6,7 @@ import { log } from '../config/logger'
 
 import type { RequestContext } from '@mastra/core/request-context'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 
 export interface ArxivRequestContext extends RequestContext {
   'user-tier': UserTier

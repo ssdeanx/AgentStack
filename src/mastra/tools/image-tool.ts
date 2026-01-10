@@ -11,7 +11,7 @@ import { log } from '../config/logger'
 import * as fs from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
-import type { PSM } from 'tesseract.js';
+import type { PSM } from 'tesseract.js'
 import { createWorker } from 'tesseract.js'
 
 export interface ImageToolContext extends RequestContext {
@@ -349,12 +349,22 @@ export const imageProcessorTool = createTool({
                 pipeline = pipeline.rotate(ops.rotate)
             }
 
-            pipeline = pipeline.flip()
+            if (ops.flip) {
+                pipeline = pipeline.flip()
+            }
 
-            if (ops.flop) {pipeline = pipeline.flop()}
-            if (ops.grayscale) {pipeline = pipeline.grayscale()}
-            if (ops.blur !== null) {pipeline = pipeline.blur(ops.blur)}
-            if (ops.sharpen) {pipeline = pipeline.sharpen()}
+            if (ops.flop) {
+                pipeline = pipeline.flop()
+            }
+            if (ops.grayscale) {
+                pipeline = pipeline.grayscale()
+            }
+            if (ops.blur !== null) {
+                pipeline = pipeline.blur(ops.blur)
+            }
+            if (ops.sharpen) {
+                pipeline = pipeline.sharpen()
+            }
 
             if (ops.format) {
                 pipeline = pipeline.toFormat(ops.format, {

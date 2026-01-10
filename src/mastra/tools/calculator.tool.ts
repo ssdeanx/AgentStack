@@ -5,7 +5,7 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 
 // RequestContext interface for Calculator tool
 export interface CalculatorToolContext extends RequestContext {

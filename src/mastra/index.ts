@@ -55,6 +55,17 @@ import {
   chartTypeAdvisorAgent,
 } from './agents/recharts'
 
+import {
+  graphSupervisorAgent,
+  technicalAnalysisAgent,
+  chartJsAgent,
+  mappingAgent,
+  fetchAgent,
+  finnhubAgent,
+  codeGraphAgent,
+  codeMetricsAgent,
+} from './agents/graphingAgents' 
+
 // Image Processing Agents
 import { imageAgent } from './agents/image'
 
@@ -179,6 +190,16 @@ export const mastra = new Mastra({
     chartDataProcessorAgent,
     chartGeneratorAgent,
     chartSupervisorAgent,
+
+    // Graphing & Analysis Agents
+    graphSupervisorAgent,
+    technicalAnalysisAgent,
+    chartJsAgent,
+    mappingAgent,
+    fetchAgent,
+    finnhubAgent,
+    codeGraphAgent,
+    codeMetricsAgent,
     // Business Legal Agents
     legalResearchAgent,
     businessStrategyAgent,

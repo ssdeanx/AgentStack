@@ -10,6 +10,7 @@ import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { contentReviewWorkflow } from '../workflows/content-review-workflow';
 import { contentStudioWorkflow } from '../workflows/content-studio-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Content Creation Network...')
 
@@ -119,6 +120,7 @@ export const contentCreationNetwork = new Agent({
     contentReviewWorkflow,
   },
   options: {},
+  tools: { confirmationTool },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 

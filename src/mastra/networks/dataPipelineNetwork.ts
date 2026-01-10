@@ -8,6 +8,7 @@ import { googleAI } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Data Pipeline Network...')
 
@@ -89,7 +90,7 @@ For complex requests requiring multiple agents:
     dataTransformationAgent,
     reportAgent,
   },
-  tools: {},
+  tools: { confirmationTool },
   workflows: {
     stockAnalysisWorkflow,
   },

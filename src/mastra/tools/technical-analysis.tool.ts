@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
-import { log } from '../config/logger'
+import { log, logToolExecution } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import * as ss from 'simple-statistics'
@@ -197,6 +197,8 @@ export const ichimokuCloudTool = createTool({
                 'workspace.id': workspaceId,
             },
         })
+        const startTime = Date.now()
+        logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 })
 
         try {
             const results = IchimokuCloud.calculate({
@@ -213,11 +215,14 @@ export const ichimokuCloudTool = createTool({
                 results: results as unknown as IchimokuCloudOutput[],
             }
 
+            const duration = Date.now() - startTime
             toolSpan?.update({
                 output: finalResult,
-                metadata: { 'tool.output.success': true },
+                metadata: { 'tool.output.success': true, 'tool.duration_ms': duration },
             })
             toolSpan?.end()
+
+            logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 }, { success: true, durationMs: duration })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -231,24 +236,22 @@ export const ichimokuCloudTool = createTool({
 
             return finalResult
         } catch (error: unknown) {
-            const errorMessage =
-                error instanceof Error ? error.message : String(error)
-            toolSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
-                endSpan: true,
-            })
+            const err = error instanceof Error ? error : new Error(String(error))
+            toolSpan?.error({ error: err, endSpan: true })
+            log.error('ichimoku-cloud failed', { error: err.message })
+            logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 }, { success: false, error: err.message })
 
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `❌ Ichimoku calculation failed: ${errorMessage}`,
+                    message: `❌ Ichimoku calculation failed: ${err.message}`,
                     stage: 'ichimoku-cloud',
                 },
                 id: 'ichimoku-cloud',
             })
 
-            return { success: false, message: errorMessage }
+            return { success: false, message: err.message }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -327,6 +330,8 @@ export const fibonacciTool = createTool({
                 'workspace.id': workspaceId,
             },
         })
+        const startTime = Date.now()
+        logToolExecution('fibonacci-levels', { high: inputData.high, low: inputData.low })
 
         try {
             const diff = inputData.high - inputData.low
@@ -343,11 +348,13 @@ export const fibonacciTool = createTool({
 
             const finalResult = { success: true, levels }
 
+            const duration = Date.now() - startTime
             toolSpan?.update({
                 output: finalResult,
-                metadata: { 'tool.output.success': true },
+                metadata: { 'tool.output.success': true, 'tool.duration_ms': duration },
             })
             toolSpan?.end()
+            logToolExecution('fibonacci-levels', { high: inputData.high, low: inputData.low }, { success: true, durationMs: duration })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1460,7 +1467,7 @@ export const heikinAshiTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        candles: z.any().optional(),
+        candles: z.array(z.object({ open: z.number(), high: z.number(), low: z.number(), close: z.number() })).optional(),
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
@@ -1496,7 +1503,16 @@ export const heikinAshiTool = createTool({
         })
 
         try {
-            const candles = heikinashi(inputData)
+            const candlesRaw = heikinashi(inputData)
+            const candles = Array.isArray(candlesRaw)
+                ? candlesRaw.map((c: any) => ({
+                      open: Number(c.open),
+                      high: Number(c.high),
+                      low: Number(c.low),
+                      close: Number(c.close),
+                  }))
+                : []
+
             const finalResult = { success: true, candles }
 
             toolSpan?.update({
@@ -1847,31 +1863,28 @@ export const candlestickPatternTool = createTool({
 
         try {
             const patterns: Record<string, boolean> = {}
-            const check = (pattern: (input: any) => boolean) =>
-                pattern(inputData)
-
-            patterns.abandonedBaby = check(abandonedbaby)
-            patterns.doji = check(doji)
-            patterns.darkCloudCover = check(darkcloudcover)
-            patterns.downsideTasukiGap = check(downsidetasukigap)
-            patterns.dragonflyDoji = check(dragonflydoji)
-            patterns.eveningDojiStar = check(eveningdojistar)
-            patterns.eveningStar = check(eveningstar)
-            patterns.gravestoneDoji = check(gravestonedoji)
-            patterns.hangingMan = check(hangingman)
-            patterns.morningDojiStar = check(morningdojistar)
-            patterns.morningStar = check(morningstar)
-            patterns.piercingLine = check(piercingline)
-            patterns.bullishHarami = check(bullishharami)
-            patterns.bearishHarami = check(bearishharami)
-            patterns.bullishHaramiCross = check(bullishharamicross)
-            patterns.bearishHaramiCross = check(bearishharamicross)
-            patterns.bullishMarubozu = check(bullishmarubozu)
-            patterns.bearishMarubozu = check(bearishmarubozu)
-            patterns.bullishSpinningTop = check(bullishspinningtop)
-            patterns.bearishSpinningTop = check(bearishspinningtop)
-            patterns.threeBlackCrows = check(threeblackcrows)
-            patterns.threeWhiteSoldiers = check(threewhitesoldiers)
+            patterns.abandonedBaby = Boolean(abandonedbaby(inputData))
+            patterns.doji = Boolean(doji(inputData))
+            patterns.darkCloudCover = Boolean(darkcloudcover(inputData))
+            patterns.downsideTasukiGap = Boolean(downsidetasukigap(inputData))
+            patterns.dragonflyDoji = Boolean(dragonflydoji(inputData))
+            patterns.eveningDojiStar = Boolean(eveningdojistar(inputData))
+            patterns.eveningStar = Boolean(eveningstar(inputData))
+            patterns.gravestoneDoji = Boolean(gravestonedoji(inputData))
+            patterns.hangingMan = Boolean(hangingman(inputData))
+            patterns.morningDojiStar = Boolean(morningdojistar(inputData))
+            patterns.morningStar = Boolean(morningstar(inputData))
+            patterns.piercingLine = Boolean(piercingline(inputData))
+            patterns.bullishHarami = Boolean(bullishharami(inputData))
+            patterns.bearishHarami = Boolean(bearishharami(inputData))
+            patterns.bullishHaramiCross = Boolean(bullishharamicross(inputData))
+            patterns.bearishHaramiCross = Boolean(bearishharamicross(inputData))
+            patterns.bullishMarubozu = Boolean(bullishmarubozu(inputData))
+            patterns.bearishMarubozu = Boolean(bearishmarubozu(inputData))
+            patterns.bullishSpinningTop = Boolean(bullishspinningtop(inputData))
+            patterns.bearishSpinningTop = Boolean(bearishspinningtop(inputData))
+            patterns.threeBlackCrows = Boolean(threeblackcrows(inputData))
+            patterns.threeWhiteSoldiers = Boolean(threewhitesoldiers(inputData))
 
             const finalResult = { success: true, patterns }
 
@@ -2023,7 +2036,7 @@ export const technicalAnalysisTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        results: z.record(z.string(), z.any()),
+        results: z.record(z.string(), z.unknown()),
         stats: z
             .object({
                 mean: z.number().optional(),
