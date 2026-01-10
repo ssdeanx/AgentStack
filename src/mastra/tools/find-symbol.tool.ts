@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import fg from 'fast-glob'
 import { readFile } from 'node:fs/promises'
 import * as path from 'node:path'
@@ -117,9 +117,16 @@ export const findSymbolTool = createTool({
             id: 'semantic:find-symbol',
         })
 
-        const tracer = trace.getTracer('semantic-tools')
-        const span = tracer.startSpan('find_symbol', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'find_symbol',
+            input: {
+                symbolName,
+                projectPath,
+                symbolType,
+            },
+            metadata: {
                 'tool.id': 'semantic:find-symbol',
                 'tool.input.symbolName': symbolName,
                 'tool.input.projectPath': projectPath,
@@ -131,11 +138,13 @@ export const findSymbolTool = createTool({
         try {
             // Check for cancellation before symbol search
             if (abortSignal?.aborted) {
-                span.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during symbol search',
+                span?.update({
+                    metadata: {
+                        status: 'cancelled',
+                        message: 'Operation cancelled during symbol search',
+                    }
                 })
-                span.end()
+                span?.end()
                 throw new Error('Symbol search cancelled during processing')
             }
 
@@ -301,13 +310,16 @@ export const findSymbolTool = createTool({
                 id: 'semantic:find-symbol',
             })
 
-            span.setAttributes({
-                'tool.output.symbolsCount': symbols.length,
-                'tool.output.processedFiles': processedFiles,
-                'tool.output.searchTime': searchTime,
-                'tool.output.cacheHits': cacheHits,
+            span?.update({
+                output: { symbolsCount: symbols.length, processedFiles },
+                metadata: {
+                    'tool.output.symbolsCount': symbols.length,
+                    'tool.output.processedFiles': processedFiles,
+                    'tool.output.searchTime': searchTime,
+                    'tool.output.cacheHits': cacheHits,
+                }
             })
-            span.end()
+            span?.end()
 
             return {
                 symbols,
@@ -325,8 +337,13 @@ export const findSymbolTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Symbol search cancelled for "${symbolName}"`
-                span.setStatus({ code: 2, message: cancelMessage })
-                span.end()
+                span?.update({
+                    metadata: {
+                        status: 'cancelled',
+                        message: cancelMessage,
+                    }
+                })
+                span?.end()
 
                 await context?.writer?.custom({
                     type: 'data-tool-progress',
@@ -342,11 +359,10 @@ export const findSymbolTool = createTool({
                 throw new Error(cancelMessage)
             }
 
-            span.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            span.setStatus({ code: 2, message: errorMessage })
-            span.end()
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true
+            })
             throw error
         }
     },

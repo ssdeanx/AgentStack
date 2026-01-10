@@ -15,11 +15,7 @@
 
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import {
-    SpanStatusCode,
-    context as otelContext,
-    trace,
-} from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { marked } from 'marked'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -492,6 +488,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 warnings: output.warnings,
                 error: output.error,
             },
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -508,17 +505,14 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         })
 
         // Create root tracing span
-        const tracer = trace.getTracer('pdf-tools')
-        const rootSpan = tracer.startSpan('pdf-to-markdown-tool', {
-            attributes: {
-                pdfPath: inputData.pdfPath,
-                maxPages: inputData.maxPages,
-                normalization: inputData.normalizeText,
-                operation: 'pdf-to-markdown',
-            },
+        const tracingContext = context?.tracingContext
+        const rootSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'pdf-to-markdown-tool',
+            input: { pdfPath: inputData.pdfPath, maxPages: inputData.maxPages },
+            metadata: { 'tool.id': 'pdfToMarkdown', 'tool.input.pdfPath': inputData.pdfPath, normalization: inputData.normalizeText, operation: 'pdf-to-markdown' }
         })
-        // Create context with root span
-        const ctx = trace.setSpan(otelContext.active(), rootSpan)
+        // Note: nested child spans will be created from tracingContext or rootSpan as needed
         const warnings: string[] = []
         try {
             // Validate file path
@@ -542,20 +536,11 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 )
             }
             // Read PDF file
-            const readSpan = tracer.startSpan(
-                'read-pdf-file',
-                {
-                    attributes: {
-                        filePath: absolutePath,
-                        sizeBytes: fileStats.size,
-                    },
-                },
-                ctx
-            )
+            const readSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'read-pdf-file', input: { filePath: absolutePath }, metadata: { 'tool.id': 'read-pdf-file', 'filePath': absolutePath, 'sizeBytes': fileStats.size } })
             const readStart = Date.now()
             const pdfBuffer = await fs.readFile(absolutePath)
             const readDuration = Date.now() - readStart
-            readSpan.end()
+            readSpan?.end()
             // Provide size and read duration to match logger signature (name, payload, durationMs)
             logStepEnd(
                 'pdf-file-read',
@@ -563,48 +548,36 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 readDuration
             )
             // Extract text using unpdf (serverless PDF.js build)
-            const extractSpan = tracer.startSpan(
-                'extract-pdf-text',
-                {
-                    attributes: { maxPages: inputData.maxPages },
-                },
-                ctx
-            )
+            const extractSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-pdf-text', input: { maxPages: inputData.maxPages }, metadata: { 'tool.id': 'extract-pdf-text', maxPages: inputData.maxPages } })
 
             const pdfContent = await extractPdfText(pdfBuffer, {
                 maxPages: inputData.maxPages,
             })
-            extractSpan.end()
+            extractSpan?.update({ output: { pages: pdfContent.numpages, textLength: pdfContent.text.length } })
+            extractSpan?.end()
 
             // Extract metadata
-            const metadataSpan = tracer.startSpan('extract-metadata', {}, ctx)
+            const metadataSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-metadata', input: {}, metadata: { 'tool.id': 'extract-metadata' } })
 
             const metadata = await extractPdfMetadata(pdfContent)
-            metadataSpan.end()
+            metadataSpan?.update({ output: metadata })
+            metadataSpan?.end()
 
             // Normalize text if requested
             let processedText = pdfContent.text
             if (inputData.normalizeText) {
-                const normalizeSpan = tracer.startSpan(
-                    'normalize-text',
-                    {
-                        attributes: { textLength: processedText.length },
-                    },
-                    ctx
-                )
+                const normalizeSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'normalize-text', input: { textLength: processedText.length }, metadata: { 'tool.id': 'normalize-text', textLength: processedText.length } })
 
                 processedText = normalizePdfText(processedText)
-                normalizeSpan.end()
+                normalizeSpan?.update({ output: { newLength: processedText.length } })
+                normalizeSpan?.end()
             }
 
             // Convert to markdown
-            const markdownSpan = tracer.startSpan(
-                'convert-to-markdown',
-                {},
-                ctx
-            )
+            const markdownSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'convert-to-markdown', input: {}, metadata: { 'tool.id': 'convert-to-markdown' } })
             const markdownResult = convertToMarkdown(processedText)
-            markdownSpan.end()
+            markdownSpan?.update({ output: { lineCount: markdownResult.lineCount, headingCount: markdownResult.headingCount } })
+            markdownSpan?.end()
 
             // Extract tables if requested
             let tableResult: TableExtractionResult = {
@@ -612,10 +585,11 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 tables: [],
             }
             if (inputData.includeTables) {
-                const tableSpan = tracer.startSpan('extract-tables', {}, ctx)
+                const tableSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-tables', input: {}, metadata: { 'tool.id': 'extract-tables' } })
 
                 tableResult = extractTables(processedText)
-                tableSpan.end()
+                tableSpan?.update({ output: { tableCount: tableResult.tableCount } })
+                tableSpan?.end()
             }
 
             // Extract images if requested
@@ -624,10 +598,11 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 images: [],
             }
             if (inputData.includeImages) {
-                const imageSpan = tracer.startSpan('extract-images', {}, ctx)
+                const imageSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-images', input: {}, metadata: { 'tool.id': 'extract-images' } })
 
                 imageResult = extractImageReferences(pdfBuffer)
-                imageSpan.end()
+                imageSpan?.update({ output: { imageCount: imageResult.imageCount } })
+                imageSpan?.end()
             }
 
             // Build final content based on format
@@ -732,7 +707,8 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             logStepEnd('pdf-to-markdown', output, totalProcessingTime)
 
             // End root tracing span
-            rootSpan.end()
+            rootSpan?.update({ output, metadata: { 'tool.output.success': true } })
+            rootSpan?.end()
 
             return output
         } catch (error) {
@@ -748,15 +724,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             })
 
             // Record error in tracing span
-            // Record error in tracing span
-            rootSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            rootSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
-            })
-            rootSpan.end()
+            rootSpan?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true })
 
             return {
                 success: false,

@@ -1,5 +1,4 @@
 import { retry } from '@octokit/plugin-retry'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { Octokit } from 'octokit'
 
 // Use Octokit with retry plugin to improve resilience for API calls
@@ -7,6 +6,7 @@ const OctokitWithRetry = Octokit.plugin(retry)
 
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -204,9 +204,15 @@ export const listRepositories = createTool({
 
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-list-repos', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-list-repos',
+            input: {
+                org: inputData.org,
+                type: inputData.type,
+            },
+            metadata: {
                 'tool.id': 'github:listRepositories',
                 'tool.input.org': inputData.org,
                 'tool.input.type': inputData.type,
@@ -234,11 +240,13 @@ export const listRepositories = createTool({
         try {
             // Check for cancellation before API call
             if (abortSignal?.aborted) {
-                span.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during API call',
+                span?.update({
+                    metadata: {
+                        status: 'cancelled',
+                        message: 'Operation cancelled during API call',
+                    }
                 })
-                span.end()
+                span?.end()
                 throw new Error(
                     'GitHub repository listing cancelled during API call'
                 )
@@ -274,11 +282,14 @@ export const listRepositories = createTool({
                 id: 'github:listRepositories',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.count': repositories.length,
+            span?.update({
+                output: { success: true, count: repositories.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.count': repositories.length,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, repositories }
         } catch (e) {
@@ -287,8 +298,13 @@ export const listRepositories = createTool({
             // Handle AbortError specifically
             if (e instanceof Error && e.name === 'AbortError') {
                 const cancelMessage = `GitHub repository listing cancelled`
-                span.setStatus({ code: 2, message: cancelMessage })
-                span.end()
+                span?.update({
+                    metadata: {
+                        status: 'cancelled',
+                        message: cancelMessage,
+                    }
+                })
+                span?.end()
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -306,11 +322,10 @@ export const listRepositories = createTool({
 
             log.error(`GitHub list repos failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -426,9 +441,15 @@ export const listPullRequests = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-list-prs', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-list-prs',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+            },
+            metadata: {
                 'tool.id': 'github:listPullRequests',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -480,22 +501,24 @@ export const listPullRequests = createTool({
                 id: 'github:listPullRequests',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.count': pullRequests.length,
+            span?.update({
+                output: { success: true, count: pullRequests.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.count': pullRequests.length,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, pullRequests }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub list PRs failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -536,9 +559,15 @@ export const listCommits = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-list-commits', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-list-commits',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+            },
+            metadata: {
                 'tool.id': 'github:listCommits',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -586,20 +615,22 @@ export const listCommits = createTool({
                 id: 'github:listCommits',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.count': commits.length,
+            span?.update({
+                output: { success: true, count: commits.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.count': commits.length,
+                }
             })
-            span.end()
+            span?.end()
             return { success: true, commits }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub list commits failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -643,9 +674,15 @@ export const listIssues = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-list-issues', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-list-issues',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+            },
+            metadata: {
                 'tool.id': 'github:listIssues',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -709,22 +746,24 @@ export const listIssues = createTool({
                 id: 'github:listIssues',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.count': issues.length,
+            span?.update({
+                output: { success: true, count: issues.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.count': issues.length,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, issues }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub list issues failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -758,9 +797,16 @@ export const createIssue = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-create-issue', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-create-issue',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                title: inputData.title,
+            },
+            metadata: {
                 'tool.id': 'github:createIssue',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -808,22 +854,24 @@ export const createIssue = createTool({
                 id: 'github:createIssue',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.issueNumber': issue.number,
+            span?.update({
+                output: { success: true, issueNumber: issue.number },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.issueNumber': issue.number,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, issue }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub create issue failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -856,9 +904,15 @@ export const createRelease = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-create-release', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-create-release',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+            },
+            metadata: {
                 'tool.id': 'github:createRelease',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -906,18 +960,20 @@ export const createRelease = createTool({
             })
 
             if (res.status >= 200 && res.status < 300) {
-                span.setAttributes({
-                    'tool.output.success': true,
-                    'tool.output.releaseId': release.id,
+                span?.update({
+                    output: { success: true, releaseId: release.id },
+                    metadata: {
+                        'tool.output.success': true,
+                        'tool.output.releaseId': release.id,
+                    }
                 })
-                span.end()
+                span?.end()
                 return { success: true, release }
             }
-            span.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: `Status ${res.status}`,
+            span?.error({
+                error: new Error(`Failed with status ${res.status}`),
+                endSpan: true
             })
-            span.end()
             return {
                 success: false,
                 message: `Failed with status ${res.status}`,
@@ -925,11 +981,10 @@ export const createRelease = createTool({
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub create release failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -967,9 +1022,15 @@ export const getRepositoryInfo = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-get-repo-info', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-get-repo-info',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+            },
+            metadata: {
                 'tool.id': 'github:getRepositoryInfo',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1024,21 +1085,23 @@ export const getRepositoryInfo = createTool({
                 id: 'github:getRepositoryInfo',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
+            span?.update({
+                output: { success: true },
+                metadata: {
+                    'tool.output.success': true,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, repository }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub get repo info failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -1078,9 +1141,14 @@ export const searchCode = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-search-code', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-search-code',
+            input: {
+                query: inputData.query,
+            },
+            metadata: {
                 'tool.id': 'github:searchCode',
                 'tool.input.query': inputData.query,
             },
@@ -1142,22 +1210,24 @@ export const searchCode = createTool({
                 id: 'github:searchCode',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.totalCount': data.data.total_count,
+            span?.update({
+                output: { success: true, totalCount: data.data.total_count },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.totalCount': data.data.total_count,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, results, totalCount: data.data.total_count }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub search code failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -1188,9 +1258,16 @@ export const getFileContent = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-get-file', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-get-file',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                path: inputData.path,
+            },
+            metadata: {
                 'tool.id': 'github:getFileContent',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1239,11 +1316,14 @@ export const getFileContent = createTool({
                 id: 'github:getFileContent',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.size': data.size,
+            span?.update({
+                output: { success: true, size: data.size },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.size': data.size,
+                }
             })
-            span.end()
+            span?.end()
 
             return {
                 success: true,
@@ -1256,11 +1336,10 @@ export const getFileContent = createTool({
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub get file failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -1298,9 +1377,16 @@ export const getRepoFileTree = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-get-tree', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-get-tree',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                branch: inputData.branch,
+            },
+            metadata: {
                 'tool.id': 'github:getRepoFileTree',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1371,22 +1457,24 @@ export const getRepoFileTree = createTool({
                 id: 'github:getRepoFileTree',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.count': tree.length,
+            span?.update({
+                output: { success: true, count: tree.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.count': tree.length,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, tree }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub get tree failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
 
             return { success: false, message: errorMsg }
         }
@@ -1426,9 +1514,16 @@ export const createPullRequest = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-create-pr', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-create-pr',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                title: inputData.title,
+            },
+            metadata: {
                 'tool.id': 'github:createPullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1475,21 +1570,23 @@ export const createPullRequest = createTool({
                 id: 'github:createPullRequest',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.prNumber': pullRequest.number,
+            span?.update({
+                output: { success: true, prNumber: pullRequest.number },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.prNumber': pullRequest.number,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, pullRequest }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub create PR failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -1522,9 +1619,16 @@ export const mergePullRequest = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-merge-pr', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-merge-pr',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                pullNumber: inputData.pullNumber,
+            },
+            metadata: {
                 'tool.id': 'github:mergePullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1564,11 +1668,14 @@ export const mergePullRequest = createTool({
                 id: 'github:mergePullRequest',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.merged': response.data.merged,
+            span?.update({
+                output: { success: true, merged: response.data.merged },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.merged': response.data.merged,
+                }
             })
-            span.end()
+            span?.end()
 
             return {
                 success: true,
@@ -1578,11 +1685,10 @@ export const mergePullRequest = createTool({
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub merge PR failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -1609,9 +1715,16 @@ export const addIssueComment = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-add-comment', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-add-comment',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                issueNumber: inputData.issueNumber,
+            },
+            metadata: {
                 'tool.id': 'github:addIssueComment',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1654,21 +1767,23 @@ export const addIssueComment = createTool({
                 id: 'github:addIssueComment',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.commentId': comment.id,
+            span?.update({
+                output: { success: true, commentId: comment.id },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.commentId': comment.id,
+                }
             })
-            span.end()
+            span?.end()
 
             return { success: true, comment }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub add comment failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -1706,9 +1821,16 @@ export const getPullRequest = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-get-pr', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-get-pr',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                pullNumber: inputData.pullNumber,
+            },
+            metadata: {
                 'tool.id': 'github:getPullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1765,18 +1887,22 @@ export const getPullRequest = createTool({
                 id: 'github:getPullRequest',
             })
 
-            span.setAttributes({ 'tool.output.success': true })
-            span.end()
+            span?.update({
+                output: { success: true },
+                metadata: {
+                    'tool.output.success': true,
+                }
+            })
+            span?.end()
 
             return { success: true, pullRequest }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub get PR failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },
@@ -1810,9 +1936,16 @@ export const getIssue = createTool({
     }),
     execute: async (inputData, context) => {
         const requestContext = context?.requestContext as GithubToolContext | undefined
-        const tracer = trace.getTracer('github-tool')
-        const span = tracer.startSpan('github-get-issue', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'github-get-issue',
+            input: {
+                owner: inputData.owner,
+                repo: inputData.repo,
+                issueNumber: inputData.issueNumber,
+            },
+            metadata: {
                 'tool.id': 'github:getIssue',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1866,18 +1999,22 @@ export const getIssue = createTool({
                 id: 'github:getIssue',
             })
 
-            span.setAttributes({ 'tool.output.success': true })
-            span.end()
+            span?.update({
+                output: { success: true },
+                metadata: {
+                    'tool.output.success': true,
+                }
+            })
+            span?.end()
 
             return { success: true, issue }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`GitHub get issue failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true
+            })
             return { success: false, message: errorMsg }
         }
     },

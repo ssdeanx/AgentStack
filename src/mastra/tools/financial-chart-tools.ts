@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { trace } from "@opentelemetry/api";
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod';
 import { log } from '../config/logger';
 import type { RequestContext } from '@mastra/core/request-context';
@@ -100,9 +100,16 @@ export const chartSupervisorTool = createTool({
 
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📊 Starting chart pipeline for ${symbols.join(', ')}`, stage: 'chart-supervisor' }, id: 'chart-supervisor' })
 
-    const tracer = trace.getTracer('chart-supervisor-tool')
-    const span = tracer.startSpan('chart-supervisor-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'chart-supervisor-tool',
+      input: {
+        symbols,
+        chartType,
+        timeRange,
+      },
+      metadata: {
         'tool.id': 'chart-supervisor',
         'tool.input.symbols': symbols.join(','),
         'tool.input.chartType': chartType,
@@ -179,12 +186,15 @@ Please:
         }
       }
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.chartType': parsedResult.chartRecommendation?.type ?? chartType,
-        'tool.output.dataPoints': parsedResult.data?.metadata?.dataPoints ?? 0,
+      span?.update({
+        output: parsedResult,
+        metadata: {
+          'tool.output.success': true,
+          'tool.output.chartType': parsedResult.chartRecommendation?.type ?? chartType,
+          'tool.output.dataPoints': parsedResult.data?.metadata?.dataPoints ?? 0,
+        }
       })
-      span.end()
+      span?.end()
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Chart generation complete', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
 
@@ -200,9 +210,10 @@ Please:
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart supervisor tool error:', { error: errorMsg, symbols })
-      span.recordException(error instanceof Error ? error : new Error(errorMsg))
-      span.setStatus({ code: 2, message: errorMsg })
-      span.end()
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true
+      })
       throw error instanceof Error ? error : new Error(`Failed to generate chart: ${errorMsg}`);
     }
   },
@@ -301,9 +312,15 @@ export const chartGeneratorTool = createTool({
 
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⚛️ Generating ${chartType} component: ${componentName}`, stage: 'chart-generator' }, id: 'chart-generator' })
 
-    const tracer = trace.getTracer('chart-generator-tool')
-    const span = tracer.startSpan('chart-generator-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'chart-generator-tool',
+      input: {
+        chartType,
+        componentName,
+      },
+      metadata: {
         'tool.id': 'chart-generator',
         'tool.input.chartType': chartType,
         'tool.input.componentName': componentName,
@@ -375,12 +392,15 @@ Return JSON with: componentName, code, usage, props, dependencies`
         }
       }
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.componentName': parsedResult.componentName,
-        'tool.output.codeLength': parsedResult.code?.length ?? 0,
+      span?.update({
+        output: parsedResult,
+        metadata: {
+          'tool.output.success': true,
+          'tool.output.componentName': parsedResult.componentName,
+          'tool.output.codeLength': parsedResult.code?.length ?? 0,
+        }
       })
-      span.end()
+      span?.end()
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Component generated', stage: 'chart-generator' }, id: 'chart-generator' })
 
@@ -394,9 +414,10 @@ Return JSON with: componentName, code, usage, props, dependencies`
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart generator tool error:', { error: errorMsg, chartType })
-      span.recordException(error instanceof Error ? error : new Error(errorMsg))
-      span.setStatus({ code: 2, message: errorMsg })
-      span.end()
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true
+      })
       throw new Error(`Failed to generate chart component: ${errorMsg}`)
     }
   },
@@ -494,9 +515,15 @@ export const chartDataProcessorTool = createTool({
 
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📈 Processing data for ${symbols.join(', ')}`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
 
-    const tracer = trace.getTracer('chart-data-processor-tool')
-    const span = tracer.startSpan('chart-data-processor-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'chart-data-processor-tool',
+      input: {
+        symbols,
+        aggregation,
+      },
+      metadata: {
         'tool.id': 'chart-data-processor',
         'tool.input.symbols': symbols.join(','),
         'tool.input.aggregation': aggregation,
@@ -575,12 +602,15 @@ Return JSON with:
         }
       }
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.dataPoints': parsedResult.chartData?.length ?? 0,
-        'tool.output.symbols': symbols.join(','),
+      span?.update({
+        output: parsedResult,
+        metadata: {
+          'tool.output.success': true,
+          'tool.output.dataPoints': parsedResult.chartData?.length ?? 0,
+          'tool.output.symbols': symbols.join(','),
+        }
       })
-      span.end()
+      span?.end()
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
 
@@ -600,9 +630,10 @@ Return JSON with:
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart data processor tool error:', { error: errorMsg, symbols })
-      span.recordException(error instanceof Error ? error : new Error(errorMsg))
-      span.setStatus({ code: 2, message: errorMsg })
-      span.end()
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true
+      })
       throw error instanceof Error ? error : new Error(`Failed to process data: ${errorMsg}`);
     }
   },
@@ -695,9 +726,14 @@ export const chartTypeAdvisorTool = createTool({
       const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
     await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🎯 Analyzing visualization requirements...`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
 
-    const tracer = trace.getTracer('chart-type-advisor-tool')
-    const span = tracer.startSpan('chart-type-advisor-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'chart-type-advisor-tool',
+      input: {
+        visualizationGoal,
+      },
+      metadata: {
         'tool.id': 'chart-type-advisor',
         'tool.input.visualizationGoal': visualizationGoal,
       }
@@ -772,11 +808,14 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
         }
       }
 
-      span.setAttributes({
-        'tool.output.success': true,
-        'tool.output.recommendedType': parsedResult.primaryRecommendation?.chartType,
+      span?.update({
+        output: parsedResult,
+        metadata: {
+          'tool.output.success': true,
+          'tool.output.recommendedType': parsedResult.primaryRecommendation?.chartType,
+        }
       })
-      span.end()
+      span?.end()
 
       await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
 
@@ -797,9 +836,10 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       log.error('Chart type advisor tool error:', { error: errorMsg })
-      span.recordException(error instanceof Error ? error : new Error(errorMsg))
-      span.setStatus({ code: 2, message: errorMsg })
-      span.end()
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true
+      })
       throw new Error(`Failed to recommend chart type: ${errorMsg}`)
     }
   },

@@ -1,6 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -78,8 +78,17 @@ export const randomGeneratorTool = createTool({
         const locale =
             inputData.options?.locale ?? requestContext?.locale ?? 'en'
 
-        const tracer = trace.getTracer('random-generator-tool', '1.0.0')
-        const span = tracer.startSpan('random-generate')
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'random-generate',
+            input: { type: inputData.type, count: inputData.count },
+            metadata: {
+                'tool.id': 'random-generator',
+                'tool.input.type': inputData.type,
+                'tool.input.count': inputData.count,
+            },
+        })
         const writer = context?.writer
 
         await writer?.custom({
@@ -129,12 +138,15 @@ export const randomGeneratorTool = createTool({
                 id: 'random-generator',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.type': inputData.type,
-                'tool.output.count': inputData.count,
+            span?.update({
+                output: { success: true, count: inputData.count },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.type': inputData.type,
+                    'tool.output.count': inputData.count,
+                }
             })
-            span.end()
+            span?.end()
 
             return {
                 success: true,
@@ -146,11 +158,7 @@ export const randomGeneratorTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Random generation failed: ${errorMsg}`)
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true })
 
             return {
                 success: false,
