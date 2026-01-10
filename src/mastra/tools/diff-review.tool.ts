@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import { createPatch, structuredPatch } from 'diff'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -102,10 +102,17 @@ Use for code review, comparing versions, and analyzing modifications.`,
         } = inputData
         const writer = context?.writer
         const requestContext = context?.requestContext as DiffReviewContext | undefined
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('diff-review')
-        const span = tracer.startSpan('diff-review', {
-            attributes: { filename, contextLines },
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'diff-review',
+            input: inputData,
+            metadata: {
+                'tool.id': 'coding:diffReview',
+                filename,
+                contextLines,
+            },
         })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -230,9 +237,14 @@ Use for code review, comparing versions, and analyzing modifications.`,
                 summary = `${totalChanges} change${totalChanges !== 1 ? 's' : ''}: ${parts.join(', ')} across ${hunks.length} hunk${hunks.length !== 1 ? 's' : ''}.`
             }
 
-            span?.setAttribute('additions', additions)
-            span?.setAttribute('deletions', deletions)
-            span?.setAttribute('totalChanges', totalChanges)
+            span?.update({
+                output: { additions, deletions, totalChanges },
+                metadata: {
+                    additions,
+                    deletions,
+                    totalChanges,
+                }
+            })
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
@@ -258,14 +270,10 @@ Use for code review, comparing versions, and analyzing modifications.`,
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            span?.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            span?.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            span?.end()
             throw error
         }
     },

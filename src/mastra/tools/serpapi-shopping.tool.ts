@@ -6,7 +6,7 @@
  * @module serpapi-shopping-tool
  */
 import { createTool } from '@mastra/core/tools';
-import { trace } from "@opentelemetry/api";
+import { SpanType } from "@mastra/core/observability";
 import { getJson } from 'serpapi';
 import { z } from 'zod';
 import { log } from '../config/logger';
@@ -72,14 +72,16 @@ export const amazonSearchTool = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Amazon search for "' + inputData.query + '"', stage: 'amazon-search' }, id: 'amazon-search' });
     validateSerpApiKey()
 
-    // Get tracer from OpenTelemetry API
-    const tracer = trace.getTracer('amazon-search-tool', '1.0.0');
-    const amazonSpan = tracer.startSpan('amazon-search', {
-      attributes: {
+    const amazonSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'amazon-search',
+      input: inputData,
+      metadata: {
         'tool.id': 'amazon-search',
         'tool.input.query': inputData.query,
         'tool.input.sortBy': inputData.sortBy,
@@ -147,18 +149,22 @@ export const amazonSearchTool = createTool({
       const result = { products }
 
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Amazon search complete: ' + products.length + ' products', stage: 'amazon-search' }, id: 'amazon-search' });
-      amazonSpan.setAttribute('tool.output.productCount', products.length);
-      amazonSpan.end();
+      amazonSpan?.update({
+        output: result,
+        metadata: {
+          'tool.output.productCount': products.length
+        }
+      });
+      amazonSpan?.end();
       log.info('Amazon search completed', { query: inputData.query, productCount: products.length })
 
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        amazonSpan.recordException(error);
-      }
-      amazonSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      amazonSpan.end();
+      amazonSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       log.error('Amazon search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Amazon search failed: ${errorMessage}`)
     }
@@ -221,14 +227,16 @@ export const walmartSearchTool = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Walmart search for "' + inputData.query + '"', stage: 'walmart-search' }, id: 'walmart-search' });
     validateSerpApiKey()
 
-    // Get tracer from OpenTelemetry API
-    const tracer = trace.getTracer('walmart-search-tool', '1.0.0');
-    const walmartSpan = tracer.startSpan('walmart-search', {
-      attributes: {
+    const walmartSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'walmart-search',
+      input: inputData,
+      metadata: {
         'tool.id': 'walmart-search',
         'tool.input.query': inputData.query,
         'tool.input.sortBy': inputData.sortBy,
@@ -280,18 +288,22 @@ export const walmartSearchTool = createTool({
       const result = { products }
 
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Walmart search complete: ' + products.length + ' products', stage: 'walmart-search' }, id: 'walmart-search' });
-      walmartSpan.setAttribute('tool.output.productCount', products.length);
-      walmartSpan.end();
+      walmartSpan?.update({
+        output: result,
+        metadata: {
+          'tool.output.productCount': products.length
+        }
+      });
+      walmartSpan?.end();
       log.info('Walmart search completed', { query: inputData.query, productCount: products.length })
 
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        walmartSpan.recordException(error);
-      }
-      walmartSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      walmartSpan.end();
+      walmartSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       log.error('Walmart search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Walmart search failed: ${errorMessage}`)
     }
@@ -356,14 +368,16 @@ export const ebaySearchTool = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting eBay search for "' + inputData.query + '"', stage: 'ebay-search' }, id: 'ebay-search' });
     validateSerpApiKey()
 
-    // Get tracer from OpenTelemetry API
-    const tracer = trace.getTracer('ebay-search-tool', '1.0.0');
-    const ebaySpan = tracer.startSpan('ebay-search', {
-      attributes: {
+    const ebaySpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'ebay-search',
+      input: inputData,
+      metadata: {
         'tool.id': 'ebay-search',
         'tool.input.query': inputData.query,
         'tool.input.condition': inputData.condition,
@@ -421,17 +435,21 @@ export const ebaySearchTool = createTool({
         ) ?? []
       const result = { products }
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ eBay search complete: ' + products.length + ' products', stage: 'ebay-search' }, id: 'ebay-search' });
-      ebaySpan.setAttribute('tool.output.productCount', products.length);
-      ebaySpan.end();
+      ebaySpan?.update({
+        output: result,
+        metadata: {
+          'tool.output.productCount': products.length
+        }
+      });
+      ebaySpan?.end();
       log.info('eBay search completed', { query: inputData.query, productCount: products.length })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        ebaySpan.recordException(error);
-      }
-      ebaySpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      ebaySpan.end();
+      ebaySpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       log.error('eBay search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`eBay search failed: ${errorMessage}`)
     }
@@ -493,14 +511,16 @@ export const homeDepotSearchTool = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const tracingContext = context?.tracingContext;
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🛒 Starting Home Depot search for "' + inputData.query + '"', stage: 'home-depot-search' }, id: 'home-depot-search' });
     validateSerpApiKey()
 
-    // Get tracer from OpenTelemetry API
-    const tracer = trace.getTracer('home-depot-search-tool', '1.0.0');
-    const homeDepotSpan = tracer.startSpan('home-depot-search', {
-      attributes: {
+    const homeDepotSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'home-depot-search',
+      input: inputData,
+      metadata: {
         'tool.id': 'home-depot-search',
         'tool.input.query': inputData.query,
         'tool.input.sortBy': inputData.sortBy,
@@ -546,17 +566,21 @@ export const homeDepotSearchTool = createTool({
         ) ?? []
       const result = { products }
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Home Depot search complete: ' + products.length + ' products', stage: 'home-depot-search' }, id: 'home-depot-search' });
-      homeDepotSpan.setAttribute('tool.output.productCount', products.length);
-      homeDepotSpan.end();
+      homeDepotSpan?.update({
+        output: result,
+        metadata: {
+          'tool.output.productCount': products.length
+        }
+      });
+      homeDepotSpan?.end();
       log.info('Home Depot search completed', { query: inputData.query, productCount: products.length })
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        homeDepotSpan.recordException(error);
-      }
-      homeDepotSpan.setStatus({ code: 2, message: errorMessage }); // ERROR status
-      homeDepotSpan.end();
+      homeDepotSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       log.error('Home Depot search failed', { query: inputData.query, error: errorMessage })
       throw new Error(`Home Depot search failed: ${errorMessage}`)
     }

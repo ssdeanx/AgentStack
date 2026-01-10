@@ -1,7 +1,7 @@
+import { SpanType } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -10,6 +10,7 @@ const validatorContextSchema = z.object({
 })
 
 export interface DataValidatorContext extends RequestContext {
+    userId?: string
     validatorContext?: {
         maxErrors?: number
     }
@@ -172,6 +173,7 @@ export const dataValidatorToolJSON = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext as DataValidatorContext | undefined
+        const tracingContext = context?.tracingContext
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -183,12 +185,13 @@ export const dataValidatorToolJSON = createTool({
             id: 'data-validator-json',
         })
 
-        const tracer = trace.getTracer('data-validator')
-        const rootSpan = tracer.startSpan('data-validator', {
-            attributes: {
+        const rootSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'data-validator',
+            input: inputData,
+            metadata: {
                 'tool.id': 'data-validator-json',
-                'tool.input.hasData': String(inputData.data !== undefined),
-                'tool.input.hasSchema': String(inputData.schema !== undefined),
+                'user.id': requestContext?.userId,
             },
         })
 
@@ -208,8 +211,11 @@ export const dataValidatorToolJSON = createTool({
                     },
                     id: 'data-validator-json',
                 })
-                rootSpan.setAttributes({ 'tool.output.valid': true })
-                rootSpan.end()
+                rootSpan?.update({
+                    output: { valid: true },
+                    metadata: { 'tool.output.valid': true }
+                })
+                rootSpan?.end()
                 return {
                     valid: true,
                     cleanedData: result.data,
@@ -232,11 +238,14 @@ export const dataValidatorToolJSON = createTool({
                     )
                 }
 
-                rootSpan.setAttributes({
-                    'tool.output.valid': false,
-                    'tool.output.errorCount': errors.length,
+                rootSpan?.update({
+                    output: { valid: false, errorCount: errors.length },
+                    metadata: {
+                        'tool.output.valid': false,
+                        'tool.output.errorCount': errors.length,
+                    },
                 })
-                rootSpan.end()
+                rootSpan?.end()
                 return {
                     valid: false,
                     errors,
@@ -247,11 +256,10 @@ export const dataValidatorToolJSON = createTool({
                 error instanceof Error
                     ? error.message
                     : 'Unknown validation error'
-            rootSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            rootSpan.setStatus({ code: 2, message: errorMessage })
-            rootSpan.end()
+            rootSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
             return {
                 valid: false,
                 errors: [errorMessage],

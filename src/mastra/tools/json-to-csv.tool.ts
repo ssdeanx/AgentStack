@@ -1,7 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -39,6 +39,7 @@ export const jsonToCsvTool = createTool({
         const writer = context?.writer
         const requestContext = context?.requestContext as JsonToCsvRequestContext | undefined
         const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -55,9 +56,12 @@ export const jsonToCsvTool = createTool({
             id: 'json-to-csv',
         })
 
-        const tracer = trace.getTracer('json-to-csv', '1.0.0')
-        const rootSpan = tracer.startSpan('json-to-csv', {
-            attributes: {
+        // Create child span for JSON to CSV conversion
+        const jsonCsvSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'json-to-csv-conversion',
+            input,
+            metadata: {
                 'tool.id': 'json-to-csv',
                 'tool.input.recordCount': input.data.length,
             },
@@ -66,7 +70,7 @@ export const jsonToCsvTool = createTool({
         try {
             const { data, options } = input
             if (data === undefined || data === null || data.length === 0) {
-                rootSpan.end()
+                jsonCsvSpan?.end()
                 return { csv: '' }
             }
 
@@ -124,10 +128,14 @@ export const jsonToCsvTool = createTool({
 
             const csvOutput = rows.join('\n')
 
-            rootSpan.setAttributes({
-                'tool.output.csvLength': csvOutput.length,
+            jsonCsvSpan?.update({
+                output: { csv: csvOutput },
+                metadata: {
+                    'tool.output.csvLength': csvOutput.length,
+                    'tool.output.success': true,
+                },
             })
-            rootSpan.end()
+            jsonCsvSpan?.end()
             return { csv: csvOutput }
         } catch (error) {
             const errorMessage =
@@ -138,8 +146,10 @@ export const jsonToCsvTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `JSON to CSV conversion cancelled`
-                rootSpan.setStatus({ code: 2, message: cancelMessage })
-                rootSpan.end()
+                jsonCsvSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -155,11 +165,10 @@ export const jsonToCsvTool = createTool({
                 throw new Error(cancelMessage)
             }
 
-            rootSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            rootSpan.setStatus({ code: 2, message: errorMessage })
-            rootSpan.end()
+            jsonCsvSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
             throw new Error(errorMessage)
         }
     },
@@ -181,7 +190,7 @@ export const jsonToCsvTool = createTool({
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const options = input.options || {}
+        const options = input.options ?? {}
         log.info('JSON to CSV received complete input', {
             toolCallId,
             messageCount: messages.length,

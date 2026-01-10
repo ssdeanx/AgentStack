@@ -1,10 +1,9 @@
-import { createTool } from '@mastra/core/tools'
+import { SpanType } from '@mastra/core/observability'
+import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
-
-import type { RequestContext } from '@mastra/core/request-context'
 
 /**
  * Alpha Vantage Tools
@@ -15,12 +14,13 @@ import type { RequestContext } from '@mastra/core/request-context'
  *
  * Requires ALPHA_VANTAGE_API_KEY environment variable
  */
-
+export type UserTier = 'free' | 'pro' | 'enterprise'
 /**
  * Base Request Context for Alpha Vantage
  */
 export interface AlphaVantageRequestContext extends RequestContext {
-    apiKey?: string
+  apiKey?: string
+  'user-tier': UserTier
 }
 
 // In-memory counter to track tool calls per request
@@ -93,16 +93,7 @@ export const alphaVantageCryptoTool = createTool({
   }),
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const span = trace
-      .getTracer('alpha-vantage-crypto-tool', '1.0.0')
-      .startSpan('alpha-vantage-crypto', {
-        attributes: {
-          'tool.id': 'alpha-vantage-crypto',
-          'tool.input.symbol': inputData.symbol,
-          'tool.input.market': inputData.market,
-          'tool.input.function': inputData.function,
-        },
-      })
+    const tracingContext = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -113,6 +104,20 @@ export const alphaVantageCryptoTool = createTool({
       },
       id: 'alpha-vantage-crypto',
     })
+
+    // Create child span for crypto data fetch
+    const cryptoSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'alpha-vantage-crypto-fetch',
+      input: inputData,
+      metadata: {
+        'tool.id': 'alpha-vantage-crypto',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.market': inputData.market,
+        'tool.input.function': inputData.function,
+      },
+    })
+
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
@@ -270,7 +275,7 @@ export const alphaVantageCryptoTool = createTool({
           time_zone: getMetadataValue('7. Time Zone') ?? undefined,
         },
       }
-      span.end()
+      cryptoSpan?.end()
       return result
     } catch (error) {
       const errMsg =
@@ -287,10 +292,11 @@ export const alphaVantageCryptoTool = createTool({
         id: 'alpha-vantage-crypto',
       })
       if (error instanceof Error) {
-        span.recordException(error)
+        cryptoSpan?.error({
+          error,
+          endSpan: true,
+        })
       }
-      span.setStatus({ code: 2, message: errMsg }) // ERROR status
-      span.end()
       throw error instanceof Error ? error : new Error(errMsg)
     }
   },
@@ -423,15 +429,7 @@ export const alphaVantageStockTool = createTool({
 
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const span = trace
-      .getTracer('alpha-vantage-stock-tool', '1.0.0')
-      .startSpan('alpha-vantage-stock', {
-        attributes: {
-          'tool.id': 'alpha-vantage-stock',
-          'tool.input.symbol': inputData.symbol,
-          'tool.input.function': inputData.function,
-        },
-      })
+    const tracingContext = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -442,6 +440,19 @@ export const alphaVantageStockTool = createTool({
       },
       id: 'alpha-vantage-stock',
     })
+
+    // Create child span for stock data fetch
+    const stockSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'alpha-vantage-stock-fetch',
+      input: inputData,
+      metadata: {
+        'tool.id': 'alpha-vantage-stock',
+        'tool.input.symbol': inputData.symbol,
+        'tool.input.function': inputData.function,
+      },
+    })
+
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
@@ -642,7 +653,7 @@ export const alphaVantageStockTool = createTool({
           series_type: inputData.series_type,
         },
       }
-      span.end()
+      stockSpan?.end()
       return result
     } catch (error) {
       const errorMessage =
@@ -650,10 +661,11 @@ export const alphaVantageStockTool = createTool({
           ? error.message
           : 'Unknown error occurred'
       if (error instanceof Error) {
-        span.recordException(error)
+        stockSpan?.error({
+          error,
+          endSpan: true,
+        })
       }
-      span.setStatus({ code: 2, message: errorMessage }) // ERROR status
-      span.end()
       throw error instanceof Error ? error : new Error(errorMessage)
     }
   },
@@ -816,15 +828,7 @@ export const alphaVantageTool = createTool({
   }),
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const span = trace
-      .getTracer('alpha-vantage-tool', '1.0.0')
-      .startSpan('alpha-vantage', {
-        attributes: {
-          'tool.id': 'alpha-vantage',
-          'tool.input.function': inputData.function,
-          'tool.input.symbol': inputData.symbol,
-        },
-      })
+    const tracingContext = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -835,6 +839,19 @@ export const alphaVantageTool = createTool({
       },
       id: 'alpha-vantage',
     })
+
+    // Create child span for general data fetch
+    const generalSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'alpha-vantage-general-fetch',
+      input: inputData,
+      metadata: {
+        'tool.id': 'alpha-vantage',
+        'tool.input.function': inputData.function,
+        'tool.input.symbol': inputData.symbol,
+      },
+    })
+
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
 
     if (typeof apiKey !== 'string' || apiKey.trim() === '') {
@@ -1050,7 +1067,7 @@ export const alphaVantageTool = createTool({
               : undefined,
         },
       }
-      span.end()
+      generalSpan?.end()
       return result
     } catch (error) {
       const errorMessage =
@@ -1058,18 +1075,21 @@ export const alphaVantageTool = createTool({
           ? error.message
           : 'Unknown error occurred'
       if (error instanceof Error) {
-        span.recordException(error)
+        generalSpan?.error({
+          error,
+          endSpan: true,
+        })
       }
-      span.setStatus({ code: 2, message: errorMessage }) // ERROR status
-      span.end()
       throw error instanceof Error ? error : new Error(errorMessage)
     }
   },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('alphaVantageTool tool input streaming started', { toolCallId,
+    log.info('alphaVantageTool tool input streaming started', {
+      toolCallId,
       messageCount: messages.length,
       abortSignal: abortSignal?.aborted,
-      hook: 'onInputStart' });
+      hook: 'onInputStart'
+    });
   },
   onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
     log.info('alphaVantageTool received input chunk', {

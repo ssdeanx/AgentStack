@@ -13,10 +13,10 @@
 // approvedBy: sam
 // approvalDate: 9/22
 //import type { RequestContext } from '@mastra/core/request-context';
+import { SpanType } from "@mastra/core/observability";
 import type { RequestContext } from "@mastra/core/request-context";
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { trace } from "@opentelemetry/api";
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -78,14 +78,17 @@ export const readDataFileTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await ensureDataDir();
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading file: ' + input.fileName, stage: 'read:file' }, id: 'read:file' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const readSpan = tracer.startSpan('read:file', {
-      attributes: {
+    const readSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'read:file',
+      input,
+      metadata: {
         'tool.id': 'read:file',
         'tool.input.fileName': input.fileName,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -101,20 +104,22 @@ export const readDataFileTool = createTool({
       }
       const content = await fs.readFile(realFullPath, 'utf-8')
       log.info(`Read file: ${fileName}`)
-      readSpan.setAttributes({
-        'tool.output.fileSize': content.length
+      readSpan?.update({
+        output: { fileSize: content.length },
+        metadata: {
+          'tool.output.fileSize': content.length
+        }
       });
-      readSpan.end();
+      readSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File read successfully', stage: 'read:file' }, id: 'read:file' });
       return content
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        readSpan.recordException(error);
-      }
-      readSpan.setStatus({ code: 2, message: errorMessage });
-      readSpan.end();
+      readSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -122,6 +127,7 @@ export const readDataFileTool = createTool({
     log.info('Read file tool input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -130,6 +136,7 @@ export const readDataFileTool = createTool({
       toolCallId,
       messageCount: messages.length,
       fileName: input.fileName,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -138,6 +145,7 @@ export const readDataFileTool = createTool({
       toolCallId,
       toolName,
       fileSize: output.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -163,14 +171,16 @@ export const writeDataFileTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '💾 Writing to file: ' + input.fileName, stage: 'write:file' }, id: 'write:file' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const writeSpan = tracer.startSpan('write:file', {
-      attributes: {
+    const writeSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'write:file',
+      input,
+      metadata: {
         'tool.id': 'write:file',
         'tool.input.fileName': input.fileName,
-        'tool.input.contentLength': input.content.length,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -194,20 +204,22 @@ export const writeDataFileTool = createTool({
       await fs.mkdir(realDirPath, { recursive: true })
       await fs.writeFile(realFullPath, content, 'utf-8')
       log.info(`Written to file: ${fileName}`)
-      writeSpan.setAttributes({
-        'tool.output.success': true
+      writeSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      writeSpan.end();
+      writeSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File written successfully', stage: 'write:file' }, id: 'write:file' });
       return `File ${fileName} written successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        writeSpan.recordException(error);
-      }
-      writeSpan.setStatus({ code: 2, message: errorMessage });
-      writeSpan.end();
+      writeSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -255,13 +267,16 @@ export const deleteDataFileTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Deleting file: ' + input.fileName, stage: 'delete:file' }, id: 'delete:file' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const deleteSpan = tracer.startSpan('delete:file', {
-      attributes: {
+    const deleteSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'delete:file',
+      input,
+      metadata: {
         'tool.id': 'delete:file',
         'tool.input.fileName': input.fileName,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -276,20 +291,22 @@ export const deleteDataFileTool = createTool({
       }
       await fs.unlink(fullPath)
       log.info(`Deleted file: ${fileName}`)
-      deleteSpan.setAttributes({
-        'tool.output.success': true
+      deleteSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      deleteSpan.end();
+      deleteSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File deleted successfully', stage: 'delete:file' }, id: 'delete:file' });
       return `File ${fileName} deleted successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        deleteSpan.recordException(error);
-      }
-      deleteSpan.setStatus({ code: 2, message: errorMessage });
-      deleteSpan.end();
+      deleteSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -338,13 +355,16 @@ export const listDataDirTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📂 Listing directory: ' + (input.dirPath ?? 'docs/data'), stage: 'list:directory' }, id: 'list:directory' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const listSpan = tracer.startSpan('list:directory', {
-      attributes: {
+    const listSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'list:directory',
+      input,
+      metadata: {
         'tool.id': 'list:directory',
         'tool.input.dirPath': input.dirPath ?? 'docs/data',
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -359,20 +379,22 @@ export const listDataDirTool = createTool({
       }
       const contents = await fs.readdir(fullPath)
       log.info(`Listed directory: ${dirPath}`)
-      listSpan.setAttributes({
-        'tool.output.count': contents.length
+      listSpan?.update({
+        output: { count: contents.length },
+        metadata: {
+          'tool.output.count': contents.length
+        }
       });
-      listSpan.end();
+      listSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory listed successfully', stage: 'list:directory' }, id: 'list:directory' });
       return contents
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        listSpan.recordException(error);
-      }
-      listSpan.setStatus({ code: 2, message: errorMessage });
-      listSpan.end();
+      listSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -424,14 +446,17 @@ export const copyDataFileTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📋 Copying file: ${input.sourceFile} to ${input.destFile}`, stage: 'copy:file' }, id: 'copy:file' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const copySpan = tracer.startSpan('copy:file', {
-      attributes: {
+    const copySpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'copy:file',
+      input,
+      metadata: {
         'tool.id': 'copy:file',
         'tool.input.sourceFile': input.sourceFile,
         'tool.input.destFile': input.destFile,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -452,20 +477,22 @@ export const copyDataFileTool = createTool({
       await fs.mkdir(destDir, { recursive: true })
       await fs.copyFile(sourcePath, destPath)
       log.info(`Copied file: ${sourceFile} to ${destFile}`)
-      copySpan.setAttributes({
-        'tool.output.success': true
+      copySpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      copySpan.end();
+      copySpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File copied successfully', stage: 'copy:file' }, id: 'copy:file' });
       return `File ${sourceFile} copied to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        copySpan.recordException(error);
-      }
-      copySpan.setStatus({ code: 2, message: errorMessage });
-      copySpan.end();
+      copySpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -518,14 +545,17 @@ export const moveDataFileTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🚚 Moving file: ${input.sourceFile} to ${input.destFile}`, stage: 'move:file' }, id: 'move:file' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const moveSpan = tracer.startSpan('move:file', {
-      attributes: {
+    const moveSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'move:file',
+      input,
+      metadata: {
         'tool.id': 'move:file',
         'tool.input.sourceFile': input.sourceFile,
         'tool.input.destFile': input.destFile,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -546,20 +576,22 @@ export const moveDataFileTool = createTool({
       await fs.mkdir(destDir, { recursive: true })
       await fs.rename(sourcePath, destPath)
       log.info(`Moved file: ${sourceFile} to ${destFile}`)
-      moveSpan.setAttributes({
-        'tool.output.success': true
+      moveSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      moveSpan.end();
+      moveSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File moved successfully', stage: 'move:file' }, id: 'move:file' });
       return `File ${sourceFile} moved to ${destFile} successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        moveSpan.recordException(error);
-      }
-      moveSpan.setStatus({ code: 2, message: errorMessage });
-      moveSpan.end();
+      moveSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -618,15 +650,18 @@ export const searchDataFilesTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🔍 Searching for pattern: "${input.pattern}"`, stage: 'search:files' }, id: 'search:files' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const searchSpan = tracer.startSpan('search:files', {
-      attributes: {
+    const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'search:files',
+      input,
+      metadata: {
         'tool.id': 'search:files',
         'tool.input.pattern': input.pattern,
         'tool.input.searchContent': input.searchContent,
         'tool.input.dirPath': input.dirPath,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -685,20 +720,22 @@ export const searchDataFilesTool = createTool({
 
       await searchDir(searchPath)
       log.info(`Searched for pattern: ${pattern} in ${dirPath}`)
-      searchSpan.setAttributes({
-        'tool.output.resultCount': results.length
+      searchSpan?.update({
+        output: { resultCount: results.length },
+        metadata: {
+          'tool.output.resultCount': results.length
+        }
       });
-      searchSpan.end();
+      searchSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Found ${results.length} matches`, stage: 'search:files' }, id: 'search:files' });
       return results
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        searchSpan.recordException(error);
-      }
-      searchSpan.setStatus({ code: 2, message: errorMessage });
-      searchSpan.end();
+      searchSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -706,6 +743,7 @@ export const searchDataFilesTool = createTool({
     log.info('Search files tool input streaming started', {
       toolCallId,
       messageCount: messages.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
@@ -716,6 +754,7 @@ export const searchDataFilesTool = createTool({
       pattern: input.pattern,
       searchContent: input.searchContent,
       dirPath: input.dirPath,
+      abortSignal: abortSignal?.aborted,
       hook: 'onInputAvailable',
     })
   },
@@ -724,6 +763,7 @@ export const searchDataFilesTool = createTool({
       toolCallId,
       toolName,
       resultCount: output.length,
+      abortSignal: abortSignal?.aborted,
       hook: 'onOutput',
     })
   },
@@ -754,13 +794,16 @@ export const getDataFileInfoTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: 'ℹ️ Getting info for file: ' + input.fileName, stage: 'get:fileinfo' }, id: 'get:fileinfo' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const infoSpan = tracer.startSpan('get:fileinfo', {
-      attributes: {
+    const infoSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'get:fileinfo',
+      input,
+      metadata: {
         'tool.id': 'get:fileinfo',
         'tool.input.fileName': input.fileName,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -783,21 +826,23 @@ export const getDataFileInfoTool = createTool({
         isFile: stats.isFile(),
         isDirectory: stats.isDirectory(),
       }
-      infoSpan.setAttributes({
-        'tool.output.fileSize': stats.size,
-        'tool.output.isFile': stats.isFile(),
+      infoSpan?.update({
+        output: result,
+        metadata: {
+          'tool.output.fileSize': stats.size,
+          'tool.output.isFile': stats.isFile(),
+        }
       });
-      infoSpan.end();
+      infoSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ File info retrieved', stage: 'get:fileinfo' }, id: 'get:fileinfo' });
       return result
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        infoSpan.recordException(error);
-      }
-      infoSpan.setStatus({ code: 2, message: errorMessage });
-      infoSpan.end();
+      infoSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -844,13 +889,16 @@ export const createDataDirTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📁 Creating directory: ' + input.dirPath, stage: 'create:directory' }, id: 'create:directory' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const createDirSpan = tracer.startSpan('create:directory', {
-      attributes: {
+    const createDirSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'create:directory',
+      input,
+      metadata: {
         'tool.id': 'create:directory',
         'tool.input.dirPath': input.dirPath,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -864,20 +912,22 @@ export const createDataDirTool = createTool({
       }
       await fs.mkdir(fullPath, { recursive: true })
       log.info(`Created directory: ${dirPath}`)
-      createDirSpan.setAttributes({
-        'tool.output.success': true
+      createDirSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      createDirSpan.end();
+      createDirSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory created successfully', stage: 'create:directory' }, id: 'create:directory' });
       return `Directory ${dirPath} created successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        createDirSpan.recordException(error);
-      }
-      createDirSpan.setStatus({ code: 2, message: errorMessage });
-      createDirSpan.end();
+      createDirSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -924,13 +974,16 @@ export const removeDataDirTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🗑️ Removing directory: ' + input.dirPath, stage: 'remove:directory' }, id: 'remove:directory' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const removeDirSpan = tracer.startSpan('remove:directory', {
-      attributes: {
+    const removeDirSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'remove:directory',
+      input,
+      metadata: {
         'tool.id': 'remove:directory',
         'tool.input.dirPath': input.dirPath,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -949,20 +1002,22 @@ export const removeDataDirTool = createTool({
       }
       await fs.rmdir(fullPath)
       log.info(`Removed directory: ${dirPath}`)
-      removeDirSpan.setAttributes({
-        'tool.output.success': true
+      removeDirSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      removeDirSpan.end();
+      removeDirSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Directory removed successfully', stage: 'remove:directory' }, id: 'remove:directory' });
       return `Directory ${dirPath} removed successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        removeDirSpan.recordException(error);
-      }
-      removeDirSpan.setStatus({ code: 2, message: errorMessage });
-      removeDirSpan.end();
+      removeDirSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -1015,14 +1070,17 @@ export const archiveDataTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📦 Archiving: ${input.sourcePath} to ${input.archiveName}.gz`, stage: 'archive:data' }, id: 'archive:data' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const archiveSpan = tracer.startSpan('archive:data', {
-      attributes: {
+    const archiveSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'archive:data',
+      input,
+      metadata: {
         'tool.id': 'archive:data',
         'tool.input.sourcePath': input.sourcePath,
         'tool.input.archiveName': input.archiveName,
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -1048,20 +1106,22 @@ export const archiveDataTool = createTool({
 
       await pipeline(sourceStream, gzip, archiveStream)
       log.info(`Archived: ${sourcePath} to ${archiveName}.gz`)
-      archiveSpan.setAttributes({
-        'tool.output.success': true
+      archiveSpan?.update({
+        output: { success: true },
+        metadata: {
+          'tool.output.success': true
+        }
       });
-      archiveSpan.end();
+      archiveSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Archive created successfully', stage: 'archive:data' }, id: 'archive:data' });
       return `File ${sourcePath} archived to ${archiveName}.gz successfully.`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        archiveSpan.recordException(error);
-      }
-      archiveSpan.setStatus({ code: 2, message: errorMessage });
-      archiveSpan.end();
+      archiveSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },
@@ -1116,14 +1176,17 @@ export const backupDataTool = createTool({
   execute: async (input, context) => {
     const writer = context?.writer;
     const requestCtx = context?.requestContext as DataFileManagerContext | undefined;
+    const tracingContext = context?.tracingContext;
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `💾 Creating backup for: ${input.sourcePath}`, stage: 'backup:data' }, id: 'backup:data' });
-    const tracer = trace.getTracer('data-file-manager', '1.0.0');
-    const backupSpan = tracer.startSpan('backup:data', {
-      attributes: {
+    const backupSpan = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'backup:data',
+      input,
+      metadata: {
         'tool.id': 'backup:data',
         'tool.input.sourcePath': input.sourcePath,
         'tool.input.backupDir': input.backupDir ?? 'backups',
-        'tool.requestContext.userId': requestCtx?.userId,
+        'user.id': requestCtx?.userId,
       }
     });
 
@@ -1151,20 +1214,22 @@ export const backupDataTool = createTool({
       await fs.cp(sourceFullPath, backupFullPath, { recursive: true })
       const relativeBackupPath = path.relative(DATA_DIR, backupFullPath)
       log.info(`Backed up: ${sourcePath} to ${relativeBackupPath}`)
-      backupSpan.setAttributes({
-        'tool.output.backupPath': relativeBackupPath
+      backupSpan?.update({
+        output: { backupPath: relativeBackupPath },
+        metadata: {
+          'tool.output.backupPath': relativeBackupPath
+        }
       });
-      backupSpan.end();
+      backupSpan?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Backup created successfully', stage: 'backup:data' }, id: 'backup:data' });
       return `Backup created: ${sourcePath} → ${relativeBackupPath}`
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
-      if (error instanceof Error) {
-        backupSpan.recordException(error);
-      }
-      backupSpan.setStatus({ code: 2, message: errorMessage });
-      backupSpan.end();
+      backupSpan?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      })
       throw error
     }
   },

@@ -1,6 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import chalk from 'chalk'
 import type { ExecaError as ExecaErrorType } from 'execa'
 import execa from 'execa'
@@ -43,19 +43,18 @@ export const execaTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext as ExecaContext | undefined
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('execa-tool', '1.0.0')
-        const span = tracer.startSpan('execa-tool', {
-            attributes: {
-                'tool.id': 'execa-tool',
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'execa-tool',
+            input: inputData,
+            metadata: {
+                'tool.id': 'execaTool',
                 'tool.input.command': inputData.command,
-                'tool.input.args': inputData.args.join(' '),
-                'tool.requestContext.userId': requestContext?.userId,
+                'user.id': requestContext?.userId,
             },
         })
-
-        // Ensure colorTransform is "used" to satisfy strict linting without removal
-        span.setAttribute('internal.colorTransform', !!colorTransform)
 
         const { command, args, cwd, timeout, env } = inputData
         await writer?.custom({
@@ -92,18 +91,22 @@ export const execaTool = createTool({
                 },
                 id: 'execaTool',
             })
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.outputLength': output.length,
+            span?.update({
+                output: { success: true, outputLength: output.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.outputLength': output.length,
+                }
             })
-            span.end()
+            span?.end()
             return { message: chalk.green(output) }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(errorMsg)
-            span.recordException(e instanceof Error ? e : new Error(errorMsg))
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             const execaErr = e as ExecaErrorType
             if (e instanceof Error && 'all' in e) {
                 return {

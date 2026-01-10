@@ -1,7 +1,6 @@
 import { chatRoute, networkRoute, workflowRoute } from '@mastra/ai-sdk'
 import { Mastra } from '@mastra/core'
-import { Observability, SamplingStrategyType, SensitiveDataFilter } from '@mastra/observability'
-import { OtelExporter } from '@mastra/otel-exporter'
+import { CloudExporter, Observability, SamplingStrategyType, SensitiveDataFilter } from '@mastra/observability'
 import { PostgresStore } from '@mastra/pg'
 // Config
 import { log } from './config/logger'
@@ -235,7 +234,7 @@ export const mastra = new Mastra({
         serviceName: "ai",
 
         sampling: { type: SamplingStrategyType.RATIO, probability: 0.5 }, // 50% sampling
-        requestContextKeys: ["userId", "environment", "tenantId"],
+        requestContextKeys: ["userId", "environment", "tenantId", "tool.id", "agent.id", "workflow.id", "memory.thread.id", "user.id"],
         spanOutputProcessors: [
           new SensitiveDataFilter(
             {
@@ -266,13 +265,14 @@ export const mastra = new Mastra({
             {
               logger: log,
               logLevel: 'info',
-//              strategy: 'realtime',
-//              maxBatchSize: 500,
-//              maxBufferSize: 1000,
-//              maxBatchWaitMs: 6000,
+              strategy: 'auto',
+              maxBatchSize: 1000,
+              maxBufferSize: 10000,
+              maxBatchWaitMs: 5000,
               maxRetries: 5,
             }
           ), // Studio access0
+          new CloudExporter(),
         ],
         includeInternalSpans: true,
 

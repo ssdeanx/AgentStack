@@ -1,14 +1,14 @@
+import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
-
-import type { RequestContext } from '@mastra/core/request-context'
 
 export interface TextAnalysisToolContext extends RequestContext {
     defaultLanguage?: string
     includeAdvancedMetrics?: boolean
+    userId?: string
 }
 
 export const textAnalysisTool = createTool({
@@ -62,16 +62,22 @@ export const textAnalysisTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as TextAnalysisToolContext | undefined
         const defaultLanguage = requestCtx?.defaultLanguage ?? 'en'
         const includeAdvancedMetrics = requestCtx?.includeAdvancedMetrics ?? false
 
-        const tracer = trace.getTracer('text-analysis-tool', '1.0.0')
-        const span = tracer.startSpan('text-analysis', {
-            attributes: {
+        // Create child span for text analysis
+        const textAnalysisSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'text-analysis',
+            input: inputData,
+            metadata: {
                 'tool.id': 'text-analysis',
                 'tool.input.textLength': inputData.text.length,
-                'tool.input.operations': inputData.operations.join(','),
+                'tool.input.operationsCount': inputData.operations.length,
+                'user.id': requestCtx?.userId,
             },
         })
 
@@ -143,11 +149,15 @@ export const textAnalysisTool = createTool({
                 id: 'text-analysis',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operationsCount': inputData.operations.length,
+            // Update span with successful result
+            textAnalysisSpan?.update({
+                output: { success: true, operationsCount: inputData.operations.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operationsCount': inputData.operations.length,
+                },
             })
-            span.end()
+            textAnalysisSpan?.end()
 
             return {
                 success: true,
@@ -159,11 +169,11 @@ export const textAnalysisTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Text analysis failed: ${errorMsg}`, { error: errorMsg })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            // Record error in span
+            textAnalysisSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,
@@ -259,13 +269,20 @@ export const textProcessingTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
+        const requestCtx = context?.requestContext as TextAnalysisToolContext | undefined
 
-        const tracer = trace.getTracer('text-processing-tool', '1.0.0')
-        const span = tracer.startSpan('text-processing', {
-            attributes: {
+        // Create child span for text processing
+        const textProcessingSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'text-processing',
+            input: inputData,
+            metadata: {
                 'tool.id': 'text-processing',
                 'tool.input.textLength': inputData.text.length,
-                'tool.input.operations': inputData.operations.join(','),
+                'tool.input.operationsCount': inputData.operations.length,
+                'user.id': requestCtx?.userId,
             },
         })
 
@@ -346,12 +363,16 @@ export const textProcessingTool = createTool({
                 id: 'text-processing',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operationsCount': inputData.operations.length,
-                'tool.output.lengthChange': statistics.changes,
+            // Update span with successful result
+            textProcessingSpan?.update({
+                output: { success: true, operationsCount: inputData.operations.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operationsCount': inputData.operations.length,
+                    'tool.output.lengthChange': statistics.changes,
+                },
             })
-            span.end()
+            textProcessingSpan?.end()
 
             return {
                 success: true,
@@ -367,11 +388,11 @@ export const textProcessingTool = createTool({
                 error: errorMsg,
             })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            // Record error in span
+            textProcessingSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,

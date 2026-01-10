@@ -1,10 +1,10 @@
+import { SpanType } from '@mastra/core/observability';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
 import {
   MDocument,
   rerank,
 } from '@mastra/rag';
-import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { randomUUID } from 'crypto';
 
 import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from "@mastra/core/llm";
@@ -221,11 +221,11 @@ Use this tool when you need advanced document processing with metadata extractio
     const startTime = Date.now()
     logToolExecution('mastra-chunker', { input: inputData })
 
-    // Create a span for tracing
-    // Create a span for tracing
-    const tracer = trace.getTracer('document-chunking');
-    const span = tracer.startSpan('mastra-chunker-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'mastra-chunker',
+      input: {
         documentLength: inputData.documentContent.length,
         chunkingStrategy: inputData.chunkingStrategy,
         chunkSize: inputData.chunkSize,
@@ -233,8 +233,11 @@ Use this tool when you need advanced document processing with metadata extractio
         extractSummary: inputData.extractSummary,
         extractKeywords: inputData.extractKeywords,
         extractQuestions: inputData.extractQuestions,
-        operation: 'mastra-chunker'
-      }
+      },
+      metadata: {
+        'tool.id': 'mastra-chunker',
+        operation: 'mastra-chunker',
+      },
     });
 
     try {
@@ -416,12 +419,14 @@ Use this tool when you need advanced document processing with metadata extractio
       })
 
       // Record error in tracing span
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
 
       throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
-      span.end();
+      span?.end();
     }
   },
 })
@@ -495,18 +500,20 @@ content indexing, or semantic search capabilities.
     const startTime = Date.now()
     logToolExecution('mdocument-chunker', { input: inputData })
 
-    // Create a span for tracing
-    // Create a span for tracing
-    const tracer = trace.getTracer('document-chunking');
-    const span = tracer.startSpan('mdocument-chunker-tool', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'mdocument-chunker',
+      input: {
         documentLength: inputData.documentContent.length,
         chunkingStrategy: inputData.chunkingStrategy,
         chunkSize: inputData.chunkSize,
         generateEmbeddings: inputData.generateEmbeddings,
-        indexName: 'memory_messages_3072',
-        operation: 'mdocument-chunker'
-      }
+      },
+      metadata: {
+        'tool.id': 'mdocument-chunker',
+        operation: 'mdocument-chunker',
+      },
     });
 
     try {
@@ -769,12 +776,14 @@ content indexing, or semantic search capabilities.
       })
 
       // Record error in tracing span
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
 
       throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
-      span.end();
+      span?.end();
     }
   },
 })
@@ -865,15 +874,21 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     const startTime = Date.now()
     logToolExecution('document-reranker', { userQuery: inputData.userQuery })
 
-    const tracer = trace.getTracer('document-chunking');
-    const span = tracer.startSpan('document-reranker-tool', {
-      attributes: {
+    // Use the existing tracing context if available to create a child span.
+    const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'document-reranker',
+      input: {
         userQuery: inputData.userQuery,
         indexName: inputData.indexName,
         topK: inputData.topK,
         initialTopK: inputData.initialTopK,
-        operation: 'document-reranker'
-      }
+      },
+      metadata: {
+        'tool.id': 'document:reranker',
+        operation: 'document-reranker',
+      },
     });
 
     try {
@@ -1003,12 +1018,14 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         processingTimeMs: processingTime,
       })
 
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage });
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
 
       throw error instanceof Error ? error : new Error(errorMessage);
     } finally {
-      span.end();
+      span?.end();
     }
   },
 })

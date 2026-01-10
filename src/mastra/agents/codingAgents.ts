@@ -11,7 +11,20 @@ import { upstashMemory } from '../config/upstash';
 import { codeAnalysisTool } from '../tools/code-analysis.tool';
 import { codeSearchTool } from '../tools/code-search.tool';
 import { diffReviewTool } from '../tools/diff-review.tool';
-import * as e2bTools from '../tools/e2b';
+import {
+  checkFileExists,
+  createDirectory,
+  createSandbox,
+  deleteFile,
+  getFileInfo,
+  getFileSize,
+  listFiles,
+  runCode,
+  runCommand,
+  watchDirectory,
+  writeFile,
+  writeFiles
+} from '../tools/e2b';
 import { execaTool } from '../tools/execa-tool';
 import { findReferencesTool } from '../tools/find-references.tool';
 import { findSymbolTool } from '../tools/find-symbol.tool';
@@ -46,7 +59,7 @@ export const codeArchitectAgent = new Agent({
   instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
-   // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
+    // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
     return {
       role: 'system',
@@ -334,7 +347,18 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     testGeneratorTool,
     codeSearchTool,
     execaTool,
-    ...e2bTools,
+    createSandbox,
+    writeFile,
+    writeFiles,
+    listFiles,
+    deleteFile,
+    createDirectory,
+    getFileInfo,
+    checkFileExists,
+    getFileSize,
+    watchDirectory,
+    runCommand,
+    runCode,
     //    ...githubMCP.getTools(),
   },
   memory: upstashMemory,
@@ -456,7 +480,18 @@ For each refactoring:
     findReferencesTool,
     findSymbolTool,
     execaTool,
-    ...e2bTools,
+    createSandbox,
+    writeFile,
+    writeFiles,
+    listFiles,
+    deleteFile,
+    createDirectory,
+    getFileInfo,
+    checkFileExists,
+    getFileSize,
+    watchDirectory,
+    runCommand,
+    runCode,
   },
   memory: upstashMemory,
 

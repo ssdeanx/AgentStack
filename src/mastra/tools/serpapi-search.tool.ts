@@ -7,7 +7,7 @@
  * @module serpapi-search-tool
  */
 import type { RequestContext } from '@mastra/core/request-context'
-import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -103,6 +103,7 @@ export const googleSearchTool = createTool({
         const writer = context?.writer
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -118,15 +119,21 @@ export const googleSearchTool = createTool({
             id: 'serpapi-search',
         })
 
-        const tracer = trace.getTracer('serpapi-search')
-        const searchSpan = tracer.startSpan('google-search-tool', {
-            attributes: {
-                query: input.query,
-                numResults: input.numResults,
-                location: input.location,
-                operation: 'google-search',
+        // Create child span for Google search
+        const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-search',
+            input,
+            metadata: {
+                'tool.id': 'google-search',
+                'tool.input.query': input.query,
+                'tool.input.numResults': input.numResults,
+                'tool.input.location': input.location,
+                'tool.input.language': input.language,
+                'tool.input.device': input.device,
             },
         })
+
         log.info('Executing Google search', {
             query: input.query,
             numResults: input.numResults,
@@ -155,11 +162,10 @@ export const googleSearchTool = createTool({
             }
             // Check for cancellation before API call
             if (abortSignal?.aborted) {
-                searchSpan.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during API call',
+                searchSpan?.error({
+                    error: new Error('Operation cancelled during API call'),
+                    endSpan: true,
                 })
-                searchSpan.end()
                 throw new Error('Google search cancelled during API call')
             }
 
@@ -223,7 +229,16 @@ export const googleSearchTool = createTool({
                 searchInfo,
             }
 
-            searchSpan.end()
+            searchSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.organicResults': organicResults.length,
+                    'tool.output.hasKnowledgeGraph': !!knowledgeGraph,
+                    'tool.output.relatedSearches': relatedSearches?.length ?? 0,
+                    'tool.output.success': true,
+                },
+            })
+            searchSpan?.end()
             log.info('Google search completed successfully', {
                 query: input.query,
                 resultCount: organicResults.length,
@@ -245,8 +260,10 @@ export const googleSearchTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Google search cancelled for "${input.query}"`
-                searchSpan.setStatus({ code: 2, message: cancelMessage })
-                searchSpan.end()
+                searchSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -271,12 +288,10 @@ export const googleSearchTool = createTool({
                 },
                 id: 'serpapi-search',
             })
-            searchSpan.recordException(new Error(errorMessage))
-            searchSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            searchSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            searchSpan.end()
             log.error('Google search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -284,7 +299,7 @@ export const googleSearchTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, abortSignal }) => {
         log.info('Google search tool input streaming started', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
@@ -300,7 +315,7 @@ export const googleSearchTool = createTool({
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
         log.info('Google search received complete input', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
@@ -319,7 +334,7 @@ export const googleSearchTool = createTool({
             abortSignal: abortSignal?.aborted,
             organicResults: output.organicResults.length,
             hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length || 0,
+            relatedSearches: output.relatedSearches?.length ?? 0,
             hook: 'onOutput',
         })
     },
@@ -378,7 +393,8 @@ export const googleAiOverviewTool = createTool({
     outputSchema: googleAiOverviewOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
+
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -391,15 +407,19 @@ export const googleAiOverviewTool = createTool({
         // Validate API key
         validateSerpApiKey()
 
-        const tracer = trace.getTracer('serpapi-search')
-        const overviewSpan = tracer.startSpan('google-ai-overview-tool', {
-            attributes: {
-                query: input.query,
-                location: input.location,
-                includeScrapedContent: input.includeScrapedContent,
-                operation: 'google-ai-overview',
+        // Create child span for AI overview
+        const overviewSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-ai-overview',
+            input,
+            metadata: {
+                'tool.id': 'google-ai-overview',
+                'tool.input.query': input.query,
+                'tool.input.location': input.location,
+                'tool.input.includeScrapedContent': input.includeScrapedContent,
             },
         })
+
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -448,7 +468,16 @@ export const googleAiOverviewTool = createTool({
                     : undefined,
                 available,
             }
-            overviewSpan.end()
+            overviewSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.available': available,
+                    'tool.output.sourcesCount': sources.length,
+                    'tool.output.hasAiOverview': Boolean(aiOverviewData?.text),
+                    'tool.output.success': true,
+                },
+            })
+            overviewSpan?.end()
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
@@ -476,12 +505,10 @@ export const googleAiOverviewTool = createTool({
                 },
                 id: 'google-ai-overview',
             })
-            overviewSpan.recordException(new Error(errorMessage))
-            overviewSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            overviewSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            overviewSpan.end()
             log.error('Google AI Overview failed', {
                 query: input.query,
                 error: errorMessage,

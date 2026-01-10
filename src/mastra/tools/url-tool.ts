@@ -1,15 +1,15 @@
+import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
-
-import type { RequestContext } from '@mastra/core/request-context'
 
 export interface UrlToolContext extends RequestContext {
     defaultProtocol?: string
     allowLocalhost?: boolean
     timeout?: number
+    userId?: string
 }
 
 export const urlValidationTool = createTool({
@@ -71,6 +71,8 @@ export const urlValidationTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
 
 
         const requestCtx = context?.requestContext as UrlToolContext | undefined
@@ -78,8 +80,18 @@ export const urlValidationTool = createTool({
         const allowLocalhost = requestCtx?.allowLocalhost ?? false
         const timeout = requestCtx?.timeout ?? 5000
 
-        const tracer = trace.getTracer('url-validation-tool', '1.0.0')
-        const span = tracer.startSpan('url-validation')
+        // Create child span for URL validation
+        const urlValidationSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'url-validation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'url-validation',
+                'tool.input.url': inputData.url,
+                'tool.input.operationsCount': inputData.operations.length,
+                'user.id': requestCtx?.userId,
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -172,11 +184,15 @@ export const urlValidationTool = createTool({
                 id: 'url-validation',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operationsCount': inputData.operations.length,
+            // Update span with successful result
+            urlValidationSpan?.update({
+                output: { success: true, operationsCount: inputData.operations.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operationsCount': inputData.operations.length,
+                },
             })
-            span.end()
+            urlValidationSpan?.end()
 
             return {
                 success: true,
@@ -188,11 +204,11 @@ export const urlValidationTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`URL validation failed: ${errorMsg}`, { error: errorMsg })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            // Record error in span
+            urlValidationSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,
@@ -292,9 +308,22 @@ export const urlManipulationTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
+        const requestCtx = context?.requestContext as UrlToolContext | undefined
 
-        const tracer = trace.getTracer('url-manipulation-tool', '1.0.0')
-        const span = tracer.startSpan('url-manipulation')
+        // Create child span for URL manipulation
+        const urlManipulationSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'url-manipulation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'url-manipulation',
+                'tool.input.baseUrl': inputData.baseUrl,
+                'tool.input.operationsCount': inputData.operations.length,
+                'user.id': requestCtx?.userId,
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -328,7 +357,7 @@ export const urlManipulationTool = createTool({
                                 currentUrl,
                                 inputData.parameters.query as Record<
                                     string,
-                                    any
+                                    string | number | boolean
                                 >
                             )
                         }
@@ -353,7 +382,7 @@ export const urlManipulationTool = createTool({
                                 currentUrl,
                                 inputData.parameters.query as Record<
                                     string,
-                                    any
+                                    string | number | boolean | null | undefined
                                 >
                             )
                         }
@@ -455,11 +484,15 @@ export const urlManipulationTool = createTool({
                 id: 'url-manipulation',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operationsCount': inputData.operations.length,
+            // Update span with successful result
+            urlManipulationSpan?.update({
+                output: { success: true, operationsCount: inputData.operations.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operationsCount': inputData.operations.length,
+                },
             })
-            span.end()
+            urlManipulationSpan?.end()
 
             return {
                 success: true,
@@ -474,11 +507,11 @@ export const urlManipulationTool = createTool({
                 error: errorMsg,
             })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            // Record error in span
+            urlManipulationSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,
@@ -624,7 +657,7 @@ async function checkUrlReachability(
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-        const headers = userAgent ? { 'User-Agent': userAgent } : undefined
+        const headers = userAgent && userAgent.length > 0 ? { 'User-Agent': userAgent } : undefined
         const response = await fetch(url, {
             method: 'HEAD',
             signal: controller.signal,
@@ -646,7 +679,7 @@ async function getUrlMetadata(url: string, timeout = 5000, userAgent?: string) {
         const response = await fetch(url, {
             method: 'HEAD',
             signal: controller.signal,
-            headers: userAgent ? { 'User-Agent': userAgent } : undefined,
+            headers: userAgent && userAgent.length > 0 ? { 'User-Agent': userAgent } : undefined,
         })
 
         clearTimeout(timeoutId)

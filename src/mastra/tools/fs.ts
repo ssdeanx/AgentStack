@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { promises as fsPromises } from 'node:fs'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -24,13 +24,22 @@ export const fsTool = createTool({
         const writer = context?.writer
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as FsToolContext | undefined
+        const tracingContext = context?.tracingContext
+
         if (abortSignal?.aborted === true) {
             throw new Error('FS operation cancelled')
         }
 
-        const tracer = trace.getTracer('tools/fs-tool')
-        const span = tracer.startSpan('fs-tool', {
-            attributes: { action: inputData.action, file: inputData.file },
+        // Create child span for FS operation
+        const fsSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'fs-operation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'fsTool',
+                'tool.input.action': inputData.action,
+                'tool.input.file': inputData.file,
+            },
         })
 
         const { action, file, data } = inputData
@@ -46,11 +55,10 @@ export const fsTool = createTool({
         try {
             // Check for cancellation before file operations
             if (abortSignal?.aborted) {
-                span?.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during file operations',
+                fsSpan?.error({
+                    error: new Error('Operation cancelled during file operations'),
+                    endSpan: true,
                 })
-                span?.end()
                 throw new Error('FS operation cancelled during file operations')
             }
 
@@ -77,8 +85,13 @@ export const fsTool = createTool({
                 },
                 id: 'fsTool',
             })
-            span?.setAttribute('success', true)
-            span?.end()
+            fsSpan?.update({
+                output: { message: 'Success' },
+                metadata: {
+                    'tool.output.success': true,
+                },
+            })
+            fsSpan?.end()
             return { message: 'Success' }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
@@ -86,8 +99,10 @@ export const fsTool = createTool({
             // Handle AbortError specifically
             if (e instanceof Error && e.name === 'AbortError') {
                 const cancelMessage = `FS operation cancelled`
-                span?.setStatus({ code: 2, message: cancelMessage })
-                span?.end()
+                fsSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -115,9 +130,10 @@ export const fsTool = createTool({
                 id: 'fsTool',
             })
             log.error(`FS operation failed: ${errorMsg}`)
-            span?.recordException(e instanceof Error ? e : new Error(errorMsg))
-            span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span?.end()
+            fsSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return {
                 message: `Error: ${errorMsg}`,
             }

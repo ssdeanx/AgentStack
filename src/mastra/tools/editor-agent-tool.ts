@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import { z } from 'zod'
 import { editorAgent } from '../agents/editorAgent'
 import { log } from '../config/logger'
@@ -102,15 +102,15 @@ export const editorTool = createTool({
         } = inputData
         const writer = context?.writer
         const requestContext = context?.requestContext as EditorAgentContext | undefined
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('editor-agent-tool')
-        const span = tracer.startSpan('editor-agent', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'editor-agent',
+            input: inputData,
+            metadata: {
+                'tool.id': 'editor-agent',
                 contentType,
-                contentLength: content.length,
-                hasInstructions:
-                    typeof instructions === 'string' &&
-                    instructions.trim().length > 0,
                 tone: tone ?? 'not-specified',
                 operation: 'editor-agent-run',
             },
@@ -201,10 +201,10 @@ export const editorTool = createTool({
             } catch (err) {
                 // Streaming/generation error — bubble up after logging
                 const msg = err instanceof Error ? err.message : String(err)
-                span.recordException(
-                    err instanceof Error ? err : new Error(msg)
-                )
-                span.setStatus({ code: SpanStatusCode.ERROR, message: msg })
+                span?.error({
+                    error: err instanceof Error ? err : new Error(msg),
+                    endSpan: true,
+                })
                 throw err
             }
 
@@ -222,7 +222,13 @@ export const editorTool = createTool({
                 }
             }
 
-            span.end()
+            span?.update({
+                output: parsedResult,
+                metadata: {
+                    'tool.output.success': true,
+                }
+            })
+            span?.end()
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -248,11 +254,10 @@ export const editorTool = createTool({
         } catch (error) {
             const errorMsg =
                 error instanceof Error ? error.message : 'Unknown error'
-            span.recordException(
-                error instanceof Error ? error : new Error(errorMsg)
-            )
-            span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span.end()
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
             throw new Error(`Failed to edit content: ${errorMsg}`)
         }
     },

@@ -1,5 +1,5 @@
+import { SpanType } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
 import { execSync } from 'child_process'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -173,18 +173,20 @@ export const listEvents = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as CalendarRequestContext | undefined
-        const span = tracer.startSpan('list-calendar-events', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'list-calendar-events',
+            input: inputData,
+            metadata: {
                 'tool.id': 'list-calendar-events',
                 'tool.input.startDate': inputData.startDate,
+                'user.id': requestCtx?.userId,
             },
         })
 
-        if (requestCtx?.userId) {
-            log.debug('Executing calendar list events for user', { userId: requestCtx.userId })
-        }
+        log.debug('Executing calendar list events for user', { userId: requestCtx?.userId })
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -217,11 +219,14 @@ export const listEvents = createTool({
                 },
                 id: 'listEvents',
             })
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.eventCount': events.length,
+            span?.update({
+                output: { eventCount: events.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.eventCount': events.length,
+                },
             })
-            span.end()
+            span?.end()
 
             return {
                 content: JSON.stringify(formattedEvents, null, 2),
@@ -231,11 +236,10 @@ export const listEvents = createTool({
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Calendar read failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return { content: `Error: ${errorMsg}` }
         }
     },
@@ -258,17 +262,19 @@ export const getTodayEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as CalendarRequestContext | undefined
-        const span = tracer.startSpan('get-today-events', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'get-today-events',
+            input: inputData,
+            metadata: {
                 'tool.id': 'get-today-events',
+                'user.id': requestCtx?.userId,
             },
         })
 
-        if (requestCtx?.userId) {
-            log.debug('Executing get today events for user', { userId: requestCtx.userId })
-        }
+        log.debug('Executing get today events for user', { userId: requestCtx?.userId })
 
         await context?.writer?.write({
             type: 'progress',
@@ -301,21 +307,23 @@ export const getTodayEvents = createTool({
                     message: `✅ Found ${todayEvents.length} events for today`,
                 },
             })
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.eventCount': todayEvents.length,
+            span?.update({
+                output: { eventCount: todayEvents.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.eventCount': todayEvents.length,
+                },
             })
-            span.end()
+            span?.end()
 
             return { events: formattedEvents, count: todayEvents.length }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Today events read failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return { events: [], count: 0 }
         }
     },
@@ -381,19 +389,21 @@ export const getUpcomingEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as CalendarRequestContext | undefined
-        const span = tracer.startSpan('get-upcoming-events', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'get-upcoming-events',
+            input: inputData,
+            metadata: {
                 'tool.id': 'get-upcoming-events',
                 'tool.input.days': inputData.days,
                 'tool.input.limit': inputData.limit,
+                'user.id': requestCtx?.userId,
             },
         })
 
-        if (requestCtx?.userId) {
-            log.debug('Executing get upcoming events for user', { userId: requestCtx.userId })
-        }
+        log.debug('Executing get upcoming events for user', { userId: requestCtx?.userId })
 
         await context?.writer?.write({
             type: 'progress',
@@ -436,21 +446,23 @@ export const getUpcomingEvents = createTool({
                     message: `✅ Found ${upcomingEvents.length} upcoming events`,
                 },
             })
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.eventCount': upcomingEvents.length,
+            span?.update({
+                output: { eventCount: upcomingEvents.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.eventCount': upcomingEvents.length,
+                },
             })
-            span.end()
+            span?.end()
 
             return { events: formattedEvents, count: upcomingEvents.length }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Upcoming events read failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return { events: [], count: 0 }
         }
     },
@@ -530,18 +542,20 @@ export const findFreeSlots = createTool({
         ),
     }),
     execute: async (inputData, context) => {
-        const tracer = trace.getTracer('calendar-tool', '1.0.0')
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as CalendarRequestContext | undefined
-        const span = tracer.startSpan('find-free-slots', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'find-free-slots',
+            input: inputData,
+            metadata: {
                 'tool.id': 'find-free-slots',
                 'tool.input.date': inputData.date,
+                'user.id': requestCtx?.userId,
             },
         })
 
-        if (requestCtx?.userId) {
-            log.debug('Executing find free slots for user', { userId: requestCtx.userId })
-        }
+        log.debug('Executing find free slots for user', { userId: requestCtx?.userId })
 
         await context?.writer?.write({
             type: 'progress',
@@ -626,21 +640,23 @@ export const findFreeSlots = createTool({
                 type: 'progress',
                 data: { message: `✅ Found ${freeSlots.length} free slots` },
             })
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.freeSlotCount': freeSlots.length,
+            span?.update({
+                output: { freeSlotCount: freeSlots.length },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.freeSlotCount': freeSlots.length,
+                },
             })
-            span.end()
+            span?.end()
 
             return { freeSlots, busyPeriods }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Free slots search failed: ${errorMsg}`)
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return { freeSlots: [], busyPeriods: [] }
         }
     },
