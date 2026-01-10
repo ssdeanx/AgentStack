@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { createPatch } from 'diff'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
@@ -331,15 +331,12 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
             id: 'coding:multiStringEdit',
         })
 
-        const tracer = trace.getTracer('coding-tools')
-        const span = tracer.startSpan('multi_string_edit', {
-            attributes: {
-                editsCount: edits.length,
-                dryRun,
-                createBackup,
-                projectRoot,
-                operation: 'multi_string_edit',
-            },
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'multi_string_edit',
+            input: { editsCount: edits.length, dryRun, createBackup, projectRoot },
+            metadata: { 'tool.id': 'coding:multiStringEdit', editsCount: edits.length, dryRun }
         })
 
         const results: Array<z.infer<typeof editResultSchema>> = []
@@ -378,11 +375,6 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
                     await fs.copyFile(backupPath, filePath)
                 } catch (error) {
                     // Best effort rollback
-                    span.recordException(
-                        error instanceof Error
-                            ? error
-                            : new Error(String(error))
-                    )
                 }
             }
         }
@@ -396,11 +388,8 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
 
         const success = !hasFailure
 
-        if (!success) {
-            span.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: 'One or more edits failed',
-            })
+        if (span) {
+            span.end()
         }
 
         await writer?.custom({
@@ -412,7 +401,6 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
             },
             id: 'coding:multiStringEdit',
         })
-        span.end()
 
         return {
             success,

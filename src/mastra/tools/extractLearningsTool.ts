@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -28,6 +28,7 @@ export const extractLearningsTool = createTool({
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
+        const tracingContext = context?.tracingContext
         const requestContext = context?.requestContext as ExtractLearningsContext | undefined
 
         // Emit progress start event
@@ -40,14 +41,21 @@ export const extractLearningsTool = createTool({
             },
             id: 'extract-learnings',
         })
-        const tracer = trace.getTracer('extract-learnings')
-        const extractSpan = tracer.startSpan('extract_learnings', {
-            attributes: {
+
+        const extractSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'extract-learnings',
+            input: {
                 query: inputData?.query,
                 url: inputData?.result?.url,
                 contentLength: inputData?.result?.content?.length,
-                operation: 'extract_learnings',
-                'tool.requestContext.userId': requestContext?.userId,
+            },
+            metadata: {
+                'tool.id': 'extract-learnings',
+                'tool.input.query': inputData?.query,
+                'tool.input.url': inputData?.result?.url,
+                'tool.input.contentLength': inputData?.result?.content?.length,
+                'user.id': requestContext?.userId,
             },
         })
 
@@ -86,9 +94,14 @@ export const extractLearningsTool = createTool({
                     },
                     id: 'extract-learnings',
                 })
-                extractSpan.setAttribute('output.learningLength', 0)
-                extractSpan.setAttribute('output.followUpQuestionsCount', 0)
-                extractSpan.end()
+                extractSpan?.update({
+                    output: { learning: 'Mastra instance not provided', followUpQuestions: [] },
+                    metadata: {
+                        'output.learningLength': 0,
+                        'output.followUpQuestionsCount': 0,
+                    },
+                })
+                extractSpan?.end()
                 return {
                     learning: 'Mastra instance not provided',
                     followUpQuestions: [],
@@ -106,9 +119,14 @@ export const extractLearningsTool = createTool({
                     },
                     id: 'extract-learnings',
                 })
-                extractSpan.setAttribute('output.learningLength', 0)
-                extractSpan.setAttribute('output.followUpQuestionsCount', 0)
-                extractSpan.end()
+                extractSpan?.update({
+                    output: { learning: 'learningExtractionAgent not available', followUpQuestions: [] },
+                    metadata: {
+                        'output.learningLength': 0,
+                        'output.followUpQuestionsCount': 0,
+                    },
+                })
+                extractSpan?.end()
                 return {
                     learning: 'learningExtractionAgent not available',
                     followUpQuestions: [],
@@ -175,9 +193,14 @@ export const extractLearningsTool = createTool({
                     { response: responseObject }
                 )
 
-                extractSpan.setAttribute('output.learningLength', 0)
-                extractSpan.setAttribute('output.followUpQuestionsCount', 0)
-                extractSpan.end()
+                extractSpan?.update({
+                    output: { learning: 'Invalid response format from learning extraction agent', followUpQuestions: [] },
+                    metadata: {
+                        'output.learningLength': 0,
+                        'output.followUpQuestionsCount': 0,
+                    },
+                })
+                extractSpan?.end()
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -200,12 +223,14 @@ export const extractLearningsTool = createTool({
             const followUpQuestionsCount =
                 parsed.data.followUpQuestions?.length ?? 0
 
-            extractSpan.setAttribute('output.learningLength', learningLength)
-            extractSpan.setAttribute(
-                'output.followUpQuestionsCount',
-                followUpQuestionsCount
-            )
-            extractSpan.end()
+            extractSpan?.update({
+                output: parsed.data,
+                metadata: {
+                    'output.learningLength': learningLength,
+                    'output.followUpQuestionsCount': followUpQuestionsCount,
+                },
+            })
+            extractSpan?.end()
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -226,18 +251,10 @@ export const extractLearningsTool = createTool({
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
 
-            try {
-                extractSpan.recordException(new Error(errorMessage))
-                extractSpan.setStatus({
-                    code: SpanStatusCode.ERROR,
-                    message: errorMessage,
-                })
-            } catch {
-                // ignore
-            }
-
-            extractSpan.setAttribute('metadata.error', errorMessage)
-            extractSpan.end()
+            extractSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
 
             await writer?.custom({
                 type: 'data-tool-progress',

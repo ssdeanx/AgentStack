@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -47,28 +47,28 @@ export const jwtAuthTool = createTool({
         )
 
         // Create a span for tracing
-        const tracer = trace.getTracer('tools/jwt-auth')
-        const span = tracer.startSpan('jwt-auth-tool', {
-            attributes: { hasJwt: !!jwt },
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'jwt-auth-tool',
+            input: { hasJwt: !!jwt },
+            metadata: { 'tool.id': 'jwt-auth', 'tool.input.hasJwt': !!jwt },
         })
 
         if (!jwt) {
             const error = new Error('JWT not found in runtime context')
-            span?.recordException(error)
-            span?.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: error.message,
-            })
-            span?.end()
+            span?.error({ error, endSpan: true })
             throw error
         }
 
         try {
             // Check for cancellation before JWT verification
             if (abortSignal?.aborted) {
-                span?.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during JWT verification',
+                span?.update({
+                    metadata: {
+                        status: 'cancelled',
+                        message: 'Operation cancelled during JWT verification',
+                    },
                 })
                 span?.end()
                 throw new Error(
@@ -77,7 +77,7 @@ export const jwtAuthTool = createTool({
             }
 
             //            const result = await AuthenticationService.verifyJWT(jwt)
-            span?.setAttribute('success', true)
+            span?.update({ metadata: { success: true } })
             span?.end()
             // Mock return for now as the service call is commented out
             return {
@@ -93,8 +93,7 @@ export const jwtAuthTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `JWT authentication cancelled`
-                span?.setStatus({ code: 2, message: cancelMessage })
-                span?.end()
+                span?.error({ error: new Error(cancelMessage), endSpan: true })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -113,12 +112,10 @@ export const jwtAuthTool = createTool({
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
             log.error(`JWT verification failed: ${errorMessage}`)
-            span?.recordException(new Error(errorMessage))
-            span?.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            span?.end()
             throw new Error('JWT verification failed: Unknown error')
         }
     },

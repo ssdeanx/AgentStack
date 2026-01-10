@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'node:fs'
 import * as path from 'node:path'
@@ -58,9 +58,12 @@ export const readPDF = createTool({
         const writer = context?.writer
         const requestContext = context?.requestContext as PdfToolContext | undefined
 
-        const tracer = trace.getTracer('tools/read-pdf')
-        const span = tracer.startSpan('read-pdf', {
-            attributes: { pdfPath: inputData.pdfPath, service: 'unpdf' },
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'read-pdf',
+            input: { pdfPath: inputData.pdfPath },
+            metadata: { 'tool.id': 'readPDF', 'tool.input.pdfPath': inputData.pdfPath, service: 'unpdf' },
         })
 
         const { pdfPath } = inputData
@@ -98,16 +101,13 @@ export const readPDF = createTool({
             log.info(chalk.blue('-----------------'))
             log.info(chalk.blue(`Number of pages: ${totalPages}`))
 
-            span?.setAttribute('pageCount', totalPages)
-            span?.setAttribute('textLength', text.length)
+            span?.update({ output: { content: text }, metadata: { 'tool.output.pageCount': totalPages, 'tool.output.textLength': text.length } })
             span?.end()
             return { content: text }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Error reading PDF: ${errorMsg}`)
-            span?.recordException(e instanceof Error ? e : new Error(errorMsg))
-            span?.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg })
-            span?.end()
+            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true })
             return {
                 content: `Error scanning PDF: ${errorMsg}`,
             }

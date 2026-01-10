@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { ProjectCache, PythonParser } from './semantic-utils'
 
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 
 const referenceContextSchema = z.object({
     maxReferences: z.number().default(500),
@@ -98,15 +98,18 @@ export const findReferencesTool = createTool({
 
         const allReferences: ReferenceInfo[] = []
 
-        const tracer = trace.getTracer('semantic-analysis')
-        const span = tracer.startSpan('find_references', {
-            attributes: {
-                symbolName,
-                projectPath,
-                filePath,
-                line,
-                maxReferences,
-                operation: 'find_references',
+const tracingContext = context?.tracingContext
+    const span = tracingContext?.currentSpan?.createChildSpan({
+        type: SpanType.TOOL_CALL,
+        name: 'find_references',
+        input: { symbolName, projectPath, filePath, line, maxReferences },
+        metadata: {
+            'tool.id': 'semantic:find-references',
+            symbolName,
+            projectPath,
+            filePath,
+            line,
+            maxReferences,
             },
         })
 
@@ -357,7 +360,8 @@ export const findReferencesTool = createTool({
                 id: 'semantic:find-references',
             })
 
-            span.end()
+            span?.update({ output: { references: allReferences.length }, metadata: { 'tool.output.count': allReferences.length } })
+            span?.end()
 
             return {
                 references: allReferences,
@@ -381,12 +385,7 @@ export const findReferencesTool = createTool({
                 },
                 id: 'semantic:find-references',
             })
-            span.recordException(new Error(errorMessage))
-            span.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
-            })
-            span.end()
+            span?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true })
             throw error
         }
     },
