@@ -173,6 +173,32 @@ type AnyExportedSpan = ExportedSpan<keyof SpanTypeMap>;
 
 Union type for cases that need to handle any exported span type.
 
+## Tool Call Span Example
+
+A common pattern is to create a TOOL_CALL span to represent the execution of a tool. Tool spans are typically created as a child of the currently active span so they are correlated to the requesting operation.
+
+```typescript
+const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+  type: SpanType.TOOL_CALL,
+  name: 'chartjs-generator',
+  input: { dataCount: data.length, indicatorsCount: indicators.length },
+  metadata: {
+    'tool.id': 'chartjs-generator',
+    'tool.input.dataCount': data.length,
+    'tool.input.indicatorsCount': indicators.length,
+  },
+})
+
+try {
+  // perform tool work
+  toolSpan?.update({ output: { configSize: labels.length }, metadata: { 'tool.output.labels': labels.length } })
+  toolSpan?.end()
+} catch (err) {
+  toolSpan?.error({ error: err as Error, endSpan: true })
+  throw err
+}
+```
+
 ## NO-OP Spans
 
 When tracing is disabled (sampling returns false), NO-OP spans are returned:

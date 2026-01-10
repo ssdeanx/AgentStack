@@ -14,7 +14,7 @@ import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 import type { RequestContext } from '@mastra/core/request-context'
 
-export interface SerpApiContext extends RequestContext {
+export interface SerpApiNewsContext extends RequestContext {
     userId?: string
 }
 
@@ -125,7 +125,7 @@ export const googleNewsTool = createTool({
     },
     execute: async (input, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const requestContext = context?.requestContext as SerpApiNewsContext | undefined
         const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',

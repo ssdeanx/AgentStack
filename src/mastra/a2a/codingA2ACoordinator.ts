@@ -19,6 +19,7 @@ import { safeRefactoringWorkflow } from '../workflows/safe-refactoring-workflow'
 import { testGenerationWorkflow } from '../workflows/test-generation-workflow'
 import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
 import { automatedReportingWorkflow } from '../workflows/automated-reporting-workflow'
+import { checkFileExists, createDirectory, createSandbox, deleteFile, getFileInfo, getFileSize, listFiles, runCode, runCommand, watchDirectory, writeFile, writeFiles } from '../tools/e2b';
 
 log.info('Initializing Coding A2A Coordinator...')
 
@@ -202,7 +203,18 @@ When a user's request requires prolonged, structured work across multiple subtas
     automatedReportingWorkflow,
   },
   tools: {
-    ...e2bTools,
+    createSandbox,
+    writeFile,
+    writeFiles,
+    listFiles,
+    deleteFile,
+    createDirectory,
+    getFileInfo,
+    checkFileExists,
+    getFileSize,
+    watchDirectory,
+    runCommand,
+    runCode,
   },
   maxRetries: 5,
   scorers: {

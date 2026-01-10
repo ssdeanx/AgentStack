@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
     "uuid",
     "zod",
     "@e2b/code-interpreter",
-    "ai"
+    "ai",
+    'html-to-image', 'cytoscape', 'axios-retry', 'bottleneck', 'leaflet',   'chart.js', "technicalindicators", "simple-statistics"
   ],
   allowedDevOrigins: ['http://localhost:4111', '**'],
   typedRoutes: false,

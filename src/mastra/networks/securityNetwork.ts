@@ -7,6 +7,7 @@ import { researchAgent } from '../agents/researchAgent';
 import { googleAI3 } from '../config/google';
 import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Security Network...')
 
@@ -169,7 +170,10 @@ export const securityNetwork = new Agent({
     researchAgent,
     reportAgent,
   },
+
+  tools: { confirmationTool },
   options: {},
+  defaultNetworkOptions: { autoResumeSuspendedTools: true } as unknown as any,
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
 })
 

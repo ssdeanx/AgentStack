@@ -41,7 +41,7 @@ export { businessIntelligenceNetwork } from './businessIntelligenceNetwork'
 export { securityNetwork } from './securityNetwork'
 
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
-
+import { confirmationTool } from '../tools/confirmation.tool'
 export const agentNetwork = new Agent({
   id: 'agent-network',
   name: 'Primary Agent Network',
@@ -78,7 +78,7 @@ export const agentNetwork = new Agent({
     editorAgent,
     reportAgent,
   },
-  tools: {},
+  tools: { confirmationTool },
   scorers: {},
   workflows: { weatherWorkflow },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]

@@ -21,6 +21,12 @@ interface ObservabilityInstanceConfig {
   spanOutputProcessors?: SpanOutputProcessor[];
   includeInternalSpans?: boolean;
   requestContextKeys?: string[];
+  /**
+   * NOTE: Tools executing long-running or expensive logic should emit TOOL_CALL spans
+   * and include `tool.*` metadata (e.g., `tool.id`, `tool.input.dataCount`). If you
+   * need to capture request-context-derived values for tool spans, add those keys to
+   * requestContextKeys so they are included automatically in trace metadata.
+   */
   serializationOptions?: SerializationOptions;
 }
 ```

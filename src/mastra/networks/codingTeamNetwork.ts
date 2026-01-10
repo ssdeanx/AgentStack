@@ -1,4 +1,5 @@
 import { Agent } from '@mastra/core/agent';
+import type { Processor, ProcessorMessageResult, ProcessOutputStepArgs} from '@mastra/core/processors';
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
 import { codeArchitectAgent, codeReviewerAgent, refactoringAgent, testEngineerAgent } from '../agents/codingAgents';
 import { google3 } from '../config/google';
@@ -9,8 +10,55 @@ import { learningExtractionWorkflow } from '../workflows/learning-extraction-wor
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow';
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow';
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Coding Team Network...')
+export class QualityChecker implements Processor {
+  id = "quality-checker";
+
+  processOutputStep(args: ProcessOutputStepArgs<unknown>): ProcessorMessageResult {
+    const { text, abort, retryCount } = args;
+
+    // If there's no text to evaluate, do nothing.
+    if (typeof text !== 'string' || text.length === 0) {
+      return [];
+    }
+
+    // evaluateQuality may be asynchronous; return the promise directly to match the expected return type
+    return evaluateQuality(text).then((score) => {
+      if (score < 0.7 && (retryCount ?? 0) < 3) {
+        // Request retry with feedback for the LLM
+        abort("Response quality too low. Please be more specific.", {
+          retry: true,
+          metadata: { score },
+        });
+      }
+
+      return [];
+    });
+  }
+}
+
+async function evaluateQuality(text: string): Promise<number> {
+  // Basic heuristic to score output quality between 0 and 1.
+  if (typeof text !== 'string' || text.length === 0) {return 0;}
+
+  // Score increases with length up to a reasonable cap.
+  const lengthScore = Math.min(1, text.length / 500);
+
+  // Penalize for common low-quality indicators
+  const lower = text.toLowerCase();
+  const negatives = ['todo', 'fixme', 'bug', 'hack', 'wip', 'error', 'undefined'];
+  const negativeCount = negatives.reduce((acc, kw) => acc + (lower.includes(kw) ? 1 : 0), 0);
+  const negativeScore = Math.max(0, 1 - (negativeCount * 0.25));
+
+  // Small boost for presence of tests, examples, or documentation
+  const positives = ['test', 'unit test', 'integration test', 'example', 'usage', 'documentation', 'docs'];
+  const positiveBoost = Math.min(0.2, positives.reduce((acc, kw) => acc + (lower.includes(kw) ? 0.05 : 0), 0));
+
+  const score = Math.max(0, Math.min(1, lengthScore * negativeScore + positiveBoost));
+  return score;
+}
 
 /**
  * Coding Team Network
@@ -95,7 +143,7 @@ Invoke these for structured, multi-phase processes:
     testEngineerAgent,
     refactoringAgent,
   },
-  tools: {},
+  tools: { confirmationTool },
   workflows: {
     researchSynthesisWorkflow,
     specGenerationWorkflow,

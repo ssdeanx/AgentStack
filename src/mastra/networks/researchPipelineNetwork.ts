@@ -9,6 +9,7 @@ import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 import { contentReviewWorkflow } from '../workflows/content-review-workflow';
 import { documentProcessingWorkflow } from '../workflows/document-processing-workflow';
+import { confirmationTool } from '../tools/confirmation.tool';
 
 log.info('Initializing Research Pipeline Network...')
 
@@ -142,6 +143,7 @@ Use for: building research knowledge bases, literature reviews, indexing academi
     documentProcessingWorkflow,
     contentReviewWorkflow,
   },
+  tools: { confirmationTool },
   options: {
   },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]

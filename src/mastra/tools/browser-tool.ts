@@ -7,7 +7,7 @@ import { chromium } from 'playwright-core'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 
 export interface BrowserRequestContext extends RequestContext {
   userId?: string;

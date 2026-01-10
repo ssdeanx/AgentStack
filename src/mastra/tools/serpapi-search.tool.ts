@@ -14,7 +14,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 
-export interface SerpApiContext extends RequestContext {
+export interface SerpApiSearchContext extends RequestContext {
     userId?: string
 }
 
@@ -102,7 +102,7 @@ export const googleSearchTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const requestContext = context?.requestContext as SerpApiSearchContext | undefined
         const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled

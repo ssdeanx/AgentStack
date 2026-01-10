@@ -167,7 +167,7 @@ export const listEvents = createTool({
         log.info('Calendar list events completed', {
             toolCallId,
             toolName,
-            eventsFound: output.count || 0,
+            eventsFound: output.count ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
