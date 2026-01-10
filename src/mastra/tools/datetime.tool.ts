@@ -1,6 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -91,6 +91,7 @@ export const dateTimeTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestCtx = context?.requestContext as DateTimeToolContext | undefined
+        const tracingContext = context?.tracingContext
         const defaultTimezone = requestCtx?.defaultTimezone ?? 'UTC'
         const defaultLocale = requestCtx?.defaultLocale ?? 'en-US'
         const allowFutureDates = requestCtx?.allowFutureDates ?? true
@@ -102,9 +103,11 @@ export const dateTimeTool = createTool({
             allowFutureDates,
         })
 
-        const tracer = trace.getTracer('datetime-tool', '1.0.0')
-        const span = tracer.startSpan('datetime-operation', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'datetime-operation',
+            input: inputData,
+            metadata: {
                 'tool.id': 'datetime',
                 'tool.input.operation': inputData.operation,
                 'tool.input.input': inputData.input,
@@ -264,11 +267,14 @@ export const dateTimeTool = createTool({
                 id: 'datetime',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operation': inputData.operation,
+            span?.update({
+                output: { success: true, operation: inputData.operation, result },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operation': inputData.operation,
+                },
             })
-            span.end()
+            span?.end()
 
             return {
                 success: true,
@@ -282,11 +288,10 @@ export const dateTimeTool = createTool({
                 error: errorMsg,
             })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,
@@ -365,10 +370,13 @@ export const timeZoneTool = createTool({
     }),
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('timezone-tool', '1.0.0')
-        const span = tracer.startSpan('timezone-operation', {
-            attributes: {
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'timezone-operation',
+            input: inputData,
+            metadata: {
                 'tool.id': 'timezone',
                 'tool.input.operation': inputData.operation,
             },
@@ -442,11 +450,14 @@ export const timeZoneTool = createTool({
                 id: 'timezone',
             })
 
-            span.setAttributes({
-                'tool.output.success': true,
-                'tool.output.operation': inputData.operation,
+            span?.update({
+                output: { success: true, operation: inputData.operation, result },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.operation': inputData.operation,
+                },
             })
-            span.end()
+            span?.end()
 
             return {
                 success: true,
@@ -459,11 +470,10 @@ export const timeZoneTool = createTool({
                 error: errorMsg,
             })
 
-            if (e instanceof Error) {
-                span.recordException(e)
-            }
-            span.setStatus({ code: 2, message: errorMsg })
-            span.end()
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,

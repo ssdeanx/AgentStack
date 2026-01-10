@@ -6,7 +6,7 @@
  *
  * @module serpapi-news-trends-tool
  */
-import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { getJson } from 'serpapi'
@@ -126,6 +126,7 @@ export const googleNewsTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -137,15 +138,18 @@ export const googleNewsTool = createTool({
         })
         validateSerpApiKey()
 
-        const tracer = trace.getTracer('serpapi-news-trends-tool')
-        const newsSpan = tracer.startSpan('google-news-tool', {
-            attributes: {
+        const newsSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-news-tool',
+            input,
+            metadata: {
+                'tool.id': 'google-news',
                 query: input.query,
                 timeRange: input.timeRange,
                 topic: input.topic,
                 operation: 'google-news',
-            },
-        })
+            }
+        });
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -212,7 +216,13 @@ export const googleNewsTool = createTool({
                 },
                 id: 'google-news',
             })
-            newsSpan.end()
+            newsSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.articlesFound': newsArticles.length,
+                }
+            })
+            newsSpan?.end()
             log.info('Google News search completed', {
                 query: input.query,
                 resultCount: newsArticles.length,
@@ -221,14 +231,10 @@ export const googleNewsTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            newsSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            newsSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            newsSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            newsSpan.end()
             log.error('Google News search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -266,6 +272,7 @@ export const googleNewsLiteTool = createTool({
     }),
     execute: async (input, context) => {
         const writer = context?.writer
+        const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -280,13 +287,16 @@ export const googleNewsLiteTool = createTool({
         })
         validateSerpApiKey()
 
-        const tracer = trace.getTracer('serpapi-news-trends-tool')
-        const newsLiteSpan = tracer.startSpan('google-news-lite-tool', {
-            attributes: {
+        const newsLiteSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-news-lite-tool',
+            input,
+            metadata: {
+                'tool.id': 'google-news-lite',
                 query: input.query,
                 operation: 'google-news-lite',
-            },
-        })
+            }
+        });
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -329,7 +339,13 @@ export const googleNewsLiteTool = createTool({
                 },
                 id: 'google-news-lite',
             })
-            newsLiteSpan.end()
+            newsLiteSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.articlesFound': newsArticles.length,
+                }
+            })
+            newsLiteSpan?.end()
             log.info('Google News Lite search completed', {
                 query: input.query,
                 resultCount: newsArticles.length,
@@ -338,14 +354,10 @@ export const googleNewsLiteTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            newsLiteSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            newsLiteSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            newsLiteSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            newsLiteSpan.end()
             log.error('Google News Lite search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -421,6 +433,7 @@ export const googleTrendsTool = createTool({
     outputSchema: googleTrendsOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer
+        const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -435,14 +448,17 @@ export const googleTrendsTool = createTool({
         })
         validateSerpApiKey()
 
-        const tracer = trace.getTracer('serpapi-news-trends-tool')
-        const trendsSpan = tracer.startSpan('google-trends-tool', {
-            attributes: {
+        const trendsSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-trends-tool',
+            input,
+            metadata: {
+                'tool.id': 'google-trends',
                 query: input.query,
                 timeRange: input.timeRange,
                 operation: 'google-trends',
-            },
-        })
+            }
+        });
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -514,7 +530,13 @@ export const googleTrendsTool = createTool({
                 },
                 id: 'google-trends',
             })
-            trendsSpan.end()
+            trendsSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.dataPoints': interestOverTime.length,
+                }
+            })
+            trendsSpan?.end()
             log.info('Google Trends search completed', {
                 query: input.query,
                 dataPoints: interestOverTime.length,
@@ -524,14 +546,10 @@ export const googleTrendsTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            trendsSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            trendsSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            trendsSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            trendsSpan.end()
             log.error('Google Trends search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -578,6 +596,7 @@ export const googleAutocompleteTool = createTool({
     outputSchema: googleAutocompleteOutputSchema,
     execute: async (input, context) => {
         const writer = context?.writer
+        const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -592,13 +611,16 @@ export const googleAutocompleteTool = createTool({
         })
         validateSerpApiKey()
 
-        const tracer = trace.getTracer('serpapi-news-trends-tool')
-        const autocompleteSpan = tracer.startSpan('google-autocomplete-tool', {
-            attributes: {
+        const autocompleteSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-autocomplete-tool',
+            input,
+            metadata: {
+                'tool.id': 'google-autocomplete',
                 query: input.query,
                 operation: 'google-autocomplete',
-            },
-        })
+            }
+        });
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -644,7 +666,13 @@ export const googleAutocompleteTool = createTool({
                 },
                 id: 'google-autocomplete',
             })
-            autocompleteSpan.end()
+            autocompleteSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.suggestionCount': suggestions.length,
+                }
+            })
+            autocompleteSpan?.end()
             log.info('Google Autocomplete completed', {
                 query: input.query,
                 suggestionCount: suggestions.length,
@@ -654,14 +682,10 @@ export const googleAutocompleteTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            autocompleteSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            autocompleteSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            autocompleteSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            autocompleteSpan.end()
             log.error('Google Autocomplete failed', {
                 query: input.query,
                 error: errorMessage,

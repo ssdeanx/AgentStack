@@ -1,7 +1,7 @@
 import type { RequestContext } from "@mastra/core/request-context";
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { trace } from "@opentelemetry/api";
+import { SpanType } from "@mastra/core/observability";
 import excalidrawToSvg from 'excalidraw-to-svg';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import * as fs from 'node:fs/promises';
@@ -146,9 +146,12 @@ export const readCSVDataTool = createTool({
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '📖 Reading CSV file: ' + inputData.fileName, stage: 'read:CSVdata' }, id: 'read:CSVdata' });
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('read_csv_data', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'read_csv_data',
+      input: inputData,
+      metadata: {
         'tool.id': 'read:CSVdata',
         'tool.input.fileName': inputData.fileName,
       }
@@ -194,15 +197,19 @@ export const readCSVDataTool = createTool({
         headers = rows.length > 0 ? Object.keys(rows[0]) : []
       }
 
-      span.setAttributes({ 'tool.output.rowCount': rows.length, 'tool.output.headerCount': headers.length });
-      span.end();
+      span?.update({
+        output: { rowCount: rows.length, headerCount: headers.length },
+        metadata: { 'tool.output.rowCount': rows.length, 'tool.output.headerCount': headers.length }
+      });
+      span?.end();
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Read ${rows.length} rows from CSV`, stage: 'read:CSVdata' }, id: 'read:CSVdata' });
       return { headers, rows, rawCSV: content }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw error
     }
   },
@@ -260,9 +267,12 @@ export const csvToExcalidrawTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('csv-to-excalidraw', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'csv-to-excalidraw',
+      input: inputData,
+      metadata: {
         'tool.id': 'csv-to-excalidraw',
         'tool.input.layoutType': inputData.layoutType,
         'tool.input.hasHeaders': inputData.hasHeaders,
@@ -491,15 +501,19 @@ export const csvToExcalidrawTool = createTool({
         },
       };
 
-      span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.filename': filename });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.elementCount': elements.length, 'tool.output.filename': filename }
+      });
+      span?.end();
       return result;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw error;
     }
   },
@@ -559,9 +573,12 @@ export const imageToCSVTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('image-to-csv', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'image-to-csv',
+      input: inputData,
+      metadata: {
         'tool.id': 'image-to-csv',
         'tool.input.elementCount': inputData.elements.length,
       }
@@ -600,8 +617,11 @@ export const imageToCSVTool = createTool({
       columns,
     };
 
-    span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.filename': outputFilename });
-    span.end();
+    span?.update({
+      output: result,
+      metadata: { 'tool.output.elementCount': elements.length, 'tool.output.filename': outputFilename }
+    });
+    span?.end();
     return result;
   },
   onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -650,9 +670,12 @@ export const validateExcalidrawTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('validate-excalidraw', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'validate-excalidraw',
+      input: inputData,
+      metadata: {
         'tool.id': 'validate-excalidraw',
         'tool.input.autoFix': inputData.autoFix,
       }
@@ -756,14 +779,18 @@ export const validateExcalidrawTool = createTool({
         elementCount: Array.isArray(fixedData?.elements) ? fixedData.elements.length : 0,
       };
 
-      span.setAttributes({ 'tool.output.isValid': result.isValid, 'tool.output.errorCount': errors.length });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.isValid': result.isValid, 'tool.output.errorCount': errors.length }
+      });
+      span?.end();
       return result;
     } catch (error) {
       const errorMsg = String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMsg));
-      span.setAttributes({ 'tool.output.isValid': false });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true,
+      });
       return {
         isValid: false,
         errors: [`Validation failed: ${errorMsg}`],
@@ -825,9 +852,12 @@ export const processSVGTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('process-svg', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'process-svg',
+      input: inputData,
+      metadata: {
         'tool.id': 'process-svg',
         'tool.input.extractPaths': inputData.extractPaths,
         'tool.input.extractText': inputData.extractText,
@@ -911,14 +941,18 @@ export const processSVGTool = createTool({
       result.elementCount = svgJson.children ? svgJson.children.length : 0
 
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed SVG with ${result.elementCount} elements`, stage: 'process-svg' }, id: 'process-svg' });
-      span.setAttributes({ 'tool.output.elementCount': result.elementCount });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.elementCount': result.elementCount }
+      });
+      span?.end();
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw new Error(`SVG processing failed: ${errorMessage}`)
     }
   },
@@ -973,9 +1007,12 @@ export const processXMLTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('process-xml', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'process-xml',
+      input: inputData,
+      metadata: {
         'tool.id': 'process-xml',
         'tool.input.extractElements': inputData.extractElements?.join(','),
       }
@@ -1101,14 +1138,18 @@ export const processXMLTool = createTool({
         rootElement,
       };
 
-      span.setAttributes({ 'tool.output.elementCount': elements.length, 'tool.output.rootElement': result.rootElement });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.elementCount': elements.length, 'tool.output.rootElement': result.rootElement }
+      });
+      span?.end();
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw new Error(`XML processing failed: ${errorMessage}`)
     }
   },
@@ -1162,9 +1203,12 @@ export const convertDataFormatTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('convert-data-format', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'convert-data-format',
+      input: inputData,
+      metadata: {
         'tool.id': 'convert-data-format',
         'tool.input.inputFormat': inputData.inputFormat,
         'tool.input.outputFormat': inputData.outputFormat,
@@ -1276,14 +1320,18 @@ export const convertDataFormatTool = createTool({
         metadata,
       };
 
-      span.setAttributes({ 'tool.output.success': true, 'tool.output.format': outputFormat });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.success': true, 'tool.output.format': outputFormat }
+      });
+      span?.end();
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw new Error(`Data conversion failed: ${errorMessage}`)
     }
   },
@@ -1333,9 +1381,12 @@ export const validateDataTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('validate-data', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'validate-data',
+      input: inputData,
+      metadata: {
         'tool.id': 'validate-data',
         'tool.input.schemaType': inputData.schemaType,
         'tool.input.strict': inputData.strict,
@@ -1467,14 +1518,18 @@ export const validateDataTool = createTool({
         validatedData,
       };
 
-      span.setAttributes({ 'tool.output.isValid': isValid, 'tool.output.errorCount': errors.length });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.isValid': isValid, 'tool.output.errorCount': errors.length }
+      });
+      span?.end();
       return result;
     } catch (error) {
       const errorMsg = String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMsg));
-      span.setAttributes({ 'tool.output.isValid': false });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true,
+      });
       return {
         isValid: false,
         errors: [`Validation failed: ${errorMsg}`],
@@ -1591,9 +1646,12 @@ export const excalidrawToSVGTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('excalidraw-to-svg', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'excalidraw-to-svg',
+      input: inputData,
+      metadata: {
         'tool.id': 'excalidraw-to-svg',
         'tool.input.elementCount': inputData.excalidrawData.elements.length,
         'tool.input.saveToFile': inputData.saveToFile,
@@ -1659,18 +1717,22 @@ export const excalidrawToSVGTool = createTool({
         elementCount: inputData.excalidrawData.elements.length,
       };
 
-      span.setAttributes({
-        'tool.output.elementCount': result.elementCount,
-        'tool.output.width': dimensions.width,
-        'tool.output.height': dimensions.height,
+      span?.update({
+        output: result,
+        metadata: {
+          'tool.output.elementCount': result.elementCount,
+          'tool.output.width': dimensions.width,
+          'tool.output.height': dimensions.height,
+        }
       });
-      span.end();
+      span?.end();
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw new Error(`Excalidraw to SVG conversion failed: ${errorMessage}`)
     }
   },
@@ -1719,9 +1781,12 @@ export const svgToExcalidrawTool = createTool({
   execute: async (inputData, context) => {
     const writer = context?.writer;
 
-    const tracer = trace.getTracer('data-processing');
-    const span = tracer.startSpan('svg-to-excalidraw', {
-      attributes: {
+    const tracingContext = context?.tracingContext;
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'svg-to-excalidraw',
+      input: inputData,
+      metadata: {
         'tool.id': 'svg-to-excalidraw',
       }
     });
@@ -1937,14 +2002,18 @@ export const svgToExcalidrawTool = createTool({
         warnings: warnings.length > 0 ? warnings : undefined,
       };
 
-      span.setAttributes({ 'tool.output.elementCount': elements.length });
-      span.end();
+      span?.update({
+        output: result,
+        metadata: { 'tool.output.elementCount': elements.length }
+      });
+      span?.end();
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      span.recordException(error instanceof Error ? error : new Error(errorMessage));
-      span.setStatus({ code: 2, message: errorMessage });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMessage),
+        endSpan: true,
+      });
       throw new Error(`SVG to Excalidraw conversion failed: ${errorMessage}`)
     }
   },

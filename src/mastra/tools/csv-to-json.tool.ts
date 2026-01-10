@@ -1,7 +1,7 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { RequestContext } from '@mastra/core/request-context'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { parse } from 'csv-parse/sync'
 import * as fs from 'node:fs/promises'
 import { z } from 'zod'
@@ -51,9 +51,10 @@ export const csvToJsonTool = createTool({
         const writer = context?.writer
         const requestContext = context?.requestContext as CsvToJsonRequestContext | undefined
         const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted === true) {
+        if (abortSignal?.aborted) {
             throw new Error('CSV to JSON conversion cancelled')
         }
 
@@ -66,10 +67,16 @@ export const csvToJsonTool = createTool({
             },
             id: 'csv-to-json',
         })
-        const tracer = trace.getTracer('csv-to-json', '1.0.0')
-        const rootSpan = tracer.startSpan('csv-to-json', {
-            attributes: {
+
+        // Create child span for CSV conversion
+        const csvSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'csv-to-json-conversion',
+            input,
+            metadata: {
                 'tool.id': 'csv-to-json',
+                'tool.input.hasFilePath': !!input.filePath,
+                'tool.input.hasCsvData': !!input.csvData,
             },
         })
 
@@ -78,12 +85,11 @@ export const csvToJsonTool = createTool({
             const maxRows = config?.maxRows
 
             // Check for cancellation before file operations
-            if (abortSignal && abortSignal.aborted) {
-                rootSpan.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during file operations',
+            if (abortSignal?.aborted) {
+                csvSpan?.error({
+                    error: new Error('Operation cancelled during file operations'),
+                    endSpan: true,
                 })
-                rootSpan.end()
                 throw new Error(
                     'CSV to JSON conversion cancelled during file operations'
                 )
@@ -139,10 +145,14 @@ export const csvToJsonTool = createTool({
                 type: 'progress',
                 data: { message: `✅ Converted ${records.length} records` },
             })
-            rootSpan.setAttributes({
-                'tool.output.recordCount': records.length,
+            csvSpan?.update({
+                output: { data: records },
+                metadata: {
+                    'tool.output.recordCount': records.length,
+                    'tool.output.success': true,
+                },
             })
-            rootSpan.end()
+            csvSpan?.end()
             return { data: records }
         } catch (error) {
             const errorMessage =
@@ -153,8 +163,10 @@ export const csvToJsonTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `CSV to JSON conversion cancelled`
-                rootSpan.setStatus({ code: 2, message: cancelMessage })
-                rootSpan.end()
+                csvSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -170,11 +182,10 @@ export const csvToJsonTool = createTool({
                 throw new Error(cancelMessage)
             }
 
-            rootSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            rootSpan.setStatus({ code: 2, message: errorMessage })
-            rootSpan.end()
+            csvSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
             throw error instanceof Error ? error : new Error(errorMessage)
         }
     },
@@ -196,10 +207,8 @@ export const csvToJsonTool = createTool({
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const source = input.filePath
-            ? `file:${input.filePath}`
-            : 'raw CSV data'
-        const options = input.options || {}
+        const source = input.filePath ? `file:${input.filePath}` : 'raw CSV data'
+        const options = input.options ?? {}
         log.info('CSV to JSON received complete input', {
             toolCallId,
             messageCount: messages.length,

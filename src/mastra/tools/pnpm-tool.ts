@@ -1,7 +1,7 @@
+import { SpanType } from '@mastra/core/observability';
 import type { RequestContext } from '@mastra/core/request-context';
 import type { InferUITool } from "@mastra/core/tools";
 import { createTool } from "@mastra/core/tools";
-import { SpanStatusCode, trace } from "@opentelemetry/api";
 import chalk from 'chalk';
 import type { ExecaError as ExecaErrorType } from 'execa';
 import execa from 'execa';
@@ -17,7 +17,7 @@ const pnpmContextSchema = z.object({
 export type PnpmContext = z.infer<typeof pnpmContextSchema>;
 
 export interface PnpmRequestContext extends RequestContext {
-    pnpmToolContext?: PnpmContext
+  pnpmToolContext?: PnpmContext
 }
 
 export const pnpmBuild = createTool({
@@ -55,17 +55,23 @@ export const pnpmBuild = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
+    const abortSignal = context?.abortSignal;
+    const tracingContext = context?.tracingContext;
     const requestContext = context?.requestContext as PnpmRequestContext | undefined;
     const pnpmContext = requestContext?.pnpmToolContext;
     const { verbose } = pnpmContextSchema.parse(pnpmContext ?? {});
 
-    const tracer = trace.getTracer('pnpm-tool');
-    const span = tracer.startSpan('pnpm-build', {
-      attributes: {
-        name: inputData.name,
-        packagePath: inputData.packagePath,
-        operation: 'pnpm-build'
-      }
+    // Create child span for pnpm build using Mastra tracing context
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'pnpm-build',
+      input: { name: inputData.name, packagePath: inputData.packagePath },
+      metadata: {
+        'tool.id': 'pnpmBuild',
+        'operation': 'pnpm-build',
+        'package.name': inputData.name,
+        'package.path': inputData.packagePath,
+      },
     });
 
     const { name, packagePath } = inputData
@@ -81,15 +87,25 @@ export const pnpmBuild = createTool({
       await p
       if (verbose) { await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Build complete for ${name}`, stage: 'pnpmBuild' }, id: 'pnpmBuild' }); }
 
-      span.end();
+      span?.end();
       return { message: 'Done' }
     } catch (e) {
-      const error = e as ExecaErrorType
-      const errorMsg = error.message || String(e)
-      log.error(errorMsg)
-      span.recordException(new Error(errorMsg));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
-      span.end();
+      const error = e as ExecaErrorType;
+      const errorMsg = error.message || String(e);
+      log.error(errorMsg);
+      span?.error({
+        error: error instanceof Error ? error : new Error(errorMsg),
+        endSpan: true,
+      });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Input: name="${inputData.name}" - ❌ Build failed: ${errorMsg}`,
+          stage: 'pnpmBuild',
+        },
+        id: 'pnpmBuild',
+      });
       return { message: errorMsg || 'Error' }
     }
   },
@@ -126,11 +142,17 @@ export const pnpmChangesetStatus = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const tracer = trace.getTracer('pnpm-tool');
-    const span = tracer.startSpan('pnpm-changeset-status', {
-      attributes: {
-        operation: 'pnpm-changeset-status'
-      }
+    const abortSignal = context?.abortSignal;
+    const tracingContext = context?.tracingContext;
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'pnpm-changeset-status',
+      input: {},
+      metadata: {
+        'tool.id': 'pnpmChangesetStatus',
+        'operation': 'pnpm-changeset-status',
+      },
     });
 
     await writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔍 Checking changeset status...', stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
@@ -157,16 +179,15 @@ export const pnpmChangesetStatus = createTool({
 
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Found ${packages.length} packages to publish`, stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
 
-      span.setAttribute('packageCount', packages.length);
-      span.end();
+      span?.update({ output: { message: packages }, metadata: { packageCount: packages.length, 'tool.output.success': true } });
+      span?.end();
       return { message: packages }
     } catch (e) {
-      const error = e as ExecaErrorType
+      const error = e as ExecaErrorType;
       const errorMsg = error.message || String(e);
-      log.error(errorMsg)
-      span.recordException(error);
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
-      span.end();
+      log.error(errorMsg);
+      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `🔍 Changeset check failed: ${errorMsg}`, stage: 'pnpmChangesetStatus' }, id: 'pnpmChangesetStatus' });
       return { message: [] }
     }
   },
@@ -203,11 +224,17 @@ export const pnpmChangesetPublish = createTool({
   },
   execute: async (inputData, context) => {
     const writer = context?.writer;
-    const tracer = trace.getTracer('pnpm-tool');
-    const span = tracer.startSpan('pnpm-changeset-publish', {
-      attributes: {
-        operation: 'pnpm-changeset-publish'
-      }
+    const abortSignal = context?.abortSignal;
+    const tracingContext = context?.tracingContext;
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'pnpm-changeset-publish',
+      input: {},
+      metadata: {
+        'tool.id': 'pnpmChangesetPublish',
+        'operation': 'pnpm-changeset-publish',
+      },
     });
 
     // const {value} = input // unused
@@ -222,15 +249,15 @@ export const pnpmChangesetPublish = createTool({
       await p
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Publish complete', stage: 'pnpmChangesetPublish' }, id: 'pnpmChangesetPublish' });
 
-      span.end();
+      span?.update({ output: { message: 'Done' }, metadata: { 'tool.output.success': true } });
+      span?.end();
       return { message: 'Done' }
     } catch (e) {
       const error = e as ExecaErrorType
       const errorMsg = error.message || String(e)
       log.error(errorMsg)
-      span.recordException(new Error(errorMsg));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `🚨 Publish failed: ${errorMsg}`, stage: 'pnpmChangesetPublish' }, id: 'pnpmChangesetPublish' });
       if (e instanceof Error && 'message' in e) {
         return { message: errorMsg }
       }
@@ -274,12 +301,18 @@ export const activeDistTag = createTool({
   },
   execute: async (input, context) => {
     const writer = context?.writer;
-    const tracer = trace.getTracer('pnpm-tool');
-    const span = tracer.startSpan('active-dist-tag', {
-      attributes: {
-        packagePath: input.packagePath,
-        operation: 'active-dist-tag'
-      }
+    const abortSignal = context?.abortSignal;
+    const tracingContext = context?.tracingContext;
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'active-dist-tag',
+      input: { packagePath: input.packagePath },
+      metadata: {
+        'tool.id': 'activeDistTag',
+        'operation': 'active-dist-tag',
+        'package.path': input.packagePath,
+      },
     });
 
     const { packagePath } = input
@@ -305,15 +338,16 @@ export const activeDistTag = createTool({
       log.info(`\n`)
       await p
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Dist tag set to latest for ${pkgJson.name}@${version}`, stage: 'activeDistTag' }, id: 'activeDistTag' });
-      span.end();
+
+      span?.update({ output: { message: 'Done' }, metadata: { 'tool.output.success': true } });
+      span?.end();
       return { message: 'Done' }
     } catch (e) {
       const error = e as ExecaErrorType
       const errorMsg = error.message || String(e)
       log.error(errorMsg)
-      span.recordException(new Error(errorMsg));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `🚨 Dist tag failed: ${errorMsg}`, stage: 'activeDistTag' }, id: 'activeDistTag' });
       if (e instanceof Error && 'message' in e) {
         return { message: errorMsg }
       }
@@ -361,14 +395,20 @@ export const pnpmRun = createTool({
   },
   execute: async (input, context) => {
     const writer = context?.writer;
-    const tracer = trace.getTracer('pnpm-tool');
-    const span = tracer.startSpan('pnpm-run', {
-      attributes: {
+    const abortSignal = context?.abortSignal;
+    const tracingContext = context?.tracingContext;
+
+    const span = tracingContext?.currentSpan?.createChildSpan({
+      type: SpanType.TOOL_CALL,
+      name: 'pnpm-run',
+      input: { script: input.script, args: input.args, packagePath: input.packagePath },
+      metadata: {
+        'tool.id': 'pnpmRun',
+        'operation': 'pnpm-run',
         script: input.script,
         args: JSON.stringify(input.args),
-        packagePath: input.packagePath,
-        operation: 'pnpm-run'
-      }
+        'package.path': input.packagePath,
+      },
     });
 
     const { script, args = [], packagePath } = input
@@ -383,15 +423,16 @@ export const pnpmRun = createTool({
       log.info(`\n`)
       await p
       await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Script ${script} complete`, stage: 'pnpmRun' }, id: 'pnpmRun' });
-      span.end();
+
+      span?.update({ output: { message: 'Done' }, metadata: { 'tool.output.success': true } });
+      span?.end();
       return { message: 'Done' }
     } catch (e) {
       const error = e as ExecaErrorType
       const errorMsg = error.message || String(e)
       log.error(errorMsg)
-      span.recordException(new Error(errorMsg));
-      span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(errorMsg), endSpan: true });
+      await writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `❌ Script failed: ${errorMsg}`, stage: 'pnpmRun' }, id: 'pnpmRun' });
       return { message: errorMsg || 'Error' }
     }
   },

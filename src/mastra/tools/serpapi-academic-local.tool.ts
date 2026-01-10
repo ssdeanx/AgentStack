@@ -6,7 +6,7 @@
  * @module serpapi-academic-local-tool
  */
 import type { RequestContext } from '@mastra/core/request-context'
-import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
@@ -82,20 +82,24 @@ export const googleScholarTool = createTool({
         const writer = context?.writer
         const abortSignal = context?.abortSignal
         const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
             throw new Error('Google Scholar search cancelled')
         }
 
-        const tracer = trace.getTracer('serpapi-academic-local-tool')
-        const scholarSpan = tracer.startSpan('google-scholar-tool', {
-            attributes: {
+        const scholarSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-scholar-tool',
+            input,
+            metadata: {
+                'tool.id': 'googlescholar',
                 query: input.query,
                 yearRange: `${input.yearStart}-${input.yearEnd}`,
                 operation: 'google-scholar',
-            },
-        })
+            }
+        });
         log.info('Executing Google Scholar search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -121,11 +125,7 @@ export const googleScholarTool = createTool({
             }
             // Check for cancellation before API call
             if (abortSignal?.aborted) {
-                scholarSpan.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during API call',
-                })
-                scholarSpan.end()
+                scholarSpan?.end()
                 throw new Error(
                     'Google Scholar search cancelled during API call'
                 )
@@ -171,7 +171,13 @@ export const googleScholarTool = createTool({
                     })
                 ) ?? []
             const result = { papers }
-            scholarSpan.end()
+            scholarSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.paperCount': papers.length,
+                }
+            })
+            scholarSpan?.end()
             log.info('Google Scholar search completed', {
                 query: input.query,
                 paperCount: papers.length,
@@ -181,8 +187,10 @@ export const googleScholarTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Google Scholar search cancelled for "${input.query}"`
-                scholarSpan.setStatus({ code: 2, message: cancelMessage })
-                scholarSpan.end()
+                scholarSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -200,14 +208,10 @@ export const googleScholarTool = createTool({
 
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            scholarSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            scholarSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            scholarSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            scholarSpan.end()
             log.error('Google Scholar search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -303,14 +307,18 @@ export const googleFinanceTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('serpapi-academic-local-tool')
-        const financeSpan = tracer.startSpan('google-finance-tool', {
-            attributes: {
+        const financeSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'google-finance-tool',
+            input,
+            metadata: {
+                'tool.id': 'google-finance',
                 query: input.query,
                 operation: 'google-finance',
-            },
-        })
+            }
+        });
         log.info('Executing Google Finance search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -357,7 +365,13 @@ export const googleFinanceTool = createTool({
                 previousClose: summary?.previous_close,
                 news,
             }
-            financeSpan.end()
+            financeSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.symbol': result.symbol,
+                }
+            })
+            financeSpan?.end()
             log.info('Google Finance search completed', {
                 query: input.query,
                 symbol: result.symbol,
@@ -366,14 +380,10 @@ export const googleFinanceTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            financeSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            financeSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            financeSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            financeSpan.end()
             log.error('Google Finance search failed', {
                 query: input.query,
                 error: errorMessage,
@@ -442,15 +452,19 @@ export const yelpSearchTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const requestContext = context?.requestContext as SerpApiContext | undefined
+        const tracingContext = context?.tracingContext
 
-        const tracer = trace.getTracer('serpapi-academic-local-tool')
-        const yelpSpan = tracer.startSpan('yelp-search-tool', {
-            attributes: {
+        const yelpSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'yelp-search-tool',
+            input,
+            metadata: {
+                'tool.id': 'yelp-search',
                 query: input.query,
                 location: input.location,
                 operation: 'yelp-search',
-            },
-        })
+            }
+        });
         log.info('Executing Yelp search', {
             query: input.query,
             location: input.location,
@@ -511,7 +525,13 @@ export const yelpSearchTool = createTool({
                     })
                 ) ?? []
             const result = { businesses }
-            yelpSpan.end()
+            yelpSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.businessCount': businesses.length,
+                }
+            })
+            yelpSpan?.end()
             log.info('Yelp search completed', {
                 query: input.query,
                 location: input.location,
@@ -521,14 +541,10 @@ export const yelpSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            yelpSpan.recordException(
-                error instanceof Error ? error : new Error(errorMessage)
-            )
-            yelpSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            yelpSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            yelpSpan.end()
             log.error('Yelp search failed', {
                 query: input.query,
                 location: input.location,

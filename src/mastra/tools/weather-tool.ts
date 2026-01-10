@@ -1,24 +1,28 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { trace } from '@opentelemetry/api'
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
 export interface WeatherToolContext extends RequestContext {
     temperatureUnit?: 'celsius' | 'fahrenheit'
+    userId?: string
+    workspaceId?: string
+    maxRows?: number
 }
 
 export type WeatherToolContextType = WeatherToolContext
 
-interface GeocodingResponse extends RequestContext {
+interface GeocodingResponse {
     results?: Array<{
         latitude: number
         longitude: number
         name: string
     }>
 }
-interface WeatherResponse extends RequestContext {
+
+interface WeatherResponse {
     current: {
         time: string
         temperature_2m: number
@@ -50,9 +54,10 @@ export const weatherTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted === true) {
+        if (abortSignal?.aborted ?? false) {
             throw new Error('Weather lookup cancelled')
         }
 
@@ -68,18 +73,25 @@ export const weatherTool = createTool({
 
         const requestCtx = context?.requestContext as WeatherToolContext | undefined
         const temperatureUnit = requestCtx?.temperatureUnit ?? 'celsius'
+        const userId = requestCtx?.userId
+        const workspaceId = requestCtx?.workspaceId
 
         log.info(
-            `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`
+            `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`,
+            { userId, workspaceId }
         )
 
-        // Get tracer from OpenTelemetry API
-        const tracer = trace.getTracer('weather-tool', '1.0.0')
-        const weatherSpan = tracer.startSpan('get-weather', {
-            attributes: {
+        // Create child span for weather lookup using Mastra tracing context
+        const weatherSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'weather-lookup',
+            input: { location: inputData.location, temperatureUnit },
+            metadata: {
                 'tool.id': 'get-weather',
                 'tool.input.location': inputData.location,
                 'tool.input.temperatureUnit': temperatureUnit,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
 
@@ -95,12 +107,11 @@ export const weatherTool = createTool({
             })
 
             // Check for cancellation before geocoding
-            if (abortSignal?.aborted) {
-                weatherSpan.setStatus({
-                    code: 2,
-                    message: 'Operation cancelled during geocoding',
+            if (abortSignal?.aborted ?? false) {
+                weatherSpan?.error({
+                    error: new Error('Operation cancelled during geocoding'),
+                    endSpan: true,
                 })
-                weatherSpan.end()
                 throw new Error('Weather lookup cancelled during geocoding')
             }
 
@@ -120,12 +131,17 @@ export const weatherTool = createTool({
                 id: 'get-weather',
             })
 
-            weatherSpan.setAttributes({
-                'tool.output.location': result.location,
-                'tool.output.temperature': result.temperature,
-                'tool.output.conditions': result.conditions,
+            // Update span with successful result
+            weatherSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.location': result.location,
+                    'tool.output.temperature': result.temperature,
+                    'tool.output.conditions': result.conditions,
+                    'tool.output.success': true,
+                },
             })
-            weatherSpan.end()
+            weatherSpan?.end()
 
             log.info(`Weather fetched successfully for ${inputData.location}`)
             const finalResult = {
@@ -151,8 +167,10 @@ export const weatherTool = createTool({
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Weather lookup cancelled for ${inputData.location}`
-                weatherSpan.setStatus({ code: 2, message: cancelMessage })
-                weatherSpan.end()
+                weatherSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -168,11 +186,11 @@ export const weatherTool = createTool({
                 throw new Error(cancelMessage)
             }
 
-            if (error instanceof Error) {
-                weatherSpan.recordException(error)
-            }
-            weatherSpan.setStatus({ code: 2, message: errorMessage }) // ERROR status
-            weatherSpan.end()
+            // Record error in span
+            weatherSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
 
             await writer?.custom({
                 type: 'data-tool-progress',

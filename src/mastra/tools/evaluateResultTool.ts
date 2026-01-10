@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { SpanType } from "@mastra/core/observability";
 import { z } from 'zod'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { log } from '../config/logger'
@@ -47,7 +47,7 @@ export const evaluateResultTool = createTool({
             toolCallId,
             query: input.query,
             url: input.result.url,
-            existingUrlsCount: input.existingUrls?.length || 0,
+            existingUrlsCount: input.existingUrls?.length ?? 0,
             hook: 'onInputAvailable',
         })
     },
@@ -74,12 +74,15 @@ export const evaluateResultTool = createTool({
             id: 'evaluate-result',
         })
 
-        const tracer = trace.getTracer('evaluate-result')
-        const evalSpan = tracer.startSpan('evaluate_result', {
-            attributes: {
+        const tracingContext = context?.tracingContext
+        const evalSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'evaluate_result',
+            input: inputData,
+            metadata: {
+                'tool.id': 'evaluate-result',
                 query: inputData.query,
                 url: inputData.result.url,
-                existingUrlsCount: inputData.existingUrls?.length ?? 0,
                 operation: 'evaluate_result',
             },
         })
@@ -90,7 +93,11 @@ export const evaluateResultTool = createTool({
 
             // Check if URL already exists (only if existingUrls was provided)
             if (existingUrls?.includes(result.url)) {
-                evalSpan.end()
+                evalSpan?.update({
+                    output: { isRelevant: false, reason: 'URL already processed' },
+                    metadata: { 'tool.output.status': 'already-processed' }
+                })
+                evalSpan?.end()
                 await context?.writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -167,12 +174,10 @@ export const evaluateResultTool = createTool({
                 } catch (err) {
                     const errorMessage =
                         err instanceof Error ? err.message : String(err)
-                    evalSpan.recordException(new Error(errorMessage))
-                    evalSpan.setStatus({
-                        code: SpanStatusCode.ERROR,
-                        message: errorMessage,
+                    evalSpan?.error({
+                        error: err instanceof Error ? err : new Error(errorMessage),
+                        endSpan: true,
                     })
-                    evalSpan.end()
 
                     await context?.writer?.custom({
                         type: 'data-tool-progress',
@@ -215,13 +220,11 @@ export const evaluateResultTool = createTool({
                     response: responseObject,
                 })
                 const error = 'Invalid response format from evaluation agent'
-                evalSpan.recordException(new Error(error))
-                evalSpan.setStatus({
-                    code: SpanStatusCode.ERROR,
-                    message: error,
+                evalSpan?.error({
+                    error: new Error(error),
+                    endSpan: true,
                 })
 
-                evalSpan.end()
                 await context?.writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -237,7 +240,7 @@ export const evaluateResultTool = createTool({
                 }
             }
 
-            evalSpan.end()
+            evalSpan?.end()
 
             await context?.writer?.custom({
                 type: 'data-tool-progress',
@@ -259,12 +262,10 @@ export const evaluateResultTool = createTool({
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
 
-            evalSpan.recordException(new Error(errorMessage))
-            evalSpan.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: errorMessage,
+            evalSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
-            evalSpan.end()
 
             // Emit final progress event with error message
             await context?.writer?.custom({

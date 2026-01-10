@@ -67,6 +67,216 @@ The `createTool()` function returns a `Tool` object.
 
 - **`Tool`**: `object` - An object representing the defined tool, ready to be added to an agent.
 
+## Tracing Implementation Patterns
+
+All tools should implement proper tracing using Mastra's observability system. The following pattern ensures consistent, structured tracing across all tools.
+
+### Required Imports
+
+> IMPORTANT: Tools MUST use Mastra's tracing helpers and the execution-provided `tracingContext`. Do NOT import or use OpenTelemetry APIs (for example, `@opentelemetry/api`) directly inside tools — instrumentation and exporter configuration belong at the platform / runtime startup layer, not inside individual tools.
+
+```typescript
+import type { RequestContext } from '@mastra/core/request-context'
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
+import { SpanType } from '@mastra/core/observability'
+import { z } from 'zod'
+import { log } from '../config/logger'
+```
+
+### Context Interface Definition
+
+```typescript
+export interface ToolNameContext extends RequestContext {
+    userId?: string
+    workspaceId?: string
+    // Add tool-specific context properties
+}
+```
+
+### Tracing Context Usage (preferred)
+
+```typescript
+execute: async (inputData, context) => {
+    const writer = context?.writer
+    const abortSignal = context?.abortSignal
+    const tracingContext = context?.tracingContext
+    const requestCtx = context?.requestContext as ToolNameContext | undefined
+
+    // Extract context values
+    const userId = requestCtx?.userId
+    const workspaceId = requestCtx?.workspaceId
+
+    // Respect cancellation early
+    if (abortSignal?.aborted ?? false) {
+        throw new Error('Tool call cancelled')
+    }
+
+    // Create child span for tool execution (Mastra tracingContext)
+    const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        type: SpanType.TOOL_CALL,
+        name: 'tool-operation-name',
+        input: inputData,
+        metadata: {
+            'tool.id': 'tool-id',
+            'tool.input.param': inputData.param,
+            'user.id': userId,
+            'workspace.id': workspaceId,
+        },
+    })
+
+    // Emit a structured progress event (required)
+    await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+            status: 'in-progress',
+            message: `Input: param="${inputData.param}" - 📝 Operation started`,
+            stage: 'tool-id',
+        },
+        id: 'tool-id',
+    })
+
+    try {
+        // Tool implementation
+        const result = await performToolLogic(inputData)
+
+        // Update span with successful result and finish progress
+        toolSpan?.update({
+            output: result,
+            metadata: {
+                'tool.output.success': true,
+                'tool.output.resultSize': Array.isArray(result) ? result.length : (typeof result === 'string' ? result.length : undefined),
+            },
+        })
+        toolSpan?.end()
+
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'done',
+                message: `Input: param="${inputData.param}" - ✅ Operation complete`,
+                stage: 'tool-id',
+            },
+            id: 'tool-id',
+        })
+
+        return result
+    } catch (error) {
+        // Record error in span and mark progress done
+        toolSpan?.error({
+            error: error instanceof Error ? error : new Error(String(error)),
+            endSpan: true,
+        })
+
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'done',
+                message: `Input: param="${inputData.param}" - ❌ Operation error: ${error instanceof Error ? error.message : String(error)}`,
+                stage: 'tool-id',
+            },
+            id: 'tool-id',
+        })
+
+        throw error
+    }
+}
+```
+
+#### Migration: Replacing OpenTelemetry usage in tools
+
+If a tool currently imports and uses OpenTelemetry APIs directly (for example `trace.getTracer(...)`, `span.recordException(...)`, `span.setStatus(...)`), migrate it to the runtime `tracingContext` pattern above. Example migration:
+
+```diff
+- // Old: do NOT use inside tools
+- import { trace, SpanStatusCode } from '@opentelemetry/api'
+- const tracer = trace.getTracer('pnpm-tool')
+- const span = tracer.startSpan('pnpm-build', { attributes: { name, packagePath } })
+- try { /* ... */ } catch (e) { span.recordException(e); span.setStatus({ code: SpanStatusCode.ERROR, message: e.message }); span.end() }
+
++ // New: preferred pattern inside tools
++ const tracingContext = context?.tracingContext
++ const span = tracingContext?.currentSpan?.createChildSpan({
++   type: SpanType.TOOL_CALL,
++   name: 'pnpm-build',
++   input: { name, packagePath },
++   metadata: { 'tool.id': 'pnpmBuild', 'operation': 'pnpm-build' },
++ })
++ try { /* ... */ } catch (e) {
++   span?.error({ error: e instanceof Error ? e : new Error(String(e)), endSpan: true })
++ }
+```
+
+Checklist for safe migration:
+- [ ] Replace `@opentelemetry/*` imports inside `src/mastra/tools` with the `tracingContext` pattern.
+- [ ] Ensure each tool emits `data-tool-progress` events at start and completion (or stage updates).
+- [ ] Add `abortSignal` checks before long-running operations.
+- [ ] Use `SpanType.TOOL_CALL` for tool-level spans and include `tool.id` in span metadata.
+- [ ] Add a small unit test that mocks `tracingContext.currentSpan.createChildSpan()` to verify spans are created, updated, and closed.
+
+### Span Lifecycle Management
+
+**Creating Child Spans:**
+
+```typescript
+const childSpan = tracingContext?.currentSpan?.createChildSpan({
+    type: SpanType.TOOL_CALL, // Use SpanType enum
+    name: 'operation-name',
+    input: inputData,
+    metadata: {
+        'tool.id': 'tool-id',
+        'operation.type': 'specific-operation',
+    },
+})
+```
+
+**Updating Spans:**
+
+```typescript
+span?.update({
+    output: result,
+    metadata: {
+        'operation.status': 'success',
+        'result.size': result.length,
+    },
+})
+```
+
+**Ending Spans:**
+
+```typescript
+span?.end()
+```
+
+**Error Handling:**
+
+```typescript
+span?.error({
+    error: error instanceof Error ? error : new Error(String(error)),
+    endSpan: true,
+})
+```
+
+### Progress Events
+
+Emit progress events for long-running operations:
+
+```typescript
+await writer?.custom({
+    type: 'data-tool-progress',
+    data: {
+        status: 'in-progress', // "in-progress" | "done"
+        message: `Input: param="${inputData.param}" - 📝 Operation in progress`,
+        stage: 'tool-id',
+    },
+    id: 'tool-id',
+})
+```
+
+### Complete Example
+
+See `weather-tool.ts` for a complete implementation example with proper tracing, error handling, and lifecycle hooks.
+
 ## Categories
 
 ### 1. 💰 Financial Data APIs

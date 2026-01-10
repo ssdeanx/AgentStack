@@ -1,7 +1,7 @@
+import { SpanType } from '@mastra/core/observability'
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import type { RequestContext } from '@mastra/core/request-context'
 import { copywriterAgent } from '../agents/copywriterAgent'
@@ -75,6 +75,7 @@ export const copywriterTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const mastra = context?.mastra
+        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as CopywriterRequestContext | undefined
 
         const userId =
@@ -100,18 +101,21 @@ export const copywriterTool = createTool({
             id: 'copywriter-agent',
         })
 
-        const span = trace
-            .getTracer('copywriter-agent-tool', '1.0.0')
-            .startSpan('copywriter-generate', {
-                attributes: {
-                    'tool.id': 'copywriter-agent',
-                    'tool.input.topic': topic,
-                    'tool.input.contentType': contentType,
-                    'tool.input.targetAudience': targetAudience,
-                    'tool.input.tone': tone,
-                    'tool.input.length': length,
-                },
-            })
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'copywriter-generate',
+            input: {
+                topic,
+                contentType,
+                targetAudience,
+                tone,
+                length,
+            },
+            metadata: {
+                'tool.id': 'copywriter-agent',
+                'user.id': requestCtx?.userId,
+            },
+        })
 
         try {
             const agent =
@@ -283,18 +287,10 @@ export const copywriterTool = createTool({
                     }
                 } catch (err) {
                     const msg = err instanceof Error ? err.message : String(err)
-                    span.recordException(
-                        err instanceof Error ? err : new Error(msg)
-                    )
-                    try {
-                        span.setStatus({
-                            code: SpanStatusCode.ERROR,
-                            message: msg,
-                        })
-                    } catch {
-                        /* ignore */
-                    }
-                    span.end()
+                    span?.error({
+                        error: err instanceof Error ? err : new Error(msg),
+                        endSpan: true,
+                    })
                     await writer?.custom({
                         type: 'data-tool-progress',
                         data: {
@@ -354,10 +350,15 @@ export const copywriterTool = createTool({
                     ? firstParagraph.substring(0, 200) + '...'
                     : firstParagraph
 
-            span.setAttribute('tool.output.success', true)
-            span.setAttribute('tool.output.wordCount', wordCount)
-            span.setAttribute('tool.output.contentLength', content.length)
-            span.end()
+            span?.update({
+                output: { content, contentType, title, wordCount },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.wordCount': wordCount,
+                    'tool.output.contentLength': content.length,
+                }
+            })
+            span?.end()
 
             return {
                 content,
@@ -375,9 +376,10 @@ export const copywriterTool = createTool({
                 topic,
                 contentType,
             })
-            span?.setAttribute('tool.output.success', false)
-            span?.setAttribute('tool.output.error', errorMsg)
-            span?.end()
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
             throw new Error(`Failed to generate content: ${errorMsg}`)
         }
     },
