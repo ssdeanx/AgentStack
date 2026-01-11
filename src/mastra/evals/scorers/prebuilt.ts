@@ -98,6 +98,33 @@ export function createNoiseSensitivityScorerLLM(options: { baselineResponse?: st
   })
 }
 
+// Textual Difference scorer - sequence matching based similarity
+export function createTextualDifferenceScorer() {
+  return createScorer({ id: 'textual-difference', name: 'Textual Difference', description: 'Measures textual changes required between expected and actual text', type: 'agent' })
+  .preprocess(({ run }) => {
+    const outputText = getAssistantMessageFromRunOutput(run.output) ?? ''
+    const groundTruth = (run as any).groundTruth ?? (Array.isArray(run.input) ? undefined : undefined)
+    // groundTruth may be passed via run.groundTruth when using runEvals
+    const gt = (run as any).groundTruth ?? undefined
+    return { outputText, groundTruth: gt }
+  })
+  .analyze(({ results }) => {
+    const outputText = results.preprocessStepResult.outputText ?? ''
+    const groundTruth = results.preprocessStepResult.groundTruth ?? ''
+    const maxLen = Math.max(outputText.length, (groundTruth as string).length, 1)
+    const distance = levenshtein(outputText, (groundTruth as string))
+    const ratio = 1 - distance / maxLen
+    const confidence = 1 - Math.abs(outputText.length - (groundTruth as string).length) / Math.max(outputText.length, (groundTruth as string).length, 1)
+    return { confidence, ratio, changes: distance, lengthDiff: outputText.length - (groundTruth as string).length }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult || { ratio: 0.0, confidence: 0.0 }
+    const ratio = Math.max(0, Math.min(1, analysis.ratio ?? 0))
+    const confidence = Math.max(0, Math.min(1, analysis.confidence ?? 0))
+    return Math.max(0, Math.min(1, ratio * confidence))
+  })
+}
+
 // simple levenshtein for heuristic
 function levenshtein(a = '', b = '') {
   const m = a.length
@@ -137,6 +164,105 @@ export function createBiasScorer() {
     }
     const biased = items.reduce((acc, r) => acc + (r.result === 'yes' ? 1 : 0), 0)
     return biased / items.length
+  })
+}
+
+export function createToneScorer() {
+  // Simple heuristic tone scorer: uses basic sentiment lexicon approach
+  const positives = ['good','great','excellent','happy','love','positive','pleased','satisfied','success']
+  const negatives = ['bad','poor','terrible','hate','angry','sad','negative','unsatisfied','fail','unhappy','disappointed','frustrated']
+
+  return createScorer({ id: 'tone-consistency', name: 'Tone Consistency', description: 'Evaluates tone consistency and stability', type: 'agent' })
+  .preprocess(({ run }) => {
+    const inputText = extractInputMessages(run.input).join('\n')
+    const outputText = extractAgentResponseMessages(run.output).join('\n')
+    return { inputText, outputText }
+  })
+  .analyze(({ results }) => {
+    const inText = (results.preprocessStepResult.inputText ?? '').toLowerCase()
+    const outText = (results.preprocessStepResult.outputText ?? '').toLowerCase()
+    const inPos = positives.reduce((s, p) => s + (inText.includes(p) ? 1 : 0), 0)
+    const inNeg = negatives.reduce((s, p) => s + (inText.includes(p) ? 1 : 0), 0)
+    const outPos = positives.reduce((s, p) => s + (outText.includes(p) ? 1 : 0), 0)
+    const outNeg = negatives.reduce((s, p) => s + (outText.includes(p) ? 1 : 0), 0)
+    const inSent = inPos - inNeg
+    const outSent = outPos - outNeg
+    const diff = Math.abs(inSent - outSent)
+    // normalize to 0-1
+    const maxPossible = Math.max(1, Math.abs(inSent) + Math.abs(outSent))
+    const score = Math.max(0, 1 - diff / maxPossible)
+    return { responseSentiment: outSent, referenceSentiment: inSent, difference: diff, score }
+  })
+  .generateScore(({ results }) => {
+    return results.analyzeStepResult.score
+  })
+}
+
+export function createContextRelevanceScorerLLM(opts: { penalties?: any; scale?: number; context?: string[]; contextExtractor?: any } = {}) {
+  // Lightweight heuristic implementation for local testing
+  return createScorer({ id: 'context-relevance', name: 'Context Relevance', description: 'Weighted relevance and usage detection', type: 'agent' })
+  .preprocess(({ run }) => {
+    const ctx = opts.context ?? []
+    const inputText = extractInputMessages(run.input).join('\n')
+    const outputText = extractAgentResponseMessages(run.output).join('\n')
+    return { ctx, inputText, outputText }
+  })
+  .analyze(({ results }) => {
+    const ctx: string[] = results.preprocessStepResult.ctx ?? []
+    const out = (results.preprocessStepResult.outputText ?? '').toLowerCase()
+    let baseSum = 0
+    const details: Array<{ piece: string; relevance: number; used: boolean }> = []
+    for (const piece of ctx) {
+      const norm = piece.toLowerCase()
+      const used = out.includes(norm)
+      // naive relevance: presence implies high relevance; partial overlap yields medium
+      const relevance = used ? 1.0 : (out.split(' ').some(w => norm.includes(w)) ? 0.7 : 0.0)
+      baseSum += relevance
+      details.push({ piece, relevance, used })
+    }
+    const rCount = ctx.length
+    const baseScore = rCount === 0 ? 0 : baseSum / (rCount * 1.0)
+    // penalties (naive): unused high relevance pieces penalize score
+    const unusedHigh = details.filter(d => d.relevance === 1.0 && !d.used).length
+    const missing = details.filter(d => d.relevance === 0.0).length
+    const unusedPenalty = (opts.penalties?.unusedHighRelevanceContext ?? 0.1) * unusedHigh
+    const missingPenalty = Math.min(opts.penalties?.maxMissingContextPenalty ?? 0.5, (opts.penalties?.missingContextPerItem ?? 0.15) * missing)
+    const finalScore = Math.max(0, baseScore - unusedPenalty - missingPenalty) * (opts.scale ?? 1)
+    return { baseScore, finalScore, details, unusedHigh, missing }
+  })
+  .generateScore(({ results }) => results.analyzeStepResult.finalScore)
+}
+
+export function createContextPrecisionScorer(opts: { scale?: number; context?: string[]; contextExtractor?: any } = {}) {
+  // MAP-based heuristic for local testing
+  return createScorer({ id: 'context-precision', name: 'Context Precision (MAP)', description: 'Evaluates retrieval precision and ordering using MAP', type: 'agent' })
+  .preprocess(({ run }) => {
+    const ctx = opts.context ?? []
+    const outputText = extractAgentResponseMessages(run.output).join('\n')
+    const gt = (run as any).groundTruth ?? ''
+    return { ctx, outputText, groundTruth: gt }
+  })
+  .analyze(({ results }) => {
+    const ctx: string[] = results.preprocessStepResult.ctx ?? []
+    const out = (results.preprocessStepResult.outputText ?? '').toLowerCase()
+
+    // Determine relevance per position (binary: relevant if present in output)
+    const relevance = ctx.map((c) => out.includes(c.toLowerCase()) ? 1 : 0)
+    const R = relevance.reduce((s: number, v: number) => s + v, 0)
+    if (R === 0) { return { map: 0, relevance, R } }
+    let sumPrec = 0
+    let relevantSoFar = 0
+    for (let i = 0; i < relevance.length; i++) {
+      if (relevance[i] === 1) {
+        relevantSoFar++
+        sumPrec += relevantSoFar / (i + 1)
+      }
+    }
+    const map = sumPrec / R
+    return { map, relevance, R }
+  })
+  .generateScore(({ results }) => {
+    return Math.max(0, Math.min(1, results.analyzeStepResult.map * (opts.scale ?? 1)))
   })
 }
 

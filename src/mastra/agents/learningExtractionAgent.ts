@@ -7,7 +7,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface LearningExtractionAgentContext {
   userId?: string
   researchPhase?: string

@@ -139,3 +139,4 @@ openapi.json
 .github/actions/**/.vercel/
 .github/actions/**/.vercel_build_output/
 .github/actions/**/vercel.json
+nul

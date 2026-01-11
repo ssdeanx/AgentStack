@@ -7,8 +7,9 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { createToneScorer, createTextualDifferenceScorer, createCompletenessScorer } from '../evals/scorers/prebuilt'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ContentAgentContext {
     userId?: string
     'user-tier': UserTier
@@ -70,7 +71,9 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
     chartSupervisorTool
   },
   scorers: {
-
+    toneConsistency: { scorer: createToneScorer() },
+    textualDifference: { scorer: createTextualDifferenceScorer() },
+    completeness: { scorer: createCompletenessScorer() },
   },
   outputProcessors: [new TokenLimiterProcessor(1048576)],
   defaultOptions: {

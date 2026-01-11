@@ -10,6 +10,7 @@ import { imageToCsvAgent } from '../agents/image_to_csv'
 import { csvToExcalidrawAgent } from '../agents/csv_to_excalidraw'
 import { weatherAgent } from '../agents/weather-agent'
 import { log } from '../config/logger';
+import { researchAgent } from '../agents/researchAgent';
 
 export async function runContentStrategistExperiment() {
     log.info('Running Content Strategist Experiment', { event: 'Running Content Strategist Experiment' })
@@ -185,6 +186,50 @@ export async function runWeatherAgentExperiment() {
     return results
 }
 
+export async function runKeywordCoverageExperiment() {
+    log.info('Running Keyword Coverage Experiment...')
+    const scorer = await import('./scorers/keyword-coverage').then(m => m.keywordCoverageScorer)
+    const results = await runEvals({
+        target: researchAgent,
+        data: [
+            { input: 'Compare React and Vue frameworks', requestContext: { requiredKeywords: ['React', 'Vue'] } as any },
+            { input: 'Discuss TypeScript features like generics and interfaces', requestContext: { requiredKeywords: ['TypeScript', 'generics', 'interfaces'] } as any }
+        ],
+        scorers: [scorer]
+    })
+    log.info('Keyword Coverage Results', { results: JSON.stringify(results, null, 2) })
+    return results
+}
+
+export async function runTextualDifferenceExperiment() {
+    log.info('Running Textual Difference Experiment...')
+    const scorer = await import('./scorers/prebuilt').then(m => m.createTextualDifferenceScorer())
+    const results = await runEvals({
+        target: contentStrategistAgent,
+        data: [
+            { input: 'Summarize the concept of recursion', groundTruth: 'Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems.' },
+            { input: 'What is the capital of France?', groundTruth: 'The capital of France is Paris.' }
+        ],
+        scorers: [scorer]
+    })
+    log.info('Textual Difference Results', { results: JSON.stringify(results, null, 2) })
+    return results
+}
+
+export async function runSourceDiversityExperiment() {
+    log.info('Running Source Diversity Experiment...')
+    const scorer = await import('./scorers/custom-scorers').then(m => m.sourceDiversityScorer)
+    const results = await runEvals({
+        target: researchAgent,
+        data: [
+            { input: 'Collect sources about climate change', requestContext: {} as any }
+        ],
+        scorers: [scorer]
+    })
+    log.info('Source Diversity Results', { results: JSON.stringify(results, null, 2) })
+    return results
+}
+
 export async function runAllExperiments(p0: unknown) {
     await runContentStrategistExperiment()
     await runCopywriterExperiment()
@@ -196,5 +241,9 @@ export async function runAllExperiments(p0: unknown) {
     //await runImageToCsvExperiment()
     await runCsvToExcalidrawExperiment()
     await runWeatherAgentExperiment()
+    // new experiments (manual invocation recommended)
+    // await runKeywordCoverageExperiment()
+    // await runTextualDifferenceExperiment()
+    // await runSourceDiversityExperiment()
 }
 

@@ -8,7 +8,8 @@ import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
-export type UserTier = 'free' | 'pro' | 'enterprise'
+
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ScriptWriterRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'

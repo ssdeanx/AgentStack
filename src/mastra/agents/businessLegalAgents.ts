@@ -31,11 +31,11 @@ import {
 } from '../tools/web-scraper-tool';
 
 
-export type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
+type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
 
-export type AnalysisConfig = 'summary' | 'detailed' | 'extensive' | 'full'
+type AnalysisConfig = 'summary' | 'detailed' | 'extensive' | 'full'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface BusinessRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'

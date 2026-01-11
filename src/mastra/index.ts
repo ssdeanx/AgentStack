@@ -7,6 +7,7 @@ import { log } from './config/logger'
 import { pgVector } from './config/pg-storage'
 
 // Scorers
+// Scorers are attached to agents where appropriate (see src/mastra/evals/AGENTS.md for mapping)
 
 // MCP
 import { a2aCoordinatorMcpServer, codingA2AMcpServer } from './mcp'
@@ -130,6 +131,10 @@ import { OtelBridge } from "@mastra/otel-bridge";
 import { DefaultExporter } from "@mastra/observability";
 import type { SpanOptions } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api'
+import { createCompletenessScorer, createTextualDifferenceScorer, createToneScorer } from './evals/scorers/prebuilt'
+import { keywordCoverageScorer } from './evals/scorers/keyword-coverage'
+import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt'
+import { researchCompletenessScorer, sourceDiversityScorer } from './evals/scorers/custom-scorers'
 export const mastra = new Mastra({
   workflows: {
     weatherWorkflow,
@@ -234,7 +239,12 @@ export const mastra = new Mastra({
     a2aCoordinatorAgent,
     codingA2ACoordinator,
   },
-  scorers: {},
+  scorers: {
+    completeness: createCompletenessScorer(),
+    keywordCoverage: keywordCoverageScorer,
+    sourceDiversity: sourceDiversityScorer,
+    researchCompleteness: researchCompletenessScorer,
+  },
   mcpServers: { a2aCoordinator: a2aCoordinatorMcpServer, notes: notesMCP, codingA2A: codingA2AMcpServer },
 
   storage: new PostgresStore({

@@ -21,7 +21,7 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ChartRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'

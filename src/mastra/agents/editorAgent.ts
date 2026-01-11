@@ -8,7 +8,7 @@ import { pgMemory } from '../config/pg-storage';
 
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EditorRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'

@@ -64,7 +64,7 @@ export const sourceDiversityScorer = createScorer({
         domainBreakdown[domain] = (domainBreakdown[domain] || 0) + 1
     })
 
-    const diversityScore = Math.min(uniqueDomains.size / Math.max((sources || []).length * 0.5, 1), 1)
+    const diversityScore = uniqueDomains.size / Math.max((sources || []).length, 1)
 
     const issues: string[] = []
     if (uniqueDomains.size < 2) {issues.push('Limited domain diversity - mostly single source')}

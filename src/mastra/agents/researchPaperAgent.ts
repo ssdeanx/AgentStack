@@ -7,7 +7,7 @@ import { pgMemory } from '../config/pg-storage'
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchPaperAgentRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
