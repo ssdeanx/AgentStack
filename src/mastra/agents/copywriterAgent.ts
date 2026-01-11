@@ -15,6 +15,7 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { createToneScorer, createTextualDifferenceScorer, createCompletenessScorer } from '../evals/scorers/prebuilt'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -74,7 +75,9 @@ Create compelling content (blog, marketing, social, technical, business, creativ
         chartSupervisorTool
     },
     scorers: {
-
+      toneConsistency: { scorer: createToneScorer() },
+      textualDifference: { scorer: createTextualDifferenceScorer() },
+      completeness: { scorer: createCompletenessScorer() },
     },
     workflows: {},
     maxRetries: 5,

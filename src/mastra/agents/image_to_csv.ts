@@ -7,7 +7,7 @@ import type { RequestContext } from "@mastra/core/request-context";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
 
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ImageToCsvRuntimeContext  {
   userId?: string
   'user-tier': UserTier

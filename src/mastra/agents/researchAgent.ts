@@ -23,7 +23,11 @@ import {
   siteMapExtractorTool,
   webScraperTool,
 } from '../tools/web-scraper-tool';
-export type UserTier = 'free' | 'pro' | 'enterprise'
+
+// Scorers
+import { createCompletenessScorer, createTextualDifferenceScorer, createToneScorer } from '../evals/scorers/prebuilt';
+
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
@@ -126,7 +130,9 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
   },
   memory: pgMemory,
   scorers: {
-
+    toneConsistency: { scorer: createToneScorer() },
+    textualDifference: { scorer: createTextualDifferenceScorer() },
+    completeness: { scorer: createCompletenessScorer() }
   },
   maxRetries: 5,
   //voice: gvoice,

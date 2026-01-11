@@ -39,7 +39,7 @@ import {
 import { multiStringEditTool } from '../tools/multi-string-edit.tool';
 import { testGeneratorTool } from '../tools/test-generator.tool';
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+type UserTier = 'free' | 'pro' | 'enterprise'
 export interface CodingRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'

@@ -19,7 +19,7 @@ import {
 } from '../config/logger';
 import { pgVector } from '../config/pg-storage';
 
-import { google } from '@ai-sdk/google';
+
 import type { RequestContext } from "@mastra/core/request-context";
 import type { ExtractParams } from '@mastra/rag';
 
@@ -897,7 +897,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
       const embeddingStartTime = Date.now()
       const { embedding: queryEmbedding } = await embed({
         value: inputData.userQuery,
-        model: google.textEmbedding('gemini-embedding-001'),
+        model: new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
       })
       const embeddingTime = Date.now() - embeddingStartTime
 

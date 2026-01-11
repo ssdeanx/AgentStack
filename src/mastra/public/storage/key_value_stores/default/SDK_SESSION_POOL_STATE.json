@@ -3,7 +3,7 @@
   "retiredSessionsCount": 0,
   "sessions": [
     {
-      "id": "session_TgweIdckIO",
+      "id": "session_Bs7mymlakw",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -11,13 +11,64 @@
         "enableLooseMode": false,
         "allowSpecialUseDomain": true,
         "prefixSecurity": "silent",
-        "cookies": []
+        "cookies": [
+          {
+            "key": "__Secure-STRP",
+            "value": "AD6DoguMs6GLXVBS5yj5exINzOsQwa0rArnARxeMLpfDawe67YCiMLmeIq9F4aT8z2y6SWmVMaN_N9mrD6CLPshNu7UsQb9Y-j4B",
+            "expires": "2026-01-11T12:37:20.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "hostOnly": false,
+            "creation": "2026-01-11T12:32:12.457Z",
+            "lastAccessed": "2026-01-11T12:32:12.457Z",
+            "sameSite": "strict"
+          },
+          {
+            "key": "AEC",
+            "value": "AaJma5sKJYzuzHJm8fXxFfg_AeHwAJlajCL9VsFrdSZ02CWyYrDI6EcmO98",
+            "expires": "2026-07-10T12:32:20.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "httpOnly": true,
+            "hostOnly": false,
+            "creation": "2026-01-11T12:32:12.460Z",
+            "lastAccessed": "2026-01-11T12:32:12.460Z",
+            "sameSite": "lax"
+          },
+          {
+            "key": "NID",
+            "value": "528=QM_cuZ7Dr8dKnQ1Us9FT_3RkkjQNTNxkYaTBp_u1gr5rqNdfzcfw4TAeKK14EJNNAulRvcl2ark_1S7jY4OzbW3RWyvapRQtjmXsZU7xLw2hooLhKfG2e6QN3hJrS_Co6NAzc7iA1H-P1XBp_5ocfHgmn3pf5kZ8TTUiDBnNP57-bMFX3BZtuESzggIjgiaGZnWx9lKvHhQFBrDDy9vcgOrqstzAm7bniIaFfvE",
+            "expires": "2026-07-13T12:32:20.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "httpOnly": true,
+            "hostOnly": false,
+            "creation": "2026-01-11T12:32:12.461Z",
+            "lastAccessed": "2026-01-11T12:32:12.461Z",
+            "sameSite": "none"
+          },
+          {
+            "key": "__Secure-BUCKET",
+            "value": "CPoF",
+            "expires": "2026-07-10T12:32:20.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "httpOnly": true,
+            "hostOnly": false,
+            "creation": "2026-01-11T12:32:12.461Z",
+            "lastAccessed": "2026-01-11T12:32:12.461Z"
+          }
+        ]
       },
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-01-08T14:59:03.949Z",
-      "createdAt": "2026-01-08T14:09:03.949Z",
+      "expiresAt": "2026-01-11T13:22:10.314Z",
+      "createdAt": "2026-01-11T12:32:10.314Z",
       "usageCount": 1,
       "maxUsageCount": 50,
       "errorScore": 0

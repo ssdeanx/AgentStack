@@ -1,9 +1,0 @@
-{
-	"id": "jBMmaaywUPlwSK3",
-	"json": "{\"id\":\"jBMmaaywUPlwSK3\",\"url\":\"https://news.ycombinator.com/\",\"loadedUrl\":\"https://news.ycombinator.com/\",\"uniqueKey\":\"https://news.ycombinator.com\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"depth\":0,\"__crawlee\":{\"state\":4}},\"handledAt\":\"2026-01-08T14:09:06.855Z\"}",
-	"method": "GET",
-	"orderNo": null,
-	"retryCount": 0,
-	"uniqueKey": "https://news.ycombinator.com",
-	"url": "https://news.ycombinator.com/"
-}

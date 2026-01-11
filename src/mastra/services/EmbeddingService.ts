@@ -2,9 +2,7 @@ import { Memory } from '@mastra/memory'
 import { embedMany } from 'ai'
 
 import { log } from '../config/logger'
-import { generateEmbeddings as pgGenerateEmbeddings } from '../config/pg-storage'
-import { google } from '@ai-sdk/google'
-import { googleAIEmbedding } from '../config/google'
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
 const MAX_RETRIES = 3
 
@@ -54,7 +52,7 @@ export class EmbeddingService {
 
         // Initialize Memory instance for native embedding with caching
         this.memory = new Memory({
-            embedder: google.textEmbedding('gemini-embedding-001'),
+            embedder:  new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
         })
     }
 
@@ -69,9 +67,9 @@ export class EmbeddingService {
         )
 
         const chunkData = chunks.map((text, i) => ({ text, id: `chunk-${i}` }))
-        const { embeddings } = await pgGenerateEmbeddings(chunkData)
+        const { embeddings } = await this.pgGenerateEmbeddings(chunkData)
 
-        const typedEmbeddings = embeddings as number[][]
+        const typedEmbeddings = embeddings
         const dimension =
             typedEmbeddings.length > 0 ? typedEmbeddings[0].length : 3072 // Updated fallback for text-embedding-3-large
 
@@ -81,6 +79,28 @@ export class EmbeddingService {
             totalChunks: chunks.length,
             batchesProcessed: 1,
             dimension,
+        }
+    }
+
+    // Fallback implementation for pgGenerateEmbeddings in case pg-storage helper is not available.
+    // It uses the standard embedMany function as a best-effort behavior to generate embeddings.
+    private async pgGenerateEmbeddings(
+        chunkData: Array<{ text: string; id: string }>
+    ): Promise<{ embeddings: number[][] }> {
+        const values = chunkData.map((c) => c.text)
+        try {
+            const { embeddings } = await embedMany({
+                model: new ModelRouterEmbeddingModel(this.defaultOptions.model),
+                values,
+                maxRetries: this.defaultOptions.maxRetries,
+            })
+            return { embeddings: embeddings as number[][] }
+        } catch (err) {
+            const normalized = this.formatError(err)
+            log.error('pgGenerateEmbeddings fallback failed', normalized)
+            throw new Error(
+                normalized.message ?? 'Failed to generate embeddings via pg fallback'
+            )
         }
     }
 
@@ -99,7 +119,7 @@ export class EmbeddingService {
         // Use the standard AI SDK embedMany function since Memory might not be properly configured
         // The Memory instance requires more complex setup that we don't need for just chunking
         const { embeddings } = await embedMany({
-            model: google.textEmbedding('gemini-embedding-001'),
+            model:  new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
             values: chunks,
             maxRetries: this.defaultOptions.maxRetries,
         })
@@ -150,7 +170,7 @@ export class EmbeddingService {
 
             try {
                 const { embeddings } = await embedMany({
-                    model: google.textEmbedding('gemini-embedding-001'),
+                    model: new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
                     values: batch,
                     maxRetries,
                 })
@@ -320,3 +340,5 @@ export class EmbeddingService {
         }
     }
 }
+
+

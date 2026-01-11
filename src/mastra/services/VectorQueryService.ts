@@ -4,7 +4,7 @@ import { ValidationService } from './ValidationService'
 import { RoleService } from './RoleService'
 import { log } from '../config/logger'
 import type { PgVector } from '@mastra/pg'
-import { google } from '@ai-sdk/google'
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
 export interface QueryInput {
     question: string
@@ -162,7 +162,7 @@ export class VectorQueryService {
 
     static async generateQueryEmbedding(question: string): Promise<number[]> {
         const { embeddings } = await embedMany({
-            model: google.textEmbedding('gemini-embedding-001'),
+            model: new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
             values: [question],
         })
         return embeddings[0] as number[]
