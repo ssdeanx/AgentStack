@@ -7,8 +7,8 @@
     "dev": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\" \"npm run dev:next\" \"npm run dev:mastra\"",
     "build": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\"  \"npm run build:next\" \"npm run build:mastra\"",
     "start": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\" \"npm run start:next\" \"npm run start:mastra\"",
-    "dev:mastra": "mastra dev",
-    "dev:next": "next dev --turbopack",
+    "dev:mastra": "cross-env NODE_OPTIONS='--max-old-space-size=8192' mastra dev",
+    "dev:next": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",
     "build:next": "next build",
     "build:mastra": "mastra build",
     "start:mastra": "mastra start",
@@ -42,7 +42,7 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.52",
+    "@ai-sdk/google": "^3.0.6",
     "@ai-sdk/google-vertex": "^4.0.11",
     "@ai-sdk/openai": "^3.0.7",
     "@ai-sdk/openai-compatible": "^2.0.4",
@@ -228,6 +228,7 @@
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.52.0",
     "@vitest/coverage-v8": "^4.0.16",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.0.1",

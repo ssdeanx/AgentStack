@@ -1,11 +1,12 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType, BaseSpan } from '@mastra/core/observability'
+import { SpanType } from '@mastra/core/observability'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { BaseSpan } from '@mastra/observability';
 
 export interface WriteNoteContext extends RequestContext {
     userId?: string

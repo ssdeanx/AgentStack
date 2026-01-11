@@ -1,8 +1,7 @@
 import { PinoLogger } from "@mastra/loggers";
-import { FileTransport } from "@mastra/loggers/file";
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { trace, propagation, context as otelContext } from '@opentelemetry/api'
+// Logger intentionally contains no tracing logic. Observability exporters/bridges handle traces separately.
 
 // Use __dirname directly for CommonJS
 //const __dirname: string = path.resolve(path.dirname(''));
@@ -12,40 +11,8 @@ const logsDir: string = path.join(process.cwd(), 'data', 'logs')
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true })
 }
+// Enhanced PinoLogger
 
-// OpenTelemetry helpers to enrich logs with trace context and Baggage
-const getActiveSpanContextInfo = () => {
-    const span = trace.getActiveSpan()
-    if (!span) {
-        return { traceId: undefined, spanId: undefined }
-    }
-    const sc = (span as any).spanContext ? (span as any).spanContext() : undefined
-    return { traceId: sc?.traceId, spanId: sc?.spanId }
-}
-
-const BaggageToObject = (b: unknown) => {
-    if (b === null || b === undefined) {
-        return {}
-    }
-    const obj: Record<string, string> = {}
-    for (const [k, v] of (b as any).getAllEntries()) {
-        obj[k] = String(v.value)
-    }
-    return obj
-}
-
-const attachTraceAndBaggage = (data: Record<string, unknown> = {}) => {
-    try {
-        const traceInfo = getActiveSpanContextInfo()
-        const bag = propagation.getBaggage(otelContext.active())
-        return { ...data, _trace: traceInfo, _Baggage: BaggageToObject(bag) }
-    } catch {
-        // Don't throw from logging helpers
-        return data
-    }
-}
-
-// Enhanced PinoLogger with full tracing integration
 export const log = new PinoLogger({
     name: 'MastraLogger',
     level: 'debug',
@@ -87,18 +54,15 @@ export const logWorkflowStart = (
     input: Record<string, unknown>
 ) => {
     const message = `🚀 Starting workflow: ${workflowId}`
-    let data: {
+    const data: {
         workflowId: string
         input: Record<string, unknown>
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         workflowId,
         input,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -109,20 +73,17 @@ export const logWorkflowEnd = (
     duration: number
 ) => {
     const message = `✅ Workflow completed: ${workflowId}`
-    let data: {
+    const data: {
         workflowId: string
         output: Record<string, unknown>
         duration: string
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         workflowId,
         output,
         duration: `${duration}ms`,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -132,18 +93,15 @@ export const logStepStart = (
     input: Record<string, unknown>
 ) => {
     const message = `📋 Starting step: ${stepId}`
-    let data: {
+    const data: {
         stepId: string
         input: Record<string, unknown>
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         stepId,
         input,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -154,20 +112,17 @@ export const logStepEnd = (
     duration: number
 ) => {
     const message = `✓ Step completed: ${stepId}`
-    let data: {
+    const data: {
         stepId: string
         output: Record<string, unknown>
         duration: string
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         stepId,
         output,
         duration: `${duration}ms`,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -178,20 +133,17 @@ export const logToolExecution = (
     output?: Record<string, unknown>
 ) => {
     const message = `🔧 Tool execution: ${toolId}`
-    let data: {
+    const data: {
         toolId: string
         input: Record<string, unknown>
         output?: Record<string, unknown>
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         toolId,
         input,
         output,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -202,20 +154,17 @@ export const logAgentActivity = (
     details: Record<string, unknown>
 ) => {
     const message = `🤖 Agent activity: ${agentId} - ${action}`
-    let data: {
+    const data: {
         agentId: string
         action: string
         details: Record<string, unknown>
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         agentId,
         action,
         details,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(message, data)
     logToFile(message, data)
 }
@@ -226,14 +175,12 @@ export const logError = (
     context?: Record<string, unknown>
 ) => {
     const message = `❌ Error in ${component}`
-    let data: {
+    const data: {
         component: string
         error: string
         stack?: string
         context?: Record<string, unknown>
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         component,
         error: error instanceof Error ? error.message : String(error),
@@ -241,7 +188,6 @@ export const logError = (
         context,
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.error(message, data)
     logToFile(message, data)
 }
@@ -252,14 +198,12 @@ export const logProgress = (
     total: number
 ) => {
     const logMessage = `📊 Progress: ${message} (${progress}/${total})`
-    let data: {
+    const data: {
         message: string
         progress: number
         total: number
         percentage: number
         timestamp: string
-        _trace?: Record<string, unknown>
-        _Baggage?: Record<string, string>
     } = {
         message,
         progress,
@@ -267,7 +211,6 @@ export const logProgress = (
         percentage: Math.round((progress / total) * 100),
         timestamp: new Date().toISOString(),
     }
-    data = attachTraceAndBaggage(data) as typeof data
     log.info(logMessage, data)
     logToFile(logMessage, data)
 }

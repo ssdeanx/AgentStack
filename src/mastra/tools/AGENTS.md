@@ -71,6 +71,22 @@ The `createTool()` function returns a `Tool` object.
 
 All tools should implement proper tracing using Mastra's observability system. The following pattern ensures consistent, structured tracing across all tools.
 
+## Observability ('@mastra/observability', '@mastra/core/observability')
+
+I noticed that the file references '@mastra/core/observability' for SpanType keep this consistent.
+
+```ts
+import { SpanType } from '@mastra/core/observability'
+```
+
+However, the other correct import path should be '@mastra/observability' to align with the package structure
+
+```ts
+import { BaseSpan } from '@mastra/observability';
+```
+
+All tools should import `SpanType` from `@mastra/core/observability` and `BaseSpan` from `@mastra/observability`.  This is so we can maintain consistency & compatibility across the codebase.
+
 ### Required Imports
 
 > IMPORTANT: Tools MUST use Mastra's tracing helpers and the execution-provided `tracingContext`. Do NOT import or use OpenTelemetry APIs (for example, `@opentelemetry/api`) directly inside tools — instrumentation and exporter configuration belong at the platform / runtime startup layer, not inside individual tools.

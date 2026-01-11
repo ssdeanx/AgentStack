@@ -3,11 +3,13 @@ import { PgVector, PostgresStore } from '@mastra/pg'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 import type { UIMessage } from 'ai'
 import { embedMany } from 'ai'
-import { google } from './google'
 import { log } from './logger'
 //import type { CoreMessage } from '@mastra/core';
 // import { maskStreamTags } from '@mastra/core';
-import { SpanStatusCode, trace } from "@opentelemetry/api"
+
+import { ModelRouterEmbeddingModel } from "@mastra/core/llm";
+import { SpanType } from '@mastra/core/observability'
+
 
 // Utility function to create a masked stream for sensitive data
 // This properly uses maskStreamTags to mask content between XML tags in streams
@@ -53,10 +55,10 @@ export const pgStore = new PostgresStore({
   schemaName: process.env.DB_SCHEMA ?? 'mastra',
   // Connection pooling (using supported pg.Pool options)
   max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'), // Maximum connections in pool
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT ?? '30000'), // 30 seconds
-  connectionTimeoutMillis: parseInt(
-    process.env.DB_CONNECTION_TIMEOUT ?? '2000'
-  ), // 2 seconds
+//  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT ?? '30000'), // 30 seconds
+//  connectionTimeoutMillis: parseInt(
+//    process.env.DB_CONNECTION_TIMEOUT ?? '2000'
+//  ), // 2 seconds
   // Keep alive settings
   keepAlive: true,
   keepAliveInitialDelayMillis: 0,
@@ -80,7 +82,7 @@ export const pgVector = new PgVector({
 export const pgMemory = new Memory({
   storage: pgStore,
   vector: pgVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
-  embedder: google.textEmbedding('gemini-embedding-001'),
+  embedder: new ModelRouterEmbeddingModel("google/gemini-embedding-001"),
   options: {
     // Message management
     lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
@@ -161,7 +163,7 @@ export const graphQueryTool = createGraphRAGTool({
   // Supported vector store and index options
   vectorStoreName: 'pgVector',
   indexName: 'memory_messages_3072',
-  model: google.textEmbedding('gemini-embedding-001'),
+  model:  new ModelRouterEmbeddingModel("google/gemini-embedding-001"),
   // Supported graph options (updated for 3072 dimensions)
   graphOptions: {
     dimension: 3072, // gemini-embedding-001 dimension (3072)
@@ -183,7 +185,7 @@ export const pgQueryTool = createVectorQueryTool({
   // Supported vector store and index options
   vectorStoreName: 'pgVector',
   indexName: 'memory_messages_3072',
-  model: google.textEmbedding('gemini-embedding-001'),
+  model:  new ModelRouterEmbeddingModel("google/gemini-embedding-001"),
   // Supported database configuration for PgVector
   databaseConfig: {
     pgVector: {
@@ -205,7 +207,8 @@ export async function generateEmbeddings(
     text: string
     metadata?: Record<string, unknown>
     id?: string
-  }>
+  }>,
+  tracingContext?: { currentSpan?: { createChildSpan?: (opts: any) => any } }
 ) {
   if (!chunks.length) {
     log.warn('No chunks provided for embedding generation')
@@ -214,20 +217,14 @@ export async function generateEmbeddings(
 
   const startTime = Date.now()
 
-  // Get tracer from OpenTelemetry API
-  const tracer = trace.getTracer('pg-storage');
-  const embeddingSpan = tracer.startSpan('generate-embeddings', {
-    attributes: {
-      'component': 'pg-storage',
-      'operationType': 'embedding',
-      'model': 'gemini-embedding-001',
-      'input.chunkCount': chunks.length,
-      'input.totalTextLength': chunks.reduce(
-        (sum, chunk) => sum + (chunk.text?.length ?? 0),
-        0
-      ),
-    }
-  });
+  // Create a tool-level child span using the provided tracingContext (no direct OTEL usage)
+  // tracingContext is expected to be passed by callers that want trace correlation.
+  const embeddingSpan = (tracingContext as any)?.currentSpan?.createChildSpan({
+    type: SpanType.TOOL_CALL,
+    name: 'generate-embeddings',
+    input: { chunkCount: chunks.length, totalTextLength: chunks.reduce((sum, chunk) => sum + (chunk.text?.length ?? 0), 0) },
+    metadata: { 'tool.id': 'generate-embeddings', 'component': 'pg-storage', 'model': 'gemini-embedding-001' },
+  })
 
   log.info('Starting embedding generation', {
     chunkCount: chunks.length,
@@ -241,7 +238,7 @@ export async function generateEmbeddings(
   try {
     const { embeddings } = await embedMany({
       values: chunks.map((chunk) => chunk.text),
-      model: google.textEmbedding("gemini-embedding-001"),
+      model:  new ModelRouterEmbeddingModel("google/gemini-embedding-001"),
       maxRetries: parseInt(process.env.EMBEDDING_MAX_RETRIES ?? '3'),
       abortSignal: new AbortController().signal,
       maxParallelCalls: 20,
@@ -266,15 +263,7 @@ export async function generateEmbeddings(
       model: 'gemini-embedding-001',
     })
 
-    // Update and end span successfully
-    embeddingSpan.setAttributes({
-      'output.embeddingCount': embeddings.length,
-      'output.embeddingDimension': embeddings[0]?.length || 0,
-      'output.processingTimeMs': processingTime,
-      'output.success': true,
-      'metadata.finalStatus': 'success',
-    });
-    embeddingSpan.end();
+    // No tracing performed here; callers can create spans if desired.
 
     return { embeddings }
   } catch (error) {
@@ -288,21 +277,7 @@ export async function generateEmbeddings(
       model: 'gemini-embedding-001',
     })
 
-    // Record error in span and end it
-    if (error instanceof Error) {
-      embeddingSpan.recordException(error);
-    }
-
-    embeddingSpan.setStatus({ code: SpanStatusCode.ERROR, message: errorMessage }); // ERROR status
-
-    embeddingSpan.setAttributes({
-      'output.success': false,
-      'output.processingTimeMs': processingTime,
-      'output.error': errorMessage,
-      'metadata.finalStatus': 'error',
-    });
-
-    embeddingSpan.end();
+    // No tracing performed here; callers can create spans if desired.
 
     throw error
   }

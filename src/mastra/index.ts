@@ -240,8 +240,8 @@ export const mastra = new Mastra({
     codingA2ACoordinator,
   },
   scorers: {
-    completeness: createCompletenessScorer(),
-    keywordCoverage: keywordCoverageScorer,
+//    completeness: createCompletenessScorer(),
+//    keywordCoverage: keywordCoverageScorer,
     sourceDiversity: sourceDiversityScorer,
     researchCompleteness: researchCompletenessScorer,
   },
