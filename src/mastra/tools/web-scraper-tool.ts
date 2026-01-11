@@ -40,6 +40,19 @@ export interface ScraperToolContext extends RequestContext {
 // Centralized data directory constant for consistency
 const DATA_DIR = path.resolve(process.cwd(), './data')
 
+// Helper to create CheerioCrawler that is tolerant of function-vs-constructor mocks
+function createCheerioCrawler(options: any) {
+    try {
+        // Prefer constructor invocation
+        // eslint-disable-next-line new-cap
+        return new (CheerioCrawler as any)(options)
+    } catch (e) {
+        // Fallback to function-call instantiation (some test mocks implement as function returning instance)
+        // @ts-ignore
+        return (CheerioCrawler as any)(options)
+    }
+}
+
 /**
  * Ensures the data directory exists and is accessible
  */
@@ -671,6 +684,7 @@ export const webScraperTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'web_scrape',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'web-scraper',
         'tool.input.url': inputData.url,
@@ -759,7 +773,7 @@ export const webScraperTool = createTool({
       const delayBetweenRequests =
         inputData.crawling?.delayBetweenRequests ?? 1000
 
-      const crawler = new CheerioCrawler({
+      const crawler = createCheerioCrawler({
         maxRequestsPerCrawl: followLinks ? Math.min(maxPages, 50) : 1,
         maxConcurrency: 10,
         maxRequestRetries: retryAttempts,
@@ -883,6 +897,7 @@ export const webScraperTool = createTool({
               type: SpanType.TOOL_CALL,
               name: 'content_extraction',
               input: { url: request.url },
+              requestContext: context?.requestContext,
               metadata: {
                 'tool.id': 'web-scraper',
                 'operation.type': 'content_extraction',
@@ -1158,6 +1173,7 @@ export const webScraperTool = createTool({
         type: SpanType.TOOL_CALL,
         name: 'crawler_run',
         input: { url: inputData.url, maxDepth, maxPages, followLinks },
+        requestContext: context?.requestContext,
         metadata: {
           'tool.id': 'web-scraper',
           'operation.type': 'crawler.run',
@@ -1196,6 +1212,7 @@ export const webScraperTool = createTool({
           type: SpanType.TOOL_CALL,
           name: 'html_to_markdown',
           input: { htmlLength: rawContent.length },
+          requestContext: context?.requestContext,
           metadata: { 'tool.id': 'web-scraper', 'operation.type': 'convert' },
         })
 
@@ -1288,6 +1305,7 @@ export const webScraperTool = createTool({
           type: SpanType.TOOL_CALL,
           name: 'save_markdown',
           input: { markdownLength: markdownContent.length },
+          requestContext: context?.requestContext,
           metadata: { 'tool.id': 'web-scraper', 'operation.type': 'save' },
         })
         try {
@@ -1467,8 +1485,8 @@ export const webScraperTool = createTool({
       messageCount: messages.length,
       abortSignal: abortSignal?.aborted,
       url: input.url,
-      selector: input.selector || 'none',
-      saveMarkdown: input.storage?.saveMarkdown || false,
+      selector: input.selector ?? 'none',
+      saveMarkdown: input.storage?.saveMarkdown ?? false,
       hook: 'onInputAvailable',
     })
   },
@@ -1570,6 +1588,7 @@ export const batchWebScraperTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'batch_scrape',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'batch-web-scraper',
         'tool.input.urlCount': inputData.urls.length,
@@ -1610,7 +1629,7 @@ export const batchWebScraperTool = createTool({
         const batch = inputData.urls.slice(i, i + maxConcurrent)
         const batchPromises = batch.map(async (url: string) => {
           try {
-            const crawler = new CheerioCrawler({
+            const crawler = createCheerioCrawler({
               maxRequestsPerCrawl: 1,
               requestHandlerTimeoutSecs: 20,
               async requestHandler({ body }) {
@@ -1898,6 +1917,7 @@ export const siteMapExtractorTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'site_map_extraction',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'site-map-extractor',
         'tool.input.url': inputData.url,
@@ -1949,7 +1969,7 @@ export const siteMapExtractorTool = createTool({
       visited.add(url)
 
       try {
-        const crawler = new CheerioCrawler({
+        const crawler = createCheerioCrawler({
           maxRequestsPerCrawl: 5,
           maxConcurrency: 10,
           requestHandlerTimeoutSecs: 15,
@@ -2228,6 +2248,7 @@ export const linkExtractorTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'link_extraction',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'link-extractor',
         'tool.input.url': inputData.url,
@@ -2248,7 +2269,7 @@ export const linkExtractorTool = createTool({
       let rawContent: string | undefined
       let scrapedUrl: string = inputData.url
 
-      const crawler = new CheerioCrawler({
+      const crawler = createCheerioCrawler({
         maxRequestsPerCrawl: 10,
         maxConcurrency: 10,
         requestHandlerTimeoutSecs: 20,
@@ -2529,6 +2550,7 @@ export const htmlToMarkdownTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'html_to_markdown',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'html-to-markdown',
         'tool.input.htmlLength': inputData.html.length,
@@ -2973,6 +2995,7 @@ export const contentCleanerTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'content_cleaning',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'content-cleaner',
         'tool.input.htmlLength': inputData.html.length,
@@ -3177,6 +3200,7 @@ export const apiDataFetcherTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'api_data_fetch',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'api-data-fetcher',
         'tool.input.url': inputData.url,
@@ -3373,6 +3397,7 @@ export const scrapingSchedulerTool = createTool({
       type: SpanType.TOOL_CALL,
       name: 'scraping_scheduler',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'scraping-scheduler',
         'tool.input.urlCount': inputData.urls.length,

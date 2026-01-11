@@ -6,7 +6,7 @@ import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
-import { webScraperTool } from '../tools'
+import { scrapingSchedulerTool, webScraperTool } from '../tools'
 
 export interface DaneContext {
     userId?: string
@@ -203,6 +203,9 @@ export const dane = new Agent({
     ## webScraperTool
     Makes you a powerful agent capable of scraping web pages. Use this tool to get information from web pages.
 
+    ## scrapingSchedulerTool
+    Makes you a powerful agent capable of scheduling web scraping tasks. Use this tool to schedule scraping jobs for later execution.
+
     # Rules
     * **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
     * DO NOT ATTEMPT TO USE GENERAL KNOWLEDGE. Use the 'webScraperTool' tool to find the answer.
@@ -227,11 +230,12 @@ export const dane = new Agent({
     browserTool,
     webScraperTool,
     listEvents,
+    scrapingSchedulerTool
   },
   outputProcessors: [new TokenLimiterProcessor(128576),
     new BatchPartsProcessor({
-      batchSize: 10,
-      maxWaitTime: 75,
+      batchSize: 25,
+      maxWaitTime: 100,
       emitOnNonText: true
     }),
   ],

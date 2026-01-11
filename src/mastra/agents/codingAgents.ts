@@ -38,6 +38,7 @@ import {
 } from '../tools/github';
 import { multiStringEditTool } from '../tools/multi-string-edit.tool';
 import { testGeneratorTool } from '../tools/test-generator.tool';
+import { scrapingSchedulerTool } from '../tools/web-scraper-tool';
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface CodingRuntimeContext {
@@ -123,6 +124,7 @@ Always consider maintainability, scalability, and testability in your recommenda
     getRepositoryInfo,
     searchCode,
     getFileContent,
+    scrapingSchedulerTool,
     //    ...githubMCP.getTools(),
   },
   memory: upstashMemory,

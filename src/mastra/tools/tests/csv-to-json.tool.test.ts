@@ -25,8 +25,16 @@ describe('csvToJsonTool', () => {
         }
 
         // Act
-        const result = await csvToJsonTool.execute(
-            { csvData },
+        const result = await csvToJsonTool.execute!(
+            {
+                csvData,
+                options: {
+                    delimiter: ',',
+                    columns: true,
+                    trim: true,
+                    skip_empty_lines: true,
+                },
+            },
             {
                 writer: mockWriter,
                 tracingContext: mockTracingContext,
@@ -62,8 +70,7 @@ describe('csvToJsonTool', () => {
         }
 
         // Act
-        const result = await csvToJsonTool.execute(
-            {
+        const result = await csvToJsonTool.execute!(
                 csvData,
                 options: {
                     delimiter: ';',

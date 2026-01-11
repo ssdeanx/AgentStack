@@ -20,6 +20,7 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
+import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ChartRuntimeContext {
@@ -273,7 +274,8 @@ ${PGVECTOR_PROMPT}
     chartGeneratorTool,
     chartDataProcessorTool,
     chartTypeAdvisorTool,
-    pgQueryTool
+    pgQueryTool,
+    scrapingSchedulerTool
   },
   memory: pgMemory,
   options: {
@@ -291,8 +293,8 @@ ${PGVECTOR_PROMPT}
   ],
   maxRetries: 5,
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({
-    batchSize: 5,
-    maxWaitTime: 75,
+    batchSize: 25,
+    maxWaitTime: 100,
     emitOnNonText: true
   })]
 })

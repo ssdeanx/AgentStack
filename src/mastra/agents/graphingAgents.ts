@@ -12,7 +12,7 @@ import { leafletTool } from '../tools/leaflet.tool'
 import { cytoscapeTool } from '../tools/cytoscape.tool'
 import { resilientFetchTool } from '../tools/resilient-fetch.tool'
 import { execaTool } from '../tools/execa-tool'
-import { webScraperTool } from '../tools'
+import { scrapingSchedulerTool, webScraperTool } from '../tools'
 import { technicalAnalysisTool, trendAnalysisTool, momentumAnalysisTool, volatilityAnalysisTool, volumeAnalysisTool, statisticalAnalysisTool, heikinAshiTool, ichimokuCloudTool, fibonacciTool, pivotPointsTool, candlestickPatternTool } from '../tools/technical-analysis.tool'
 import { finnhubQuotesTool, finnhubCompanyTool, finnhubFinancialsTool, finnhubAnalysisTool, finnhubTechnicalTool, finnhubEconomicTool } from '../tools/finnhub-tools'
 
@@ -89,6 +89,7 @@ Rules and best practices:
     // Repo & system helpers
     execaTool,
     webScraperTool,
+    scrapingSchedulerTool,
     // Market data
     finnhubQuotesTool,
     finnhubCompanyTool,
@@ -274,6 +275,7 @@ Rules:
     resilientFetchTool,
     execaTool,
     webScraperTool,
+    scrapingSchedulerTool,
   },
   outputProcessors: [new TokenLimiterProcessor(65536)],
 })

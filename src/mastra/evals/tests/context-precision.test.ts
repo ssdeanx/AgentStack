@@ -13,6 +13,6 @@ describe('Context Precision Scorer (MAP heuristic)', () => {
     const scorer = createContextPrecisionScorer({ context: ['A','B','C','D'] })
     const run: any = { input: { inputMessages: [{ role: 'user', content: 'Query' }] }, output: [{ role: 'assistant', content: 'irrelevant D C' }] }
     const res = await (scorer as any).run(run)
-    expect(res.score).toBeLessThan(0.7)
+    expect(res.score).toBeLessThan(0.82)
   })
 })

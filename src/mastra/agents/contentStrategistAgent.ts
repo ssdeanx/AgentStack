@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { google3, googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
-import { webScraperTool } from '../tools/web-scraper-tool';
+import { scrapingSchedulerTool, webScraperTool } from '../tools/web-scraper-tool';
 
 import { chartSupervisorTool } from '../tools/financial-chart-tools';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
@@ -68,7 +68,8 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
   memory: pgMemory,
   tools: {
     webScraperTool,
-    chartSupervisorTool
+    chartSupervisorTool,
+    scrapingSchedulerTool
   },
   scorers: {
     toneConsistency: { scorer: createToneScorer() },
