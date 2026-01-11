@@ -15,7 +15,7 @@ describe('jwtAuthTool', () => {
         const mockContext = {
             requestContext: {
                 get: vi.fn((key: string) => {
-                    if (key === 'jwt') return 'valid-jwt-token'
+                    if (key === 'jwt') {return 'valid-jwt-token'}
                     return undefined
                 }),
                 set: vi.fn(),
@@ -48,6 +48,9 @@ describe('jwtAuthTool', () => {
         const result = await jwtAuthTool.execute({}, mockContext)
 
         expect(result).toBeDefined()
+        if (!('sub' in result)) {
+            throw new Error('Expected jwtAuthTool to return a valid JWT payload')
+        }
         expect(result.sub).toBe('mock-user')
         expect(result.roles).toEqual(['user'])
         expect(result.tenant).toBe('mock-tenant')

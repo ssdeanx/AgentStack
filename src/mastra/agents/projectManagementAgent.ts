@@ -6,6 +6,7 @@ import { log } from '../config/logger'
 import { calendarAgent } from './calendarAgent'
 import { reportAgent } from './reportAgent'
 import { evaluationAgent } from './evaluationAgent'
+import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
 
 log.info('Initializing Project Management Agent...')
 
@@ -143,7 +144,7 @@ export const projectManagementAgent = new Agent({
     agents: {
         calendarAgent,
         reportAgent,
-        evaluationAgent,
+        evaluationAgent
     },
     options: {},
 })

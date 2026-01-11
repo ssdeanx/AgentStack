@@ -116,6 +116,11 @@ export const alphaVantageCryptoTool = createTool({
         'tool.input.market': inputData.market,
         'tool.input.function': inputData.function,
       },
+      entityId: inputData.symbol,
+      entityName: `${inputData.symbol}/${inputData.market}`,
+    //  tracingPolicy: TracingPolicy.PropagateIfExisting,
+      requestContext: context?.requestContext,
+      attributes: ({ 'user.tier': requestContext?.['user-tier'] ?? 'free' } as unknown as Record<string, unknown>),
     })
 
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
@@ -451,6 +456,7 @@ export const alphaVantageStockTool = createTool({
         'tool.input.symbol': inputData.symbol,
         'tool.input.function': inputData.function,
       },
+      requestContext: context?.requestContext
     })
 
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
@@ -850,6 +856,7 @@ export const alphaVantageTool = createTool({
         'tool.input.function': inputData.function,
         'tool.input.symbol': inputData.symbol,
       },
+      requestContext: context?.requestContext
     })
 
     const apiKey = requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY

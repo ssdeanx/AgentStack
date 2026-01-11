@@ -6,6 +6,7 @@ import {
     //  linkExtractorTool,
     htmlToMarkdownTool,
     contentCleanerTool,
+    scrapingSchedulerTool,
 } from '../tools/web-scraper-tool'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
@@ -70,6 +71,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
         //    batchWebScraperTool,
         //   siteMapExtractorTool,
         //    linkExtractorTool,
+        scrapingSchedulerTool,
         htmlToMarkdownTool,
         contentCleanerTool,
         chartSupervisorTool

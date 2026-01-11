@@ -20,6 +20,7 @@ import {
   contentCleanerTool,
   htmlToMarkdownTool,
   linkExtractorTool,
+  scrapingSchedulerTool,
   siteMapExtractorTool,
   webScraperTool,
 } from '../tools/web-scraper-tool';
@@ -111,7 +112,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     googleTrendsTool,
     googleFinanceTool,
     googleNewsLiteTool,
-
+    scrapingSchedulerTool,
     alphaVantageCryptoTool,
     alphaVantageStockTool,
     polygonCryptoQuotesTool,
