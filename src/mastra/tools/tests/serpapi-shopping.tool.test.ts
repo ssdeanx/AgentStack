@@ -6,6 +6,8 @@ import {
     homeDepotSearchTool,
 } from '../serpapi-shopping.tool'
 import { getJson } from 'serpapi'
+import type { ToolStream } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 
 // Mock serpapi
 vi.mock('serpapi', () => ({
@@ -29,7 +31,17 @@ describe('serpapi-shopping.tool', () => {
     const mockGetJson = vi.mocked(getJson)
     const mockWriter = {
         custom: vi.fn(),
-    }
+        callId: 'test',
+        name: 'test',
+        runId: 'test',
+        write: vi.fn(),
+        end: vi.fn(),
+        _write: vi.fn(),
+        locked: false,
+        abort: vi.fn(),
+        close: vi.fn(),
+        getWriter: vi.fn(),
+    } as any as ToolStream
     const mockTracingContext = {
         currentSpan: {
             createChildSpan: vi.fn().mockReturnValue({
@@ -37,8 +49,13 @@ describe('serpapi-shopping.tool', () => {
                 end: vi.fn(),
                 error: vi.fn(),
             }),
+            isInternal: false,
+            observabilityInstance: {},
+            end: vi.fn(),
+            error: vi.fn(),
+            update: vi.fn(),
         },
-    }
+    } as any as TracingContext
 
     beforeEach(() => {
         vi.clearAllMocks()

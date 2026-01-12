@@ -42,7 +42,9 @@ describe('weatherTool', () => {
 
         const result = await weatherTool.execute({ location: 'New York' })
 
-        expect(result).toBeDefined()
+        const data = result as any;
+data
+        expect(data).toBeDefined()
         expect(result.location).toBe('New York')
         expect(typeof result.temperature).toBe('number')
         expect(typeof result.humidity).toBe('number')

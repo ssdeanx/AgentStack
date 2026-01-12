@@ -1,6 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import fg from 'fast-glob'
 import { readFile } from 'node:fs/promises'
 import * as path from 'node:path'

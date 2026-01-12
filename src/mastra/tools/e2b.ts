@@ -1,5 +1,6 @@
 import { FilesystemEventType, FileType, Sandbox } from '@e2b/code-interpreter'
 import { createTool } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 
 import { SpanType } from '@mastra/core/observability'
 

@@ -1,5 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 import { Project, SyntaxKind } from 'ts-morph'
 import { z } from 'zod'
 

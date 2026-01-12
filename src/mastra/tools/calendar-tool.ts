@@ -1,4 +1,5 @@
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { execSync } from 'child_process'
 import { z } from 'zod'

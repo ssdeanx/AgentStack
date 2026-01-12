@@ -15,17 +15,32 @@
 // approvalDate: 9/22
 
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import * as cheerio from 'cheerio'
 import { CheerioCrawler, Request } from 'crawlee'
+import type { CheerioCrawlingContext, RequestOptions } from 'crawlee'
 import { JSDOM } from 'jsdom'
+
+// Helper to support JSDOM being either a constructor or a factory (tests sometimes mock it as a function)
+function createJSDOM(html: string, options?: { contentType?: string; includeNodeLocations?: boolean }) {
+  try {
+    const Ctor = JSDOM as unknown as new (html: string, opts?: any) => any
+    return new Ctor(html, options)
+  } catch (e) {
+    // Fallback to calling as factory
+    const Factory = JSDOM as unknown as (html: string, opts?: any) => any
+    return Factory(html, options)
+  }
+}
 import { marked } from 'marked'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { httpFetch } from '../lib/http-client'
 
 import type { RequestContext } from '@mastra/core/request-context'
 
@@ -41,16 +56,25 @@ export interface ScraperToolContext extends RequestContext {
 const DATA_DIR = path.resolve(process.cwd(), './data')
 
 // Helper to create CheerioCrawler that is tolerant of function-vs-constructor mocks
-function createCheerioCrawler(options: any) {
-    try {
-        // Prefer constructor invocation
-        // eslint-disable-next-line new-cap
-        return new (CheerioCrawler as any)(options)
-    } catch (e) {
-        // Fallback to function-call instantiation (some test mocks implement as function returning instance)
-        // @ts-ignore
-        return (CheerioCrawler as any)(options)
-    }
+// Use the actual constructor parameter type when available to avoid `any`.
+// This also remains compatible with runtime mocks where CheerioCrawler may be a function.
+type CheerioCrawlerOptions = ConstructorParameters<typeof CheerioCrawler>[0]
+
+function createCheerioCrawler(options: CheerioCrawlerOptions): CheerioCrawler {
+  // Two compatible shapes: a constructor or a factory function. Use explicit narrowings from unknown
+  // to avoid the use of `any` while remaining tolerant of runtime test mocks.
+  type CheerioCtor = new (opts: CheerioCrawlerOptions) => CheerioCrawler
+  type CheerioFactory = (opts: CheerioCrawlerOptions) => CheerioCrawler
+
+  try {
+    // Prefer constructor invocation
+    const Ctor = CheerioCrawler as unknown as CheerioCtor
+    return new Ctor(options)
+  } catch (e) {
+    // Fallback to function-call instantiation (some test mocks implement as function returning instance)
+    const Factory = CheerioCrawler as unknown as CheerioFactory
+    return Factory(options)
+  }
 }
 
 /**
@@ -108,7 +132,7 @@ function sanitizeHtml(html: string): string {
   try {
     // Ensure input is a string and explicitly treat as HTML to avoid ambiguous parsing
     const safeHtml = String(html)
-    const jsdom = new JSDOM(safeHtml, {
+    const jsdom = createJSDOM(safeHtml, {
       contentType: 'text/html',
       includeNodeLocations: false,
     })
@@ -117,12 +141,12 @@ function sanitizeHtml(html: string): string {
     // Remove dangerous elements
     DANGEROUS_TAGS.forEach((tagName) => {
       const elements = document.querySelectorAll(tagName)
-      elements.forEach((element) => element.remove())
+      elements.forEach((element: Element) => element.remove())
     })
 
     // Remove event handler attributes
     const allElements = document.querySelectorAll('*')
-    allElements.forEach((element) => {
+    allElements.forEach((element: Element) => {
       Array.from(element.attributes).forEach((attr) => {
         if (
           attr.name.startsWith('on') ||
@@ -175,7 +199,7 @@ function sanitizeHtml(html: string): string {
 
 function extractTextContent(html: string): string {
   try {
-    const dom = new JSDOM(html, { includeNodeLocations: false })
+    const dom = createJSDOM(html, { includeNodeLocations: false })
     return dom.window.document.body.textContent?.trim() ?? ''
   } catch (error) {
     log.warn('JSDOM text extraction failed, falling back to cheerio', {
@@ -189,7 +213,7 @@ function extractTextContent(html: string): string {
 function htmlToMarkdown(html: string): string {
   try {
     const sanitizedHtml = sanitizeHtml(html)
-    const dom = new JSDOM(sanitizedHtml, { includeNodeLocations: true })
+    const dom = createJSDOM(sanitizedHtml, { includeNodeLocations: true })
     const { document } = dom.window
 
     const convertNode = (node: Node): string => {
@@ -675,7 +699,7 @@ export const webScraperTool = createTool({
     const writer = context?.writer
     const abortSignal = context?.abortSignal
 
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = context?.requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -780,12 +804,8 @@ export const webScraperTool = createTool({
         sameDomainDelaySecs: delayBetweenRequests / 1000,
         requestHandlerTimeoutSecs:
           (inputData.request?.timeout ?? 30000) / 1000,
-        async requestHandler({
-          request,
-          body,
-          response,
-          enqueueLinks,
-        }) {
+        async requestHandler(ctx: CheerioCrawlingContext) {
+          const { request, body, response, enqueueLinks } = ctx
           try {
             scrapedUrl = request.url
 
@@ -816,7 +836,7 @@ export const webScraperTool = createTool({
               )
             }
 
-            rawContent = body.toString()
+            rawContent = (body ?? '').toString()
 
             // Sanitize HTML using JSDOM
             rawContent = HtmlProcessor.sanitizeHtml(rawContent)
@@ -824,7 +844,7 @@ export const webScraperTool = createTool({
             if (followLinks) {
               const currentDepth =
                 typeof request.userData?.depth === 'number'
-                  ? (request.userData.depth as number)
+                  ? (request.userData.depth)
                   : 0
 
               if (currentDepth < maxDepth) {
@@ -832,47 +852,74 @@ export const webScraperTool = createTool({
                   type: SpanType.TOOL_CALL,
                   name: 'enqueue_links',
                   input: { url: request.url, depth: currentDepth + 1 },
+                  requestContext: context?.requestContext,
                   metadata: {
                     'tool.id': 'web-scraper',
                     'operation.type': 'enqueue_links',
                   },
                 })
                 try {
-                  await enqueueLinks({
-                    selector: 'a[href]',
-                    baseUrl: request.url,
-                    strategy: 'same-hostname',
-                    limit: Math.max(
-                      1,
-                      Math.min(maxPages, 100)
-                    ),
-                    transformRequestFunction: (req) => {
-                      const nextDepth = currentDepth + 1
-                      const nextUrl = req.url
-                      if (
-                        !ValidationUtils.isUrlAllowed(
-                          nextUrl,
-                          allowedDomains
-                        )
-                      ) {
-                        return null
-                      }
-                      return {
-                        ...req,
-                        headers,
-                        userData: {
-                          ...(req.userData ?? {}),
-                          depth: nextDepth,
-                        },
-                      }
-                    },
-                  })
-                  try {
-                    enqueueSpan?.update({
-                      metadata: { 'operation.status': 'success' },
+                  if (typeof enqueueLinks === 'function') {
+                    await enqueueLinks({
+                      selector: 'a[href]',
+                      baseUrl: request.url,
+                      strategy: 'same-hostname',
+                      limit: Math.max(
+                        1,
+                        Math.min(maxPages, 100)
+                      ),
+                      transformRequestFunction: (original: unknown): RequestOptions | null => {
+                        // Accept the original request shape from Crawlee and return a RequestOptions object.
+                        // Returning a Request instance can conflict with some Crawlee versions due to private members.
+                        const nextDepth = currentDepth + 1
+
+                        // Define a safe shape for the original request to avoid the use of `any`
+                        interface TransformRequest {
+                          url?: string
+                          userData?: Record<string, unknown>
+                          headers?: Record<string, string>
+                          [k: string]: unknown
+                        }
+
+                        const orig = original as TransformRequest
+                        const nextUrl = orig?.url
+                        if (typeof nextUrl !== 'string' || !ValidationUtils.isUrlAllowed(nextUrl, allowedDomains)) {
+                          return null
+                        }
+
+                        // Build a RequestOptions object with a required `url` property
+                        const transformed: RequestOptions = {
+                          url: nextUrl,
+                          headers: {
+                            ...(orig.headers ?? {}),
+                            ...headers,
+                          },
+                          userData: {
+                            ...(orig.userData ?? {}),
+                            depth: nextDepth,
+                          },
+                        }
+
+                        return transformed
+                      },
                     })
-                  } catch {
-                    // ignore tracing update errors
+                    try {
+                      enqueueSpan?.update({
+                        metadata: { 'operation.status': 'success' },
+                      })
+                    } catch {
+                      // ignore tracing update errors
+                    }
+                  } else {
+                    // enqueueLinks may be undefined in some CheerioCrawler implementations/mocks
+                    log.warn('enqueueLinks not available; skipping link enqueue', { url: request.url })
+                    try {
+                      enqueueSpan?.update({
+                        metadata: { 'operation.status': 'skipped' },
+                      })
+                    } catch {
+                      // ignore tracing update errors
+                    }
                   }
                 } catch (error) {
                   enqueueSpan?.error({
@@ -1143,7 +1190,7 @@ export const webScraperTool = createTool({
             )
           }
         },
-        failedRequestHandler({ request, error }) {
+        failedRequestHandler({ request, error }: { request: Request; error?: unknown }) {
           const scrapingError = new ScrapingError(
             `Failed to scrape ${request.url}: ${error instanceof Error ? error.message : String(error)}`,
             'REQUEST_FAILED',
@@ -1580,7 +1627,7 @@ export const batchWebScraperTool = createTool({
       (toolCallCounters.get('batch-web-scraper') ?? 0) + 1
     )
 
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -1632,8 +1679,8 @@ export const batchWebScraperTool = createTool({
             const crawler = createCheerioCrawler({
               maxRequestsPerCrawl: 1,
               requestHandlerTimeoutSecs: 20,
-              async requestHandler({ body }) {
-                const rawContent = body.toString()
+              async requestHandler({ body }: { body?: Buffer | string }) {
+                const rawContent = (body ?? '').toString()
                 const sanitizedHtml =
                   HtmlProcessor.sanitizeHtml(rawContent)
                 const extractedData: Array<
@@ -1685,14 +1732,15 @@ export const batchWebScraperTool = createTool({
                   markdownContent,
                 })
               },
-              failedRequestHandler({ error }) {
+              failedRequestHandler(ctx: CheerioCrawlingContext) {
+                const { request, error } = ctx
                 results.push({
-                  url,
+                  url: request?.url ?? url,
                   success: false,
                   errorMessage:
                     error instanceof Error
                       ? error.message
-                      : String(error),
+                      : String(error ?? 'Unknown error'),
                 })
               },
             })
@@ -1909,7 +1957,7 @@ export const siteMapExtractorTool = createTool({
       'site-map-extractor',
       (toolCallCounters.get('site-map-extractor') ?? 0) + 1
     )
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -1973,8 +2021,8 @@ export const siteMapExtractorTool = createTool({
           maxRequestsPerCrawl: 5,
           maxConcurrency: 10,
           requestHandlerTimeoutSecs: 15,
-          async requestHandler({ body }) {
-            const rawContent = body.toString()
+          async requestHandler({ body }: { body?: Buffer | string }) {
+            const rawContent = (body ?? '').toString()
             const sanitizedHtml =
               HtmlProcessor.sanitizeHtml(rawContent)
 
@@ -2036,8 +2084,9 @@ export const siteMapExtractorTool = createTool({
               }
             }
           },
-          failedRequestHandler({ error }) {
-            log.warn(`Failed to crawl ${url}`, {
+          failedRequestHandler(ctx: CheerioCrawlingContext) {
+            const { request, error } = ctx
+            log.warn(`Failed to crawl ${request?.url ?? url}`, {
               error:
                 error instanceof Error
                   ? error.message
@@ -2240,7 +2289,7 @@ export const linkExtractorTool = createTool({
       'link-extractor',
       (toolCallCounters.get('link-extractor') ?? 0) + 1
     )
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -2273,16 +2322,17 @@ export const linkExtractorTool = createTool({
         maxRequestsPerCrawl: 10,
         maxConcurrency: 10,
         requestHandlerTimeoutSecs: 20,
-        async requestHandler({ request, body }) {
+        async requestHandler({ request, body }: { request: Request; body?: Buffer | string }) {
           scrapedUrl = request.url
-          rawContent = body.toString()
+          rawContent = (body ?? '').toString()
         },
-        failedRequestHandler({ error }) {
+        failedRequestHandler(ctx: CheerioCrawlingContext) {
+          const { request, error } = ctx
           throw new ScrapingError(
-            `Failed to fetch ${inputData.url}: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to fetch ${request?.url ?? inputData.url}: ${error instanceof Error ? error.message : String(error)}`,
             'FETCH_FAILED',
             undefined,
-            inputData.url
+            request?.url ?? inputData.url
           )
         },
       })
@@ -2542,7 +2592,7 @@ export const htmlToMarkdownTool = createTool({
       'html-to-markdown',
       (toolCallCounters.get('html-to-markdown') ?? 0) + 1
     )
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = context?.requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -2735,7 +2785,7 @@ export const listScrapedContentTool = createTool({
       'list-scraped-content',
       (toolCallCounters.get('list-scraped-content') ?? 0) + 1
     )
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = context?.requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -3192,7 +3242,7 @@ export const apiDataFetcherTool = createTool({
       'api-data-fetcher',
       (toolCallCounters.get('api-data-fetcher') ?? 0) + 1
     )
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = context?.requestContext as ScraperToolContext | undefined
     const userId = requestCtx?.userId
     const workspaceId = requestCtx?.workspaceId
@@ -3242,45 +3292,37 @@ export const apiDataFetcherTool = createTool({
         }
       }
 
-      // Make the request
-      const response = await fetch(inputData.url, {
-        method: inputData.method ?? 'GET',
-        headers,
-        body:
-          inputData.body !== null && inputData.body !== undefined
-            ? JSON.stringify(inputData.body)
-            : undefined,
-        signal: AbortSignal.timeout(inputData.timeout ?? 30000),
-      })
+      // Make the request via shared httpFetch (rate-limited + retries)
+      let resp
+      try {
+        resp = await httpFetch(inputData.url, { method: inputData.method ?? 'GET', timeout: inputData.timeout ?? 30000, responseType: 'json', signal: context?.abortSignal })
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        throw new ScrapingError(`API request failed: ${errMsg}`, 'API_ERROR', undefined, inputData.url)
+      }
 
       const responseTime = Date.now() - startTime
 
-      if (!response.ok) {
+      if (typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
         throw new ScrapingError(
-          `API request failed: ${response.status} ${response.statusText}`,
+          `API request failed: ${resp.status} ${resp.statusText ?? ''}`,
           'API_ERROR',
-          response.status,
+          resp.status,
           inputData.url
         )
       }
 
-      const contentType = response.headers.get('content-type')
-      let data: unknown
-
-      if (contentType?.includes('application/json') ?? false) {
-        data = await response.json()
-      } else {
-        data = await response.text()
-      }
+      const contentType = String(resp.headers['content-type'] ?? '')
+      const data: unknown = resp.data
 
       const responseHeaders: Record<string, string> = {}
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value
+      Object.entries(resp.headers ?? {}).forEach(([k, v]) => {
+        responseHeaders[String(k).toLowerCase()] = String(v ?? '')
       })
 
       fetchSpan?.update({
         metadata: {
-          'tool.output.status': response.status,
+          'tool.output.status': resp.status,
           'tool.output.responseTime': responseTime,
           'tool.output.dataType': typeof data,
         },
@@ -3289,7 +3331,7 @@ export const apiDataFetcherTool = createTool({
 
       return apiDataFetcherOutputSchema.parse({
         data,
-        status: response.status,
+        status: resp.status,
         headers: responseHeaders,
         responseTime,
       })
@@ -3303,27 +3345,24 @@ export const apiDataFetcherTool = createTool({
       throw error
     }
   },
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
+  onInputStart: ({ toolCallId, abortSignal }) => {
     log.info('API data fetcher tool input streaming started', {
       toolCallId,
-      messageCount: messages.length,
       abortSignal: abortSignal?.aborted,
       hook: 'onInputStart',
     })
   },
-  onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+  onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
     log.info('API data fetcher tool received input chunk', {
       toolCallId,
       inputTextDelta,
       abortSignal: abortSignal?.aborted,
-      messageCount: messages.length,
       hook: 'onInputDelta',
     })
   },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+  onInputAvailable: ({ input, toolCallId, abortSignal }) => {
     log.info('API data fetcher received complete input', {
       toolCallId,
-      messageCount: messages.length,
       abortSignal: abortSignal?.aborted,
       url: input.url,
       hook: 'onInputAvailable',

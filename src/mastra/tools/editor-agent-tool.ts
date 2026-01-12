@@ -1,6 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 import { SpanType } from "@mastra/core/observability";
 import { z } from 'zod'
 import { editorAgent } from '../agents/editorAgent'

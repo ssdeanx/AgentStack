@@ -1,4 +1,5 @@
 import { createTool } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 import { SpanType } from '@mastra/core/observability'
 import { promises as fsPromises } from 'node:fs'
 import { z } from 'zod'

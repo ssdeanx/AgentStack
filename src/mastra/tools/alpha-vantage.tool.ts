@@ -1,9 +1,12 @@
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { httpFetch } from '../lib/http-client'
+
 
 /**
  * Alpha Vantage Tools
@@ -93,7 +96,7 @@ export const alphaVantageCryptoTool = createTool({
   }),
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -118,8 +121,9 @@ export const alphaVantageCryptoTool = createTool({
       },
       entityId: inputData.symbol,
       entityName: `${inputData.symbol}/${inputData.market}`,
-    //  tracingPolicy: TracingPolicy.PropagateIfExisting,
+      // Pass requestContext so the span can automatically extract metadata like user-tier
       requestContext: context?.requestContext,
+      //  tracingPolicy: TracingPolicy.PropagateIfExisting,
       attributes: ({ 'user.tier': requestContext?.['user-tier'] ?? 'free' } as unknown as Record<string, unknown>),
     })
 
@@ -173,17 +177,16 @@ export const alphaVantageCryptoTool = createTool({
         },
         id: 'alpha-vantage-crypto',
       })
-      const response = await fetch(url)
 
-      if (!response.ok) {
-        throw new Error(
-          `Alpha Vantage API error: ${response.status} ${response.statusText}`
-        )
+      const resp = await httpFetch(url, { method: 'GET', timeout: 30000, responseType: 'json' })
+
+      if (typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+        throw new Error(`Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`)
       }
 
-      const data = await response.json()
+      const data = resp.data
 
-      const dataObj = data as unknown
+      const dataObj = data
 
       // Check for API-specific errors
       if (
@@ -434,7 +437,7 @@ export const alphaVantageStockTool = createTool({
 
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -456,6 +459,7 @@ export const alphaVantageStockTool = createTool({
         'tool.input.symbol': inputData.symbol,
         'tool.input.function': inputData.function,
       },
+      // Pass requestContext to enable metadata extraction
       requestContext: context?.requestContext
     })
 
@@ -520,17 +524,15 @@ export const alphaVantageStockTool = createTool({
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-      const response = await fetch(url)
+      const resp = await httpFetch(url, { method: 'GET', timeout: 30000, responseType: 'json' })
 
-      if (!response.ok) {
-        throw new Error(
-          `Alpha Vantage API error: ${response.status} ${response.statusText}`
-        )
+      if (typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+        throw new Error(`Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`)
       }
 
-      const data = await response.json()
+      const data = resp.data
 
-      const dataObj = data as unknown
+      const dataObj = data
 
       // Check for API-specific errors
       if (
@@ -834,7 +836,7 @@ export const alphaVantageTool = createTool({
   }),
   execute: async (inputData, context) => {
     const requestContext = context?.requestContext as AlphaVantageRequestContext
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
 
     await context?.writer?.custom({
       type: 'data-tool-progress',
@@ -856,6 +858,7 @@ export const alphaVantageTool = createTool({
         'tool.input.function': inputData.function,
         'tool.input.symbol': inputData.symbol,
       },
+      // Pass requestContext to enable metadata extraction
       requestContext: context?.requestContext
     })
 
@@ -936,17 +939,15 @@ export const alphaVantageTool = createTool({
 
       const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-      const response = await fetch(url)
+      const resp = await httpFetch(url, { method: 'GET', timeout: 30000, responseType: 'json' })
 
-      if (!response.ok) {
-        throw new Error(
-          `Alpha Vantage API error: ${response.status} ${response.statusText}`
-        )
+      if (typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+        throw new Error(`Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`)
       }
 
-      const data = await response.json()
+      const data = resp.data
 
-      const dataObj = data as unknown
+      const dataObj = data
 
       // Check for API-specific errors
       if (

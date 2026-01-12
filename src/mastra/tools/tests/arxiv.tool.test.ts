@@ -1,9 +1,12 @@
 // @ts-nocheck
-import { describe, it, expect, beforeEach } from 'vitest'
-import { arxivTool } from '../arxiv.tool'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-const fetchMock = vi.fn()
-global.fetch = fetchMock
+// Mock the shared httpFetch helper used by the tool to avoid network calls
+const httpFetchMock = vi.fn()
+vi.mock('../lib/http-client', () => ({ httpFetch: httpFetchMock }))
+
+// Import the tool AFTER mocking httpFetch
+import { arxivTool } from '../arxiv.tool'
 
 describe('arxivTool', () => {
     beforeEach(() => vi.clearAllMocks())
@@ -23,7 +26,7 @@ describe('arxivTool', () => {
   </entry>
 </feed>`
 
-        fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(sampleXml) })
+        httpFetchMock.mockResolvedValueOnce({ status: 200, statusText: 'OK', data: sampleXml })
 
         const res = await arxivTool.execute({ query: 'test' }, {})
 
