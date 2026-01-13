@@ -1,7 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 
 const forecastSchema = z.object({
     date: z.string(),
@@ -41,9 +41,8 @@ const fetchWeather = createStep({
         city: z.string().describe('The city to get weather for'),
     }),
     outputSchema: forecastSchema,
-    execute: async (inputData: any, context: any) => {
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
             name: 'fetch-weather',
             input: { city: inputData.city },
@@ -51,15 +50,20 @@ const fetchWeather = createStep({
                 'workflow.step': 'fetch-weather',
                 'weather.city': inputData.city,
             },
+            requestContext,
+            mastra,
         })
-
         try {
+
             if (!inputData?.city) {
+                span?.error({ error: new Error('City not provided in input data'), endSpan: true })
                 throw new Error('City not provided in input data')
             }
 
+            log.info(`Fetching weather for ${inputData.city}`)
+
             // Emit workflow progress start
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -117,7 +121,7 @@ const fetchWeather = createStep({
             }
 
             // Emit workflow progress completion
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
@@ -138,8 +142,7 @@ const fetchWeather = createStep({
             return forecast
         } catch (error) {
             span?.error({
-                error:
-                    error instanceof Error ? error : new Error(String(error)),
+                error: error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
             throw error
@@ -154,9 +157,8 @@ const planActivities = createStep({
     outputSchema: z.object({
         activities: z.string(),
     }),
-    execute: async (inputData: any, context: any) => {
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
             name: 'plan-activities',
             input: {
@@ -168,17 +170,19 @@ const planActivities = createStep({
                 'weather.location': inputData.location,
                 'weather.condition': inputData.condition,
             },
+            requestContext,
+            mastra,
         })
-
         try {
             const forecast = inputData
 
             if (!forecast?.date) {
+                span?.error({ error: new Error('Forecast data not found'), endSpan: true })
                 throw new Error('Forecast data not found')
             }
 
             // Emit workflow progress start
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -188,8 +192,10 @@ const planActivities = createStep({
                 id: 'plan-activities',
             })
 
-            const agent = context?.mastra?.getAgent('weatherAgent')
+            const mastraInst = mastra ?? (globalThis as unknown as Record<string, unknown>).mastra
+            const agent = mastraInst?.getAgent?.('weatherAgent')
             if (agent === undefined || agent === null) {
+                span?.error({ error: new Error('Weather agent not found'), endSpan: true })
                 throw new Error('Weather agent not found')
             }
 
@@ -249,7 +255,7 @@ const planActivities = createStep({
                 textStream?: ReadableStream<unknown>
             }
 
-            if (context?.writer !== undefined && context?.writer !== null) {
+            if (writer !== undefined && writer !== null) {
                 if (
                     fullStream !== undefined &&
                     typeof (fullStream as unknown as { pipeTo?: unknown })
@@ -257,7 +263,7 @@ const planActivities = createStep({
                 ) {
                     await (
                         fullStream as unknown as ReadableStream<unknown>
-                    ).pipeTo(context?.writer as unknown as WritableStream)
+                    ).pipeTo(writer as unknown as WritableStream)
                 } else if (
                     textStream !== undefined &&
                     typeof (textStream as unknown as { pipeTo?: unknown })
@@ -265,7 +271,7 @@ const planActivities = createStep({
                 ) {
                     await (
                         textStream as unknown as ReadableStream<unknown>
-                    ).pipeTo(context?.writer as unknown as WritableStream)
+                    ).pipeTo(writer as unknown as WritableStream)
                 }
             }
 
@@ -276,7 +282,7 @@ const planActivities = createStep({
             }
 
             // Emit workflow progress completion
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
@@ -293,11 +299,11 @@ const planActivities = createStep({
                 },
             })
             span?.end()
+
             return result
         } catch (error) {
             span?.error({
-                error:
-                    error instanceof Error ? error : new Error(String(error)),
+                error: error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
             throw error

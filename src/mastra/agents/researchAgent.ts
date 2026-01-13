@@ -9,27 +9,15 @@ import type { RequestContext } from '@mastra/core/request-context'
 import { google } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import {
-    alphaVantageCryptoTool,
-    alphaVantageStockTool,
-} from '../tools/alpha-vantage.tool'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import {
-    finnhubAnalysisTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
     finnhubQuotesTool,
-    finnhubTechnicalTool,
 } from '../tools/finnhub-tools'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import {
-    polygonCryptoAggregatesTool,
-    polygonCryptoQuotesTool,
-    polygonCryptoSnapshotsTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
+
     polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import {
@@ -41,12 +29,7 @@ import {
     googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
 import {
-    batchWebScraperTool,
-    contentCleanerTool,
     htmlToMarkdownTool,
-    linkExtractorTool,
-    scrapingSchedulerTool,
-    siteMapExtractorTool,
     webScraperTool,
 } from '../tools/web-scraper-tool'
 

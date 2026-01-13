@@ -76,11 +76,14 @@ export const copywriterTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const mastra = context?.mastra
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as CopywriterRequestContext | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | CopywriterRequestContext
+            | undefined
 
         const userId =
-            typeof requestCtx?.userId === 'string' && requestCtx.userId.trim().length > 0
+            typeof requestCtx?.userId === 'string' &&
+            requestCtx.userId.trim().length > 0
                 ? requestCtx.userId
                 : 'anonymous'
         const {
@@ -112,6 +115,7 @@ export const copywriterTool = createTool({
                 tone,
                 length,
             },
+            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'copywriter-agent',
                 'user.id': requestCtx?.userId,
@@ -357,7 +361,7 @@ export const copywriterTool = createTool({
                     'tool.output.success': true,
                     'tool.output.wordCount': wordCount,
                     'tool.output.contentLength': content.length,
-                }
+                },
             })
             span?.end()
 

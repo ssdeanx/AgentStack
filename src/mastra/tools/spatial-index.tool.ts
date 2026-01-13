@@ -181,6 +181,41 @@ export const spatialIndexTool = createTool({
             throw err
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Spatial Index tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { action: input.action },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Spatial Index tool completed', {
+            toolCallId,
+            toolName,
+            outputData: { success: !!output.treeJSON || !!output.results },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type SpatialIndexUITool = typeof spatialIndexTool

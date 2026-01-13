@@ -1,5 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 
 import { logError, logStepEnd, logStepStart } from '../config/logger';
@@ -76,37 +76,33 @@ const researchTopicStep = createStep({
   description: 'Researches the topic using researchAgent',
   inputSchema: contentInputSchema,
   outputSchema: researchOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'research-topic',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'research-topic',
+        'content.topic': inputData.topic,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('research-topic', { topic: inputData.topic });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting research for topic: ${inputData.topic}`,
-        stage: 'research-topic',
-      },
-      id: 'research-topic',
-    })
-
-    const tracer = trace.getTracer('content-review');
-    const span = tracer.startSpan('research-agent-call', {
-      attributes: { topic: inputData.topic },
-    });
 
     try {
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: `Researching topic: ${inputData.topic}...`,
+          message: `Starting research for topic: ${inputData.topic}`,
           stage: 'research-topic',
         },
         id: 'research-topic',
       })
 
-      const agent = mastra?.getAgent('researchAgent');
+      const agent = mastra?.getAgent?.('researchAgent');
       const research = {
         summary: `Research summary for ${inputData.topic}`,
         keyPoints: [`Key point 1 about ${inputData.topic}`, `Key point 2 about ${inputData.topic}`],
@@ -114,7 +110,7 @@ const researchTopicStep = createStep({
         facts: [] as string[],
       };
 
-      if (agent) {
+      if (agent !== undefined && agent !== null) {
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
@@ -139,7 +135,9 @@ const researchTopicStep = createStep({
         } as any);
 
         // Stream partial output to the workflow writer so clients see progress.
-        await stream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
 
         // Wait for final text and attempt to parse JSON; fall back to defaults if parse fails.
         const finalText = await stream.text;
@@ -150,7 +148,7 @@ const researchTopicStep = createStep({
           parsedResearch = null;
         }
 
-        if (parsedResearch) {
+        if (parsedResearch !== null) {
           research.summary = parsedResearch.summary;
           research.keyPoints = parsedResearch.keyPoints;
           research.sources = parsedResearch.sources ?? [];
@@ -176,18 +174,23 @@ const researchTopicStep = createStep({
         research,
       };
 
-      span.setAttribute('keyPointsCount', research.keyPoints.length);
-      span.setAttribute('hasAgent', Boolean(agent));
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          'keyPoints.count': research.keyPoints.length,
+          'hasAgent': agent !== undefined && agent !== null,
+        },
+      });
+      span?.end();
 
       logStepEnd('research-topic', { keyPointsCount: research.keyPoints.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
       logError('research-topic', error, { topic: inputData.topic });
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -209,44 +212,37 @@ const draftContentStep = createStep({
   description: 'Creates initial content draft using copywriterAgent',
   inputSchema: researchOutputSchema,
   outputSchema: draftOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'draft-content',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'draft-content',
+        'content.type': inputData.contentType,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('draft-content', { topic: inputData.topic, contentType: inputData.contentType });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting content draft for ${inputData.contentType}: ${inputData.topic}`,
-        stage: 'draft-content',
-      },
-      id: 'draft-content',
-    })
-
-    const tracer = trace.getTracer('content-review');
-    const span = tracer.startSpan('copywriter-agent-call', {
-      attributes: {
-        topic: inputData.topic,
-        contentType: inputData.contentType,
-      },
-    });
 
     try {
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: `Drafting content for ${inputData.contentType}: ${inputData.topic}`,
+          message: `Starting content draft for ${inputData.contentType}: ${inputData.topic}`,
           stage: 'draft-content',
         },
         id: 'draft-content',
-      });
+      })
 
-      const agent = mastra?.getAgent('copywriterAgent');
+      const agent = mastra?.getAgent?.('copywriterAgent');
       let content = '';
       let structure: string[] = [];
 
-      if (agent) {
+      if (agent !== undefined && agent !== null) {
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
@@ -272,7 +268,9 @@ const draftContentStep = createStep({
           }),
         } as any);
 
-        await stream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
         const finalText = await stream.text;
         let draftResult: z.infer<typeof draftOutputSchema>['draft'] | null = null;
         try {
@@ -280,7 +278,7 @@ const draftContentStep = createStep({
         } catch {
           draftResult = null;
         }
-        if (draftResult) {
+        if (draftResult !== null) {
           content = draftResult.content;
           structure = draftResult.structure ?? [];
         }
@@ -310,18 +308,23 @@ const draftContentStep = createStep({
         draft: { content, wordCount, structure },
       };
 
-      span.setAttribute('wordCount', wordCount);
-      span.setAttribute('hasAgent', Boolean(agent));
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          'word.count': wordCount,
+          'hasAgent': agent !== undefined && agent !== null,
+        },
+      });
+      span?.end();
 
       logStepEnd('draft-content', { wordCount }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
       logError('draft-content', error, { topic: inputData.topic });
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -343,43 +346,38 @@ const initialReviewStep = createStep({
   description: 'Performs initial review of the draft',
   inputSchema: draftOutputSchema,
   outputSchema: reviewOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'initial-review',
+      input: { wordCount: inputData.draft.wordCount },
+      metadata: {
+        'workflow.step': 'initial-review',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('initial-review', { topic: inputData.topic });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting initial review for ${inputData.contentType}: ${inputData.topic}`,
-        stage: 'initial-review',
-      },
-      id: 'initial-review',
-    })
-
-    const tracer = trace.getTracer('content-review');
-    const span = tracer.startSpan('editor-agent-review', {
-      attributes: { wordCount: inputData.draft.wordCount },
-    });
 
     try {
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: `Evaluating content quality for ${inputData.contentType}: ${inputData.topic}...`,
+          message: `Starting initial review for ${inputData.contentType}: ${inputData.topic}`,
           stage: 'initial-review',
         },
         id: 'initial-review',
       })
 
-      const editorAgent = mastra?.getAgent('editorAgent');
-      const evaluationAgent = mastra?.getAgent('evaluationAgent');
+      const editorAgent = mastra?.getAgent?.('editorAgent');
+      const evaluationAgent = mastra?.getAgent?.('evaluationAgent');
 
       let score = 70;
       let feedback: string[] = [];
 
-      if (evaluationAgent) {
+      if (evaluationAgent !== undefined && evaluationAgent !== null) {
         const stream = await evaluationAgent.stream(
           `Evaluate this ${inputData.contentType} about "${inputData.topic}". Rate it 0-100 and provide specific feedback.\n\nContent:\n${inputData.draft.content}`,
           {
@@ -390,7 +388,9 @@ const initialReviewStep = createStep({
           } as any
         );
 
-        await stream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
         const finalText = await stream.text;
         let parsedEval: { score: number; feedback: string[] } | null = null;
         try {
@@ -398,11 +398,11 @@ const initialReviewStep = createStep({
         } catch {
           parsedEval = null;
         }
-        if (parsedEval) {
+        if (parsedEval !== null) {
           score = parsedEval.score;
           feedback = parsedEval.feedback;
         }
-      } else if (editorAgent) {
+      } else if (editorAgent !== undefined && editorAgent !== null) {
         const stream = await editorAgent.stream(
           `Review this ${inputData.contentType}. Rate quality 0-100 and list improvements.\n\nContent:\n${inputData.draft.content}`,
           {
@@ -413,7 +413,9 @@ const initialReviewStep = createStep({
           } as any
         );
 
-        await stream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await stream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
         const finalTextEdit = await stream.text;
         let parsedEdit: { score: number; feedback: string[] } | null = null;
         try {
@@ -421,23 +423,13 @@ const initialReviewStep = createStep({
         } catch {
           parsedEdit = null;
         }
-        if (parsedEdit) {
+        if (parsedEdit !== null) {
           score = parsedEdit.score;
           feedback = parsedEdit.feedback;
         }
       } else {
         feedback = ['Consider adding more detail', 'Improve transitions between sections'];
       }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Initial score: ${score}/100 for ${inputData.contentType}: ${inputData.topic}...`,
-          stage: 'initial-review',
-        },
-        id: 'initial-review',
-      });
 
       const approved = score >= inputData.qualityThreshold;
 
@@ -456,11 +448,15 @@ const initialReviewStep = createStep({
         scoreHistory: [score],
       };
 
-      span.setAttribute('score', score);
-      span.setAttribute('approved', approved);
-      span.setAttribute('feedbackCount', feedback.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          score,
+          approved,
+          'feedback.count': feedback.length,
+        },
+      });
+      span?.end();
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -472,14 +468,14 @@ const initialReviewStep = createStep({
         id: 'initial-review',
       });
 
-
       logStepEnd('initial-review', { score, approved, iteration: 1 }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
       logError('initial-review', error, { topic: inputData.topic });
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -501,58 +497,50 @@ const refineContentStep = createStep({
   description: 'Refines content based on feedback and re-evaluates',
   inputSchema: reviewOutputSchema,
   outputSchema: reviewOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
-    const startTime = Date.now();
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
     const nextIteration = inputData.iteration + 1;
-    logStepStart('refine-content', { topic: inputData.topic, iteration: nextIteration });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting refinement iteration ${nextIteration} for ${inputData.contentType}: ${inputData.topic}`,
-        stage: 'refine-content',
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'refine-content',
+      input: { iteration: nextIteration, previousScore: inputData.score },
+      metadata: {
+        'workflow.step': 'refine-content',
+        'iteration': nextIteration,
       },
-      id: 'refine-content',
-    })
+      requestContext,
+      mastra,
+    });
+    const startTime = Date.now();
+    logStepStart('refine-content', { topic: inputData.topic, iteration: nextIteration });
 
     if (nextIteration > MAX_ITERATIONS) {
       const error = new Error(`Maximum iterations (${MAX_ITERATIONS}) exceeded. Final score: ${inputData.score}`);
       logError('refine-content', error, { iteration: nextIteration, score: inputData.score });
+      span?.error({ error, endSpan: true });
       throw error;
     }
-
-    const tracer = trace.getTracer('content-review');
-    const span = tracer.startSpan('content-refinement', {
-      attributes: {
-        iteration: nextIteration,
-        previousScore: inputData.score,
-      },
-    });
 
     try {
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: `Applying feedback and rewriting content for ${inputData.contentType}: ${inputData.topic} (iteration ${nextIteration})`,
+          message: `Starting refinement iteration ${nextIteration} for ${inputData.contentType}: ${inputData.topic}`,
           stage: 'refine-content',
         },
         id: 'refine-content',
-      });
+      })
 
-      const copywriterAgent = mastra?.getAgent('copywriterAgent');
-      const editorAgent = mastra?.getAgent('editorAgent');
-      const evaluationAgent = mastra?.getAgent('evaluationAgent');
+      const copywriterAgent = mastra?.getAgent?.('copywriterAgent');
+      const editorAgent = mastra?.getAgent?.('editorAgent');
+      const evaluationAgent = mastra?.getAgent?.('evaluationAgent');
 
       let refinedContent = inputData.content;
 
-      if (copywriterAgent || editorAgent) {
+      if (copywriterAgent !== undefined && copywriterAgent !== null || editorAgent !== undefined && editorAgent !== null) {
         const agent = copywriterAgent ?? editorAgent;
-        if (!agent) {
-          throw new Error('No copywriter/editor agent available');
-        }
-        const refinePrompt = `Improve this ${inputData.contentType} based on feedback:
+        if (agent !== undefined && agent !== null) {
+          const refinePrompt = `Improve this ${inputData.contentType} based on feedback:
 
 Feedback:
 ${inputData.feedback.map(f => `- ${f}`).join('\n')}
@@ -562,32 +550,27 @@ ${inputData.content}
 
 Rewrite with improvements.`;
 
-        const stream = await agent.stream(refinePrompt);
-        // Stream partial rewrite progress
-        await stream.textStream.pipeTo(writer);
-        const rewrittenText = await stream.text;
-        refinedContent = rewrittenText;
+          const stream = await agent.stream(refinePrompt);
+          // Stream partial rewrite progress
+          if (writer !== undefined && writer !== null) {
+            await stream.textStream.pipeTo(writer as unknown as WritableStream);
+          }
+          const rewrittenText = await stream.text;
+          refinedContent = rewrittenText;
+        }
       }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Re-evaluating refined content for iteration ${nextIteration}...`,
-          stage: 'refine-content',
-        },
-        id: 'refine-content',
-      });
 
       let newScore = inputData.score + 5;
       let newFeedback: string[] = [];
 
-      if (evaluationAgent) {
+      if (evaluationAgent !== undefined && evaluationAgent !== null) {
         const evalStream = await evaluationAgent.stream(
           `Re-evaluate this improved ${inputData.contentType}. Rate 0-100 and provide remaining feedback.\n\nContent:\n${refinedContent}`
         );
 
-        await evalStream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await evalStream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
         const evalFinalText = await evalStream.text;
 
         const parsedEval = (() => {
@@ -598,16 +581,18 @@ Rewrite with improvements.`;
           }
         })();
 
-        if (parsedEval && typeof parsedEval.score === 'number' && Array.isArray(parsedEval.feedback)) {
+        if (parsedEval !== null && typeof parsedEval.score === 'number' && Array.isArray(parsedEval.feedback)) {
           newScore = parsedEval.score;
           newFeedback = parsedEval.feedback;
         }
-      } else if (editorAgent) {
+      } else if (editorAgent !== undefined && editorAgent !== null) {
         const editStream = await editorAgent.stream(
           `Review this refined content. Rate 0-100.\n\nContent:\n${refinedContent}`
         );
 
-        await editStream.textStream.pipeTo(writer);
+        if (writer !== undefined && writer !== null) {
+          await editStream.textStream.pipeTo(writer as unknown as WritableStream);
+        }
         const editFinalText = await editStream.text;
 
         const parsedEdit = (() => {
@@ -618,7 +603,7 @@ Rewrite with improvements.`;
           }
         })();
 
-        if (parsedEdit && typeof parsedEdit.score === 'number' && Array.isArray(parsedEdit.feedback)) {
+        if (parsedEdit !== null && typeof parsedEdit.score === 'number' && Array.isArray(parsedEdit.feedback)) {
           newScore = parsedEdit.score;
           newFeedback = parsedEdit.feedback;
         }
@@ -626,16 +611,6 @@ Rewrite with improvements.`;
         newScore = Math.min(100, inputData.score + Math.floor(Math.random() * 10) + 5);
         newFeedback = newScore >= inputData.qualityThreshold ? [] : ['Minor improvements still possible'];
       }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Iteration ${nextIteration}: Score ${newScore}/100 for ${inputData.contentType}: ${inputData.topic}...`,
-          stage: 'refine-content',
-        },
-        id: 'refine-content',
-      });
 
       const approved = newScore >= inputData.qualityThreshold;
       const wordCount = refinedContent.split(/\s+/).length;
@@ -655,12 +630,15 @@ Rewrite with improvements.`;
         scoreHistory: [...inputData.scoreHistory, newScore],
       };
 
-      span.setAttribute('score', newScore);
-      span.setAttribute('approved', approved);
-      span.setAttribute('iteration', nextIteration);
-      span.setAttribute('improvement', newScore - inputData.score);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          'score': newScore,
+          approved,
+          'improvement': newScore - inputData.score,
+        },
+      });
+      span?.end();
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -672,14 +650,14 @@ Rewrite with improvements.`;
         id: 'refine-content',
       });
 
-
       logStepEnd('refine-content', { score: newScore, approved, iteration: nextIteration }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
       logError('refine-content', error, { iteration: nextIteration });
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       await writer?.custom({
         type: 'data-tool-progress',
@@ -701,58 +679,68 @@ const finalizeContentStep = createStep({
   description: 'Finalizes and formats the approved content',
   inputSchema: reviewOutputSchema,
   outputSchema: finalOutputSchema,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'finalize-content',
+      input: { finalScore: inputData.score },
+      metadata: {
+        'workflow.step': 'finalize-content',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('finalize-content', { topic: inputData.topic, finalScore: inputData.score });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Finalizing approved ${inputData.contentType}: ${inputData.topic}`,
-        stage: 'finalize-content',
-      },
-      id: 'finalize-content',
-    })
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Finalizing approved ${inputData.contentType}: ${inputData.topic}`,
+          stage: 'finalize-content',
+        },
+        id: 'finalize-content',
+      })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Formatting final ${inputData.contentType} with score ${inputData.score}/${inputData.qualityThreshold}...`,
-        stage: 'finalize-content',
-      },
-      id: 'finalize-content',
-    })
+      const result: z.infer<typeof finalOutputSchema> = {
+        content: inputData.content,
+        score: inputData.score,
+        iterations: inputData.iteration,
+        feedback: inputData.feedback,
+        metadata: {
+          topic: inputData.topic,
+          contentType: inputData.contentType,
+          targetAudience: inputData.targetAudience,
+          wordCount: inputData.wordCount,
+          qualityThreshold: inputData.qualityThreshold,
+          scoreHistory: inputData.scoreHistory,
+          generatedAt: new Date().toISOString(),
+        },
+      };
 
-    const result: z.infer<typeof finalOutputSchema> = {
-      content: inputData.content,
-      score: inputData.score,
-      iterations: inputData.iteration,
-      feedback: inputData.feedback,
-      metadata: {
-        topic: inputData.topic,
-        contentType: inputData.contentType,
-        targetAudience: inputData.targetAudience,
-        wordCount: inputData.wordCount,
-        qualityThreshold: inputData.qualityThreshold,
-        scoreHistory: inputData.scoreHistory,
-        generatedAt: new Date().toISOString(),
-      },
-    };
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Finalized ${inputData.contentType}: ${inputData.topic} (${inputData.iteration} iterations)`,
+          stage: 'finalize-content',
+        },
+        id: 'finalize-content',
+      });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Finalized ${inputData.contentType}: ${inputData.topic} (${inputData.iteration} iterations)`,
-        stage: 'finalize-content',
-      },
-      id: 'finalize-content',
-    });
+      logStepEnd('finalize-content', { iterations: inputData.iteration, finalScore: inputData.score }, Date.now() - startTime);
+      
+      span?.update({ output: result });
+      span?.end();
 
-    logStepEnd('finalize-content', { iterations: inputData.iteration, finalScore: inputData.score }, Date.now() - startTime);
-    return result;
+      return result;
+    } catch (error) {
+      logError('finalize-content', error);
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
+      throw error;
+    }
   },
 });
 

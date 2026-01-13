@@ -1,10 +1,11 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { codeArchitectAgent } from '../agents/codingAgents';
 import { reportAgent } from '../agents/reportAgent';
 import { createSandbox, runCode, writeFile } from '../tools/e2b';
 import { logStepEnd, logStepStart, logError } from '../config/logger';
-import { trace, SpanStatusCode } from '@opentelemetry/api';
+
 
 const analysisInputSchema = z.object({
   data: z.string().describe('CSV or JSON data content'),
@@ -33,22 +34,33 @@ const generateAnalysisCodeStep = createStep({
     query: z.string(),
     dataFormat: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-analysis-code',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'generate-analysis-code',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-analysis-code', { query: inputData.query });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Planning analysis for query: ${inputData.query}...`,
-        stage: 'generate-analysis-code',
-      },
-      id: 'generate-analysis-code',
-    });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Planning analysis for query: ${inputData.query}...`,
+          stage: 'generate-analysis-code',
+        },
+        id: 'generate-analysis-code',
+      });
 
-    const dataPreview = inputData.data.slice(0, 1000);
-    const prompt = `You are a Data Scientist. Generate a Python script to analyze the following data.
+      const dataPreview = inputData.data.slice(0, 1000);
+      const prompt = `You are a Data Scientist. Generate a Python script to analyze the following data.
     
     Data Format: ${inputData.dataFormat}
     Data Preview:
@@ -66,7 +78,6 @@ const generateAnalysisCodeStep = createStep({
     
     Return ONLY the Python code in a code block.`;
 
-    try {
       const result = await codeArchitectAgent.generate(prompt);
       const code = result.text.replace(/```python\n([\s\S]*?)\n```/, '$1').trim();
 
@@ -82,14 +93,22 @@ const generateAnalysisCodeStep = createStep({
 
       logStepEnd('generate-analysis-code', {}, Date.now() - startTime);
 
-      return {
+      const output = {
         code,
         data: inputData.data,
         query: inputData.query,
         dataFormat: inputData.dataFormat,
       };
+
+      span?.update({
+        output,
+      });
+      span?.end();
+
+      return output;
     } catch (error) {
       logError('generate-analysis-code', error);
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       throw error;
     }
   },
@@ -111,23 +130,30 @@ const executeAnalysisStep = createStep({
     query: z.string(),
   }),
   execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'execute-analysis',
+      input: { query: inputData.query },
+      metadata: {
+        'workflow.step': 'execute-analysis',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('execute-analysis', { query: inputData.query });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Executing analysis in E2B sandbox...`,
-        stage: 'execute-analysis',
-      },
-      id: 'execute-analysis',
-    });
-
-    const tracer = trace.getTracer('data-analysis');
-    const span = tracer.startSpan('e2b-analysis-execution');
-
     try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Executing analysis in E2B sandbox...`,
+          stage: 'execute-analysis',
+        },
+        id: 'execute-analysis',
+      });
+
       const sandbox = await createSandbox.execute({
         timeoutMS: 300_000,
       }, { mastra, requestContext });
@@ -174,20 +200,22 @@ const executeAnalysisStep = createStep({
         id: 'execute-analysis',
       });
 
-      span.end();
       logStepEnd('execute-analysis', { success: true }, Date.now() - startTime);
 
-      return {
+      const result = {
         stdout: execution.logs.stdout.join('\n'),
         stderr: execution.logs.stderr.join('\n'),
         plotGenerated,
         query: inputData.query,
       };
+
+      span?.update({ output: result });
+      span?.end();
+
+      return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
       logError('execute-analysis', error);
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       throw error;
     }
   },
@@ -203,21 +231,32 @@ const generateDataReportStep = createStep({
     query: z.string(),
   }),
   outputSchema: analysisOutputSchema,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-data-report',
+      input: { query: inputData.query },
+      metadata: {
+        'workflow.step': 'generate-data-report',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-data-report', { query: inputData.query });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating final report and insights...`,
-        stage: 'generate-data-report',
-      },
-      id: 'generate-data-report',
-    });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Generating final report and insights...`,
+          stage: 'generate-data-report',
+        },
+        id: 'generate-data-report',
+      });
 
-    const prompt = `You are a Senior Analyst. Based on the following analysis execution results, generate a comprehensive report.
+      const prompt = `You are a Senior Analyst. Based on the following analysis execution results, generate a comprehensive report.
     
     Original Query: ${inputData.query}
     
@@ -240,7 +279,6 @@ const generateDataReportStep = createStep({
     - "insights": Array of insight strings.
     `;
 
-    try {
       const result = await reportAgent.generate(prompt);
       const output = JSON.parse(result.text);
 
@@ -256,13 +294,19 @@ const generateDataReportStep = createStep({
 
       logStepEnd('generate-data-report', {}, Date.now() - startTime);
 
-      return {
+      const finalResult = {
         report: output.report,
         insights: output.insights,
         artifacts: inputData.plotGenerated ? [{ name: 'plot.png', type: 'image/png' }] : [],
       };
+
+      span?.update({ output: finalResult });
+      span?.end();
+
+      return finalResult;
     } catch (error) {
       logError('generate-data-report', error);
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       throw error;
     }
   },

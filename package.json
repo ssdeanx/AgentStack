@@ -55,6 +55,7 @@
     "@mastra/auth-supabase": "^1.0.0-beta.1",
     "@mastra/client-js": "^1.0.0-beta.21",
     "@mastra/cloudflare-d1": "^1.0.0-beta.9",
+    "@mastra/convex": "^0.1.0-beta.8",
     "@mastra/core": "^1.0.0-beta.21",
     "@mastra/deployer": "^1.0.0-beta.21",
     "@mastra/evals": "^1.0.0-beta.4",

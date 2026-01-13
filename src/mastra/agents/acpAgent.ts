@@ -16,6 +16,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
 import { PGVECTOR_PROMPT } from '@mastra/pg';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { InternalSpans } from '@mastra/core/observability';
 
 export interface ACPContext {
     userId?: string
@@ -100,6 +101,9 @@ User: ${userId} | Role: ${roleConstraint}
   workflows: {},
   scorers: {
 
+  },
+  options: {
+    tracingPolicy: InternalSpans.ALL as any,
   },
   defaultOptions: {
     autoResumeSuspendedTools: true,

@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { SpanType } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
+import { log } from '../config/logger'
 
 const confirmationTool = createTool({
     id: 'confirmation-tool',
@@ -95,6 +96,41 @@ const confirmationTool = createTool({
         })
 
         return result
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { action: input.action },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Confirmation tool completed', {
+            toolCallId,
+            toolName,
+            outputData: { confirmed: output.confirmed },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

@@ -215,6 +215,44 @@ export const downsampleTool = createTool({
             return fallbackResult
         }
     },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Downsample tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Downsample tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Downsample tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                valuesCount: input.values.length,
+                target: input.target,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Downsample tool completed', {
+            toolCallId,
+            toolName,
+            outputData: { sampledCount: output.values.length },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export type DownsampleUITool = typeof downsampleTool

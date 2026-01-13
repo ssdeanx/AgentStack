@@ -78,24 +78,42 @@ I noticed that the file references '@mastra/core/observability' for SpanType kee
 ```ts
 import { SpanType } from '@mastra/core/observability'
 ```
-
-However, the other correct import path should be '@mastra/observability' to align with the package structure
-
 ```ts
-import { BaseSpan } from '@mastra/observability';
+import type { TracingContext } from '@mastra/core/observability'
 ```
-
-All tools should import `SpanType` from `@mastra/core/observability` and `BaseSpan` from `@mastra/observability`.  This is so we can maintain consistency & compatibility across the codebase.
+All tools should import `SpanType` from `@mastra/core/observability` and `TracingContext` from `@mastra/core/observability`.  This is so we can maintain consistency & compatibility across the codebase.
 
 ### Required Imports
 
 > IMPORTANT: Tools MUST use Mastra's tracing helpers and the execution-provided `tracingContext`. Do NOT import or use OpenTelemetry APIs (for example, `@opentelemetry/api`) directly inside tools — instrumentation and exporter configuration belong at the platform / runtime startup layer, not inside individual tools.
+> `TracingContext`: Context for tracing that flows through workflow and agent execution
+
+```ts
+(alias) interface TracingContext {
+    currentSpan?: {
+        isInternal: boolean;
+        parent?: AnySpan | undefined;
+        observabilityInstance: ObservabilityInstance;
+        traceState?: TraceState | undefined;
+        end(options?: EndSpanOptions<keyof SpanTypeMap> | undefined): void;
+        error(options: ErrorSpanOptions<keyof SpanTypeMap>): void;
+        update(options: UpdateSpanOptions<keyof SpanTypeMap>): void;
+        createChildSpan(options: ChildSpanOptions<SpanType.MODEL_GENERATION>): AIModelGenerationSpan;
+        createChildSpan<TChildType extends SpanType>(options: ChildSpanOptions<...>): Span<...>;
+        ... 24 more ...;
+        isEvent: boolean;
+    } | undefined;
+}
+import TracingContext
+Context for tracing that flows through workflow and agent execution
+```
 
 ```typescript
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 ```

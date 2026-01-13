@@ -107,7 +107,7 @@ export const createSandbox = createTool({
     sandboxId: z.string(),
   }),
   execute: async (inputData, context) => {
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'createSandbox',
@@ -227,7 +227,7 @@ export const writeFile = createTool({
     path: z.string().describe('The path where the file was written'),
   }),
   execute: async (inputData, context) => {
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'writeFile',
@@ -337,7 +337,7 @@ export const writeFiles = createTool({
       .describe('Array of file paths that were written'),
   }),
   execute: async (inputData, context) => {
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'writeFiles',
@@ -456,7 +456,7 @@ export const listFiles = createTool({
     path: z.string().describe('The path that was listed'),
   }),
   execute: async (inputData, context) => {
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'listFiles',
@@ -559,7 +559,7 @@ export const deleteFile = createTool({
     path: z.string().describe('The path that was deleted'),
   }),
   execute: async (inputData, context) => {
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'deleteFile',

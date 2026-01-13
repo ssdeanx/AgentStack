@@ -1,5 +1,5 @@
 import type { RequestContext } from '@mastra/core/request-context'
-import type { InferUITool } from '@mastra/core/tools';
+import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 import { SpanType } from '@mastra/core/observability'
@@ -63,7 +63,7 @@ export const cytoscapeTool = createTool({
         const { nodes, edges, layout } = input
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CytoscapeContext
             | undefined
@@ -79,6 +79,7 @@ export const cytoscapeTool = createTool({
             type: SpanType.TOOL_CALL,
             name: 'cytoscape-generator',
             input,
+            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'cytoscape-generator',
                 'tool.input.nodesCount': nodes.length,
@@ -88,7 +89,10 @@ export const cytoscapeTool = createTool({
             },
         })
         const startTime = Date.now()
-        logToolExecution('cytoscape-generator', { nodes: nodes.length, edges: edges.length })
+        logToolExecution('cytoscape-generator', {
+            nodes: nodes.length,
+            edges: edges.length,
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -185,7 +189,11 @@ export const cytoscapeTool = createTool({
         toolSpan?.end()
 
         // Log success
-        logToolExecution('cytoscape-generator', { nodes: nodes.length, edges: edges.length }, { elements: elements.length, durationMs: duration })
+        logToolExecution(
+            'cytoscape-generator',
+            { nodes: nodes.length, edges: edges.length },
+            { elements: elements.length, durationMs: duration }
+        )
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -235,4 +243,3 @@ export const cytoscapeTool = createTool({
 })
 
 export type CytoscapeUITool = InferUITool<typeof cytoscapeTool>
-

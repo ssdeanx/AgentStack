@@ -1,6 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { SpanType } from '@mastra/core/observability'
-import { z } from 'zod'
+import type { TracingContext } from '@mastra/core/observability'
+import { z } from 'zod' 
 import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 const stockDataSchema = z.object({

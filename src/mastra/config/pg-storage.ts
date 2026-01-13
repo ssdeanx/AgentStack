@@ -9,6 +9,7 @@ import { log } from './logger'
 
 import { ModelRouterEmbeddingModel } from "@mastra/core/llm";
 import { SpanType } from '@mastra/core/observability'
+import { google } from '@ai-sdk/google'
 
 
 // Utility function to create a masked stream for sensitive data
@@ -199,6 +200,17 @@ export const pgQueryTool = createVectorQueryTool({
   // Advanced filtering
   enableFilter: true,
   includeSources: true,
+ // reranker: {
+  //  model: google.chat('gemini-3-flash-preview'),
+  //  options: {
+  //    weights: {
+  //      semantic: 0.5, // Semantic relevance weight
+  //      vector: 0.3, // Vector similarity weight
+  //      position: 0.2, // Original position weight
+  //    },
+  //    topK: 5,
+  //  },
+ // },
 })
 
 // Production-grade embedding generation with tracing

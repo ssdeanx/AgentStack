@@ -1,5 +1,6 @@
 //import { delay } from '@mastra/core';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import chalk from 'chalk';
 import execa from 'execa';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,143 +22,158 @@ const stepA1 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepA1',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepA1',
+        'channel.id': inputData.channelId,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting git diff for channel ${inputData.channelId}...`,
-        stage: 'stepA1',
-      },
-      id: 'stepA1',
-    })
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching git diff for channel ${inputData.channelId}...`,
-        stage: 'stepA1',
-      },
-      id: 'stepA1',
-    })
-
-    // For today
     try {
-      // @ts-ignore
-      await slack.connect();
-    } catch (e) {
-      log.error(e instanceof Error ? e.message : String(e));
-    }
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Starting git diff for channel ${inputData.channelId}...`,
+          stage: 'stepA1',
+        },
+        id: 'stepA1',
+      })
 
-    const today = new Date().toISOString().split('T')[0];
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Fetching git diff for channel ${inputData.channelId}...`,
+          stage: 'stepA1',
+        },
+        id: 'stepA1',
+      })
 
-    if (existsSync(`generated-changelogs/changelog-${today}`)) {
-      log.info(chalk.red(`Changelog for today already exists`));
-      return {
-        message: readFileSync(`generated-changelogs/changelog-${today}`, 'utf-8'),
-      };
-    }
-
-    log.info(today);
-
-    // For 7 days ago
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    log.info(weekAgo);
-    const cwd = process.cwd();
-
-    log.info(cwd);
-
-    const modulePaths = [
-      'packages/core',
-      'packages/cli',
-      'packages/create-mastra',
-      'packages/deployer',
-      'packages/evals',
-      'packages/rag',
-      'packages/memory',
-      'packages/mcp',
-
-      // Deployers
-      'deployers/cloudflare',
-      'deployers/netlify',
-      'deployers/vercel',
-
-      // Speech modules
-      'speech/azure',
-      'speech/deepgram',
-      'speech/elevenlabs',
-      'speech/google',
-      'speech/ibm',
-      'speech/murf',
-      'speech/openai',
-      'speech/playai',
-      'speech/replicate',
-      'speech/speechify',
-
-      // Storage modules
-      'stores/pg',
-      'stores/astra',
-      'stores/chroma',
-      'stores/pinecone',
-      'stores/qdrant',
-      'stores/upstash',
-      'stores/vectorize',
-    ];
-
-    const moduleChangelogs = [];
-
-    let generatedText = '';
-
-    let TOKEN_LIMIT = 80000;
-
-    for (const modulePath of modulePaths) {
-      const args = [
-        '--no-pager',
-        'diff',
-        '--unified=1', // Reduced context to 1 line
-        '--no-prefix',
-        '--color=never',
-        `main@{${weekAgo}}`,
-        `main@{${today}}`,
-        '--',
-        modulePath,
-        ':!**/node_modules/**',
-        ':!**/.turbo/**',
-        ':!**/.next/**',
-        ':!**/coverage/**',
-        ':!**/package-lock.json',
-        ':!**/pnpm-lock.yaml',
-        ':!**/yarn.lock',
-        ':!**/*.bin',
-        ':!**/*.exe',
-        ':!**/*.dll',
-        ':!**/*.so',
-        ':!**/*.dylib',
-        ':!**/*.class',
-        ':!**/dist/**',
-      ];
-      log.info(`git ${args.join(' ')}`);
-
+      // For today
       try {
-        const diff = await execa('git', args, {
-          cwd,
-        });
+        // @ts-ignore
+        await slack.connect();
+      } catch (e) {
+        log.error(e instanceof Error ? e.message : String(e));
+      }
 
-        const output = diff.stdout.trim();
+      const today = new Date().toISOString().split('T')[0];
 
-        if (output) {
-          // Only generate changelog if there are changes
-          log.info(`${modulePath} changes length: ${output.length}`);
+      if (existsSync(`generated-changelogs/changelog-${today}`)) {
+        log.info(chalk.red(`Changelog for today already exists`));
+        const output = {
+          message: readFileSync(`generated-changelogs/changelog-${today}`, 'utf-8'),
+        };
+        span?.update({ output });
+        span?.end();
+        return output;
+      }
 
-          const modulePrompt = `
-            Time: ${weekAgo} - ${today}
-            Module: ${modulePath}
+      log.info(today);
 
-            Git diff to generate from: ${output}
+      // For 7 days ago
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      log.info(weekAgo);
+      const cwd = process.cwd();
+
+      log.info(cwd);
+
+      const modulePaths = [
+        'packages/core',
+        'packages/cli',
+        'packages/create-mastra',
+        'packages/deployer',
+        'packages/evals',
+        'packages/rag',
+        'packages/memory',
+        'packages/mcp',
+
+        // Deployers
+        'deployers/cloudflare',
+        'deployers/netlify',
+        'deployers/vercel',
+
+        // Speech modules
+        'speech/azure',
+        'speech/deepgram',
+        'speech/elevenlabs',
+        'speech/google',
+        'speech/ibm',
+        'speech/murf',
+        'speech/openai',
+        'speech/playai',
+        'speech/replicate',
+        'speech/speechify',
+
+        // Storage modules
+        'stores/pg',
+        'stores/astra',
+        'stores/chroma',
+        'stores/pinecone',
+        'stores/qdrant',
+        'stores/upstash',
+        'stores/vectorize',
+      ];
+
+      const moduleChangelogs = [];
+
+      let generatedText = '';
+
+      let TOKEN_LIMIT = 80000;
+
+      for (const modulePath of modulePaths) {
+        const args = [
+          '--no-pager',
+          'diff',
+          '--unified=1', // Reduced context to 1 line
+          '--no-prefix',
+          '--color=never',
+          `main@{${weekAgo}}`,
+          `main@{${today}}`,
+          '--',
+          modulePath,
+          ':!**/node_modules/**',
+          ':!**/.turbo/**',
+          ':!**/.next/**',
+          ':!**/coverage/**',
+          ':!**/package-lock.json',
+          ':!**/pnpm-lock.yaml',
+          ':!**/yarn.lock',
+          ':!**/*.bin',
+          ':!**/*.exe',
+          ':!**/*.dll',
+          ':!**/*.so',
+          ':!**/*.dylib',
+          ':!**/*.class',
+          ':!**/dist/**',
+        ];
+        log.info(`git ${args.join(' ')}`);
+
+        try {
+          const diff = await execa('git', args, {
+            cwd,
+          });
+
+          const outputText = diff.stdout.trim();
+
+          if (outputText) {
+            // Only generate changelog if there are changes
+            log.info(`${modulePath} changes length: ${outputText.length}`);
+
+            const modulePrompt = `
+Between ${weekAgo} and ${today}
+In module: ${modulePath}
+
+            Git diff to generate from: ${outputText}
 
             # Task
             1. Create a structured narrative changelog that highlights key updates and improvements for this module.
@@ -170,59 +186,77 @@ const stepA1 = createStep({
             - Performance optimizations
           `;
 
-          const agent = mastra?.getAgent('daneChangeLog');
+            const agent = mastra?.getAgent('daneChangeLog');
 
-          if (agent === undefined) {
-            throw new Error('LLM not found');
+            if (agent === undefined) {
+              throw new Error('LLM not found');
+            }
+
+            const result = await agent.generate(modulePrompt);
+
+            moduleChangelogs.push({
+              module: modulePath,
+              changelog: result.text,
+            });
+
+            generatedText += `\n ## ${modulePath}\n${result.text}`;
+            writeFileSync(`generated-changelogs/changelog-${today}`, generatedText);
+
+            if (result.usage?.totalTokens !== undefined) {
+              log.info(`Total tokens used: ${result.usage.totalTokens}`);
+            }
+
+            TOKEN_LIMIT -= result.usage?.totalTokens ?? 0;
+
+            if (TOKEN_LIMIT < 20000) {
+              //await delay(60000);
+              TOKEN_LIMIT = 80000;
+            }
           }
-
-          const result = await agent.generate(modulePrompt);
-
-          moduleChangelogs.push({
-            module: modulePath,
-            changelog: result.text,
-          });
-
-          generatedText += `\n ## ${modulePath}\n${result.text}`;
-          writeFileSync(`generated-changelogs/changelog-${today}`, generatedText);
-
-          if (result.usage?.totalTokens !== undefined) {
-            log.info(`Total tokens used: ${result.usage.totalTokens}`);
-          }
-
-          TOKEN_LIMIT -= result.usage?.totalTokens ?? 0;
-
-          if (TOKEN_LIMIT < 20000) {
-            //await delay(60000);
-            TOKEN_LIMIT = 80000;
-          }
+        } catch (e: unknown) {
+          log.error(`Error processing ${modulePath}: ${e instanceof Error ? e.message : String(e)}`);
         }
-      } catch (e: unknown) {
-        log.error(`Error processing ${modulePath}: ${e instanceof Error ? e.message : String(e)}`);
       }
+
+      // Combine all changelogs
+      const combinedChangelog = moduleChangelogs
+        .map(({ module, changelog }) => `## ${module}\n${changelog}`)
+        .join('\n\n');
+
+      writeFileSync(`generated-changelogs/changelog-${today}`, combinedChangelog);
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Git diff completed for channel ${inputData.channelId}`,
+          stage: 'stepA1',
+        },
+        id: 'stepA1',
+      });
+
+      const finalOutput = {
+        message: combinedChangelog,
+      };
+
+      span?.update({
+        output: finalOutput,
+        metadata: {
+          'modules.changed': moduleChangelogs.length,
+          'changelog.length': combinedChangelog.length,
+        },
+      });
+      span?.end();
+
+      return finalOutput;
+    } catch (error) {
+      log.error(`Error in git-diff step: ${error instanceof Error ? error.message : String(error)}`);
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
     }
-
-    // Combine all changelogs
-    const combinedChangelog = moduleChangelogs
-      .map(({ module, changelog }) => `## ${module}\n${changelog}`)
-      .join('\n\n');
-
-    writeFileSync(`generated-changelogs/changelog-${today}`, combinedChangelog);
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Git diff completed for channel ${inputData.channelId}`,
-        stage: 'stepA1',
-      },
-      id: 'stepA1',
-    });
-
-
-    return {
-      message: combinedChangelog,
-    };
   },
 });
 
@@ -235,44 +269,55 @@ const stepA2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepA2',
+      input: { message_length: inputData.message.length },
+      metadata: {
+        'workflow.step': 'stepA2',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting changelog generation (input length: ${inputData.message.length})...`,
-        stage: 'stepA2',
-      },
-      id: 'stepA2',
-    })
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Starting changelog generation (input length: ${inputData.message.length})...`,
+          stage: 'stepA2',
+        },
+        id: 'stepA2',
+      })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating changelog from git diff (input length: ${inputData.message.length})...`,
-        stage: 'stepA2',
-      },
-      id: 'stepA2',
-    })
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Generating changelog from git diff (input length: ${inputData.message.length})...`,
+          stage: 'stepA2',
+        },
+        id: 'stepA2',
+      })
 
-    const agent = mastra?.getAgent('daneChangeLog');
+      const agent = mastra?.getAgent('daneChangeLog');
 
-    if (agent === undefined) {
-      throw new Error('LLM not found');
-    }
+      if (agent === undefined) {
+        throw new Error('LLM not found');
+      }
 
-    const today = new Date().toISOString().split('T')[0];
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const tools = await slack.listTools();
+      const tools = await slack.listTools();
 
-    const channelId = 'default-channel'; // TODO: Pass channelId through workflow properly
+      const channelId = 'default-channel'; // TODO: Pass channelId through workflow properly
 
-    const prompt = `
-            Time: ${weekAgo} - ${today}
+      const prompt = `
+Time from ${weekAgo} to ${today}
 
             ${inputData.message}
             # Task
@@ -309,9 +354,8 @@ const stepA2 = createStep({
             Finally send this to this slack channel: "${channelId}" with the tool slack_post_message
         `;
 
-    log.info(chalk.green(`Generating...`));
+      log.info(chalk.green(`Generating...`));
 
-    try {
       const result = await agent.generate(prompt, {
         toolsets: {
 //          slack: tools,
@@ -330,10 +374,19 @@ const stepA2 = createStep({
         id: 'stepA2',
       });
 
-
-      return {
+      const output = {
         message: result.text,
       };
+
+      span?.update({
+        output,
+        metadata: {
+          'final.changelog.length': result.text.length,
+        },
+      });
+      span?.end();
+
+      return output;
     } catch (e) {
       log.error(e instanceof Error ? e.message : String(e));
 
@@ -347,10 +400,16 @@ const stepA2 = createStep({
         id: 'stepA2',
       });
 
-
-      return {
-        message: e as string,
+      const errorResult = {
+        message: String(e),
       };
+
+      span?.error({
+        error: e instanceof Error ? e : new Error(String(e)),
+        endSpan: true,
+      });
+
+      return errorResult;
     }
   },
 });

@@ -1,4 +1,6 @@
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
+
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
@@ -172,8 +174,10 @@ export const dataValidatorToolJSON = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as DataValidatorContext | undefined
-        const tracingContext = context?.tracingContext
+        const requestContext = context?.requestContext as
+            | DataValidatorContext
+            | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -189,6 +193,7 @@ export const dataValidatorToolJSON = createTool({
             type: SpanType.TOOL_CALL,
             name: 'data-validator',
             input: inputData,
+            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'data-validator-json',
                 'user.id': requestContext?.userId,
@@ -213,7 +218,7 @@ export const dataValidatorToolJSON = createTool({
                 })
                 rootSpan?.update({
                     output: { valid: true },
-                    metadata: { 'tool.output.valid': true }
+                    metadata: { 'tool.output.valid': true },
                 })
                 rootSpan?.end()
                 return {

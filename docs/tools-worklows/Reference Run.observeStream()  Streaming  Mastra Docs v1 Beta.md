@@ -1,0 +1,50 @@
+---
+title: "Reference: Run.observeStream() | Streaming | Mastra Docs v1 Beta"
+source: "https://mastra.ai/reference/v1/streaming/workflows/observeStream"
+author:
+published:
+created: 2026-01-13
+description: "Mastra v1 Beta: Documentation for the `Run.observeStream()` method in workflows, which enables reopening the stream of an already active workflow run."
+tags:
+  - "clippings"
+---
+The `.observeStream()` method opens a new `ReadableStream` to a workflow run that is currently running, allowing you to observe the stream of events if the original stream is no longer available.
+
+## Usage example
+
+```typescript
+const run = await workflow.createRun();
+
+run.stream({
+  inputData: {
+    value: "initial data",
+  },
+});
+
+const stream = await run.observeStream();
+
+for await (const chunk of stream) {
+  console.log(chunk);
+}
+```
+
+## Returns
+
+`ReadableStream<ChunkType>`
+
+## Stream Events
+
+The stream emits various event types during workflow execution. Each event has a `type` field and a `payload` containing relevant data:
+
+- **`workflow-start`**: Workflow execution begins
+- **`workflow-step-start`**: A step begins execution
+- **`workflow-step-output`**: Custom output from a step
+- **`workflow-step-result`**: A step completes with results
+- **`workflow-finish`**: Workflow execution completes with usage statistics
+
+## Related
+
+- [Workflows overview](https://mastra.ai/docs/v1/workflows/overview#running-workflows)
+- [Workflow.createRun()](https://mastra.ai/reference/v1/workflows/workflow-methods/create-run)
+- [Run.stream()](https://mastra.ai/reference/v1/streaming/workflows/stream)
+- [Run.resumeStream()](https://mastra.ai/reference/v1/streaming/workflows/resumeStream)
