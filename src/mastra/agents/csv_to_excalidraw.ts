@@ -3,6 +3,7 @@ import { googleAI, pgMemory } from "../config";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from "@mastra/core/processors";
+import { InternalSpans } from "@mastra/core/observability";
 
 export interface CsvToExcalidrawRuntimeContext {
     userId?: string
@@ -178,6 +179,11 @@ Structure:
   scorers: {
 
   },
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+    },
   workflows: {},
   maxRetries: 5,
   outputProcessors: [new TokenLimiterProcessor(1048576)],

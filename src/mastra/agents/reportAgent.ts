@@ -6,6 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ReportRuntimeContext {
@@ -70,7 +71,11 @@ export const reportAgent = new Agent({
     return googleAIFlashLite
   },
   memory: pgMemory,
-  options: {},
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+  },
   scorers: {
 
   },

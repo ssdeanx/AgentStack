@@ -9,6 +9,7 @@ import { mastraChunker } from '../tools/document-chunking.tool'
 import { readDataFileTool, writeDataFileTool, listDataDirTool, getDataFileInfoTool } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface DocumentProcessingContext {
     userId?: string
@@ -61,6 +62,11 @@ User: ${userId} | In: ${inputDirectory} | Out: ${outputDirectory}
       listDataDirTool,
       getDataFileInfoTool,
    },
+   options: {
+       tracingPolicy: {
+         internal: InternalSpans.ALL
+       }
+    },
    outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 

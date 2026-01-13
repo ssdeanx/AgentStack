@@ -17,7 +17,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { createToneScorer, createTextualDifferenceScorer, createCompletenessScorer } from '../evals/scorers/prebuilt'
-
+import { InternalSpans } from '@mastra/core/observability'
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
     userId?: string
@@ -80,6 +80,11 @@ Create compelling content (blog, marketing, social, technical, business, creativ
       toneConsistency: { scorer: createToneScorer() },
       textualDifference: { scorer: createTextualDifferenceScorer() },
       completeness: { scorer: createCompletenessScorer() },
+    },
+    options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
     },
     workflows: {},
     maxRetries: 5,

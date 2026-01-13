@@ -6,6 +6,7 @@ import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
 import { documentRerankerTool, mdocumentChunker } from '../tools/document-chunking.tool'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface KnowledgeIndexingContext {
@@ -58,6 +59,11 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
     documentRerankerTool,
     readDataFileTool,
     listDataDirTool,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })

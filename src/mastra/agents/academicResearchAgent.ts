@@ -16,6 +16,7 @@ import {
 } from '../tools'
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
@@ -136,6 +137,11 @@ ${
         extractLearningsTool,
     },
     memory: pgMemory,
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     maxRetries: 3,
     defaultOptions: {
         autoResumeSuspendedTools: true,

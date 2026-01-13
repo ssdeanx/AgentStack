@@ -21,6 +21,7 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ChartRuntimeContext {
@@ -89,6 +90,11 @@ You are a Financial Data Visualization Specialist focused on recommending optima
   model: googleAIFlashLite,
   memory: pgMemory,
   maxRetries: 3,
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+  },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
@@ -147,7 +153,11 @@ You are a Financial Data Processing Specialist that transforms raw API data into
     alphaVantageStockTool,
   },
   memory: pgMemory,
-  options: {},
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   maxRetries: 3,
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
@@ -202,6 +212,11 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
   model: googleAI,
   memory: pgMemory,
   maxRetries: 3,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
@@ -279,6 +294,9 @@ ${PGVECTOR_PROMPT}
   },
   memory: pgMemory,
   options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   scorers: {
 

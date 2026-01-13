@@ -7,6 +7,7 @@ import { copywriterAgent } from './copywriterAgent'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { researchAgent } from './researchAgent'
 import { calendarAgent } from './calendarAgent'
+import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing Social Media Agent...')
 
@@ -99,7 +100,11 @@ export const socialMediaAgent = new Agent({
         researchAgent,
         calendarAgent,
     },
-    options: {},
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     defaultOptions: {
       autoResumeSuspendedTools: true,
     },

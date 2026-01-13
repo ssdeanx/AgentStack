@@ -21,6 +21,7 @@ import {
 } from '../tools/web-scraper-tool'
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
@@ -125,6 +126,11 @@ Provide structured results with:
     },
     memory: pgMemory,
     maxRetries: 5,
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     outputProcessors: [
         new TokenLimiterProcessor(128000),
         new BatchPartsProcessor({

@@ -5,7 +5,7 @@ import { googleAI, pgMemory } from "../config";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from "@mastra/core/request-context";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
-
+import { InternalSpans } from "@mastra/core/observability";
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ImageToCsvRuntimeContext  {
@@ -148,7 +148,11 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
   tools: {},
   scorers: {
 
-    
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   workflows: {},
   maxRetries: 5,

@@ -4,6 +4,7 @@ import { googleAIFlashLite, pgMemory } from '../config';
 import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { InternalSpans } from '@mastra/core/observability';
 
 export interface CalendarContext {
     userId?: string
@@ -54,6 +55,11 @@ Current user: ${userId ?? 'anonymous'}`,
     getTodayEvents,
     getUpcomingEvents,
     findFreeSlots,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   outputProcessors: [new TokenLimiterProcessor(128000)],
   defaultOptions: {

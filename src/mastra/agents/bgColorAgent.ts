@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { colorChangeTool } from "../tools/color-change-tool";
-
+import { InternalSpans } from "@mastra/core/observability";
 export const bgColorAgent = new Agent({
   id: "bg-color-agent",
   name: "Background Color Agent",
@@ -15,6 +15,11 @@ export const bgColorAgent = new Agent({
   model: "openai/gpt-4o-mini",
   tools: { colorChangeTool },
   memory: new Memory(),
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },

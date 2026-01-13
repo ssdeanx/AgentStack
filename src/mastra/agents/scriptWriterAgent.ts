@@ -8,6 +8,7 @@ import { googleAI } from '../config/google';
 import { pgMemory } from '../config/pg-storage';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { InternalSpans } from '@mastra/core/observability';
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ScriptWriterRuntimeContext {
@@ -65,7 +66,11 @@ User: ${userTier} | Lang: ${language}
     return google.chat('gemini-2.5-flash-preview-09-2025')
   },
   memory: pgMemory,
-  options: {},
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+  },
   scorers: {
   },
   tools: {

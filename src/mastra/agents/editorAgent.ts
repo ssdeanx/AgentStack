@@ -7,6 +7,7 @@ import { log } from '../config/logger';
 import { pgMemory } from '../config/pg-storage';
 
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { InternalSpans } from '@mastra/core/observability';
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EditorRuntimeContext {
@@ -75,6 +76,11 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
 //  tools: [],
   scorers: {
 
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   workflows: {},
   maxRetries: 5,

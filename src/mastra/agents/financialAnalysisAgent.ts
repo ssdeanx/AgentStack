@@ -13,6 +13,7 @@ import {
 //    financialChartTool,
     technicalAnalysisTool,
 } from '../tools'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
@@ -134,6 +135,11 @@ ${
         alphaVantageTool,
 //        financialChartTool,
         technicalAnalysisTool,
+    },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
     },
     memory: pgMemory,
     maxRetries: 3,

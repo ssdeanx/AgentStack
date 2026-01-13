@@ -15,6 +15,7 @@ import { readCSVDataTool } from '../tools/data-processing-tools'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface DataIngestionContext {
     userId?: string
@@ -68,6 +69,11 @@ User: ${userId} | Dir: ${sourceDirectory} | Max Rows: ${maxRows}
         getDataFileInfoTool,
         chartSupervisorTool
     },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+      },
     outputProcessors: [new TokenLimiterProcessor(1048576)],
     defaultOptions: {
       autoResumeSuspendedTools: true,

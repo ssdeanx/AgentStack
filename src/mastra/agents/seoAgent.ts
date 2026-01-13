@@ -6,6 +6,7 @@ import { log } from '../config/logger'
 import { researchAgent } from './researchAgent'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { evaluationAgent } from './evaluationAgent'
+import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing SEO Agent...')
 
@@ -106,7 +107,11 @@ export const seoAgent = new Agent({
         contentStrategistAgent,
         evaluationAgent,
     },
-    options: {},
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     defaultOptions: {
       autoResumeSuspendedTools: true,
     }

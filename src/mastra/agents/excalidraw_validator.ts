@@ -3,7 +3,7 @@ import { googleAI, pgMemory } from "../config";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import type { RequestContext } from "@mastra/core/request-context";
 import { TokenLimiterProcessor } from "@mastra/core/processors";
-
+import { InternalSpans } from "@mastra/core/observability";
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ExcalidrawValidatorRuntimeContext {
   userId?: string
@@ -110,6 +110,11 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
   tools: {},
   scorers: {},
   workflows: {},
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   maxRetries: 5,
   outputProcessors: [new TokenLimiterProcessor(1048576)]
 });

@@ -20,6 +20,7 @@ import {
 } from '../tools'
 
 import { evaluateResultTool } from '../tools/evaluateResultTool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
@@ -152,6 +153,11 @@ ${
     },
     memory: pgMemory,
     maxRetries: 3,
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+      },
     defaultOptions: {
         autoResumeSuspendedTools: true,
     },

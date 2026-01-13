@@ -7,6 +7,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 import type { RequestContext } from '@mastra/core/request-context';
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
+import { InternalSpans } from '@mastra/core/observability';
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface PackagePublisherRuntimeContext {
@@ -167,9 +168,10 @@ export const danePackagePublisher = new Agent({
     pnpmChangesetPublish,
     activeDistTag,
   },
-  options: {
-    // `internal` expects an InternalSpans value (or undefined). Avoid passing a boolean.
-    //    tracingPolicy: { internal: undefined },
+options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   scorers: {},
   outputProcessors: [new TokenLimiterProcessor(128000)],
