@@ -116,7 +116,7 @@ export interface ToolNameContext extends RequestContext {
 execute: async (inputData, context) => {
     const writer = context?.writer
     const abortSignal = context?.abortSignal
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const requestCtx = context?.requestContext as ToolNameContext | undefined
 
     // Extract context values
@@ -133,6 +133,8 @@ execute: async (inputData, context) => {
         type: SpanType.TOOL_CALL,
         name: 'tool-operation-name',
         input: inputData,
+        // Pass requestContext so configured ObservabilityInstance can automatically extract metadata
+        requestContext: context?.requestContext,
         metadata: {
             'tool.id': 'tool-id',
             'tool.input.param': inputData.param,
@@ -203,6 +205,36 @@ execute: async (inputData, context) => {
 }
 ```
 
+### Tracing Requirements (ENFORCED)
+
+To ensure high-quality, consistent observability across all tools, the following tracing rules are required for every tool in `/src/mastra/tools`:
+
+- Import the tracing type where needed:
+  - `import type { TracingContext } from '@mastra/core/observability'`
+- Use typed tracingContext in the execute function:
+  - `const tracingContext: TracingContext | undefined = context?.tracingContext`
+- Always create a TOOL_CALL child span for the primary operation and pass requestContext for automatic metadata extraction:
+  - `requestContext: context?.requestContext`
+  - `type: SpanType.TOOL_CALL`
+- Use `tool.id` and `user.id` / `workspace.id` in span metadata where applicable.
+- Emit `data-tool-progress` events at start and completion (stage must match the tool id).
+- Respect `abortSignal` early (fail fast) and record cancellations in spans.
+
+See these docs for details and examples:
+- `docs/tracing-interfaces-reference.md` (Tracing types)
+- `docs/tracing-instances-reference.md` (Observability instances & startSpan)
+- `docs/creating-child-spans.md` (creating and managing child spans)
+- `docs/tracing-spans-reference.md` (span lifecycle & semantics)
+- `docs/opentelemetry-semantic-conventions.md` (recommended attributes & naming)
+
+**Checklist for PRs that modify tools:**
+- [ ] Add `TracingContext` typing and use it in `execute` when a tool creates spans
+- [ ] Add `requestContext: context?.requestContext` to `createChildSpan` calls
+- [ ] Use `SpanType.TOOL_CALL` for tool spans
+- [ ] Add/verify `data-tool-progress` messages with `status` and `stage`
+- [ ] Add unit tests that mock `tracingContext.currentSpan.createChildSpan()` to assert spans are created/updated/ended
+
+These rules help ensure consistent, filterable traces across Mastra and better integration with exporters and OTEL bridges.
 #### Migration: Replacing OpenTelemetry usage in tools
 
 If a tool currently imports and uses OpenTelemetry APIs directly (for example `trace.getTracer(...)`, `span.recordException(...)`, `span.setStatus(...)`), migrate it to the runtime `tracingContext` pattern above. Example migration:
@@ -708,6 +740,9 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 | Version | Date       | Changes                                                                                                                                                                                                                     |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2.16.0  | 2025-12-15 | **TEST COVERAGE**: Fixed 3 test files (json-to-csv, data-validator, csv-to-json), added weather-tool.test.ts with 5 tests. All 29 tests now passing. Tracing verified across all 67 tools using SpanType.TOOL_CALL pattern. |
+
+- 2026-01-11: Added unit tests for Finnhub tools (finnhub-quotes & finnhub-company) and improved existing financial tool tests (alpha-vantage) to mock httpFetch and make assertions more robust (error handling, missing-key behavior, lifecycle events).
+
 | 2.15.0  | 2025-12-15 | **COMPLETE**: All 40+ tools now have full lifecycle hooks (onInputStart, onInputDelta, onInputAvailable, onOutput) with abortSignal logging                                                                                 |
 | 2.14.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 15 tools with onInputDelta + abortSignal: added arxiv, browser, serpapi-academic-local                                                                                                     |
 | 2.11.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 6 tools with onInputDelta + abortSignal: github.ts, serpapi-search, csv-to-json, json-to-csv                                                                                               |

@@ -2,6 +2,7 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { RequestContext } from '@mastra/core/request-context'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import {
     log,
@@ -10,6 +11,7 @@ import {
     logStepStart,
     logToolExecution,
 } from '../config/logger'
+import { httpFetch } from '../lib/http-client'
 
 export interface FinnhubRequestContext extends RequestContext {
     userId?: string

@@ -1,5 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
+import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { SpanType } from '@mastra/core/observability'
 import { parse } from 'csv-parse/sync'

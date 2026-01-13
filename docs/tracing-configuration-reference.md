@@ -74,61 +74,81 @@ interface ConfigSelectorOptions {
 ## Registry Methods
 
 ### registerInstance
+
 ```typescript
 registerInstance(name: string, instance: ObservabilityInstance, isDefault?: boolean): void;
 ```
+
 Registers an observability instance in the registry.
 
 ### getInstance
+
 ```typescript
 getInstance(name: string): ObservabilityInstance | undefined;
 ```
+
 Retrieves an observability instance by name.
 
 ### getDefaultInstance
+
 ```typescript
 getDefaultInstance(): ObservabilityInstance | undefined;
 ```
+
 Returns the default observability instance.
 
 ### getSelectedInstance
+
 ```typescript
 getSelectedInstance(options: ConfigSelectorOptions): ObservabilityInstance | undefined;
 ```
+
 Returns the observability instance selected by the config selector or default.
 
 ### listInstances
+
 ```typescript
 listInstances(): ReadonlyMap<string, ObservabilityInstance>;
 ```
+
 Returns all registered observability instances.
 
 ### hasInstance
+
 ```typescript
 hasInstance(name: string): boolean;
 ```
+
 Checks if an observability instance exists.
 
 ### setConfigSelector
+
 ```typescript
 setConfigSelector(selector: ConfigSelector): void;
 ```
+
 Sets the config selector function.
 
 ### unregisterInstance
+
 ```typescript
 unregisterInstance(name: string): boolean;
 ```
+
 Removes an observability instance from the registry.
 
 ### clear
+
 ```typescript
 clear(): void;
 ```
+
 Clears all instances without shutdown.
 
 ### shutdown
+
 ```typescript
 async shutdown(): Promise<void>;
 ```
+
 Shuts down all observability instances and clears the registry.

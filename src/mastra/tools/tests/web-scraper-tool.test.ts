@@ -22,41 +22,27 @@ vi.mock('crawlee', () => {
     }
 })
 
-// Mock JSDOM
-vi.mock('jsdom', () => ({
-    JSDOM: vi.fn().mockImplementation((html?: string) => {
-        return {
-            window: {
-                document: {
-                    body: { innerHTML: html || '' },
-                    querySelector: vi.fn((selector: string) => {
-                        if (selector === 'title')
-                            {return { textContent: 'Test Title' }}
-                        if (selector === 'meta[name="description"]')
-                            {return { getAttribute: () => 'Test description' }}
-                        return null
-                    }),
-                    querySelectorAll: vi.fn(() => []),
-                },
-            },
-            includeNodeLocations: false,
-        }
-    }) as any,
-}))
-
 class JSDOMMock {
     constructor(html?: string, options?: any) {
         this.window = {
             document: {
                 body: { innerHTML: html || '' },
                 querySelector: vi.fn((selector: string) => {
-                    if (selector === 'title')
-                        {return { textContent: 'Test Title' }}
-                    if (selector === 'meta[name="description"]')
-                        {return { getAttribute: () => 'Test description' }}
+                    if (selector === 'title') {
+                        return { textContent: 'Test Title' }
+                    }
+                    if (selector === 'meta[name="description"]') {
+                        return { getAttribute: () => 'Test description' }
+                    }
                     return null
                 }),
-                querySelectorAll: vi.fn(() => []),
+                querySelectorAll: vi.fn((selector: string) => {
+                    // Make h1 selector yield the expected element for tests
+                    if (selector === 'h1') {
+                        return [{ textContent: 'Test Content' }]
+                    }
+                    return []
+                }),
             },
         }
         this.includeNodeLocations = false
@@ -64,6 +50,11 @@ class JSDOMMock {
     window: any
     includeNodeLocations: boolean
 }
+
+// Mock JSDOM as a constructible class so tests that use `new JSDOM(...)` work correctly
+vi.mock('jsdom', () => ({
+    JSDOM: JSDOMMock,
+}))
 // Import the module-under-test AFTER mocks are declared
 import { webScraperTool } from '../web-scraper-tool'
 vi.mock('node:fs/promises', () => ({
@@ -108,34 +99,6 @@ describe('webScraperTool', () => {
         }
         mockFs.open.mockResolvedValue(mockFileHandle as any)
 
-        // Mock JSDOM
-        const mockJSDOM = vi.mocked(JSDOM)
-        mockJSDOM.mockImplementation((html: string) => {
-            return {
-                window: {
-                    document: {
-                        body: { innerHTML: html },
-                        querySelector: vi.fn((selector: string) => {
-                            if (selector === 'title')
-                                {return { textContent: 'Test Title' }}
-                            if (selector === 'meta[name="description"]')
-                                {return {
-                                    getAttribute: () => 'Test description',
-                                }}
-                            return null
-                        }),
-                        querySelectorAll: vi.fn((selector: string) => {
-                            // Make h1 selector yield the expected element for tests
-                            if (selector === 'h1') {
-                                return [ { textContent: 'Test Content' } ]
-                            }
-                            return []
-                        }),
-                    },
-                },
-                includeNodeLocations: false,
-            } as any
-        })
 
         // Mock CheerioCrawler
         mockCrawler = {

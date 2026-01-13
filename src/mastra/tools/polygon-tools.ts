@@ -10,6 +10,9 @@ import {
     log,
 } from '../config/logger'
 import { SpanType } from '@mastra/core/observability'
+import { httpFetch } from '../lib/http-client'
+const fetch = httpFetch
+
 
 /**
  * Governance-aware Runtime Context for Polygon.io tools
@@ -236,14 +239,14 @@ export const polygonStockQuotesTool = createTool({
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(finalUrl)
-            const data = await response.json()
+            const resp = await httpFetch(finalUrl, { method: 'GET', timeout: 30000, responseType: 'json', signal: abortSignal })
+            const data = resp.data
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.update({
                 metadata: {
-                    'http.status_code': response.status,
-                    'http.status_text': response.statusText,
+                    'http.status_code': resp.status,
+                    'http.status_text': resp.statusText ?? undefined,
                     'response.size': JSON.stringify(data).length,
                 },
             })
@@ -252,7 +255,7 @@ export const polygonStockQuotesTool = createTool({
             logStepEnd(
                 'polygon-api-call',
                 {
-                    status: response.status,
+                    status: resp.status,
                     dataSize: JSON.stringify(data).length,
                 },
                 apiDuration
@@ -273,7 +276,7 @@ export const polygonStockQuotesTool = createTool({
                     const error = String(errorValue)
                     logError('polygon-stock-quotes', new Error(error), {
                         input: inputData,
-                        responseStatus: response.status,
+                        responseStatus: resp.status,
                     })
 
                     rootSpan?.error({
@@ -285,14 +288,15 @@ export const polygonStockQuotesTool = createTool({
                 }
             }
 
+            const dataObj = data as Record<string, any>
             const result = {
                 data,
                 metadata: {
                     function: inputData.function,
                     symbol: inputData.symbol,
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                 },
                 error: undefined,
             }
@@ -602,10 +606,13 @@ export const polygonStockAggregatesTool = createTool({
             const data = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
+            // Normalize data typing for safer property access
+            const dataObj = data as Record<string, any>
+
             apiSpan?.update({
                 metadata: {
                     'http.status_code': response.status,
-                    'response.size': JSON.stringify(data).length,
+                    'response.size': JSON.stringify(dataObj).length,
                 },
             })
             apiSpan?.end()
@@ -614,18 +621,18 @@ export const polygonStockAggregatesTool = createTool({
                 'polygon-api-call',
                 {
                     status: response.status,
-                    dataSize: JSON.stringify(data).length,
+                    dataSize: JSON.stringify(dataObj).length,
                 },
                 apiDuration
             )
 
             // Check for API errors
             if (
-                data !== null &&
-                typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                dataObj !== null &&
+                typeof dataObj === 'object' &&
+                'error' in (dataObj as Record<string, unknown>)
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = (dataObj as Record<string, unknown>)['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
@@ -647,12 +654,12 @@ export const polygonStockAggregatesTool = createTool({
             }
 
             const result = {
-                data,
+                data: dataObj,
                 metadata: {
                     symbol: inputData.symbol,
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                     multiplier: inputData.multiplier,
                     timespan: inputData.timespan,
                     from: inputData.from,
@@ -968,21 +975,18 @@ export const polygonStockFundamentalsTool = createTool({
                 )
             }
 
-            logStepStart('polygon-api-call', {
-                function: inputData.function,
-                symbol: inputData.symbol,
-                url: redactedUrl,
-            })
-
             const apiStartTime = Date.now()
             const response = await fetch(finalUrl)
             const data = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
+            // Normalize data typing for safer property access
+            const dataObj = data as Record<string, any>
+
             apiSpan?.update({
                 metadata: {
                     'http.status_code': response.status,
-                    'response.size': JSON.stringify(data).length,
+                    'response.size': JSON.stringify(dataObj).length,
                 },
             })
             apiSpan?.end()
@@ -991,18 +995,18 @@ export const polygonStockFundamentalsTool = createTool({
                 'polygon-api-call',
                 {
                     status: response.status,
-                    dataSize: JSON.stringify(data).length,
+                    dataSize: JSON.stringify(dataObj).length,
                 },
                 apiDuration
             )
 
             // Check for API errors
             if (
-                data !== null &&
-                typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                dataObj !== null &&
+                typeof dataObj === 'object' &&
+                'error' in (dataObj as Record<string, unknown>)
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = (dataObj as Record<string, unknown>)['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
@@ -1011,7 +1015,7 @@ export const polygonStockFundamentalsTool = createTool({
                     const error = String(errorValue)
                     logError('polygon-stock-fundamentals', new Error(error), {
                         input: inputData,
-                        responseStatus: response.status,
+                        responseStatus: response?.status,
                     })
 
                     rootSpan?.error({
@@ -1028,9 +1032,9 @@ export const polygonStockFundamentalsTool = createTool({
                 metadata: {
                     function: inputData.function,
                     symbol: inputData.symbol,
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                 },
             }
 
@@ -1280,10 +1284,13 @@ export const polygonCryptoQuotesTool = createTool({
             const data = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
+            // Normalize data typing for safer property access
+            const dataObj = data as Record<string, any>
+
             apiSpan?.update({
                 metadata: {
                     'http.status_code': response.status,
-                    'response.size': JSON.stringify(data).length,
+                    'response.size': JSON.stringify(dataObj).length,
                 },
             })
             apiSpan?.end()
@@ -1292,18 +1299,18 @@ export const polygonCryptoQuotesTool = createTool({
                 'polygon-api-call',
                 {
                     status: response.status,
-                    dataSize: JSON.stringify(data).length,
+                    dataSize: JSON.stringify(dataObj).length,
                 },
                 apiDuration
             )
 
             // Check for API errors
             if (
-                data !== null &&
-                typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                dataObj !== null &&
+                typeof dataObj === 'object' &&
+                'error' in (dataObj as Record<string, unknown>)
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = (dataObj as Record<string, unknown>)['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
@@ -1329,9 +1336,9 @@ export const polygonCryptoQuotesTool = createTool({
                 metadata: {
                     function: inputData.function,
                     symbol: inputData.symbol,
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                 },
             }
 
@@ -1343,11 +1350,11 @@ export const polygonCryptoQuotesTool = createTool({
                     function: inputData.function,
                     symbol: inputData.symbol,
                     dataPoints:
-                        data !== null &&
-                        typeof data === 'object' &&
-                        'count' in data &&
-                        typeof data.count === 'number'
-                            ? data.count
+                        dataObj !== null &&
+                        typeof dataObj === 'object' &&
+                        'count' in dataObj &&
+                        typeof dataObj.count === 'number'
+                            ? dataObj.count
                             : 0,
                 },
                 totalDuration
@@ -1358,11 +1365,11 @@ export const polygonCryptoQuotesTool = createTool({
                 metadata: {
                     success: true,
                     'output.count':
-                        data !== null &&
-                        typeof data === 'object' &&
-                        'count' in data &&
-                        typeof data.count === 'number'
-                            ? data.count
+                        dataObj !== null &&
+                        typeof dataObj === 'object' &&
+                        'count' in dataObj &&
+                        typeof dataObj.count === 'number'
+                            ? dataObj.count
                             : 0,
                     processing_time_ms: totalDuration,
                 },
@@ -1602,10 +1609,13 @@ export const polygonCryptoAggregatesTool = createTool({
             const data = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
+            // Normalize data typing for safer property access
+            const dataObj = data as Record<string, any>
+
             apiSpan?.update({
                 metadata: {
                     'http.status_code': response.status,
-                    'response.size': JSON.stringify(data).length,
+                    'response.size': JSON.stringify(dataObj).length,
                 },
             })
             apiSpan?.end()
@@ -1614,18 +1624,18 @@ export const polygonCryptoAggregatesTool = createTool({
                 'polygon-api-call',
                 {
                     status: response.status,
-                    dataSize: JSON.stringify(data).length,
+                    dataSize: JSON.stringify(dataObj).length,
                 },
                 apiDuration
             )
 
             // Check for API errors
             if (
-                data !== null &&
-                typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                dataObj !== null &&
+                typeof dataObj === 'object' &&
+                'error' in (dataObj as Record<string, unknown>)
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = (dataObj as Record<string, unknown>)['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
@@ -1647,12 +1657,12 @@ export const polygonCryptoAggregatesTool = createTool({
             }
 
             const result = {
-                data,
+                data: dataObj,
                 metadata: {
                     symbol: inputData.symbol,
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                     multiplier: inputData.multiplier,
                     timespan: inputData.timespan,
                     from: inputData.from,
@@ -1910,12 +1920,13 @@ export const polygonCryptoSnapshotsTool = createTool({
                 }
             }
 
+            const dataObj = data as Record<string, any>
             const result = {
                 data,
                 metadata: {
-                    status: data.status,
-                    request_id: data.request_id,
-                    count: data.count,
+                    status: dataObj.status,
+                    request_id: dataObj.request_id,
+                    count: dataObj.count,
                 },
                 error: undefined,
             }
@@ -1926,11 +1937,11 @@ export const polygonCryptoSnapshotsTool = createTool({
                 {
                     success: true,
                     dataPoints:
-                        data !== null &&
-                        typeof data === 'object' &&
-                        'count' in data &&
-                        typeof data.count === 'number'
-                            ? data.count
+                        dataObj !== null &&
+                        typeof dataObj === 'object' &&
+                        'count' in dataObj &&
+                        typeof dataObj.count === 'number'
+                            ? dataObj.count
                             : 0,
                 },
                 totalDuration
@@ -1941,11 +1952,11 @@ export const polygonCryptoSnapshotsTool = createTool({
                 metadata: {
                     success: true,
                     'output.count':
-                        data !== null &&
-                        typeof data === 'object' &&
-                        'count' in data &&
-                        typeof data.count === 'number'
-                            ? data.count
+                        dataObj !== null &&
+                        typeof dataObj === 'object' &&
+                        'count' in dataObj &&
+                        typeof dataObj.count === 'number'
+                            ? dataObj.count
                             : 0,
                     processing_time_ms: totalDuration,
                 },

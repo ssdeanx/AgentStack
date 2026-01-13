@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
 import type { InferUITool } from '@mastra/core/tools'

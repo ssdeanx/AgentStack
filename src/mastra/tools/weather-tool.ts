@@ -4,6 +4,7 @@ import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import type { TracingContext } from '@mastra/core/observability'
 
 export interface WeatherToolContext extends RequestContext {
     temperatureUnit?: 'celsius' | 'fahrenheit'
@@ -54,7 +55,7 @@ export const weatherTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
@@ -93,6 +94,8 @@ export const weatherTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
+            // Pass requestContext to allow automatic metadata extraction (userId, workspaceId, etc.)
+            requestContext: context?.requestContext,
         })
 
         try {

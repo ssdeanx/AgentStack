@@ -3,7 +3,8 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
-
+import { httpFetch } from '../lib/http-client'
+import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
@@ -245,11 +246,12 @@ export const arxivTool = createTool({
       })
     }
 
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'arxiv-search',
       input: inputData,
+      requestContext: context?.requestContext,
       metadata: {
         'tool.id': 'arxiv',
         'tool.input.query': inputData.query,
@@ -333,24 +335,9 @@ export const arxivTool = createTool({
       const url = `http://export.arxiv.org/api/query?${params.toString()}`
 
       // Check for cancellation before API call
-      if (abortSignal?.aborted) {
-        if (span) {
-          const spanAny = span as any
-          if (typeof spanAny.setStatus === 'function') {
-            spanAny.setStatus({
-              code: 2,
-              message: 'Operation cancelled during API call',
-            })
-          } else {
-            spanAny.attributes = spanAny.attributes ?? {}
-            spanAny.attributes['error.code'] = 2
-            spanAny.attributes['error.message'] =
-              'Operation cancelled during API call'
-          }
-          if (typeof spanAny.end === 'function') {
-            spanAny.end()
-          }
-        }
+      if (abortSignal?.aborted ?? false) {
+        // Record cancellation and end span
+        span?.error({ error: new Error('Operation cancelled during API call'), endSpan: true })
         throw new Error('ArXiv search cancelled during API call')
       }
 
@@ -363,15 +350,22 @@ export const arxivTool = createTool({
         },
         id: 'arxiv',
       })
-      const response = await fetch(url, { signal: abortSignal })
-
-      if (!response.ok) {
-        throw new Error(
-          `ArXiv API error: ${response.status} ${response.statusText}`
-        )
+      let resp: any
+      try {
+        resp = await httpFetch(url, { method: 'GET', timeout: 30000, responseType: 'text', signal: abortSignal })
+        // resp already has status/statusText/data from httpFetch
+      } catch (err: any) {
+        if (err?.code === 'ERR_CANCELED' || (err instanceof Error && err.name === 'AbortError')) {
+          throw new Error('ArXiv search cancelled during API call')
+        }
+        throw err
       }
 
-      const xmlText = await response.text()
+      if (typeof resp.status !== 'number' || resp.status < 200 || resp.status >= 300) {
+        throw new Error(`ArXiv API error: ${resp.status} ${resp.statusText ?? ''}`)
+      }
+
+      const xmlText = resp.data as string
 
       // Parse XML response (simplified parsing - in production you might want a proper XML parser)
       const papers = parseArxivXml(
@@ -400,38 +394,21 @@ export const arxivTool = createTool({
         start_index: startIndex,
         max_results: inputData.max_results ?? 10,
       }
-      if (span) {
-        const spanAny = span as any
-        if (typeof spanAny.setAttribute === 'function') {
-          spanAny.setAttribute('tool.output.totalResults', totalResults)
-          spanAny.setAttribute('tool.output.paperCount', papers.length)
-        } else {
-          spanAny.attributes = spanAny.attributes ?? {}
-          spanAny.attributes['tool.output.totalResults'] = totalResults
-          spanAny.attributes['tool.output.paperCount'] = papers.length
-        }
-        if (typeof spanAny.end === 'function') {
-          spanAny.end()
-        }
-      }
+      // Update span with successful result and end
+      span?.update({
+        metadata: {
+          'tool.output.totalResults': totalResults,
+          'tool.output.paperCount': papers.length,
+        },
+      })
+      span?.end()
       return result
     } catch (error) {
       // Handle AbortError specifically
       if (error instanceof Error && error.name === 'AbortError') {
         const cancelMessage = `ArXiv search cancelled for "${inputData.query ?? inputData.id ?? 'papers'}"`
-        if (span) {
-          const spanAny = span as any
-          if (typeof spanAny.setStatus === 'function') {
-            spanAny.setStatus({ code: 2, message: cancelMessage })
-          } else {
-            spanAny.attributes = spanAny.attributes ?? {}
-            spanAny.attributes['error.code'] = 2
-            spanAny.attributes['error.message'] = cancelMessage
-          }
-          if (typeof spanAny.end === 'function') {
-            spanAny.end()
-          }
-        }
+        // Record cancellation on span and end it
+        span?.error({ error: new Error(cancelMessage), endSpan: true })
 
         await writer?.custom({
           type: 'data-tool-progress',
@@ -451,27 +428,8 @@ export const arxivTool = createTool({
         error instanceof Error
           ? error.message
           : 'Unknown error occurred'
-      if (span) {
-        const spanAny = span as any
-        if (error instanceof Error && typeof spanAny.recordException === 'function') {
-          spanAny.recordException(error)
-        } else if (error instanceof Error) {
-          spanAny.attributes = spanAny.attributes ?? {}
-          spanAny.attributes['error.exception'] = error.message
-        }
-
-        if (typeof spanAny.setStatus === 'function') {
-          spanAny.setStatus({ code: 2, message: errorMessage }) // ERROR status
-        } else {
-          spanAny.attributes = spanAny.attributes ?? {}
-          spanAny.attributes['error.code'] = 2
-          spanAny.attributes['error.message'] = errorMessage
-        }
-
-        if (typeof spanAny.end === 'function') {
-          spanAny.end()
-        }
-      }
+      // Record error on span and end it
+      span?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true })
       throw error instanceof Error ? error : new Error(errorMessage)
     }
   },
@@ -580,7 +538,7 @@ export const arxivPdfParserTool = createTool({
     const writer = context?.writer
     const requestCtx =
       context?.requestContext as ArxivRequestContext | undefined
-    const tracingContext = context?.tracingContext
+    const tracingContext: TracingContext | undefined = context?.tracingContext
     const span = tracingContext?.currentSpan?.createChildSpan({
       type: SpanType.TOOL_CALL,
       name: 'arxiv-pdf-parser',
@@ -621,16 +579,9 @@ export const arxivPdfParserTool = createTool({
       const pdfUrl = `https://arxiv.org/pdf/${inputData.arxivId}`
 
       // Abort early if requested
-      if (abortSignal?.aborted) {
+      if (abortSignal?.aborted ?? false) {
         const cancelMessage = `ArXiv PDF parsing cancelled for ${inputData.arxivId}`
-        if (span) {
-          if (typeof (span as any).setStatus === 'function') {
-            ; (span as any).setStatus({ code: 2, message: cancelMessage })
-          }
-          if (typeof (span as any).end === 'function') {
-            ; (span as any).end()
-          }
-        }
+        span?.error({ error: new Error(cancelMessage), endSpan: true })
         await writer?.custom({
           type: 'data-tool-progress',
           data: {
@@ -654,27 +605,37 @@ export const arxivPdfParserTool = createTool({
         },
         id: 'arxiv-pdf-parser',
       })
-      const response = await fetch(pdfUrl, { signal: abortSignal })
 
-      if (!response.ok) {
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'done',
-            message: '❌ PDF download failed',
-            stage: 'arxiv-pdf-parser',
-          },
-          id: 'arxiv-pdf-parser',
-        })
-        if (response.status === 404) {
-          throw new Error(`Paper not found: ${inputData.arxivId}`)
+      let pdfResp: any
+      try {
+        pdfResp = await httpFetch(pdfUrl, { method: 'GET', timeout: 300000, responseType: 'arraybuffer', signal: abortSignal })
+      } catch (err: any) {
+        if (err?.code === 'ERR_CANCELED' || (err instanceof Error && err.name === 'AbortError')) {
+          const cancelMessage = `ArXiv PDF parsing cancelled for ${inputData.arxivId}`
+          await writer?.custom({
+            type: 'data-tool-progress',
+            data: { status: 'done', message: `🛑 ${cancelMessage}`, stage: 'arxiv-pdf-parser' },
+            id: 'arxiv-pdf-parser',
+          })
+          log.warn(cancelMessage)
+          throw new Error(cancelMessage)
         }
-        throw new Error(
-          `Failed to download PDF: ${response.status} ${response.statusText}`
-        )
+        throw err
       }
 
-      const pdfBuffer = Buffer.from(await response.arrayBuffer())
+      if (typeof pdfResp.status !== 'number' || pdfResp.status < 200 || pdfResp.status >= 300) {
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: { status: 'done', message: '❌ PDF download failed', stage: 'arxiv-pdf-parser' },
+          id: 'arxiv-pdf-parser',
+        })
+        if (pdfResp.status === 404) {
+          throw new Error(`Paper not found: ${inputData.arxivId}`)
+        }
+        throw new Error(`Failed to download PDF: ${pdfResp.status} ${pdfResp.statusText ?? ''}`)
+      }
+
+      const pdfBuffer = Buffer.from(pdfResp.data)
 
       // Extract text from PDF
       const pdfContent = await extractPdfText(
@@ -689,10 +650,20 @@ export const arxivPdfParserTool = createTool({
       if (inputData.includeMetadata) {
         try {
           const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`
-          const apiResponse = await fetch(apiUrl, { signal: abortSignal })
+          let apiResp: any
+          try {
+            apiResp = await httpFetch(apiUrl, { method: 'GET', responseType: 'text', signal: abortSignal, timeout: 30000 })
+          } catch (err: unknown) {
+            if (err && typeof err === 'object' && (('code' in err && (err as any).code === 'ERR_CANCELED') || (err instanceof Error && err.name === 'AbortError'))) {
+              // metadata fetch aborted - continue without it
+              apiResp = undefined
+            } else {
+              throw err
+            }
+          }
 
-          if (apiResponse.ok) {
-            const xmlText = await apiResponse.text()
+          if (apiResp && typeof apiResp.status === 'number' && apiResp.status >= 200 && apiResp.status < 300) {
+            const xmlText = apiResp.data as string
             const titleRegex = /<title>(.*?)<\/title>/
             const titleMatch = titleRegex.exec(xmlText)
             const title = titleMatch
@@ -1002,15 +973,21 @@ export const arxivPaperDownloaderTool = createTool({
       })
       // Get metadata from arXiv API
       const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`
-      const apiResponse = await fetch(apiUrl, { signal: abortSignal })
-
-      if (!apiResponse.ok) {
-        throw new Error(
-          `Failed to fetch paper metadata: ${apiResponse.status} ${apiResponse.statusText}`
-        )
+      let apiResp
+      try {
+        apiResp = await httpFetch(apiUrl, { method: 'GET', responseType: 'text', signal: abortSignal, timeout: 30000 })
+      } catch (err: any) {
+        if (err?.code === 'ERR_CANCELED' || (err instanceof Error && err.name === 'AbortError')) {
+          throw new Error(`ArXiv metadata fetch cancelled for ${inputData.arxivId}`)
+        }
+        throw err
       }
 
-      const xmlText = await apiResponse.text()
+      if (typeof apiResp.status !== 'number' || apiResp.status < 200 || apiResp.status >= 300) {
+        throw new Error(`Failed to fetch paper metadata: ${apiResp.status} ${apiResp.statusText ?? ''}`)
+      }
+
+      const xmlText = apiResp.data as string
 
       const papers = parseArxivXml(xmlText, true)
 

@@ -12,7 +12,9 @@ vi.mock('node:fs/promises', () => ({
 vi.mock('node:path', () => ({
     join: vi.fn().mockImplementation((...parts) => parts.join('/')),
 }))
-vi.mock('../../config/logger', () => ({ log: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }))
+vi.mock('../../config/logger', () => ({
+    log: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
+}))
 
 const createMockWriter = () => ({ custom: vi.fn() })
 
@@ -29,7 +31,11 @@ describe('writeNoteTool', () => {
         )
 
         expect(fs.mkdir).toHaveBeenCalled()
-        expect(fs.writeFile).toHaveBeenCalledWith('notes/test-note.md', '# Hello', 'utf-8')
+        // The path may be absolute or relative depending on how path.join is mocked
+        const writeCall = (fs.writeFile as vi.Mock).mock.calls[0]
+        expect(writeCall[0]).toContain('test-note.md')
+        expect(writeCall[1]).toBe('# Hello')
+        expect(writeCall[2]).toBe('utf-8')
         expect(res).toContain('Successfully wrote to note')
         expect(mockWriter.custom).toHaveBeenCalled()
     })
@@ -40,7 +46,10 @@ describe('writeNoteTool', () => {
         mockFs.writeFile.mockRejectedValueOnce(new Error('disk full'))
 
         await expect(
-            writeNoteTool.execute({ title: 'bad', content: 'x' }, { writer: mockWriter })
+            writeNoteTool.execute(
+                { title: 'bad', content: 'x' },
+                { writer: mockWriter }
+            )
         ).rejects.toThrow(/disk full/)
 
         expect(log.error).toHaveBeenCalled()
