@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Mastra Workflows","version":"2.0.0","applies_to":"/src/mastra/workflows","last_updated":"2025-11-26T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Mastra Workflows","version":"2.1.0","applies_to":"/src/mastra/workflows","last_updated":"2026-01-13T00:00:00Z","status":"stable"} -->
 
 # Workflows (`/src/mastra/workflows`)
 
@@ -10,7 +10,7 @@ Workflow Engineer — objective: Orchestrate tools and agents into reliable, tes
 
 Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ingestion → indexing → RAG retrieval → evaluation) and implement long-running or stateful operations where necessary.
 
-## Key Files (10 Workflows)
+## Key Files (11 Workflows)
 
 | File                              | Export                      | Purpose                                                                             | Features                                    |
 | --------------------------------- | --------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
@@ -24,6 +24,7 @@ Workflows orchestrate agents and tools into multi-step scenarios (e.g., data ing
 | `stock-analysis-workflow.ts`      | `stockAnalysisWorkflow`     | Sequential stock analysis with data enrichment at each step                         | Sequential with API integrations            |
 | `changelog.ts`                    | `changelogWorkflow`         | Generate changelogs from git diffs using AI                                         | Git integration, Slack notification         |
 | `telephone-game.ts`               | `telephoneGameWorkflow`     | Interactive telephone game demonstrating user input workflows                       | User prompts, sequential steps              |
+| `test-generation-workflow.ts`     | `testGenerationWorkflow`    | Automated unit test generation and verification using E2B sandboxes                 | Agent generation, sandbox execution         |
 
 ## Workflow Patterns Demonstrated
 
@@ -407,6 +408,7 @@ branchingWorkflow.commit();
 
 | Version | Date (UTC) | Changes                                                                      |
 | ------- | ---------- | ---------------------------------------------------------------------------- |
+| 2.1.0   | 2026-01-13 | Added observability spans to all workflows; documented Test Generation.      |
 | 2.0.0   | 2025-11-26 | Major update: 10 workflows documented with pattern examples and API routes.  |
 | 1.1.0   | 2025-11-19 | Added Content Studio workflow.                                               |
 | 1.0.0   | 2025-11-14 | Initial version.                                                             |

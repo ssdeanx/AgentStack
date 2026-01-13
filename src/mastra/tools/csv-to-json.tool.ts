@@ -50,7 +50,9 @@ export const csvToJsonTool = createTool({
     }),
     execute: async (input, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as CsvToJsonRequestContext | undefined
+        const requestContext = context?.requestContext as
+            | CsvToJsonRequestContext
+            | undefined
         const abortSignal = context?.abortSignal
         const tracingContext = context?.tracingContext
 
@@ -74,6 +76,7 @@ export const csvToJsonTool = createTool({
             type: SpanType.TOOL_CALL,
             name: 'csv-to-json-conversion',
             input,
+            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'csv-to-json',
                 'tool.input.hasFilePath': !!input.filePath,
@@ -88,7 +91,9 @@ export const csvToJsonTool = createTool({
             // Check for cancellation before file operations
             if (abortSignal?.aborted) {
                 csvSpan?.error({
-                    error: new Error('Operation cancelled during file operations'),
+                    error: new Error(
+                        'Operation cancelled during file operations'
+                    ),
                     endSpan: true,
                 })
                 throw new Error(
@@ -98,15 +103,9 @@ export const csvToJsonTool = createTool({
 
             let contentToParse = input.csvData
 
-            if (
-                input.filePath !== undefined &&
-                input.filePath !== null
-            ) {
+            if (input.filePath !== undefined && input.filePath !== null) {
                 try {
-                    contentToParse = await fs.readFile(
-                        input.filePath,
-                        'utf-8'
-                    )
+                    contentToParse = await fs.readFile(input.filePath, 'utf-8')
                 } catch (err) {
                     throw new Error(
                         `Failed to read file at ${input.filePath}: ${(err as Error).message}`
@@ -208,7 +207,9 @@ export const csvToJsonTool = createTool({
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const source = input.filePath ? `file:${input.filePath}` : 'raw CSV data'
+        const source = input.filePath
+            ? `file:${input.filePath}`
+            : 'raw CSV data'
         const options = input.options ?? {}
         log.info('CSV to JSON received complete input', {
             toolCallId,

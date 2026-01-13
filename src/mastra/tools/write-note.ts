@@ -2,11 +2,12 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
-import { BaseSpan } from '@mastra/observability';
+
 
 export interface WriteNoteContext extends RequestContext {
     userId?: string
@@ -32,7 +33,7 @@ export const writeNoteTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as WriteNoteContext | undefined
 
         // Check if operation was already cancelled

@@ -1,5 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 
 export type UserTier = 'free' | 'pro' | 'enterprise';
@@ -51,6 +52,17 @@ const planStep = createStep({
   outputSchema: planOutputSchema,
   execute: async ({ inputData, mastra, requestContext, writer }) => {
     const { request, context, githubRepo, githubIssue } = inputData;
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'create-plan',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'create-plan',
+      },
+      requestContext,
+      mastra,
+    });
+    const startTime = Date.now();
     const agent = mastra.getAgent('code-architect'); // Use code-architect for planning
 
     const hasGithubRepo = typeof githubRepo === 'string' && githubRepo.length > 0;
@@ -122,10 +134,20 @@ const planStep = createStep({
             id: 'create-plan',
           });
 
-          return {
+          const res = {
             plan: parsed.plan ?? text,
             documentsNeeded: parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']
           };
+
+          span?.update({
+            output: res,
+            metadata: {
+              responseTimeMs: Date.now() - startTime,
+            },
+          });
+          span?.end();
+
+          return res;
         }
 
         await writer?.custom({
@@ -138,10 +160,20 @@ const planStep = createStep({
           id: 'create-plan',
         });
 
-        return {
+        const resText = {
           plan: text,
           documentsNeeded: ['PRD', 'Architecture', 'Tasks']
         };
+
+        span?.update({
+          output: resText,
+          metadata: {
+            responseTimeMs: Date.now() - startTime,
+          },
+        });
+        span?.end();
+
+        return resText;
       } catch (e) {
         await writer?.custom({
           type: 'data-tool-progress',
@@ -153,10 +185,21 @@ const planStep = createStep({
           id: 'create-plan',
         });
 
-        return {
+        const resFail = {
           plan: result.text,
           documentsNeeded: ['PRD', 'Architecture', 'Tasks']
         };
+
+        span?.update({
+          output: resFail,
+          metadata: {
+            responseTimeMs: Date.now() - startTime,
+            error: e instanceof Error ? e.message : 'Unknown error',
+          },
+        });
+        span?.end();
+
+        return resFail;
       }
     } catch (e) {
       await writer?.custom({
@@ -167,6 +210,11 @@ const planStep = createStep({
           stage: 'create-plan',
         },
         id: 'create-plan',
+      });
+
+      span?.error({
+        error: e instanceof Error ? e : new Error(String(e)),
+        endSpan: true,
       });
 
       throw e;
@@ -187,8 +235,19 @@ const prdStep = createStep({
     request: z.string().optional(),
   }),
   outputSchema: prdOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
     const { request, plan, documentsNeeded } = inputData;
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-prd',
+      input: { planLength: plan.length, documentsNeeded },
+      metadata: {
+        'workflow.step': 'generate-prd',
+      },
+      requestContext,
+      mastra,
+    });
+    const startTime = Date.now();
     const agent = mastra.getAgent('code-architect');
 
     await writer?.custom({
@@ -232,7 +291,14 @@ const prdStep = createStep({
         },
         id: 'generate-prd',
       });
-      return { prd: '' };
+      const resSkipped = { prd: '' };
+      span?.update({
+        output: resSkipped,
+        metadata: { skipped: true },
+      });
+      span?.end();
+
+      return resSkipped;
     }
 
     try {
@@ -250,7 +316,14 @@ const prdStep = createStep({
         id: 'generate-prd',
       });
 
-      return { prd: result?.text || '# PRD\n\n(Generated PRD content)' };
+      const res = { prd: result?.text || '# PRD\n\n(Generated PRD content)' };
+      span?.update({
+        output: res,
+        metadata: { responseTimeMs: Date.now() - startTime },
+      });
+      span?.end();
+
+      return res;
     } catch (e) {
       await writer?.custom({
         type: 'data-tool-progress',
@@ -260,6 +333,11 @@ const prdStep = createStep({
           stage: 'generate-prd',
         },
         id: 'generate-prd',
+      });
+
+      span?.error({
+        error: e instanceof Error ? e : new Error(String(e)),
+        endSpan: true,
       });
 
       throw e;
@@ -273,8 +351,19 @@ const archStep = createStep({
   id: 'generate-architecture',
   inputSchema: z.object({ prd: z.string() }),
   outputSchema: archOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
     const { prd } = inputData;
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-architecture',
+      input: { prdLength: prd.length },
+      metadata: {
+        'workflow.step': 'generate-architecture',
+      },
+      requestContext,
+      mastra,
+    });
+    const startTime = Date.now();
     const agent = mastra.getAgent('code-architect');
 
     await writer?.custom({
@@ -320,7 +409,14 @@ const archStep = createStep({
         id: 'generate-architecture',
       });
 
-      return { architecture: result?.text || '# Architecture\n\n(Generated Architecture content)', prd: inputData.prd };
+      const res = { architecture: result?.text || '# Architecture\n\n(Generated Architecture content)', prd: inputData.prd };
+      span?.update({
+        output: res,
+        metadata: { responseTimeMs: Date.now() - startTime },
+      });
+      span?.end();
+
+      return res;
     } catch (e) {
       await writer?.custom({
         type: 'data-tool-progress',
@@ -330,6 +426,11 @@ const archStep = createStep({
           stage: 'generate-architecture',
         },
         id: 'generate-architecture',
+      });
+
+      span?.error({
+        error: e instanceof Error ? e : new Error(String(e)),
+        endSpan: true,
       });
 
       throw e;
@@ -343,8 +444,19 @@ const tasksStep = createStep({
   id: 'generate-tasks',
   inputSchema: z.object({ architecture: z.string(), prd: z.string() }),
   outputSchema: tasksOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
     const { architecture, prd } = inputData;
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-tasks',
+      input: { architectureLength: architecture.length, prdLength: prd.length },
+      metadata: {
+        'workflow.step': 'generate-tasks',
+      },
+      requestContext,
+      mastra,
+    });
+    const startTime = Date.now();
     const agent = mastra.getAgent('code-architect'); // Using code-architect for task breakdown as well
 
     await writer?.custom({
@@ -391,7 +503,14 @@ const tasksStep = createStep({
         id: 'generate-tasks',
       });
 
-      return { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' };
+      const res = { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' };
+      span?.update({
+        output: res,
+        metadata: { responseTimeMs: Date.now() - startTime },
+      });
+      span?.end();
+
+      return res;
     } catch (e) {
       await writer?.custom({
         type: 'data-tool-progress',
@@ -401,6 +520,11 @@ const tasksStep = createStep({
           stage: 'generate-tasks',
         },
         id: 'generate-tasks',
+      });
+
+      span?.error({
+        error: e instanceof Error ? e : new Error(String(e)),
+        endSpan: true,
       });
 
       throw e;

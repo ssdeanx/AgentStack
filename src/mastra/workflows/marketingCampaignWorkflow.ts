@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 
 const planningStep = createStep({
@@ -11,9 +12,27 @@ const planningStep = createStep({
     outputSchema: z.object({
         plan: z.string(),
     }),
-    execute: async ({ inputData }) => {
-        return {
-            plan: `Campaign plan for ${inputData.topic} targeting ${inputData.targetAudience}`,
+    execute: async ({ inputData, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'campaign-planning',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'campaign-planning',
+            },
+            requestContext,
+            mastra,
+        })
+        try {
+            const result = {
+                plan: `Campaign plan for ${inputData.topic} targeting ${inputData.targetAudience}`,
+            }
+            span?.update({ output: result })
+            span?.end()
+            return result
+        } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            throw error
         }
     },
 })
@@ -27,9 +46,27 @@ const contentStep = createStep({
     outputSchema: z.object({
         content: z.string(),
     }),
-    execute: async ({ inputData }) => {
-        return {
-            content: `Content based on: ${inputData.plan}`,
+    execute: async ({ inputData, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'content-creation',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'content-creation',
+            },
+            requestContext,
+            mastra,
+        })
+        try {
+            const result = {
+                content: `Content based on: ${inputData.plan}`,
+            }
+            span?.update({ output: result })
+            span?.end()
+            return result
+        } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            throw error
         }
     },
 })

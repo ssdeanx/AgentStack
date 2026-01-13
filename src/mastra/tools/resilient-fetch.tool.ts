@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import axios from 'axios'
@@ -48,6 +49,21 @@ export const resilientFetchTool = createTool({
     }),
     execute: async (input, context) => {
         const { url, method, data, headers, priority } = input
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+
+        // Create child span for resilient fetch
+        const fetchSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'resilient-fetch',
+            input,
+            requestContext: context?.requestContext,
+            metadata: {
+                'tool.id': 'resilient-fetch',
+                'tool.input.url': url,
+                'tool.input.method': method,
+            },
+        })
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -69,6 +85,16 @@ export const resilientFetchTool = createTool({
                     headers,
                 })
             )
+
+            // Update span with success
+            fetchSpan?.update({
+                output: { status: response.status },
+                metadata: {
+                    'tool.output.status': response.status,
+                    'tool.output.success': true,
+                },
+            })
+            fetchSpan?.end()
 
             await context?.writer?.custom({
                 type: 'data-tool-progress',
@@ -94,6 +120,12 @@ export const resilientFetchTool = createTool({
                 url,
                 method,
                 error: errorMessage,
+            })
+
+            // Record error in span
+            fetchSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
             })
 
             await context?.writer?.custom({

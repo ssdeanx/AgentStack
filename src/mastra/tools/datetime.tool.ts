@@ -1,6 +1,7 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -87,11 +88,38 @@ export const dateTimeTool = createTool({
         input: z.string().optional(),
         message: z.string().optional(),
     }),
-
+onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('DateTime tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('DateTime tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('DateTime tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { operation: input.operation },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestCtx = context?.requestContext as DateTimeToolContext | undefined
-        const tracingContext = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | DateTimeToolContext
+            | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const defaultTimezone = requestCtx?.defaultTimezone ?? 'UTC'
         const defaultLocale = requestCtx?.defaultLocale ?? 'en-US'
         const allowFutureDates = requestCtx?.allowFutureDates ?? true
@@ -268,7 +296,11 @@ export const dateTimeTool = createTool({
             })
 
             span?.update({
-                output: { success: true, operation: inputData.operation, result },
+                output: {
+                    success: true,
+                    operation: inputData.operation,
+                    result,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operation': inputData.operation,
@@ -302,38 +334,17 @@ export const dateTimeTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('DateTime tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('DateTime tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('DateTime tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { operation: input.operation },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+    
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('DateTime tool completed', {
             toolCallId,
             toolName,
+
             abortSignal: abortSignal?.aborted,
-            outputData: { success: output.success, operation: output.operation },
+            outputData: {
+                success: output.success,
+                operation: output.operation,
+            },
             hook: 'onOutput',
         })
     },
@@ -368,9 +379,35 @@ export const timeZoneTool = createTool({
         operation: z.string(),
         message: z.string().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Timezone tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Timezone tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Timezone tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { operation: input.operation, timezone: input.timezone },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
 
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -393,7 +430,16 @@ export const timeZoneTool = createTool({
         })
 
         try {
-            let result: any
+            let result:
+                | string
+                | string[]
+                | {
+                      name: string
+                      offset: string
+                      abbreviation: string
+                      dst: boolean
+                  }
+                | null
 
             switch (inputData.operation) {
                 case 'convert': {
@@ -451,7 +497,11 @@ export const timeZoneTool = createTool({
             })
 
             span?.update({
-                output: { success: true, operation: inputData.operation, result },
+                output: {
+                    success: true,
+                    operation: inputData.operation,
+                    result,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operation': inputData.operation,
@@ -483,38 +533,17 @@ export const timeZoneTool = createTool({
             }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Timezone tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Timezone tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Timezone tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { operation: input.operation, timezone: input.timezone },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+
+    onOutput: ({ output, toolCallId, toolName,  abortSignal }) => {
         log.info('Timezone tool completed', {
             toolCallId,
             toolName,
+
             abortSignal: abortSignal?.aborted,
-            outputData: { success: output.success, operation: output.operation },
+            outputData: {
+                success: output.success,
+                operation: output.operation,
+            },
             hook: 'onOutput',
         })
     },

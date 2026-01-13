@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 
 import {
@@ -40,7 +41,17 @@ const indexDocumentsStep = createStep({
       })
     ),
   }),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'index-documents',
+      input: { totalDocuments: inputData.documents.length },
+      metadata: {
+        'workflow.step': 'index-documents',
+      },
+      requestContext,
+      mastra,
+    })
     const startTime = Date.now()
     const totalDocs = inputData.documents.length
     logStepStart('index-documents', { totalDocuments: totalDocs })
@@ -172,8 +183,12 @@ const indexDocumentsStep = createStep({
         Date.now() - startTime
       )
 
+      span?.update({ output: results })
+      span?.end()
+
       return results
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
       logError('index-documents', error, { totalDocuments: totalDocs })
 
       await writer?.custom({

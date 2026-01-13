@@ -1,0 +1,182 @@
+---
+title: "Tool streaming | Streaming | Mastra Docs v1 Beta"
+source: "https://mastra.ai/docs/v1/streaming/tool-streaming"
+author:
+published:
+created: 2026-01-13
+description: "Mastra v1 Beta: Learn how to use tool streaming in Mastra, including handling tool calls, tool results, and tool execution events during streaming."
+tags:
+  - "clippings"
+---
+Tool streaming in Mastra enables tools to send incremental results while they run, rather than waiting until execution finishes. This allows you to surface partial progress, intermediate states, or progressive data directly to users or upstream agents and workflows.
+
+Streams can be written to in two main ways:
+
+- **From within a tool**: every tool receives a `context.writer` object, which is a writable stream you can use to push updates as execution progresses.
+- **From an agent stream**: you can also pipe an agent's `stream` output directly into a tool's writer, making it easy to chain agent responses into tool results without extra glue code.
+
+By combining writable tool streams with agent streaming, you gain fine grained control over how intermediate results flow through your system and into the user experience.
+
+## Agent using tool
+
+Agent streaming can be combined with tool calls, allowing tool outputs to be written directly into the agent’s streaming response. This makes it possible to surface tool activity as part of the overall interaction.
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { testTool } from "../tools/test-tool";
+
+export const testAgent = new Agent({
+  id: "test-agent",
+  name: "Test Agent",
+  instructions: "You are a weather agent.",
+  model: "openai/gpt-5.1",
+  tools: { testTool },
+});
+```
+
+### Using context.writer
+
+The `context.writer` object is available in a tool's `execute()` function and can be used to emit custom events, data, or values into the active stream. This enables tools to provide intermediate results or status updates while execution is still in progress.
+
+warning
+
+You must `await` the call to `writer.write()` or else you will lock the stream and get a `WritableStream is locked` error.
+
+```typescript
+import { createTool } from "@mastra/core/tools";
+
+export const testTool = createTool({
+  execute: async (inputData, context) => {
+    const { value } = inputData;
+
+    await context?.writer?.write({
+      type: "custom-event",
+      status: "pending"
+    });
+
+    const response = await fetch(...);
+
+    await context?.writer?.write({
+      type: "custom-event",
+      status: "success"
+    });
+
+    return {
+      value: ""
+    };
+  }
+});
+```
+
+You can also use `writer.custom()` if you want to emit top level stream chunks, This useful and relevant when integrating with UI Frameworks
+
+```typescript
+import { createTool } from "@mastra/core/tools";
+
+export const testTool = createTool({
+  execute: async (inputData, context) => {
+    const { value } = inputData;
+
+   await context?.writer?.custom({
+      type: "data-tool-progress",
+      status: "pending"
+    });
+
+    const response = await fetch(...);
+
+   await context?.writer?.custom({
+      type: "data-tool-progress",
+      status: "success"
+    });
+
+    return {
+      value: ""
+    };
+  }
+});
+```
+
+### Inspecting stream payloads
+
+Events written to the stream are included in the emitted chunks. These chunks can be inspected to access any custom fields, such as event types, intermediate values, or tool-specific data.
+
+```typescript
+const stream = await testAgent.stream([
+  "What is the weather in London?",
+  "Use the testTool",
+]);
+
+for await (const chunk of stream) {
+  if (chunk.payload.output?.type === "custom-event") {
+    console.log(JSON.stringify(chunk, null, 2));
+  }
+}
+```
+
+## Tool Lifecycle Hooks
+
+Tools support lifecycle hooks that allow you to monitor different stages of tool execution during streaming. These hooks are particularly useful for logging or analytics.
+
+### Example: Using onInputAvailable and onOutput
+
+```typescript
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+export const weatherTool = createTool({
+  id: "weather-tool",
+  description: "Get weather information",
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+  outputSchema: z.object({
+    temperature: z.number(),
+    conditions: z.string(),
+  }),
+  // Called when the complete input is available
+  onInputAvailable: ({ input, toolCallId }) => {
+    console.log(\`Weather requested for: ${input.city}\`);
+  },
+  execute: async (input) => {
+    const weather = await fetchWeather(input.city);
+    return weather;
+  },
+  // Called after successful execution
+  onOutput: ({ output, toolName }) => {
+    console.log(\`${toolName} result: ${output.temperature}°F, ${output.conditions}\`);
+  },
+});
+```
+
+### Available Hooks
+
+- **onInputStart**: Called when tool call input streaming begins
+- **onInputDelta**: Called for each chunk of input as it streams in
+- **onInputAvailable**: Called when complete input is parsed and validated
+- **onOutput**: Called after the tool successfully executes with the output
+
+For detailed documentation on all lifecycle hooks, see the [createTool() reference](https://mastra.ai/reference/v1/tools/create-tool#tool-lifecycle-hooks).
+
+## Tool using an agent
+
+Pipe an agent's `fullStream` to the tool's `writer`. This streams partial output, and Mastra automatically aggregates the agent's usage into the tool run.
+
+```typescript
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+export const testTool = createTool({
+  execute: async (inputData, context) => {
+    const { city } = inputData;
+
+    const agent = context?.mastra?.getAgent("testAgent");
+    const stream = await agent?.stream(\`What is the weather in ${city}?\`);
+
+    await stream!.fullStream.pipeTo(context?.writer!);
+
+    return {
+      value: await stream!.text,
+    };
+  },
+});
+```

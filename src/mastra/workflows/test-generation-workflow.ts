@@ -1,5 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { testEngineerAgent } from '../agents/codingAgents';
 import { createSandbox, runCommand, writeFile } from '../tools/e2b';
 import { logStepEnd, logStepStart, logError } from '../config/logger';
@@ -31,23 +32,35 @@ const generateTestsStep = createStep({
     testCode: z.string(),
     testFilePath: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-tests',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'generate-tests',
+        'file.path': inputData.filePath,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-tests', { filePath: inputData.filePath });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating tests for ${inputData.filePath}...`,
-        stage: 'generate-tests',
-      },
-      id: 'generate-tests',
-    });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Generating tests for ${inputData.filePath}...`,
+          stage: 'generate-tests',
+        },
+        id: 'generate-tests',
+      });
 
-    const testFilePath = inputData.filePath.replace(/\.(ts|js|py)$/, '.test.$1'); // Simple heuristic
+      const testFilePath = inputData.filePath.replace(/\.(ts|js|py)$/, '.test.$1'); // Simple heuristic
 
-    const prompt = `Generate unit tests for the following code.
+      const prompt = `Generate unit tests for the following code.
     
     File Path: ${inputData.filePath}
     Target Test File Path: ${testFilePath}
@@ -64,11 +77,10 @@ const generateTestsStep = createStep({
     - "testFilePath": The recommended path for the test file.
     `;
 
-    try {
       const result = await testEngineerAgent.generate(prompt);
 
       const parsed = JSON.parse(result.text);
-      const output = parsed ?? {
+      const outputData = parsed ?? {
         testCode: '',
         testFilePath
       };
@@ -85,13 +97,24 @@ const generateTestsStep = createStep({
 
       logStepEnd('generate-tests', {}, Date.now() - startTime);
 
-      return {
+      const finalResult = {
         ...inputData,
-        testCode: output.testCode,
-        testFilePath: output.testFilePath ?? testFilePath,
+        testCode: outputData.testCode,
+        testFilePath: outputData.testFilePath ?? testFilePath,
       };
+
+      span?.update({
+        output: finalResult,
+      });
+      span?.end();
+
+      return finalResult;
     } catch (error) {
       logError('generate-tests', error);
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       throw error;
     }
   },
@@ -109,20 +132,31 @@ const runTestsStep = createStep({
   }),
   outputSchema: testGenOutputSchema,
   execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'run-tests',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'run-tests',
+        'test.file.path': inputData.testFilePath,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('run-tests', { testFilePath: inputData.testFilePath });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Running tests in E2B sandbox...`,
-        stage: 'run-tests',
-      },
-      id: 'run-tests',
-    });
-
     try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Running tests in E2B sandbox...`,
+          stage: 'run-tests',
+        },
+        id: 'run-tests',
+      });
+
       // 1. Create Sandbox
       const sandbox = await createSandbox.execute({
         timeoutMS: 300_000,
@@ -177,7 +211,7 @@ const runTestsStep = createStep({
 
       logStepEnd('run-tests', { success: execution.success }, Date.now() - startTime);
 
-      return {
+      const finalResult = {
         testCode: inputData.testCode,
         testFilePath: inputData.testFilePath,
         verificationResult: {
@@ -187,9 +221,19 @@ const runTestsStep = createStep({
         },
       };
 
+      span?.update({
+        output: finalResult,
+        metadata: {
+          'test.success': execution.success,
+        },
+      });
+      span?.end();
+
+      return finalResult;
+
     } catch (error) {
       logError('run-tests', error);
-      return {
+      const errorResult = {
         testCode: inputData.testCode,
         testFilePath: inputData.testFilePath,
         verificationResult: {
@@ -198,6 +242,13 @@ const runTestsStep = createStep({
           stderr: error instanceof Error ? error.message : String(error),
         },
       };
+      
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+
+      return errorResult;
     }
   },
 });

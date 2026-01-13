@@ -1,5 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 import { logError, logStepEnd, logStepStart } from '../config/logger';
 
@@ -113,7 +113,18 @@ const extractLearningsStep = createStep({
   description: 'Extracts learnings from content using learningExtractionAgent',
   inputSchema: learningInputSchema,
   outputSchema: extractionResultSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'extract-learnings',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'extract-learnings',
+        'content.contentType': inputData.contentType,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('extract-learnings', { contentType: inputData.contentType, depth: inputData.extractionDepth });
 
@@ -125,14 +136,6 @@ const extractLearningsStep = createStep({
         stage: 'extract-learnings',
       },
       id: 'extract-learnings',
-    });
-
-    const tracer = trace.getTracer('learning-extraction');
-    const span = tracer.startSpan('learning-extraction', {
-      attributes: {
-        contentType: inputData.contentType,
-        contentLength: inputData.content.length,
-      },
     });
 
     try {
@@ -263,19 +266,28 @@ Also provide an overall summary.`;
         },
       };
 
-      if (typeof learnings?.length === 'number') {span.setAttribute('learningsCount', learnings.length);}
-      if (typeof criticalCount === 'number') {span.setAttribute('criticalCount', criticalCount);}
-      if (typeof actionableCount === 'number') {span.setAttribute('actionableCount', actionableCount);}
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      // Record metrics as span metadata (batch update)
+      const metrics = {
+        responseTimeMs: Date.now() - startTime,
+        learningsCount: Array.isArray(learnings) ? learnings.length : undefined,
+        criticalCount: typeof criticalCount === 'number' ? criticalCount : undefined,
+        actionableCount: typeof actionableCount === 'number' ? actionableCount : undefined,
+      };
+
+      span?.update({
+        output: result,
+        metadata: metrics,
+      });
+      span?.end();
 
 
       logStepEnd('extract-learnings', { learningsCount: learnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('extract-learnings', error, { contentType: inputData.contentType });
 
       await writer?.custom({
@@ -300,7 +312,18 @@ const humanApprovalStep = createStep({
   outputSchema: approvalResultSchema,
   suspendSchema: suspendDataSchema,
   resumeSchema: resumeDataSchema,
-  execute: async ({ inputData, resumeData, suspend, writer }) => {
+  execute: async ({ inputData, resumeData, suspend, writer, requestContext, mastra }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'human-approval',
+      input: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
+      metadata: {
+        'workflow.step': 'human-approval',
+        'hasResumeData': !!resumeData,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('human-approval', { learningsCount: inputData.learnings.length, hasResumeData: !!resumeData });
 
@@ -312,11 +335,6 @@ const humanApprovalStep = createStep({
         stage: 'human-approval',
       },
       id: 'human-approval',
-    });
-
-    const tracer = trace.getTracer('learning-extraction');
-    const span = tracer.startSpan('human-approval-check', {
-      attributes: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
     });
 
     try {
@@ -345,10 +363,15 @@ const humanApprovalStep = createStep({
           },
         };
 
-        span.setAttribute('autoApproved', true);
-        span.setAttribute('learningsCount', inputData.learnings.length);
-        span.setAttribute('responseTimeMs', Date.now() - startTime);
-        span.end();
+        span?.update({
+          output: result,
+          metadata: {
+            autoApproved: true,
+            learningsCount: inputData.learnings.length,
+            responseTimeMs: Date.now() - startTime,
+          },
+        });
+        span?.end();
 
 
         return result;
@@ -365,10 +388,17 @@ const humanApprovalStep = createStep({
           id: 'human-approval',
         });
 
-        span.setAttribute('suspended', true);
-        span.setAttribute('awaitingApproval', true);
-        span.setAttribute('responseTimeMs', Date.now() - startTime);
-        span.end();
+        if (span) {
+          // Record suspension metadata via span.update to avoid direct attribute mutation
+          span.update({
+            metadata: {
+              suspended: true,
+              awaitingApproval: true,
+              responseTimeMs: Date.now() - startTime,
+            },
+          });
+          span.end();
+        }
 
         logStepEnd('human-approval', { status: 'suspended' }, Date.now() - startTime);
 
@@ -438,19 +468,32 @@ const humanApprovalStep = createStep({
         },
       };
 
-      if (typeof resumeData?.approved === 'boolean') {span.setAttribute('approved', resumeData.approved);}
-      if (Array.isArray(resumeData?.approvedLearnings)) {span.setAttribute('approvedLearningsCount', resumeData.approvedLearnings.length);}
-      if (Array.isArray(resumeData?.rejectedLearnings)) {span.setAttribute('rejectedLearningsCount', resumeData.rejectedLearnings.length);}
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      const attrUpdates: Record<string, any> = {};
+      if (typeof resumeData?.approved === 'boolean') { attrUpdates.approved = resumeData.approved; }
+      if (Array.isArray(resumeData?.approvedLearnings)) { attrUpdates.approvedLearningsCount = resumeData.approvedLearnings.length; }
+      if (Array.isArray(resumeData?.rejectedLearnings)) { attrUpdates.rejectedLearningsCount = resumeData.rejectedLearnings.length; }
+      if (Object.keys(attrUpdates).length > 0) {
+        span?.update({
+          metadata: attrUpdates,
+        });
+      }
+
+      span?.update({
+        output: result,
+        metadata: {
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
 
       logStepEnd('human-approval', { approved: resumeData.approved, approvedCount: approvedLearnings.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('human-approval', error);
 
       await writer?.custom({
@@ -473,7 +516,17 @@ const validateLearningsStep = createStep({
   description: 'Validates approved learnings using evaluationAgent',
   inputSchema: approvalResultSchema,
   outputSchema: validatedLearningsSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'validate-learnings',
+      input: { learningsCount: inputData.learnings.length },
+      metadata: {
+        'workflow.step': 'validate-learnings',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('validate-learnings', { learningsCount: inputData.learnings.length });
 
@@ -485,14 +538,6 @@ const validateLearningsStep = createStep({
         stage: 'validate-learnings',
       },
       id: 'validate-learnings',
-    });
-
-    // Use OpenTelemetry directly; don't rely on Mastra tracing shims.
-    const tracer = trace.getTracer('learning-extraction');
-    const span = tracer.startSpan('learning-validation', {
-      attributes: {
-        learningsCount: inputData.learnings.length,
-      },
     });
 
     try {
@@ -599,20 +644,25 @@ const validateLearningsStep = createStep({
         },
       };
 
-      // Record result metrics on the span
-      span.setAttribute('totalValidated', result.validationSummary.totalValidated);
-      span.setAttribute('highQuality', highQuality);
-      span.setAttribute('needsReview', needsReview);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          totalValidated: result.validationSummary.totalValidated,
+          highQuality,
+          needsReview,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
 
       logStepEnd('validate-learnings', result.validationSummary, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       logError('validate-learnings', error);
 
@@ -636,7 +686,17 @@ const generateLearningReportStep = createStep({
   description: 'Generates final learning extraction report',
   inputSchema: validatedLearningsSchema,
   outputSchema: finalOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-learning-report',
+      input: { learningsCount: inputData.learnings.length },
+      metadata: {
+        'workflow.step': 'generate-learning-report',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-learning-report', { learningsCount: inputData.learnings.length });
 
@@ -648,14 +708,6 @@ const generateLearningReportStep = createStep({
         stage: 'generate-learning-report',
       },
       id: 'generate-learning-report',
-    });
-
-    // Use OpenTelemetry directly; avoid Mastra-specific tracing shims.
-    const tracer = trace.getTracer('learning-extraction');
-    const span = tracer.startSpan('learning-report-generation', {
-      attributes: {
-        learningsCount: inputData.learnings.length,
-      },
     });
 
     try {
@@ -776,17 +828,22 @@ const generateLearningReportStep = createStep({
         },
       };
 
-      // Record useful metrics on the span.
-      span.setAttribute('reportLength', report.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          reportLength: report.length,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
       logStepEnd('generate-learning-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
 
       logError('generate-learning-report', error);
 

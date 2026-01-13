@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { googleAIFlashLite, pgMemory } from '../config';
 
 const telephone = new Agent({
@@ -23,30 +24,55 @@ const stepA1 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting message: ${inputData.message}`,
-        stage: 'stepA1',
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepA1',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepA1',
       },
-      id: 'stepA1',
+      requestContext,
+      mastra,
     });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Starting message: ${inputData.message}`,
+          stage: 'stepA1',
+        },
+        id: 'stepA1',
+      });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Message received: ${inputData.message}`,
-        stage: 'stepA1',
-      },
-      id: 'stepA1',
-    });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Message received: ${inputData.message}`,
+          stage: 'stepA1',
+        },
+        id: 'stepA1',
+      });
 
-    return {
-      message: inputData.message,
-    };
+      const result = {
+        message: inputData.message,
+      };
+
+      span?.update({
+        output: result,
+      });
+      span?.end();
+
+      return result;
+    } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 
@@ -59,30 +85,55 @@ const stepA2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Passing message through: ${inputData.message}`,
-        stage: 'stepA2',
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepA2',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepA2',
       },
-      id: 'stepA2',
+      requestContext,
+      mastra,
     });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Passing message through: ${inputData.message}`,
+          stage: 'stepA2',
+        },
+        id: 'stepA2',
+      });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Message passed through: ${inputData.message}`,
-        stage: 'stepA2',
-      },
-      id: 'stepA2',
-    });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Message passed through: ${inputData.message}`,
+          stage: 'stepA2',
+        },
+        id: 'stepA2',
+      });
 
-    return {
-      message: inputData.message,
-    };
+      const result = {
+        message: inputData.message,
+      };
+
+      span?.update({
+        output: result,
+      });
+      span?.end();
+
+      return result;
+    } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 
@@ -95,30 +146,55 @@ const stepB2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Checking message: ${inputData.message}`,
-        stage: 'stepB2',
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepB2',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepB2',
       },
-      id: 'stepB2',
+      requestContext,
+      mastra,
     });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Checking message: ${inputData.message}`,
+          stage: 'stepB2',
+        },
+        id: 'stepB2',
+      });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Message checked: ${inputData.message}`,
-        stage: 'stepB2',
-      },
-      id: 'stepB2',
-    });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Message checked: ${inputData.message}`,
+          stage: 'stepB2',
+        },
+        id: 'stepB2',
+      });
 
-    return {
-      message: inputData.message,
-    };
+      const result = {
+        message: inputData.message,
+      };
+
+      span?.update({
+        output: result,
+      });
+      span?.end();
+
+      return result;
+    } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 
@@ -131,37 +207,62 @@ const stepC2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Modifying message: ${inputData.message}`,
-        stage: 'stepC2',
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepC2',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepC2',
       },
-      id: 'stepC2',
+      requestContext,
+      mastra,
     });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Modifying message: ${inputData.message}`,
+          stage: 'stepC2',
+        },
+        id: 'stepC2',
+      });
 
-    const result = await telephone.generate(`
+      const result = await telephone.generate(`
           You are playing a game of telephone.
           Here is the message the previous person sent ${inputData.message}.
           But you want to change the message.
           Only return the message
           `);
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Message modified: ${result.text}`,
-        stage: 'stepC2',
-      },
-      id: 'stepC2',
-    });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Message modified: ${result.text}`,
+          stage: 'stepC2',
+        },
+        id: 'stepC2',
+      });
 
-      return {
+      const output = {
         message: result.text,
       };
+
+      span?.update({
+        output,
+      });
+      span?.end();
+
+      return output;
+    } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 
@@ -174,28 +275,51 @@ const stepD2 = createStep({
   outputSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Finalizing message: ${inputData.message}`,
-        stage: 'stepD2',
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'stepD2',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'stepD2',
       },
-      id: 'stepD2',
+      requestContext,
+      mastra,
     });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Finalizing message: ${inputData.message}`,
+          stage: 'stepD2',
+        },
+        id: 'stepD2',
+      });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Message finalized: ${inputData.message}`,
-        stage: 'stepD2',
-      },
-      id: 'stepD2',
-    });
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Message finalized: ${inputData.message}`,
+          stage: 'stepD2',
+        },
+        id: 'stepD2',
+      });
 
-    return inputData;
+      span?.update({
+        output: inputData,
+      });
+      span?.end();
+
+      return inputData;
+    } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 

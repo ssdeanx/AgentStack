@@ -1,5 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 import { logError, logStepEnd, logStepStart } from '../config/logger';
 
@@ -65,29 +65,54 @@ const initializeResearchStep = createStep({
     topic: z.string(),
     maxSources: z.number(),
   })),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'initialize-research',
+      input: { topicsCount: inputData.topics.length },
+      metadata: {
+        'workflow.step': 'initialize-research',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('initialize-research', { topicsCount: inputData.topics.length });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: "in-progress",
-        message: `Researching topic: ${inputData.topics}...`,
-        stage: 'initialize-research',
-      },
-      id: 'initialize-research',
-    });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: "in-progress",
+          message: `Researching topic: ${inputData.topics}...`,
+          stage: 'initialize-research',
+        },
+        id: 'initialize-research',
+      });
 
-    const topics = inputData.topics.map(topic => ({
-      topic,
-      maxSources: inputData.maxSourcesPerTopic,
-    }));
+      const topics = inputData.topics.map(topic => ({
+        topic,
+        maxSources: inputData.maxSourcesPerTopic,
+      }));
 
+      span?.update({
+        output: topics,
+        metadata: {
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
-    logStepEnd('initialize-research', { topicsCount: topics.length }, Date.now() - startTime);
+      logStepEnd('initialize-research', { topicsCount: topics.length }, Date.now() - startTime);
 
-    return topics;
+      return topics;
+    } catch (error) {
+       span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
+    }
   },
 });
 
@@ -100,7 +125,18 @@ const researchTopicStep = createStep({
   }),
   outputSchema: topicResearchSchema,
   retries: 2,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'research-topic-item',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'research-topic-item',
+        'topic': inputData.topic,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('research-topic-item', { topic: inputData.topic });
 
@@ -112,14 +148,6 @@ const researchTopicStep = createStep({
         stage: 'research-topic-item',
       },
       id: 'research-topic-item',
-    });
-
-    const tracer = trace.getTracer('research-synthesis');
-    const span = tracer.startSpan('research-topic', {
-      attributes: {
-        topic: inputData.topic,
-        maxSources: inputData.maxSources,
-      },
     });
 
     try {
@@ -194,18 +222,24 @@ const researchTopicStep = createStep({
         id: 'research-topic-item',
       });
 
-      span.setAttribute('findingsCount', result.keyFindings.length);
-      span.setAttribute('sourcesCount', result.sources.length);
-      span.setAttribute('confidence', result.confidence);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          findingsCount: result.keyFindings.length,
+          sourcesCount: result.sources.length,
+          confidence: result.confidence,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
       logStepEnd('research-topic-item', { topic: inputData.topic, confidence: result.confidence }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('research-topic-item', error, { topic: inputData.topic });
 
       await writer?.custom({
@@ -237,17 +271,19 @@ const synthesizeResearchStep = createStep({
     synthesisType: z.string(),
   }),
   outputSchema: synthesizedResearchSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'synthesize-research',
+      input: { topicsCount: inputData.topics.length, synthesisType: inputData.synthesisType },
+      metadata: {
+        'workflow.step': 'synthesize-research',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('synthesize-research', { topicsCount: inputData.topics.length });
-
-    const tracer = trace.getTracer('research-synthesis');
-    const span = tracer.startSpan('research-synthesis', {
-      attributes: {
-        topicsCount: inputData.topics.length,
-        synthesisType: inputData.synthesisType,
-      },
-    });
 
     try {
       await writer?.custom({
@@ -374,18 +410,24 @@ Provide:
         },
       };
 
-      span.setAttribute('themesCount', synthesis.commonThemes.length);
-      span.setAttribute('insightsCount', synthesis.keyInsights.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          themesCount: synthesis.commonThemes.length,
+          insightsCount: synthesis.keyInsights.length,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
 
       logStepEnd('synthesize-research', { themesCount: synthesis.commonThemes.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('synthesize-research', error);
 
       await writer?.custom({
@@ -408,16 +450,19 @@ const generateResearchReportStep = createStep({
   description: 'Generates final research report using reportAgent',
   inputSchema: synthesizedResearchSchema,
   outputSchema: reportOutputSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-research-report',
+      input: { topicsCount: inputData.metadata.topicsCount },
+      metadata: {
+        'workflow.step': 'generate-research-report',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-research-report', { topicsCount: inputData.metadata.topicsCount });
-
-    const tracer = trace.getTracer('research-synthesis');
-    const span = tracer.startSpan('research-report-generation', {
-      attributes: {
-        topicsCount: inputData.metadata.topicsCount,
-      },
-    });
 
     try {
       await writer?.custom({
@@ -525,17 +570,23 @@ ${inputData.synthesis.gaps?.map(g => `- ${g}`).join('\n') ?? 'No significant gap
         },
       };
 
-      span.setAttribute('reportLength', report.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+          reportLength: report.length,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
 
 
       logStepEnd('generate-research-report', { reportLength: report.length }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('generate-research-report', error);
 
       await writer?.custom({

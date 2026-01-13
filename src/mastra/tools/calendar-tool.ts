@@ -8,7 +8,7 @@ import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
 
 export interface CalendarRequestContext extends RequestContext {
-    userId?: string;
+    userId?: string
 }
 
 interface CalendarEvent {
@@ -174,8 +174,10 @@ export const listEvents = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | CalendarRequestContext
+            | undefined
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'list-calendar-events',
@@ -185,9 +187,12 @@ export const listEvents = createTool({
                 'tool.input.startDate': inputData.startDate,
                 'user.id': requestCtx?.userId,
             },
+            requestContext: context?.requestContext,
         })
 
-        log.debug('Executing calendar list events for user', { userId: requestCtx?.userId })
+        log.debug('Executing calendar list events for user', {
+            userId: requestCtx?.userId,
+        })
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -263,8 +268,10 @@ export const getTodayEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | CalendarRequestContext
+            | undefined
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'get-today-events',
@@ -273,9 +280,12 @@ export const getTodayEvents = createTool({
                 'tool.id': 'get-today-events',
                 'user.id': requestCtx?.userId,
             },
+            requestContext: context?.requestContext,
         })
 
-        log.debug('Executing get today events for user', { userId: requestCtx?.userId })
+        log.debug('Executing get today events for user', {
+            userId: requestCtx?.userId,
+        })
 
         await context?.writer?.write({
             type: 'progress',
@@ -390,8 +400,10 @@ export const getUpcomingEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | CalendarRequestContext
+            | undefined
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'get-upcoming-events',
@@ -402,9 +414,12 @@ export const getUpcomingEvents = createTool({
                 'tool.input.limit': inputData.limit,
                 'user.id': requestCtx?.userId,
             },
+            requestContext: context?.requestContext,
         })
 
-        log.debug('Executing get upcoming events for user', { userId: requestCtx?.userId })
+        log.debug('Executing get upcoming events for user', {
+            userId: requestCtx?.userId,
+        })
 
         await context?.writer?.write({
             type: 'progress',
@@ -543,8 +558,10 @@ export const findFreeSlots = createTool({
         ),
     }),
     execute: async (inputData, context) => {
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as CalendarRequestContext | undefined
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | CalendarRequestContext
+            | undefined
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'find-free-slots',
@@ -554,9 +571,12 @@ export const findFreeSlots = createTool({
                 'tool.input.date': inputData.date,
                 'user.id': requestCtx?.userId,
             },
+            requestContext: context?.requestContext,
         })
 
-        log.debug('Executing find free slots for user', { userId: requestCtx?.userId })
+        log.debug('Executing find free slots for user', {
+            userId: requestCtx?.userId,
+        })
 
         await context?.writer?.write({
             type: 'progress',

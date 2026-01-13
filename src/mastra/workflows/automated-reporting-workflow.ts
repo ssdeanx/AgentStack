@@ -1,5 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { reportAgent } from '../agents/reportAgent';
 import { researchAgent } from '../agents/researchAgent';
 import { logStepEnd, logStepStart, logError } from '../config/logger';
@@ -34,60 +35,90 @@ const researchTopicStep = createStep({
     })),
     depth: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'research-topic',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'research-topic',
+        'report.topic': inputData.topic,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('research-topic', { topic: inputData.topic });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Researching ${inputData.sections.length} sections for topic: ${inputData.topic}...`,
-        stage: 'research-topic',
-      },
-      id: 'research-topic',
-    });
-
-    const researchedSections = [];
-
-    for (const section of inputData.sections) {
+    try {
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
           status: 'in-progress',
-          message: `Researching section: ${section}...`,
+          message: `Researching ${inputData.sections.length} sections for topic: ${inputData.topic}...`,
           stage: 'research-topic',
         },
         id: 'research-topic',
       });
 
-      const prompt = `Research the following aspect of "${inputData.topic}": ${section}. 
+      const researchedSections = [];
+
+      for (const section of inputData.sections) {
+        await writer?.custom({
+          type: 'data-tool-progress',
+          data: {
+            status: 'in-progress',
+            message: `Researching section: ${section}...`,
+            stage: 'research-topic',
+          },
+          id: 'research-topic',
+        });
+
+        const prompt = `Research the following aspect of "${inputData.topic}": ${section}. 
       Provide a ${inputData.depth} summary of key facts, trends, and data points.`;
 
-      const result = await researchAgent.generate(prompt);
-      researchedSections.push({
-        name: section,
-        data: result.text,
+        const result = await researchAgent.generate(prompt);
+        researchedSections.push({
+          name: section,
+          data: result.text,
+        });
+      }
+
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'done',
+          message: `Research completed for all sections.`,
+          stage: 'research-topic',
+        },
+        id: 'research-topic',
       });
+
+      logStepEnd('research-topic', {}, Date.now() - startTime);
+
+      const output = {
+        topic: inputData.topic,
+        sections: researchedSections,
+        depth: inputData.depth,
+      };
+
+      span?.update({
+        output,
+        metadata: {
+          'sections.count': researchedSections.length,
+        },
+      });
+      span?.end();
+
+      return output;
+    } catch (error) {
+      logError('research-topic', error);
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
+      throw error;
     }
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Research completed for all sections.`,
-        stage: 'research-topic',
-      },
-      id: 'research-topic',
-    });
-
-    logStepEnd('research-topic', {}, Date.now() - startTime);
-
-    return {
-      topic: inputData.topic,
-      sections: researchedSections,
-      depth: inputData.depth,
-    };
   },
 });
 
@@ -103,24 +134,36 @@ const synthesizeReportStep = createStep({
     depth: z.string(),
   }),
   outputSchema: reportOutputSchema,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'synthesize-report',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'synthesize-report',
+        'report.topic': inputData.topic,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('synthesize-report', { topic: inputData.topic });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Synthesizing final report for ${inputData.topic}...`,
-        stage: 'synthesize-report',
-      },
-      id: 'synthesize-report',
-    });
+    try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Synthesizing final report for ${inputData.topic}...`,
+          stage: 'synthesize-report',
+        },
+        id: 'synthesize-report',
+      });
 
-    const reportId = `rep-${Date.now()}`;
-    const sectionsContent = inputData.sections.map(s => `## ${s.name}\n${s.data}`).join('\n\n');
+      const reportId = `rep-${Date.now()}`;
+      const sectionsContent = inputData.sections.map(s => `## ${s.name}\n${s.data}`).join('\n\n');
 
-    const prompt = `You are a Professional Report Writer. Synthesize the following research data into a high-quality ${inputData.depth} report about "${inputData.topic}".
+      const prompt = `You are a Professional Report Writer. Synthesize the following research data into a high-quality ${inputData.depth} report about "${inputData.topic}".
     
     Research Data:
     ${sectionsContent}
@@ -138,7 +181,6 @@ const synthesizeReportStep = createStep({
     - "fullReport": The complete markdown report.
     `;
 
-    try {
       const result = await reportAgent.generate(prompt);
 
       let output;
@@ -164,7 +206,7 @@ const synthesizeReportStep = createStep({
 
       logStepEnd('synthesize-report', {}, Date.now() - startTime);
 
-      return {
+      const finalResult = {
         reportId,
         title: output.title,
         executiveSummary: output.executiveSummary,
@@ -175,8 +217,19 @@ const synthesizeReportStep = createStep({
           sectionsCount: inputData.sections.length,
         },
       };
+
+      span?.update({
+        output: finalResult,
+      });
+      span?.end();
+
+      return finalResult;
     } catch (error) {
       logError('synthesize-report', error);
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       throw error;
     }
   },
