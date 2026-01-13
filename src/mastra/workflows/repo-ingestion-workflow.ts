@@ -1,5 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { readFile } from 'node:fs/promises';
 import { glob } from 'glob';
 import * as path from 'node:path';
@@ -48,6 +49,16 @@ const scanStep = createStep({
   inputSchema: scanInputSchema,
   outputSchema: scanOutputSchema,
   execute: async ({ inputData, mastra, requestContext, writer }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'scan-repo',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'scan-repo',
+      },
+      requestContext,
+      mastra,
+    });
     const { repoPath, githubRepo, githubBranch, globPattern } = inputData;
     let { limit } = inputData;
 
@@ -133,7 +144,10 @@ const scanStep = createStep({
         id: 'scan-repo',
       });
 
-      return { files, githubRepo: githubRepoValue, githubBranch };
+      const result = { files, githubRepo: githubRepoValue, githubBranch };
+      span?.update({ output: result });
+      span?.end();
+      return result;
     }
 
     if (repoPathValue.length > 0) {
@@ -158,10 +172,14 @@ const scanStep = createStep({
         id: 'scan-repo',
       });
 
-      return { files: limitedFiles, repoPath: repoPathValue };
+      const result = { files: limitedFiles, repoPath: repoPathValue };
+      span?.update({ output: result });
+      span?.end();
+      return result;
     }
 
     const error = new Error('No repo path provided');
+    span?.error({ error, endSpan: true });
     await writer?.custom({
       type: 'data-tool-progress',
       data: {
@@ -180,6 +198,16 @@ const ingestStep = createStep({
   inputSchema: ingestInputSchema,
   outputSchema: ingestOutputSchema,
   execute: async ({ inputData, writer, requestContext, mastra }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'ingest-files',
+      input: { filesCount: inputData.files.length },
+      metadata: {
+        'workflow.step': 'ingest-files',
+      },
+      requestContext,
+      mastra,
+    });
     const { files, repoPath, githubRepo, githubBranch } = inputData;
     let processedFiles = 0;
     let totalChunks = 0;
@@ -298,7 +326,10 @@ const ingestStep = createStep({
       id: 'ingest-files',
     });
 
-    return { processedFiles, totalChunks, errors };
+    const output = { processedFiles, totalChunks, errors };
+    span?.update({ output });
+    span?.end();
+    return output;
   },
 });
 

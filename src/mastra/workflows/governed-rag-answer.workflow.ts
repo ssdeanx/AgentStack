@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 
 import { answererAgent, answererOutputSchema } from '../agents/answerer.agent'
@@ -36,7 +37,17 @@ const authenticationStep = createStep({
     accessFilter: accessFilterSchema,
     question: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'authentication',
+      input: { hasJwt: !!inputData.jwt },
+      metadata: {
+        'workflow.step': 'authentication',
+      },
+      requestContext,
+      mastra,
+    })
     const startTime = Date.now()
     logStepStart('authentication', { hasJwt: !!inputData.jwt })
 
@@ -63,8 +74,11 @@ const authenticationStep = createStep({
         },
         Date.now() - startTime
       )
+      span?.update({ output })
+      span?.end()
       return output
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
       logError('authentication', error, { question: inputData.question })
       throw new Error(
         `Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -86,7 +100,17 @@ const retrievalStep = createStep({
     contexts: z.array(documentContextSchema),
     question: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'retrieval-and-rerank',
+      input: { question: inputData.question },
+      metadata: {
+        'workflow.step': 'retrieval-and-rerank',
+      },
+      requestContext,
+      mastra,
+    })
     const startTime = Date.now()
     const requestId = `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
 
@@ -346,10 +370,13 @@ const retrievalStep = createStep({
           { contextsFound: 0 },
           Date.now() - startTime
         )
-        return {
+        const output = {
           contexts: [],
           question: inputData.question,
         }
+        span?.update({ output })
+        span?.end()
+        return output
       }
 
       // Rerank contexts for relevance
@@ -403,6 +430,7 @@ const retrievalStep = createStep({
         return output
       }
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
       logError('retrieval-and-rerank', error, {
         accessFilter: inputData.accessFilter,
       })
@@ -426,7 +454,17 @@ const answerStep = createStep({
     contexts: z.array(documentContextSchema),
     question: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'answer-generation',
+      input: { question: inputData.question, contextsCount: inputData.contexts.length },
+      metadata: {
+        'workflow.step': 'answer-generation',
+      },
+      requestContext,
+      mastra,
+    })
     const startTime = Date.now()
     logStepStart('answer-generation', {
       contextsCount: inputData.contexts.length,
@@ -476,8 +514,11 @@ const answerStep = createStep({
         { citationsCount: answer.citations?.length ?? 0 },
         Date.now() - startTime
       )
+      span?.update({ output })
+      span?.end()
       return output
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
       logError('answer-generation', error, {
         contextsCount: inputData.contexts.length,
       })
@@ -506,7 +547,17 @@ const verifyStep = createStep({
       })
     ),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'answer-verification',
+      input: { question: inputData.question },
+      metadata: {
+        'workflow.step': 'answer-verification',
+      },
+      requestContext,
+      mastra,
+    })
     const startTime = Date.now()
     logStepStart('answer-verification', {
       citationsCount: inputData.answer.citations?.length || 0,
@@ -560,6 +611,8 @@ const verifyStep = createStep({
             },
             Date.now() - startTime
           )
+          span?.update({ output, metadata: { insufficientEvidence: true } })
+          span?.end()
           return output
         }
 
@@ -583,8 +636,11 @@ const verifyStep = createStep({
         { verified: true, citationsCount: output.citations.length },
         Date.now() - startTime
       )
+      span?.update({ output })
+      span?.end()
       return output
     } catch (error) {
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
       logError('answer-verification', error, {
         question: inputData.question,
       })

@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 import { refactoringAgent } from '../agents/codingAgents';
 import { createSandbox, runCommand, writeFile } from '../tools/e2b';
@@ -33,7 +34,18 @@ const generateRefactorStep = createStep({
     refactoredCode: z.string(),
     explanation: z.string(),
   }),
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-refactor',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'generate-refactor',
+        'file.path': inputData.filePath,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-refactor', { filePath: inputData.filePath });
 
@@ -80,14 +92,28 @@ const generateRefactorStep = createStep({
         id: 'generate-refactor',
       });
 
-      logStepEnd('generate-refactor', {}, Date.now() - startTime);
-
-      return {
+      const res = {
         ...inputData,
         refactoredCode: output.refactoredCode,
         explanation: output.explanation,
       };
+
+      span?.update({
+        output: res,
+        metadata: {
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
+
+      logStepEnd('generate-refactor', {}, Date.now() - startTime);
+
+      return res;
     } catch (error) {
+       span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('generate-refactor', error);
       throw error;
     }
@@ -107,6 +133,16 @@ const verifyRefactorStep = createStep({
   }),
   outputSchema: refactorOutputSchema,
   execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'verify-refactor',
+      input: { filePath: inputData.filePath, language: inputData.language },
+      metadata: {
+        'workflow.step': 'verify-refactor',
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('verify-refactor', { filePath: inputData.filePath });
 
@@ -188,9 +224,7 @@ const verifyRefactorStep = createStep({
         id: 'verify-refactor',
       });
 
-      logStepEnd('verify-refactor', { success: execResult.success }, Date.now() - startTime);
-
-      return {
+      const res = {
         refactoredCode: inputData.refactoredCode,
         explanation: inputData.explanation,
         verificationResult: {
@@ -200,7 +234,24 @@ const verifyRefactorStep = createStep({
         },
       };
 
+      span?.update({
+        output: res,
+        metadata: {
+          success: execResult.success,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
+
+      logStepEnd('verify-refactor', { success: execResult.success }, Date.now() - startTime);
+
+      return res;
+
     } catch (error) {
+      span?.error({
+        error: error instanceof Error ? error : new Error(String(error)),
+        endSpan: true,
+      });
       logError('verify-refactor', error);
       // Fail gracefully returning the unverified code
       return {

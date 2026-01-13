@@ -1,5 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
 import { z } from 'zod';
 
 import { logError, logStepEnd, logStepStart } from '../config/logger';
@@ -141,26 +141,32 @@ const fetchPriceDataStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData,  writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'fetch-price-data',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'fetch-price-data',
+        symbols: inputData.symbols,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('fetch-price-data', { symbols: inputData.symbols });
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting price fetch for ${inputData.symbols.length} symbols...`,
-        stage: 'fetch-price-data',
-      },
-      id: 'fetch-price-data',
-    });
-
-    const tracer = trace.getTracer('financial-report');
-    const parentSpan = tracer.startSpan('parallel-price-fetch', {
-      attributes: { symbols: inputData.symbols },
-    });
-
     try {
+      await writer?.custom({
+        type: 'data-tool-progress',
+        data: {
+          status: 'in-progress',
+          message: `Starting price fetch for ${inputData.symbols.length} symbols...`,
+          stage: 'fetch-price-data',
+        },
+        id: 'fetch-price-data',
+      });
+
       const priceData: Array<z.infer<typeof priceDataSchema>> = [];
       const apiKey = process.env.POLYGON_API_KEY;
 
@@ -176,10 +182,6 @@ const fetchPriceDataStep = createStep({
 
       for (let i = 0; i < inputData.symbols.length; i++) {
         const symbol = inputData.symbols[i];
-
-        const symbolSpan = tracer.startSpan(`price-fetch-${symbol}`, {
-          attributes: { symbol, service: 'polygon' },
-        });
 
         try {
           if (apiKey) {
@@ -212,14 +214,7 @@ const fetchPriceDataStep = createStep({
             });
           }
 
-          symbolSpan.setAttribute('symbol', symbol);
-          symbolSpan.setAttribute('fetched', true);
-          symbolSpan.setAttribute('responseTimeMs', Date.now() - startTime);
-          symbolSpan.end();
         } catch (error) {
-          symbolSpan.recordException(error instanceof Error ? error : new Error(String(error)));
-          symbolSpan.setStatus({ code: SpanStatusCode.ERROR });
-          symbolSpan.end();
           priceData.push({ symbol, timestamp: new Date().toISOString() });
         }
         await writer?.custom({
@@ -233,11 +228,6 @@ const fetchPriceDataStep = createStep({
         });
       }
 
-      parentSpan.setAttribute('symbolsCount', priceData.length);
-      parentSpan.setAttribute('responseTimeMs', Date.now() - startTime);
-      parentSpan.end();
-
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -250,7 +240,7 @@ const fetchPriceDataStep = createStep({
 
       logStepEnd('fetch-price-data', { symbolsCount: priceData.length }, Date.now() - startTime);
 
-      return {
+      const output = {
         priceData,
         metadata: {
           symbols: inputData.symbols,
@@ -259,10 +249,19 @@ const fetchPriceDataStep = createStep({
           includeTechnicals: inputData.includeTechnicals,
         },
       };
+
+      span?.update({
+        output,
+        metadata: {
+          symbolsCount: priceData.length,
+          responseTimeMs: Date.now() - startTime,
+        },
+      });
+      span?.end();
+
+      return output;
     } catch (error) {
-      parentSpan.recordException(error instanceof Error ? error : new Error(String(error)));
-      parentSpan.setStatus({ code: SpanStatusCode.ERROR });
-      parentSpan.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('fetch-price-data', error, { symbols: inputData.symbols });
 
       await writer?.custom({
@@ -294,7 +293,18 @@ const fetchCompanyMetricsStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'fetch-company-metrics',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'fetch-company-metrics',
+        symbols: inputData.symbols,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('fetch-company-metrics', { symbols: inputData.symbols });
 
@@ -307,11 +317,6 @@ const fetchCompanyMetricsStep = createStep({
       },
       id: 'fetch-company-metrics',
     })
-
-    const tracer = trace.getTracer('financial-report');
-    const span = tracer.startSpan('parallel-metrics-fetch', {
-      attributes: { symbols: inputData.symbols },
-    });
 
     try {
       const companyMetrics: Array<z.infer<typeof companyMetricsSchema>> = [];
@@ -372,10 +377,6 @@ const fetchCompanyMetricsStep = createStep({
         });
       }
 
-      span.setAttribute('symbolsCount', companyMetrics.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -388,7 +389,7 @@ const fetchCompanyMetricsStep = createStep({
 
       logStepEnd('fetch-company-metrics', { symbolsCount: companyMetrics.length }, Date.now() - startTime);
 
-      return {
+      const output = {
         companyMetrics,
         metadata: {
           symbols: inputData.symbols,
@@ -397,10 +398,19 @@ const fetchCompanyMetricsStep = createStep({
           includeTechnicals: inputData.includeTechnicals,
         },
       };
+
+      span?.update({
+        output,
+        metadata: {
+            symbolsCount: companyMetrics.length,
+            responseTimeMs: Date.now() - startTime,
+        }
+      });
+      span?.end();
+
+      return output;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('fetch-company-metrics', error, { symbols: inputData.symbols });
 
       await writer?.custom({
@@ -432,7 +442,18 @@ const fetchNewsSentimentStep = createStep({
     }),
   }),
   retries: 3,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'fetch-news-sentiment',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'fetch-news-sentiment',
+        symbols: inputData.symbols,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('fetch-news-sentiment', { symbols: inputData.symbols });
 
@@ -448,11 +469,6 @@ const fetchNewsSentimentStep = createStep({
       id: 'fetch-news-sentiment',
     })
 
-    const tracer = trace.getTracer('financial-report');
-    const span = tracer.startSpan('parallel-news-fetch', {
-      attributes: { symbols: inputData.symbols },
-    });
-
     try {
       const newsSentiment: Array<z.infer<typeof newsSentimentSchema>> = [];
       const apiKey = process.env.FINNHUB_API_KEY;
@@ -462,12 +478,7 @@ const fetchNewsSentimentStep = createStep({
           newsSentiment.push({ symbol, articles: [], overallSentiment: 'neutral' });
         });
 
-        span.setAttribute('skipped', true);
-        span.setAttribute('skipReason', 'includeNews=false');
-        span.setAttribute('responseTimeMs', Date.now() - startTime);
-        span.end();
-
-        return {
+        const output = {
           newsSentiment,
           metadata: {
             symbols: inputData.symbols,
@@ -476,6 +487,18 @@ const fetchNewsSentimentStep = createStep({
             includeTechnicals: inputData.includeTechnicals,
           },
         };
+
+        span?.update({
+          output,
+          metadata: {
+              skipped: true,
+              skipReason: 'includeNews=false',
+              responseTimeMs: Date.now() - startTime,
+          }
+        });
+        span?.end();
+
+        return output;
       }
 
       await writer?.custom({
@@ -538,10 +561,6 @@ const fetchNewsSentimentStep = createStep({
         });
       }
 
-      span.setAttribute('symbolsCount', newsSentiment.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -554,7 +573,7 @@ const fetchNewsSentimentStep = createStep({
 
       logStepEnd('fetch-news-sentiment', { symbolsCount: newsSentiment.length }, Date.now() - startTime);
 
-      return {
+      const finalOutput = {
         newsSentiment,
         metadata: {
           symbols: inputData.symbols,
@@ -563,10 +582,19 @@ const fetchNewsSentimentStep = createStep({
           includeTechnicals: inputData.includeTechnicals,
         },
       };
+
+      span?.update({
+        output: finalOutput,
+        metadata: {
+            symbolsCount: newsSentiment.length,
+            responseTimeMs: Date.now() - startTime,
+        }
+      });
+      span?.end();
+
+      return finalOutput;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('fetch-news-sentiment', error, { symbols: inputData.symbols });
 
       await writer?.custom({
@@ -589,14 +617,20 @@ const mergeDataStep = createStep({
   description: 'Merges parallel fetch results into unified structure',
   inputSchema: parallelResultsSchema,
   outputSchema: mergedDataSchema,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer, mastra, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'merge-data',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'merge-data',
+        symbolsCount: inputData.metadata.symbols.length,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('merge-data', { symbolsCount: inputData.metadata.symbols.length });
-
-    const tracer = trace.getTracer('financial-report');
-    const span = tracer.startSpan('data-merge', {
-      attributes: { symbolsCount: inputData.metadata.symbols.length },
-    });
 
     try {
       await writer?.custom({
@@ -627,10 +661,6 @@ const mergeDataStep = createStep({
         },
       };
 
-      span.setAttribute('totalSymbols', stocks.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
-
       await writer?.custom({
         type: 'data-tool-progress',
         data: {
@@ -642,11 +672,19 @@ const mergeDataStep = createStep({
       })
 
       logStepEnd('merge-data', { totalSymbols: stocks.length }, Date.now() - startTime);
+
+      span?.update({
+        output: result,
+        metadata: {
+            totalSymbols: stocks.length,
+            responseTimeMs: Date.now() - startTime,
+        }
+      });
+      span?.end();
+
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('merge-data', error);
 
       await writer?.custom({
@@ -669,14 +707,20 @@ const analyzeDataStep = createStep({
   description: 'Analyzes merged data using stockAnalysisAgent',
   inputSchema: mergedDataSchema,
   outputSchema: analysisResultSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'analyze-data',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'analyze-data',
+        symbols: inputData.metadata.symbols,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('analyze-data', { totalSymbols: inputData.metadata.totalSymbols });
-
-    const tracer = trace.getTracer('financial-report');
-    const span = tracer.startSpan('stock-analysis', {
-      attributes: { symbols: inputData.metadata.symbols },
-    });
 
     try {
       await writer?.custom({
@@ -772,27 +816,21 @@ const analyzeDataStep = createStep({
         metadata: inputData.metadata,
       };
 
-      span.setAttribute('marketTrend', marketTrend);
-      span.setAttribute('recommendationsCount', recommendations.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Generated ${recommendations.length} recommendations.`,
-          stage: 'analyze-data',
-        },
-        id: 'analyze-data',
-      })
-
       logStepEnd('analyze-data', { marketTrend, recommendationsCount: recommendations.length }, Date.now() - startTime);
+
+      span?.update({
+        output: result,
+        metadata: {
+            marketTrend,
+            recommendationsCount: recommendations.length,
+            responseTimeMs: Date.now() - startTime,
+        }
+      });
+      span?.end();
+
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('analyze-data', error);
 
       await writer?.custom({
@@ -815,14 +853,20 @@ const generateReportStep = createStep({
   description: 'Generates comprehensive financial report using reportAgent',
   inputSchema: analysisResultSchema,
   outputSchema: finalReportSchema,
-  execute: async ({ inputData, mastra, writer }) => {
+  execute: async ({ inputData, mastra, writer, requestContext }) => {
+    const span = getOrCreateSpan({
+      type: SpanType.WORKFLOW_STEP,
+      name: 'generate-report',
+      input: inputData,
+      metadata: {
+        'workflow.step': 'generate-report',
+        symbolsCount: inputData.metadata.totalSymbols,
+      },
+      requestContext,
+      mastra,
+    });
     const startTime = Date.now();
     logStepStart('generate-report', { symbols: inputData.metadata.symbols });
-
-    const tracer = trace.getTracer('financial-report');
-    const span = tracer.startSpan('report-generation', {
-      attributes: { symbolsCount: inputData.metadata.totalSymbols },
-    });
 
     try {
       await writer?.custom({
@@ -901,14 +945,29 @@ Provide a concise summary and detailed report.`;
           }\n\n## Recommendations\n\n${inputData.analysis.recommendations.map(r => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`;
       }
 
+      logStepEnd('generate-report', { reportId }, Date.now() - startTime);
+
       const result: z.infer<typeof finalReportSchema> = {
         reportId,
         generatedAt: new Date().toISOString(),
         summary,
         report,
         data: {
-          stocks: inputData.stocks,
-          analysis: inputData.analysis,
+          stocks: inputData.stocks.map(s => ({
+            symbol: s.symbol,
+            price: s.price,
+            metrics: s.metrics,
+            sentiment: s.sentiment,
+          })),
+          analysis: {
+            topPerformers: inputData.analysis.topPerformers,
+            worstPerformers: inputData.analysis.worstPerformers,
+            bullishStocks: inputData.analysis.bullishStocks,
+            bearishStocks: inputData.analysis.bearishStocks,
+            averageChange: inputData.analysis.averageChange,
+            marketTrend: inputData.analysis.marketTrend,
+            recommendations: inputData.analysis.recommendations,
+          },
         },
         metadata: {
           symbols: inputData.metadata.symbols,
@@ -917,27 +976,19 @@ Provide a concise summary and detailed report.`;
         },
       };
 
-      span.setAttribute('reportId', reportId);
-      span.setAttribute('summaryLength', summary.length);
-      span.setAttribute('responseTimeMs', Date.now() - startTime);
-      span.end();
+      span?.update({
+        output: result,
+        metadata: {
+            reportId,
+            summaryLength: summary.length,
+            responseTimeMs: Date.now() - startTime,
+        }
+      });
+      span?.end();
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Report generated (${reportId}).`,
-          stage: 'generate-report',
-        },
-        id: 'generate-report',
-      })
-
-      logStepEnd('generate-report', { reportId }, Date.now() - startTime);
       return result;
     } catch (error) {
-      span.recordException(error instanceof Error ? error : new Error(String(error)));
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      span.end();
+      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
       logError('generate-report', error);
 
       await writer?.custom({

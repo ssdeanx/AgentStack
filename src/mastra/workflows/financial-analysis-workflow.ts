@@ -1,5 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 const financialDataSchema = z.object({
@@ -55,7 +56,17 @@ const fetchFinancialDataStep = createStep({
     }),
     outputSchema: financialDataSchema,
     retries: 3,
-    execute: async ({ inputData, writer }) => {
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'fetch-financial-data',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'fetch-financial-data',
+            },
+            requestContext,
+            mastra,
+        })
         const startTime = Date.now()
         logStepStart('fetch-financial-data', { symbol: inputData.symbol })
 
@@ -97,8 +108,11 @@ const fetchFinancialDataStep = createStep({
                 { symbol: result.symbol },
                 Date.now() - startTime
             )
+            span?.update({ output: result })
+            span?.end()
             return result
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
             logError('fetch-financial-data', error, {
                 symbol: inputData.symbol,
             })
@@ -126,7 +140,17 @@ const performTechnicalAnalysisStep = createStep({
         financial: financialDataSchema,
         technical: technicalAnalysisSchema,
     }),
-    execute: async ({ inputData, writer }) => {
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'perform-technical-analysis',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'perform-technical-analysis',
+            },
+            requestContext,
+            mastra,
+        })
         const startTime = Date.now()
         logStepStart('perform-technical-analysis', { symbol: inputData.symbol })
 
@@ -172,8 +196,12 @@ const performTechnicalAnalysisStep = createStep({
                 { symbol: inputData.symbol },
                 Date.now() - startTime
             )
-            return { financial: inputData, technical }
+            const output = { financial: inputData, technical }
+            span?.update({ output })
+            span?.end()
+            return output
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
             logError('perform-technical-analysis', error, {
                 symbol: inputData.symbol,
             })
@@ -201,9 +229,20 @@ const generateFinancialReportStep = createStep({
         technical: technicalAnalysisSchema,
     }),
     outputSchema: reportSchema,
-    execute: async ({ inputData, writer }) => {
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-financial-report',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'generate-financial-report',
+            },
+            requestContext,
+            mastra,
+        })
         const startTime = Date.now()
-        const symbol = inputData.financial.symbol
+        const { financial } = inputData
+        const { symbol } = financial
         logStepStart('generate-financial-report', { symbol })
 
         try {
@@ -243,8 +282,11 @@ const generateFinancialReportStep = createStep({
                 { symbol, recommendation: report.recommendation },
                 Date.now() - startTime
             )
+            span?.update({ output: report })
+            span?.end()
             return report
         } catch (error) {
+            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
             logError('generate-financial-report', error, { symbol })
 
             await writer?.custom({

@@ -1,7 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
-import { SpanType } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
-import { z } from 'zod' 
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import { z } from 'zod'
 import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 const stockDataSchema = z.object({
@@ -74,9 +73,6 @@ const reportDataSchema = z.object({
     generatedAt: z.string(),
 })
 
-
-
-
 const fetchStockDataStep = createStep({
     id: 'fetch-stock-data',
     description: 'Fetches real-time stock data from Polygon.io',
@@ -88,24 +84,20 @@ const fetchStockDataStep = createStep({
     }),
     outputSchema: stockDataSchema,
     retries: 3,
-    execute: async (params) => {
-        const { inputData, writer } = params as FetchStockDataParams
-        const context = (params as FetchStockDataParams).context
-        const startTime = Date.now()
-        logStepStart('fetch-stock-data', { symbol: inputData.symbol })
-
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
-            name: 'polygon-snapshot-fetch',
+            name: 'fetch-stock-data',
             input: { symbol: inputData.symbol },
             metadata: {
                 'workflow.step': 'fetch-stock-data',
                 'stock.symbol': inputData.symbol,
-                'api.service': 'polygon',
-                'api.endpoint': '/v2/snapshot',
             },
+            requestContext,
+            mastra,
         })
+        const startTime = Date.now()
+        logStepStart('fetch-stock-data', { symbol: inputData.symbol })
 
         try {
             await writer?.custom({
@@ -197,21 +189,20 @@ const getCompanyNewsStep = createStep({
         newsData: newsDataSchema,
     }),
     retries: 3,
-    execute: async ({ inputData, writer, context }) => {
-        const startTime = Date.now()
-        logStepStart('get-company-news', { symbol: inputData.symbol })
-
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, writer, requestContext, mastra }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
-            name: 'finnhub-news-fetch',
+            name: 'get-company-news',
             input: { symbol: inputData.symbol },
             metadata: {
-                symbol: inputData.symbol,
-                service: 'finnhub',
-                endpoint: '/company-news',
+                'workflow.step': 'get-company-news',
+                'stock.symbol': inputData.symbol,
             },
+            requestContext,
+            mastra,
         })
+        const startTime = Date.now()
+        logStepStart('get-company-news', { symbol: inputData.symbol })
 
         try {
             await writer?.custom({
@@ -354,20 +345,20 @@ const runAnalysisStep = createStep({
         newsData: newsDataSchema,
     }),
     outputSchema: analysisDataSchema,
-    execute: async ({ inputData, mastra, writer, context }) => {
-        const startTime = Date.now()
-        logStepStart('run-analysis', { symbol: inputData.stockData.symbol })
-
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
-            name: 'stock-analysis-agent-call',
+            name: 'run-analysis',
             input: { symbol: inputData.stockData.symbol },
             metadata: {
-                symbol: inputData.stockData.symbol,
-                agent: 'stockAnalysisAgent',
+                'workflow.step': 'run-analysis',
+                'stock.symbol': inputData.stockData.symbol,
             },
+            requestContext,
+            mastra,
         })
+        const startTime = Date.now()
+        logStepStart('run-analysis', { symbol: inputData.stockData.symbol })
 
         try {
             await writer?.custom({
@@ -513,20 +504,20 @@ const generateReportStep = createStep({
     description: 'Generates final analysis report using reportAgent',
     inputSchema: analysisDataSchema,
     outputSchema: reportDataSchema,
-    execute: async ({ inputData, mastra, writer, context }) => {
-        const startTime = Date.now()
-        logStepStart('generate-report', { symbol: inputData.symbol })
-
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
             type: SpanType.WORKFLOW_STEP,
-            name: 'report-agent-call',
+            name: 'generate-report',
             input: { symbol: inputData.symbol },
             metadata: {
-                symbol: inputData.symbol,
-                agent: 'reportAgent',
+                'workflow.step': 'generate-report',
+                'stock.symbol': inputData.symbol,
             },
+            requestContext,
+            mastra,
         })
+        const startTime = Date.now()
+        logStepStart('generate-report', { symbol: inputData.symbol })
 
         try {
             await writer?.custom({
