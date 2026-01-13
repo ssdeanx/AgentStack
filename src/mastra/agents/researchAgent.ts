@@ -39,6 +39,7 @@ import {
     createTextualDifferenceScorer,
     createToneScorer,
 } from '../evals/scorers/prebuilt'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchRuntimeContext {
@@ -146,6 +147,11 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
         completeness: { scorer: createCompletenessScorer() },
     },
     maxRetries: 5,
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     //voice: gvoice,
     outputProcessors: [
         new TokenLimiterProcessor(128000),

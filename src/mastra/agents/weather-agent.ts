@@ -7,6 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 import { webScraperTool } from '../tools/web-scraper-tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { TokenLimiterProcessor } from '@mastra/core/processors';
+import { InternalSpans } from '@mastra/core/observability';
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface WeatherRuntimeContext {
@@ -66,8 +67,13 @@ export const weatherAgent = new Agent({
   },
   outputProcessors: [new TokenLimiterProcessor(128000)],
   memory: pgMemory,
-  options: {},
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+  },
   maxRetries: 5,
+
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },

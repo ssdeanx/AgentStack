@@ -7,6 +7,7 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import { scrapingSchedulerTool, webScraperTool } from '../tools'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface DaneContext {
     userId?: string
@@ -41,6 +42,11 @@ export const daneCommitMessage = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+    },
   outputProcessors: [new TokenLimiterProcessor(128576),
     new BatchPartsProcessor({
           batchSize: 10,
@@ -83,6 +89,11 @@ export const daneIssueLabeler = new Agent({
           emitOnNonText: true
         }),
   ],
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+  },
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
@@ -119,6 +130,11 @@ export const daneLinkChecker = new Agent({
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   outputProcessors: [new TokenLimiterProcessor(128576),
     new BatchPartsProcessor({
       batchSize: 10,
@@ -164,6 +180,11 @@ export const daneChangeLog = new Agent({
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
+  options: {
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
+    },
   outputProcessors: [new TokenLimiterProcessor(128576),
     new BatchPartsProcessor({
           batchSize: 10,
@@ -239,6 +260,11 @@ export const dane = new Agent({
       emitOnNonText: true
     }),
   ],
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },

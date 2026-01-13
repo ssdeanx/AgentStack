@@ -3,7 +3,7 @@ import { googleAIFlashLite, pgMemory, pgQueryTool } from '../config';
 import { arxivTool } from '../tools/arxiv.tool';
 import { csvToJsonTool } from '../tools/csv-to-json.tool';
 import { createDataDirTool, getDataFileInfoTool, listDataDirTool, moveDataFileTool, searchDataFilesTool, writeDataFileTool } from '../tools/data-file-manager';
-import { convertDataFormatTool, csvToExcalidrawTool, readCSVDataTool } from '../tools/data-processing-tools';
+import { csvToExcalidrawTool, readCSVDataTool } from '../tools/data-processing-tools';
 import { mdocumentChunker } from '../tools/document-chunking.tool';
 import { evaluateResultTool } from '../tools/evaluateResultTool';
 import { execaTool } from '../tools/execa-tool';
@@ -81,7 +81,7 @@ User: ${userId} | Role: ${roleConstraint}
     csvToJsonTool,
     csvToExcalidrawTool,
     readCSVDataTool,
-    convertDataFormatTool,
+  //  convertDataFormatTool,
     writeDataFileTool,
     listDataDirTool,
     searchDataFilesTool,
@@ -103,7 +103,9 @@ User: ${userId} | Role: ${roleConstraint}
 
   },
   options: {
-    tracingPolicy: InternalSpans.ALL as any,
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   defaultOptions: {
     autoResumeSuspendedTools: true,

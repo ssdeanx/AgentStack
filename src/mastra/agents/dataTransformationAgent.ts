@@ -8,9 +8,9 @@ import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import {
-    convertDataFormatTool,
+ //   convertDataFormatTool,
     validateDataTool,
-    processXMLTool,
+ //   processXMLTool,
 } from '../tools/data-processing-tools'
 import {
     readDataFileTool,
@@ -18,6 +18,7 @@ import {
 } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface DataTransformationContext {
     userId?: string
@@ -110,20 +111,25 @@ export const dataTransformationAgent = new Agent({
 - Schema mismatch: Report specific field-level issues
 - Large data: Warn about potential memory constraints
 `
-    },
-    model: googleAI3,
-    memory: pgMemory,
-    tools: {
+   },
+   model: googleAI3,
+   memory: pgMemory,
+   tools: {
         csvToJsonTool,
         jsonToCsvTool,
         dataValidatorToolJSON,
-        convertDataFormatTool,
+     //   convertDataFormatTool,
         validateDataTool,
-        processXMLTool,
+      //  processXMLTool,
         readDataFileTool,
         writeDataFileTool,
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)]
+   },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+   },
+   outputProcessors: [new TokenLimiterProcessor(1048576)]
 })
 
 log.info('Data Transformation Agent initialized')

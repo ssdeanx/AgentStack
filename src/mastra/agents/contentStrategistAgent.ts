@@ -8,7 +8,8 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors';
 import { createToneScorer, createTextualDifferenceScorer, createCompletenessScorer } from '../evals/scorers/prebuilt'
-
+import { log } from '../config/logger';
+import { InternalSpans } from '@mastra/core/observability';
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ContentAgentContext {
     userId?: string
@@ -70,6 +71,11 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
     webScraperTool,
     chartSupervisorTool,
     scrapingSchedulerTool
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   scorers: {
     toneConsistency: { scorer: createToneScorer() },

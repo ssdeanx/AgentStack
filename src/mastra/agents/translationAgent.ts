@@ -5,6 +5,7 @@ import { log } from '../config/logger'
 
 import { evaluationAgent } from './evaluationAgent'
 import { researchAgent } from './researchAgent'
+import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing Translation Agent...')
 
@@ -121,7 +122,11 @@ export const translationAgent = new Agent({
         evaluationAgent,
         researchAgent,
     },
-    options: {},
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     defaultOptions: {
       autoResumeSuspendedTools: true,
     }

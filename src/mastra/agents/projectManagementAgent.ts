@@ -7,6 +7,7 @@ import { calendarAgent } from './calendarAgent'
 import { reportAgent } from './reportAgent'
 import { evaluationAgent } from './evaluationAgent'
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
+import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing Project Management Agent...')
 
@@ -146,7 +147,11 @@ export const projectManagementAgent = new Agent({
         reportAgent,
         evaluationAgent
     },
-    options: {},
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
 })
 
 log.info('Project Management Agent initialized')

@@ -13,6 +13,7 @@ import {
 } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface DataExportContext {
     userId?: string
@@ -58,6 +59,11 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
         backupDataTool,
         listDataDirTool,
     },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+      },
     outputProcessors: [new TokenLimiterProcessor(1048576)],
     defaultOptions: {
       autoResumeSuspendedTools: true,

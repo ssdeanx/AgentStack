@@ -6,6 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 
 import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
 import { arxivPaperDownloaderTool, arxivPdfParserTool, arxivTool } from '../tools/arxiv.tool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchPaperAgentRuntimeContext {
@@ -62,7 +63,9 @@ User: ${userTier} | Lang: ${language}
     arxivPaperDownloaderTool,
   },
   options: {
-    tracingPolicy: {},
+      tracingPolicy: {
+        internal: InternalSpans.ALL
+      }
   },
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({
     batchSize: 5,

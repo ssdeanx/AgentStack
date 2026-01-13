@@ -6,7 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-
+import { InternalSpans } from '@mastra/core/observability'
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface LearningExtractionAgentContext {
   userId?: string
@@ -56,6 +56,11 @@ Extract the single most important learning and create one relevant follow-up que
   memory: pgMemory,
   scorers: {
 
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   workflows: {},
   maxRetries: 5,

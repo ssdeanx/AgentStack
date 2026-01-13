@@ -50,6 +50,8 @@ import {
     finnhubTechnicalTool,
     finnhubEconomicTool,
 } from '../tools/finnhub-tools'
+import { InternalSpans } from '@mastra/core/observability'
+
 
 export interface GraphingRuntimeContext extends RequestContext {
     language?: 'en' | 'es' | 'fr' | 'ja'
@@ -141,6 +143,11 @@ Rules and best practices:
         finnhubTechnicalTool,
         finnhubEconomicTool,
     },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     inputProcessors: [
         new UnicodeNormalizer({
             stripControlChars: false,
@@ -203,6 +210,11 @@ export const technicalAnalysisAgent = new Agent({
         pivotPointsTool,
         candlestickPatternTool,
     },
+    options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+    },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
@@ -249,6 +261,11 @@ export const mappingAgent = new Agent({
         leafletTool,
         cytoscapeTool,
     },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
@@ -269,6 +286,11 @@ export const fetchAgent = new Agent({
     model: googleAIFlashLite,
     memory: pgMemory,
     tools: { resilientFetchTool },
+    options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+    },
     outputProcessors: [new TokenLimiterProcessor(32768)],
 })
 
@@ -295,6 +317,11 @@ export const finnhubAgent = new Agent({
         finnhubAnalysisTool,
         finnhubTechnicalTool,
         finnhubEconomicTool,
+    },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
@@ -362,6 +389,11 @@ Rules:
         searchCode,
         getRepositoryInfo,
     },
+    options: {
+        tracingPolicy: {
+          internal: InternalSpans.ALL
+        }
+    },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
@@ -416,6 +448,11 @@ Rules:
         getRepoFileTree,
         getFileContent,
         getRepositoryInfo,
+    },
+    options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
     defaultOptions: {

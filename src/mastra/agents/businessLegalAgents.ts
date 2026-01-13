@@ -29,6 +29,7 @@ import {
   siteMapExtractorTool,
   webScraperTool,
 } from '../tools/web-scraper-tool';
+import { InternalSpans } from '@mastra/core/observability';
 
 
 type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
@@ -142,7 +143,11 @@ ${PGVECTOR_PROMPT}
     pdfToMarkdownTool
   },
   memory: pgMemory,
-
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),

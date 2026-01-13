@@ -6,6 +6,7 @@ import { pgMemory } from '../config/pg-storage'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface EvaluationContext {
@@ -62,7 +63,11 @@ Evaluate search result relevance to a research query.
   memory: pgMemory,
   scorers: {
 
-    
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
   },
   workflows: {},
   maxRetries: 5,

@@ -39,7 +39,8 @@ import {
 import { multiStringEditTool } from '../tools/multi-string-edit.tool';
 import { testGeneratorTool } from '../tools/test-generator.tool';
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool';
-
+import { InternalSpans } from '@mastra/core/observability';
+import { pgMemory } from '../config/pg-storage';
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface CodingRuntimeContext {
   'user-tier': UserTier
@@ -127,7 +128,7 @@ Always consider maintainability, scalability, and testability in your recommenda
     scrapingSchedulerTool,
     //    ...githubMCP.getTools(),
   },
-  memory: upstashMemory,
+  memory: pgMemory,
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -135,6 +136,11 @@ Always consider maintainability, scalability, and testability in your recommenda
     },
   },
   maxRetries: 3,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   inputProcessors: [
   ],
   outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
@@ -234,8 +240,12 @@ Be constructive and educational in feedback.`,
     searchCode,
     getFileContent,
   },
-  memory: upstashMemory,
-
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -363,8 +373,12 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     runCode,
     //    ...githubMCP.getTools(),
   },
-  memory: upstashMemory,
-
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
@@ -495,8 +509,12 @@ For each refactoring:
     runCommand,
     runCode,
   },
-  memory: upstashMemory,
-
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   scorers: {
     relevancy: {
       scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),

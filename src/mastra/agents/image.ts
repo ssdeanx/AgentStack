@@ -3,7 +3,7 @@ import type { RequestContext } from '@mastra/core/request-context'
 import { googleAINanoBanana, pgMemory } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ImageRuntimeContext {
@@ -55,7 +55,11 @@ export const imageAgent = new Agent({
   },
   model: googleAINanoBanana,
   memory: pgMemory,
-  options: {},
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL
+    }
+  },
   tools: {},
   scorers: {},
   workflows: {},
