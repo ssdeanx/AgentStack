@@ -1,35 +1,40 @@
-import { Agent } from "@mastra/core/agent";
-import { googleAI, pgMemory } from "../config";
+import { Agent } from '@mastra/core/agent'
+import { googleAI, pgMemory } from '../config'
 
-
-import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
-import type { RequestContext } from "@mastra/core/request-context";
-import { TokenLimiterProcessor } from "@mastra/core/processors";
-import { InternalSpans } from "@mastra/core/observability";
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ImageToCsvRuntimeContext  {
-  userId?: string
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-  identityOutputSchema: 'excalidraw' | 'csv'
-  chalkboardOutputSchema: 'excalidraw' | 'csv'
+export interface ImageToCsvRuntimeContext {
+    userId?: string
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
+    identityOutputSchema: 'excalidraw' | 'csv'
+    chalkboardOutputSchema: 'excalidraw' | 'csv'
 }
 
 export const imageToCsvAgent = new Agent({
-  id: "imageToCsvAgent",
-  name: "Image to CSV Converter",
-  description: `You are an expert at converting images of diagrams into structured CSV data. Your task is to analyze the visual elements in the provided image and represent them in a CSV format that captures all relevant properties and relationships.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<ImageToCsvRuntimeContext> }) => {
-    const userId = requestContext.get('userId') ?? 'default'
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const identityOutputSchema = requestContext.get('identityOutputSchema') ?? 'csv'
-    const chalkboardOutputSchema = requestContext.get('chalkboardOutputSchema') ?? 'csv'
+    id: 'imageToCsvAgent',
+    name: 'Image to CSV Converter',
+    description: `You are an expert at converting images of diagrams into structured CSV data. Your task is to analyze the visual elements in the provided image and represent them in a CSV format that captures all relevant properties and relationships.`,
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<ImageToCsvRuntimeContext>
+    }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        const identityOutputSchema =
+            requestContext.get('identityOutputSchema') ?? 'csv'
+        const chalkboardOutputSchema =
+            requestContext.get('chalkboardOutputSchema') ?? 'csv'
 
-    return {
-      role: 'system',
-      content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
+        return {
+            role: 'system',
+            content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
 
 User: ${userId}
 Tier: ${userTier}
@@ -131,30 +136,28 @@ Output Format:
 IMPORTANT: Only return the CSV string including the header row. Do not include any other content.
 
 `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAI,
-  memory: pgMemory,
-  tools: {},
-  scorers: {
-
-  },
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  workflows: {},
-  maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
-});
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAI,
+    memory: pgMemory,
+    tools: {},
+    scorers: {},
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    workflows: {},
+    maxRetries: 5,
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
+})

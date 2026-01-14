@@ -18,7 +18,7 @@ hello-world/
 
 ```json
 {
-  "name": "hello-world"
+    "name": "hello-world"
 }
 ```
 

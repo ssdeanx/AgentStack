@@ -70,7 +70,10 @@ describe('googleSearchTool', () => {
         // Accept either form as valid, and assert equivalent properties are present
         const rawCount = (resolved.organic_results ?? []).length
 
-        if ('organicResults' in result && Array.isArray((result as any).organicResults)) {
+        if (
+            'organicResults' in result &&
+            Array.isArray((result as any).organicResults)
+        ) {
             const mapped = result as {
                 organicResults: Array<{
                     title: string
@@ -84,7 +87,9 @@ describe('googleSearchTool', () => {
             expect(mapped.organicResults.length).toBe(rawCount)
             expect(mapped.organicResults[0].title).toBe('Test Result 1')
             expect(mapped.organicResults[0].link).toBe('https://example.com/1')
-            expect(mapped.organicResults[0].snippet).toBe('This is test result 1')
+            expect(mapped.organicResults[0].snippet).toBe(
+                'This is test result 1'
+            )
             expect(mapped.organicResults[0].position).toBe(1)
             expect(mapped.relatedSearches).toEqual([
                 'related query 1',
@@ -112,7 +117,9 @@ describe('googleSearchTool', () => {
             expect(result.organicResults).toEqual([])
         } else {
             // Fail the test if a ValidationError is returned
-            throw new Error(`Expected organicResults but got ValidationError: ${JSON.stringify(result)}`)
+            throw new Error(
+                `Expected organicResults but got ValidationError: ${JSON.stringify(result)}`
+            )
         }
     })
 

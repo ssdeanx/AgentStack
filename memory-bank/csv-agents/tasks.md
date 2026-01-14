@@ -2,15 +2,15 @@
 
 ## Task Overview
 
-| ID | Task | Status | Priority | Estimate |
-|----|------|--------|----------|----------|
-| CSV-001 | Create DataExportAgent | Not Started | High | 2h |
-| CSV-002 | Create DataIngestionAgent | Not Started | High | 2h |
-| CSV-003 | Create DataTransformationAgent | Not Started | High | 3h |
-| CSV-004 | Create DataPipelineNetwork | Not Started | Medium | 2h |
-| CSV-005 | Create ReportGenerationNetwork | Not Started | Medium | 2h |
-| CSV-006 | Register agents in index.ts | Not Started | High | 0.5h |
-| CSV-007 | Add basic tests | Not Started | Medium | 2h |
+| ID      | Task                           | Status      | Priority | Estimate |
+| ------- | ------------------------------ | ----------- | -------- | -------- |
+| CSV-001 | Create DataExportAgent         | Not Started | High     | 2h       |
+| CSV-002 | Create DataIngestionAgent      | Not Started | High     | 2h       |
+| CSV-003 | Create DataTransformationAgent | Not Started | High     | 3h       |
+| CSV-004 | Create DataPipelineNetwork     | Not Started | Medium   | 2h       |
+| CSV-005 | Create ReportGenerationNetwork | Not Started | Medium   | 2h       |
+| CSV-006 | Register agents in index.ts    | Not Started | High     | 0.5h     |
+| CSV-007 | Add basic tests                | Not Started | Medium   | 2h       |
 
 ---
 
@@ -21,6 +21,7 @@
 **Estimate:** 2 hours
 
 ### Description
+
 Create an agent that exports structured data to CSV format using existing CSV tools.
 
 ### Acceptance Criteria
@@ -57,6 +58,7 @@ Create an agent that exports structured data to CSV format using existing CSV to
 **Estimate:** 2 hours
 
 ### Description
+
 Create an agent that ingests and validates CSV files, converting them to JSON.
 
 ### Acceptance Criteria
@@ -129,6 +131,7 @@ Create an agent for complex format transformations between CSV, JSON, and XML.
 **Estimate:** 2 hours
 
 ### Description
+
 Create an agent network that routes data processing requests to appropriate specialist agents.
 
 ### Acceptance Criteria
@@ -165,6 +168,7 @@ Create an agent network that routes data processing requests to appropriate spec
 **Estimate:** 2 hours
 
 ### Description
+
 Create an agent network that coordinates multi-step report generation workflows.
 
 ### Acceptance Criteria
@@ -202,6 +206,7 @@ Create an agent network that coordinates multi-step report generation workflows.
 **Estimate:** 0.5 hours
 
 ### Description
+
 Register new agents and networks in the main Mastra configuration.
 
 ### Acceptance Criteria
@@ -244,6 +249,7 @@ agents: {
 **Estimate:** 2 hours
 
 ### Description
+
 Create basic smoke tests for new agents and networks.
 
 ### Acceptance Criteria
@@ -260,15 +266,15 @@ Create basic smoke tests for new agents and networks.
 ```typescript
 // Basic test structure
 describe('DataExportAgent', () => {
-  it('should be defined', () => {
-    expect(dataExportAgent).toBeDefined()
-  })
-  
-  it('should have required tools', () => {
-    expect(dataExportAgent.tools).toContainEqual(
-      expect.objectContaining({ id: 'json-to-csv' })
-    )
-  })
+    it('should be defined', () => {
+        expect(dataExportAgent).toBeDefined()
+    })
+
+    it('should have required tools', () => {
+        expect(dataExportAgent.tools).toContainEqual(
+            expect.objectContaining({ id: 'json-to-csv' })
+        )
+    })
 })
 ```
 

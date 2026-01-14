@@ -1,7 +1,8 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -63,13 +64,17 @@ export const textAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as TextAnalysisToolContext | undefined
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | TextAnalysisToolContext
+            | undefined
         const defaultLanguage = requestCtx?.defaultLanguage ?? 'en'
-        const includeAdvancedMetrics = requestCtx?.includeAdvancedMetrics ?? false
+        const includeAdvancedMetrics =
+            requestCtx?.includeAdvancedMetrics ?? false
 
-        // Create child span for text analysis
-        const textAnalysisSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'text-analysis',
             input: inputData,
@@ -78,6 +83,19 @@ export const textAnalysisTool = createTool({
                 'tool.input.textLength': inputData.text.length,
                 'tool.input.operationsCount': inputData.operations.length,
                 'user.id': requestCtx?.userId,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for text analysis
+        const textAnalysisSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'text-analysis-operation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'text-analysis-exec',
+                'operation.type': 'analysis',
             },
         })
 
@@ -149,15 +167,29 @@ export const textAnalysisTool = createTool({
                 id: 'text-analysis',
             })
 
-            // Update span with successful result
+            // Update spans with successful result
             textAnalysisSpan?.update({
-                output: { success: true, operationsCount: inputData.operations.length },
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            textAnalysisSpan?.end()
+
+            rootSpan?.update({
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operationsCount': inputData.operations.length,
                 },
             })
-            textAnalysisSpan?.end()
+            rootSpan?.end()
 
             return {
                 success: true,
@@ -169,8 +201,12 @@ export const textAnalysisTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Text analysis failed: ${errorMsg}`, { error: errorMsg })
 
-            // Record error in span
+            // Record error in both spans
             textAnalysisSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
@@ -270,11 +306,14 @@ export const textProcessingTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as TextAnalysisToolContext | undefined
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | TextAnalysisToolContext
+            | undefined
 
-        // Create child span for text processing
-        const textProcessingSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'text-processing',
             input: inputData,
@@ -283,6 +322,19 @@ export const textProcessingTool = createTool({
                 'tool.input.textLength': inputData.text.length,
                 'tool.input.operationsCount': inputData.operations.length,
                 'user.id': requestCtx?.userId,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for text processing
+        const textProcessingSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'text-processing-operation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'text-processing-exec',
+                'operation.type': 'processing',
             },
         })
 
@@ -342,7 +394,8 @@ export const textProcessingTool = createTool({
             }
 
             // Apply options
-            const removeNewlinesFlag = inputData.options?.removeNewlines ?? false
+            const removeNewlinesFlag =
+                inputData.options?.removeNewlines ?? false
             if (removeNewlinesFlag) {
                 processedText = processedText.replace(/\n/g, ' ')
             }
@@ -363,16 +416,30 @@ export const textProcessingTool = createTool({
                 id: 'text-processing',
             })
 
-            // Update span with successful result
+            // Update spans with successful result
             textProcessingSpan?.update({
-                output: { success: true, operationsCount: inputData.operations.length },
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            textProcessingSpan?.end()
+
+            rootSpan?.update({
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operationsCount': inputData.operations.length,
                     'tool.output.lengthChange': statistics.changes,
                 },
             })
-            textProcessingSpan?.end()
+            rootSpan?.end()
 
             return {
                 success: true,
@@ -388,8 +455,12 @@ export const textProcessingTool = createTool({
                 error: errorMsg,
             })
 
-            // Record error in span
+            // Record error in both spans
             textProcessingSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
@@ -429,7 +500,6 @@ function countParagraphs(text: string): number {
 }
 
 function calculateReadability(text: string, language: string) {
-
     const words = countWords(text)
     const sentences = countSentences(text)
 
@@ -480,7 +550,6 @@ function calculateReadability(text: string, language: string) {
 }
 
 function analyzeSentiment(text: string, language: string) {
-
     // Simplified sentiment analysis (positive/negative word counting)
     const positiveWords = [
         'good',

@@ -1,13 +1,14 @@
 ---
-title: "Reference: createTool() | Tools & MCP | Mastra Docs v1 Beta"
-source: "https://mastra.ai/reference/v1/tools/create-tool"
+title: 'Reference: createTool() | Tools & MCP | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/reference/v1/tools/create-tool'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Documentation for the `createTool()` function in Mastra, used to define custom tools for agents."
+description: 'Mastra v1 Beta: Documentation for the `createTool()` function in Mastra, used to define custom tools for agents.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 The `createTool()` function is used to define custom tools that your Mastra agents can execute. Tools extend an agent's capabilities by allowing it to interact with external systems, perform calculations, or access specific data.
 
 ## Usage example

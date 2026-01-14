@@ -1,7 +1,8 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -37,7 +38,9 @@ export const jsonToCsvTool = createTool({
     }),
     execute: async (input, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as JsonToCsvRequestContext | undefined
+        const requestContext = context?.requestContext as
+            | JsonToCsvRequestContext
+            | undefined
         const abortSignal = context?.abortSignal
         const tracingContext = context?.tracingContext
 
@@ -56,14 +59,27 @@ export const jsonToCsvTool = createTool({
             id: 'json-to-csv',
         })
 
-        // Create child span for JSON to CSV conversion
-        const jsonCsvSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'json-to-csv-conversion',
+            name: 'json-to-csv',
             input,
             metadata: {
                 'tool.id': 'json-to-csv',
                 'tool.input.recordCount': input.data.length,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for JSON to CSV conversion
+        const jsonCsvSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'json-to-csv-conversion-operation',
+            input,
+            metadata: {
+                'tool.id': 'json-csv-conversion',
+                'operation.type': 'json-to-csv',
             },
         })
 
@@ -128,14 +144,24 @@ export const jsonToCsvTool = createTool({
 
             const csvOutput = rows.join('\n')
 
+            // Update spans with successful result
             jsonCsvSpan?.update({
+                output: { csv: csvOutput },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            jsonCsvSpan?.end()
+
+            rootSpan?.update({
                 output: { csv: csvOutput },
                 metadata: {
                     'tool.output.csvLength': csvOutput.length,
                     'tool.output.success': true,
                 },
             })
-            jsonCsvSpan?.end()
+            rootSpan?.end()
+
             return { csv: csvOutput }
         } catch (error) {
             const errorMessage =
@@ -147,6 +173,10 @@ export const jsonToCsvTool = createTool({
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `JSON to CSV conversion cancelled`
                 jsonCsvSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+                rootSpan?.error({
                     error: new Error(cancelMessage),
                     endSpan: true,
                 })
@@ -165,7 +195,12 @@ export const jsonToCsvTool = createTool({
                 throw new Error(cancelMessage)
             }
 
+            // Record error in both spans
             jsonCsvSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })

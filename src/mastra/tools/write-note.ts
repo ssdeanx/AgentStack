@@ -8,7 +8,6 @@ import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-
 export interface WriteNoteContext extends RequestContext {
     userId?: string
     workspaceId?: string
@@ -33,8 +32,11 @@ export const writeNoteTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
-        const requestCtx = context?.requestContext as WriteNoteContext | undefined
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+        const requestCtx = context?.requestContext as
+            | WriteNoteContext
+            | undefined
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
@@ -58,7 +60,10 @@ export const writeNoteTool = createTool({
         const noteSpan = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'write-note',
-            input: { title: inputData.title, contentLength: inputData.content.length },
+            input: {
+                title: inputData.title,
+                contentLength: inputData.content.length,
+            },
             metadata: {
                 'tool.id': 'write',
                 'tool.input.title': inputData.title,
@@ -102,7 +107,8 @@ export const writeNoteTool = createTool({
 
             return result
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error)
+            const errorMessage =
+                error instanceof Error ? error.message : String(error)
 
             // Record error in span
             noteSpan?.error({
@@ -120,7 +126,9 @@ export const writeNoteTool = createTool({
                 id: 'write',
             })
 
-            log.error(`Failed to write note "${inputData.title}": ${errorMessage}`)
+            log.error(
+                `Failed to write note "${inputData.title}": ${errorMessage}`
+            )
             throw error
         }
     },

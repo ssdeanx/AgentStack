@@ -1,25 +1,28 @@
-import { Agent } from '@mastra/core/agent';
-import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
-import { contentStrategistAgent } from '../agents/contentStrategistAgent';
-import { copywriterAgent } from '../agents/copywriterAgent';
-import { editorAgent } from '../agents/editorAgent';
-import { evaluationAgent } from '../agents/evaluationAgent';
-import { scriptWriterAgent } from '../agents/scriptWriterAgent';
-import { googleAI3 } from '../config/google';
-import { log } from '../config/logger';
-import { pgMemory } from '../config/pg-storage';
-import { contentReviewWorkflow } from '../workflows/content-review-workflow';
-import { contentStudioWorkflow } from '../workflows/content-studio-workflow';
-import { confirmationTool } from '../tools/confirmation.tool';
+import { Agent } from '@mastra/core/agent'
+import {
+    BatchPartsProcessor,
+    TokenLimiterProcessor,
+} from '@mastra/core/processors'
+import { contentStrategistAgent } from '../agents/contentStrategistAgent'
+import { copywriterAgent } from '../agents/copywriterAgent'
+import { editorAgent } from '../agents/editorAgent'
+import { evaluationAgent } from '../agents/evaluationAgent'
+import { scriptWriterAgent } from '../agents/scriptWriterAgent'
+import { googleAI3 } from '../config/google'
+import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
+import { contentReviewWorkflow } from '../workflows/content-review-workflow'
+import { contentStudioWorkflow } from '../workflows/content-studio-workflow'
+import { confirmationTool } from '../tools/confirmation.tool'
 
 log.info('Initializing Content Creation Network...')
 
 export const contentCreationNetwork = new Agent({
-  id: 'content-creation-network',
-  name: 'Content Creation Network',
-  description:
-    'A routing agent that coordinates content creation agents for writing, editing, and content strategy. Routes requests to copywriter, editor, strategist, and script writer agents.',
-  instructions: `You are a Content Creation Coordinator. Your role is to orchestrate content creation workflows by coordinating specialized content agents.
+    id: 'content-creation-network',
+    name: 'Content Creation Network',
+    description:
+        'A routing agent that coordinates content creation agents for writing, editing, and content strategy. Routes requests to copywriter, editor, strategist, and script writer agents.',
+    instructions: `You are a Content Creation Coordinator. Your role is to orchestrate content creation workflows by coordinating specialized content agents.
 
 ## Available Agents
 
@@ -106,22 +109,29 @@ export const contentCreationNetwork = new Agent({
 - Suggest workflow usage for complex content projects
 - Preserve author's voice while improving clarity and impact
 `,
-  model: googleAI3,
-  memory: pgMemory,
-  agents: {
-    copywriterAgent,
-    editorAgent,
-    contentStrategistAgent,
-    scriptWriterAgent,
-    evaluationAgent,
-  },
-  workflows: {
-    contentStudioWorkflow,
-    contentReviewWorkflow,
-  },
-  options: {},
-  tools: { confirmationTool },
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+    model: googleAI3,
+    memory: pgMemory,
+    agents: {
+        copywriterAgent,
+        editorAgent,
+        contentStrategistAgent,
+        scriptWriterAgent,
+        evaluationAgent,
+    },
+    workflows: {
+        contentStudioWorkflow,
+        contentReviewWorkflow,
+    },
+    options: {},
+    tools: { confirmationTool },
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
 })
 
 log.info('Content Creation Network initialized')

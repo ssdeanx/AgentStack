@@ -29,6 +29,7 @@ The current AgentStack has:
 ## Target Workflows
 
 ### 1. Stock Analysis Workflow
+
 **Technique:** Sequential enrichment with `.then()` + Step retries
 **Purpose:** Automated stock analysis combining multiple data sources
 **Utilizes:** polygon-tools, finnhub-tools, stockAnalysisAgent, reportAgent
@@ -41,6 +42,7 @@ The current AgentStack has:
 - Child spans for external API call tracing
 
 ### 2. Document Processing Workflow
+
 **Technique:** Conditional branching with `.branch()` + `.map()`
 **Purpose:** Full document ingestion → chunking → indexing pipeline
 **Utilizes:** pdfToMarkdownTool, mastraChunker, knowledgeIndexingAgent
@@ -53,6 +55,7 @@ The current AgentStack has:
 - Child spans for PDF parsing and indexing
 
 ### 3. Content Review Workflow
+
 **Technique:** Quality loop with `.dowhile()` + iteration tracking
 **Purpose:** Content creation with iterative quality review loop
 **Utilizes:** researchAgent, copywriterAgent, editorAgent, evaluationAgent
@@ -66,6 +69,7 @@ The current AgentStack has:
 - Tracing metadata: iteration number, score evolution
 
 ### 4. Financial Report Workflow
+
 **Technique:** Parallel execution with `.parallel()` + merge
 **Purpose:** Comprehensive multi-source financial reports
 **Utilizes:** polygon-tools, finnhub-tools, serpapi, stockAnalysisAgent, reportAgent
@@ -78,6 +82,7 @@ The current AgentStack has:
 - Parallel progress events via writer
 
 ### 5. Research Synthesis Workflow (NEW)
+
 **Technique:** Array iteration with `.foreach()` + concurrency control
 **Purpose:** Multi-topic research with synthesis across sources
 **Utilizes:** researchAgent, researchPaperAgent, reportAgent
@@ -90,6 +95,7 @@ The current AgentStack has:
 - Child span per topic with semantic search metadata
 
 ### 6. Learning Extraction Workflow (NEW)
+
 **Technique:** Human-in-the-loop with `suspend()`/`resume()` + nested workflow
 **Purpose:** Extract learnings from content with human approval
 **Utilizes:** learningExtractionAgent, evaluationAgent, documentProcessingAgent
@@ -108,29 +114,29 @@ All workflows MUST implement streaming using the `writer` argument:
 
 ```typescript
 execute: async ({ inputData, writer, tracingContext }) => {
-  // Step start event
-  await writer?.write({ 
-    type: 'step-start', 
-    stepId: 'fetch-data',
-    timestamp: Date.now()
-  });
-  
-  // Progress events during execution
-  await writer?.write({ 
-    type: 'progress', 
-    percent: 50,
-    message: 'Fetching stock data...'
-  });
-  
-  // Step complete event
-  await writer?.write({ 
-    type: 'step-complete', 
-    stepId: 'fetch-data',
-    success: true,
-    duration: Date.now() - startTime
-  });
-  
-  return result;
+    // Step start event
+    await writer?.write({
+        type: 'step-start',
+        stepId: 'fetch-data',
+        timestamp: Date.now(),
+    })
+
+    // Progress events during execution
+    await writer?.write({
+        type: 'progress',
+        percent: 50,
+        message: 'Fetching stock data...',
+    })
+
+    // Step complete event
+    await writer?.write({
+        type: 'step-complete',
+        stepId: 'fetch-data',
+        success: true,
+        duration: Date.now() - startTime,
+    })
+
+    return result
 }
 ```
 
@@ -150,31 +156,31 @@ All workflows MUST integrate with Mastra's AI tracing:
 
 ```typescript
 execute: async ({ inputData, tracingContext }) => {
-  // Create child span for sub-operation
-  const span = tracingContext.currentSpan?.createChildSpan({
-    type: 'generic',
-    name: 'polygon-api-call',
-    input: { symbol: inputData.symbol },
-    metadata: { 
-      service: 'polygon',
-      endpoint: '/v1/ticker'
+    // Create child span for sub-operation
+    const span = tracingContext.currentSpan?.createChildSpan({
+        type: 'generic',
+        name: 'polygon-api-call',
+        input: { symbol: inputData.symbol },
+        metadata: {
+            service: 'polygon',
+            endpoint: '/v1/ticker',
+        },
+    })
+
+    try {
+        const result = await polygonClient.getStockData(inputData.symbol)
+        span?.end({
+            output: result,
+            metadata: {
+                responseTime: Date.now() - start,
+                dataPoints: result.length,
+            },
+        })
+        return result
+    } catch (error) {
+        span?.error({ error, endSpan: true })
+        throw error
     }
-  });
-  
-  try {
-    const result = await polygonClient.getStockData(inputData.symbol);
-    span?.end({ 
-      output: result,
-      metadata: { 
-        responseTime: Date.now() - start,
-        dataPoints: result.length 
-      }
-    });
-    return result;
-  } catch (error) {
-    span?.error({ error, endSpan: true });
-    throw error;
-  }
 }
 ```
 
@@ -182,26 +188,26 @@ execute: async ({ inputData, tracingContext }) => {
 
 ```typescript
 const workflow = createWorkflow({
-  id: 'stock-analysis-workflow',
-  options: {
-    tracingPolicy: { 
-      internal: InternalSpans.NONE  // Show all spans
+    id: 'stock-analysis-workflow',
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.NONE, // Show all spans
+        },
+        validateInputs: true,
     },
-    validateInputs: true
-  }
 })
 ```
 
 ## Network Integration Matrix
 
-| Workflow | Primary Network | Secondary Network | Key Agents |
-|----------|-----------------|-------------------|------------|
-| stockAnalysisWorkflow | agentNetwork | dataPipelineNetwork | stockAnalysisAgent, reportAgent |
-| documentProcessingWorkflow | researchPipelineNetwork | dataPipelineNetwork | knowledgeIndexingAgent, documentProcessingAgent |
-| contentReviewWorkflow | reportGenerationNetwork | - | researchAgent, copywriterAgent, editorAgent, evaluationAgent |
-| financialReportWorkflow | agentNetwork | reportGenerationNetwork | stockAnalysisAgent, reportAgent |
-| researchSynthesisWorkflow | researchPipelineNetwork | reportGenerationNetwork | researchAgent, researchPaperAgent |
-| learningExtractionWorkflow | dataPipelineNetwork | - | learningExtractionAgent, evaluationAgent |
+| Workflow                   | Primary Network         | Secondary Network       | Key Agents                                                   |
+| -------------------------- | ----------------------- | ----------------------- | ------------------------------------------------------------ |
+| stockAnalysisWorkflow      | agentNetwork            | dataPipelineNetwork     | stockAnalysisAgent, reportAgent                              |
+| documentProcessingWorkflow | researchPipelineNetwork | dataPipelineNetwork     | knowledgeIndexingAgent, documentProcessingAgent              |
+| contentReviewWorkflow      | reportGenerationNetwork | -                       | researchAgent, copywriterAgent, editorAgent, evaluationAgent |
+| financialReportWorkflow    | agentNetwork            | reportGenerationNetwork | stockAnalysisAgent, reportAgent                              |
+| researchSynthesisWorkflow  | researchPipelineNetwork | reportGenerationNetwork | researchAgent, researchPaperAgent                            |
+| learningExtractionWorkflow | dataPipelineNetwork     | -                       | learningExtractionAgent, evaluationAgent                     |
 
 ## Success Criteria
 

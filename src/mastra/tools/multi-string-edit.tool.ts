@@ -335,8 +335,17 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'multi_string_edit',
-            input: { editsCount: edits.length, dryRun, createBackup, projectRoot },
-            metadata: { 'tool.id': 'coding:multiStringEdit', editsCount: edits.length, dryRun }
+            input: {
+                editsCount: edits.length,
+                dryRun,
+                createBackup,
+                projectRoot,
+            },
+            metadata: {
+                'tool.id': 'coding:multiStringEdit',
+                editsCount: edits.length,
+                dryRun,
+            },
         })
 
         const results: Array<z.infer<typeof editResultSchema>> = []

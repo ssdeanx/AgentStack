@@ -1,902 +1,1037 @@
-import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
-import { z } from 'zod';
+import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import { z } from 'zod'
 
-import { logError, logStepEnd, logStepStart } from '../config/logger';
+import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 const financialInputSchema = z.object({
-  symbols: z.array(z.string()).min(1).describe('Stock ticker symbols'),
-  reportType: z.enum(['daily', 'weekly', 'quarterly']).describe('Report type'),
-  includeNews: z.boolean().default(true),
-  includeTechnicals: z.boolean().default(true),
-});
+    symbols: z.array(z.string()).min(1).describe('Stock ticker symbols'),
+    reportType: z
+        .enum(['daily', 'weekly', 'quarterly'])
+        .describe('Report type'),
+    includeNews: z.boolean().default(true),
+    includeTechnicals: z.boolean().default(true),
+})
 
 const priceDataSchema = z.object({
-  symbol: z.string(),
-  currentPrice: z.number().optional(),
-  previousClose: z.number().optional(),
-  change: z.number().optional(),
-  changePercent: z.number().optional(),
-  volume: z.number().optional(),
-  high: z.number().optional(),
-  low: z.number().optional(),
-  open: z.number().optional(),
-  timestamp: z.string().optional(),
-});
+    symbol: z.string(),
+    currentPrice: z.number().optional(),
+    previousClose: z.number().optional(),
+    change: z.number().optional(),
+    changePercent: z.number().optional(),
+    volume: z.number().optional(),
+    high: z.number().optional(),
+    low: z.number().optional(),
+    open: z.number().optional(),
+    timestamp: z.string().optional(),
+})
 
 const companyMetricsSchema = z.object({
-  symbol: z.string(),
-  marketCap: z.number().optional(),
-  peRatio: z.number().optional(),
-  eps: z.number().optional(),
-  dividend: z.number().optional(),
-  beta: z.number().optional(),
-  weekHigh52: z.number().optional(),
-  weekLow52: z.number().optional(),
-  avgVolume: z.number().optional(),
-});
+    symbol: z.string(),
+    marketCap: z.number().optional(),
+    peRatio: z.number().optional(),
+    eps: z.number().optional(),
+    dividend: z.number().optional(),
+    beta: z.number().optional(),
+    weekHigh52: z.number().optional(),
+    weekLow52: z.number().optional(),
+    avgVolume: z.number().optional(),
+})
 
 const newsSentimentSchema = z.object({
-  symbol: z.string(),
-  articles: z.array(z.object({
-    headline: z.string(),
-    source: z.string().optional(),
-    sentiment: z.enum(['positive', 'negative', 'neutral']).optional(),
-    publishedAt: z.string().optional(),
-  })).optional(),
-  overallSentiment: z.enum(['bullish', 'bearish', 'neutral']).optional(),
-  sentimentScore: z.number().optional(),
-});
+    symbol: z.string(),
+    articles: z
+        .array(
+            z.object({
+                headline: z.string(),
+                source: z.string().optional(),
+                sentiment: z
+                    .enum(['positive', 'negative', 'neutral'])
+                    .optional(),
+                publishedAt: z.string().optional(),
+            })
+        )
+        .optional(),
+    overallSentiment: z.enum(['bullish', 'bearish', 'neutral']).optional(),
+    sentimentScore: z.number().optional(),
+})
 
 const parallelResultsSchema = z.object({
-  priceData: z.array(priceDataSchema),
-  companyMetrics: z.array(companyMetricsSchema),
-  newsSentiment: z.array(newsSentimentSchema),
-  metadata: z.object({
-    symbols: z.array(z.string()),
-    reportType: z.string(),
-    includeNews: z.boolean(),
-    includeTechnicals: z.boolean(),
-    fetchedAt: z.string(),
-  }),
-});
-
-const mergedDataSchema = z.object({
-  stocks: z.array(z.object({
-    symbol: z.string(),
-    price: priceDataSchema,
-    metrics: companyMetricsSchema,
-    sentiment: newsSentimentSchema,
-  })),
-  metadata: z.object({
-    symbols: z.array(z.string()),
-    reportType: z.string(),
-    totalSymbols: z.number(),
-    fetchedAt: z.string(),
-  }),
-});
-
-const analysisResultSchema = z.object({
-  stocks: mergedDataSchema.shape.stocks,
-  analysis: z.object({
-    topPerformers: z.array(z.string()),
-    worstPerformers: z.array(z.string()),
-    bullishStocks: z.array(z.string()),
-    bearishStocks: z.array(z.string()),
-    averageChange: z.number(),
-    marketTrend: z.enum(['bullish', 'bearish', 'neutral']),
-    recommendations: z.array(z.object({
-      symbol: z.string(),
-      action: z.enum(['buy', 'hold', 'sell']),
-      reason: z.string(),
-    })),
-  }),
-  metadata: mergedDataSchema.shape.metadata,
-});
-
-const finalReportSchema = z.object({
-  reportId: z.string(),
-  generatedAt: z.string(),
-  summary: z.string(),
-  report: z.string(),
-  data: z.object({
-    stocks: z.array(z.object({
-      symbol: z.string(),
-      price: priceDataSchema,
-      metrics: companyMetricsSchema,
-      sentiment: newsSentimentSchema,
-    })),
-    analysis: z.object({
-      topPerformers: z.array(z.string()),
-      worstPerformers: z.array(z.string()),
-      bullishStocks: z.array(z.string()),
-      bearishStocks: z.array(z.string()),
-      averageChange: z.number(),
-      marketTrend: z.enum(['bullish', 'bearish', 'neutral']),
-      recommendations: z.array(z.object({
-        symbol: z.string(),
-        action: z.enum(['buy', 'hold', 'sell']),
-        reason: z.string(),
-      })),
-    }),
-  }),
-  metadata: z.object({
-    symbols: z.array(z.string()),
-    reportType: z.string(),
-    totalSymbols: z.number(),
-  }),
-});
-
-const fetchPriceDataStep = createStep({
-  id: 'fetch-price-data',
-  description: 'Fetches real-time price data from Polygon.io',
-  inputSchema: financialInputSchema,
-  outputSchema: z.object({
     priceData: z.array(priceDataSchema),
-    metadata: z.object({
-      symbols: z.array(z.string()),
-      reportType: z.string(),
-      includeNews: z.boolean(),
-      includeTechnicals: z.boolean(),
-    }),
-  }),
-  retries: 3,
-  execute: async ({ inputData, writer, mastra, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'fetch-price-data',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'fetch-price-data',
-        symbols: inputData.symbols,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('fetch-price-data', { symbols: inputData.symbols });
-
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Starting price fetch for ${inputData.symbols.length} symbols...`,
-          stage: 'fetch-price-data',
-        },
-        id: 'fetch-price-data',
-      });
-
-      const priceData: Array<z.infer<typeof priceDataSchema>> = [];
-      const apiKey = process.env.POLYGON_API_KEY;
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetching prices for ${inputData.symbols.length} symbols...`,
-          stage: 'fetch-price-data',
-        },
-        id: 'fetch-price-data',
-      });
-
-      for (let i = 0; i < inputData.symbols.length; i++) {
-        const symbol = inputData.symbols[i];
-
-        try {
-          if (apiKey) {
-            const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${apiKey}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const ticker = data?.ticker;
-
-            priceData.push({
-              symbol,
-              currentPrice: ticker?.day?.c ?? ticker?.prevDay?.c,
-              previousClose: ticker?.prevDay?.c,
-              change: ticker?.todaysChange,
-              changePercent: ticker?.todaysChangePerc,
-              volume: ticker?.day?.v,
-              high: ticker?.day?.h,
-              low: ticker?.day?.l,
-              open: ticker?.day?.o,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            priceData.push({
-              symbol,
-              currentPrice: 100 + Math.random() * 50,
-              previousClose: 100,
-              change: Math.random() * 10 - 5,
-              changePercent: Math.random() * 5 - 2.5,
-              volume: Math.floor(Math.random() * 10000000),
-              timestamp: new Date().toISOString(),
-            });
-          }
-
-        } catch (error) {
-          priceData.push({ symbol, timestamp: new Date().toISOString() });
-        }
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `Fetched ${i + 1}/${inputData.symbols.length} prices...`,
-            stage: 'fetch-price-data',
-          },
-          id: 'fetch-price-data',
-        });
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetched ${priceData.length} price snapshots. (50%)`,
-          stage: 'fetch-price-data',
-        },
-        id: 'fetch-price-data',
-      })
-
-      logStepEnd('fetch-price-data', { symbolsCount: priceData.length }, Date.now() - startTime);
-
-      const output = {
-        priceData,
-        metadata: {
-          symbols: inputData.symbols,
-          reportType: inputData.reportType,
-          includeNews: inputData.includeNews,
-          includeTechnicals: inputData.includeTechnicals,
-        },
-      };
-
-      span?.update({
-        output,
-        metadata: {
-          symbolsCount: priceData.length,
-          responseTimeMs: Date.now() - startTime,
-        },
-      });
-      span?.end();
-
-      return output;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('fetch-price-data', error, { symbols: inputData.symbols });
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'fetch-price-data',
-        },
-        id: 'fetch-price-data',
-      });
-
-      throw error;
-    }
-  },
-});
-
-const fetchCompanyMetricsStep = createStep({
-  id: 'fetch-company-metrics',
-  description: 'Fetches company fundamentals from Finnhub',
-  inputSchema: financialInputSchema,
-  outputSchema: z.object({
     companyMetrics: z.array(companyMetricsSchema),
-    metadata: z.object({
-      symbols: z.array(z.string()),
-      reportType: z.string(),
-      includeNews: z.boolean(),
-      includeTechnicals: z.boolean(),
-    }),
-  }),
-  retries: 3,
-  execute: async ({ inputData, writer, mastra, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'fetch-company-metrics',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'fetch-company-metrics',
-        symbols: inputData.symbols,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('fetch-company-metrics', { symbols: inputData.symbols });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Fetching company metrics for ${inputData.symbols.length} symbols...`,
-        stage: 'fetch-company-metrics',
-      },
-      id: 'fetch-company-metrics',
-    })
-
-    try {
-      const companyMetrics: Array<z.infer<typeof companyMetricsSchema>> = [];
-      const apiKey = process.env.FINNHUB_API_KEY;
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetching metrics for ${inputData.symbols.length} symbols...`,
-          stage: 'fetch-company-metrics',
-        },
-        id: 'fetch-company-metrics',
-      });
-
-      for (let i = 0; i < inputData.symbols.length; i++) {
-        const symbol = inputData.symbols[i];
-
-        try {
-          if (apiKey) {
-            const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${apiKey}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const metrics = data?.metric ?? {};
-
-            companyMetrics.push({
-              symbol,
-              marketCap: metrics.marketCapitalization,
-              peRatio: metrics.peBasicExclExtraTTM,
-              eps: metrics.epsBasicExclExtraItemsTTM,
-              dividend: metrics.dividendYieldIndicatedAnnual,
-              beta: metrics.beta,
-              weekHigh52: metrics['52WeekHigh'],
-              weekLow52: metrics['52WeekLow'],
-              avgVolume: metrics['10DayAverageTradingVolume'],
-            });
-          } else {
-            companyMetrics.push({
-              symbol,
-              marketCap: Math.floor(Math.random() * 1000000000000),
-              peRatio: 15 + Math.random() * 20,
-              eps: 2 + Math.random() * 10,
-              beta: 0.8 + Math.random() * 0.6,
-            });
-          }
-        } catch {
-          companyMetrics.push({ symbol });
-        }
-
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `Fetched ${i + 1}/${inputData.symbols.length} metrics...`,
-            stage: 'fetch-company-metrics',
-          },
-          id: 'fetch-company-metrics',
-        });
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetched ${companyMetrics.length} company metric snapshots. (50%)`,
-          stage: 'fetch-company-metrics',
-        },
-        id: 'fetch-company-metrics',
-      })
-
-      logStepEnd('fetch-company-metrics', { symbolsCount: companyMetrics.length }, Date.now() - startTime);
-
-      const output = {
-        companyMetrics,
-        metadata: {
-          symbols: inputData.symbols,
-          reportType: inputData.reportType,
-          includeNews: inputData.includeNews,
-          includeTechnicals: inputData.includeTechnicals,
-        },
-      };
-
-      span?.update({
-        output,
-        metadata: {
-            symbolsCount: companyMetrics.length,
-            responseTimeMs: Date.now() - startTime,
-        }
-      });
-      span?.end();
-
-      return output;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('fetch-company-metrics', error, { symbols: inputData.symbols });
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'fetch-company-metrics',
-        },
-        id: 'fetch-company-metrics',
-      });
-
-      throw error;
-    }
-  },
-});
-
-const fetchNewsSentimentStep = createStep({
-  id: 'fetch-news-sentiment',
-  description: 'Fetches news and sentiment from Finnhub',
-  inputSchema: financialInputSchema,
-  outputSchema: z.object({
     newsSentiment: z.array(newsSentimentSchema),
     metadata: z.object({
-      symbols: z.array(z.string()),
-      reportType: z.string(),
-      includeNews: z.boolean(),
-      includeTechnicals: z.boolean(),
+        symbols: z.array(z.string()),
+        reportType: z.string(),
+        includeNews: z.boolean(),
+        includeTechnicals: z.boolean(),
+        fetchedAt: z.string(),
     }),
-  }),
-  retries: 3,
-  execute: async ({ inputData, writer, mastra, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'fetch-news-sentiment',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'fetch-news-sentiment',
-        symbols: inputData.symbols,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('fetch-news-sentiment', { symbols: inputData.symbols });
+})
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: inputData.includeNews
-          ? `Fetching news for ${inputData.symbols.length} symbols...`
-          : 'Skipping news fetch (includeNews=false).',
-        stage: 'fetch-news-sentiment',
-      },
-      id: 'fetch-news-sentiment',
-    })
+const mergedDataSchema = z.object({
+    stocks: z.array(
+        z.object({
+            symbol: z.string(),
+            price: priceDataSchema,
+            metrics: companyMetricsSchema,
+            sentiment: newsSentimentSchema,
+        })
+    ),
+    metadata: z.object({
+        symbols: z.array(z.string()),
+        reportType: z.string(),
+        totalSymbols: z.number(),
+        fetchedAt: z.string(),
+    }),
+})
 
-    try {
-      const newsSentiment: Array<z.infer<typeof newsSentimentSchema>> = [];
-      const apiKey = process.env.FINNHUB_API_KEY;
+const analysisResultSchema = z.object({
+    stocks: mergedDataSchema.shape.stocks,
+    analysis: z.object({
+        topPerformers: z.array(z.string()),
+        worstPerformers: z.array(z.string()),
+        bullishStocks: z.array(z.string()),
+        bearishStocks: z.array(z.string()),
+        averageChange: z.number(),
+        marketTrend: z.enum(['bullish', 'bearish', 'neutral']),
+        recommendations: z.array(
+            z.object({
+                symbol: z.string(),
+                action: z.enum(['buy', 'hold', 'sell']),
+                reason: z.string(),
+            })
+        ),
+    }),
+    metadata: mergedDataSchema.shape.metadata,
+})
 
-      if (!inputData.includeNews) {
-        inputData.symbols.forEach(symbol => {
-          newsSentiment.push({ symbol, articles: [], overallSentiment: 'neutral' });
-        });
+const finalReportSchema = z.object({
+    reportId: z.string(),
+    generatedAt: z.string(),
+    summary: z.string(),
+    report: z.string(),
+    data: z.object({
+        stocks: z.array(
+            z.object({
+                symbol: z.string(),
+                price: priceDataSchema,
+                metrics: companyMetricsSchema,
+                sentiment: newsSentimentSchema,
+            })
+        ),
+        analysis: z.object({
+            topPerformers: z.array(z.string()),
+            worstPerformers: z.array(z.string()),
+            bullishStocks: z.array(z.string()),
+            bearishStocks: z.array(z.string()),
+            averageChange: z.number(),
+            marketTrend: z.enum(['bullish', 'bearish', 'neutral']),
+            recommendations: z.array(
+                z.object({
+                    symbol: z.string(),
+                    action: z.enum(['buy', 'hold', 'sell']),
+                    reason: z.string(),
+                })
+            ),
+        }),
+    }),
+    metadata: z.object({
+        symbols: z.array(z.string()),
+        reportType: z.string(),
+        totalSymbols: z.number(),
+    }),
+})
 
-        const output = {
-          newsSentiment,
-          metadata: {
-            symbols: inputData.symbols,
-            reportType: inputData.reportType,
-            includeNews: inputData.includeNews,
-            includeTechnicals: inputData.includeTechnicals,
-          },
-        };
-
-        span?.update({
-          output,
-          metadata: {
-              skipped: true,
-              skipReason: 'includeNews=false',
-              responseTimeMs: Date.now() - startTime,
-          }
-        });
-        span?.end();
-
-        return output;
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetching news for ${inputData.symbols.length} symbols...`,
-          stage: 'fetch-news-sentiment',
-        },
-        id: 'fetch-news-sentiment',
-      });
-
-      const today = new Date().toISOString().split('T')[0];
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      for (let i = 0; i < inputData.symbols.length; i++) {
-        const symbol = inputData.symbols[i];
+const fetchPriceDataStep = createStep({
+    id: 'fetch-price-data',
+    description: 'Fetches real-time price data from Polygon.io',
+    inputSchema: financialInputSchema,
+    outputSchema: z.object({
+        priceData: z.array(priceDataSchema),
+        metadata: z.object({
+            symbols: z.array(z.string()),
+            reportType: z.string(),
+            includeNews: z.boolean(),
+            includeTechnicals: z.boolean(),
+        }),
+    }),
+    retries: 3,
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'fetch-price-data',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'fetch-price-data',
+                symbols: inputData.symbols,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('fetch-price-data', { symbols: inputData.symbols })
 
         try {
-          if (apiKey) {
-            const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${weekAgo}&to=${today}&token=${apiKey}`;
-            const response = await fetch(url);
-            const articles = await response.json();
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Starting price fetch for ${inputData.symbols.length} symbols...`,
+                    stage: 'fetch-price-data',
+                },
+                id: 'fetch-price-data',
+            })
 
-            const formattedArticles = Array.isArray(articles)
-              ? articles.slice(0, 5).map((a: { headline?: string; source?: string; datetime?: number }) => ({
-                headline: a.headline ?? '',
-                source: a.source,
-                sentiment: 'neutral' as const,
-                publishedAt: (a.datetime) ? new Date(a.datetime * 1000).toISOString() : undefined,
-              }))
-              : [];
+            const priceData: Array<z.infer<typeof priceDataSchema>> = []
+            const apiKey = process.env.POLYGON_API_KEY
 
-            newsSentiment.push({
-              symbol,
-              articles: formattedArticles,
-              overallSentiment: 'neutral',
-              sentimentScore: 0,
-            });
-          } else {
-            newsSentiment.push({
-              symbol,
-              articles: [{ headline: `Sample news for ${symbol}`, sentiment: 'neutral' }],
-              overallSentiment: 'neutral',
-              sentimentScore: Math.random() * 2 - 1,
-            });
-          }
-        } catch {
-          newsSentiment.push({ symbol, articles: [], overallSentiment: 'neutral' });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetching prices for ${inputData.symbols.length} symbols...`,
+                    stage: 'fetch-price-data',
+                },
+                id: 'fetch-price-data',
+            })
+
+            for (let i = 0; i < inputData.symbols.length; i++) {
+                const symbol = inputData.symbols[i]
+
+                try {
+                    if (apiKey) {
+                        const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${apiKey}`
+                        const response = await fetch(url)
+                        const data = await response.json()
+                        const ticker = data?.ticker
+
+                        priceData.push({
+                            symbol,
+                            currentPrice: ticker?.day?.c ?? ticker?.prevDay?.c,
+                            previousClose: ticker?.prevDay?.c,
+                            change: ticker?.todaysChange,
+                            changePercent: ticker?.todaysChangePerc,
+                            volume: ticker?.day?.v,
+                            high: ticker?.day?.h,
+                            low: ticker?.day?.l,
+                            open: ticker?.day?.o,
+                            timestamp: new Date().toISOString(),
+                        })
+                    } else {
+                        priceData.push({
+                            symbol,
+                            currentPrice: 100 + Math.random() * 50,
+                            previousClose: 100,
+                            change: Math.random() * 10 - 5,
+                            changePercent: Math.random() * 5 - 2.5,
+                            volume: Math.floor(Math.random() * 10000000),
+                            timestamp: new Date().toISOString(),
+                        })
+                    }
+                } catch (error) {
+                    priceData.push({
+                        symbol,
+                        timestamp: new Date().toISOString(),
+                    })
+                }
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `Fetched ${i + 1}/${inputData.symbols.length} prices...`,
+                        stage: 'fetch-price-data',
+                    },
+                    id: 'fetch-price-data',
+                })
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetched ${priceData.length} price snapshots. (50%)`,
+                    stage: 'fetch-price-data',
+                },
+                id: 'fetch-price-data',
+            })
+
+            logStepEnd(
+                'fetch-price-data',
+                { symbolsCount: priceData.length },
+                Date.now() - startTime
+            )
+
+            const output = {
+                priceData,
+                metadata: {
+                    symbols: inputData.symbols,
+                    reportType: inputData.reportType,
+                    includeNews: inputData.includeNews,
+                    includeTechnicals: inputData.includeTechnicals,
+                },
+            }
+
+            span?.update({
+                output,
+                metadata: {
+                    symbolsCount: priceData.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return output
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('fetch-price-data', error, { symbols: inputData.symbols })
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'fetch-price-data',
+                },
+                id: 'fetch-price-data',
+            })
+
+            throw error
         }
+    },
+})
+
+const fetchCompanyMetricsStep = createStep({
+    id: 'fetch-company-metrics',
+    description: 'Fetches company fundamentals from Finnhub',
+    inputSchema: financialInputSchema,
+    outputSchema: z.object({
+        companyMetrics: z.array(companyMetricsSchema),
+        metadata: z.object({
+            symbols: z.array(z.string()),
+            reportType: z.string(),
+            includeNews: z.boolean(),
+            includeTechnicals: z.boolean(),
+        }),
+    }),
+    retries: 3,
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'fetch-company-metrics',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'fetch-company-metrics',
+                symbols: inputData.symbols,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('fetch-company-metrics', { symbols: inputData.symbols })
 
         await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `Fetched ${i + 1}/${inputData.symbols.length} news...`,
-            stage: 'fetch-news-sentiment',
-          },
-          id: 'fetch-news-sentiment',
-        });
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Fetched news sentiment for ${newsSentiment.length} symbols. (50%)`,
-          stage: 'fetch-news-sentiment',
-        },
-        id: 'fetch-news-sentiment',
-      })
-
-      logStepEnd('fetch-news-sentiment', { symbolsCount: newsSentiment.length }, Date.now() - startTime);
-
-      const finalOutput = {
-        newsSentiment,
-        metadata: {
-          symbols: inputData.symbols,
-          reportType: inputData.reportType,
-          includeNews: inputData.includeNews,
-          includeTechnicals: inputData.includeTechnicals,
-        },
-      };
-
-      span?.update({
-        output: finalOutput,
-        metadata: {
-            symbolsCount: newsSentiment.length,
-            responseTimeMs: Date.now() - startTime,
-        }
-      });
-      span?.end();
-
-      return finalOutput;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('fetch-news-sentiment', error, { symbols: inputData.symbols });
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'fetch-news-sentiment',
-        },
-        id: 'fetch-news-sentiment',
-      });
-
-      throw error;
-    }
-  },
-});
-
-const mergeDataStep = createStep({
-  id: 'merge-data',
-  description: 'Merges parallel fetch results into unified structure',
-  inputSchema: parallelResultsSchema,
-  outputSchema: mergedDataSchema,
-  execute: async ({ inputData, writer, mastra, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'merge-data',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'merge-data',
-        symbolsCount: inputData.metadata.symbols.length,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('merge-data', { symbolsCount: inputData.metadata.symbols.length });
-
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Merging price, metrics, and sentiment data for ${inputData.metadata.symbols.length} symbols...`,
-          stage: 'merge-data',
-        },
-        id: 'merge-data',
-      })
-
-      const stocks = inputData.metadata.symbols.map(symbol => {
-        const price = inputData.priceData.find(p => p.symbol === symbol) ?? { symbol };
-        const metrics = inputData.companyMetrics.find(m => m.symbol === symbol) ?? { symbol };
-        const sentiment = inputData.newsSentiment.find(s => s.symbol === symbol) ?? { symbol };
-
-        return { symbol, price, metrics, sentiment };
-      });
-
-      const result: z.infer<typeof mergedDataSchema> = {
-        stocks,
-        metadata: {
-          symbols: inputData.metadata.symbols,
-          reportType: inputData.metadata.reportType,
-          totalSymbols: stocks.length,
-          fetchedAt: inputData.metadata.fetchedAt,
-        },
-      };
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Merged data for ${stocks.length} symbols.`,
-          stage: 'merge-data',
-        },
-        id: 'merge-data',
-      })
-
-      logStepEnd('merge-data', { totalSymbols: stocks.length }, Date.now() - startTime);
-
-      span?.update({
-        output: result,
-        metadata: {
-            totalSymbols: stocks.length,
-            responseTimeMs: Date.now() - startTime,
-        }
-      });
-      span?.end();
-
-      return result;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('merge-data', error);
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'merge-data',
-        },
-        id: 'merge-data',
-      });
-
-      throw error;
-    }
-  },
-});
-
-const analyzeDataStep = createStep({
-  id: 'analyze-data',
-  description: 'Analyzes merged data using stockAnalysisAgent',
-  inputSchema: mergedDataSchema,
-  outputSchema: analysisResultSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'analyze-data',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'analyze-data',
-        symbols: inputData.metadata.symbols,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('analyze-data', { totalSymbols: inputData.metadata.totalSymbols });
-
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Analyzing stock data for ${inputData.metadata.totalSymbols} symbols...`,
-          stage: 'analyze-data',
-        },
-        id: 'analyze-data',
-      })
-
-      const sortedByChange = [...inputData.stocks].sort((a, b) =>
-        (b.price.changePercent ?? 0) - (a.price.changePercent ?? 0)
-      );
-
-      const topPerformers = sortedByChange.slice(0, 3).map(s => s.symbol);
-      const worstPerformers = sortedByChange.slice(-3).reverse().map(s => s.symbol);
-
-      const bullishStocks = inputData.stocks
-        .filter(s => s.sentiment.overallSentiment === 'bullish' || (s.price.changePercent ?? 0) > 2)
-        .map(s => s.symbol);
-
-      const bearishStocks = inputData.stocks
-        .filter(s => s.sentiment.overallSentiment === 'bearish' || (s.price.changePercent ?? 0) < -2)
-        .map(s => s.symbol);
-
-      const averageChange = inputData.stocks.reduce((sum, s) => sum + (s.price.changePercent ?? 0), 0) / inputData.stocks.length;
-      const marketTrend: 'bullish' | 'bearish' | 'neutral' =
-        averageChange > 1 ? 'bullish' : averageChange < -1 ? 'bearish' : 'neutral';
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Generating recommendations for ${inputData.metadata.totalSymbols} symbols...`,
-          stage: 'analyze-data',
-        },
-        id: 'analyze-data',
-      })
-
-      const agent = mastra?.getAgent('stockAnalysisAgent');
-      let recommendations: z.infer<typeof analysisResultSchema>['analysis']['recommendations'] = [];
-
-      if (agent) {
-        const analysisPrompt = `Analyze these stocks and provide buy/hold/sell recommendations:
-        ${inputData.stocks.map(s =>
-          `${s.symbol}: Price $${s.price.currentPrice}, Change ${s.price.changePercent}%, P/E ${s.metrics.peRatio}, Sentiment ${s.sentiment.overallSentiment}`
-        ).join('\n')}`;
-
-        const stream = await agent.stream(analysisPrompt, {
-          output: z.object({
-            recommendations: z.array(z.object({
-              symbol: z.string(),
-              action: z.enum(['buy', 'hold', 'sell']),
-              reason: z.string(),
-            })),
-          }),
-        } as any);
-
-        // Pipe streaming partial output to the workflow writer so clients see progress
-        await stream.textStream.pipeTo(writer);
-        // Wait for final text and parse it as structured JSON; fallback to empty array if needed
-        const finalText = await stream.text;
-        let parsedAnalysis: any = null;
-        try {
-          parsedAnalysis = JSON.parse(finalText);
-        } catch {
-          parsedAnalysis = null;
-        }
-        // Assign to the existing `recommendations` variable rather than shadowing it.
-        recommendations = parsedAnalysis?.recommendations ?? [];
-      } else {
-        recommendations = inputData.stocks.map(s => ({
-          symbol: s.symbol,
-          action: (s.price.changePercent ?? 0) > 1 ? 'hold' as const : (s.price.changePercent ?? 0) < -1 ? 'sell' as const : 'hold' as const,
-          reason: `Based on ${s.price.changePercent?.toFixed(2)}% change`,
-        }));
-      }
-
-
-      const result: z.infer<typeof analysisResultSchema> = {
-        stocks: inputData.stocks,
-        analysis: {
-          topPerformers,
-          worstPerformers,
-          bullishStocks,
-          bearishStocks,
-          averageChange,
-          marketTrend,
-          recommendations,
-        },
-        metadata: inputData.metadata,
-      };
-
-      logStepEnd('analyze-data', { marketTrend, recommendationsCount: recommendations.length }, Date.now() - startTime);
-
-      span?.update({
-        output: result,
-        metadata: {
-            marketTrend,
-            recommendationsCount: recommendations.length,
-            responseTimeMs: Date.now() - startTime,
-        }
-      });
-      span?.end();
-
-      return result;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('analyze-data', error);
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'analyze-data',
-        },
-        id: 'analyze-data',
-      });
-
-      throw error;
-    }
-  },
-});
-
-const generateReportStep = createStep({
-  id: 'generate-report',
-  description: 'Generates comprehensive financial report using reportAgent',
-  inputSchema: analysisResultSchema,
-  outputSchema: finalReportSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'generate-report',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'generate-report',
-        symbolsCount: inputData.metadata.totalSymbols,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('generate-report', { symbols: inputData.metadata.symbols });
-
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Generating ${inputData.metadata.reportType} financial report for ${inputData.metadata.totalSymbols} symbols...`,
-          stage: 'generate-report',
-        },
-        id: 'generate-report',
-      })
-
-      const reportId = `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const agent = mastra?.getAgent('reportAgent');
-
-      let summary = '';
-      let report = '';
-
-      if (agent) {
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `AI generating comprehensive ${inputData.metadata.reportType} report...`,
-            stage: 'generate-report',
-          },
-          id: 'generate-report',
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Fetching company metrics for ${inputData.symbols.length} symbols...`,
+                stage: 'fetch-company-metrics',
+            },
+            id: 'fetch-company-metrics',
         })
 
-        const prompt = `Generate a ${inputData.metadata.reportType} financial report:
+        try {
+            const companyMetrics: Array<z.infer<typeof companyMetricsSchema>> =
+                []
+            const apiKey = process.env.FINNHUB_API_KEY
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetching metrics for ${inputData.symbols.length} symbols...`,
+                    stage: 'fetch-company-metrics',
+                },
+                id: 'fetch-company-metrics',
+            })
+
+            for (let i = 0; i < inputData.symbols.length; i++) {
+                const symbol = inputData.symbols[i]
+
+                try {
+                    if (apiKey) {
+                        const url = `https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${apiKey}`
+                        const response = await fetch(url)
+                        const data = await response.json()
+                        const metrics = data?.metric ?? {}
+
+                        companyMetrics.push({
+                            symbol,
+                            marketCap: metrics.marketCapitalization,
+                            peRatio: metrics.peBasicExclExtraTTM,
+                            eps: metrics.epsBasicExclExtraItemsTTM,
+                            dividend: metrics.dividendYieldIndicatedAnnual,
+                            beta: metrics.beta,
+                            weekHigh52: metrics['52WeekHigh'],
+                            weekLow52: metrics['52WeekLow'],
+                            avgVolume: metrics['10DayAverageTradingVolume'],
+                        })
+                    } else {
+                        companyMetrics.push({
+                            symbol,
+                            marketCap: Math.floor(
+                                Math.random() * 1000000000000
+                            ),
+                            peRatio: 15 + Math.random() * 20,
+                            eps: 2 + Math.random() * 10,
+                            beta: 0.8 + Math.random() * 0.6,
+                        })
+                    }
+                } catch {
+                    companyMetrics.push({ symbol })
+                }
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `Fetched ${i + 1}/${inputData.symbols.length} metrics...`,
+                        stage: 'fetch-company-metrics',
+                    },
+                    id: 'fetch-company-metrics',
+                })
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetched ${companyMetrics.length} company metric snapshots. (50%)`,
+                    stage: 'fetch-company-metrics',
+                },
+                id: 'fetch-company-metrics',
+            })
+
+            logStepEnd(
+                'fetch-company-metrics',
+                { symbolsCount: companyMetrics.length },
+                Date.now() - startTime
+            )
+
+            const output = {
+                companyMetrics,
+                metadata: {
+                    symbols: inputData.symbols,
+                    reportType: inputData.reportType,
+                    includeNews: inputData.includeNews,
+                    includeTechnicals: inputData.includeTechnicals,
+                },
+            }
+
+            span?.update({
+                output,
+                metadata: {
+                    symbolsCount: companyMetrics.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return output
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('fetch-company-metrics', error, {
+                symbols: inputData.symbols,
+            })
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'fetch-company-metrics',
+                },
+                id: 'fetch-company-metrics',
+            })
+
+            throw error
+        }
+    },
+})
+
+const fetchNewsSentimentStep = createStep({
+    id: 'fetch-news-sentiment',
+    description: 'Fetches news and sentiment from Finnhub',
+    inputSchema: financialInputSchema,
+    outputSchema: z.object({
+        newsSentiment: z.array(newsSentimentSchema),
+        metadata: z.object({
+            symbols: z.array(z.string()),
+            reportType: z.string(),
+            includeNews: z.boolean(),
+            includeTechnicals: z.boolean(),
+        }),
+    }),
+    retries: 3,
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'fetch-news-sentiment',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'fetch-news-sentiment',
+                symbols: inputData.symbols,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('fetch-news-sentiment', { symbols: inputData.symbols })
+
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: inputData.includeNews
+                    ? `Fetching news for ${inputData.symbols.length} symbols...`
+                    : 'Skipping news fetch (includeNews=false).',
+                stage: 'fetch-news-sentiment',
+            },
+            id: 'fetch-news-sentiment',
+        })
+
+        try {
+            const newsSentiment: Array<z.infer<typeof newsSentimentSchema>> = []
+            const apiKey = process.env.FINNHUB_API_KEY
+
+            if (!inputData.includeNews) {
+                inputData.symbols.forEach((symbol) => {
+                    newsSentiment.push({
+                        symbol,
+                        articles: [],
+                        overallSentiment: 'neutral',
+                    })
+                })
+
+                const output = {
+                    newsSentiment,
+                    metadata: {
+                        symbols: inputData.symbols,
+                        reportType: inputData.reportType,
+                        includeNews: inputData.includeNews,
+                        includeTechnicals: inputData.includeTechnicals,
+                    },
+                }
+
+                span?.update({
+                    output,
+                    metadata: {
+                        skipped: true,
+                        skipReason: 'includeNews=false',
+                        responseTimeMs: Date.now() - startTime,
+                    },
+                })
+                span?.end()
+
+                return output
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetching news for ${inputData.symbols.length} symbols...`,
+                    stage: 'fetch-news-sentiment',
+                },
+                id: 'fetch-news-sentiment',
+            })
+
+            const today = new Date().toISOString().split('T')[0]
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split('T')[0]
+
+            for (let i = 0; i < inputData.symbols.length; i++) {
+                const symbol = inputData.symbols[i]
+
+                try {
+                    if (apiKey) {
+                        const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${weekAgo}&to=${today}&token=${apiKey}`
+                        const response = await fetch(url)
+                        const articles = await response.json()
+
+                        const formattedArticles = Array.isArray(articles)
+                            ? articles
+                                  .slice(0, 5)
+                                  .map(
+                                      (a: {
+                                          headline?: string
+                                          source?: string
+                                          datetime?: number
+                                      }) => ({
+                                          headline: a.headline ?? '',
+                                          source: a.source,
+                                          sentiment: 'neutral' as const,
+                                          publishedAt: a.datetime
+                                              ? new Date(
+                                                    a.datetime * 1000
+                                                ).toISOString()
+                                              : undefined,
+                                      })
+                                  )
+                            : []
+
+                        newsSentiment.push({
+                            symbol,
+                            articles: formattedArticles,
+                            overallSentiment: 'neutral',
+                            sentimentScore: 0,
+                        })
+                    } else {
+                        newsSentiment.push({
+                            symbol,
+                            articles: [
+                                {
+                                    headline: `Sample news for ${symbol}`,
+                                    sentiment: 'neutral',
+                                },
+                            ],
+                            overallSentiment: 'neutral',
+                            sentimentScore: Math.random() * 2 - 1,
+                        })
+                    }
+                } catch {
+                    newsSentiment.push({
+                        symbol,
+                        articles: [],
+                        overallSentiment: 'neutral',
+                    })
+                }
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `Fetched ${i + 1}/${inputData.symbols.length} news...`,
+                        stage: 'fetch-news-sentiment',
+                    },
+                    id: 'fetch-news-sentiment',
+                })
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Fetched news sentiment for ${newsSentiment.length} symbols. (50%)`,
+                    stage: 'fetch-news-sentiment',
+                },
+                id: 'fetch-news-sentiment',
+            })
+
+            logStepEnd(
+                'fetch-news-sentiment',
+                { symbolsCount: newsSentiment.length },
+                Date.now() - startTime
+            )
+
+            const finalOutput = {
+                newsSentiment,
+                metadata: {
+                    symbols: inputData.symbols,
+                    reportType: inputData.reportType,
+                    includeNews: inputData.includeNews,
+                    includeTechnicals: inputData.includeTechnicals,
+                },
+            }
+
+            span?.update({
+                output: finalOutput,
+                metadata: {
+                    symbolsCount: newsSentiment.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return finalOutput
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('fetch-news-sentiment', error, {
+                symbols: inputData.symbols,
+            })
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'fetch-news-sentiment',
+                },
+                id: 'fetch-news-sentiment',
+            })
+
+            throw error
+        }
+    },
+})
+
+const mergeDataStep = createStep({
+    id: 'merge-data',
+    description: 'Merges parallel fetch results into unified structure',
+    inputSchema: parallelResultsSchema,
+    outputSchema: mergedDataSchema,
+    execute: async ({ inputData, writer, mastra, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'merge-data',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'merge-data',
+                symbolsCount: inputData.metadata.symbols.length,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('merge-data', {
+            symbolsCount: inputData.metadata.symbols.length,
+        })
+
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Merging price, metrics, and sentiment data for ${inputData.metadata.symbols.length} symbols...`,
+                    stage: 'merge-data',
+                },
+                id: 'merge-data',
+            })
+
+            const stocks = inputData.metadata.symbols.map((symbol) => {
+                const price = inputData.priceData.find(
+                    (p) => p.symbol === symbol
+                ) ?? { symbol }
+                const metrics = inputData.companyMetrics.find(
+                    (m) => m.symbol === symbol
+                ) ?? { symbol }
+                const sentiment = inputData.newsSentiment.find(
+                    (s) => s.symbol === symbol
+                ) ?? { symbol }
+
+                return { symbol, price, metrics, sentiment }
+            })
+
+            const result: z.infer<typeof mergedDataSchema> = {
+                stocks,
+                metadata: {
+                    symbols: inputData.metadata.symbols,
+                    reportType: inputData.metadata.reportType,
+                    totalSymbols: stocks.length,
+                    fetchedAt: inputData.metadata.fetchedAt,
+                },
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Merged data for ${stocks.length} symbols.`,
+                    stage: 'merge-data',
+                },
+                id: 'merge-data',
+            })
+
+            logStepEnd(
+                'merge-data',
+                { totalSymbols: stocks.length },
+                Date.now() - startTime
+            )
+
+            span?.update({
+                output: result,
+                metadata: {
+                    totalSymbols: stocks.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('merge-data', error)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'merge-data',
+                },
+                id: 'merge-data',
+            })
+
+            throw error
+        }
+    },
+})
+
+const analyzeDataStep = createStep({
+    id: 'analyze-data',
+    description: 'Analyzes merged data using stockAnalysisAgent',
+    inputSchema: mergedDataSchema,
+    outputSchema: analysisResultSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'analyze-data',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'analyze-data',
+                symbols: inputData.metadata.symbols,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('analyze-data', {
+            totalSymbols: inputData.metadata.totalSymbols,
+        })
+
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Analyzing stock data for ${inputData.metadata.totalSymbols} symbols...`,
+                    stage: 'analyze-data',
+                },
+                id: 'analyze-data',
+            })
+
+            const sortedByChange = [...inputData.stocks].sort(
+                (a, b) =>
+                    (b.price.changePercent ?? 0) - (a.price.changePercent ?? 0)
+            )
+
+            const topPerformers = sortedByChange
+                .slice(0, 3)
+                .map((s) => s.symbol)
+            const worstPerformers = sortedByChange
+                .slice(-3)
+                .reverse()
+                .map((s) => s.symbol)
+
+            const bullishStocks = inputData.stocks
+                .filter(
+                    (s) =>
+                        s.sentiment.overallSentiment === 'bullish' ||
+                        (s.price.changePercent ?? 0) > 2
+                )
+                .map((s) => s.symbol)
+
+            const bearishStocks = inputData.stocks
+                .filter(
+                    (s) =>
+                        s.sentiment.overallSentiment === 'bearish' ||
+                        (s.price.changePercent ?? 0) < -2
+                )
+                .map((s) => s.symbol)
+
+            const averageChange =
+                inputData.stocks.reduce(
+                    (sum, s) => sum + (s.price.changePercent ?? 0),
+                    0
+                ) / inputData.stocks.length
+            const marketTrend: 'bullish' | 'bearish' | 'neutral' =
+                averageChange > 1
+                    ? 'bullish'
+                    : averageChange < -1
+                      ? 'bearish'
+                      : 'neutral'
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Generating recommendations for ${inputData.metadata.totalSymbols} symbols...`,
+                    stage: 'analyze-data',
+                },
+                id: 'analyze-data',
+            })
+
+            const agent = mastra?.getAgent('stockAnalysisAgent')
+            let recommendations: z.infer<
+                typeof analysisResultSchema
+            >['analysis']['recommendations'] = []
+
+            if (agent) {
+                const analysisPrompt = `Analyze these stocks and provide buy/hold/sell recommendations:
+        ${inputData.stocks
+            .map(
+                (s) =>
+                    `${s.symbol}: Price $${s.price.currentPrice}, Change ${s.price.changePercent}%, P/E ${s.metrics.peRatio}, Sentiment ${s.sentiment.overallSentiment}`
+            )
+            .join('\n')}`
+
+                const stream = await agent.stream(analysisPrompt, {
+                    output: z.object({
+                        recommendations: z.array(
+                            z.object({
+                                symbol: z.string(),
+                                action: z.enum(['buy', 'hold', 'sell']),
+                                reason: z.string(),
+                            })
+                        ),
+                    }),
+                } as any)
+
+                // Pipe streaming partial output to the workflow writer so clients see progress
+                await stream.textStream.pipeTo(writer)
+                // Wait for final text and parse it as structured JSON; fallback to empty array if needed
+                const finalText = await stream.text
+                let parsedAnalysis: any = null
+                try {
+                    parsedAnalysis = JSON.parse(finalText)
+                } catch {
+                    parsedAnalysis = null
+                }
+                // Assign to the existing `recommendations` variable rather than shadowing it.
+                recommendations = parsedAnalysis?.recommendations ?? []
+            } else {
+                recommendations = inputData.stocks.map((s) => ({
+                    symbol: s.symbol,
+                    action:
+                        (s.price.changePercent ?? 0) > 1
+                            ? ('hold' as const)
+                            : (s.price.changePercent ?? 0) < -1
+                              ? ('sell' as const)
+                              : ('hold' as const),
+                    reason: `Based on ${s.price.changePercent?.toFixed(2)}% change`,
+                }))
+            }
+
+            const result: z.infer<typeof analysisResultSchema> = {
+                stocks: inputData.stocks,
+                analysis: {
+                    topPerformers,
+                    worstPerformers,
+                    bullishStocks,
+                    bearishStocks,
+                    averageChange,
+                    marketTrend,
+                    recommendations,
+                },
+                metadata: inputData.metadata,
+            }
+
+            logStepEnd(
+                'analyze-data',
+                { marketTrend, recommendationsCount: recommendations.length },
+                Date.now() - startTime
+            )
+
+            span?.update({
+                output: result,
+                metadata: {
+                    marketTrend,
+                    recommendationsCount: recommendations.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('analyze-data', error)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'analyze-data',
+                },
+                id: 'analyze-data',
+            })
+
+            throw error
+        }
+    },
+})
+
+const generateReportStep = createStep({
+    id: 'generate-report',
+    description: 'Generates comprehensive financial report using reportAgent',
+    inputSchema: analysisResultSchema,
+    outputSchema: finalReportSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-report',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'generate-report',
+                symbolsCount: inputData.metadata.totalSymbols,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('generate-report', { symbols: inputData.metadata.symbols })
+
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Generating ${inputData.metadata.reportType} financial report for ${inputData.metadata.totalSymbols} symbols...`,
+                    stage: 'generate-report',
+                },
+                id: 'generate-report',
+            })
+
+            const reportId = `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            const agent = mastra?.getAgent('reportAgent')
+
+            let summary = ''
+            let report = ''
+
+            if (agent) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `AI generating comprehensive ${inputData.metadata.reportType} report...`,
+                        stage: 'generate-report',
+                    },
+                    id: 'generate-report',
+                })
+
+                const prompt = `Generate a ${inputData.metadata.reportType} financial report:
 
 Market Overview:
 - Trend: ${inputData.analysis.marketTrend}
@@ -906,192 +1041,206 @@ Top Performers: ${inputData.analysis.topPerformers.join(', ')}
 Underperformers: ${inputData.analysis.worstPerformers.join(', ')}
 
 Stock Details:
-${inputData.stocks.map(s =>
-          `${s.symbol}: $${s.price.currentPrice} (${s.price.changePercent?.toFixed(2)}%), P/E: ${s.metrics.peRatio?.toFixed(2)}`
-        ).join('\n')}
+${inputData.stocks
+    .map(
+        (s) =>
+            `${s.symbol}: $${s.price.currentPrice} (${s.price.changePercent?.toFixed(2)}%), P/E: ${s.metrics.peRatio?.toFixed(2)}`
+    )
+    .join('\n')}
 
 Recommendations:
-${inputData.analysis.recommendations.map(r => `${r.symbol}: ${r.action} - ${r.reason}`).join('\n')}
+${inputData.analysis.recommendations.map((r) => `${r.symbol}: ${r.action} - ${r.reason}`).join('\n')}
 
-Provide a concise summary and detailed report.`;
+Provide a concise summary and detailed report.`
 
-        const stream = await agent.stream(prompt, {
-          output: z.object({
-            summary: z.string(),
-            report: z.string(),
-          }),
-        } as any);
+                const stream = await agent.stream(prompt, {
+                    output: z.object({
+                        summary: z.string(),
+                        report: z.string(),
+                    }),
+                } as any)
 
-        // Pipe text deltas into the workflow writer to surface partial report progress to callers
-        await stream.textStream.pipeTo(writer);
-        // Wait for the final aggregated text
-        const finalText = await stream.text;
-        try {
-          const parsed = JSON.parse(finalText);
-          report = parsed.report ?? finalText;
-          summary = parsed.summary ?? finalText;
-        } catch {
-          // If parsing fails assume the LLM returned plain text
-          report = finalText;
-          summary = finalText;
+                // Pipe text deltas into the workflow writer to surface partial report progress to callers
+                await stream.textStream.pipeTo(writer)
+                // Wait for the final aggregated text
+                const finalText = await stream.text
+                try {
+                    const parsed = JSON.parse(finalText)
+                    report = parsed.report ?? finalText
+                    summary = parsed.summary ?? finalText
+                } catch {
+                    // If parsing fails assume the LLM returned plain text
+                    report = finalText
+                    summary = finalText
+                }
+            } else {
+                summary = `${inputData.metadata.reportType.charAt(0).toUpperCase() + inputData.metadata.reportType.slice(1)} Report: Market ${inputData.analysis.marketTrend} with ${inputData.analysis.averageChange.toFixed(2)}% average change. Top: ${inputData.analysis.topPerformers.join(', ')}.`
+
+                report = `# Financial Report\n\n## Market Overview\n\nTrend: ${inputData.analysis.marketTrend}\nAverage Change: ${inputData.analysis.averageChange.toFixed(2)}%\n\n## Stock Analysis\n\n${inputData.stocks
+                    .map(
+                        (s) =>
+                            `### ${s.symbol}\n- Price: $${s.price.currentPrice}\n- Change: ${s.price.changePercent?.toFixed(2)}%`
+                    )
+                    .join(
+                        '\n\n'
+                    )}\n\n## Recommendations\n\n${inputData.analysis.recommendations.map((r) => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`
+            }
+
+            logStepEnd('generate-report', { reportId }, Date.now() - startTime)
+
+            const result: z.infer<typeof finalReportSchema> = {
+                reportId,
+                generatedAt: new Date().toISOString(),
+                summary,
+                report,
+                data: {
+                    stocks: inputData.stocks.map((s) => ({
+                        symbol: s.symbol,
+                        price: s.price,
+                        metrics: s.metrics,
+                        sentiment: s.sentiment,
+                    })),
+                    analysis: {
+                        topPerformers: inputData.analysis.topPerformers,
+                        worstPerformers: inputData.analysis.worstPerformers,
+                        bullishStocks: inputData.analysis.bullishStocks,
+                        bearishStocks: inputData.analysis.bearishStocks,
+                        averageChange: inputData.analysis.averageChange,
+                        marketTrend: inputData.analysis.marketTrend,
+                        recommendations: inputData.analysis.recommendations,
+                    },
+                },
+                metadata: {
+                    symbols: inputData.metadata.symbols,
+                    reportType: inputData.metadata.reportType,
+                    totalSymbols: inputData.metadata.totalSymbols,
+                },
+            }
+
+            span?.update({
+                output: result,
+                metadata: {
+                    reportId,
+                    summaryLength: summary.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('generate-report', error)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'generate-report',
+                },
+                id: 'generate-report',
+            })
+
+            throw error
         }
-
-      } else {
-        summary = `${inputData.metadata.reportType.charAt(0).toUpperCase() + inputData.metadata.reportType.slice(1)} Report: Market ${inputData.analysis.marketTrend} with ${inputData.analysis.averageChange.toFixed(2)}% average change. Top: ${inputData.analysis.topPerformers.join(', ')}.`;
-
-        report = `# Financial Report\n\n## Market Overview\n\nTrend: ${inputData.analysis.marketTrend}\nAverage Change: ${inputData.analysis.averageChange.toFixed(2)}%\n\n## Stock Analysis\n\n${inputData.stocks.map(s =>
-          `### ${s.symbol}\n- Price: $${s.price.currentPrice}\n- Change: ${s.price.changePercent?.toFixed(2)}%`
-        ).join('\n\n')
-          }\n\n## Recommendations\n\n${inputData.analysis.recommendations.map(r => `- **${r.symbol}**: ${r.action.toUpperCase()} - ${r.reason}`).join('\n')}`;
-      }
-
-      logStepEnd('generate-report', { reportId }, Date.now() - startTime);
-
-      const result: z.infer<typeof finalReportSchema> = {
-        reportId,
-        generatedAt: new Date().toISOString(),
-        summary,
-        report,
-        data: {
-          stocks: inputData.stocks.map(s => ({
-            symbol: s.symbol,
-            price: s.price,
-            metrics: s.metrics,
-            sentiment: s.sentiment,
-          })),
-          analysis: {
-            topPerformers: inputData.analysis.topPerformers,
-            worstPerformers: inputData.analysis.worstPerformers,
-            bullishStocks: inputData.analysis.bullishStocks,
-            bearishStocks: inputData.analysis.bearishStocks,
-            averageChange: inputData.analysis.averageChange,
-            marketTrend: inputData.analysis.marketTrend,
-            recommendations: inputData.analysis.recommendations,
-          },
-        },
-        metadata: {
-          symbols: inputData.metadata.symbols,
-          reportType: inputData.metadata.reportType,
-          totalSymbols: inputData.metadata.totalSymbols,
-        },
-      };
-
-      span?.update({
-        output: result,
-        metadata: {
-            reportId,
-            summaryLength: summary.length,
-            responseTimeMs: Date.now() - startTime,
-        }
-      });
-      span?.end();
-
-      return result;
-    } catch (error) {
-      span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true });
-      logError('generate-report', error);
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'generate-report',
-        },
-        id: 'generate-report',
-      });
-
-      throw error;
-    }
-  },
-});
+    },
+})
 
 const parallelMergeStep = createStep({
-  id: 'parallel-merge',
-  description: 'Merges results from parallel steps',
-  inputSchema: z.object({
-    'fetch-price-data': z.object({
-      priceData: z.array(priceDataSchema),
-      metadata: z.object({
-        symbols: z.array(z.string()),
-        reportType: z.string(),
-        includeNews: z.boolean(),
-        includeTechnicals: z.boolean(),
-      }),
+    id: 'parallel-merge',
+    description: 'Merges results from parallel steps',
+    inputSchema: z.object({
+        'fetch-price-data': z.object({
+            priceData: z.array(priceDataSchema),
+            metadata: z.object({
+                symbols: z.array(z.string()),
+                reportType: z.string(),
+                includeNews: z.boolean(),
+                includeTechnicals: z.boolean(),
+            }),
+        }),
+        'fetch-company-metrics': z.object({
+            companyMetrics: z.array(companyMetricsSchema),
+            metadata: z.object({
+                symbols: z.array(z.string()),
+                reportType: z.string(),
+                includeNews: z.boolean(),
+                includeTechnicals: z.boolean(),
+            }),
+        }),
+        'fetch-news-sentiment': z.object({
+            newsSentiment: z.array(newsSentimentSchema),
+            metadata: z.object({
+                symbols: z.array(z.string()),
+                reportType: z.string(),
+                includeNews: z.boolean(),
+                includeTechnicals: z.boolean(),
+            }),
+        }),
     }),
-    'fetch-company-metrics': z.object({
-      companyMetrics: z.array(companyMetricsSchema),
-      metadata: z.object({
-        symbols: z.array(z.string()),
-        reportType: z.string(),
-        includeNews: z.boolean(),
-        includeTechnicals: z.boolean(),
-      }),
-    }),
-    'fetch-news-sentiment': z.object({
-      newsSentiment: z.array(newsSentimentSchema),
-      metadata: z.object({
-        symbols: z.array(z.string()),
-        reportType: z.string(),
-        includeNews: z.boolean(),
-        includeTechnicals: z.boolean(),
-      }),
-    }),
-  }),
-  outputSchema: parallelResultsSchema,
-  execute: async ({ inputData, writer }) => {
+    outputSchema: parallelResultsSchema,
+    execute: async ({ inputData, writer }) => {
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Merging results from ${Object.keys(inputData).length} parallel steps...`,
+                stage: 'parallel-merge',
+            },
+            id: 'parallel-merge',
+        })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Merging results from ${Object.keys(inputData).length} parallel steps...`,
-        stage: 'parallel-merge',
-      },
-      id: 'parallel-merge',
-    });
+        const priceResult = inputData['fetch-price-data']
+        const metricsResult = inputData['fetch-company-metrics']
+        const newsResult = inputData['fetch-news-sentiment']
 
-    const priceResult = inputData['fetch-price-data'];
-    const metricsResult = inputData['fetch-company-metrics'];
-    const newsResult = inputData['fetch-news-sentiment'];
+        const result: z.infer<typeof parallelResultsSchema> = {
+            priceData: priceResult.priceData,
+            companyMetrics: metricsResult.companyMetrics,
+            newsSentiment: newsResult.newsSentiment,
+            metadata: {
+                symbols: priceResult.metadata.symbols,
+                reportType: priceResult.metadata.reportType,
+                includeNews: priceResult.metadata.includeNews,
+                includeTechnicals: priceResult.metadata.includeTechnicals,
+                fetchedAt: new Date().toISOString(),
+            },
+        }
 
-    const result: z.infer<typeof parallelResultsSchema> = {
-      priceData: priceResult.priceData,
-      companyMetrics: metricsResult.companyMetrics,
-      newsSentiment: newsResult.newsSentiment,
-      metadata: {
-        symbols: priceResult.metadata.symbols,
-        reportType: priceResult.metadata.reportType,
-        includeNews: priceResult.metadata.includeNews,
-        includeTechnicals: priceResult.metadata.includeTechnicals,
-        fetchedAt: new Date().toISOString(),
-      },
-    };
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'done',
+                message: `Merged ${result.priceData.length} price, ${result.companyMetrics.length} metrics, and ${result.newsSentiment.length} sentiment results.`,
+                stage: 'parallel-merge',
+            },
+            id: 'parallel-merge',
+        })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'done',
-        message: `Merged ${result.priceData.length} price, ${result.companyMetrics.length} metrics, and ${result.newsSentiment.length} sentiment results.`,
-        stage: 'parallel-merge',
-      },
-      id: 'parallel-merge',
-    });
-
-    return result;
-  },
-});
+        return result
+    },
+})
 
 export const financialReportWorkflow = createWorkflow({
-  id: 'financialReportWorkflow',
-  description: 'Comprehensive multi-source financial reports using .parallel() for concurrent data fetching',
-  inputSchema: financialInputSchema,
-  outputSchema: finalReportSchema,
+    id: 'financialReportWorkflow',
+    description:
+        'Comprehensive multi-source financial reports using .parallel() for concurrent data fetching',
+    inputSchema: financialInputSchema,
+    outputSchema: finalReportSchema,
 })
-  .parallel([fetchPriceDataStep, fetchCompanyMetricsStep, fetchNewsSentimentStep])
-  .then(parallelMergeStep)
-  .then(mergeDataStep)
-  .then(analyzeDataStep)
-  .then(generateReportStep);
+    .parallel([
+        fetchPriceDataStep,
+        fetchCompanyMetricsStep,
+        fetchNewsSentimentStep,
+    ])
+    .then(parallelMergeStep)
+    .then(mergeDataStep)
+    .then(analyzeDataStep)
+    .then(generateReportStep)
 
-financialReportWorkflow.commit();
+financialReportWorkflow.commit()

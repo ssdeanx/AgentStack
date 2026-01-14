@@ -1,51 +1,62 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core/agent'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
-import type { RequestContext } from '@mastra/core/request-context';
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt';
-import { google3, googleAI, googleAI3, googleAIFlashLite } from '../config/google';
-import { log } from '../config/logger';
-import { upstashMemory } from '../config/upstash';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import {
+    BatchPartsProcessor,
+    TokenLimiterProcessor,
+} from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
+import {
+    createAnswerRelevancyScorer,
+    createToxicityScorer,
+} from '@mastra/evals/scorers/prebuilt'
+import {
+    google3,
+    googleAI,
+    googleAI3,
+    googleAIFlashLite,
+} from '../config/google'
+import { log } from '../config/logger'
+import { upstashMemory } from '../config/upstash'
 
-import { codeAnalysisTool } from '../tools/code-analysis.tool';
-import { codeSearchTool } from '../tools/code-search.tool';
-import { diffReviewTool } from '../tools/diff-review.tool';
+import { codeAnalysisTool } from '../tools/code-analysis.tool'
+import { codeSearchTool } from '../tools/code-search.tool'
+import { diffReviewTool } from '../tools/diff-review.tool'
 import {
-  checkFileExists,
-  createDirectory,
-  createSandbox,
-  deleteFile,
-  getFileInfo,
-  getFileSize,
-  listFiles,
-  runCode,
-  runCommand,
-  watchDirectory,
-  writeFile,
-  writeFiles
-} from '../tools/e2b';
-import { execaTool } from '../tools/execa-tool';
-import { findReferencesTool } from '../tools/find-references.tool';
-import { findSymbolTool } from '../tools/find-symbol.tool';
+    checkFileExists,
+    createDirectory,
+    createSandbox,
+    deleteFile,
+    getFileInfo,
+    getFileSize,
+    listFiles,
+    runCode,
+    runCommand,
+    watchDirectory,
+    writeFile,
+    writeFiles,
+} from '../tools/e2b'
+import { execaTool } from '../tools/execa-tool'
+import { findReferencesTool } from '../tools/find-references.tool'
+import { findSymbolTool } from '../tools/find-symbol.tool'
 import {
-  getFileContent,
-  getRepositoryInfo,
-  listIssues,
-  listPullRequests,
-  listRepositories,
-  searchCode
-} from '../tools/github';
-import { multiStringEditTool } from '../tools/multi-string-edit.tool';
-import { testGeneratorTool } from '../tools/test-generator.tool';
-import { scrapingSchedulerTool } from '../tools/web-scraper-tool';
-import { InternalSpans } from '@mastra/core/observability';
-import { pgMemory } from '../config/pg-storage';
+    getFileContent,
+    getRepositoryInfo,
+    listIssues,
+    listPullRequests,
+    listRepositories,
+    searchCode,
+} from '../tools/github'
+import { multiStringEditTool } from '../tools/multi-string-edit.tool'
+import { testGeneratorTool } from '../tools/test-generator.tool'
+import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
+import { InternalSpans } from '@mastra/core/observability'
+import { pgMemory } from '../config/pg-storage'
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface CodingRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-  projectRoot: string
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
+    projectRoot: string
 }
 
 log.info('Initializing Coding Team Agents...')
@@ -55,17 +66,22 @@ log.info('Initializing Coding Team Agents...')
  * Specializes in code architecture, design patterns, and implementation planning.
  */
 export const codeArchitectAgent = new Agent({
-  id: 'codeArchitectAgent',
-  name: 'Code Architect Agent',
-  description: 'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
+    id: 'codeArchitectAgent',
+    name: 'Code Architect Agent',
+    description:
+        'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
-    return {
-      role: 'system',
-      content: `You are a Senior Software Architect. Your role is to analyze codebases, propose architectural solutions, and guide implementation.
+        return {
+            role: 'system',
+            content: `You are a Senior Software Architect. Your role is to analyze codebases, propose architectural solutions, and guide implementation.
 
 **Context:**
 - User Tier: ${userTier}
@@ -97,53 +113,64 @@ Provide structured responses with:
 - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 Always consider maintainability, scalability, and testability in your recommendations.`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          mediaResolution: 'MEDIA_RESOLUTION_LOW',
-          responseModalities: ['TEXT'],
-          cachedContent: 'Repo Name, Description, Key Modules, Recent Commits',
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : google3
-  },
-  tools: {
-    codeAnalysisTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    listRepositories,
-    listIssues,
-    listPullRequests,
-    getRepositoryInfo,
-    searchCode,
-    getFileContent,
-    scrapingSchedulerTool,
-    //    ...githubMCP.getTools(),
-  },
-  memory: pgMemory,
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_LOW',
+                    responseModalities: ['TEXT'],
+                    cachedContent:
+                        'Repo Name, Description, Key Modules, Recent Commits',
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-  },
-  maxRetries: 3,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  inputProcessors: [
-  ],
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        return userTier === 'enterprise' ? googleAI3 : google3
+    },
+    tools: {
+        codeAnalysisTool,
+        codeSearchTool,
+        findReferencesTool,
+        findSymbolTool,
+        listRepositories,
+        listIssues,
+        listPullRequests,
+        getRepositoryInfo,
+        searchCode,
+        getFileContent,
+        scrapingSchedulerTool,
+        //    ...githubMCP.getTools(),
+    },
+    memory: pgMemory,
+    scorers: {
+        relevancy: {
+            scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+    },
+    maxRetries: 3,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    inputProcessors: [],
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
 })
 
 //log.info('Cached tokens:', providerMetadata.google?.usageMetadata);
@@ -153,16 +180,21 @@ Always consider maintainability, scalability, and testability in your recommenda
  * Specializes in code quality, security analysis, and best practices review.
  */
 export const codeReviewerAgent = new Agent({
-  id: 'codeReviewerAgent',
-  name: 'Code Reviewer Agent',
-  description: 'Expert code reviewer focusing on quality, security, performance, and best practices.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+    id: 'codeReviewerAgent',
+    name: 'Code Reviewer Agent',
+    description:
+        'Expert code reviewer focusing on quality, security, performance, and best practices.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
 
-    return {
-      role: 'system',
-      content: `You are a Senior Code Reviewer. Your role is to analyze code for quality, security, and adherence to best practices.
+        return {
+            role: 'system',
+            content: `You are a Senior Code Reviewer. Your role is to analyze code for quality, security, and adherence to best practices.
 
 **Context:**
 - User Tier: ${userTier}
@@ -212,55 +244,64 @@ export const codeReviewerAgent = new Agent({
 - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 Be constructive and educational in feedback.`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
-  },
-  tools: {
-    codeAnalysisTool,
-    diffReviewTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    listRepositories,
-    listIssues,
-    listPullRequests,
-    getRepositoryInfo,
-    searchCode,
-    getFileContent,
-  },
-  memory: pgMemory,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 }
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        return userTier === 'enterprise' ? googleAI3 : googleAI
     },
-  },
-  maxRetries: 3,
-  inputProcessors: [
-
-  ],
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+    tools: {
+        codeAnalysisTool,
+        diffReviewTool,
+        codeSearchTool,
+        findReferencesTool,
+        findSymbolTool,
+        listRepositories,
+        listIssues,
+        listPullRequests,
+        getRepositoryInfo,
+        searchCode,
+        getFileContent,
+    },
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    scorers: {
+        relevancy: {
+            scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+        safety: {
+            scorer: createToxicityScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.3 },
+        },
+    },
+    maxRetries: 3,
+    inputProcessors: [],
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
 })
 
 /**
@@ -268,16 +309,21 @@ Be constructive and educational in feedback.`,
  * Specializes in test generation, coverage analysis, and testing strategies.
  */
 export const testEngineerAgent = new Agent({
-  id: 'testEngineerAgent',
-  name: 'Test Engineer Agent',
-  description: 'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+    id: 'testEngineerAgent',
+    name: 'Test Engineer Agent',
+    description:
+        'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
 
-    return {
-      role: 'system',
-      content: `You are a Senior Test Engineer. Your role is to create comprehensive tests and improve test coverage.
+        return {
+            role: 'system',
+            content: `You are a Senior Test Engineer. Your role is to create comprehensive tests and improve test coverage.
 
 **Context:**
 - User Tier: ${userTier}
@@ -339,58 +385,68 @@ Provide:
 - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
 Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
-  },
-  tools: {
-    codeAnalysisTool,
-    testGeneratorTool,
-    codeSearchTool,
-    execaTool,
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
-    //    ...githubMCP.getTools(),
-  },
-  memory: pgMemory,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-
-  },
-  maxRetries: 3,
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })],
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        return userTier === 'enterprise' ? googleAI3 : googleAI
+    },
+    tools: {
+        codeAnalysisTool,
+        testGeneratorTool,
+        codeSearchTool,
+        execaTool,
+        createSandbox,
+        writeFile,
+        writeFiles,
+        listFiles,
+        deleteFile,
+        createDirectory,
+        getFileInfo,
+        checkFileExists,
+        getFileSize,
+        watchDirectory,
+        runCommand,
+        runCode,
+        //    ...githubMCP.getTools(),
+    },
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    scorers: {
+        relevancy: {
+            scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+    },
+    maxRetries: 3,
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
 })
 
 /**
@@ -398,17 +454,22 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
  * Specializes in code refactoring, optimization, and quality improvement.
  */
 export const refactoringAgent = new Agent({
-  id: 'refactoringAgent',
-  name: 'Refactoring Agent',
-  description: 'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
+    id: 'refactoringAgent',
+    name: 'Refactoring Agent',
+    description:
+        'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
-    return {
-      role: 'system',
-      content: `You are a Senior Refactoring Specialist. Your role is to improve code quality through safe, incremental refactoring.
+        return {
+            role: 'system',
+            content: `You are a Senior Refactoring Specialist. Your role is to improve code quality through safe, incremental refactoring.
 
 **Context:**
 - User Tier: ${userTier}
@@ -473,60 +534,72 @@ For each refactoring:
 
 **Rules:**
 - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            thinkingBudget: -1,
-            includeThoughts: true,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<CodingRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
-  },
-  tools: {
-    multiStringEditTool,
-    codeAnalysisTool,
-    diffReviewTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    execaTool,
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
-  },
-  memory: pgMemory,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        thinkingBudget: -1,
+                        includeThoughts: true,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-
-  },
-  maxRetries: 3,
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })],
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CodingRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        return userTier === 'enterprise' ? googleAI3 : googleAI
+    },
+    tools: {
+        multiStringEditTool,
+        codeAnalysisTool,
+        diffReviewTool,
+        codeSearchTool,
+        findReferencesTool,
+        findSymbolTool,
+        execaTool,
+        createSandbox,
+        writeFile,
+        writeFiles,
+        listFiles,
+        deleteFile,
+        createDirectory,
+        getFileInfo,
+        checkFileExists,
+        getFileSize,
+        watchDirectory,
+        runCommand,
+        runCode,
+    },
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    scorers: {
+        relevancy: {
+            scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+    },
+    maxRetries: 3,
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
 })
 
-log.info('Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent')
+log.info(
+    'Coding Team Agents initialized: codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent'
+)

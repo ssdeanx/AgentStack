@@ -5,18 +5,19 @@
 The `createTool` function expects `execute` to receive a `ToolExecutionContext` object:
 
 ```typescript
-execute: (context: ToolExecutionContext<TInput, TOutput, TContext>) => Promise<TOutput>
+execute: (context: ToolExecutionContext<TInput, TOutput, TContext>) =>
+    Promise<TOutput>
 ```
 
 Where `ToolExecutionContext` has this shape:
 
 ```typescript
 interface ToolExecutionContext<TInput, TOutput, TContext> {
-  context: z.infer<TInput>;       // REQUIRED - the parsed input
-  runtimeContext?: RuntimeContext; // OPTIONAL
-  tracingContext?: TracingContext; // OPTIONAL
-  writer?: StreamWriter;           // OPTIONAL
-  mastra?: Mastra;                 // OPTIONAL
+    context: z.infer<TInput> // REQUIRED - the parsed input
+    runtimeContext?: RuntimeContext // OPTIONAL
+    tracingContext?: TracingContext // OPTIONAL
+    writer?: StreamWriter // OPTIONAL
+    mastra?: Mastra // OPTIONAL
 }
 ```
 

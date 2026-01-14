@@ -40,12 +40,12 @@ From `components.json`:
 
 ```json
 {
-  "rsc": false,
-  "tailwind": {
-    "css": "app/globals.css",
-    "baseColor": "zinc",
-    "cssVariables": true
-  }
+    "rsc": false,
+    "tailwind": {
+        "css": "app/globals.css",
+        "baseColor": "zinc",
+        "cssVariables": true
+    }
 }
 ```
 
@@ -57,4 +57,5 @@ From `components.json`:
 - `next.config.ts`: Next.js configuration
 
 ---
+
 Last updated: 2025-11-27

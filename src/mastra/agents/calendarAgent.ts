@@ -1,24 +1,34 @@
-import { Agent } from '@mastra/core/agent';
-import { listEvents, getTodayEvents, getUpcomingEvents, findFreeSlots } from '../tools/calendar-tool';
-import { googleAIFlashLite, pgMemory } from '../config';
-import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import type { RequestContext } from '@mastra/core/request-context';
-import { TokenLimiterProcessor } from '@mastra/core/processors';
-import { InternalSpans } from '@mastra/core/observability';
+import { Agent } from '@mastra/core/agent'
+import {
+    listEvents,
+    getTodayEvents,
+    getUpcomingEvents,
+    findFreeSlots,
+} from '../tools/calendar-tool'
+import { googleAIFlashLite, pgMemory } from '../config'
+import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface CalendarContext {
     userId?: string
 }
 
 export const calendarAgent = new Agent({
-  id: 'calendarAgent',
-  name: 'Calendar Agent',
-  description: 'A helpful calendar assistant that can view, analyze, and help manage your schedule',
-  instructions: ({ requestContext }: { requestContext: RequestContext<CalendarContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `You are a helpful calendar assistant. You help users manage their schedule efficiently.
+    id: 'calendarAgent',
+    name: 'Calendar Agent',
+    description:
+        'A helpful calendar assistant that can view, analyze, and help manage your schedule',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CalendarContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `You are a helpful calendar assistant. You help users manage their schedule efficiently.
 user: ${userId}
 Your capabilities:
 - View all calendar events
@@ -37,32 +47,32 @@ If asked about scheduling a meeting, first check for free slots using the findFr
 Always consider work-life balance when suggesting times.
 
 Current user: ${userId ?? 'anonymous'}`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      },
-    };
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  tools: {
-    listEvents,
-    getTodayEvents,
-    getUpcomingEvents,
-    findFreeSlots,
-  },
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  outputProcessors: [new TokenLimiterProcessor(128000)],
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
-});
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    tools: {
+        listEvents,
+        getTodayEvents,
+        getUpcomingEvents,
+        findFreeSlots,
+    },
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [new TokenLimiterProcessor(128000)],
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
+})

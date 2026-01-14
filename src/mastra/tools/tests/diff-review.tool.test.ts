@@ -6,7 +6,11 @@ describe('diffReviewTool', () => {
     it('produces hunks, changes and stats', async () => {
         const original = 'a\nb\nc\nd\n'
         const modified = 'a\nB\nc\ne\n'
-        const res = await diffReviewTool.execute({ original, modified, filename: 'test.txt' })
+        const res = await diffReviewTool.execute({
+            original,
+            modified,
+            filename: 'test.txt',
+        })
         expect(res.hunks.length).toBeGreaterThanOrEqual(1)
         expect(res.changes.length).toBeGreaterThanOrEqual(1)
         expect(res.stats.totalChanges).toBeGreaterThanOrEqual(1)

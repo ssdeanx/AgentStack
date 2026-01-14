@@ -23,23 +23,28 @@ allowed-tools: Bash(*)
 Detecting platform...
 
 case "$(uname)" in
-  Darwin*)  PLATFORM="macOS" ;;
-  Linux*)   PLATFORM="Linux" ;;
-  MINGW*|MSYS*|CYGWIN*) PLATFORM="Windows" ;;
-  *)        PLATFORM="Unknown" ;;
+Darwin*) PLATFORM="macOS" ;;
+Linux*) PLATFORM="Linux" ;;
+MINGW*|MSYS*|CYGWIN*) PLATFORM="Windows" ;;
+*) PLATFORM="Unknown" ;;
 esac
 
 Platform: $PLATFORM
 
 <!-- Adjust behavior based on platform -->
+
 if [ "$PLATFORM" = "Windows" ]; then
-  # Windows-specific handling
-  PATH_SEP="\\"
-  NULL_DEVICE="NUL"
+
+# Windows-specific handling
+
+PATH_SEP="\\"
+NULL_DEVICE="NUL"
 else
-  # Unix-like handling
-  PATH_SEP="/"
-  NULL_DEVICE="/dev/null"
+
+# Unix-like handling
+
+PATH_SEP="/"
+NULL_DEVICE="/dev/null"
 fi
 
 [Platform-appropriate implementation...]
@@ -49,17 +54,19 @@ fi
 
 ```markdown
 <!-- BAD: macOS-specific -->
+
 !`pbcopy < file.txt`
 
 <!-- GOOD: Platform detection -->
+
 if command -v pbcopy > /dev/null; then
-  pbcopy < file.txt
+pbcopy < file.txt
 elif command -v xclip > /dev/null; then
-  xclip -selection clipboard < file.txt
+xclip -selection clipboard < file.txt
 elif command -v clip.exe > /dev/null; then
-  cat file.txt | clip.exe
+cat file.txt | clip.exe
 else
-  echo "Clipboard not available on this platform"
+echo "Clipboard not available on this platform"
 fi
 ```
 
@@ -76,6 +83,7 @@ allowed-tools: Bash(*)
 # Check Dependencies
 
 Required tools:
+
 - git
 - jq
 - node
@@ -85,22 +93,23 @@ Checking availability...
 MISSING_DEPS=""
 
 for tool in git jq node; do
-  if ! command -v $tool > /dev/null; then
+if ! command -v $tool > /dev/null; then
     MISSING_DEPS="$MISSING_DEPS $tool"
-  fi
+fi
 done
 
 if [ -n "$MISSING_DEPS" ]; then
-  ❌ ERROR: Missing required dependencies:$MISSING_DEPS
+❌ ERROR: Missing required dependencies:$MISSING_DEPS
 
-  INSTALLATION:
-  - git: https://git-scm.com/downloads
-  - jq: https://stedolan.github.io/jq/download/
-  - node: https://nodejs.org/
+INSTALLATION:
 
-  Install missing tools and try again.
+- git: https://git-scm.com/downloads
+- jq: https://stedolan.github.io/jq/download/
+- node: https://nodejs.org/
 
-  Exit.
+Install missing tools and try again.
+
+Exit.
 fi
 
 ✓ All dependencies available
@@ -141,22 +150,26 @@ Detecting available features...
 FEATURES=""
 
 if command -v gh > /dev/null; then
-  FEATURES="$FEATURES github"
+FEATURES="$FEATURES github"
 fi
 
 if command -v docker > /dev/null; then
-  FEATURES="$FEATURES docker"
+FEATURES="$FEATURES docker"
 fi
 
 Available features: $FEATURES
 
 if echo "$FEATURES" | grep -q "github"; then
-  # Full functionality with GitHub integration
-  echo "✓ GitHub integration available"
+
+# Full functionality with GitHub integration
+
+echo "✓ GitHub integration available"
 else
-  # Reduced functionality without GitHub
-  echo "⚠ Limited functionality: GitHub CLI not installed"
-  echo "  Install 'gh' for full features"
+
+# Reduced functionality without GitHub
+
+echo "⚠ Limited functionality: GitHub CLI not installed"
+echo " Install 'gh' for full features"
 fi
 
 [Adapt behavior based on available features...]
@@ -177,26 +190,27 @@ allowed-tools: Read, Write
 # First Run Check
 
 if [ ! -f ".claude/command-initialized" ]; then
-  **Welcome to Command Name!**
+**Welcome to Command Name!**
 
-  This appears to be your first time using this command.
+This appears to be your first time using this command.
 
-  WHAT THIS COMMAND DOES:
-  [Brief explanation of purpose and benefits]
+WHAT THIS COMMAND DOES:
+[Brief explanation of purpose and benefits]
 
-  QUICK START:
-  1. Basic usage: /command [arg]
-  2. For help: /command help
-  3. Examples: /command examples
+QUICK START:
 
-  SETUP:
-  No additional setup required. You're ready to go!
+1. Basic usage: /command [arg]
+2. For help: /command help
+3. Examples: /command examples
 
-  ✓ Initialization complete
+SETUP:
+No additional setup required. You're ready to go!
 
-  [Create initialization marker]
+✓ Initialization complete
 
-  Ready to proceed with your request...
+[Create initialization marker]
+
+Ready to proceed with your request...
 fi
 
 [Normal command execution...]
@@ -218,7 +232,7 @@ description: Command with tips
 💡 TIP: Did you know?
 
 You can speed up this command with the --fast flag:
-  /command --fast [args]
+/command --fast [args]
 
 For more tips: /command tips
 ```
@@ -237,26 +251,29 @@ description: Forgiving command
 Argument: "$1"
 
 <!-- Check for common typos -->
+
 if [ "$1" = "hlep" ] || [ "$1" = "hepl" ]; then
-  Did you mean: help?
+Did you mean: help?
 
-  Showing help instead...
-  [Display help]
+Showing help instead...
+[Display help]
 
-  Exit.
+Exit.
 fi
 
 <!-- Suggest similar commands if not found -->
+
 if [ "$1" != "valid-option1" ] && [ "$1" != "valid-option2" ]; then
-  ❌ Unknown option: $1
+❌ Unknown option: $1
 
-  Did you mean:
-  - valid-option1 (most similar)
-  - valid-option2
+Did you mean:
 
-  For all options: /command help
+- valid-option1 (most similar)
+- valid-option2
 
-  Exit.
+For all options: /command help
+
+Exit.
 fi
 
 [Command continues...]
@@ -276,12 +293,14 @@ The operation could not complete.
 **Diagnostic Information:**
 
 Environment:
+
 - Platform: $(uname)
 - Shell: $SHELL
 - Working directory: $(pwd)
 - Command: /command $@
 
 Checking common issues:
+
 - Git repository: $(git rev-parse --git-dir 2>&1)
 - Write permissions: $(test -w . && echo "OK" || echo "DENIED")
 - Required files: $(test -f config.yml && echo "Found" || echo "Missing")
@@ -355,6 +374,7 @@ allowed-tools: Read
 # Load User Configuration
 
 Default configuration:
+
 - verbose: false
 - color: true
 - max_results: 10
@@ -362,15 +382,17 @@ Default configuration:
 Checking for user config: .claude/plugin-name.local.md
 
 if [ -f ".claude/plugin-name.local.md" ]; then
-  # Parse YAML frontmatter for settings
-  VERBOSE=$(grep "^verbose:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
-  COLOR=$(grep "^color:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
-  MAX_RESULTS=$(grep "^max_results:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
 
-  echo "✓ Using user configuration"
+# Parse YAML frontmatter for settings
+
+VERBOSE=$(grep "^verbose:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
+  COLOR=$(grep "^color:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
+MAX_RESULTS=$(grep "^max_results:" .claude/plugin-name.local.md | cut -d: -f2 | tr -d ' ')
+
+echo "✓ Using user configuration"
 else
-  echo "Using default configuration"
-  echo "Create .claude/plugin-name.local.md to customize"
+echo "Using default configuration"
+echo "Create .claude/plugin-name.local.md to customize"
 fi
 
 [Use configuration in command...]
@@ -386,22 +408,27 @@ description: Command with smart defaults
 # Smart Defaults
 
 Configuration:
-- Format: ${FORMAT:-json}  # Defaults to json
-- Output: ${OUTPUT:-stdout}  # Defaults to stdout
-- Verbose: ${VERBOSE:-false}  # Defaults to false
+
+- Format: ${FORMAT:-json} # Defaults to json
+- Output: ${OUTPUT:-stdout} # Defaults to stdout
+- Verbose: ${VERBOSE:-false} # Defaults to false
 
 These defaults work for 80% of use cases.
 
 Override with arguments:
-  /command --format yaml --output file.txt --verbose
+/command --format yaml --output file.txt --verbose
 
 Or set in .claude/plugin-name.local.md:
 \`\`\`yaml
+
 ---
+
 format: yaml
 output: custom.txt
 verbose: true
+
 ---
+
 \`\`\`
 ```
 
@@ -432,16 +459,16 @@ VERSION HISTORY:
 Command version: 2.1.0
 Plugin version: [detect from plugin.json]
 
-if [  "$PLUGIN_VERSION" < "2.0.0" ]; then
-  ❌ ERROR: Incompatible plugin version
+if [ "$PLUGIN_VERSION" < "2.0.0" ]; then
+❌ ERROR: Incompatible plugin version
 
-  This command requires plugin version >= 2.0.0
-  Current version: $PLUGIN_VERSION
+This command requires plugin version >= 2.0.0
+Current version: $PLUGIN_VERSION
 
-  Update plugin:
-    /plugin update plugin-name
+Update plugin:
+/plugin update plugin-name
 
-  Exit.
+Exit.
 fi
 
 ✓ Version compatible
@@ -459,20 +486,20 @@ description: Command with deprecation warnings
 # Deprecation Check
 
 if [ "$1" = "--old-flag" ]; then
-  ⚠️  DEPRECATION WARNING
+⚠️ DEPRECATION WARNING
 
-  The --old-flag option is deprecated as of v2.0.0
-  It will be removed in v3.0.0 (est. June 2025)
+The --old-flag option is deprecated as of v2.0.0
+It will be removed in v3.0.0 (est. June 2025)
 
-  Use instead: --new-flag
+Use instead: --new-flag
 
-  Example:
-    Old: /command --old-flag value
-    New: /command --new-flag value
+Example:
+Old: /command --old-flag value
+New: /command --new-flag value
 
-  See migration guide: /command migrate
+See migration guide: /command migrate
 
-  Continuing with deprecated behavior for now...
+Continuing with deprecated behavior for now...
 fi
 
 [Handle both old and new flags during deprecation period...]
@@ -532,6 +559,7 @@ Try it now:
 \`\`\`
 
 **What you'll get:**
+
 - Security vulnerability detection
 - Code quality metrics
 - Performance bottleneck identification
@@ -543,18 +571,21 @@ Security Analysis Results
 =========================
 
 🔴 Critical (2):
-  - SQL injection risk in users.js:45
-  - XSS vulnerability in display.js:23
+
+- SQL injection risk in users.js:45
+- XSS vulnerability in display.js:23
 
 🟡 Warnings (5):
-  - Unvalidated input in api.js:67
+
+- Unvalidated input in api.js:67
   ...
 
 Recommendations:
+
 1. Fix critical issues immediately
 2. Review warnings before next release
 3. Run /analyze-code --fix for auto-fixes
-\`\`\`
+   \`\`\`
 
 ---
 
@@ -583,12 +614,14 @@ description: Command with feedback
 This helps improve the command for everyone.
 
 Rate this command:
+
 - 👍 Helpful
 - 👎 Not helpful
 - 🐛 Found a bug
 - 💡 Have a suggestion
 
 Reply with an emoji or:
+
 - /command feedback
 
 Your feedback matters!
@@ -633,6 +666,7 @@ Part of the [Plugin Name] suite
 ---
 
 **Need Help?**
+
 - Documentation: https://docs.example.com
 - Support: support@example.com
 - Community: https://community.example.com
@@ -668,17 +702,18 @@ description: Idempotent command
 Checking if operation already completed...
 
 if [ -f ".claude/operation-completed.flag" ]; then
-  ℹ️  Operation already completed
+ℹ️ Operation already completed
 
-  Completed at: $(cat .claude/operation-completed.flag)
+Completed at: $(cat .claude/operation-completed.flag)
 
-  To re-run:
-  1. Remove flag: rm .claude/operation-completed.flag
-  2. Run command again
+To re-run:
 
-  Otherwise, no action needed.
+1. Remove flag: rm .claude/operation-completed.flag
+2. Run command again
 
-  Exit.
+Otherwise, no action needed.
+
+Exit.
 fi
 
 Performing operation...
@@ -707,19 +742,19 @@ Performing changes in isolated environment...
 [Make changes in $TEMP_DIR]
 
 if [ $? -eq 0 ]; then
-  ✓ Changes validated
+✓ Changes validated
 
-  Applying changes atomically...
-  mv $TEMP_DIR/* ./target/
+Applying changes atomically...
+mv $TEMP_DIR/\* ./target/
 
-  ✓ Operation complete
+✓ Operation complete
 else
-  ❌ Changes failed validation
+❌ Changes failed validation
 
-  Rolling back...
-  rm -rf $TEMP_DIR
+Rolling back...
+rm -rf $TEMP_DIR
 
-  No changes applied. Safe to retry.
+No changes applied. Safe to retry.
 fi
 ```
 
@@ -785,17 +820,20 @@ description: Beta command (v0.9.0)
 Features may change based on feedback.
 
 BETA STATUS:
+
 - Version: 0.9.0
 - Stability: Experimental
 - Support: Limited
 - Feedback: Encouraged
 
 Known limitations:
+
 - Performance not optimized
 - Some edge cases not handled
 - Documentation incomplete
 
 Help improve this command:
+
 - Report issues: /command report-issue
 - Suggest features: /command suggest
 - Join beta testers: /command join-beta
@@ -856,20 +894,21 @@ Current version: 2.1.0
 Latest version: [check if available]
 
 if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
-  📢 UPDATE AVAILABLE
+📢 UPDATE AVAILABLE
 
-  New version: $LATEST_VERSION
-  Current: $CURRENT_VERSION
+New version: $LATEST_VERSION
+Current: $CURRENT_VERSION
 
-  What's new:
-  - Feature improvements
-  - Bug fixes
-  - Performance enhancements
+What's new:
 
-  Update with:
-    /plugin update plugin-name
+- Feature improvements
+- Bug fixes
+- Performance enhancements
 
-  Release notes: https://releases.example.com/v$LATEST_VERSION
+Update with:
+/plugin update plugin-name
+
+Release notes: https://releases.example.com/v$LATEST_VERSION
 fi
 
 [Command continues...]

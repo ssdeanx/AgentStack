@@ -3,7 +3,48 @@ name: ADR-Generator
 description: Expert agent for creating comprehensive Architectural Decision Records (ADRs) with structured formatting optimized for AI consumption and human readability.
 argument-hint: 'Generate detailed Architectural Decision Records (ADRs) documenting significant technical decisions in software projects.'
 infer: true
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'agent',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+        'search/changes',
+        'search/codebase',
+        'edit/editFiles',
+        'vscode/extensions',
+        'web/githubRepo',
+        'vscode/openSimpleBrowser',
+        'read/problems',
+    ]
 ---
 
 # ADR Generator Agent
@@ -52,13 +93,13 @@ Create an ADR as a markdown file following the standardized format below with th
 
 ```yaml
 ---
-title: "ADR-NNNN: [Decision Title]"
-status: "Proposed"
-date: "YYYY-MM-DD"
-authors: "[Stakeholder Names/Roles]"
-tags: ["architecture", "decision"]
-supersedes: ""
-superseded_by: ""
+title: 'ADR-NNNN: [Decision Title]'
+status: 'Proposed'
+date: 'YYYY-MM-DD'
+authors: '[Stakeholder Names/Roles]'
+tags: ['architecture', 'decision']
+supersedes: ''
+superseded_by: ''
 ---
 ```
 
@@ -210,7 +251,7 @@ Before finalizing the ADR, verify:
 7. **Be Timely**: Use the current date unless specified otherwise
 8. **Be Connected**: Reference related ADRs when applicable
 9. **Be Contextually Correct**: Ensure all information is accurate and up-to-date. Use the current
-  repository state as the source of truth.
+   repository state as the source of truth.
 
 ---
 

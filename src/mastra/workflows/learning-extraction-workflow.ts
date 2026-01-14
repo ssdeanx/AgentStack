@@ -1,176 +1,199 @@
-import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
-import { z } from 'zod';
-import { logError, logStepEnd, logStepStart } from '../config/logger';
+import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import { z } from 'zod'
+import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 // NOTE: Stream-first approach is used; inline parse helper removed.
 // When parsing is required we parse stream.text directly in steps and handle parsing errors inline.
 
 const learningInputSchema = z.object({
-  content: z.string().describe('Content to extract learnings from'),
-  contentType: z.enum(['article', 'document', 'transcript', 'notes']).default('document'),
-  extractionDepth: z.enum(['quick', 'thorough', 'comprehensive']).default('thorough'),
-  requireApproval: z.boolean().default(true).describe('Whether to require human approval'),
-});
+    content: z.string().describe('Content to extract learnings from'),
+    contentType: z
+        .enum(['article', 'document', 'transcript', 'notes'])
+        .default('document'),
+    extractionDepth: z
+        .enum(['quick', 'thorough', 'comprehensive'])
+        .default('thorough'),
+    requireApproval: z
+        .boolean()
+        .default(true)
+        .describe('Whether to require human approval'),
+})
 
 const extractedLearningSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string(),
-  category: z.enum(['concept', 'technique', 'insight', 'fact', 'principle', 'pattern']),
-  importance: z.enum(['critical', 'high', 'medium', 'low']),
-  context: z.string().optional(),
-  relatedConcepts: z.array(z.string()).optional(),
-  actionable: z.boolean(),
-  actionItems: z.array(z.string()).optional(),
-});
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    category: z.enum([
+        'concept',
+        'technique',
+        'insight',
+        'fact',
+        'principle',
+        'pattern',
+    ]),
+    importance: z.enum(['critical', 'high', 'medium', 'low']),
+    context: z.string().optional(),
+    relatedConcepts: z.array(z.string()).optional(),
+    actionable: z.boolean(),
+    actionItems: z.array(z.string()).optional(),
+})
 
 const extractionResultSchema = z.object({
-  content: z.string(),
-  contentType: z.string(),
-  learnings: z.array(extractedLearningSchema),
-  summary: z.string(),
-  wordCount: z.number(),
-  requireApproval: z.boolean(),
-  metadata: z.object({
-    extractedAt: z.string(),
-    extractionDepth: z.string(),
-    totalLearnings: z.number(),
-    criticalCount: z.number(),
-    actionableCount: z.number(),
-  }),
-});
+    content: z.string(),
+    contentType: z.string(),
+    learnings: z.array(extractedLearningSchema),
+    summary: z.string(),
+    wordCount: z.number(),
+    requireApproval: z.boolean(),
+    metadata: z.object({
+        extractedAt: z.string(),
+        extractionDepth: z.string(),
+        totalLearnings: z.number(),
+        criticalCount: z.number(),
+        actionableCount: z.number(),
+    }),
+})
 
 const suspendDataSchema = z.object({
-  message: z.string(),
-  learnings: z.array(extractedLearningSchema),
-  summary: z.string(),
-  requestedAt: z.string(),
-  expiresAt: z.string().optional(),
-});
+    message: z.string(),
+    learnings: z.array(extractedLearningSchema),
+    summary: z.string(),
+    requestedAt: z.string(),
+    expiresAt: z.string().optional(),
+})
 
 const resumeDataSchema = z.object({
-  approved: z.boolean(),
-  approvedLearnings: z.array(z.string()).optional(),
-  rejectedLearnings: z.array(z.string()).optional(),
-  feedback: z.string().optional(),
-  approvedBy: z.string().optional(),
-  approvedAt: z.string().optional(),
-});
+    approved: z.boolean(),
+    approvedLearnings: z.array(z.string()).optional(),
+    rejectedLearnings: z.array(z.string()).optional(),
+    feedback: z.string().optional(),
+    approvedBy: z.string().optional(),
+    approvedAt: z.string().optional(),
+})
 
 const approvalResultSchema = z.object({
-  learnings: z.array(extractedLearningSchema),
-  approved: z.boolean(),
-  approvedCount: z.number(),
-  rejectedCount: z.number(),
-  feedback: z.string().optional(),
-  approvedBy: z.string().optional(),
-  metadata: z.object({
-    originalCount: z.number(),
-    finalCount: z.number(),
-    approvalRate: z.number(),
-    processedAt: z.string(),
-  }),
-});
+    learnings: z.array(extractedLearningSchema),
+    approved: z.boolean(),
+    approvedCount: z.number(),
+    rejectedCount: z.number(),
+    feedback: z.string().optional(),
+    approvedBy: z.string().optional(),
+    metadata: z.object({
+        originalCount: z.number(),
+        finalCount: z.number(),
+        approvalRate: z.number(),
+        processedAt: z.string(),
+    }),
+})
 
 const validatedLearningsSchema = z.object({
-  learnings: z.array(extractedLearningSchema.extend({
-    validated: z.boolean(),
-    validationNotes: z.string().optional(),
-    qualityScore: z.number().optional(),
-  })),
-  validationSummary: z.object({
-    totalValidated: z.number(),
-    highQuality: z.number(),
-    needsReview: z.number(),
-  }),
-  metadata: z.object({
-    validatedAt: z.string(),
-  }),
-});
+    learnings: z.array(
+        extractedLearningSchema.extend({
+            validated: z.boolean(),
+            validationNotes: z.string().optional(),
+            qualityScore: z.number().optional(),
+        })
+    ),
+    validationSummary: z.object({
+        totalValidated: z.number(),
+        highQuality: z.number(),
+        needsReview: z.number(),
+    }),
+    metadata: z.object({
+        validatedAt: z.string(),
+    }),
+})
 
 const finalOutputSchema = z.object({
-  learnings: z.array(extractedLearningSchema.extend({
-    validated: z.boolean().optional(),
-    qualityScore: z.number().optional(),
-  })),
-  report: z.string(),
-  summary: z.string(),
-  metadata: z.object({
-    contentType: z.string(),
-    extractionDepth: z.string(),
-    totalLearnings: z.number(),
-    criticalLearnings: z.number(),
-    actionableItems: z.number(),
-    humanApproved: z.boolean(),
-    approvedBy: z.string().optional(),
-    processedAt: z.string(),
-  }),
-});
+    learnings: z.array(
+        extractedLearningSchema.extend({
+            validated: z.boolean().optional(),
+            qualityScore: z.number().optional(),
+        })
+    ),
+    report: z.string(),
+    summary: z.string(),
+    metadata: z.object({
+        contentType: z.string(),
+        extractionDepth: z.string(),
+        totalLearnings: z.number(),
+        criticalLearnings: z.number(),
+        actionableItems: z.number(),
+        humanApproved: z.boolean(),
+        approvedBy: z.string().optional(),
+        processedAt: z.string(),
+    }),
+})
 
 const extractLearningsStep = createStep({
-  id: 'extract-learnings',
-  description: 'Extracts learnings from content using learningExtractionAgent',
-  inputSchema: learningInputSchema,
-  outputSchema: extractionResultSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'extract-learnings',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'extract-learnings',
-        'content.contentType': inputData.contentType,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('extract-learnings', { contentType: inputData.contentType, depth: inputData.extractionDepth });
+    id: 'extract-learnings',
+    description:
+        'Extracts learnings from content using learningExtractionAgent',
+    inputSchema: learningInputSchema,
+    outputSchema: extractionResultSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'extract-learnings',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'extract-learnings',
+                'content.contentType': inputData.contentType,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('extract-learnings', {
+            contentType: inputData.contentType,
+            depth: inputData.extractionDepth,
+        })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting learning extraction...`,
-        stage: 'extract-learnings',
-      },
-      id: 'extract-learnings',
-    });
-
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Analyzing ${inputData.contentType}...`,
-          stage: 'extract-learnings',
-        },
-        id: 'extract-learnings',
-      });
-
-      const agent = mastra?.getAgent('learningExtractionAgent');
-      let learnings: Array<z.infer<typeof extractedLearningSchema>> = [];
-      let summary = '';
-
-      if (agent) {
         await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `Extracting learnings (${inputData.extractionDepth} mode)...`,
-            stage: 'extract-learnings',
-          },
-          id: 'extract-learnings',
-        });
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Starting learning extraction...`,
+                stage: 'extract-learnings',
+            },
+            id: 'extract-learnings',
+        })
 
-        const depthInstructions = {
-          quick: 'Extract the 3-5 most important learnings only.',
-          thorough: 'Extract 5-10 key learnings with good detail.',
-          comprehensive: 'Extract all significant learnings (10+) with full context.',
-        };
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Analyzing ${inputData.contentType}...`,
+                    stage: 'extract-learnings',
+                },
+                id: 'extract-learnings',
+            })
 
-        const prompt = `Analyze this ${inputData.contentType} and extract learnings.
+            const agent = mastra?.getAgent('learningExtractionAgent')
+            let learnings: Array<z.infer<typeof extractedLearningSchema>> = []
+            let summary = ''
+
+            if (agent) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `Extracting learnings (${inputData.extractionDepth} mode)...`,
+                        stage: 'extract-learnings',
+                    },
+                    id: 'extract-learnings',
+                })
+
+                const depthInstructions = {
+                    quick: 'Extract the 3-5 most important learnings only.',
+                    thorough: 'Extract 5-10 key learnings with good detail.',
+                    comprehensive:
+                        'Extract all significant learnings (10+) with full context.',
+                }
+
+                const prompt = `Analyze this ${inputData.contentType} and extract learnings.
 
 ${depthInstructions[inputData.extractionDepth]}
 
@@ -188,611 +211,720 @@ For each learning, provide:
 - Whether it's actionable
 - Action items if actionable
 
-Also provide an overall summary.`;
+Also provide an overall summary.`
 
-        const stream = await agent.stream(prompt, {
-          output: z.object({
-            learnings: z.array(extractedLearningSchema),
-            summary: z.string(),
-          }),
-        } as any);
+                const stream = await agent.stream(prompt, {
+                    output: z.object({
+                        learnings: z.array(extractedLearningSchema),
+                        summary: z.string(),
+                    }),
+                } as any)
 
-        // Pipe streaming partial output to the workflow writer for progress (if present)
-        await stream.textStream?.pipeTo?.(writer);
+                // Pipe streaming partial output to the workflow writer for progress (if present)
+                await stream.textStream?.pipeTo?.(writer)
 
-        // Wait for final text and attempt to parse as JSON; fallback to no-op if parse fails
-        const finalText = await stream.text;
-        let parsed: { learnings: Array<z.infer<typeof extractedLearningSchema>>; summary: string } | null = null;
-        try {
-          parsed = JSON.parse(finalText) as { learnings: Array<z.infer<typeof extractedLearningSchema>>; summary: string };
-        } catch {
-          parsed = null;
+                // Wait for final text and attempt to parse as JSON; fallback to no-op if parse fails
+                const finalText = await stream.text
+                let parsed: {
+                    learnings: Array<z.infer<typeof extractedLearningSchema>>
+                    summary: string
+                } | null = null
+                try {
+                    parsed = JSON.parse(finalText) as {
+                        learnings: Array<
+                            z.infer<typeof extractedLearningSchema>
+                        >
+                        summary: string
+                    }
+                } catch {
+                    parsed = null
+                }
+
+                if (parsed) {
+                    learnings = parsed.learnings
+                    summary = parsed.summary
+                }
+            } else {
+                learnings = [
+                    {
+                        id: 'learning-001',
+                        title: 'Key Concept from Content',
+                        description:
+                            'An important concept extracted from the provided content.',
+                        category: 'concept',
+                        importance: 'high',
+                        context: inputData.content.slice(0, 100),
+                        actionable: true,
+                        actionItems: [
+                            'Review this concept',
+                            'Apply in practice',
+                        ],
+                    },
+                    {
+                        id: 'learning-002',
+                        title: 'Secondary Insight',
+                        description:
+                            'Another valuable insight from the material.',
+                        category: 'insight',
+                        importance: 'medium',
+                        actionable: false,
+                    },
+                ]
+                summary = `Extracted ${learnings.length} learnings from the ${inputData.contentType}.`
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Extracted ${learnings.length} learnings...`,
+                    stage: 'extract-learnings',
+                },
+                id: 'extract-learnings',
+            })
+
+            const criticalCount = learnings.filter(
+                (l) => l.importance === 'critical'
+            ).length
+            const actionableCount = learnings.filter((l) => l.actionable).length
+
+            const result: z.infer<typeof extractionResultSchema> = {
+                content: inputData.content,
+                contentType: inputData.contentType,
+                learnings,
+                summary,
+                wordCount: inputData.content.split(/\s+/).length,
+                requireApproval: inputData.requireApproval,
+                metadata: {
+                    extractedAt: new Date().toISOString(),
+                    extractionDepth: inputData.extractionDepth,
+                    totalLearnings: learnings.length,
+                    criticalCount,
+                    actionableCount,
+                },
+            }
+
+            // Record metrics as span metadata (batch update)
+            const metrics = {
+                responseTimeMs: Date.now() - startTime,
+                learningsCount: Array.isArray(learnings)
+                    ? learnings.length
+                    : undefined,
+                criticalCount:
+                    typeof criticalCount === 'number'
+                        ? criticalCount
+                        : undefined,
+                actionableCount:
+                    typeof actionableCount === 'number'
+                        ? actionableCount
+                        : undefined,
+            }
+
+            span?.update({
+                output: result,
+                metadata: metrics,
+            })
+            span?.end()
+
+            logStepEnd(
+                'extract-learnings',
+                { learningsCount: learnings.length },
+                Date.now() - startTime
+            )
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('extract-learnings', error, {
+                contentType: inputData.contentType,
+            })
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'extract-learnings',
+                },
+                id: 'extract-learnings',
+            })
+
+            throw error
         }
-
-        if (parsed) {
-          learnings = parsed.learnings;
-          summary = parsed.summary;
-        }
-      } else {
-        learnings = [
-          {
-            id: 'learning-001',
-            title: 'Key Concept from Content',
-            description: 'An important concept extracted from the provided content.',
-            category: 'concept',
-            importance: 'high',
-            context: inputData.content.slice(0, 100),
-            actionable: true,
-            actionItems: ['Review this concept', 'Apply in practice'],
-          },
-          {
-            id: 'learning-002',
-            title: 'Secondary Insight',
-            description: 'Another valuable insight from the material.',
-            category: 'insight',
-            importance: 'medium',
-            actionable: false,
-          },
-        ];
-        summary = `Extracted ${learnings.length} learnings from the ${inputData.contentType}.`;
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Extracted ${learnings.length} learnings...`,
-          stage: 'extract-learnings',
-        },
-        id: 'extract-learnings',
-      });
-
-      const criticalCount = learnings.filter(l => l.importance === 'critical').length;
-      const actionableCount = learnings.filter(l => l.actionable).length;
-
-      const result: z.infer<typeof extractionResultSchema> = {
-        content: inputData.content,
-        contentType: inputData.contentType,
-        learnings,
-        summary,
-        wordCount: inputData.content.split(/\s+/).length,
-        requireApproval: inputData.requireApproval,
-        metadata: {
-          extractedAt: new Date().toISOString(),
-          extractionDepth: inputData.extractionDepth,
-          totalLearnings: learnings.length,
-          criticalCount,
-          actionableCount,
-        },
-      };
-
-      // Record metrics as span metadata (batch update)
-      const metrics = {
-        responseTimeMs: Date.now() - startTime,
-        learningsCount: Array.isArray(learnings) ? learnings.length : undefined,
-        criticalCount: typeof criticalCount === 'number' ? criticalCount : undefined,
-        actionableCount: typeof actionableCount === 'number' ? actionableCount : undefined,
-      };
-
-      span?.update({
-        output: result,
-        metadata: metrics,
-      });
-      span?.end();
-
-
-      logStepEnd('extract-learnings', { learningsCount: learnings.length }, Date.now() - startTime);
-      return result;
-    } catch (error) {
-      span?.error({
-        error: error instanceof Error ? error : new Error(String(error)),
-        endSpan: true,
-      });
-      logError('extract-learnings', error, { contentType: inputData.contentType });
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'extract-learnings',
-        },
-        id: 'extract-learnings',
-      });
-
-      throw error;
-    }
-  },
-});
+    },
+})
 
 const humanApprovalStep = createStep({
-  id: 'human-approval',
-  description: 'Suspends for human approval of extracted learnings',
-  inputSchema: extractionResultSchema,
-  outputSchema: approvalResultSchema,
-  suspendSchema: suspendDataSchema,
-  resumeSchema: resumeDataSchema,
-  execute: async ({ inputData, resumeData, suspend, writer, requestContext, mastra }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'human-approval',
-      input: { learningsCount: inputData.learnings.length, requireApproval: inputData.requireApproval },
-      metadata: {
-        'workflow.step': 'human-approval',
-        'hasResumeData': !!resumeData,
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('human-approval', { learningsCount: inputData.learnings.length, hasResumeData: !!resumeData });
-
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting human approval step...`,
-        stage: 'human-approval',
-      },
-      id: 'human-approval',
-    });
-
-    try {
-      if (!inputData.requireApproval) {
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'done',
-            message: `Auto-approving ${inputData.learnings.length} learnings (requireApproval=false)...`,
-            stage: 'human-approval',
-          },
-          id: 'human-approval',
-        });
-
-        const result: z.infer<typeof approvalResultSchema> = {
-          learnings: inputData.learnings,
-          approved: true,
-          approvedCount: inputData.learnings.length,
-          rejectedCount: 0,
-          feedback: 'Auto-approved (human approval not required)',
-          metadata: {
-            originalCount: inputData.learnings.length,
-            finalCount: inputData.learnings.length,
-            approvalRate: 100,
-            processedAt: new Date().toISOString(),
-          },
-        };
-
-        span?.update({
-          output: result,
-          metadata: {
-            autoApproved: true,
-            learningsCount: inputData.learnings.length,
-            responseTimeMs: Date.now() - startTime,
-          },
-        });
-        span?.end();
-
-
-        return result;
-      }
-
-      if (!resumeData) {
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'in-progress',
-            message: `Awaiting human approval for ${inputData.learnings.length} learnings...`,
-            stage: 'human-approval',
-          },
-          id: 'human-approval',
-        });
-
-        if (span) {
-          // Record suspension metadata via span.update to avoid direct attribute mutation
-          span.update({
-            metadata: {
-              suspended: true,
-              awaitingApproval: true,
-              responseTimeMs: Date.now() - startTime,
+    id: 'human-approval',
+    description: 'Suspends for human approval of extracted learnings',
+    inputSchema: extractionResultSchema,
+    outputSchema: approvalResultSchema,
+    suspendSchema: suspendDataSchema,
+    resumeSchema: resumeDataSchema,
+    execute: async ({
+        inputData,
+        resumeData,
+        suspend,
+        writer,
+        requestContext,
+        mastra,
+    }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'human-approval',
+            input: {
+                learningsCount: inputData.learnings.length,
+                requireApproval: inputData.requireApproval,
             },
-          });
-          span.end();
+            metadata: {
+                'workflow.step': 'human-approval',
+                hasResumeData: !!resumeData,
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('human-approval', {
+            learningsCount: inputData.learnings.length,
+            hasResumeData: !!resumeData,
+        })
+
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Starting human approval step...`,
+                stage: 'human-approval',
+            },
+            id: 'human-approval',
+        })
+
+        try {
+            if (!inputData.requireApproval) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `Auto-approving ${inputData.learnings.length} learnings (requireApproval=false)...`,
+                        stage: 'human-approval',
+                    },
+                    id: 'human-approval',
+                })
+
+                const result: z.infer<typeof approvalResultSchema> = {
+                    learnings: inputData.learnings,
+                    approved: true,
+                    approvedCount: inputData.learnings.length,
+                    rejectedCount: 0,
+                    feedback: 'Auto-approved (human approval not required)',
+                    metadata: {
+                        originalCount: inputData.learnings.length,
+                        finalCount: inputData.learnings.length,
+                        approvalRate: 100,
+                        processedAt: new Date().toISOString(),
+                    },
+                }
+
+                span?.update({
+                    output: result,
+                    metadata: {
+                        autoApproved: true,
+                        learningsCount: inputData.learnings.length,
+                        responseTimeMs: Date.now() - startTime,
+                    },
+                })
+                span?.end()
+
+                return result
+            }
+
+            if (!resumeData) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: `Awaiting human approval for ${inputData.learnings.length} learnings...`,
+                        stage: 'human-approval',
+                    },
+                    id: 'human-approval',
+                })
+
+                if (span) {
+                    // Record suspension metadata via span.update to avoid direct attribute mutation
+                    span.update({
+                        metadata: {
+                            suspended: true,
+                            awaitingApproval: true,
+                            responseTimeMs: Date.now() - startTime,
+                        },
+                    })
+                    span.end()
+                }
+
+                logStepEnd(
+                    'human-approval',
+                    { status: 'suspended' },
+                    Date.now() - startTime
+                )
+
+                const suspendPayload: z.infer<typeof suspendDataSchema> = {
+                    message: `Please review and approve ${inputData.learnings.length} extracted learnings.`,
+                    learnings: inputData.learnings,
+                    summary: inputData.summary,
+                    requestedAt: new Date().toISOString(),
+                    expiresAt: new Date(
+                        Date.now() + 7 * 24 * 60 * 60 * 1000
+                    ).toISOString(),
+                }
+
+                return await suspend(suspendPayload)
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Processing approval decision for ${inputData.learnings.length} learnings...`,
+                    stage: 'human-approval',
+                },
+                id: 'human-approval',
+            })
+
+            let approvedLearnings = inputData.learnings
+            let rejectedCount = 0
+
+            if (!resumeData.approved) {
+                approvedLearnings = []
+                rejectedCount = inputData.learnings.length
+            } else if (
+                resumeData.approvedLearnings &&
+                resumeData.approvedLearnings.length > 0
+            ) {
+                approvedLearnings = inputData.learnings.filter((l) =>
+                    resumeData.approvedLearnings!.includes(l.id)
+                )
+                rejectedCount =
+                    inputData.learnings.length - approvedLearnings.length
+            } else if (
+                resumeData.rejectedLearnings &&
+                resumeData.rejectedLearnings.length > 0
+            ) {
+                approvedLearnings = inputData.learnings.filter(
+                    (l) => !resumeData.rejectedLearnings!.includes(l.id)
+                )
+                rejectedCount = resumeData.rejectedLearnings.length
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Approved ${approvedLearnings.length} learnings...`,
+                    stage: 'human-approval',
+                },
+                id: 'human-approval',
+            })
+
+            const approvalRate =
+                (approvedLearnings.length / inputData.learnings.length) * 100
+
+            const result: z.infer<typeof approvalResultSchema> = {
+                learnings: approvedLearnings,
+                approved: resumeData.approved,
+                approvedCount: approvedLearnings.length,
+                rejectedCount,
+                feedback: resumeData.feedback,
+                approvedBy: resumeData.approvedBy,
+                metadata: {
+                    originalCount: inputData.learnings.length,
+                    finalCount: approvedLearnings.length,
+                    approvalRate,
+                    processedAt: new Date().toISOString(),
+                },
+            }
+
+            const attrUpdates: Record<string, any> = {}
+            if (typeof resumeData?.approved === 'boolean') {
+                attrUpdates.approved = resumeData.approved
+            }
+            if (Array.isArray(resumeData?.approvedLearnings)) {
+                attrUpdates.approvedLearningsCount =
+                    resumeData.approvedLearnings.length
+            }
+            if (Array.isArray(resumeData?.rejectedLearnings)) {
+                attrUpdates.rejectedLearningsCount =
+                    resumeData.rejectedLearnings.length
+            }
+            if (Object.keys(attrUpdates).length > 0) {
+                span?.update({
+                    metadata: attrUpdates,
+                })
+            }
+
+            span?.update({
+                output: result,
+                metadata: {
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            logStepEnd(
+                'human-approval',
+                {
+                    approved: resumeData.approved,
+                    approvedCount: approvedLearnings.length,
+                },
+                Date.now() - startTime
+            )
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+            logError('human-approval', error)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'human-approval',
+                },
+                id: 'human-approval',
+            })
+
+            throw error
         }
-
-        logStepEnd('human-approval', { status: 'suspended' }, Date.now() - startTime);
-
-        const suspendPayload: z.infer<typeof suspendDataSchema> = {
-          message: `Please review and approve ${inputData.learnings.length} extracted learnings.`,
-          learnings: inputData.learnings,
-          summary: inputData.summary,
-          requestedAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        };
-
-        return await suspend(suspendPayload);
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Processing approval decision for ${inputData.learnings.length} learnings...`,
-          stage: 'human-approval',
-        },
-        id: 'human-approval',
-      });
-
-      let approvedLearnings = inputData.learnings;
-      let rejectedCount = 0;
-
-      if (!resumeData.approved) {
-        approvedLearnings = [];
-        rejectedCount = inputData.learnings.length;
-      } else if (resumeData.approvedLearnings && resumeData.approvedLearnings.length > 0) {
-        approvedLearnings = inputData.learnings.filter(l =>
-          resumeData.approvedLearnings!.includes(l.id)
-        );
-        rejectedCount = inputData.learnings.length - approvedLearnings.length;
-      } else if (resumeData.rejectedLearnings && resumeData.rejectedLearnings.length > 0) {
-        approvedLearnings = inputData.learnings.filter(l =>
-          !resumeData.rejectedLearnings!.includes(l.id)
-        );
-        rejectedCount = resumeData.rejectedLearnings.length;
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Approved ${approvedLearnings.length} learnings...`,
-          stage: 'human-approval',
-        },
-        id: 'human-approval',
-      });
-
-      const approvalRate = (approvedLearnings.length / inputData.learnings.length) * 100;
-
-      const result: z.infer<typeof approvalResultSchema> = {
-        learnings: approvedLearnings,
-        approved: resumeData.approved,
-        approvedCount: approvedLearnings.length,
-        rejectedCount,
-        feedback: resumeData.feedback,
-        approvedBy: resumeData.approvedBy,
-        metadata: {
-          originalCount: inputData.learnings.length,
-          finalCount: approvedLearnings.length,
-          approvalRate,
-          processedAt: new Date().toISOString(),
-        },
-      };
-
-      const attrUpdates: Record<string, any> = {};
-      if (typeof resumeData?.approved === 'boolean') { attrUpdates.approved = resumeData.approved; }
-      if (Array.isArray(resumeData?.approvedLearnings)) { attrUpdates.approvedLearningsCount = resumeData.approvedLearnings.length; }
-      if (Array.isArray(resumeData?.rejectedLearnings)) { attrUpdates.rejectedLearningsCount = resumeData.rejectedLearnings.length; }
-      if (Object.keys(attrUpdates).length > 0) {
-        span?.update({
-          metadata: attrUpdates,
-        });
-      }
-
-      span?.update({
-        output: result,
-        metadata: {
-          responseTimeMs: Date.now() - startTime,
-        },
-      });
-      span?.end();
-
-
-      logStepEnd('human-approval', { approved: resumeData.approved, approvedCount: approvedLearnings.length }, Date.now() - startTime);
-      return result;
-    } catch (error) {
-      span?.error({
-        error: error instanceof Error ? error : new Error(String(error)),
-        endSpan: true,
-      });
-      logError('human-approval', error);
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'human-approval',
-        },
-        id: 'human-approval',
-      });
-
-      throw error;
-    }
-  },
-});
+    },
+})
 
 const validateLearningsStep = createStep({
-  id: 'validate-learnings',
-  description: 'Validates approved learnings using evaluationAgent',
-  inputSchema: approvalResultSchema,
-  outputSchema: validatedLearningsSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'validate-learnings',
-      input: { learningsCount: inputData.learnings.length },
-      metadata: {
-        'workflow.step': 'validate-learnings',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('validate-learnings', { learningsCount: inputData.learnings.length });
+    id: 'validate-learnings',
+    description: 'Validates approved learnings using evaluationAgent',
+    inputSchema: approvalResultSchema,
+    outputSchema: validatedLearningsSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'validate-learnings',
+            input: { learningsCount: inputData.learnings.length },
+            metadata: {
+                'workflow.step': 'validate-learnings',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('validate-learnings', {
+            learningsCount: inputData.learnings.length,
+        })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting validation for ${inputData.learnings.length} learnings...`,
-        stage: 'validate-learnings',
-      },
-      id: 'validate-learnings',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Starting validation for ${inputData.learnings.length} learnings...`,
+                stage: 'validate-learnings',
+            },
+            id: 'validate-learnings',
+        })
 
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Validating learnings quality (${inputData.learnings.length} items)...`,
-          stage: 'validate-learnings',
-        },
-        id: 'validate-learnings',
-      });
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Validating learnings quality (${inputData.learnings.length} items)...`,
+                    stage: 'validate-learnings',
+                },
+                id: 'validate-learnings',
+            })
 
-      const agent = mastra?.getAgent('evaluationAgent');
-      const validatedLearnings: z.infer<typeof validatedLearningsSchema>['learnings'] = [];
+            const agent = mastra?.getAgent('evaluationAgent')
+            const validatedLearnings: z.infer<
+                typeof validatedLearningsSchema
+            >['learnings'] = []
 
-      for (let i = 0; i < inputData.learnings.length; i++) {
-        const learning = inputData.learnings[i];
-        let validated = true;
-        let qualityScore = 80;
-        let validationNotes = '';
+            for (let i = 0; i < inputData.learnings.length; i++) {
+                const learning = inputData.learnings[i]
+                let validated = true
+                let qualityScore = 80
+                let validationNotes = ''
 
-        if (agent) {
-          const stream = await agent.stream(
-            `Validate this learning extraction:
+                if (agent) {
+                    const stream = await agent.stream(
+                        `Validate this learning extraction:
               Title: ${learning.title}
               Description: ${learning.description}
               Category: ${learning.category}
               Importance: ${learning.importance}
 
               Rate quality 0-100 and note any issues.`,
-            {
-              output: z.object({
-                qualityScore: z.number().min(0).max(100),
-                validated: z.boolean(),
-                notes: z.string().optional(),
-              }),
-            } as any
-          );
+                        {
+                            output: z.object({
+                                qualityScore: z.number().min(0).max(100),
+                                validated: z.boolean(),
+                                notes: z.string().optional(),
+                            }),
+                        } as any
+                    )
 
-          // Stream deltas to the workflow writer if available
-          await stream.textStream?.pipeTo?.(writer);
+                    // Stream deltas to the workflow writer if available
+                    await stream.textStream?.pipeTo?.(writer)
 
-          const finalText = await stream.text;
-          let parsed: { validated: boolean; qualityScore: number; notes?: string } | null = null;
-          try {
-            parsed = JSON.parse(finalText) as { validated: boolean; qualityScore: number; notes?: string };
-          } catch {
-            parsed = null;
-          }
+                    const finalText = await stream.text
+                    let parsed: {
+                        validated: boolean
+                        qualityScore: number
+                        notes?: string
+                    } | null = null
+                    try {
+                        parsed = JSON.parse(finalText) as {
+                            validated: boolean
+                            qualityScore: number
+                            notes?: string
+                        }
+                    } catch {
+                        parsed = null
+                    }
 
-          if (parsed) {
-            validated = parsed.validated;
-            qualityScore = parsed.qualityScore;
-            validationNotes = parsed.notes ?? '';
-          }
-        } else {
-          qualityScore = 70 + Math.floor(Math.random() * 25);
-          validated = qualityScore >= 60;
+                    if (parsed) {
+                        validated = parsed.validated
+                        qualityScore = parsed.qualityScore
+                        validationNotes = parsed.notes ?? ''
+                    }
+                } else {
+                    qualityScore = 70 + Math.floor(Math.random() * 25)
+                    validated = qualityScore >= 60
+                }
+
+                validatedLearnings.push({
+                    ...learning,
+                    validated,
+                    validationNotes: validationNotes || undefined,
+                    qualityScore,
+                })
+
+                if (i % 3 === 0) {
+                    await writer?.custom({
+                        type: 'data-tool-progress',
+                        data: {
+                            status: 'in-progress',
+                            message: `Validated ${i + 1}/${inputData.learnings.length} learnings...`,
+                            stage: 'validate-learnings',
+                        },
+                        id: 'validate-learnings',
+                    })
+                }
+            }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Validation complete: ${inputData.learnings.length} learnings processed`,
+                    stage: 'validate-learnings',
+                },
+                id: 'validate-learnings',
+            })
+
+            const highQuality = validatedLearnings.filter(
+                (l) => (l.qualityScore ?? 0) >= 80
+            ).length
+            const needsReview = validatedLearnings.filter(
+                (l) => !l.validated || (l.qualityScore ?? 0) < 60
+            ).length
+
+            const result: z.infer<typeof validatedLearningsSchema> = {
+                learnings: validatedLearnings,
+                validationSummary: {
+                    totalValidated: validatedLearnings.filter(
+                        (l) => l.validated
+                    ).length,
+                    highQuality,
+                    needsReview,
+                },
+                metadata: {
+                    validatedAt: new Date().toISOString(),
+                },
+            }
+
+            span?.update({
+                output: result,
+                metadata: {
+                    totalValidated: result.validationSummary.totalValidated,
+                    highQuality,
+                    needsReview,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            logStepEnd(
+                'validate-learnings',
+                result.validationSummary,
+                Date.now() - startTime
+            )
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
+
+            logError('validate-learnings', error)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'validate-learnings',
+                },
+                id: 'validate-learnings',
+            })
+
+            throw error
         }
-
-        validatedLearnings.push({
-          ...learning,
-          validated,
-          validationNotes: validationNotes || undefined,
-          qualityScore,
-        });
-
-        if (i % 3 === 0) {
-          await writer?.custom({
-            type: 'data-tool-progress',
-            data: {
-              status: 'in-progress',
-              message: `Validated ${i + 1}/${inputData.learnings.length} learnings...`,
-              stage: 'validate-learnings',
-            },
-            id: 'validate-learnings',
-          });
-        }
-      }
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Validation complete: ${inputData.learnings.length} learnings processed`,
-          stage: 'validate-learnings',
-        },
-        id: 'validate-learnings',
-      });
-
-      const highQuality = validatedLearnings.filter(l => (l.qualityScore ?? 0) >= 80).length;
-      const needsReview = validatedLearnings.filter(l => !l.validated || (l.qualityScore ?? 0) < 60).length;
-
-      const result: z.infer<typeof validatedLearningsSchema> = {
-        learnings: validatedLearnings,
-        validationSummary: {
-          totalValidated: validatedLearnings.filter(l => l.validated).length,
-          highQuality,
-          needsReview,
-        },
-        metadata: {
-          validatedAt: new Date().toISOString(),
-        },
-      };
-
-      span?.update({
-        output: result,
-        metadata: {
-          totalValidated: result.validationSummary.totalValidated,
-          highQuality,
-          needsReview,
-          responseTimeMs: Date.now() - startTime,
-        },
-      });
-      span?.end();
-
-
-      logStepEnd('validate-learnings', result.validationSummary, Date.now() - startTime);
-      return result;
-    } catch (error) {
-      span?.error({
-        error: error instanceof Error ? error : new Error(String(error)),
-        endSpan: true,
-      });
-
-      logError('validate-learnings', error);
-
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'validate-learnings',
-        },
-        id: 'validate-learnings',
-      });
-
-      throw error;
-    }
-  },
-});
+    },
+})
 
 const generateLearningReportStep = createStep({
-  id: 'generate-learning-report',
-  description: 'Generates final learning extraction report',
-  inputSchema: validatedLearningsSchema,
-  outputSchema: finalOutputSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'generate-learning-report',
-      input: { learningsCount: inputData.learnings.length },
-      metadata: {
-        'workflow.step': 'generate-learning-report',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    logStepStart('generate-learning-report', { learningsCount: inputData.learnings.length });
+    id: 'generate-learning-report',
+    description: 'Generates final learning extraction report',
+    inputSchema: validatedLearningsSchema,
+    outputSchema: finalOutputSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-learning-report',
+            input: { learningsCount: inputData.learnings.length },
+            metadata: {
+                'workflow.step': 'generate-learning-report',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        logStepStart('generate-learning-report', {
+            learningsCount: inputData.learnings.length,
+        })
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Starting report generation for ${inputData.learnings.length} learnings (validated=${inputData.validationSummary.totalValidated})...`,
-        stage: 'generate-learning-report',
-      },
-      id: 'generate-learning-report',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Starting report generation for ${inputData.learnings.length} learnings (validated=${inputData.validationSummary.totalValidated})...`,
+                stage: 'generate-learning-report',
+            },
+            id: 'generate-learning-report',
+        })
 
-    try {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'in-progress',
-          message: `Generating learning report for ${inputData.learnings.length} learnings...`,
-          stage: 'generate-learning-report',
-        },
-        id: 'generate-learning-report',
-      });
+        try {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: `Generating learning report for ${inputData.learnings.length} learnings...`,
+                    stage: 'generate-learning-report',
+                },
+                id: 'generate-learning-report',
+            })
 
-      const agent = mastra?.getAgent('reportAgent');
-      let report = '';
-      let summary = '';
+            const agent = mastra?.getAgent('reportAgent')
+            let report = ''
+            let summary = ''
 
-      const criticalLearnings = inputData.learnings.filter(l => l.importance === 'critical');
-      const actionableItems = inputData.learnings.filter(l => l.actionable);
+            const criticalLearnings = inputData.learnings.filter(
+                (l) => l.importance === 'critical'
+            )
+            const actionableItems = inputData.learnings.filter(
+                (l) => l.actionable
+            )
 
-      if (agent) {
-        const prompt = `Generate a learning extraction report:
+            if (agent) {
+                const prompt = `Generate a learning extraction report:
 
   Learnings (${inputData.learnings.length} total):
   ${inputData.learnings
-            .map(
-              l =>
-                `- [${l.importance.toUpperCase()}] ${l.title}: ${l.description} (Quality: ${l.qualityScore ?? 0}%)`,
-            )
-            .join('\n')}
+      .map(
+          (l) =>
+              `- [${l.importance.toUpperCase()}] ${l.title}: ${l.description} (Quality: ${l.qualityScore ?? 0}%)`
+      )
+      .join('\n')}
 
   Validation Summary:
   - Validated: ${inputData.validationSummary.totalValidated}
   - High Quality: ${inputData.validationSummary.highQuality}
   - Needs Review: ${inputData.validationSummary.needsReview}
 
-  Create a comprehensive report with summary, categorized learnings, action items, and recommendations.`;
+  Create a comprehensive report with summary, categorized learnings, action items, and recommendations.`
 
-        // Call the agent without the unsupported `output` option.
-        const response: any = await agent.generate(prompt);
+                // Call the agent without the unsupported `output` option.
+                const response: any = await agent.generate(prompt)
 
-        // Guard against undefined or unexpected shapes.
-        if (response && typeof response === 'object') {
-          report = response.report ?? '';
-          summary = response.summary ?? '';
-        } else {
-          // Fallback: treat the raw response as the report.
-          report = String(response);
-          summary = '';
-        }
-      } else {
-        summary = `Extracted and validated ${inputData.learnings.length} learnings: ${criticalLearnings.length} critical, ${actionableItems.length} actionable.`;
-        report = `# Learning Extraction Report
+                // Guard against undefined or unexpected shapes.
+                if (response && typeof response === 'object') {
+                    report = response.report ?? ''
+                    summary = response.summary ?? ''
+                } else {
+                    // Fallback: treat the raw response as the report.
+                    report = String(response)
+                    summary = ''
+                }
+            } else {
+                summary = `Extracted and validated ${inputData.learnings.length} learnings: ${criticalLearnings.length} critical, ${actionableItems.length} actionable.`
+                report = `# Learning Extraction Report
 
   ## Summary
   ${summary}
 
   ## Critical Learnings
-  ${criticalLearnings.length > 0
-            ? criticalLearnings
-              .map(l => `### ${l.title}\n${l.description}\n- Quality Score: ${l.qualityScore ?? 0}%`)
-              .join('\n\n')
-            : 'No critical learnings identified.'}
+  ${
+      criticalLearnings.length > 0
+          ? criticalLearnings
+                .map(
+                    (l) =>
+                        `### ${l.title}\n${l.description}\n- Quality Score: ${l.qualityScore ?? 0}%`
+                )
+                .join('\n\n')
+          : 'No critical learnings identified.'
+  }
 
   ## All Learnings by Category
 
   ${['concept', 'technique', 'insight', 'fact', 'principle', 'pattern']
-            .map(cat => {
-              const catLearnings = inputData.learnings.filter(l => l.category === cat);
-              if (catLearnings.length === 0) {return '';}
-              return `### ${cat.charAt(0).toUpperCase() + cat.slice(1)}s
+      .map((cat) => {
+          const catLearnings = inputData.learnings.filter(
+              (l) => l.category === cat
+          )
+          if (catLearnings.length === 0) {
+              return ''
+          }
+          return `### ${cat.charAt(0).toUpperCase() + cat.slice(1)}s
   ${catLearnings
-                  .map(l => `- **${l.title}** [${l.importance}]: ${l.description}`)
-                  .join('\n')}`;
-            })
-            .filter(Boolean)
-            .join('\n\n')}
+      .map((l) => `- **${l.title}** [${l.importance}]: ${l.description}`)
+      .join('\n')}`
+      })
+      .filter(Boolean)
+      .join('\n\n')}
 
   ## Action Items
-  ${actionableItems.length > 0
-            ? actionableItems
-              .flatMap(l => l.actionItems ?? [])
-              .map(a => `- ${a}`)
-              .join('\n')
-            : 'No action items identified.'}
+  ${
+      actionableItems.length > 0
+          ? actionableItems
+                .flatMap((l) => l.actionItems ?? [])
+                .map((a) => `- ${a}`)
+                .join('\n')
+          : 'No action items identified.'
+  }
 
   ## Validation Summary
   - Total Validated: ${inputData.validationSummary.totalValidated}
@@ -800,77 +932,83 @@ const generateLearningReportStep = createStep({
   - Needs Review: ${inputData.validationSummary.needsReview}
 
   ---
-  *Report generated: ${new Date().toISOString()}*`;
-      }
+  *Report generated: ${new Date().toISOString()}*`
+            }
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Report complete: ${inputData.learnings.length} learnings`,
-          stage: 'generate-learning-report',
-        },
-        id: 'generate-learning-report',
-      });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Report complete: ${inputData.learnings.length} learnings`,
+                    stage: 'generate-learning-report',
+                },
+                id: 'generate-learning-report',
+            })
 
-      const result: z.infer<typeof finalOutputSchema> = {
-        learnings: inputData.learnings,
-        report,
-        summary,
-        metadata: {
-          contentType: 'document',
-          extractionDepth: 'thorough',
-          totalLearnings: inputData.learnings.length,
-          criticalLearnings: criticalLearnings.length,
-          actionableItems: actionableItems.length,
-          humanApproved: true,
-          processedAt: new Date().toISOString(),
-        },
-      };
+            const result: z.infer<typeof finalOutputSchema> = {
+                learnings: inputData.learnings,
+                report,
+                summary,
+                metadata: {
+                    contentType: 'document',
+                    extractionDepth: 'thorough',
+                    totalLearnings: inputData.learnings.length,
+                    criticalLearnings: criticalLearnings.length,
+                    actionableItems: actionableItems.length,
+                    humanApproved: true,
+                    processedAt: new Date().toISOString(),
+                },
+            }
 
-      span?.update({
-        output: result,
-        metadata: {
-          reportLength: report.length,
-          responseTimeMs: Date.now() - startTime,
-        },
-      });
-      span?.end();
+            span?.update({
+                output: result,
+                metadata: {
+                    reportLength: report.length,
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
 
-      logStepEnd('generate-learning-report', { reportLength: report.length }, Date.now() - startTime);
-      return result;
-    } catch (error) {
-      span?.error({
-        error: error instanceof Error ? error : new Error(String(error)),
-        endSpan: true,
-      });
+            logStepEnd(
+                'generate-learning-report',
+                { reportLength: report.length },
+                Date.now() - startTime
+            )
+            return result
+        } catch (error) {
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
 
-      logError('generate-learning-report', error);
+            logError('generate-learning-report', error)
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          stage: 'generate-learning-report',
-        },
-        id: 'generate-learning-report',
-      });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    stage: 'generate-learning-report',
+                },
+                id: 'generate-learning-report',
+            })
 
-      throw error;
-    }
-  },
-});
+            throw error
+        }
+    },
+})
 
 export const learningExtractionWorkflow = createWorkflow({
-  id: 'learningExtractionWorkflow',
-  description: 'Extract learnings from content with human-in-the-loop approval using suspend()/resume()',
-  inputSchema: learningInputSchema,
-  outputSchema: finalOutputSchema,
+    id: 'learningExtractionWorkflow',
+    description:
+        'Extract learnings from content with human-in-the-loop approval using suspend()/resume()',
+    inputSchema: learningInputSchema,
+    outputSchema: finalOutputSchema,
 })
-  .then(extractLearningsStep)
-  .then(humanApprovalStep)
-  .then(validateLearningsStep)
-  .then(generateLearningReportStep);
+    .then(extractLearningsStep)
+    .then(humanApprovalStep)
+    .then(validateLearningsStep)
+    .then(generateLearningReportStep)
 
-learningExtractionWorkflow.commit();
+learningExtractionWorkflow.commit()

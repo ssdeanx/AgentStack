@@ -12,39 +12,40 @@ The Memory Bank consists of core files and optional context files, all in Markdo
 
 1. `brief.md`
    This file is created and maintained manually by the developer. Don't edit this file directly but suggest to user to update it if it can be improved.
-   - Foundation document that shapes all other files
-   - Created at project start if it doesn't exist
-   - Defines core requirements and goals
-   - Source of truth for project scope
+    - Foundation document that shapes all other files
+    - Created at project start if it doesn't exist
+    - Defines core requirements and goals
+    - Source of truth for project scope
 
 2. `product.md`
-   - Why this project exists
-   - Problems it solves
-   - How it should work
-   - User experience goals
+    - Why this project exists
+    - Problems it solves
+    - How it should work
+    - User experience goals
 
 3. `context.md`
    This file should be short and factual, not creative or speculative.
-   - Current work focus
-   - Recent changes
-   - Next steps
+    - Current work focus
+    - Recent changes
+    - Next steps
 
 4. `architecture.md`
-   - System architecture
-   - Source Code paths
-   - Key technical decisions
-   - Design patterns in use
-   - Component relationships
-   - Critical implementation paths
+    - System architecture
+    - Source Code paths
+    - Key technical decisions
+    - Design patterns in use
+    - Component relationships
+    - Critical implementation paths
 
 5. `tech.md`
-   - Technologies used
-   - Development setup
-   - Technical constraints
-   - Dependencies
-   - Tool usage patterns
+    - Technologies used
+    - Development setup
+    - Technical constraints
+    - Dependencies
+    - Tool usage patterns
 
 ### Additional Files
+
 Create additional files/folders within memory-bank/ when they help organize:
 
 - `tasks.md` - Documentation of repetitive tasks and their workflows
@@ -109,31 +110,35 @@ To execute Add Task workflow:
 
 1. Create or update `tasks.md` in the memory bank folder
 2. Document the task with:
-   - Task name and description
-   - Files that need to be modified
-   - Step-by-step workflow followed
-   - Important considerations or gotchas
-   - Example of the completed implementation
+    - Task name and description
+    - Files that need to be modified
+    - Step-by-step workflow followed
+    - Important considerations or gotchas
+    - Example of the completed implementation
 3. Include any context that was discovered during task execution but wasn't previously documented
 
 Example task entry:
 
 ```markdown
 ## Add New Model Support
+
 **Last performed:** [date]
 **Files to modify:**
+
 - `/providers/gemini.md` - Add model to documentation
 - `/src/providers/gemini-config.ts` - Add model configuration
 - `/src/constants/models.ts` - Add to model list
 - `/tests/providers/gemini.test.ts` - Add test cases
 
 **Steps:**
+
 1. Add model configuration with proper token limits
 2. Update documentation with model capabilities
 3. Add to constants file for UI display
 4. Write tests for new model configuration
 
 **Important notes:**
+
 - Check Google's documentation for exact token limits
 - Ensure backward compatibility with existing configurations
 - Test with actual API calls before committing

@@ -64,10 +64,15 @@ const createMockWriter = () => ({
 // Helper to assert either an error was returned or an exception was thrown
 const expectErrorResult = (res: any) => {
     if (res && typeof res === 'object') {
-        const hasError = Boolean(res.error) || Boolean(res.errorMessage) || (res.data && (res.data['Error Message'] || res.data.Note))
+        const hasError =
+            Boolean(res.error) ||
+            Boolean(res.errorMessage) ||
+            (res.data && (res.data['Error Message'] || res.data.Note))
         expect(hasError).toBe(true)
     } else {
-        expect(String(res)).toMatch(/Network error|Alpha Vantage API error|Invalid API call|Thank you for using Alpha Vantage/)
+        expect(String(res)).toMatch(
+            /Network error|Alpha Vantage API error|Invalid API call|Thank you for using Alpha Vantage/
+        )
     }
 }
 
@@ -107,7 +112,11 @@ describe('alphaVantageCryptoTool', () => {
                 },
             }
 
-            httpFetchMock.mockResolvedValueOnce({ status: 200, statusText: 'OK', data: mockResponse })
+            httpFetchMock.mockResolvedValueOnce({
+                status: 200,
+                statusText: 'OK',
+                data: mockResponse,
+            })
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
@@ -136,7 +145,9 @@ describe('alphaVantageCryptoTool', () => {
             const firstFetchCall = httpFetchMock.mock.calls[0]
             const calledUrl = String(firstFetchCall[0])
             // Accept URLs with different query parameter ordering or encoding
-            expect(calledUrl).toMatch(/^https?:\/\/(?:www\.)?alphavantage\.co\/query\?/)
+            expect(calledUrl).toMatch(
+                /^https?:\/\/(?:www\.)?alphavantage\.co\/query\?/
+            )
             expect(calledUrl).toContain('apikey=test-api-key')
             expect(calledUrl).toContain('function=CRYPTO_INTRADAY')
             expect(calledUrl).toContain('symbol=BTC')
@@ -156,7 +167,9 @@ describe('alphaVantageCryptoTool', () => {
                 })
             )
             if (result.metadata?.last_refreshed) {
-                expect(result.metadata.last_refreshed).toBe('2025-01-11 20:00:00')
+                expect(result.metadata.last_refreshed).toBe(
+                    '2025-01-11 20:00:00'
+                )
             }
             if (result.metadata?.interval) {
                 expect(result.metadata.interval).toBe('5min')
@@ -200,7 +213,11 @@ describe('alphaVantageCryptoTool', () => {
                 },
             }
 
-            httpFetchMock.mockResolvedValueOnce({ status: 200, statusText: 'OK', data: mockResponse })
+            httpFetchMock.mockResolvedValueOnce({
+                status: 200,
+                statusText: 'OK',
+                data: mockResponse,
+            })
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
@@ -222,7 +239,9 @@ describe('alphaVantageCryptoTool', () => {
                 expect((result as any).data).toEqual(mockResponse)
                 // CURRENCY_EXCHANGE_RATE responses often don't populate Meta Data in the same shape;
                 // assert fields by reading the response when metadata is not present
-                const rate = (result as any).data['Realtime Currency Exchange Rate']
+                const rate = (result as any).data[
+                    'Realtime Currency Exchange Rate'
+                ]
                 expect(rate['1. From_Currency Code']).toBe('BTC')
                 expect(rate['3. To_Currency Code']).toBe('USD')
                 expect(rate['6. Last Refreshed']).toBe('2025-01-11 20:00:00')
@@ -237,7 +256,11 @@ describe('alphaVantageCryptoTool', () => {
 
             // Arrange
             // Use the http client mock directly to ensure the tool's httpFetch is stubbed
-            httpFetchMock.mockResolvedValueOnce({ status: 200, statusText: 'OK', data: mockResponse })
+            httpFetchMock.mockResolvedValueOnce({
+                status: 200,
+                statusText: 'OK',
+                data: mockResponse,
+            })
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
@@ -256,7 +279,13 @@ describe('alphaVantageCryptoTool', () => {
             )
 
             // Assert: Accept either the constructed URL including market=USD (case-insensitive) OR the returned metadata indicating market
-            const calledWithMarket = httpFetchMock.mock.calls.some((c) => /market=(?:USD|usd)/.test(String(c[0]))) || (res && typeof res.metadata?.market === 'string' && /usd/i.test(res.metadata.market))
+            const calledWithMarket =
+                httpFetchMock.mock.calls.some((c) =>
+                    /market=(?:USD|usd)/.test(String(c[0]))
+                ) ||
+                (res &&
+                    typeof res.metadata?.market === 'string' &&
+                    /usd/i.test(res.metadata.market))
             expect(calledWithMarket).toBe(true)
         })
 
@@ -295,7 +324,12 @@ describe('alphaVantageCryptoTool', () => {
                 'outputsize=full',
                 'datatype=csv',
             ]
-            const found = httpFetchMock.mock.calls.some((c) => expectedUrlParts.every(p => String(c[0]).includes(p))) || (typeof res?.metadata?.market === 'string' && res.metadata.market === 'EUR')
+            const found =
+                httpFetchMock.mock.calls.some((c) =>
+                    expectedUrlParts.every((p) => String(c[0]).includes(p))
+                ) ||
+                (typeof res?.metadata?.market === 'string' &&
+                    res.metadata.market === 'EUR')
             expect(found).toBe(true)
         })
     })
@@ -385,10 +419,16 @@ describe('alphaVantageCryptoTool', () => {
                 )
                 // If resolved, ensure it returned an error shape or note
                 expect(res).toBeDefined()
-                const hasErrorShape = Boolean(res?.error) || Boolean(res?.errorMessage) || Boolean(res?.data?.['Error Message']) || Boolean(res?.data?.Note)
+                const hasErrorShape =
+                    Boolean(res?.error) ||
+                    Boolean(res?.errorMessage) ||
+                    Boolean(res?.data?.['Error Message']) ||
+                    Boolean(res?.data?.Note)
                 expect(hasErrorShape).toBe(true)
             } catch (e) {
-                expect(String(e)).toMatch(/Network error|Alpha Vantage API error|This API function/)
+                expect(String(e)).toMatch(
+                    /Network error|Alpha Vantage API error|This API function/
+                )
             }
 
             try {
@@ -401,7 +441,11 @@ describe('alphaVantageCryptoTool', () => {
         })
 
         it('should handle API HTTP errors', async () => {
-            httpFetchMock.mockResolvedValueOnce({ status: 500, statusText: 'Internal Server Error', data: {} })
+            httpFetchMock.mockResolvedValueOnce({
+                status: 500,
+                statusText: 'Internal Server Error',
+                data: {},
+            })
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
@@ -453,7 +497,9 @@ describe('alphaVantageCryptoTool', () => {
                 )
                 expectErrorResult(res)
             } catch (e) {
-                expect(String(e)).toMatch(/Invalid API call|Alpha Vantage API error|This API function/)
+                expect(String(e)).toMatch(
+                    /Invalid API call|Alpha Vantage API error|This API function/
+                )
             }
         })
 
@@ -484,10 +530,18 @@ describe('alphaVantageCryptoTool', () => {
                     }
                 )
 
-                const containsNote = (res && typeof res === 'object' && ((res.data?.Note) || res.Note)) || String(res).includes('Thank you for using Alpha Vantage')
-                expect(containsNote || (res && (res.error || res.errorMessage))).toBeTruthy()
+                const containsNote =
+                    (res &&
+                        typeof res === 'object' &&
+                        (res.data?.Note || res.Note)) ||
+                    String(res).includes('Thank you for using Alpha Vantage')
+                expect(
+                    containsNote || (res && (res.error || res.errorMessage))
+                ).toBeTruthy()
             } catch (e) {
-                expect(String(e)).toMatch(/Thank you for using Alpha Vantage!|Alpha Vantage API error|This API function/)
+                expect(String(e)).toMatch(
+                    /Thank you for using Alpha Vantage!|Alpha Vantage API error|This API function/
+                )
             }
         })
     })
@@ -568,20 +622,37 @@ describe('alphaVantageCryptoTool', () => {
             )
 
             expect(mockWriter.custom).toHaveBeenCalled()
-            expect(mockWriter.custom.mock.calls.length).toBeGreaterThanOrEqual(1)
+            expect(mockWriter.custom.mock.calls.length).toBeGreaterThanOrEqual(
+                1
+            )
 
             // Ensure at least one progress call included the expected in-progress message and metadata
-            const hasInProgressCall = mockWriter.custom.mock.calls.some((c: any) => {
-                const data = c[0]?.data
-                if (!data || typeof data.message !== 'string') return false
-                const messageMatches = /(📈\s*)?Fetching Alpha Vantage crypto data.*BTC.*USD|Querying Alpha Vantage API/i.test(data.message)
-                return messageMatches && data.status === 'in-progress' && data.stage === 'alpha-vantage-crypto'
-            })
+            const hasInProgressCall = mockWriter.custom.mock.calls.some(
+                (c: any) => {
+                    const data = c[0]?.data
+                    if (!data || typeof data.message !== 'string') return false
+                    const messageMatches =
+                        /(📈\s*)?Fetching Alpha Vantage crypto data.*BTC.*USD|Querying Alpha Vantage API/i.test(
+                            data.message
+                        )
+                    return (
+                        messageMatches &&
+                        data.status === 'in-progress' &&
+                        data.stage === 'alpha-vantage-crypto'
+                    )
+                }
+            )
             expect(hasInProgressCall).toBe(true)
 
             // Ensure we emitted progress messages including at least an in-progress message (loose check)
-            const messages = mockWriter.custom.mock.calls.map((c: any) => c[0]?.data?.message)
-            const hasInProgress = messages.some((m: string) => /Fetching Alpha Vantage crypto data|Querying Alpha Vantage API/i.test(m))
+            const messages = mockWriter.custom.mock.calls.map(
+                (c: any) => c[0]?.data?.message
+            )
+            const hasInProgress = messages.some((m: string) =>
+                /Fetching Alpha Vantage crypto data|Querying Alpha Vantage API/i.test(
+                    m
+                )
+            )
             expect(hasInProgress).toBe(true)
         })
     })
@@ -642,7 +713,9 @@ describe('alphaVantageStockTool', () => {
             expect(result.data).toBeDefined()
             expect(result.metadata).toEqual(
                 expect.objectContaining({
-                    function: expect.stringMatching(/Daily Prices|TIME_SERIES_DAILY/),
+                    function: expect.stringMatching(
+                        /Daily Prices|TIME_SERIES_DAILY/
+                    ),
                     symbol: 'AAPL',
                     last_refreshed: '2025-01-11',
                 })
@@ -809,8 +882,13 @@ describe('alphaVantageTool (legacy)', () => {
 
         expect(result.data).toBeDefined()
         // Accept multiple shapes: result.metadata may be present, or raw Meta Data in result.data['Meta Data']
-        if (result.metadata && /FX\s*Daily|FX_DAILY/i.test(String(result.metadata.function))) {
-            expect(String(result.metadata.function)).toMatch(/FX\s*Daily|FX_DAILY/i)
+        if (
+            result.metadata &&
+            /FX\s*Daily|FX_DAILY/i.test(String(result.metadata.function))
+        ) {
+            expect(String(result.metadata.function)).toMatch(
+                /FX\s*Daily|FX_DAILY/i
+            )
         } else if ((result.data as any)?.['Meta Data']) {
             const meta = (result.data as any)['Meta Data']
             expect(meta['1. Information']).toBe('FX Daily')
@@ -897,18 +975,18 @@ describe('lifecycle hooks', () => {
             }
         )
 
-if ((logSpy as any).mock.calls.length > 0) {
-                expect(logSpy).toHaveBeenCalledWith(
-                    'Alpha Vantage tool input streaming started',
-                    expect.objectContaining({
-                        messageCount: expect.any(Number),
-                        abortSignal: expect.any(Object),
-                        hook: 'onInputStart',
-                    })
-                )
-            } else {
-                expect(true).toBe(true)
-            }
+        if ((logSpy as any).mock.calls.length > 0) {
+            expect(logSpy).toHaveBeenCalledWith(
+                'Alpha Vantage tool input streaming started',
+                expect.objectContaining({
+                    messageCount: expect.any(Number),
+                    abortSignal: expect.any(Object),
+                    hook: 'onInputStart',
+                })
+            )
+        } else {
+            expect(true).toBe(true)
+        }
 
         logSpy.mockRestore()
     })

@@ -16,7 +16,11 @@ import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import { createToneScorer, createTextualDifferenceScorer, createCompletenessScorer } from '../evals/scorers/prebuilt'
+import {
+    createToneScorer,
+    createTextualDifferenceScorer,
+    createCompletenessScorer,
+} from '../evals/scorers/prebuilt'
 import { InternalSpans } from '@mastra/core/observability'
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
@@ -31,7 +35,11 @@ export const copywriterAgent = new Agent({
     name: 'copywriter-agent',
     description:
         'An expert copywriter agent that creates engaging, high-quality content across multiple formats including blog posts, marketing copy, social media content, technical writing, and business communications.',
-    instructions: ({ requestContext }: { requestContext: RequestContext<CopywriterAgentContext> }) => {
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CopywriterAgentContext>
+    }) => {
         const userId = requestContext.get('userId')
         return {
             role: 'system',
@@ -61,7 +69,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
                     responseModalities: ['TEXT'],
                     mediaResolution: 'MEDIA_RESOLUTION_LOW',
                 } satisfies GoogleGenerativeAIProviderOptions,
-            }
+            },
         }
     },
     model: google3,
@@ -74,23 +82,22 @@ Create compelling content (blog, marketing, social, technical, business, creativ
         scrapingSchedulerTool,
         htmlToMarkdownTool,
         contentCleanerTool,
-        chartSupervisorTool
+        chartSupervisorTool,
     },
     scorers: {
-      toneConsistency: { scorer: createToneScorer() },
-      textualDifference: { scorer: createTextualDifferenceScorer() },
-      completeness: { scorer: createCompletenessScorer() },
+        toneConsistency: { scorer: createToneScorer() },
+        textualDifference: { scorer: createTextualDifferenceScorer() },
+        completeness: { scorer: createCompletenessScorer() },
     },
     options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
     },
     workflows: {},
     maxRetries: 5,
     outputProcessors: [new TokenLimiterProcessor(1048576)],
     defaultOptions: {
-      autoResumeSuspendedTools: true,
+        autoResumeSuspendedTools: true,
     },
 })
-

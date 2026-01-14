@@ -1,11 +1,11 @@
 import js from '@eslint/js'
-import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from '@typescript-eslint/eslint-plugin'
 import tsparser from '@typescript-eslint/parser'
 import prettierConfig from 'eslint-config-prettier'
-import { globalIgnores } from "eslint/config";
+import { globalIgnores } from 'eslint/config'
 
 const ignores = [
     'eslint.config.js',
@@ -50,7 +50,7 @@ const ignores = [
 
 export default [
     { ignores },
-    globalIgnores(["dist", "node_modules"]),
+    globalIgnores(['dist', 'node_modules']),
     js.configs.recommended,
     reactHooks.configs.flat.recommended,
     reactRefresh.configs.next,
@@ -70,7 +70,7 @@ export default [
             },
         },
         rules: {
-            'no-unused-vars': ['warn', {  }],
+            'no-unused-vars': ['warn', {}],
             '@typescript-eslint/no-unused-vars': ['warn', {}],
             'no-console': 'warn',
             'no-var': 'warn',
@@ -87,10 +87,19 @@ export default [
             '@typescript-eslint/prefer-optional-chain': 'error',
             '@typescript-eslint/no-unnecessary-type-assertion': 'error',
             '@typescript-eslint/prefer-as-const': 'warn',
-            '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
-            '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+            '@typescript-eslint/consistent-type-definitions': [
+                'error',
+                'interface',
+            ],
+            '@typescript-eslint/consistent-type-imports': [
+                'error',
+                { prefer: 'type-imports' },
+            ],
             '@typescript-eslint/no-import-type-side-effects': 'error',
-            '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+            '@typescript-eslint/array-type': [
+                'error',
+                { default: 'array-simple' },
+            ],
             '@typescript-eslint/member-ordering': [
                 'warn',
                 {
@@ -103,7 +112,8 @@ export default [
             '@typescript-eslint/no-meaningless-void-operator': 'error',
             '@typescript-eslint/prefer-string-starts-ends-with': 'warn',
             '@typescript-eslint/prefer-regexp-exec': 'error',
-            '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
+            '@typescript-eslint/no-unnecessary-boolean-literal-compare':
+                'error',
 
             'no-undef': 'off',
             'no-redeclare': 'off',

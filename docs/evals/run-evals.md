@@ -5,22 +5,22 @@
 Basic usage:
 
 ```typescript
-import { runEvals } from "@mastra/core/evals";
+import { runEvals } from '@mastra/core/evals'
 
 const result = await runEvals({
-  target: myAgent,
-  data: [
-    { input: "What is machine learning?" },
-    { input: "Explain neural networks" },
-  ],
-  scorers: [myScorer1, myScorer2],
-  concurrency: 2,
-  onItemComplete: ({ item, targetResult, scorerResults }) => {
-    console.log(`Completed: ${item.input}`);
-  },
-});
+    target: myAgent,
+    data: [
+        { input: 'What is machine learning?' },
+        { input: 'Explain neural networks' },
+    ],
+    scorers: [myScorer1, myScorer2],
+    concurrency: 2,
+    onItemComplete: ({ item, targetResult, scorerResults }) => {
+        console.log(`Completed: ${item.input}`)
+    },
+})
 
-console.log(result.scores);
+console.log(result.scores)
 ```
 
 Key parameters:
@@ -33,4 +33,4 @@ Key parameters:
 
 Returns an object with `scores` (averages by scorer) and `summary` including `summary.totalItems`.
 
-*Source: Mastra docs — reference/evals/run-evals.mdx*
+_Source: Mastra docs — reference/evals/run-evals.mdx_

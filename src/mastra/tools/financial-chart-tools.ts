@@ -1,10 +1,10 @@
-import type { MastraModelOutput } from '@mastra/core/stream';
-import type { InferUITool } from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
+import type { MastraModelOutput } from '@mastra/core/stream'
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
 import { SpanType } from '@mastra/core/observability'
-import { z } from 'zod';
-import { log } from '../config/logger';
-import type { RequestContext } from '@mastra/core/request-context';
+import { z } from 'zod'
+import { log } from '../config/logger'
+import type { RequestContext } from '@mastra/core/request-context'
 
 // Agents are retrieved from context to avoid circular dependencies
 
@@ -19,118 +19,169 @@ log.info('Initializing Financial Chart Tools...')
  * Orchestrates the complete chart creation pipeline
  */
 export const chartSupervisorTool = createTool({
-  id: 'chart-supervisor',
-  description:
-    'Orchestrates the complete financial chart creation pipeline. Fetches real-time market data, processes it for visualization, selects optimal chart types, and generates production-ready Recharts React components.',
-  inputSchema: z.object({
-    symbols: z
-      .array(z.string())
-      .min(1)
-      .describe('Stock symbols to visualize (e.g., ["AAPL", "GOOGL"])'),
-    chartType: z
-      .enum(['line', 'area', 'bar', 'composed', 'pie', 'scatter', 'auto'])
-      .optional()
-      .describe("Chart type to generate, or 'auto' for recommendation (defaults to 'auto')"),
-    timeRange: z
-      .enum(['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'])
-      .optional()
-      .describe("Time range for historical data (defaults to '1M')"),
-    metrics: z
-      .array(z.enum(['price', 'volume', 'rsi', 'macd', 'bollinger', 'earnings', 'fundamentals']))
-      .optional()
-      .describe("Metrics to include in the chart (defaults to ['price', 'volume'])"),
-    theme: z
-      .enum(['light', 'dark', 'corporate'])
-      .optional()
-      .describe("Color theme for the chart (defaults to 'light')"),
-    responsive: z
-      .boolean()
-      .optional()
-      .describe('Whether to generate responsive component (defaults to true)'),
-    includeCode: z
-      .boolean()
-      .optional()
-      .describe('Whether to include React component code (defaults to true)'),
-  }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    data: z
-      .object({
-        chartData: z.array(z.record(z.string(), z.unknown())).describe('Processed data for Recharts'),
-        metadata: z.object({
-          symbols: z.array(z.string()),
-          timeRange: z.string(),
-          dataPoints: z.number(),
-          lastUpdated: z.string(),
-        }),
-      })
-      .optional(),
-    component: z
-      .object({
-        name: z.string(),
-        code: z.string(),
-        usage: z.string(),
-        dependencies: z.array(z.string()),
-      })
-      .optional(),
-    chartRecommendation: z
-      .object({
-        type: z.string(),
-        reasoning: z.string(),
-        components: z.array(z.string()),
-      })
-      .optional(),
-    sources: z.array(z.object({
-      provider: z.string(),
-      timestamp: z.string(),
-    }))
-  }),
+    id: 'chart-supervisor',
+    description:
+        'Orchestrates the complete financial chart creation pipeline. Fetches real-time market data, processes it for visualization, selects optimal chart types, and generates production-ready Recharts React components.',
+    inputSchema: z.object({
+        symbols: z
+            .array(z.string())
+            .min(1)
+            .describe('Stock symbols to visualize (e.g., ["AAPL", "GOOGL"])'),
+        chartType: z
+            .enum(['line', 'area', 'bar', 'composed', 'pie', 'scatter', 'auto'])
+            .optional()
+            .describe(
+                "Chart type to generate, or 'auto' for recommendation (defaults to 'auto')"
+            ),
+        timeRange: z
+            .enum(['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'])
+            .optional()
+            .describe("Time range for historical data (defaults to '1M')"),
+        metrics: z
+            .array(
+                z.enum([
+                    'price',
+                    'volume',
+                    'rsi',
+                    'macd',
+                    'bollinger',
+                    'earnings',
+                    'fundamentals',
+                ])
+            )
+            .optional()
+            .describe(
+                "Metrics to include in the chart (defaults to ['price', 'volume'])"
+            ),
+        theme: z
+            .enum(['light', 'dark', 'corporate'])
+            .optional()
+            .describe("Color theme for the chart (defaults to 'light')"),
+        responsive: z
+            .boolean()
+            .optional()
+            .describe(
+                'Whether to generate responsive component (defaults to true)'
+            ),
+        includeCode: z
+            .boolean()
+            .optional()
+            .describe(
+                'Whether to include React component code (defaults to true)'
+            ),
+    }),
+    outputSchema: z.object({
+        success: z.boolean(),
+        data: z
+            .object({
+                chartData: z
+                    .array(z.record(z.string(), z.unknown()))
+                    .describe('Processed data for Recharts'),
+                metadata: z.object({
+                    symbols: z.array(z.string()),
+                    timeRange: z.string(),
+                    dataPoints: z.number(),
+                    lastUpdated: z.string(),
+                }),
+            })
+            .optional(),
+        component: z
+            .object({
+                name: z.string(),
+                code: z.string(),
+                usage: z.string(),
+                dependencies: z.array(z.string()),
+            })
+            .optional(),
+        chartRecommendation: z
+            .object({
+                type: z.string(),
+                reasoning: z.string(),
+                components: z.array(z.string()),
+            })
+            .optional(),
+        sources: z.array(
+            z.object({
+                provider: z.string(),
+                timestamp: z.string(),
+            })
+        ),
+    }),
 
-  execute: async (inputData, context) => {
-    const requestContext = context?.requestContext as FinancialChartContext | undefined
-    const {
-      symbols,
-      chartType = 'auto',
-      timeRange = '1M',
-      metrics = ['price', 'volume'],
-      theme = 'light',
-      responsive = true,
-      includeCode = true,
-    } = inputData
+    execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as
+            | FinancialChartContext
+            | undefined
+        const {
+            symbols,
+            chartType = 'auto',
+            timeRange = '1M',
+            metrics = ['price', 'volume'],
+            theme = 'light',
+            responsive = true,
+            includeCode = true,
+        } = inputData
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📊 Starting chart pipeline for ${symbols.join(', ')}`, stage: 'chart-supervisor' }, id: 'chart-supervisor' })
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `📊 Starting chart pipeline for ${symbols.join(', ')}`,
+                stage: 'chart-supervisor',
+            },
+            id: 'chart-supervisor',
+        })
 
-    const tracingContext = context?.tracingContext
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: SpanType.TOOL_CALL,
-      name: 'chart-supervisor-tool',
-      input: {
-        symbols,
-        chartType,
-        timeRange,
-      },
-      metadata: {
-        'tool.id': 'chart-supervisor',
-        'tool.input.symbols': symbols.join(','),
-        'tool.input.chartType': chartType,
-        'tool.input.timeRange': timeRange,
-      }
-    })
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'chart-supervisor-tool',
+            input: {
+                symbols,
+                chartType,
+                timeRange,
+            },
+            metadata: {
+                'tool.id': 'chart-supervisor',
+                'tool.input.symbols': symbols.join(','),
+                'tool.input.chartType': chartType,
+                'tool.input.timeRange': timeRange,
+            },
+        })
 
-    try {
-      const agent = context?.mastra?.getAgent?.('chartSupervisorAgent')
+        try {
+            const agent = context?.mastra?.getAgent?.('chartSupervisorAgent')
 
-      if (!agent) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent not found', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-        throw new Error('Agent chartSupervisorAgent not found');
-      }
+            if (!agent) {
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: '❌ chartSupervisorAgent not found',
+                        stage: 'chart-supervisor',
+                    },
+                    id: 'chart-supervisor',
+                })
+                throw new Error('Agent chartSupervisorAgent not found')
+            }
 
-      if (typeof agent.generate !== 'function' && typeof agent.stream !== 'function') {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartSupervisorAgent invalid', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-        throw new Error('Agent chartSupervisorAgent invalid');
-      }
+            if (
+                typeof agent.generate !== 'function' &&
+                typeof agent.stream !== 'function'
+            ) {
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: '❌ chartSupervisorAgent invalid',
+                        stage: 'chart-supervisor',
+                    },
+                    id: 'chart-supervisor',
+                })
+                throw new Error('Agent chartSupervisorAgent invalid')
+            }
 
-      const prompt = `Create a financial chart visualization with the following requirements:
+            const prompt = `Create a financial chart visualization with the following requirements:
 
 **Symbols:** ${symbols.join(', ')}
 **Time Range:** ${timeRange}
@@ -147,108 +198,144 @@ Please:
 4. ${includeCode ? 'Generate the complete React TypeScript component code' : 'Skip component code generation'}
 5. Include all data sources used with timestamps`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching financial data...', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-      let resultText = ''
-      const writer = context?.writer
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: '🔄 Fetching financial data...',
+                    stage: 'chart-supervisor',
+                },
+                id: 'chart-supervisor',
+            })
+            let resultText = ''
+            const writer = context?.writer
 
-      if (typeof agent.stream === 'function') {
-        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
-        if (stream?.fullStream) {
-          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream?.textStream) {
-          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+            if (typeof agent.stream === 'function') {
+                const stream = (await agent.stream(prompt)) as
+                    | MastraModelOutput
+                    | undefined
+                if (stream?.fullStream) {
+                    await stream.fullStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                } else if (stream?.textStream) {
+                    await stream.textStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                }
+                const text = stream?.text ? await stream.text : undefined
+                resultText = text ?? ''
+            } else {
+                const result = await agent.generate(prompt)
+                resultText = result.text
+            }
+
+            let parsedResult
+            try {
+                const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
+                if (jsonMatch?.[1] !== undefined) {
+                    parsedResult = JSON.parse(jsonMatch[1])
+                } else {
+                    parsedResult = JSON.parse(resultText)
+                }
+            } catch {
+                parsedResult = {
+                    chartData: [],
+                    metadata: {
+                        symbols,
+                        timeRange,
+                        dataPoints: 0,
+                        lastUpdated: new Date().toISOString(),
+                    },
+                    rawResponse: resultText,
+                }
+            }
+
+            span?.update({
+                output: parsedResult,
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.chartType':
+                        parsedResult.chartRecommendation?.type ?? chartType,
+                    'tool.output.dataPoints':
+                        parsedResult.data?.metadata?.dataPoints ?? 0,
+                },
+            })
+            span?.end()
+
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: '✅ Chart generation complete',
+                    stage: 'chart-supervisor',
+                },
+                id: 'chart-supervisor',
+            })
+
+            return {
+                success: true,
+                data: parsedResult.data,
+                component: parsedResult.component,
+                chartRecommendation: parsedResult.chartRecommendation,
+                sources: parsedResult.sources ?? [
+                    {
+                        provider: 'Chart Supervisor',
+                        timestamp: new Date().toISOString(),
+                    },
+                ],
+            }
+        } catch (error) {
+            const errorMsg =
+                error instanceof Error ? error.message : 'Unknown error'
+            log.error('Chart supervisor tool error:', {
+                error: errorMsg,
+                symbols,
+            })
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
+            throw error instanceof Error
+                ? error
+                : new Error(`Failed to generate chart: ${errorMsg}`)
         }
-        const text = stream?.text ? await stream.text : undefined
-        resultText = text ?? ''
-      } else {
-        const result = await agent.generate(prompt)
-        resultText = result.text
-      }
-
-      let parsedResult
-      try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
-        if (jsonMatch?.[1] !== undefined) {
-          parsedResult = JSON.parse(jsonMatch[1])
-        } else {
-          parsedResult = JSON.parse(resultText)
-        }
-      } catch {
-        parsedResult = {
-          chartData: [],
-          metadata: {
-            symbols,
-            timeRange,
-            dataPoints: 0,
-            lastUpdated: new Date().toISOString(),
-          },
-          rawResponse: resultText,
-        }
-      }
-
-      span?.update({
-        output: parsedResult,
-        metadata: {
-          'tool.output.success': true,
-          'tool.output.chartType': parsedResult.chartRecommendation?.type ?? chartType,
-          'tool.output.dataPoints': parsedResult.data?.metadata?.dataPoints ?? 0,
-        }
-      })
-      span?.end()
-
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Chart generation complete', stage: 'chart-supervisor' }, id: 'chart-supervisor' })
-
-      return {
-        success: true,
-        data: parsedResult.data,
-        component: parsedResult.component,
-        chartRecommendation: parsedResult.chartRecommendation,
-        sources: parsedResult.sources ?? [
-          { provider: 'Chart Supervisor', timestamp: new Date().toISOString() },
-        ],
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      log.error('Chart supervisor tool error:', { error: errorMsg, symbols })
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMsg),
-        endSpan: true
-      })
-      throw error instanceof Error ? error : new Error(`Failed to generate chart: ${errorMsg}`);
-    }
-  },
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartSupervisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartSupervisorTool received input', {
-      toolCallId,
-      inputData: {
-        symbols: input.symbols,
-        chartType: input.chartType,
-        timeRange: input.timeRange,
-        metrics: input.metrics,
-        theme: input.theme,
-        responsive: input.responsive,
-        includeCode: input.includeCode,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartSupervisorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        success: output.success,
-        data: output.data,
-        component: output.component,
-        chartRecommendation: output.chartRecommendation,
-        sources: output.sources,
-      },
-      hook: 'onOutput'
-    });
-  },
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('chartSupervisorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('chartSupervisorTool received input', {
+            toolCallId,
+            inputData: {
+                symbols: input.symbols,
+                chartType: input.chartType,
+                timeRange: input.timeRange,
+                metrics: input.metrics,
+                theme: input.theme,
+                responsive: input.responsive,
+                includeCode: input.includeCode,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('chartSupervisorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                success: output.success,
+                data: output.data,
+                component: output.component,
+                chartRecommendation: output.chartRecommendation,
+                sources: output.sources,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 /**
@@ -256,85 +343,129 @@ Please:
  * Generates Recharts React component code
  */
 export const chartGeneratorTool = createTool({
-  id: 'chart-generator',
-  description:
-    'Generates production-ready Recharts React component code for financial data visualization. Takes chart data and configuration, outputs TypeScript component.',
-  inputSchema: z.object({
-    chartType: z
-      .enum(['LineChart', 'AreaChart', 'BarChart', 'ComposedChart', 'PieChart', 'ScatterChart', 'Treemap'])
-      .describe('The Recharts chart type to generate'),
-    data: z
-      .array(z.record(z.string(), z.unknown()))
-      .describe('The chart data array'),
-    dataKeys: z
-      .array(z.string())
-      .describe('Data keys to visualize (e.g., ["price", "volume"])'),
-    componentName: z
-      .string()
-      .optional()
-      .describe("Name for the React component (defaults to 'FinancialChart')"),
-    theme: z
-      .enum(['light', 'dark', 'corporate'])
-      .optional()
-      .describe("Color theme (defaults to 'light')"),
-    features: z
-      .array(z.enum(['tooltip', 'legend', 'grid', 'brush', 'animation', 'responsive']))
-      .optional()
-      .describe("Features to include (defaults to ['tooltip', 'legend', 'grid', 'responsive'])"),
-    xAxisKey: z
-      .string()
-      .optional()
-      .describe("Data key for X axis (defaults to 'name')"),
-    height: z
-      .number()
-      .optional()
-      .describe('Chart height in pixels (defaults to 400)'),
-  }),
-  outputSchema: z.object({
-    componentName: z.string(),
-    code: z.string(),
-    usage: z.string(),
-    props: z.record(z.string(), z.unknown()),
-    dependencies: z.array(z.string()),
-  }),
+    id: 'chart-generator',
+    description:
+        'Generates production-ready Recharts React component code for financial data visualization. Takes chart data and configuration, outputs TypeScript component.',
+    inputSchema: z.object({
+        chartType: z
+            .enum([
+                'LineChart',
+                'AreaChart',
+                'BarChart',
+                'ComposedChart',
+                'PieChart',
+                'ScatterChart',
+                'Treemap',
+            ])
+            .describe('The Recharts chart type to generate'),
+        data: z
+            .array(z.record(z.string(), z.unknown()))
+            .describe('The chart data array'),
+        dataKeys: z
+            .array(z.string())
+            .describe('Data keys to visualize (e.g., ["price", "volume"])'),
+        componentName: z
+            .string()
+            .optional()
+            .describe(
+                "Name for the React component (defaults to 'FinancialChart')"
+            ),
+        theme: z
+            .enum(['light', 'dark', 'corporate'])
+            .optional()
+            .describe("Color theme (defaults to 'light')"),
+        features: z
+            .array(
+                z.enum([
+                    'tooltip',
+                    'legend',
+                    'grid',
+                    'brush',
+                    'animation',
+                    'responsive',
+                ])
+            )
+            .optional()
+            .describe(
+                "Features to include (defaults to ['tooltip', 'legend', 'grid', 'responsive'])"
+            ),
+        xAxisKey: z
+            .string()
+            .optional()
+            .describe("Data key for X axis (defaults to 'name')"),
+        height: z
+            .number()
+            .optional()
+            .describe('Chart height in pixels (defaults to 400)'),
+    }),
+    outputSchema: z.object({
+        componentName: z.string(),
+        code: z.string(),
+        usage: z.string(),
+        props: z.record(z.string(), z.unknown()),
+        dependencies: z.array(z.string()),
+    }),
 
-      execute: async (inputData, context) => {
-      const requestContext = context?.requestContext as FinancialChartContext | undefined
-      const {
-        chartType,      data,
-      dataKeys,
-      componentName = 'FinancialChart',
-      theme = 'light',
-      features = ['tooltip', 'legend', 'grid', 'responsive'],
-      xAxisKey = 'name',
-      height = 400,
-    } = inputData
+    execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as
+            | FinancialChartContext
+            | undefined
+        const {
+            chartType,
+            data,
+            dataKeys,
+            componentName = 'FinancialChart',
+            theme = 'light',
+            features = ['tooltip', 'legend', 'grid', 'responsive'],
+            xAxisKey = 'name',
+            height = 400,
+        } = inputData
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `⚛️ Generating ${chartType} component: ${componentName}`, stage: 'chart-generator' }, id: 'chart-generator' })
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `⚛️ Generating ${chartType} component: ${componentName}`,
+                stage: 'chart-generator',
+            },
+            id: 'chart-generator',
+        })
 
-    const tracingContext = context?.tracingContext
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: SpanType.TOOL_CALL,
-      name: 'chart-generator-tool',
-      input: {
-        chartType,
-        componentName,
-      },
-      metadata: {
-        'tool.id': 'chart-generator',
-        'tool.input.chartType': chartType,
-        'tool.input.componentName': componentName,
-      }
-    })
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'chart-generator-tool',
+            input: {
+                chartType,
+                componentName,
+            },
+            metadata: {
+                'tool.id': 'chart-generator',
+                'tool.input.chartType': chartType,
+                'tool.input.componentName': componentName,
+            },
+        })
 
-    try {
-      const agent = context?.mastra?.getAgent?.('chartGeneratorAgent')
-      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartGeneratorAgent not found', stage: 'chart-generator' }, id: 'chart-generator' })
-        throw new Error('Agent chartGeneratorAgent not found');
-      }
+        try {
+            const agent = context?.mastra?.getAgent?.('chartGeneratorAgent')
+            if (
+                !agent ||
+                (typeof agent.generate !== 'function' &&
+                    typeof agent.stream !== 'function')
+            ) {
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: '❌ chartGeneratorAgent not found',
+                        stage: 'chart-generator',
+                    },
+                    id: 'chart-generator',
+                })
+                throw new Error('Agent chartGeneratorAgent not found')
+            }
 
-      const prompt = `Generate a production-ready Recharts React component with these specifications:
+            const prompt = `Generate a production-ready Recharts React component with these specifications:
 
 **Component Name:** ${componentName}
 **Chart Type:** ${chartType}
@@ -355,105 +486,137 @@ Requirements:
 
 Return JSON with: componentName, code, usage, props, dependencies`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🎨 Generating component code...', stage: 'chart-generator' }, id: 'chart-generator' })
-      let resultText = ''
-      const writer = context?.writer
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: '🎨 Generating component code...',
+                    stage: 'chart-generator',
+                },
+                id: 'chart-generator',
+            })
+            let resultText = ''
+            const writer = context?.writer
 
-      if (typeof agent.stream === 'function') {
-        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
-        if (stream?.fullStream) {
-          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream?.textStream) {
-          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+            if (typeof agent.stream === 'function') {
+                const stream = (await agent.stream(prompt)) as
+                    | MastraModelOutput
+                    | undefined
+                if (stream?.fullStream) {
+                    await stream.fullStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                } else if (stream?.textStream) {
+                    await stream.textStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                }
+                const text = stream?.text ? await stream.text : undefined
+                resultText = text ?? ''
+            } else {
+                const result = await agent.generate(prompt)
+                resultText = result.text
+            }
+
+            let parsedResult
+            try {
+                const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
+                if (jsonMatch?.[1] !== undefined) {
+                    parsedResult = JSON.parse(jsonMatch[1])
+                } else {
+                    parsedResult = JSON.parse(resultText)
+                }
+            } catch {
+                const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(resultText)
+                parsedResult = {
+                    componentName,
+                    code: codeMatch?.[1] ?? resultText,
+                    usage: `<${componentName} data={data} />`,
+                    props: { data: `${componentName}Data[]` },
+                    dependencies: ['recharts', 'react'],
+                }
+            }
+
+            span?.update({
+                output: parsedResult,
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.componentName': parsedResult.componentName,
+                    'tool.output.codeLength': parsedResult.code?.length ?? 0,
+                },
+            })
+            span?.end()
+
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: '✅ Component generated',
+                    stage: 'chart-generator',
+                },
+                id: 'chart-generator',
+            })
+
+            return {
+                componentName: parsedResult.componentName ?? componentName,
+                code: parsedResult.code ?? '',
+                usage: parsedResult.usage ?? `<${componentName} data={data} />`,
+                props: parsedResult.props ?? {},
+                dependencies: parsedResult.dependencies ?? [
+                    'recharts',
+                    'react',
+                ],
+            }
+        } catch (error) {
+            const errorMsg =
+                error instanceof Error ? error.message : 'Unknown error'
+            log.error('Chart generator tool error:', {
+                error: errorMsg,
+                chartType,
+            })
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
+            throw new Error(`Failed to generate chart component: ${errorMsg}`)
         }
-        const text = stream?.text ? await stream.text : undefined
-        resultText = text ?? ''
-      } else {
-        const result = await agent.generate(prompt)
-        resultText = result.text
-      }
-
-      let parsedResult
-      try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
-        if (jsonMatch?.[1] !== undefined) {
-          parsedResult = JSON.parse(jsonMatch[1])
-        } else {
-          parsedResult = JSON.parse(resultText)
-        }
-      } catch {
-        const codeMatch = /```tsx?\s*([\s\S]*?)\s*```/.exec(resultText)
-        parsedResult = {
-          componentName,
-          code: codeMatch?.[1] ?? resultText,
-          usage: `<${componentName} data={data} />`,
-          props: { data: `${componentName}Data[]` },
-          dependencies: ['recharts', 'react'],
-        }
-      }
-
-      span?.update({
-        output: parsedResult,
-        metadata: {
-          'tool.output.success': true,
-          'tool.output.componentName': parsedResult.componentName,
-          'tool.output.codeLength': parsedResult.code?.length ?? 0,
-        }
-      })
-      span?.end()
-
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '✅ Component generated', stage: 'chart-generator' }, id: 'chart-generator' })
-
-      return {
-        componentName: parsedResult.componentName ?? componentName,
-        code: parsedResult.code ?? '',
-        usage: parsedResult.usage ?? `<${componentName} data={data} />`,
-        props: parsedResult.props ?? {},
-        dependencies: parsedResult.dependencies ?? ['recharts', 'react'],
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      log.error('Chart generator tool error:', { error: errorMsg, chartType })
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMsg),
-        endSpan: true
-      })
-      throw new Error(`Failed to generate chart component: ${errorMsg}`)
-    }
-  },
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartGeneratorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartGeneratorTool received input', {
-      toolCallId,
-      inputData: {
-        chartType: input.chartType,
-        data: input.data,
-        dataKeys: input.dataKeys,
-        componentName: input.componentName,
-        theme: input.theme,
-        features: input.features,
-        xAxisKey: input.xAxisKey,
-        height: input.height,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartGeneratorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        componentName: output.componentName,
-        code: output.code,
-        usage: output.usage,
-        props: output.props,
-        dependencies: output.dependencies,
-      },
-      hook: 'onOutput'
-    });
-  },
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('chartGeneratorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('chartGeneratorTool received input', {
+            toolCallId,
+            inputData: {
+                chartType: input.chartType,
+                data: input.data,
+                dataKeys: input.dataKeys,
+                componentName: input.componentName,
+                theme: input.theme,
+                features: input.features,
+                xAxisKey: input.xAxisKey,
+                height: input.height,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('chartGeneratorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                componentName: output.componentName,
+                code: output.code,
+                usage: output.usage,
+                props: output.props,
+                dependencies: output.dependencies,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 /**
@@ -461,83 +624,123 @@ Return JSON with: componentName, code, usage, props, dependencies`
  * Transforms raw financial data into Recharts format
  */
 export const chartDataProcessorTool = createTool({
-  id: 'chart-data-processor',
-  description:
-    'Transforms raw financial API data (from Polygon, Finnhub, Alpha Vantage) into optimized Recharts-compatible data structures with proper formatting and calculations.',
-  inputSchema: z.object({
-    symbols: z
-      .array(z.string())
-      .min(1)
-      .describe('Stock symbols to fetch and process'),
-    timeRange: z
-      .enum(['1D', '1W', '1M', '3M', '6M', '1Y'])
-      .optional()
-      .describe("Time range for data (defaults to '1M')"),
-    metrics: z
-      .array(z.enum(['price', 'volume', 'ohlc', 'rsi', 'macd', 'bollinger', 'sma', 'ema']))
-      .optional()
-      .describe("Metrics to include (defaults to ['price', 'volume'])"),
-    aggregation: z
-      .enum(['raw', 'daily', 'weekly', 'monthly'])
-      .optional()
-      .describe("Data aggregation level (defaults to 'daily')"),
-    calculations: z
-      .array(z.enum(['change', 'percentChange', 'movingAverage', 'volatility']))
-      .optional()
-      .describe('Additional calculations to perform'),
-  }),
-  outputSchema: z.object({
-    chartData: z.array(z.record(z.string(), z.unknown())),
-    dataKeys: z.array(z.string()),
-    domain: z.object({
-      x: z.array(z.unknown()),
-      y: z.array(z.number()),
+    id: 'chart-data-processor',
+    description:
+        'Transforms raw financial API data (from Polygon, Finnhub, Alpha Vantage) into optimized Recharts-compatible data structures with proper formatting and calculations.',
+    inputSchema: z.object({
+        symbols: z
+            .array(z.string())
+            .min(1)
+            .describe('Stock symbols to fetch and process'),
+        timeRange: z
+            .enum(['1D', '1W', '1M', '3M', '6M', '1Y'])
+            .optional()
+            .describe("Time range for data (defaults to '1M')"),
+        metrics: z
+            .array(
+                z.enum([
+                    'price',
+                    'volume',
+                    'ohlc',
+                    'rsi',
+                    'macd',
+                    'bollinger',
+                    'sma',
+                    'ema',
+                ])
+            )
+            .optional()
+            .describe("Metrics to include (defaults to ['price', 'volume'])"),
+        aggregation: z
+            .enum(['raw', 'daily', 'weekly', 'monthly'])
+            .optional()
+            .describe("Data aggregation level (defaults to 'daily')"),
+        calculations: z
+            .array(
+                z.enum([
+                    'change',
+                    'percentChange',
+                    'movingAverage',
+                    'volatility',
+                ])
+            )
+            .optional()
+            .describe('Additional calculations to perform'),
     }),
-    metadata: z.object({
-      symbols: z.array(z.string()),
-      timeRange: z.string(),
-      dataPoints: z.number(),
-      lastUpdated: z.string(),
-      interval: z.string(),
+    outputSchema: z.object({
+        chartData: z.array(z.record(z.string(), z.unknown())),
+        dataKeys: z.array(z.string()),
+        domain: z.object({
+            x: z.array(z.unknown()),
+            y: z.array(z.number()),
+        }),
+        metadata: z.object({
+            symbols: z.array(z.string()),
+            timeRange: z.string(),
+            dataPoints: z.number(),
+            lastUpdated: z.string(),
+            interval: z.string(),
+        }),
+        calculations: z.record(z.string(), z.unknown()).optional(),
     }),
-    calculations: z.record(z.string(), z.unknown()).optional(),
-  }),
 
-  execute: async (inputData, context) => {
-    const requestContext = context?.requestContext as FinancialChartContext | undefined
-    const {
-      symbols,
-      timeRange = '1M',
-      metrics = ['price', 'volume'],
-      aggregation = 'daily',
-      calculations = [],
-    } = inputData
+    execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as
+            | FinancialChartContext
+            | undefined
+        const {
+            symbols,
+            timeRange = '1M',
+            metrics = ['price', 'volume'],
+            aggregation = 'daily',
+            calculations = [],
+        } = inputData
 
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `📈 Processing data for ${symbols.join(', ')}`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `📈 Processing data for ${symbols.join(', ')}`,
+                stage: 'chart-data-processor',
+            },
+            id: 'chart-data-processor',
+        })
 
-    const tracingContext = context?.tracingContext
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: SpanType.TOOL_CALL,
-      name: 'chart-data-processor-tool',
-      input: {
-        symbols,
-        aggregation,
-      },
-      metadata: {
-        'tool.id': 'chart-data-processor',
-        'tool.input.symbols': symbols.join(','),
-        'tool.input.aggregation': aggregation,
-      }
-    })
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'chart-data-processor-tool',
+            input: {
+                symbols,
+                aggregation,
+            },
+            metadata: {
+                'tool.id': 'chart-data-processor',
+                'tool.input.symbols': symbols.join(','),
+                'tool.input.aggregation': aggregation,
+            },
+        })
 
-    try {
-      const agent = context?.mastra?.getAgent?.('chartDataProcessorAgent')
-      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartDataProcessorAgent not found', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
-        throw new Error('Agent chartDataProcessorAgent not found');
-      }
+        try {
+            const agent = context?.mastra?.getAgent?.('chartDataProcessorAgent')
+            if (
+                !agent ||
+                (typeof agent.generate !== 'function' &&
+                    typeof agent.stream !== 'function')
+            ) {
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: '❌ chartDataProcessorAgent not found',
+                        stage: 'chart-data-processor',
+                    },
+                    id: 'chart-data-processor',
+                })
+                throw new Error('Agent chartDataProcessorAgent not found')
+            }
 
-      const prompt = `Fetch and process financial data for Recharts visualization:
+            const prompt = `Fetch and process financial data for Recharts visualization:
 
 **Symbols:** ${symbols.join(', ')}
 **Time Range:** ${timeRange}
@@ -560,113 +763,145 @@ Return JSON with:
 - metadata: { symbols, timeRange, dataPoints, lastUpdated, interval }
 - calculations: Object with any calculated values`
 
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: '🔄 Fetching from financial APIs...', stage: 'chart-data-processor' }, id: 'chart-data-processor' })
-      let resultText = ''
-      const writer = context?.writer
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'in-progress',
+                    message: '🔄 Fetching from financial APIs...',
+                    stage: 'chart-data-processor',
+                },
+                id: 'chart-data-processor',
+            })
+            let resultText = ''
+            const writer = context?.writer
 
-      if (typeof agent.stream === 'function') {
-        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
-        if (stream?.fullStream) {
-          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream?.textStream) {
-          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+            if (typeof agent.stream === 'function') {
+                const stream = (await agent.stream(prompt)) as
+                    | MastraModelOutput
+                    | undefined
+                if (stream?.fullStream) {
+                    await stream.fullStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                } else if (stream?.textStream) {
+                    await stream.textStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                }
+                const text = stream?.text ? await stream.text : undefined
+                resultText = text ?? ''
+            } else {
+                const result = await agent.generate(prompt)
+                resultText = result.text
+            }
+
+            let parsedResult
+            try {
+                const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
+                if (jsonMatch?.[1] !== undefined) {
+                    parsedResult = JSON.parse(jsonMatch[1])
+                } else {
+                    parsedResult = JSON.parse(resultText)
+                }
+            } catch {
+                parsedResult = {
+                    chartData: [],
+                    dataKeys: metrics,
+                    domain: { x: [], y: [0, 100] },
+                    metadata: {
+                        symbols,
+                        timeRange,
+                        dataPoints: 0,
+                        lastUpdated: new Date().toISOString(),
+                        interval: aggregation,
+                    },
+                    rawResponse: resultText,
+                }
+            }
+
+            span?.update({
+                output: parsedResult,
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.dataPoints':
+                        parsedResult.chartData?.length ?? 0,
+                    'tool.output.symbols': symbols.join(','),
+                },
+            })
+            span?.end()
+
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points`,
+                    stage: 'chart-data-processor',
+                },
+                id: 'chart-data-processor',
+            })
+
+            return {
+                chartData: parsedResult.chartData ?? [],
+                dataKeys: parsedResult.dataKeys ?? metrics,
+                domain: parsedResult.domain ?? { x: [], y: [0, 100] },
+                metadata: parsedResult.metadata ?? {
+                    symbols,
+                    timeRange,
+                    dataPoints: 0,
+                    lastUpdated: new Date().toISOString(),
+                    interval: aggregation,
+                },
+                calculations: parsedResult.calculations,
+            }
+        } catch (error) {
+            const errorMsg =
+                error instanceof Error ? error.message : 'Unknown error'
+            log.error('Chart data processor tool error:', {
+                error: errorMsg,
+                symbols,
+            })
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
+            throw error instanceof Error
+                ? error
+                : new Error(`Failed to process data: ${errorMsg}`)
         }
-        const text = stream?.text ? await stream.text : undefined
-        resultText = text ?? ''
-      } else {
-        const result = await agent.generate(prompt)
-        resultText = result.text
-      }
-
-      let parsedResult
-      try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
-        if (jsonMatch?.[1] !== undefined) {
-          parsedResult = JSON.parse(jsonMatch[1])
-        } else {
-          parsedResult = JSON.parse(resultText)
-        }
-      } catch {
-        parsedResult = {
-          chartData: [],
-          dataKeys: metrics,
-          domain: { x: [], y: [0, 100] },
-          metadata: {
-            symbols,
-            timeRange,
-            dataPoints: 0,
-            lastUpdated: new Date().toISOString(),
-            interval: aggregation,
-          },
-          rawResponse: resultText,
-        }
-      }
-
-      span?.update({
-        output: parsedResult,
-        metadata: {
-          'tool.output.success': true,
-          'tool.output.dataPoints': parsedResult.chartData?.length ?? 0,
-          'tool.output.symbols': symbols.join(','),
-        }
-      })
-      span?.end()
-
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Processed ${parsedResult.chartData?.length ?? 0} data points`, stage: 'chart-data-processor' }, id: 'chart-data-processor' })
-
-      return {
-        chartData: parsedResult.chartData ?? [],
-        dataKeys: parsedResult.dataKeys ?? metrics,
-        domain: parsedResult.domain ?? { x: [], y: [0, 100] },
-        metadata: parsedResult.metadata ?? {
-          symbols,
-          timeRange,
-          dataPoints: 0,
-          lastUpdated: new Date().toISOString(),
-          interval: aggregation,
-        },
-        calculations: parsedResult.calculations,
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      log.error('Chart data processor tool error:', { error: errorMsg, symbols })
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMsg),
-        endSpan: true
-      })
-      throw error instanceof Error ? error : new Error(`Failed to process data: ${errorMsg}`);
-    }
-  },
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartDataProcessorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartDataProcessorTool received input', {
-      toolCallId,
-      inputData: {
-        symbols: input.symbols,
-        timeRange: input.timeRange,
-        metrics: input.metrics,
-        aggregation: input.aggregation,
-        calculations: input.calculations,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartDataProcessorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        chartData: output.chartData,
-        dataKeys: output.dataKeys,
-        domain: output.domain,
-        metadata: output.metadata,
-        calculations: output.calculations,
-      },
-      hook: 'onOutput'
-    });
-  },
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('chartDataProcessorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('chartDataProcessorTool received input', {
+            toolCallId,
+            inputData: {
+                symbols: input.symbols,
+                timeRange: input.timeRange,
+                metrics: input.metrics,
+                aggregation: input.aggregation,
+                calculations: input.calculations,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('chartDataProcessorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                chartData: output.chartData,
+                dataKeys: output.dataKeys,
+                domain: output.domain,
+                metadata: output.metadata,
+                calculations: output.calculations,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
 /**
@@ -674,79 +909,117 @@ Return JSON with:
  * Recommends optimal chart types based on data
  */
 export const chartTypeAdvisorTool = createTool({
-  id: 'chart-type-advisor',
-  description:
-    'Recommends the optimal Recharts chart type based on financial data characteristics, visualization goals, and user requirements.',
-  inputSchema: z.object({
-    dataDescription: z
-      .string()
-      .describe('Description of the data to visualize'),
-    visualizationGoal: z
-      .enum(['trend', 'comparison', 'composition', 'distribution', 'relationship', 'realtime'])
-      .describe('Primary goal of the visualization'),
-    dataCharacteristics: z
-      .object({
-        isTimeSeries: z.boolean().optional(),
-        seriesCount: z.number().optional(),
-        dataPoints: z.number().optional(),
-        hasNegativeValues: z.boolean().optional(),
-        hasCategoricalData: z.boolean().optional(),
-      })
-      .optional()
-      .describe('Characteristics of the data'),
-    constraints: z
-      .object({
-        maxComplexity: z.enum(['simple', 'moderate', 'complex']).optional(),
-        mobileOptimized: z.boolean().optional(),
-        animationRequired: z.boolean().optional(),
-      })
-      .optional()
-      .describe('Constraints for the visualization'),
-  }),
-  outputSchema: z.object({
-    primaryRecommendation: z.object({
-      chartType: z.string(),
-      components: z.array(z.string()),
-      reasoning: z.string(),
-      confidence: z.number(),
+    id: 'chart-type-advisor',
+    description:
+        'Recommends the optimal Recharts chart type based on financial data characteristics, visualization goals, and user requirements.',
+    inputSchema: z.object({
+        dataDescription: z
+            .string()
+            .describe('Description of the data to visualize'),
+        visualizationGoal: z
+            .enum([
+                'trend',
+                'comparison',
+                'composition',
+                'distribution',
+                'relationship',
+                'realtime',
+            ])
+            .describe('Primary goal of the visualization'),
+        dataCharacteristics: z
+            .object({
+                isTimeSeries: z.boolean().optional(),
+                seriesCount: z.number().optional(),
+                dataPoints: z.number().optional(),
+                hasNegativeValues: z.boolean().optional(),
+                hasCategoricalData: z.boolean().optional(),
+            })
+            .optional()
+            .describe('Characteristics of the data'),
+        constraints: z
+            .object({
+                maxComplexity: z
+                    .enum(['simple', 'moderate', 'complex'])
+                    .optional(),
+                mobileOptimized: z.boolean().optional(),
+                animationRequired: z.boolean().optional(),
+            })
+            .optional()
+            .describe('Constraints for the visualization'),
     }),
-    alternatives: z.array(z.object({
-      chartType: z.string(),
-      useCase: z.string(),
-    })),
-    configuration: z.object({
-      responsive: z.boolean(),
-      animations: z.boolean(),
-      suggestedHeight: z.number(),
+    outputSchema: z.object({
+        primaryRecommendation: z.object({
+            chartType: z.string(),
+            components: z.array(z.string()),
+            reasoning: z.string(),
+            confidence: z.number(),
+        }),
+        alternatives: z.array(
+            z.object({
+                chartType: z.string(),
+                useCase: z.string(),
+            })
+        ),
+        configuration: z.object({
+            responsive: z.boolean(),
+            animations: z.boolean(),
+            suggestedHeight: z.number(),
+        }),
     }),
-  }),
 
-      execute: async (inputData, context) => {
-      const requestContext = context?.requestContext as FinancialChartContext | undefined
-      const { dataDescription, visualizationGoal, dataCharacteristics, constraints } = inputData
-    await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'in-progress', message: `🎯 Analyzing visualization requirements...`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
+    execute: async (inputData, context) => {
+        const requestContext = context?.requestContext as
+            | FinancialChartContext
+            | undefined
+        const {
+            dataDescription,
+            visualizationGoal,
+            dataCharacteristics,
+            constraints,
+        } = inputData
+        await context?.writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `🎯 Analyzing visualization requirements...`,
+                stage: 'chart-type-advisor',
+            },
+            id: 'chart-type-advisor',
+        })
 
-    const tracingContext = context?.tracingContext
-    const span = tracingContext?.currentSpan?.createChildSpan({
-      type: SpanType.TOOL_CALL,
-      name: 'chart-type-advisor-tool',
-      input: {
-        visualizationGoal,
-      },
-      metadata: {
-        'tool.id': 'chart-type-advisor',
-        'tool.input.visualizationGoal': visualizationGoal,
-      }
-    })
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'chart-type-advisor-tool',
+            input: {
+                visualizationGoal,
+            },
+            metadata: {
+                'tool.id': 'chart-type-advisor',
+                'tool.input.visualizationGoal': visualizationGoal,
+            },
+        })
 
-    try {
-      const agent = context?.mastra?.getAgent?.('chartTypeAdvisorAgent')
-      if (!agent || (typeof agent.generate !== 'function' && typeof agent.stream !== 'function')) {
-        await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: '❌ chartTypeAdvisorAgent not found', stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
-        throw new Error('Agent chartTypeAdvisorAgent not found');
-      }
+        try {
+            const agent = context?.mastra?.getAgent?.('chartTypeAdvisorAgent')
+            if (
+                !agent ||
+                (typeof agent.generate !== 'function' &&
+                    typeof agent.stream !== 'function')
+            ) {
+                await context?.writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: '❌ chartTypeAdvisorAgent not found',
+                        stage: 'chart-type-advisor',
+                    },
+                    id: 'chart-type-advisor',
+                })
+                throw new Error('Agent chartTypeAdvisorAgent not found')
+            }
 
-      const prompt = `Recommend the optimal Recharts chart type:
+            const prompt = `Recommend the optimal Recharts chart type:
 
 **Data Description:** ${dataDescription}
 **Visualization Goal:** ${visualizationGoal}
@@ -763,118 +1036,151 @@ Analyze and recommend:
 
 Return JSON with: primaryRecommendation, alternatives, configuration`
 
-      let resultText = ''
-      const writer = context?.writer
+            let resultText = ''
+            const writer = context?.writer
 
-      if (typeof agent.stream === 'function') {
-        const stream = await agent.stream(prompt) as MastraModelOutput | undefined
-        if (stream?.fullStream) {
-          await stream.fullStream.pipeTo(writer as unknown as WritableStream)
-        } else if (stream?.textStream) {
-          await stream.textStream.pipeTo(writer as unknown as WritableStream)
+            if (typeof agent.stream === 'function') {
+                const stream = (await agent.stream(prompt)) as
+                    | MastraModelOutput
+                    | undefined
+                if (stream?.fullStream) {
+                    await stream.fullStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                } else if (stream?.textStream) {
+                    await stream.textStream.pipeTo(
+                        writer as unknown as WritableStream
+                    )
+                }
+                const text = stream?.text ? await stream.text : undefined
+                resultText = text ?? ''
+            } else {
+                const result = await agent.generate(prompt)
+                resultText = result.text
+            }
+
+            let parsedResult
+            try {
+                const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
+                if (jsonMatch?.[1] !== undefined) {
+                    parsedResult = JSON.parse(jsonMatch[1])
+                } else {
+                    parsedResult = JSON.parse(resultText)
+                }
+            } catch {
+                parsedResult = {
+                    primaryRecommendation: {
+                        chartType: 'LineChart',
+                        components: [
+                            'Line',
+                            'XAxis',
+                            'YAxis',
+                            'Tooltip',
+                            'CartesianGrid',
+                        ],
+                        reasoning:
+                            'Default recommendation for time series financial data',
+                        confidence: 0.7,
+                    },
+                    alternatives: [
+                        {
+                            chartType: 'AreaChart',
+                            useCase: 'When emphasizing volume or magnitude',
+                        },
+                        {
+                            chartType: 'ComposedChart',
+                            useCase: 'When combining multiple metrics',
+                        },
+                    ],
+                    configuration: {
+                        responsive: true,
+                        animations: true,
+                        suggestedHeight: 400,
+                    },
+                }
+            }
+
+            span?.update({
+                output: parsedResult,
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.recommendedType':
+                        parsedResult.primaryRecommendation?.chartType,
+                },
+            })
+            span?.end()
+
+            await context?.writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}`,
+                    stage: 'chart-type-advisor',
+                },
+                id: 'chart-type-advisor',
+            })
+
+            return {
+                primaryRecommendation: parsedResult.primaryRecommendation ?? {
+                    chartType: 'LineChart',
+                    components: ['Line', 'XAxis', 'YAxis', 'Tooltip'],
+                    reasoning: 'Default for financial data',
+                    confidence: 0.5,
+                },
+                alternatives: parsedResult.alternatives ?? [],
+                configuration: parsedResult.configuration ?? {
+                    responsive: true,
+                    animations: true,
+                    suggestedHeight: 400,
+                },
+            }
+        } catch (error) {
+            const errorMsg =
+                error instanceof Error ? error.message : 'Unknown error'
+            log.error('Chart type advisor tool error:', { error: errorMsg })
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMsg),
+                endSpan: true,
+            })
+            throw new Error(`Failed to recommend chart type: ${errorMsg}`)
         }
-        const text = stream?.text ? await stream.text : undefined
-        resultText = text ?? ''
-      } else {
-        const result = await agent.generate(prompt)
-        resultText = result.text
-      }
-
-      let parsedResult
-      try {
-        const jsonMatch = /```json\s*([\s\S]*?)\s*```/.exec(resultText)
-        if (jsonMatch?.[1] !== undefined) {
-          parsedResult = JSON.parse(jsonMatch[1])
-        } else {
-          parsedResult = JSON.parse(resultText)
-        }
-      } catch {
-        parsedResult = {
-          primaryRecommendation: {
-            chartType: 'LineChart',
-            components: ['Line', 'XAxis', 'YAxis', 'Tooltip', 'CartesianGrid'],
-            reasoning: 'Default recommendation for time series financial data',
-            confidence: 0.7,
-          },
-          alternatives: [
-            { chartType: 'AreaChart', useCase: 'When emphasizing volume or magnitude' },
-            { chartType: 'ComposedChart', useCase: 'When combining multiple metrics' },
-          ],
-          configuration: {
-            responsive: true,
-            animations: true,
-            suggestedHeight: 400,
-          },
-        }
-      }
-
-      span?.update({
-        output: parsedResult,
-        metadata: {
-          'tool.output.success': true,
-          'tool.output.recommendedType': parsedResult.primaryRecommendation?.chartType,
-        }
-      })
-      span?.end()
-
-      await context?.writer?.custom({ type: 'data-tool-progress', data: { status: 'done', message: `✅ Recommended: ${parsedResult.primaryRecommendation?.chartType}`, stage: 'chart-type-advisor' }, id: 'chart-type-advisor' })
-
-      return {
-        primaryRecommendation: parsedResult.primaryRecommendation ?? {
-          chartType: 'LineChart',
-          components: ['Line', 'XAxis', 'YAxis', 'Tooltip'],
-          reasoning: 'Default for financial data',
-          confidence: 0.5,
-        },
-        alternatives: parsedResult.alternatives ?? [],
-        configuration: parsedResult.configuration ?? {
-          responsive: true,
-          animations: true,
-          suggestedHeight: 400,
-        },
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      log.error('Chart type advisor tool error:', { error: errorMsg })
-      span?.error({
-        error: error instanceof Error ? error : new Error(errorMsg),
-        endSpan: true
-      })
-      throw new Error(`Failed to recommend chart type: ${errorMsg}`)
-    }
-  },
-  onInputStart: ({ toolCallId, messages, abortSignal }) => {
-    log.info('chartTypeAdvisorTool tool input streaming started', { toolCallId, hook: 'onInputStart' });
-  },
-  onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-    log.info('chartTypeAdvisorTool received input', {
-      toolCallId,
-      inputData: {
-        dataDescription: input.dataDescription,
-        visualizationGoal: input.visualizationGoal,
-        dataCharacteristics: input.dataCharacteristics,
-        constraints: input.constraints,
-      },
-      hook: 'onInputAvailable'
-    });
-  },
-  onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-    log.info('chartTypeAdvisorTool completed', {
-      toolCallId,
-      toolName,
-      outputData: {
-        primaryRecommendation: output.primaryRecommendation,
-        alternatives: output.alternatives,
-        configuration: output.configuration,
-      },
-      hook: 'onOutput'
-    });
-  },
+    },
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('chartTypeAdvisorTool tool input streaming started', {
+            toolCallId,
+            hook: 'onInputStart',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('chartTypeAdvisorTool received input', {
+            toolCallId,
+            inputData: {
+                dataDescription: input.dataDescription,
+                visualizationGoal: input.visualizationGoal,
+                dataCharacteristics: input.dataCharacteristics,
+                constraints: input.constraints,
+            },
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('chartTypeAdvisorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                primaryRecommendation: output.primaryRecommendation,
+                alternatives: output.alternatives,
+                configuration: output.configuration,
+            },
+            hook: 'onOutput',
+        })
+    },
 })
 
+export type ChartSupervisorUITool = InferUITool<typeof chartSupervisorTool>
+export type ChartGeneratorUITool = InferUITool<typeof chartGeneratorTool>
+export type ChartDataProcessorUITool = InferUITool<
+    typeof chartDataProcessorTool
+>
 
-export type ChartSupervisorUITool = InferUITool<typeof chartSupervisorTool>;
-export type ChartGeneratorUITool = InferUITool<typeof chartGeneratorTool>;
-export type ChartDataProcessorUITool = InferUITool<typeof chartDataProcessorTool>;
-
-export type ChartTypeAdvisorUITool = InferUITool<typeof chartTypeAdvisorTool>;
+export type ChartTypeAdvisorUITool = InferUITool<typeof chartTypeAdvisorTool>

@@ -1,22 +1,22 @@
 ---
-title: "UI Components"
-description: "A catalog of UI components for AgentStack (Mastra) — usage examples, common props, and best practices."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "Docs"
-slug: "components"
+title: 'UI Components'
+description: 'A catalog of UI components for AgentStack (Mastra) — usage examples, common props, and best practices.'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'Docs'
+slug: 'components'
 ---
 
-import { Button } from "@/ui/button"
-import { Badge } from "@/ui/badge"
-import { Input } from "@/ui/input"
-import { Card } from "@/ui/card"
-import { Avatar } from "@/ui/avatar"
-import { Tooltip } from "@/ui/tooltip"
-import { Dialog, DialogTrigger, DialogContent } from "@/ui/dialog"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/ui/tabs"
-import { Switch } from "@/ui/switch"
-import { Badge as StatusBadge } from "@/ui/badge"
+import { Button } from '@/ui/button'
+import { Badge } from '@/ui/badge'
+import { Input } from '@/ui/input'
+import { Card } from '@/ui/card'
+import { Avatar } from '@/ui/avatar'
+import { Tooltip } from '@/ui/tooltip'
+import { Dialog, DialogTrigger, DialogContent } from '@/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/ui/tabs'
+import { Switch } from '@/ui/switch'
+import { Badge as StatusBadge } from '@/ui/badge'
 
 # UI Components
 
@@ -45,16 +45,16 @@ Example usage (inline):
 Example (code snippet):
 
 ```tsx
-import { Button } from "@/ui/button";
+import { Button } from '@/ui/button'
 
 export default function Example() {
-  return (
-    <div className="space-x-3">
-      <Button>Cancel</Button>
-      <Button variant="primary">Save</Button>
-      <Button variant="destructive">Delete</Button>
-    </div>
-  )
+    return (
+        <div className="space-x-3">
+            <Button>Cancel</Button>
+            <Button variant="primary">Save</Button>
+            <Button variant="destructive">Delete</Button>
+        </div>
+    )
 }
 ```
 
@@ -92,8 +92,10 @@ Example:
 
 ```tsx
 <Card>
-  <h3 className="text-lg font-semibold">Card Title</h3>
-  <p className="text-muted-foreground">Card content goes here. Use cards to group related items.</p>
+    <h3 className="text-lg font-semibold">Card Title</h3>
+    <p className="text-muted-foreground">
+        Card content goes here. Use cards to group related items.
+    </p>
 </Card>
 ```
 
@@ -124,19 +126,21 @@ Example:
 
 ```tsx
 <Dialog>
-  <DialogTrigger asChild>
-    <Button variant="primary">Open Dialog</Button>
-  </DialogTrigger>
-  <DialogContent>
-    <div className="p-4">
-      <h3 className="text-lg font-bold">Confirm Action</h3>
-      <p className="text-muted-foreground">Are you sure you want to continue?</p>
-      <div className="mt-4 flex gap-2">
-        <Button>Cancel</Button>
-        <Button variant="destructive">Confirm</Button>
-      </div>
-    </div>
-  </DialogContent>
+    <DialogTrigger asChild>
+        <Button variant="primary">Open Dialog</Button>
+    </DialogTrigger>
+    <DialogContent>
+        <div className="p-4">
+            <h3 className="text-lg font-bold">Confirm Action</h3>
+            <p className="text-muted-foreground">
+                Are you sure you want to continue?
+            </p>
+            <div className="mt-4 flex gap-2">
+                <Button>Cancel</Button>
+                <Button variant="destructive">Confirm</Button>
+            </div>
+        </div>
+    </DialogContent>
 </Dialog>
 ```
 
@@ -156,18 +160,18 @@ Example:
 
 ```tsx
 <Tabs defaultValue="first">
-  <TabsList>
-    <TabsTrigger value="first">Overview</TabsTrigger>
-    <TabsTrigger value="second">Examples</TabsTrigger>
-  </TabsList>
+    <TabsList>
+        <TabsTrigger value="first">Overview</TabsTrigger>
+        <TabsTrigger value="second">Examples</TabsTrigger>
+    </TabsList>
 
-  <TabsContent value="first">
-    <p>Component overview and purpose.</p>
-  </TabsContent>
+    <TabsContent value="first">
+        <p>Component overview and purpose.</p>
+    </TabsContent>
 
-  <TabsContent value="second">
-    <p>Examples and demos.</p>
-  </TabsContent>
+    <TabsContent value="second">
+        <p>Examples and demos.</p>
+    </TabsContent>
 </Tabs>
 ```
 
@@ -198,7 +202,7 @@ Example:
 
 ```tsx
 <Tooltip content="Copy to clipboard">
-  <Button variant="ghost">Copy</Button>
+    <Button variant="ghost">Copy</Button>
 </Tooltip>
 ```
 
@@ -240,17 +244,21 @@ Example:
 
 ```tsx
 <Card>
-  <div className="flex items-center justify-between">
-    <div>
-      <h4 className="text-lg font-medium">Report Title</h4>
-      <div className="text-sm text-muted-foreground">Updated 3 days ago</div>
+    <div className="flex items-center justify-between">
+        <div>
+            <h4 className="text-lg font-medium">Report Title</h4>
+            <div className="text-sm text-muted-foreground">
+                Updated 3 days ago
+            </div>
+        </div>
+        <div className="flex items-center gap-2">
+            <Badge variant="secondary">Generated</Badge>
+            <Button variant="ghost">Open</Button>
+        </div>
     </div>
-    <div className="flex items-center gap-2">
-      <Badge variant="secondary">Generated</Badge>
-      <Button variant="ghost">Open</Button>
-    </div>
-  </div>
-  <p className="mt-4 text-muted-foreground">This is a short report summary with some key points and next steps.</p>
+    <p className="mt-4 text-muted-foreground">
+        This is a short report summary with some key points and next steps.
+    </p>
 </Card>
 ```
 

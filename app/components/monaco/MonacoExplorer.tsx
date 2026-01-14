@@ -15,7 +15,12 @@ interface MonacoExplorerProps {
     onNewFile?: () => void
 }
 
-export default function MonacoExplorer({ files, activeId, onSelect, onNewFile }: MonacoExplorerProps) {
+export default function MonacoExplorer({
+    files,
+    activeId,
+    onSelect,
+    onNewFile,
+}: MonacoExplorerProps) {
     return (
         <div className="flex h-full w-full flex-col border-r border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground/70">

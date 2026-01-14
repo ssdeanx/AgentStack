@@ -4,10 +4,11 @@ description: Mastra Conventions
 name: conventions
 title: Mastra Code Conventions
 tags:
-  - conventions
-  - coding-standards
-  - best-practices
+    - conventions
+    - coding-standards
+    - best-practices
 ---
+
 Code Conventions
 
 ## Tool Implementation Pattern
@@ -15,13 +16,13 @@ Code Conventions
 All tools follow this structure:
 
 ```typescript
-import type { InferUITool} from "@mastra/core/tools";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import { AISpanType, InternalSpans } from "@mastra/core/ai-tracing";
-import { log } from "../config/logger";
+import type { InferUITool } from '@mastra/core/tools'
+import { createTool } from '@mastra/core/tools'
+import { z } from 'zod'
+import { AISpanType, InternalSpans } from '@mastra/core/ai-tracing'
+import { log } from '../config/logger'
 import type { RuntimeContext } from '@mastra/core/runtime-context'
-import type { TracingContext } from '@mastra/core/ai-tracing';
+import type { TracingContext } from '@mastra/core/ai-tracing'
 
 // Define the Zod schema for the runtime context
 const weatherToolContextSchema = z.object({
@@ -48,7 +49,12 @@ export const weatherTool = createTool({
         unit: z.string(), // Add unit to output schema
     }),
     execute: async ({ context, writer, runtimeContext, tracingContext }) => {
-        await writer?.custom({ type: 'data-tool-progress', data: { message: `🚀 Starting weather lookup for ${context.location}` } });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                message: `🚀 Starting weather lookup for ${context.location}`,
+            },
+        })
 
         const { temperatureUnit } = weatherToolContextSchema.parse(
             runtimeContext.get('weatherToolContext')
@@ -63,25 +69,40 @@ export const weatherTool = createTool({
             name: 'weather-tool',
             input: { location: context.location, temperatureUnit },
             tracingPolicy: { internal: InternalSpans.ALL },
-            runtimeContext: runtimeContext as RuntimeContext<WeatherToolContext>,
+            runtimeContext:
+                runtimeContext as RuntimeContext<WeatherToolContext>,
         })
 
         try {
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '📍 Geocoding location...' } });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: { message: '📍 Geocoding location...' },
+            })
             const result = await getWeather(context.location, temperatureUnit)
-            await writer?.custom({ type: 'data-tool-progress', data: { message: '🌤️ Processing weather data...' } });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: { message: '🌤️ Processing weather data...' },
+            })
             weatherSpan?.end({ output: result })
             log.info(`Weather fetched successfully for ${context.location}`)
             const finalResult = {
                 ...result,
                 unit: temperatureUnit === 'celsius' ? '°C' : '°F',
-            };
-            await writer?.custom({ type: 'data-tool-progress', data: { message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}` } });
-            return finalResult;
+            }
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    message: `✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}`,
+                },
+            })
+            return finalResult
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
-            await writer?.custom({ type: 'data-tool-progress', data: { message: `❌ Weather error: ${errorMessage}` } });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: { message: `❌ Weather error: ${errorMessage}` },
+            })
             weatherSpan?.end({ metadata: { error: errorMessage } })
             log.error(
                 `Failed to fetch weather for ${context.location}: ${errorMessage}`
@@ -90,7 +111,7 @@ export const weatherTool = createTool({
         }
     },
 })
-export type WeatherUITool = InferUITool<typeof weatherTool>;
+export type WeatherUITool = InferUITool<typeof weatherTool>
 ```
 
 ## Key Patterns
@@ -143,26 +164,26 @@ import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 
 export const myAgent = new Agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  description: 'What this agent does',
-  instructions: ({ runtimeContext }) => {
-    // Dynamic instructions based on context
-    return `You are an expert at...`;
-  },
-  model: googleAI,
-  tools: {
-    tool1,
-    tool2,
-  },
-  memory: pgMemory,
-  scorers: {
-    quality: {
-      scorer: myScorer,
-      sampling: { type: "ratio", rate: 0.5 }
-    }
-  }
-});
+    id: 'my-agent',
+    name: 'My Agent',
+    description: 'What this agent does',
+    instructions: ({ runtimeContext }) => {
+        // Dynamic instructions based on context
+        return `You are an expert at...`
+    },
+    model: googleAI,
+    tools: {
+        tool1,
+        tool2,
+    },
+    memory: pgMemory,
+    scorers: {
+        quality: {
+            scorer: myScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+    },
+})
 ```
 
 ## Testing Conventions
@@ -173,45 +194,45 @@ export const myAgent = new Agent({
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 describe('myTool', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
 
-  it('should successfully execute', async () => {
-    // Mock external dependencies
-    global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve(mockData)
-    });
-
-    // Create mock contexts
-    const mockRuntimeContext = {
-      get: vi.fn().mockReturnValue(value)
-    } as any;
-
-    const mockTracingContext = {
-      currentSpan: {
-        createChildSpan: vi.fn().mockReturnValue({
-          end: vi.fn(),
-          error: vi.fn()
+    it('should successfully execute', async () => {
+        // Mock external dependencies
+        global.fetch = vi.fn().mockResolvedValue({
+            json: () => Promise.resolve(mockData),
         })
-      }
-    } as any;
 
-    // Execute and assert
-    const result = await myTool.execute({
-      context: { param: 'value' },
-      runtimeContext: mockRuntimeContext,
-      tracingContext: mockTracingContext
-    });
+        // Create mock contexts
+        const mockRuntimeContext = {
+            get: vi.fn().mockReturnValue(value),
+        } as any
 
-    expect(result.data).toBeDefined();
-    expect(result.error).toBeUndefined();
-  });
+        const mockTracingContext = {
+            currentSpan: {
+                createChildSpan: vi.fn().mockReturnValue({
+                    end: vi.fn(),
+                    error: vi.fn(),
+                }),
+            },
+        } as any
 
-  it('should handle errors', async () => {
-    // Test error cases
-  });
-});
+        // Execute and assert
+        const result = await myTool.execute({
+            context: { param: 'value' },
+            runtimeContext: mockRuntimeContext,
+            tracingContext: mockTracingContext,
+        })
+
+        expect(result.data).toBeDefined()
+        expect(result.error).toBeUndefined()
+    })
+
+    it('should handle errors', async () => {
+        // Test error cases
+    })
+})
 ```
 
 ### Testing Rules
@@ -236,15 +257,15 @@ describe('myTool', () => {
 
 ```typescript
 // 1. External framework imports
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { createTool } from '@mastra/core/tools'
+import { z } from 'zod'
 
 // 2. Type imports
-import type { RuntimeContext } from "@mastra/core/runtime-context";
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 
 // 3. Internal imports (config, tools, etc.)
-import { log } from "../config/logger";
-import { pgQueryTool } from "../config/pg-storage";
+import { log } from '../config/logger'
+import { pgQueryTool } from '../config/pg-storage'
 ```
 
 ## Security Practices

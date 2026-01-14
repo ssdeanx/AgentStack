@@ -55,21 +55,20 @@ GitHub Actions snippet (example) — add a matrix with Node 22+ and fast-fail on
 name: CI - Migration
 on: [pull_request]
 jobs:
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [22.x]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
-        with:
-          node-version: ${{ matrix.node }}
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test -- --runInBand
-      - run: npm run typecheck
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node: [22.x]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v2
+              with:
+                  node-version: ${{ matrix.node }}
+            - run: npm ci
+            - run: npm run lint
+            - run: npm run test -- --runInBand
+            - run: npm run typecheck
 ```
 
 Codemod dry-run tips

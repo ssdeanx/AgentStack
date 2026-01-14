@@ -1,13 +1,14 @@
 ---
-title: "Tool streaming | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/docs/v1/streaming/tool-streaming"
+title: 'Tool streaming | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/docs/v1/streaming/tool-streaming'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Learn how to use tool streaming in Mastra, including handling tool calls, tool results, and tool execution events during streaming."
+description: 'Mastra v1 Beta: Learn how to use tool streaming in Mastra, including handling tool calls, tool results, and tool execution events during streaming.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 Tool streaming in Mastra enables tools to send incremental results while they run, rather than waiting until execution finishes. This allows you to surface partial progress, intermediate states, or progressive data directly to users or upstream agents and workflows.
 
 Streams can be written to in two main ways:
@@ -22,16 +23,16 @@ By combining writable tool streams with agent streaming, you gain fine grained c
 Agent streaming can be combined with tool calls, allowing tool outputs to be written directly into the agent’s streaming response. This makes it possible to surface tool activity as part of the overall interaction.
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
-import { testTool } from "../tools/test-tool";
+import { Agent } from '@mastra/core/agent'
+import { testTool } from '../tools/test-tool'
 
 export const testAgent = new Agent({
-  id: "test-agent",
-  name: "Test Agent",
-  instructions: "You are a weather agent.",
-  model: "openai/gpt-5.1",
-  tools: { testTool },
-});
+    id: 'test-agent',
+    name: 'Test Agent',
+    instructions: 'You are a weather agent.',
+    model: 'openai/gpt-5.1',
+    tools: { testTool },
+})
 ```
 
 ### Using context.writer
@@ -102,14 +103,14 @@ Events written to the stream are included in the emitted chunks. These chunks ca
 
 ```typescript
 const stream = await testAgent.stream([
-  "What is the weather in London?",
-  "Use the testTool",
-]);
+    'What is the weather in London?',
+    'Use the testTool',
+])
 
 for await (const chunk of stream) {
-  if (chunk.payload.output?.type === "custom-event") {
-    console.log(JSON.stringify(chunk, null, 2));
-  }
+    if (chunk.payload.output?.type === 'custom-event') {
+        console.log(JSON.stringify(chunk, null, 2))
+    }
 }
 ```
 

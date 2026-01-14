@@ -103,14 +103,21 @@ export default function MonacoWorkbench() {
 
     const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
     const [monacoReady, setMonacoReady] = useState(false)
-    const viewStateRef = useRef(new Map<string, Monaco.editor.ICodeEditorViewState | null>())
+    const viewStateRef = useRef(
+        new Map<string, Monaco.editor.ICodeEditorViewState | null>()
+    )
 
     const [bottomPanelOpen, setBottomPanelOpen] = useState(true)
-    const [bottomPanelTab, setBottomPanelTab] = useState<BottomPanelTabId>('terminal')
+    const [bottomPanelTab, setBottomPanelTab] =
+        useState<BottomPanelTabId>('terminal')
     const [rightPanelOpen, setRightPanelOpen] = useState(true)
 
-    const [terminalLines, setTerminalLines] = useState<string[]>(["AgentStack terminal ready."])
-    const [problems] = useState<Array<{ message: string; severity: 'error' | 'warning' | 'info' }>>([])
+    const [terminalLines, setTerminalLines] = useState<string[]>([
+        'AgentStack terminal ready.',
+    ])
+    const [problems] = useState<
+        Array<{ message: string; severity: 'error' | 'warning' | 'info' }>
+    >([])
 
     const activeFile = useMemo(
         () => files.find((file) => file.id === activeId) ?? files[0],
@@ -125,13 +132,18 @@ export default function MonacoWorkbench() {
 
         if (Array.isArray(persisted.files) && persisted.files.length > 0) {
             setFiles(persisted.files)
-            const persistedActive = persisted.files.some((f) => f.id === persisted.activeId)
+            const persistedActive = persisted.files.some(
+                (f) => f.id === persisted.activeId
+            )
                 ? persisted.activeId
                 : persisted.files[0].id
             setActiveId(persistedActive)
         }
 
-        if (typeof persisted.theme === 'string' && persisted.theme.trim() !== '') {
+        if (
+            typeof persisted.theme === 'string' &&
+            persisted.theme.trim() !== ''
+        ) {
             setTheme(persisted.theme)
         }
 
@@ -157,7 +169,14 @@ export default function MonacoWorkbench() {
             bottomPanelTab,
             rightPanelOpen,
         })
-    }, [files, activeId, theme, bottomPanelOpen, bottomPanelTab, rightPanelOpen])
+    }, [
+        files,
+        activeId,
+        theme,
+        bottomPanelOpen,
+        bottomPanelTab,
+        rightPanelOpen,
+    ])
 
     const handleChange = useCallback(
         (value: string | undefined) => {
@@ -166,7 +185,11 @@ export default function MonacoWorkbench() {
                 return
             }
             setFiles((prev) =>
-                prev.map((file) => (file.id === currentId ? { ...file, value: value ?? '' } : file))
+                prev.map((file) =>
+                    file.id === currentId
+                        ? { ...file, value: value ?? '' }
+                        : file
+                )
             )
         },
         [activeFile]
@@ -178,7 +201,10 @@ export default function MonacoWorkbench() {
             if (editor) {
                 const currentModelId = activeFile?.id
                 if (currentModelId) {
-                    viewStateRef.current.set(currentModelId, editor.saveViewState())
+                    viewStateRef.current.set(
+                        currentModelId,
+                        editor.saveViewState()
+                    )
                 }
             }
             setActiveId(id)
@@ -206,10 +232,16 @@ export default function MonacoWorkbench() {
     }, [])
 
     const handleMount = useCallback(
-        (editor: Monaco.editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
+        (
+            editor: Monaco.editor.IStandaloneCodeEditor,
+            monaco: typeof Monaco
+        ) => {
             editorRef.current = editor
             editor.onDidChangeCursorPosition((event) => {
-                setPosition({ line: event.position.lineNumber, column: event.position.column })
+                setPosition({
+                    line: event.position.lineNumber,
+                    column: event.position.column,
+                })
             })
             monaco.editor.setTheme(theme)
         },
@@ -270,7 +302,9 @@ export default function MonacoWorkbench() {
                         onLanguageChange={(lang) =>
                             setFiles((prev) =>
                                 prev.map((file) =>
-                                    file.id === activeId ? { ...file, language: lang } : file
+                                    file.id === activeId
+                                        ? { ...file, language: lang }
+                                        : file
                                 )
                             )
                         }
@@ -279,7 +313,11 @@ export default function MonacoWorkbench() {
                         languages={languageOptions}
                     />
 
-                    <MonacoTabs tabs={files} activeId={activeFile?.id ?? ''} onSelect={handleSelectTab} />
+                    <MonacoTabs
+                        tabs={files}
+                        activeId={activeFile?.id ?? ''}
+                        onSelect={handleSelectTab}
+                    />
 
                     <div className="editor-shell relative min-h-0 flex-1 overflow-hidden bg-background">
                         {monacoReady ? (
@@ -297,7 +335,10 @@ export default function MonacoWorkbench() {
                                     fontSize: 14,
                                     minimap: { enabled: true },
                                     smoothScrolling: true,
-                                    scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+                                    scrollbar: {
+                                        verticalScrollbarSize: 10,
+                                        horizontalScrollbarSize: 10,
+                                    },
                                     automaticLayout: true,
                                     padding: { top: 12, bottom: 12 },
                                     tabSize: 2,

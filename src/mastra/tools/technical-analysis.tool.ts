@@ -198,7 +198,9 @@ export const ichimokuCloudTool = createTool({
             },
         })
         const startTime = Date.now()
-        logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 })
+        logToolExecution('ichimoku-cloud', {
+            dataLength: inputData.close?.length ?? 0,
+        })
 
         try {
             const results = IchimokuCloud.calculate({
@@ -218,11 +220,18 @@ export const ichimokuCloudTool = createTool({
             const duration = Date.now() - startTime
             toolSpan?.update({
                 output: finalResult,
-                metadata: { 'tool.output.success': true, 'tool.duration_ms': duration },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.duration_ms': duration,
+                },
             })
             toolSpan?.end()
 
-            logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 }, { success: true, durationMs: duration })
+            logToolExecution(
+                'ichimoku-cloud',
+                { dataLength: inputData.close?.length ?? 0 },
+                { success: true, durationMs: duration }
+            )
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -236,10 +245,15 @@ export const ichimokuCloudTool = createTool({
 
             return finalResult
         } catch (error: unknown) {
-            const err = error instanceof Error ? error : new Error(String(error))
+            const err =
+                error instanceof Error ? error : new Error(String(error))
             toolSpan?.error({ error: err, endSpan: true })
             log.error('ichimoku-cloud failed', { error: err.message })
-            logToolExecution('ichimoku-cloud', { dataLength: inputData.close?.length ?? 0 }, { success: false, error: err.message })
+            logToolExecution(
+                'ichimoku-cloud',
+                { dataLength: inputData.close?.length ?? 0 },
+                { success: false, error: err.message }
+            )
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -331,7 +345,10 @@ export const fibonacciTool = createTool({
             },
         })
         const startTime = Date.now()
-        logToolExecution('fibonacci-levels', { high: inputData.high, low: inputData.low })
+        logToolExecution('fibonacci-levels', {
+            high: inputData.high,
+            low: inputData.low,
+        })
 
         try {
             const diff = inputData.high - inputData.low
@@ -351,10 +368,17 @@ export const fibonacciTool = createTool({
             const duration = Date.now() - startTime
             toolSpan?.update({
                 output: finalResult,
-                metadata: { 'tool.output.success': true, 'tool.duration_ms': duration },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.duration_ms': duration,
+                },
             })
             toolSpan?.end()
-            logToolExecution('fibonacci-levels', { high: inputData.high, low: inputData.low }, { success: true, durationMs: duration })
+            logToolExecution(
+                'fibonacci-levels',
+                { high: inputData.high, low: inputData.low },
+                { success: true, durationMs: duration }
+            )
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -426,42 +450,50 @@ export const pivotPointsTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        standard: z.object({
-            pp: z.number(),
-            r1: z.number(),
-            s1: z.number(),
-            r2: z.number(),
-            s2: z.number(),
-            r3: z.number(),
-            s3: z.number(),
-        }).optional(),
-        woodie: z.object({
-            pp: z.number(),
-            r1: z.number(),
-            s1: z.number(),
-            r2: z.number(),
-            s2: z.number(),
-        }).optional(),
-        camarilla: z.object({
-            pp: z.number(),
-            r1: z.number(),
-            s1: z.number(),
-            r2: z.number(),
-            s2: z.number(),
-            r3: z.number(),
-            s3: z.number(),
-            r4: z.number(),
-            s4: z.number(),
-        }).optional(),
-        fibonacci: z.object({
-            pp: z.number(),
-            r1: z.number(),
-            s1: z.number(),
-            r2: z.number(),
-            s2: z.number(),
-            r3: z.number(),
-            s3: z.number(),
-        }).optional(),
+        standard: z
+            .object({
+                pp: z.number(),
+                r1: z.number(),
+                s1: z.number(),
+                r2: z.number(),
+                s2: z.number(),
+                r3: z.number(),
+                s3: z.number(),
+            })
+            .optional(),
+        woodie: z
+            .object({
+                pp: z.number(),
+                r1: z.number(),
+                s1: z.number(),
+                r2: z.number(),
+                s2: z.number(),
+            })
+            .optional(),
+        camarilla: z
+            .object({
+                pp: z.number(),
+                r1: z.number(),
+                s1: z.number(),
+                r2: z.number(),
+                s2: z.number(),
+                r3: z.number(),
+                s3: z.number(),
+                r4: z.number(),
+                s4: z.number(),
+            })
+            .optional(),
+        fibonacci: z
+            .object({
+                pp: z.number(),
+                r1: z.number(),
+                s1: z.number(),
+                r2: z.number(),
+                s2: z.number(),
+                r3: z.number(),
+                s3: z.number(),
+            })
+            .optional(),
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
@@ -643,10 +675,20 @@ export const trendAnalysisTool = createTool({
         sma: z.array(z.number()).optional(),
         ema: z.array(z.number()).optional(),
         wma: z.array(z.number()).optional(),
-        macd: z.array(z.object({ MACD: z.number(), histogram: z.number(), signal: z.number() })).optional(),
+        macd: z
+            .array(
+                z.object({
+                    MACD: z.number(),
+                    histogram: z.number(),
+                    signal: z.number(),
+                })
+            )
+            .optional(),
         adx: z.array(z.number()).optional(),
         trix: z.array(z.number()).optional(),
-        kst: z.array(z.object({ kst: z.number(), signal: z.number() })).optional(),
+        kst: z
+            .array(z.object({ kst: z.number(), signal: z.number() }))
+            .optional(),
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
@@ -1467,7 +1509,16 @@ export const heikinAshiTool = createTool({
     }),
     outputSchema: z.object({
         success: z.boolean(),
-        candles: z.array(z.object({ open: z.number(), high: z.number(), low: z.number(), close: z.number() })).optional(),
+        candles: z
+            .array(
+                z.object({
+                    open: z.number(),
+                    high: z.number(),
+                    low: z.number(),
+                    close: z.number(),
+                })
+            )
+            .optional(),
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {

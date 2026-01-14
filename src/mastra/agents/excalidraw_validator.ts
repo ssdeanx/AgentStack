@@ -1,28 +1,32 @@
-import { Agent } from "@mastra/core/agent";
-import { googleAI, pgMemory } from "../config";
-import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
-import type { RequestContext } from "@mastra/core/request-context";
-import { TokenLimiterProcessor } from "@mastra/core/processors";
-import { InternalSpans } from "@mastra/core/observability";
+import { Agent } from '@mastra/core/agent'
+import { googleAI, pgMemory } from '../config'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { RequestContext } from '@mastra/core/request-context'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ExcalidrawValidatorRuntimeContext {
-  userId?: string
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    userId?: string
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 export const excalidrawValidatorAgent = new Agent({
-  id: "excalidrawValidatorAgent",
-  name: "Excalidraw Validator",
-  description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<ExcalidrawValidatorRuntimeContext> }) => {
-    const userId = requestContext.get('userId') ?? 'default'
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+    id: 'excalidrawValidatorAgent',
+    name: 'Excalidraw Validator',
+    description: `An agent that validates and fixes Excalidraw JSON for Excalidraw diagrams.`,
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<ExcalidrawValidatorRuntimeContext>
+    }) => {
+        const userId = requestContext.get('userId') ?? 'default'
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
 
-    return {
-      role: 'system',
-      content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
+        return {
+            role: 'system',
+            content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
 user: ${userId}
 tier: ${userTier}
 language: ${language}
@@ -93,28 +97,28 @@ The format must follow this exact schema:
 
 You can update the JSON to be valid and ensure it matches the expected excalidraw schema.
 `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAI,
-  memory: pgMemory,
-  tools: {},
-  scorers: {},
-  workflows: {},
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)]
-});
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAI,
+    memory: pgMemory,
+    tools: {},
+    scorers: {},
+    workflows: {},
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    maxRetries: 5,
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
+})

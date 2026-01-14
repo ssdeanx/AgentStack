@@ -6,36 +6,36 @@ Base interface for all span types.
 
 ```typescript
 interface BaseSpan<TType extends SpanType> {
-  /** Unique span identifier */
-  id: string;
-  /** OpenTelemetry-compatible trace ID (32 hex chars) */
-  traceId: string;
-  /** Name of the span */
-  name: string;
-  /** Type of the span */
-  type: TType;
-  /** When span started */
-  startTime: Date;
-  /** When span ended */
-  endTime?: Date;
-  /** Type-specific attributes */
-  attributes?: SpanTypeMap[TType];
-  /** User-defined metadata */
-  metadata?: Record<string, any>;
-  /** Input passed at the start of the span */
-  input?: any;
-  /** Output generated at the end of the span */
-  output?: any;
-  /** Error information if span failed */
-  errorInfo?: {
-    message: string;
-    id?: string;
-    domain?: string;
-    category?: string;
-    details?: Record<string, any>;
-  };
-  /** Is an event span? (occurs at startTime, has no endTime) */
-  isEvent: boolean;
+    /** Unique span identifier */
+    id: string
+    /** OpenTelemetry-compatible trace ID (32 hex chars) */
+    traceId: string
+    /** Name of the span */
+    name: string
+    /** Type of the span */
+    type: TType
+    /** When span started */
+    startTime: Date
+    /** When span ended */
+    endTime?: Date
+    /** Type-specific attributes */
+    attributes?: SpanTypeMap[TType]
+    /** User-defined metadata */
+    metadata?: Record<string, any>
+    /** Input passed at the start of the span */
+    input?: any
+    /** Output generated at the end of the span */
+    output?: any
+    /** Error information if span failed */
+    errorInfo?: {
+        message: string
+        id?: string
+        domain?: string
+        category?: string
+        details?: Record<string, any>
+    }
+    /** Is an event span? (occurs at startTime, has no endTime) */
+    isEvent: boolean
 }
 ```
 
@@ -45,12 +45,12 @@ Span interface, used internally for tracing. Extends BaseSpan with lifecycle met
 
 ```typescript
 interface Span<TType extends SpanType> extends BaseSpan<TType> {
-  /** Is an internal span? (spans internal to the operation of mastra) */
-  isInternal: boolean;
-  /** Parent span reference (undefined for root spans) */
-  parent?: AnySpan;
-  /** Pointer to the ObservabilityInstance instance */
-  observabilityInstance: ObservabilityInstance;
+    /** Is an internal span? (spans internal to the operation of mastra) */
+    isInternal: boolean
+    /** Parent span reference (undefined for root spans) */
+    parent?: AnySpan
+    /** Pointer to the ObservabilityInstance instance */
+    observabilityInstance: ObservabilityInstance
 }
 ```
 
@@ -122,10 +122,10 @@ Exported Span interface, used for tracing exporters. A lightweight version of Sp
 
 ```typescript
 interface ExportedSpan<TType extends SpanType> extends BaseSpan<TType> {
-  /** Parent span id reference (undefined for root spans) */
-  parentSpanId?: string;
-  /** TRUE if the span is the root span of a trace */
-  isRootSpan: boolean;
+    /** Parent span id reference (undefined for root spans) */
+    parentSpanId?: string
+    /** TRUE if the span is the root span of a trace */
+    isRootSpan: boolean
 }
 ```
 
@@ -135,12 +135,12 @@ interface ExportedSpan<TType extends SpanType> extends BaseSpan<TType> {
 
 ```typescript
 enum TracingEventType {
-  /** Emitted when a span is created and started */
-  SPAN_STARTED = "span_started",
-  /** Emitted when a span is updated via update() */
-  SPAN_UPDATED = "span_updated",
-  /** Emitted when a span is ended via end() or error() */
-  SPAN_ENDED = "span_ended",
+    /** Emitted when a span is created and started */
+    SPAN_STARTED = 'span_started',
+    /** Emitted when a span is updated via update() */
+    SPAN_UPDATED = 'span_updated',
+    /** Emitted when a span is ended via end() or error() */
+    SPAN_ENDED = 'span_ended',
 }
 ```
 
@@ -148,9 +148,9 @@ enum TracingEventType {
 
 ```typescript
 type TracingEvent =
-  | { type: "span_started"; exportedSpan: AnyExportedSpan }
-  | { type: "span_updated"; exportedSpan: AnyExportedSpan }
-  | { type: "span_ended"; exportedSpan: AnyExportedSpan };
+    | { type: 'span_started'; exportedSpan: AnyExportedSpan }
+    | { type: 'span_updated'; exportedSpan: AnyExportedSpan }
+    | { type: 'span_ended'; exportedSpan: AnyExportedSpan }
 ```
 
 Exporters receive these events to process and send trace data to observability platforms.
@@ -160,7 +160,7 @@ Exporters receive these events to process and send trace data to observability p
 ### AnySpan
 
 ```typescript
-type AnySpan = Span<keyof SpanTypeMap>;
+type AnySpan = Span<keyof SpanTypeMap>
 ```
 
 Union type for cases that need to handle any span type.
@@ -168,7 +168,7 @@ Union type for cases that need to handle any span type.
 ### AnyExportedSpan
 
 ```typescript
-type AnyExportedSpan = ExportedSpan<keyof SpanTypeMap>;
+type AnyExportedSpan = ExportedSpan<keyof SpanTypeMap>
 ```
 
 Union type for cases that need to handle any exported span type.
@@ -179,23 +179,26 @@ A common pattern is to create a TOOL_CALL span to represent the execution of a t
 
 ```typescript
 const toolSpan = tracingContext?.currentSpan?.createChildSpan({
-  type: SpanType.TOOL_CALL,
-  name: 'chartjs-generator',
-  input: { dataCount: data.length, indicatorsCount: indicators.length },
-  metadata: {
-    'tool.id': 'chartjs-generator',
-    'tool.input.dataCount': data.length,
-    'tool.input.indicatorsCount': indicators.length,
-  },
+    type: SpanType.TOOL_CALL,
+    name: 'chartjs-generator',
+    input: { dataCount: data.length, indicatorsCount: indicators.length },
+    metadata: {
+        'tool.id': 'chartjs-generator',
+        'tool.input.dataCount': data.length,
+        'tool.input.indicatorsCount': indicators.length,
+    },
 })
 
 try {
-  // perform tool work
-  toolSpan?.update({ output: { configSize: labels.length }, metadata: { 'tool.output.labels': labels.length } })
-  toolSpan?.end()
+    // perform tool work
+    toolSpan?.update({
+        output: { configSize: labels.length },
+        metadata: { 'tool.output.labels': labels.length },
+    })
+    toolSpan?.end()
 } catch (err) {
-  toolSpan?.error({ error: err as Error, endSpan: true })
-  throw err
+    toolSpan?.error({ error: err as Error, endSpan: true })
+    throw err
 }
 ```
 

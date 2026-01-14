@@ -13,56 +13,56 @@ Establish consistent, testable, and secure entry points for all external depende
 
 ## Key Files
 
-| File                | Responsibility                            | Notes                                           |
-| ------------------- | ----------------------------------------- | ----------------------------------------------- |
-| `index.ts`          | Main exports for all config modules       | Aggregates all providers                        |
+| File                | Responsibility                            | Notes                                                   |
+| ------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| `index.ts`          | Main exports for all config modules       | Aggregates all providers                                |
 | `google.ts`         | Google AI model provider client setup     | Gemini models: Flash, Pro, Flash Lite, Image, Embedding |
-| `openai.ts`         | OpenAI model provider client setup        | GPT-4, GPT-4o, GPT-5 series with reasoning      |
-| `anthropic.ts`      | Anthropic model provider client setup     | Claude 3.5/4.0/4.5 series                       |
-| `gemini-cli.ts`     | Gemini CLI provider setup                 | Local development with OAuth/API key auth       |
-| `github-copilot.ts` | GitHub Copilot provider setup             | OpenAI-compatible interface for Copilot models  |
-| `openrouter.ts`     | OpenRouter model provider client setup    | Routes to 50+ models from various providers     |
-| `vertex.ts`         | Google Vertex AI model provider setup     | Google Cloud-based models                       |
-| `pg-storage.ts`     | PostgreSQL storage & vector client config | **CRITICAL**: PgVector for embeddings, memory, threads |
-| `mongodb.ts`        | MongoDB database configuration            | Alternative document storage                    |
-| `upstash.ts`        | Upstash Redis configuration               | Caching and session storage                     |
-| `upstashMemory.ts`  | Upstash Redis memory configuration        | Alternative memory provider                     |
-| `logger.ts`         | Structured logging (Pino)                 | Standard log helpers & transports               |
-| `tracing.ts`        | Distributed tracing configuration         | Performance monitoring and debugging           |
-| `processors.ts`     | Data processors configuration             | Processing pipelines                            |
-| `role-hierarchy.ts` | Supabase RBAC inheritance model         | JWT-based auth with RLS policies, subscription tiers |
-| `README.md`         | Configuration documentation              | Setup guides and usage examples                |
-| `AGENTS.md`         | This documentation file                   | Directory overview and responsibilities         |
+| `openai.ts`         | OpenAI model provider client setup        | GPT-4, GPT-4o, GPT-5 series with reasoning              |
+| `anthropic.ts`      | Anthropic model provider client setup     | Claude 3.5/4.0/4.5 series                               |
+| `gemini-cli.ts`     | Gemini CLI provider setup                 | Local development with OAuth/API key auth               |
+| `github-copilot.ts` | GitHub Copilot provider setup             | OpenAI-compatible interface for Copilot models          |
+| `openrouter.ts`     | OpenRouter model provider client setup    | Routes to 50+ models from various providers             |
+| `vertex.ts`         | Google Vertex AI model provider setup     | Google Cloud-based models                               |
+| `pg-storage.ts`     | PostgreSQL storage & vector client config | **CRITICAL**: PgVector for embeddings, memory, threads  |
+| `mongodb.ts`        | MongoDB database configuration            | Alternative document storage                            |
+| `upstash.ts`        | Upstash Redis configuration               | Caching and session storage                             |
+| `upstashMemory.ts`  | Upstash Redis memory configuration        | Alternative memory provider                             |
+| `logger.ts`         | Structured logging (Pino)                 | Standard log helpers & transports                       |
+| `tracing.ts`        | Distributed tracing configuration         | Performance monitoring and debugging                    |
+| `processors.ts`     | Data processors configuration             | Processing pipelines                                    |
+| `role-hierarchy.ts` | Supabase RBAC inheritance model           | JWT-based auth with RLS policies, subscription tiers    |
+| `README.md`         | Configuration documentation               | Setup guides and usage examples                         |
+| `AGENTS.md`         | This documentation file                   | Directory overview and responsibilities                 |
 
 ## Vector Storage Providers
 
 Located in `vector/` subdirectory:
 
-| File         | Provider          | Notes                          |
-| ------------ | ----------------- | ------------------------------ |
-| `astra.ts`   | DataStax Astra    | Cassandra-based vector DB      |
-| `chroma.ts`  | Chroma            | Open-source vector database    |
-| `pinecone.ts`| Pinecone          | Managed vector database        |
-| `qdrant.ts`  | Qdrant            | High-performance vector search |
-| `lance.ts`   | LanceDB           | Embedded vector database       |
-| `opensearch.ts`| OpenSearch       | Search engine with vectors     |
-| `cloudflare.ts`| Cloudflare D1    | Serverless vector storage      |
-| `couchbase.ts`| Couchbase        | Multi-model database           |
-| `s3vectors.ts`| AWS S3           | Object storage vectors         |
-| `registry.ts`| Model Registry    | Model versioning and storage   |
+| File            | Provider       | Notes                          |
+| --------------- | -------------- | ------------------------------ |
+| `astra.ts`      | DataStax Astra | Cassandra-based vector DB      |
+| `chroma.ts`     | Chroma         | Open-source vector database    |
+| `pinecone.ts`   | Pinecone       | Managed vector database        |
+| `qdrant.ts`     | Qdrant         | High-performance vector search |
+| `lance.ts`      | LanceDB        | Embedded vector database       |
+| `opensearch.ts` | OpenSearch     | Search engine with vectors     |
+| `cloudflare.ts` | Cloudflare D1  | Serverless vector storage      |
+| `couchbase.ts`  | Couchbase      | Multi-model database           |
+| `s3vectors.ts`  | AWS S3         | Object storage vectors         |
+| `registry.ts`   | Model Registry | Model versioning and storage   |
 
 ## Model Providers
 
-| Provider       | Models Available                          | Env Variable                          | Notes |
-| -------------- | ----------------------------------------- | ------------------------------------- | ----- |
-| Google AI      | Gemini 2.5/3.0 Flash, Pro, Flash Lite, Image, Embedding | `GOOGLE_GENERATIVE_AI_API_KEY`        | Primary provider with image generation |
-| OpenAI         | GPT-4, GPT-4o, GPT-5 series               | `OPENAI_API_KEY`                      | Standard GPT models with reasoning |
-| Anthropic      | Claude 3.5/4.0/4.5 Sonnet, Opus, Haiku    | `ANTHROPIC_API_KEY`                   | Advanced reasoning models |
-| GitHub Copilot | GPT-4, Claude, Gemini, Grok models        | `COPILOT_TOKEN`                       | OpenAI-compatible interface |
-| OpenRouter     | 50+ models from various providers         | `OPENROUTER_API_KEY`                  | Model routing gateway |
-| Gemini CLI     | Local Gemini models with CLI integration  | `GOOGLE_GENERATIVE_AI_API_KEY` or OAuth | Development and testing |
-| Vertex AI      | Google Cloud hosted models                | GCP credentials                       | Enterprise Google models |
-| AI Gateway     | Unified access to 20+ providers           | `AI_GATEWAY_API_KEY`                  | Vercel AI Gateway with OIDC support |
+| Provider       | Models Available                                        | Env Variable                            | Notes                                  |
+| -------------- | ------------------------------------------------------- | --------------------------------------- | -------------------------------------- |
+| Google AI      | Gemini 2.5/3.0 Flash, Pro, Flash Lite, Image, Embedding | `GOOGLE_GENERATIVE_AI_API_KEY`          | Primary provider with image generation |
+| OpenAI         | GPT-4, GPT-4o, GPT-5 series                             | `OPENAI_API_KEY`                        | Standard GPT models with reasoning     |
+| Anthropic      | Claude 3.5/4.0/4.5 Sonnet, Opus, Haiku                  | `ANTHROPIC_API_KEY`                     | Advanced reasoning models              |
+| GitHub Copilot | GPT-4, Claude, Gemini, Grok models                      | `COPILOT_TOKEN`                         | OpenAI-compatible interface            |
+| OpenRouter     | 50+ models from various providers                       | `OPENROUTER_API_KEY`                    | Model routing gateway                  |
+| Gemini CLI     | Local Gemini models with CLI integration                | `GOOGLE_GENERATIVE_AI_API_KEY` or OAuth | Development and testing                |
+| Vertex AI      | Google Cloud hosted models                              | GCP credentials                         | Enterprise Google models               |
+| AI Gateway     | Unified access to 20+ providers                         | `AI_GATEWAY_API_KEY`                    | Vercel AI Gateway with OIDC support    |
 
 ## Supabase Integration
 
@@ -142,12 +142,12 @@ UPSTASH_REDIS_TOKEN=xxxxx
 
 ## Change Log
 
-| Version | Date (UTC) | Change                                                  |
-| ------- | ---------- | ------------------------------------------------------- |
-| 2.3.0   | 2025-12-08 | Added AI Gateway provider for unified multi-provider access |
-| 2.2.1   | 2025-12-08 | Fixed database environment variables (SUPABASE instead of PG_CONNECTION) |
+| Version | Date (UTC) | Change                                                                    |
+| ------- | ---------- | ------------------------------------------------------------------------- |
+| 2.3.0   | 2025-12-08 | Added AI Gateway provider for unified multi-provider access               |
+| 2.2.1   | 2025-12-08 | Fixed database environment variables (SUPABASE instead of PG_CONNECTION)  |
 | 2.1.0   | 2025-12-08 | Added GitHub Copilot, updated all providers, comprehensive model coverage |
-| 2.0.0   | 2025-11-26 | Major update: added all providers, env vars documented  |
-| 1.2.0   | 2025-10-15 | Enhanced pg-storage.ts description                      |
-| 1.1.0   | 2025-10-08 | Verified content accuracy and updated metadata.         |
-| 1.0.0   | 2025-09-24 | Standardized template applied                           |
+| 2.0.0   | 2025-11-26 | Major update: added all providers, env vars documented                    |
+| 1.2.0   | 2025-10-15 | Enhanced pg-storage.ts description                                        |
+| 1.1.0   | 2025-10-08 | Verified content accuracy and updated metadata.                           |
+| 1.0.0   | 2025-09-24 | Standardized template applied                                             |

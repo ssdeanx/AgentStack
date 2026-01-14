@@ -99,7 +99,6 @@ describe('webScraperTool', () => {
         }
         mockFs.open.mockResolvedValue(mockFileHandle as any)
 
-
         // Mock CheerioCrawler
         mockCrawler = {
             run: vi.fn().mockResolvedValue(undefined),
@@ -116,7 +115,9 @@ describe('webScraperTool', () => {
                     for (const req of requests) {
                         await this.options.requestHandler({
                             request: req,
-                            body: Buffer.from('<html><head><title>Test Title</title><meta name="description" content="Test description"></head><body><h1>Test Content</h1></body></html>'),
+                            body: Buffer.from(
+                                '<html><head><title>Test Title</title><meta name="description" content="Test description"></head><body><h1>Test Content</h1></body></html>'
+                            ),
                             response: { statusCode: 200, statusMessage: 'OK' },
                             enqueueLinks: async () => {},
                         })
@@ -176,10 +177,12 @@ describe('webScraperTool', () => {
             })
 
             // Validate top-level result fields
-            expect(result).toEqual(expect.objectContaining({
-                url: 'https://example.com/test',
-                status: 'success',
-            }))
+            expect(result).toEqual(
+                expect.objectContaining({
+                    url: 'https://example.com/test',
+                    status: 'success',
+                })
+            )
             expect(result.error).toBeUndefined()
             expect(result.errorMessage).toBeUndefined()
 
@@ -260,7 +263,10 @@ describe('webScraperTool', () => {
                 recursive: true,
             })
             expect(fs.open).toHaveBeenCalled()
-            if (typeof result.storage !== 'undefined' && typeof result.storage?.savedFilePath === 'string') {
+            if (
+                typeof result.storage !== 'undefined' &&
+                typeof result.storage?.savedFilePath === 'string'
+            ) {
                 // Accept either the provided filename or the mocked joined path depending on implementation
                 expect(['test-output.md', '/mock/data/test.md']).toContain(
                     result.storage.savedFilePath
@@ -284,17 +290,25 @@ describe('webScraperTool', () => {
                     tracingContext: mockTracingContext,
                     writer: mockWriter,
                 })
-                expect(result).toEqual(expect.objectContaining({
-                    error: true,
-                }))
+                expect(result).toEqual(
+                    expect.objectContaining({
+                        error: true,
+                    })
+                )
                 // Accept either an explicit errorMessage, an error.message, or a serialized error object/string
                 const errMsgCandidate =
                     result.errorMessage ??
-                    (result.error?.message) ??
-                    (typeof result.error === 'object' ? JSON.stringify(result.error) : '')
-                expect(errMsgCandidate).toMatch(/Domain is not allowlisted|DOMAIN_NOT_ALLOWED/)
+                    result.error?.message ??
+                    (typeof result.error === 'object'
+                        ? JSON.stringify(result.error)
+                        : '')
+                expect(errMsgCandidate).toMatch(
+                    /Domain is not allowlisted|DOMAIN_NOT_ALLOWED/
+                )
             } catch (e) {
-                expect(String(e)).toMatch(/Domain is not allowlisted|DOMAIN_NOT_ALLOWED/)
+                expect(String(e)).toMatch(
+                    /Domain is not allowlisted|DOMAIN_NOT_ALLOWED/
+                )
             }
         })
 
@@ -336,9 +350,13 @@ describe('webScraperTool', () => {
                     writer: mockWriter,
                 })
                 expect(res).toHaveProperty('error', true)
-                expect(res.errorMessage).toMatch(/Network timeout|Web scraping failed|Request handler failed|ScrapingError/)
+                expect(res.errorMessage).toMatch(
+                    /Network timeout|Web scraping failed|Request handler failed|ScrapingError/
+                )
             } catch (e) {
-                expect(String(e)).toMatch(/Network timeout|Web scraping failed|Request handler failed|ScrapingError/)
+                expect(String(e)).toMatch(
+                    /Network timeout|Web scraping failed|Request handler failed|ScrapingError/
+                )
             }
         })
 
@@ -369,7 +387,9 @@ describe('webScraperTool', () => {
                 // If the implementation throws, ensure it relates to file system/save error
                 expect(fs.mkdir).toHaveBeenCalled()
                 expect(log.error).toHaveBeenCalled()
-                expect(String(e)).toMatch(/Permission denied|EACCES|file system|save/i)
+                expect(String(e)).toMatch(
+                    /Permission denied|EACCES|file system|save/i
+                )
             }
         })
 
@@ -388,8 +408,12 @@ describe('webScraperTool', () => {
                 mockTracingContext.currentSpan.createChildSpan
             ).toHaveBeenCalled()
 
-            const spanCall = mockTracingContext.currentSpan.createChildSpan.mock.results[0]
-            if (typeof spanCall !== 'undefined' && typeof spanCall.value !== 'undefined') {
+            const spanCall =
+                mockTracingContext.currentSpan.createChildSpan.mock.results[0]
+            if (
+                typeof spanCall !== 'undefined' &&
+                typeof spanCall.value !== 'undefined'
+            ) {
                 const spanMock = spanCall.value
                 expect(spanMock.update).toHaveBeenCalled()
                 expect(spanMock.end).toHaveBeenCalled()
@@ -400,7 +424,8 @@ describe('webScraperTool', () => {
         })
 
         it('should handle tracing errors gracefully', async () => {
-            const spanCall = mockTracingContext.currentSpan.createChildSpan.mock.results[0]
+            const spanCall =
+                mockTracingContext.currentSpan.createChildSpan.mock.results[0]
             if (spanCall?.value) {
                 const spanMock = spanCall.value
                 spanMock.update.mockImplementation(() => {
@@ -464,14 +489,11 @@ describe('webScraperTool', () => {
                 url: 'https://example.com/sanitize-test',
             }
 
-            const result = await webScraperTool.execute(
-                input,
-                {
-                    requestContext: mockRequestContext,
-                    tracingContext: mockTracingContext,
-                    writer: mockWriter,
-                }
-            )
+            const result = await webScraperTool.execute(input, {
+                requestContext: mockRequestContext,
+                tracingContext: mockTracingContext,
+                writer: mockWriter,
+            })
 
             expect(result.content.rawContent).toBeDefined()
             expect(result.content.markdownContent).toBeDefined()

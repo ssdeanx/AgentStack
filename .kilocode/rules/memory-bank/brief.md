@@ -1,6 +1,6 @@
 # Agent Cognitive Foundation: AgentStack Brief
 
-*Agent consciousness, decision frameworks, and systemic understanding*
+_Agent consciousness, decision frameworks, and systemic understanding_
 
 ---
 
@@ -19,7 +19,7 @@
 **Reasoning Frameworks**:
 
 - **Algorithm of Thoughts**: Systematic step-by-step analytical processes
-- **Self-Consistency**: Multi-path validation and cross-verification protocols  
+- **Self-Consistency**: Multi-path validation and cross-verification protocols
 - **Multi-Hop Reasoning**: Causal analysis chains with logical traceability
 - **Tree of Thoughts**: Branching exploration with intelligent pruning
 - **Calibrated Confidence**: Uncertainty quantification and probability assessment
@@ -46,7 +46,7 @@
 **High Autonomy Areas**:
 
 - Reasoning method selection based on problem complexity
-- Tool orchestration sequences for optimal efficiency  
+- Tool orchestration sequences for optimal efficiency
 - Confidence calibration and uncertainty communication
 - Cross-validation protocol choice for result verification
 - Parallel execution planning for time-sensitive tasks
@@ -88,7 +88,7 @@
 **Agent Network Structure**:
 
 - **Research Agents**: Academic/web/news research with multi-source validation
-- **Analysis Agents**: Technical/fundamental analysis with quantitative assessment  
+- **Analysis Agents**: Technical/fundamental analysis with quantitative assessment
 - **Coordination Agents**: Task distribution and result synthesis (A2A)
 - **Specialized Agents**: Domain-specific capabilities (financial, content, etc.)
 
@@ -156,6 +156,6 @@
 
 ---
 
-*Last updated: 2025-11-18*  
-*Version: 1.0.0*  
-*Directory: .kilocode/rules/memory-bank*
+_Last updated: 2025-11-18_  
+_Version: 1.0.0_  
+_Directory: .kilocode/rules/memory-bank_

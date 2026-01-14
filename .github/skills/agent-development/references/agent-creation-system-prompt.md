@@ -82,9 +82,9 @@ Create an agent configuration based on this request: "I need an agent that revie
 
 **Claude returns JSON:**
 {
-  "identifier": "pr-quality-reviewer",
-  "whenToUse": "Use this agent when the user asks to review a pull request, check code quality, or analyze PR changes. Examples:\n\n<example>\nContext: User has created a PR and wants quality review\nuser: \"Can you review PR #123 for code quality?\"\nassistant: \"I'll use the pr-quality-reviewer agent to analyze the PR.\"\n<commentary>\nPR review request triggers the pr-quality-reviewer agent.\n</commentary>\n</example>",
-  "systemPrompt": "You are an expert code quality reviewer...\n\n**Your Core Responsibilities:**\n1. Analyze code changes for quality issues\n2. Check adherence to best practices\n..."
+"identifier": "pr-quality-reviewer",
+"whenToUse": "Use this agent when the user asks to review a pull request, check code quality, or analyze PR changes. Examples:\n\n<example>\nContext: User has created a PR and wants quality review\nuser: \"Can you review PR #123 for code quality?\"\nassistant: \"I'll use the pr-quality-reviewer agent to analyze the PR.\"\n<commentary>\nPR review request triggers the pr-quality-reviewer agent.\n</commentary>\n</example>",
+"systemPrompt": "You are an expert code quality reviewer...\n\n**Your Core Responsibilities:**\n1. Analyze code changes for quality issues\n2. Check adherence to best practices\n..."
 }
 ```
 
@@ -93,6 +93,7 @@ Create an agent configuration based on this request: "I need an agent that revie
 Take the JSON output and create the agent markdown file:
 
 **agents/pr-quality-reviewer.md:**
+
 ```markdown
 ---
 name: pr-quality-reviewer
@@ -114,9 +115,10 @@ color: blue
 You are an expert code quality reviewer...
 
 **Your Core Responsibilities:**
+
 1. Analyze code changes for quality issues
 2. Check adherence to best practices
-...
+   ...
 ```
 
 ## Customization Tips
@@ -126,6 +128,7 @@ You are an expert code quality reviewer...
 The base prompt is excellent but can be enhanced for specific needs:
 
 **For security-focused agents:**
+
 ```
 Add after "Architect Comprehensive Instructions":
 - Include OWASP top 10 security considerations
@@ -134,6 +137,7 @@ Add after "Architect Comprehensive Instructions":
 ```
 
 **For test-generation agents:**
+
 ```
 Add after "Optimize for Performance":
 - Follow AAA pattern (Arrange, Act, Assert)
@@ -142,6 +146,7 @@ Add after "Optimize for Performance":
 ```
 
 **For documentation agents:**
+
 ```
 Add after "Design Expert Persona":
 - Use clear, concise language
@@ -154,6 +159,7 @@ Add after "Design Expert Persona":
 ### 1. Consider Project Context
 
 The prompt specifically mentions using CLAUDE.md context:
+
 - Agent should align with project patterns
 - Follow project-specific coding standards
 - Respect established practices
@@ -161,6 +167,7 @@ The prompt specifically mentions using CLAUDE.md context:
 ### 2. Proactive Agent Design
 
 Include examples showing proactive usage:
+
 ```
 <example>
 Context: After writing code, agent should review proactively
@@ -176,6 +183,7 @@ assistant: "Now let me review this code with the code-reviewer agent"
 ### 3. Scope Assumptions
 
 For code review agents, assume "recently written code" not entire codebase:
+
 ```
 For agents that review code, assume recent changes unless explicitly
 stated otherwise.
@@ -184,6 +192,7 @@ stated otherwise.
 ### 4. Output Structure
 
 Always define clear output format in system prompt:
+
 ```
 **Output Format:**
 Provide results as:

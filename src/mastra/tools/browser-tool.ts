@@ -1,5 +1,5 @@
-import { SpanType } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool, type InferUITool } from '@mastra/core/tools'
 import { MDocument } from '@mastra/rag'
@@ -42,9 +42,36 @@ export const browserTool = createTool({
     outputSchema: z.object({
         message: z.string(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Browser tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            url: input.url,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
@@ -170,32 +197,6 @@ export const browserTool = createTool({
             return { message: `Error: ${errorMsg}` }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Browser tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            url: input.url,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         const isSuccess =
             !output.message.includes('Error:') &&
@@ -232,11 +233,10 @@ export const screenshotTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-screenshot',
             input: inputData,
@@ -356,20 +356,20 @@ export const pdfGeneratorTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'browser-pdf-generate',
+            name: 'browser-pdf',
             input: inputData,
             metadata: {
-                'tool.id': 'browser-pdf-generate',
+                'tool.id': 'browser-pdf',
                 'tool.input.url': inputData.url,
                 'tool.input.format': inputData.format,
                 'user.id': requestCtx?.userId,
             },
+            tracingContext: context?.tracingContext,
             requestContext: context?.requestContext,
         })
 
@@ -494,20 +494,20 @@ export const clickAndExtractTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'browser-click-extract',
+            name: 'browser-content-extract',
             input: inputData,
             metadata: {
-                'tool.id': 'browser-click-extract',
+                'tool.id': 'browser-content-extract',
                 'tool.input.url': inputData.url,
-                'tool.input.clickSelector': inputData.clickSelector,
                 'user.id': requestCtx?.userId,
             },
+            tracingContext: context?.tracingContext,
             requestContext: context?.requestContext,
         })
 
@@ -657,11 +657,10 @@ export const fillFormTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-fill-form',
             input: inputData,
@@ -672,6 +671,7 @@ export const fillFormTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         await context?.writer?.custom({
@@ -790,11 +790,10 @@ export const googleSearch = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-search',
             input: inputData,
@@ -804,6 +803,7 @@ export const googleSearch = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
         })
 
         await context?.writer?.custom({
@@ -966,20 +966,21 @@ export const extractTablesTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-extract-tables',
             input: inputData,
             metadata: {
                 'tool.id': 'browser-extract-tables',
                 'tool.input.url': inputData.url,
+                'tool.input.tableIndex': inputData.tableIndex,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
         })
 
         await context?.writer?.custom({
@@ -1130,21 +1131,20 @@ export const monitorPageTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | BrowserRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'browser-monitor-page',
+            name: 'browser-extract-tables',
             input: inputData,
             metadata: {
-                'tool.id': 'browser-monitor-page',
+                'tool.id': 'browser-extract-tables',
                 'tool.input.url': inputData.url,
-                'tool.input.selector': inputData.selector,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
         })
 
         await context?.writer?.custom({

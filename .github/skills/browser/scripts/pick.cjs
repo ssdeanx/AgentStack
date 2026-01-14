@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // Visual element picker - click to select DOM nodes
-const http = require('http');
-const WebSocket = require('ws');
+const http = require('http')
+const WebSocket = require('ws')
 
-const hint = process.argv[2] || 'Click an element to select it';
+const hint = process.argv[2] || 'Click an element to select it'
 
 async function getTargets() {
-  return new Promise((resolve, reject) => {
-    http.get('http://localhost:9222/json', res => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(JSON.parse(data)));
-    }).on('error', reject);
-  });
+    return new Promise((resolve, reject) => {
+        http.get('http://localhost:9222/json', (res) => {
+            let data = ''
+            res.on('data', (chunk) => (data += chunk))
+            res.on('end', () => resolve(JSON.parse(data)))
+        }).on('error', reject)
+    })
 }
 
 const pickerScript = `
@@ -46,42 +46,44 @@ const pickerScript = `
       });
     };
   });
-})`;
+})`
 
-(async () => {
-  try {
-    const targets = await getTargets();
-    const page = targets.find(t => t.type === 'page');
-    if (!page) throw new Error('No active page found');
+;(async () => {
+    try {
+        const targets = await getTargets()
+        const page = targets.find((t) => t.type === 'page')
+        if (!page) throw new Error('No active page found')
 
-    const ws = new WebSocket(page.webSocketDebuggerUrl);
+        const ws = new WebSocket(page.webSocketDebuggerUrl)
 
-    ws.on('open', () => {
-      ws.send(JSON.stringify({
-        id: 1,
-        method: 'Runtime.evaluate',
-        params: {
-          expression: `${pickerScript}(${JSON.stringify(hint)})`,
-          returnByValue: true,
-          awaitPromise: true
-        }
-      }));
-    });
+        ws.on('open', () => {
+            ws.send(
+                JSON.stringify({
+                    id: 1,
+                    method: 'Runtime.evaluate',
+                    params: {
+                        expression: `${pickerScript}(${JSON.stringify(hint)})`,
+                        returnByValue: true,
+                        awaitPromise: true,
+                    },
+                })
+            )
+        })
 
-    ws.on('message', data => {
-      const msg = JSON.parse(data);
-      if (msg.id === 1) {
-        ws.close();
-        console.log(JSON.stringify(msg.result.result.value, null, 2));
-      }
-    });
+        ws.on('message', (data) => {
+            const msg = JSON.parse(data)
+            if (msg.id === 1) {
+                ws.close()
+                console.log(JSON.stringify(msg.result.result.value, null, 2))
+            }
+        })
 
-    ws.on('error', e => {
-      console.error('WebSocket error:', e.message);
-      process.exit(1);
-    });
-  } catch (e) {
-    console.error('Error:', e.message);
-    process.exit(1);
-  }
-})();
+        ws.on('error', (e) => {
+            console.error('WebSocket error:', e.message)
+            process.exit(1)
+        })
+    } catch (e) {
+        console.error('Error:', e.message)
+        process.exit(1)
+    }
+})()

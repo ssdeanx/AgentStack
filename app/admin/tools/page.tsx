@@ -10,21 +10,28 @@ export default function AdminToolsPage() {
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Tool discovery</CardTitle>
+                        <CardTitle className="text-base">
+                            Tool discovery
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                        For now, tools are documented and used via agents. Next steps here are to add a local tool registry
-                        (or read descriptions directly from the tool definitions) without relying on the HTTP API.
+                        For now, tools are documented and used via agents. Next
+                        steps here are to add a local tool registry (or read
+                        descriptions directly from the tool definitions) without
+                        relying on the HTTP API.
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Observability</CardTitle>
+                        <CardTitle className="text-base">
+                            Observability
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm text-muted-foreground">
-                        Tool calls already emit `tool-*` and `data-tool-*` parts (per Mastra AI SDK UI docs). We can surface
-                        progress events and recent tool runs here next.
+                        Tool calls already emit `tool-*` and `data-tool-*` parts
+                        (per Mastra AI SDK UI docs). We can surface progress
+                        events and recent tool runs here next.
                     </CardContent>
                 </Card>
             </div>

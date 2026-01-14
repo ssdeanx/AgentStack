@@ -12,11 +12,11 @@ Contains documentation assets and example files used by the repo: Excalidraw dia
 
 ## Key Files
 
-| File | Description |
-| ---- | ----------- |
+| File                | Description                                   |
+| ------------------- | --------------------------------------------- |
 | `circle.excalidraw` | Example diagram assets used for documentation |
-| `diagram (5).json` | Sample exported diagrams as JSON |
-| `test.excalidraw` | Test or scratch diagrams used for demos |
+| `diagram (5).json`  | Sample exported diagrams as JSON              |
+| `test.excalidraw`   | Test or scratch diagrams used for demos       |
 
 ## Notes
 
@@ -24,4 +24,5 @@ Contains documentation assets and example files used by the repo: Excalidraw dia
 - If a workflow or tool is added that ingests these assets, document the ingestion pipeline and tests to validate compatibility.
 
 ---
+
 Last updated: 2025-11-14

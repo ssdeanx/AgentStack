@@ -19,11 +19,13 @@ The manifest MUST be in the `.claude-plugin/` directory at the plugin root. Clau
 **Example**: `"test-automation-suite"`
 
 The unique identifier for the plugin. Used for:
+
 - Plugin identification in Claude Code
 - Conflict detection with other plugins
 - Command namespacing (optional)
 
 **Requirements**:
+
 - Must be unique across all installed plugins
 - Use only lowercase letters, numbers, and hyphens
 - No spaces or special characters
@@ -31,11 +33,13 @@ The unique identifier for the plugin. Used for:
 - End with a letter or number
 
 **Validation**:
+
 ```javascript
-/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
+;/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 ```
 
 **Examples**:
+
 - ✅ Good: `api-tester`, `code-review`, `git-workflow-automation`
 - ❌ Bad: `API Tester`, `code_review`, `-git-workflow`, `test-`
 
@@ -47,16 +51,19 @@ The unique identifier for the plugin. Used for:
 **Default**: `"0.1.0"` if not specified
 
 Semantic versioning guidelines:
+
 - **MAJOR**: Incompatible API changes, breaking changes
 - **MINOR**: New functionality, backward-compatible
 - **PATCH**: Bug fixes, backward-compatible
 
 **Pre-release versions**:
+
 - `"1.0.0-alpha.1"` - Alpha release
 - `"1.0.0-beta.2"` - Beta release
 - `"1.0.0-rc.1"` - Release candidate
 
 **Examples**:
+
 - `"0.1.0"` - Initial development
 - `"1.0.0"` - First stable release
 - `"1.2.3"` - Patch update to 1.2
@@ -71,12 +78,14 @@ Semantic versioning guidelines:
 Brief explanation of plugin purpose and functionality.
 
 **Best practices**:
+
 - Focus on what the plugin does, not how
 - Use active voice
 - Mention key features or benefits
 - Keep under 200 characters for marketplace display
 
 **Examples**:
+
 - ✅ "Generates comprehensive test suites from code analysis and coverage reports"
 - ✅ "Integrates with Jira for automatic issue tracking and sprint management"
 - ❌ "A plugin that helps you do testing stuff"
@@ -91,22 +100,24 @@ Brief explanation of plugin purpose and functionality.
 
 ```json
 {
-  "author": {
-    "name": "Jane Developer",
-    "email": "jane@example.com",
-    "url": "https://janedeveloper.com"
-  }
+    "author": {
+        "name": "Jane Developer",
+        "email": "jane@example.com",
+        "url": "https://janedeveloper.com"
+    }
 }
 ```
 
 **Alternative format** (string only):
+
 ```json
 {
-  "author": "Jane Developer <jane@example.com> (https://janedeveloper.com)"
+    "author": "Jane Developer <jane@example.com> (https://janedeveloper.com)"
 }
 ```
 
 **Use cases**:
+
 - Credit and attribution
 - Contact for support or questions
 - Marketplace display
@@ -120,12 +131,14 @@ Brief explanation of plugin purpose and functionality.
 Link to plugin documentation or landing page.
 
 **Should point to**:
+
 - Plugin documentation site
 - Project homepage
 - Detailed usage guide
 - Installation instructions
 
 **Not for**:
+
 - Source code (use `repository` field)
 - Issue tracker (include in documentation)
 - Personal websites (use `author.url`)
@@ -138,24 +151,27 @@ Link to plugin documentation or landing page.
 Source code repository location.
 
 **String format**:
+
 ```json
 {
-  "repository": "https://github.com/user/plugin-name"
+    "repository": "https://github.com/user/plugin-name"
 }
 ```
 
 **Object format** (detailed):
+
 ```json
 {
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/user/plugin-name.git",
-    "directory": "packages/plugin-name"
-  }
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/user/plugin-name.git",
+        "directory": "packages/plugin-name"
+    }
 }
 ```
 
 **Use cases**:
+
 - Source code access
 - Issue reporting
 - Community contributions
@@ -170,6 +186,7 @@ Source code repository location.
 Software license identifier.
 
 **Common licenses**:
+
 - `"MIT"` - Permissive, popular choice
 - `"Apache-2.0"` - Permissive with patent grant
 - `"GPL-3.0"` - Copyleft
@@ -180,9 +197,10 @@ Software license identifier.
 **Full list**: https://spdx.org/licenses/
 
 **Multiple licenses**:
+
 ```json
 {
-  "license": "(MIT OR Apache-2.0)"
+    "license": "(MIT OR Apache-2.0)"
 }
 ```
 
@@ -194,6 +212,7 @@ Software license identifier.
 Tags for plugin discovery and categorization.
 
 **Best practices**:
+
 - Use 5-10 keywords
 - Include functionality categories
 - Add technology names
@@ -201,6 +220,7 @@ Tags for plugin discovery and categorization.
 - Avoid duplicating plugin name
 
 **Categories to consider**:
+
 - Functionality: `testing`, `debugging`, `documentation`, `deployment`
 - Technologies: `typescript`, `python`, `docker`, `aws`
 - Workflows: `ci-cd`, `code-review`, `git-workflow`
@@ -217,26 +237,25 @@ Tags for plugin discovery and categorization.
 Additional directories or files containing command definitions.
 
 **Single path**:
+
 ```json
 {
-  "commands": "./custom-commands"
+    "commands": "./custom-commands"
 }
 ```
 
 **Multiple paths**:
+
 ```json
 {
-  "commands": [
-    "./commands",
-    "./admin-commands",
-    "./experimental-commands"
-  ]
+    "commands": ["./commands", "./admin-commands", "./experimental-commands"]
 }
 ```
 
 **Behavior**: Supplements default `commands/` directory (does not replace)
 
 **Use cases**:
+
 - Organizing commands by category
 - Separating stable from experimental commands
 - Loading commands from shared locations
@@ -252,6 +271,7 @@ Additional directories or files containing agent definitions.
 **Format**: Same as `commands` field
 
 **Use cases**:
+
 - Grouping agents by specialization
 - Separating general-purpose from task-specific agents
 - Loading agents from plugin dependencies
@@ -264,33 +284,36 @@ Additional directories or files containing agent definitions.
 Hook configuration location or inline definition.
 
 **File path**:
+
 ```json
 {
-  "hooks": "./config/hooks.json"
+    "hooks": "./config/hooks.json"
 }
 ```
 
 **Inline configuration**:
+
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
-            "timeout": 30
-          }
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh",
+                        "timeout": 30
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
 **Use cases**:
+
 - Simple plugins: Inline configuration (< 50 lines)
 - Complex plugins: External JSON file
 - Multiple hook sets: Separate files for different contexts
@@ -303,28 +326,31 @@ Hook configuration location or inline definition.
 MCP server configuration location or inline definition.
 
 **File path**:
+
 ```json
 {
-  "mcpServers": "./.mcp.json"
+    "mcpServers": "./.mcp.json"
 }
 ```
 
 **Inline configuration**:
+
 ```json
 {
-  "mcpServers": {
-    "github": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/servers/github-mcp.js"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-      }
+    "mcpServers": {
+        "github": {
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/servers/github-mcp.js"],
+            "env": {
+                "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+            }
+        }
     }
-  }
 }
 ```
 
 **Use cases**:
+
 - Simple plugins: Single inline server (< 20 lines)
 - Complex plugins: External `.mcp.json` file
 - Multiple servers: Always use external file
@@ -341,6 +367,7 @@ All paths in component fields must follow these rules:
 4. **Forward slashes only**: Even on Windows
 
 **Examples**:
+
 - ✅ `"./commands"`
 - ✅ `"./src/commands"`
 - ✅ `"./configs/hooks.json"`
@@ -354,21 +381,21 @@ All paths in component fields must follow these rules:
 When Claude Code loads components:
 
 1. **Default directories**: Scans standard locations first
-   - `./commands/`
-   - `./agents/`
-   - `./skills/`
-   - `./hooks/hooks.json`
-   - `./.mcp.json`
+    - `./commands/`
+    - `./agents/`
+    - `./skills/`
+    - `./hooks/hooks.json`
+    - `./.mcp.json`
 
 2. **Custom paths**: Scans paths specified in manifest
-   - Paths from `commands` field
-   - Paths from `agents` field
-   - Files from `hooks` and `mcpServers` fields
+    - Paths from `commands` field
+    - Paths from `agents` field
+    - Files from `hooks` and `mcpServers` fields
 
 3. **Merge behavior**: Components from all locations load
-   - No overwriting
-   - All discovered components register
-   - Name conflicts cause errors
+    - No overwriting
+    - All discovered components register
+    - Name conflicts cause errors
 
 ## Validation
 
@@ -377,17 +404,20 @@ When Claude Code loads components:
 Claude Code validates the manifest on plugin load:
 
 **Syntax validation**:
+
 - Valid JSON format
 - No syntax errors
 - Correct field types
 
 **Field validation**:
+
 - `name` field present and valid format
 - `version` follows semantic versioning (if present)
 - Paths are relative with `./` prefix
 - URLs are valid (if present)
 
 **Component validation**:
+
 - Referenced paths exist
 - Hook and MCP configurations are valid
 - No circular dependencies
@@ -395,54 +425,66 @@ Claude Code validates the manifest on plugin load:
 ### Common Validation Errors
 
 **Invalid name format**:
+
 ```json
 {
-  "name": "My Plugin"  // ❌ Contains spaces
+    "name": "My Plugin" // ❌ Contains spaces
 }
 ```
+
 Fix: Use kebab-case
+
 ```json
 {
-  "name": "my-plugin"  // ✅
+    "name": "my-plugin" // ✅
 }
 ```
 
 **Absolute path**:
+
 ```json
 {
-  "commands": "/Users/name/commands"  // ❌ Absolute path
+    "commands": "/Users/name/commands" // ❌ Absolute path
 }
 ```
+
 Fix: Use relative path
+
 ```json
 {
-  "commands": "./commands"  // ✅
+    "commands": "./commands" // ✅
 }
 ```
 
 **Missing ./ prefix**:
+
 ```json
 {
-  "hooks": "hooks/hooks.json"  // ❌ No ./
+    "hooks": "hooks/hooks.json" // ❌ No ./
 }
 ```
+
 Fix: Add ./ prefix
+
 ```json
 {
-  "hooks": "./hooks/hooks.json"  // ✅
+    "hooks": "./hooks/hooks.json" // ✅
 }
 ```
 
 **Invalid version**:
+
 ```json
 {
-  "version": "1.0"  // ❌ Not semantic versioning
+    "version": "1.0" // ❌ Not semantic versioning
 }
 ```
+
 Fix: Use MAJOR.MINOR.PATCH
+
 ```json
 {
-  "version": "1.0.0"  // ✅
+    "version": "1.0.0" // ✅
 }
 ```
 
@@ -454,7 +496,7 @@ Bare minimum for a working plugin:
 
 ```json
 {
-  "name": "hello-world"
+    "name": "hello-world"
 }
 ```
 
@@ -466,17 +508,17 @@ Good metadata for distribution:
 
 ```json
 {
-  "name": "code-review-assistant",
-  "version": "1.0.0",
-  "description": "Automates code review with style checks and suggestions",
-  "author": {
-    "name": "Jane Developer",
-    "email": "jane@example.com"
-  },
-  "homepage": "https://docs.example.com/code-review",
-  "repository": "https://github.com/janedev/code-review-assistant",
-  "license": "MIT",
-  "keywords": ["code-review", "automation", "quality", "ci-cd"]
+    "name": "code-review-assistant",
+    "version": "1.0.0",
+    "description": "Automates code review with style checks and suggestions",
+    "author": {
+        "name": "Jane Developer",
+        "email": "jane@example.com"
+    },
+    "homepage": "https://docs.example.com/code-review",
+    "repository": "https://github.com/janedev/code-review-assistant",
+    "license": "MIT",
+    "keywords": ["code-review", "automation", "quality", "ci-cd"]
 }
 ```
 
@@ -486,35 +528,32 @@ Full configuration with all features:
 
 ```json
 {
-  "name": "enterprise-devops",
-  "version": "2.3.1",
-  "description": "Comprehensive DevOps automation for enterprise CI/CD pipelines",
-  "author": {
-    "name": "DevOps Team",
-    "email": "devops@company.com",
-    "url": "https://company.com/devops"
-  },
-  "homepage": "https://docs.company.com/plugins/devops",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/company/devops-plugin.git"
-  },
-  "license": "Apache-2.0",
-  "keywords": [
-    "devops",
-    "ci-cd",
-    "automation",
-    "kubernetes",
-    "docker",
-    "deployment"
-  ],
-  "commands": [
-    "./commands",
-    "./admin-commands"
-  ],
-  "agents": "./specialized-agents",
-  "hooks": "./config/hooks.json",
-  "mcpServers": "./.mcp.json"
+    "name": "enterprise-devops",
+    "version": "2.3.1",
+    "description": "Comprehensive DevOps automation for enterprise CI/CD pipelines",
+    "author": {
+        "name": "DevOps Team",
+        "email": "devops@company.com",
+        "url": "https://company.com/devops"
+    },
+    "homepage": "https://docs.company.com/plugins/devops",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/company/devops-plugin.git"
+    },
+    "license": "Apache-2.0",
+    "keywords": [
+        "devops",
+        "ci-cd",
+        "automation",
+        "kubernetes",
+        "docker",
+        "deployment"
+    ],
+    "commands": ["./commands", "./admin-commands"],
+    "agents": "./specialized-agents",
+    "hooks": "./config/hooks.json",
+    "mcpServers": "./.mcp.json"
 }
 ```
 

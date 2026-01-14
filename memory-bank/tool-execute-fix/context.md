@@ -26,10 +26,10 @@ execute: async ({ context, writer, tracingContext }) => {
 
 ### Decisions Made
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Fix approach | Remove type annotations | Let TS infer from ToolExecutionContext |
-| Scope | All tools with explicit annotations | Consistent fix across codebase |
+| Decision     | Choice                              | Rationale                              |
+| ------------ | ----------------------------------- | -------------------------------------- |
+| Fix approach | Remove type annotations             | Let TS infer from ToolExecutionContext |
+| Scope        | All tools with explicit annotations | Consistent fix across codebase         |
 
 ### Files to Fix
 

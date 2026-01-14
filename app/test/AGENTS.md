@@ -8,10 +8,10 @@ This folder contains **test pages** for development and experimentation with UI 
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `page.tsx` | Main test page entry point |
-| `form.tsx` | Form component testing |
+| File        | Purpose                          |
+| ----------- | -------------------------------- |
+| `page.tsx`  | Main test page entry point       |
+| `form.tsx`  | Form component testing           |
 | `action.ts` | Server actions for form handling |
 
 ## Usage
@@ -30,4 +30,5 @@ Access at `/test` during development to experiment with:
 - `ui/`: Base components to test
 
 ---
+
 Last updated: 2025-11-27

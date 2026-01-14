@@ -27,13 +27,18 @@ export interface DataIngestionContext {
 log.info('Initializing Data Ingestion Agent...')
 
 export const dataIngestionAgent = new Agent({
-  id: 'dataIngestionAgent',
+    id: 'dataIngestionAgent',
     name: 'Data Ingestion Agent',
     description:
         'Parses CSV files, validates data structure, and converts to JSON format. Use for importing CSV data, reading data files, validating CSV structure, and extracting structured data from files.',
-    instructions: ({ requestContext }: { requestContext: RequestContext<DataIngestionContext> }) => {
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DataIngestionContext>
+    }) => {
         const userId = requestContext.get('userId') ?? 'default'
-        const sourceDirectory = requestContext.get('sourceDirectory') ?? './data'
+        const sourceDirectory =
+            requestContext.get('sourceDirectory') ?? './data'
         const maxRows = requestContext.get('maxRows') ?? 10000
 
         return `
@@ -67,16 +72,16 @@ User: ${userId} | Dir: ${sourceDirectory} | Max Rows: ${maxRows}
         dataValidatorToolJSON,
         listDataDirTool,
         getDataFileInfoTool,
-        chartSupervisorTool
+        chartSupervisorTool,
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
-      },
+            internal: InternalSpans.ALL,
+        },
+    },
     outputProcessors: [new TokenLimiterProcessor(1048576)],
     defaultOptions: {
-      autoResumeSuspendedTools: true,
+        autoResumeSuspendedTools: true,
     },
 })
 

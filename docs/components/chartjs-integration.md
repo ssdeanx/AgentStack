@@ -7,8 +7,8 @@ This document explains how to use the server-side tool src/mastra/tools/chartjs.
 ## Overview
 
 - The tool `chartjs-generator` (src/mastra/tools/chartjs.tool.ts) accepts time series data and a list of indicators and returns a Chart.js `config` object:
-  - Input (trimmed): { data: [{ date, close, open?, high?, low?, volume? }], indicators?: [{ type, period, color, ... }], chartType?: 'line'|'bar'|'candlestick', title?: string }
-  - Output: { config: ChartConfiguration }
+    - Input (trimmed): { data: [{ date, close, open?, high?, low?, volume? }], indicators?: [{ type, period, color, ... }], chartType?: 'line'|'bar'|'candlestick', title?: string }
+    - Output: { config: ChartConfiguration }
 
 - Best practice: execute the tool server-side (Next.js server API route or server component) and send the resulting config JSON to the browser to render via Chart.js. This avoids exposing server-side system access and keeps sensitive logic on the server.
 
@@ -43,8 +43,8 @@ Example (server-side entry point):
 import { chartJsTool } from './chartjs.tool'
 
 export const tools = {
-  chartJsTool,
-  // other tools ...
+    chartJsTool,
+    // other tools ...
 }
 
 // When creating your Mastra instance or MCP server, include the tools object
@@ -63,27 +63,32 @@ Example: app/api/chart-config/route.ts (Next.js App Router server route)
 import { NextResponse } from 'next/server'
 import { MastraClient } from '@mastra/client-js'
 
-const mastraClient = new MastraClient({ baseUrl: process.env.MASTRA_API_URL || 'http://localhost:4111' })
+const mastraClient = new MastraClient({
+    baseUrl: process.env.MASTRA_API_URL || 'http://localhost:4111',
+})
 
 export async function POST(request: Request) {
-  const body = await request.json()
+    const body = await request.json()
 
-  // Validate body as needed here (optional, use Zod)
+    // Validate body as needed here (optional, use Zod)
 
-  try {
-    // Call the tool directly via the client Tools API
-    const tool = mastraClient.getTool('chartjs-generator')
-    const result = await tool.execute({ args: body })
+    try {
+        // Call the tool directly via the client Tools API
+        const tool = mastraClient.getTool('chartjs-generator')
+        const result = await tool.execute({ args: body })
 
-    return NextResponse.json(result)
-  } catch (err) {
-    console.error('chart config generation failed', err)
-    return new NextResponse(JSON.stringify({ error: String(err) }), { status: 500 })
-  }
+        return NextResponse.json(result)
+    } catch (err) {
+        console.error('chart config generation failed', err)
+        return new NextResponse(JSON.stringify({ error: String(err) }), {
+            status: 500,
+        })
+    }
 }
 ```
 
 Notes:
+
 - Running the tool on the server allows you to keep server-side dependencies and CPU work away from browsers.
 - `body` should include `data` (time series) and optional `indicators`.
 
@@ -102,49 +107,57 @@ import { Chart } from 'react-chartjs-2'
 import type { ChartConfiguration } from 'chart.js'
 
 export default function ChartViewer({ sampleData }) {
-  const [config, setConfig] = useState<ChartConfiguration | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    const [config, setConfig] = useState<ChartConfiguration | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!sampleData) return
+    useEffect(() => {
+        if (!sampleData) return
 
-    async function fetchConfig() {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await fetch('/api/chart-config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sampleData),
-        })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json?.error || 'Failed to generate chart config')
+        async function fetchConfig() {
+            setLoading(true)
+            setError(null)
+            try {
+                const res = await fetch('/api/chart-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sampleData),
+                })
+                const json = await res.json()
+                if (!res.ok)
+                    throw new Error(
+                        json?.error || 'Failed to generate chart config'
+                    )
 
-        setConfig(json.config)
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setLoading(false)
-      }
-    }
+                setConfig(json.config)
+            } catch (e: any) {
+                setError(e.message)
+            } finally {
+                setLoading(false)
+            }
+        }
 
-    fetchConfig()
-  }, [sampleData])
+        fetchConfig()
+    }, [sampleData])
 
-  if (loading) return <div>Generating chart…</div>
-  if (error) return <div>Error: {error}</div>
-  if (!config) return <div>No chart to show</div>
+    if (loading) return <div>Generating chart…</div>
+    if (error) return <div>Error: {error}</div>
+    if (!config) return <div>No chart to show</div>
 
-  return (
-    <div>
-      <Chart type={config.type as any} data={config.data as any} options={config.options as any} />
-    </div>
-  )
+    return (
+        <div>
+            <Chart
+                type={config.type as any}
+                data={config.data as any}
+                options={config.options as any}
+            />
+        </div>
+    )
 }
 ```
 
 Client considerations:
+
 - Use a server API route to call the tool (recommended) and return only the chart configuration.
 - Keep the returned payload size reasonable (large datasets can be heavy to transfer).
 
@@ -165,6 +178,7 @@ const result = await tool.execute({ args: { data: ..., indicators: [...] } })
 ```
 
 Security reminder:
+
 - Do not embed private API keys or tokens in client code.
 - Validate inputs both client- and server-side using Zod to avoid malformed or malicious inputs.
 
@@ -196,10 +210,13 @@ Example payload:
 
 ```json
 {
-  "data": [{ "date": "2025-12-01", "close": 98.1 }, { "date": "2025-12-02", "close": 99.5 }],
-  "indicators": [{ "type": "SMA", "period": 10, "color": "#ff0000" }],
-  "chartType": "line",
-  "title": "Price + SMA"
+    "data": [
+        { "date": "2025-12-01", "close": 98.1 },
+        { "date": "2025-12-02", "close": 99.5 }
+    ],
+    "indicators": [{ "type": "SMA", "period": 10, "color": "#ff0000" }],
+    "chartType": "line",
+    "title": "Price + SMA"
 }
 ```
 

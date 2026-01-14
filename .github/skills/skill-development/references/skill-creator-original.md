@@ -80,9 +80,9 @@ Skills use a three-level loading system to manage context efficiently:
 
 1. **Metadata (name + description)** - Always in context (~100 words)
 2. **SKILL.md body** - When skill triggers (<5k words)
-3. **Bundled resources** - As needed by Claude (Unlimited*)
+3. **Bundled resources** - As needed by Claude (Unlimited\*)
 
-*Unlimited because scripts can be executed without reading into context window.
+\*Unlimited because scripts can be executed without reading into context window.
 
 ## Skill Creation Process
 
@@ -189,10 +189,10 @@ scripts/package_skill.py <path/to/skill-folder> ./dist
 The packaging script will:
 
 1. **Validate** the skill automatically, checking:
-   - YAML frontmatter format and required fields
-   - Skill naming conventions and directory structure
-   - Description completeness and quality
-   - File organization and resource references
+    - YAML frontmatter format and required fields
+    - Skill naming conventions and directory structure
+    - Description completeness and quality
+    - File organization and resource references
 
 2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
 
@@ -203,6 +203,7 @@ If validation fails, the script will report the errors and exit without creating
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
 **Iteration workflow:**
+
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated

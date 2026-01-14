@@ -2,7 +2,7 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
 
@@ -63,7 +63,8 @@ export const cytoscapeTool = createTool({
         const { nodes, edges, layout } = input
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const requestCtx = context?.requestContext as
             | CytoscapeContext
             | undefined
@@ -75,11 +76,11 @@ export const cytoscapeTool = createTool({
             throw new Error('Tool call cancelled')
         }
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'cytoscape-generator',
             input,
-            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'cytoscape-generator',
                 'tool.input.nodesCount': nodes.length,
@@ -87,7 +88,21 @@ export const cytoscapeTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
+
+        // Create child span for graph generation
+        const graphSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'cytoscape-generation-operation',
+            input,
+            metadata: {
+                'tool.id': 'cytoscape-generation',
+                'operation.type': 'graph-structure',
+            },
+        })
+
         const startTime = Date.now()
         logToolExecution('cytoscape-generator', {
             nodes: nodes.length,
@@ -107,7 +122,13 @@ export const cytoscapeTool = createTool({
         // Validate and guard against excessively large graphs
         const MAX_ELEMENTS = 50_000
         if (nodes.length + edges.length > MAX_ELEMENTS) {
-            toolSpan?.error({
+            graphSpan?.error({
+                error: new Error(
+                    `Graph too large: ${nodes.length + edges.length} elements exceeds max ${MAX_ELEMENTS}`
+                ),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: new Error(
                     `Graph too large: ${nodes.length + edges.length} elements exceeds max ${MAX_ELEMENTS}`
                 ),
@@ -122,7 +143,11 @@ export const cytoscapeTool = createTool({
         const nodeIds = new Set<string>()
         for (const n of nodes) {
             if (nodeIds.has(n.id)) {
-                toolSpan?.error({
+                graphSpan?.error({
+                    error: new Error(`Duplicate node id detected: ${n.id}`),
+                    endSpan: true,
+                })
+                rootSpan?.error({
                     error: new Error(`Duplicate node id detected: ${n.id}`),
                     endSpan: true,
                 })
@@ -178,7 +203,17 @@ export const cytoscapeTool = createTool({
         ]
 
         const duration = Date.now() - startTime
-        toolSpan?.update({
+
+        // Update spans with successful result
+        graphSpan?.update({
+            output: { elements, layout },
+            metadata: {
+                'operation.completed': true,
+            },
+        })
+        graphSpan?.end()
+
+        rootSpan?.update({
             output: { elements, layout },
             metadata: {
                 'tool.output.elementsCount': elements.length,
@@ -186,7 +221,7 @@ export const cytoscapeTool = createTool({
                 'tool.duration_ms': duration,
             },
         })
-        toolSpan?.end()
+        rootSpan?.end()
 
         // Log success
         logToolExecution(

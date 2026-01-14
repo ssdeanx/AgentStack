@@ -1,10 +1,10 @@
 ---
-title: "RAG & Embeddings"
-description: "Overview and practical guide to retrieval-augmented generation (RAG), embeddings, and how to configure PgVector/Postgres with AgentStack (Mastra)."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "Docs"
-slug: "rag"
+title: 'RAG & Embeddings'
+description: 'Overview and practical guide to retrieval-augmented generation (RAG), embeddings, and how to configure PgVector/Postgres with AgentStack (Mastra).'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'Docs'
+slug: 'rag'
 ---
 
 # RAG & Embeddings
@@ -68,24 +68,27 @@ import { embedMany } from 'ai'
 import { pgVector } from './config/pg-storage'
 import type { MDocument } from '@mastra/rag'
 
-async function embedAndUpsert(documents: Array<{ id: string, text: string }>) {
-  const chunks = documents.flatMap(doc => textToChunks(doc.id, doc.text));
-  // embedMany accepts an array of strings and returns embeddings
-  const { embeddings } = await embedMany({
-    values: chunks.map(c => c.text),
-    model: google.textEmbedding('gemini-embedding-001'),
-    maxRetries: 3,
-  });
+async function embedAndUpsert(documents: Array<{ id: string; text: string }>) {
+    const chunks = documents.flatMap((doc) => textToChunks(doc.id, doc.text))
+    // embedMany accepts an array of strings and returns embeddings
+    const { embeddings } = await embedMany({
+        values: chunks.map((c) => c.text),
+        model: google.textEmbedding('gemini-embedding-001'),
+        maxRetries: 3,
+    })
 
-  const upsertItems: MDocument[] = chunks.map((chunk, idx) => ({
-    id: chunk.id,
-    content: chunk.text,
-    embedding: embeddings[idx],
-    metadata: { sourceId: chunk.sourceId, position: chunk.position }
-  }));
+    const upsertItems: MDocument[] = chunks.map((chunk, idx) => ({
+        id: chunk.id,
+        content: chunk.text,
+        embedding: embeddings[idx],
+        metadata: { sourceId: chunk.sourceId, position: chunk.position },
+    }))
 
-  // Upsert into the PgVector store (using repo function)
-  await pgVector.upsert({ indexName: 'memory_messages_3072', items: upsertItems });
+    // Upsert into the PgVector store (using repo function)
+    await pgVector.upsert({
+        indexName: 'memory_messages_3072',
+        items: upsertItems,
+    })
 }
 ```
 
@@ -104,9 +107,9 @@ AgentStack provides tools like `pgQueryTool` (wrapped by `createVectorQueryTool`
 ```ts
 // Using a repo-configured vector query tool (conceptual usage)
 const response = await pgQueryTool.execute({
-  query: "How does the project handle GDPR-compliant user data removal?",
-  topK: 5,
-  filter: { sourceType: 'policy' } // example metadata filter
+    query: 'How does the project handle GDPR-compliant user data removal?',
+    topK: 5,
+    filter: { sourceType: 'policy' }, // example metadata filter
 })
 ```
 
@@ -129,14 +132,14 @@ Your repository includes production-grade embedding generation with tracing (ext
 ```ts
 // conceptual snippet from generateEmbeddings in repo
 const { embeddings } = await embedMany({
-  values: chunks.map(c => c.text),
-  model: google.textEmbedding('gemini-embedding-001'),
-  maxRetries: 3,
-  maxParallelCalls: 20,
-  experimental_telemetry: {
-    // optional telemetry config for tracing embedding calls inside your stack
-  }
-});
+    values: chunks.map((c) => c.text),
+    model: google.textEmbedding('gemini-embedding-001'),
+    maxRetries: 3,
+    maxParallelCalls: 20,
+    experimental_telemetry: {
+        // optional telemetry config for tracing embedding calls inside your stack
+    },
+})
 ```
 
 Observability around RAG operations provides insights into embedding latency, failed requests, and cost. Guard expensive operations by setting sensible `maxRetries`, `batchSize` and `maxParallelCalls`.
@@ -174,14 +177,14 @@ Example workflow (conceptual):
 ## 10. Next steps & resources
 
 - For repo references:
-  - `src/mastra/config/pg-storage.ts` — PgVector & Memory config and tools like `pgQueryTool` & `graphQueryTool`.
-  - `src/mastra/tools` — tools that facilitate ingestion, parsing, and RAG helper tools.
-  - `src/mastra/agents` — agent examples that call vector tools.
-  - `src/mastra/workflows` — examples combining retrieval & generation.
+    - `src/mastra/config/pg-storage.ts` — PgVector & Memory config and tools like `pgQueryTool` & `graphQueryTool`.
+    - `src/mastra/tools` — tools that facilitate ingestion, parsing, and RAG helper tools.
+    - `src/mastra/agents` — agent examples that call vector tools.
+    - `src/mastra/workflows` — examples combining retrieval & generation.
 - Consider adding more examples for:
-  - Multi-lingual embeddings & translation workflows
-  - Incremental indexing for streaming ingestion
-  - Evaluation & scoring for retrieved results
+    - Multi-lingual embeddings & translation workflows
+    - Incremental indexing for streaming ingestion
+    - Evaluation & scoring for retrieved results
 
 ---
 

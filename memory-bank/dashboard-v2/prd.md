@@ -29,6 +29,7 @@ The current dashboard (v1, 50% complete) has:
 ## User Stories
 
 ### US-1: Admin Views Dashboard Overview
+
 **As an** admin  
 **I want to** see a dashboard overview with key metrics  
 **So that** I can quickly assess system health
@@ -42,6 +43,7 @@ The current dashboard (v1, 50% complete) has:
 - AND errors show in error boundaries without crashing the page
 
 ### US-2: Admin Manages Agents
+
 **As an** admin  
 **I want to** view, search, and inspect agents  
 **So that** I can monitor agent configurations and evaluations
@@ -55,6 +57,7 @@ The current dashboard (v1, 50% complete) has:
 - AND data is cached so re-selecting doesn't refetch
 
 ### US-3: Admin Executes Tools
+
 **As an** admin  
 **I want to** execute tools with custom arguments  
 **So that** I can test tool functionality
@@ -68,6 +71,7 @@ The current dashboard (v1, 50% complete) has:
 - AND the form validates JSON before submission
 
 ### US-4: Admin Views Traces
+
 **As an** admin  
 **I want to** view and filter AI traces  
 **So that** I can debug agent/workflow execution
@@ -81,6 +85,7 @@ The current dashboard (v1, 50% complete) has:
 - AND I can score traces using registered scorers
 
 ### US-5: Admin Manages Memory
+
 **As an** admin  
 **I want to** view and manage memory threads  
 **So that** I can inspect conversation history and working memory
@@ -96,26 +101,31 @@ The current dashboard (v1, 50% complete) has:
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
+
 - Initial page load < 2s (LCP)
 - Subsequent navigations < 500ms (cached)
 - React Query stale time: 30s for lists, 60s for details
 
 ### NFR-2: Error Handling
+
 - Component-level error boundaries for each section
 - Page-level error boundaries for full page crashes
 - Retry mechanism for failed API calls (3 retries with backoff)
 
 ### NFR-3: Type Safety
+
 - No `any` types in production code
 - All MastraClient responses properly typed
 - Zod schemas for form validation
 
 ### NFR-4: Accessibility
+
 - WCAG 2.1 AA compliance
 - Keyboard navigation for all interactive elements
 - Screen reader support for dynamic content
 
 ### NFR-5: Security (Preparation)
+
 - Route protection middleware structure
 - Session management hooks
 - Auth state in React context
@@ -137,12 +147,12 @@ The current dashboard (v1, 50% complete) has:
 
 ## Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Page load time (LCP) | < 2s |
-| TypeScript errors | 0 |
-| Component test coverage | > 80% |
-| Lighthouse accessibility | > 90 |
+| Metric                   | Target |
+| ------------------------ | ------ |
+| Page load time (LCP)     | < 2s   |
+| TypeScript errors        | 0      |
+| Component test coverage  | > 80%  |
+| Lighthouse accessibility | > 90   |
 
 ## Reference Documentation
 

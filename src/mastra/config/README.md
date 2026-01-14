@@ -72,22 +72,22 @@ nano .env
 
 ```typescript
 import {
-  // Model providers
-  googleAI,
-  openAIModel,
-  anthropicClaude45,
+    // Model providers
+    googleAI,
+    openAIModel,
+    anthropicClaude45,
 
-  // Storage
-  pgMemory,
-  pgVector,
+    // Storage
+    pgMemory,
+    pgVector,
 
-  // Auth
-  hasRoleAccess,
-  getTierConfig,
+    // Auth
+    hasRoleAccess,
+    getTierConfig,
 
-  // Tools
-  pgQueryTool,
-  graphQueryTool
+    // Tools
+    pgQueryTool,
+    graphQueryTool,
 } from './index'
 ```
 
@@ -101,7 +101,7 @@ const model = getOpenRouterModel('anthropicClaudeSonnet45')
 // Role-based access control
 import { hasRoleAccess } from './role-hierarchy'
 if (hasRoleAccess(userRole, 'admin')) {
-  // Admin-only operations
+    // Admin-only operations
 }
 
 // Memory with custom settings
@@ -113,15 +113,15 @@ import { pgMemory } from './pg-storage'
 
 ### Supported Providers
 
-| Provider | Models | Key Features |
-|----------|--------|--------------|
-| **Google AI** | Gemini 2.5/3.0 Flash, Pro | Image generation, embeddings |
-| **OpenAI** | GPT-4, GPT-4o, GPT-5 series | Reasoning, vision, coding |
-| **Anthropic** | Claude 3.5/4.0/4.5 | Advanced reasoning |
-| **GitHub Copilot** | GPT, Claude, Gemini models | OpenAI-compatible interface |
-| **OpenRouter** | 50+ models from providers | Unified API gateway |
-| **Gemini CLI** | Local Gemini models | OAuth/API key auth |
-| **Vertex AI** | Google Cloud models | Enterprise-grade |
+| Provider           | Models                      | Key Features                 |
+| ------------------ | --------------------------- | ---------------------------- |
+| **Google AI**      | Gemini 2.5/3.0 Flash, Pro   | Image generation, embeddings |
+| **OpenAI**         | GPT-4, GPT-4o, GPT-5 series | Reasoning, vision, coding    |
+| **Anthropic**      | Claude 3.5/4.0/4.5          | Advanced reasoning           |
+| **GitHub Copilot** | GPT, Claude, Gemini models  | OpenAI-compatible interface  |
+| **OpenRouter**     | 50+ models from providers   | Unified API gateway          |
+| **Gemini CLI**     | Local Gemini models         | OAuth/API key auth           |
+| **Vertex AI**      | Google Cloud models         | Enterprise-grade             |
 
 ### Provider Configuration
 
@@ -133,13 +133,13 @@ export const providerModel = provider('model-id')
 
 // Model collections
 export const providerModels = {
-  model1: provider('model-1'),
-  model2: provider('model-2'),
+    model1: provider('model-1'),
+    model2: provider('model-2'),
 }
 
 // Selector functions
 export function getProviderModel(modelId: keyof typeof providerModels) {
-  return providerModels[modelId]
+    return providerModels[modelId]
 }
 ```
 
@@ -155,8 +155,8 @@ await pgMemory.addMessages(messages, { resourceId: 'chat-123' })
 
 // Vector similarity search
 const results = await pgQueryTool.execute({
-  query: 'Find relevant documents',
-  topK: 5
+    query: 'Find relevant documents',
+    topK: 5,
 })
 ```
 
@@ -186,11 +186,7 @@ import { pineconeStore, chromaStore } from './vector'
 ### Supabase-Compatible RBAC
 
 ```typescript
-import {
-  hasRoleAccess,
-  getTierConfig,
-  ROLE_HIERARCHY
-} from './role-hierarchy'
+import { hasRoleAccess, getTierConfig, ROLE_HIERARCHY } from './role-hierarchy'
 
 // Check permissions
 const canAccess = hasRoleAccess(userRole, 'admin')
@@ -264,20 +260,22 @@ GEMINI_OAUTH_CACHE=/path/to/cache
 1. Create `new-provider.ts` in the config directory
 2. Follow the established pattern:
 
-   ```typescript
-   import { createProvider } from '@ai-sdk/provider'
+    ```typescript
+    import { createProvider } from '@ai-sdk/provider'
 
-   const provider = createProvider({ apiKey: process.env.API_KEY })
+    const provider = createProvider({ apiKey: process.env.API_KEY })
 
-   export const newProviderModels = {
-     model1: provider('model-1'),
-     model2: provider('model-2'),
-   }
+    export const newProviderModels = {
+        model1: provider('model-1'),
+        model2: provider('model-2'),
+    }
 
-   export function getNewProviderModel(modelId: keyof typeof newProviderModels) {
-     return newProviderModels[modelId]
-   }
-   ```
+    export function getNewProviderModel(
+        modelId: keyof typeof newProviderModels
+    ) {
+        return newProviderModels[modelId]
+    }
+    ```
 
 3. Add exports to `index.ts`
 4. Update `AGENTS.md` documentation
@@ -289,7 +287,7 @@ GEMINI_OAUTH_CACHE=/path/to/cache
 import { googleAI } from './google'
 
 const response = await googleAI.generateText({
-  prompt: 'Hello, world!'
+    prompt: 'Hello, world!',
 })
 console.log(response.text)
 ```
@@ -301,8 +299,8 @@ console.log(response.text)
 import { log } from './logger'
 
 log.info('Configuration loaded', {
-  providers: ['google', 'openai'],
-  storage: 'postgresql'
+    providers: ['google', 'openai'],
+    storage: 'postgresql',
 })
 ```
 
@@ -349,8 +347,8 @@ log.error('Database connection failed', { error: err.message })
 import { tracing } from './tracing'
 
 const span = tracing.createSpan('ai-generation', {
-  model: 'gemini-pro',
-  tokens: 150
+    model: 'gemini-pro',
+    tokens: 150,
 })
 ```
 

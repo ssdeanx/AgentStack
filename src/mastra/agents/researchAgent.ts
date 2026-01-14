@@ -12,14 +12,9 @@ import { pgMemory } from '../config/pg-storage'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
-import {
-    finnhubQuotesTool,
-} from '../tools/finnhub-tools'
+import { finnhubQuotesTool } from '../tools/finnhub-tools'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import {
-
-    polygonStockQuotesTool,
-} from '../tools/polygon-tools'
+import { polygonStockQuotesTool } from '../tools/polygon-tools'
 import {
     googleFinanceTool,
     googleScholarTool,
@@ -28,10 +23,7 @@ import {
     googleNewsLiteTool,
     googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
-import {
-    htmlToMarkdownTool,
-    webScraperTool,
-} from '../tools/web-scraper-tool'
+import { htmlToMarkdownTool, webScraperTool } from '../tools/web-scraper-tool'
 
 // Scorers
 import {
@@ -149,8 +141,8 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     maxRetries: 5,
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     //voice: gvoice,
     outputProcessors: [

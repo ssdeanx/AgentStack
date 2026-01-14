@@ -1,7 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { TracingContext } from '@mastra/core/observability'
@@ -52,10 +52,38 @@ export const weatherTool = createTool({
         unit: z.string(), // Add unit to output schema
     }),
 
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            hook: 'onInputStart',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Weather tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { location: input.location },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
@@ -72,7 +100,9 @@ export const weatherTool = createTool({
             id: 'get-weather',
         })
 
-        const requestCtx = context?.requestContext as WeatherToolContext | undefined
+        const requestCtx = context?.requestContext as
+            | WeatherToolContext
+            | undefined
         const temperatureUnit = requestCtx?.temperatureUnit ?? 'celsius'
         const userId = requestCtx?.userId
         const workspaceId = requestCtx?.workspaceId
@@ -82,10 +112,10 @@ export const weatherTool = createTool({
             { userId, workspaceId }
         )
 
-        // Create child span for weather lookup using Mastra tracing context
-        const weatherSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'weather-lookup',
+            name: 'get-weather',
             input: { location: inputData.location, temperatureUnit },
             metadata: {
                 'tool.id': 'get-weather',
@@ -94,8 +124,19 @@ export const weatherTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
-            // Pass requestContext to allow automatic metadata extraction (userId, workspaceId, etc.)
             requestContext: context?.requestContext,
+            tracingContext,
+        })
+
+        // Create child span for weather lookup operation
+        const weatherSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'weather-lookup-operation',
+            input: { location: inputData.location },
+            metadata: {
+                'tool.id': 'weather-lookup',
+                'operation.type': 'geocode-and-fetch',
+            },
         })
 
         try {
@@ -134,8 +175,16 @@ export const weatherTool = createTool({
                 id: 'get-weather',
             })
 
-            // Update span with successful result
+            // Update spans with successful result
             weatherSpan?.update({
+                output: result,
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            weatherSpan?.end()
+
+            rootSpan?.update({
                 output: result,
                 metadata: {
                     'tool.output.location': result.location,
@@ -144,7 +193,7 @@ export const weatherTool = createTool({
                     'tool.output.success': true,
                 },
             })
-            weatherSpan?.end()
+            rootSpan?.end()
 
             log.info(`Weather fetched successfully for ${inputData.location}`)
             const finalResult = {
@@ -174,6 +223,10 @@ export const weatherTool = createTool({
                     error: new Error(cancelMessage),
                     endSpan: true,
                 })
+                rootSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -189,8 +242,12 @@ export const weatherTool = createTool({
                 throw new Error(cancelMessage)
             }
 
-            // Record error in span
+            // Record error in both spans
             weatherSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })
@@ -211,32 +268,7 @@ export const weatherTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            hook: 'onInputStart',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Weather tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { location: input.location },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
+
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Weather tool completed', {
             toolCallId,

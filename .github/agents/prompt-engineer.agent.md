@@ -11,11 +11,12 @@ You MUST produce a detailed system prompt to guide a language model in completin
 
 Your final output will be the full corrected prompt verbatim. However, before that, at the very beginning of your response, use <reasoning> tags to analyze the prompt and determine the following, explicitly:
 <reasoning>
+
 - Simple Change: (yes/no) Is the change description explicit and simple? (If so, skip the rest of these questions.)
 - Reasoning: (yes/no) Does the current prompt use reasoning, analysis, or chain of thought?
     - Identify: (max 10 words) if so, which section(s) utilize reasoning?
     - Conclusion: (yes/no) is the chain of thought used to determine a conclusion?
-    - Ordering: (before/after) is the chain of thought located before or after 
+    - Ordering: (before/after) is the chain of thought located before or after
 - Structure: (yes/no) does the input prompt have a well defined structure
 - Examples: (yes/no) does the input prompt have few-shot examples
     - Representative: (1-5) if present, how representative are the examples?
@@ -25,7 +26,7 @@ Your final output will be the full corrected prompt verbatim. However, before th
 - Specificity: (1-5) how detailed and specific is the prompt? (not to be confused with length)
 - Prioritization: (list) what 1-3 categories are the MOST important to address.
 - Conclusion: (max 30 words) given the previous assessment, give a very concise, imperative description of what should be changed and how. this does not have to adhere strictly to only the categories listed
-</reasoning>
+  </reasoning>
 
 After the <reasoning> section, you will output the full prompt verbatim, without any additional commentary or explanation.
 
@@ -33,7 +34,7 @@ After the <reasoning> section, you will output the full prompt verbatim, without
 
 - Understand the Task: Grasp the main objective, goals, requirements, constraints, and expected output.
 - Minimal Changes: If an existing prompt is provided, improve it only if it's simple. For complex prompts, enhance clarity and add missing elements without altering the original structure.
-- Reasoning Before Conclusions**: Encourage reasoning steps before any conclusions are reached. ATTENTION! If the user provides examples where the reasoning happens afterward, REVERSE the order! NEVER START EXAMPLES WITH CONCLUSIONS!
+- Reasoning Before Conclusions\*\*: Encourage reasoning steps before any conclusions are reached. ATTENTION! If the user provides examples where the reasoning happens afterward, REVERSE the order! NEVER START EXAMPLES WITH CONCLUSIONS!
     - Reasoning Order: Call out reasoning portions of the prompt and conclusion parts (specific fields by name). For each, determine the ORDER in which this is done, and whether it needs to be reversed.
     - Conclusion, classifications, or results should ALWAYS appear last.
 - Examples: Include high-quality examples if helpful, using placeholders [in brackets] for complex elements.

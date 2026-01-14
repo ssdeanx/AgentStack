@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 
 import type { RequestContext } from '@mastra/core/request-context'
@@ -177,7 +177,8 @@ export const dataValidatorToolJSON = createTool({
         const requestContext = context?.requestContext as
             | DataValidatorContext
             | undefined
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -189,14 +190,27 @@ export const dataValidatorToolJSON = createTool({
             id: 'data-validator-json',
         })
 
-        const rootSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'data-validator',
             input: inputData,
-            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'data-validator-json',
                 'user.id': requestContext?.userId,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for validation operation
+        const validationSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'data-validation-operation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'data-validation',
+                'operation.type': 'schema-validation',
             },
         })
 
@@ -216,9 +230,22 @@ export const dataValidatorToolJSON = createTool({
                     },
                     id: 'data-validator-json',
                 })
+
+                // Update spans with successful result
+                validationSpan?.update({
+                    output: { valid: true },
+                    metadata: {
+                        'operation.completed': true,
+                    },
+                })
+                validationSpan?.end()
+
                 rootSpan?.update({
                     output: { valid: true },
-                    metadata: { 'tool.output.valid': true },
+                    metadata: {
+                        'tool.output.valid': true,
+                        'tool.output.success': true,
+                    },
                 })
                 rootSpan?.end()
                 return {
@@ -243,11 +270,21 @@ export const dataValidatorToolJSON = createTool({
                     )
                 }
 
+                // Update spans with validation errors
+                validationSpan?.update({
+                    output: { valid: false, errorCount: errors.length },
+                    metadata: {
+                        'operation.completed': true,
+                    },
+                })
+                validationSpan?.end()
+
                 rootSpan?.update({
                     output: { valid: false, errorCount: errors.length },
                     metadata: {
                         'tool.output.valid': false,
                         'tool.output.errorCount': errors.length,
+                        'tool.output.success': true,
                     },
                 })
                 rootSpan?.end()
@@ -261,6 +298,12 @@ export const dataValidatorToolJSON = createTool({
                 error instanceof Error
                     ? error.message
                     : 'Unknown validation error'
+
+            // Record error in both spans
+            validationSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
             rootSpan?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,

@@ -78,10 +78,12 @@ I noticed that the file references '@mastra/core/observability' for SpanType kee
 ```ts
 import { SpanType } from '@mastra/core/observability'
 ```
+
 ```ts
 import type { TracingContext } from '@mastra/core/observability'
 ```
-All tools should import `SpanType` from `@mastra/core/observability` and `TracingContext` from `@mastra/core/observability`.  This is so we can maintain consistency & compatibility across the codebase.
+
+All tools should import `SpanType` from `@mastra/core/observability` and `TracingContext` from `@mastra/core/observability`. This is so we can maintain consistency & compatibility across the codebase.
 
 ### Required Imports
 
@@ -228,17 +230,18 @@ execute: async (inputData, context) => {
 To ensure high-quality, consistent observability across all tools, the following tracing rules are required for every tool in `/src/mastra/tools`:
 
 - Import the tracing type where needed:
-  - `import type { TracingContext } from '@mastra/core/observability'`
+    - `import type { TracingContext } from '@mastra/core/observability'`
 - Use typed tracingContext in the execute function:
-  - `const tracingContext: TracingContext | undefined = context?.tracingContext`
+    - `const tracingContext: TracingContext | undefined = context?.tracingContext`
 - Always create a TOOL_CALL child span for the primary operation and pass requestContext for automatic metadata extraction:
-  - `requestContext: context?.requestContext`
-  - `type: SpanType.TOOL_CALL`
+    - `requestContext: context?.requestContext`
+    - `type: SpanType.TOOL_CALL`
 - Use `tool.id` and `user.id` / `workspace.id` in span metadata where applicable.
 - Emit `data-tool-progress` events at start and completion (stage must match the tool id).
 - Respect `abortSignal` early (fail fast) and record cancellations in spans.
 
 See these docs for details and examples:
+
 - `docs/tracing-interfaces-reference.md` (Tracing types)
 - `docs/tracing-instances-reference.md` (Observability instances & startSpan)
 - `docs/creating-child-spans.md` (creating and managing child spans)
@@ -246,6 +249,7 @@ See these docs for details and examples:
 - `docs/opentelemetry-semantic-conventions.md` (recommended attributes & naming)
 
 **Checklist for PRs that modify tools:**
+
 - [ ] Add `TracingContext` typing and use it in `execute` when a tool creates spans
 - [ ] Add `requestContext: context?.requestContext` to `createChildSpan` calls
 - [ ] Use `SpanType.TOOL_CALL` for tool spans
@@ -253,6 +257,7 @@ See these docs for details and examples:
 - [ ] Add unit tests that mock `tracingContext.currentSpan.createChildSpan()` to assert spans are created/updated/ended
 
 These rules help ensure consistent, filterable traces across Mastra and better integration with exporters and OTEL bridges.
+
 #### Migration: Replacing OpenTelemetry usage in tools
 
 If a tool currently imports and uses OpenTelemetry APIs directly (for example `trace.getTracer(...)`, `span.recordException(...)`, `span.setStatus(...)`), migrate it to the runtime `tracingContext` pattern above. Example migration:
@@ -495,7 +500,7 @@ For a typical streaming tool call, the hooks are invoked in this order:
 4. Tool's `execute` function runs
 5. `onOutput` → Tool has completed successfully
 
-**Implementation requirement:** Lifecycle hooks (`onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput`) **must be declared after** the tool's `execute` property in the `createTool()` call. This ordering ensures tooling that relies on the execute initialization sees hooks only after the execution context is available.
+**Implementation requirement:** Lifecycle hooks should reflect the logical execution order to improve readability. `onInputStart`, `onInputDelta`, and `onInputAvailable` **must be declared before** the tool's `execute` property, while `onOutput` should be declared **after** `execute`.
 
 ### Implementation Pattern
 
@@ -513,10 +518,6 @@ export const exampleTool = createTool({
     outputSchema: z.object({
         result: z.string(),
     }),
-    execute: async (inputData, context) => {
-        // Tool implementation
-        return { result: 'success' }
-    },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Tool input streaming started', {
             toolCallId,
@@ -542,6 +543,10 @@ export const exampleTool = createTool({
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
+    },
+    execute: async (inputData, context) => {
+        // Tool implementation
+        return { result: 'success' }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Tool completed', {
@@ -761,17 +766,17 @@ From `package.json`: `@mastra/core`, `zod`, `serpapi`, `playwright`, `cheerio`, 
 
 - 2026-01-11: Added unit tests for Finnhub tools (finnhub-quotes & finnhub-company) and improved existing financial tool tests (alpha-vantage) to mock httpFetch and make assertions more robust (error handling, missing-key behavior, lifecycle events).
 
-| 2.15.0  | 2025-12-15 | **COMPLETE**: All 40+ tools now have full lifecycle hooks (onInputStart, onInputDelta, onInputAvailable, onOutput) with abortSignal logging                                                                                 |
-| 2.14.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 15 tools with onInputDelta + abortSignal: added arxiv, browser, serpapi-academic-local                                                                                                     |
-| 2.11.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 6 tools with onInputDelta + abortSignal: github.ts, serpapi-search, csv-to-json, json-to-csv                                                                                               |
-| 2.10.0  | 2025-12-15 | Extended Tool Lifecycle Hooks to 17 tools + added hook generator utility script                                                                                                                                             |
-| 2.9.0   | 2025-12-15 | Fixed writer progress messages and lifecycle hooks to properly display Input data in UI messages                                                                                                                            |
-| 2.8.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 14 tools: added polygon-tools, arxiv, browser-tool + fixed writer event formats                                                                                                            |
-| 2.7.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 11 tools with structured logging: added json-to-csv, serpapi-search, find-symbol                                                                                                           |
-| 2.6.0   | 2025-12-15 | Extended Tool Lifecycle Hooks to 8 tools: added alpha-vantage.tool.ts and fs.ts                                                                                                                                             |
-| 2.5.0   | 2025-12-15 | Added Tool Lifecycle Hooks documentation and implementation examples                                                                                                                                                        |
-| 2.4.0   | 2025-12-14 | Custom Agent nest events                                                                                                                                                                                                    |
-| 2.3.0   | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool                                                                                                          |
-| 2.2.0   | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links                                                                                                                  |
-| 2.1.0   | 2025-11-26 | Meta update, 30+ claim                                                                                                                                                                                                      |
-| 2.0.0   | 2025-11-16 | Reorg by categories                                                                                                                                                                                                         |
+| 2.15.0 | 2025-12-15 | **COMPLETE**: All 40+ tools now have full lifecycle hooks (onInputStart, onInputDelta, onInputAvailable, onOutput) with abortSignal logging |
+| 2.14.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 15 tools with onInputDelta + abortSignal: added arxiv, browser, serpapi-academic-local |
+| 2.11.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 6 tools with onInputDelta + abortSignal: github.ts, serpapi-search, csv-to-json, json-to-csv |
+| 2.10.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 17 tools + added hook generator utility script |
+| 2.9.0 | 2025-12-15 | Fixed writer progress messages and lifecycle hooks to properly display Input data in UI messages |
+| 2.8.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 14 tools: added polygon-tools, arxiv, browser-tool + fixed writer event formats |
+| 2.7.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 11 tools with structured logging: added json-to-csv, serpapi-search, find-symbol |
+| 2.6.0 | 2025-12-15 | Extended Tool Lifecycle Hooks to 8 tools: added alpha-vantage.tool.ts and fs.ts |
+| 2.5.0 | 2025-12-15 | Added Tool Lifecycle Hooks documentation and implementation examples |
+| 2.4.0 | 2025-12-14 | Custom Agent nest events |
+| 2.3.0 | 2025-11-28 | Added Financial Chart Tools: chartSupervisorTool, chartGeneratorTool, chartDataProcessorTool, chartTypeAdvisorTool |
+| 2.2.0 | 2025-11-27 | Full 30+ tools catalogued w/ badges, categories (financial/RAG/web/document), tests status, relative links |
+| 2.1.0 | 2025-11-26 | Meta update, 30+ claim |
+| 2.0.0 | 2025-11-16 | Reorg by categories |

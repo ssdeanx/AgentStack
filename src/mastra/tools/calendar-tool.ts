@@ -1,5 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { execSync } from 'child_process'
 import { z } from 'zod'
@@ -174,20 +173,20 @@ export const listEvents = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'list-calendar-events',
+            name: 'calendar-list-events',
             input: inputData,
             metadata: {
-                'tool.id': 'list-calendar-events',
+                'tool.id': 'calendar-list-events',
                 'tool.input.startDate': inputData.startDate,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing calendar list events for user', {
@@ -268,19 +267,19 @@ export const getTodayEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'get-today-events',
+            name: 'calendar-today-events',
             input: inputData,
             metadata: {
-                'tool.id': 'get-today-events',
+                'tool.id': 'calendar-today-events',
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing get today events for user', {
@@ -400,21 +399,21 @@ export const getUpcomingEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'get-upcoming-events',
+            name: 'calendar-upcoming-events',
             input: inputData,
             metadata: {
-                'tool.id': 'get-upcoming-events',
+                'tool.id': 'calendar-upcoming-events',
                 'tool.input.days': inputData.days,
                 'tool.input.limit': inputData.limit,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing get upcoming events for user', {
@@ -558,20 +557,20 @@ export const findFreeSlots = createTool({
         ),
     }),
     execute: async (inputData, context) => {
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
             | undefined
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'find-free-slots',
+            name: 'calendar-free-slots',
             input: inputData,
             metadata: {
-                'tool.id': 'find-free-slots',
+                'tool.id': 'calendar-free-slots',
                 'tool.input.date': inputData.date,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing find free slots for user', {

@@ -14,12 +14,13 @@ Use `createToolCallAccuracyScorerCode()` from `@mastra/evals/scorers/prebuilt` f
 - expectedToolOrder: string[] — When provided, validates tool calling sequence
 
 Evaluation modes:
+
 - Single Tool Mode (expectedTool):
-  - lenient (strictMode: false): pass if expected tool appears among calls
-  - strict (strictMode: true): pass only if exactly one tool was called and it matches
+    - lenient (strictMode: false): pass if expected tool appears among calls
+    - strict (strictMode: true): pass only if exactly one tool was called and it matches
 - Order Checking Mode (expectedToolOrder):
-  - strict (strictMode: true): tools must match sequence exactly with no extras
-  - flexible (strictMode: false): expected sequence must appear in order (extras allowed)
+    - strict (strictMode: true): tools must match sequence exactly with no extras
+    - flexible (strictMode: false): expected sequence must appear in order (extras allowed)
 
 Code-based scorers are fast, deterministic and do not require LLM calls — ideal for CI tests.
 
@@ -31,6 +32,7 @@ Use `createToolCallAccuracyScorerLLM()` for semantic evaluation when tool approp
 - availableTools: Array<{ name: string; description: string }> — Tool catalog provided to the judge
 
 Features:
+
 - Semantic evaluation of appropriateness
 - Detects missing tools and clarifying behavior
 - Produces fractional scores (0.0–1.0) and human-readable reasons
@@ -40,4 +42,4 @@ Features:
 - Code-based: Validate that `weather-tool` was called in a weather query (strict or lenient modes)
 - LLM-based: Provide a catalog of tools and ask the judge to rate whether the assistant used appropriate tools for the user request
 
-*Source: Mastra docs — reference/v1/evals/tool-call-accuracy*
+_Source: Mastra docs — reference/v1/evals/tool-call-accuracy_

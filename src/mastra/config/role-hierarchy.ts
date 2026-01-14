@@ -7,7 +7,12 @@
 
 export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
 
-export type SupabaseRole = 'anon' | 'authenticated' | 'admin' | 'moderator' | 'user'
+export type SupabaseRole =
+    | 'anon'
+    | 'authenticated'
+    | 'admin'
+    | 'moderator'
+    | 'user'
 
 export interface RoleHierarchy {
     [role: string]: string[]
@@ -15,7 +20,7 @@ export interface RoleHierarchy {
 
 export const ROLE_HIERARCHY: RoleHierarchy = {
     // Supabase service role - highest access
-    'service_role': ['admin', 'authenticated', 'anon'],
+    service_role: ['admin', 'authenticated', 'anon'],
 
     // Application admin - full access
     admin: ['moderator', 'authenticated', 'anon'],
@@ -39,7 +44,7 @@ export const ROLE_HIERARCHY: RoleHierarchy = {
  * Role privilege levels (higher = more access)
  */
 export const ROLE_LEVELS: Record<string, number> = {
-    'service_role': 1000,
+    service_role: 1000,
     admin: 800,
     enterprise: 600,
     moderator: 400,
@@ -163,7 +168,12 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
         maxDocuments: -1,
         maxApiRequestsPerDay: -1,
         maxUsersPerTenant: -1,
-        features: ['unlimited-chat', 'all-docs', 'custom-models', 'admin-panel'],
+        features: [
+            'unlimited-chat',
+            'all-docs',
+            'custom-models',
+            'admin-panel',
+        ],
         rlsPolicy: RLS_POLICIES.enterpriseFeatures,
         supportLevel: 'priority',
         customIntegrations: true,
@@ -260,7 +270,10 @@ export function getRLSPolicyForRole(role: string): string {
 /**
  * Check if a user can access a resource based on their role
  */
-export function canAccessResource(userRole: string, resourcePolicy: string): boolean {
+export function canAccessResource(
+    userRole: string,
+    resourcePolicy: string
+): boolean {
     const userLevel = getRoleLevel(userRole)
     const requiredLevel = getRoleLevel(resourcePolicy)
 

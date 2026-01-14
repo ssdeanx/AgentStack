@@ -81,19 +81,19 @@ flowchart LR
 
 ```typescript
 inputSchema: z.object({
-  symbol: z.string().describe('Stock ticker symbol'),
-  analysisDepth: z.enum(['quick', 'standard', 'deep']).default('standard')
+    symbol: z.string().describe('Stock ticker symbol'),
+    analysisDepth: z.enum(['quick', 'standard', 'deep']).default('standard'),
 })
 
 outputSchema: z.object({
-  symbol: z.string(),
-  analysis: z.object({
-    technicalIndicators: z.record(z.any()),
-    sentiment: z.string(),
-    recommendation: z.string(),
-    confidence: z.number()
-  }),
-  report: z.string()
+    symbol: z.string(),
+    analysis: z.object({
+        technicalIndicators: z.record(z.any()),
+        sentiment: z.string(),
+        recommendation: z.string(),
+        confidence: z.number(),
+    }),
+    report: z.string(),
 })
 ```
 
@@ -117,19 +117,21 @@ flowchart LR
 
 ```typescript
 inputSchema: z.object({
-  source: z.object({
-    type: z.enum(['url', 'path', 'content']),
-    value: z.string()
-  }),
-  chunkStrategy: z.enum(['paragraph', 'sentence', 'recursive']).default('recursive'),
-  indexName: z.string().default('documents')
+    source: z.object({
+        type: z.enum(['url', 'path', 'content']),
+        value: z.string(),
+    }),
+    chunkStrategy: z
+        .enum(['paragraph', 'sentence', 'recursive'])
+        .default('recursive'),
+    indexName: z.string().default('documents'),
 })
 
 outputSchema: z.object({
-  documentId: z.string(),
-  chunksCount: z.number(),
-  indexed: z.boolean(),
-  summary: z.string()
+    documentId: z.string(),
+    chunksCount: z.number(),
+    indexed: z.boolean(),
+    summary: z.string(),
 })
 ```
 
@@ -152,17 +154,17 @@ flowchart TB
 
 ```typescript
 inputSchema: z.object({
-  topic: z.string(),
-  contentType: z.enum(['blog', 'report', 'script', 'social']),
-  targetAudience: z.string().optional(),
-  qualityThreshold: z.number().min(0).max(100).default(80)
+    topic: z.string(),
+    contentType: z.enum(['blog', 'report', 'script', 'social']),
+    targetAudience: z.string().optional(),
+    qualityThreshold: z.number().min(0).max(100).default(80),
 })
 
 outputSchema: z.object({
-  content: z.string(),
-  score: z.number(),
-  iterations: z.number(),
-  feedback: z.array(z.string())
+    content: z.string(),
+    score: z.number(),
+    iterations: z.number(),
+    feedback: z.array(z.string()),
 })
 ```
 
@@ -188,33 +190,37 @@ flowchart TB
 
 ```typescript
 inputSchema: z.object({
-  symbols: z.array(z.string()).min(1),
-  reportType: z.enum(['daily', 'weekly', 'quarterly']),
-  includeNews: z.boolean().default(true),
-  includeTechnicals: z.boolean().default(true)
+    symbols: z.array(z.string()).min(1),
+    reportType: z.enum(['daily', 'weekly', 'quarterly']),
+    includeNews: z.boolean().default(true),
+    includeTechnicals: z.boolean().default(true),
 })
 
 outputSchema: z.object({
-  reportId: z.string(),
-  generatedAt: z.string(),
-  summary: z.string(),
-  report: z.string(),
-  data: z.record(z.any())
+    reportId: z.string(),
+    generatedAt: z.string(),
+    summary: z.string(),
+    report: z.string(),
+    data: z.record(z.any()),
 })
 ```
 
 ## Technical Decisions
 
 ### 1. Agent Access Pattern
+
 Use `mastra.getAgent()` within step execute functions to ensure proper context injection and access to shared resources.
 
 ### 2. Tool Integration
+
 Import tools directly from `src/mastra/tools` and call via `.execute()` within steps.
 
 ### 3. Error Handling
+
 Use step-level retries for API calls (polygon, finnhub) with `retries` parameter.
 
 ### 4. State Management
+
 Pass data through step outputs; use `.map()` for transformations between incompatible schemas.
 
 ### 5. Network Compatibility

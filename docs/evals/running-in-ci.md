@@ -11,20 +11,20 @@ Basic pattern:
 Example (Vitest):
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { createScorer, runEvals } from "@mastra/core/evals";
+import { describe, it, expect } from 'vitest'
+import { createScorer, runEvals } from '@mastra/core/evals'
 
 it('should correctly extract locations', async () => {
-  const result = await runEvals({
-    data: [{ input: 'weather in Berlin', groundTruth: {} }],
-    target: weatherAgent,
-    scorers: [locationScorer],
-  });
+    const result = await runEvals({
+        data: [{ input: 'weather in Berlin', groundTruth: {} }],
+        target: weatherAgent,
+        scorers: [locationScorer],
+    })
 
-  expect(result.scores['location-accuracy']).toBe(1);
-});
+    expect(result.scores['location-accuracy']).toBe(1)
+})
 ```
 
 Tip: Add noise-sensitivity tests and model comparisons in CI to prevent regressions in robustness.
 
-*Source: Mastra docs — evals/running-in-ci.mdx*
+_Source: Mastra docs — evals/running-in-ci.mdx_

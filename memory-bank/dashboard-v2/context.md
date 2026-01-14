@@ -19,11 +19,11 @@ Refactor the Mastra Admin Dashboard from v1 (50% complete, monolithic) to v2 (mo
 - 15+ MastraClient hooks in `lib/hooks/use-mastra.ts`
 - Layout with collapsible sidebar
 - Known issues:
-  - Monolithic pages (hard to maintain)
-  - Next.js 16 routing issues
-  - No error boundaries
-  - No data caching
-  - Loose TypeScript types
+    - Monolithic pages (hard to maintain)
+    - Next.js 16 routing issues
+    - No error boundaries
+    - No data caching
+    - Loose TypeScript types
 
 ## Target State (v2)
 
@@ -38,12 +38,12 @@ Refactor the Mastra Admin Dashboard from v1 (50% complete, monolithic) to v2 (mo
 
 ## Active Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Data fetching | TanStack Query v5 | Caching, deduplication, devtools |
-| Component organization | `_components` folders | Next.js convention |
-| Type validation | Zod schemas | Already in project, TS inference |
-| Error handling | Per-route error.tsx | Next.js 16 pattern |
+| Decision               | Choice                | Rationale                        |
+| ---------------------- | --------------------- | -------------------------------- |
+| Data fetching          | TanStack Query v5     | Caching, deduplication, devtools |
+| Component organization | `_components` folders | Next.js convention               |
+| Type validation        | Zod schemas           | Already in project, TS inference |
+| Error handling         | Per-route error.tsx   | Next.js 16 pattern               |
 
 ## Blockers
 
@@ -127,19 +127,20 @@ npm test -- --grep dashboard
 
 1. **Workflows href link** - Fixed `/workflows?workflow=` to `/dashboard/workflows?workflow=` with `as never` cast
 2. **MastraClient API method names:**
-   - `listWorkflows()` → `getWorkflows()`
-   - `listLogs()` → `getLogs()`
-   - `listLogTransports()` → `getLogTransports()`
-   - `getMemoryThread({threadId, agentId})` → `getMemoryThread(threadId, agentId)` (2 args)
-   - `tool.execute({args})` → `tool.execute({data})`
+    - `listWorkflows()` → `getWorkflows()`
+    - `listLogs()` → `getLogs()`
+    - `listLogTransports()` → `getLogTransports()`
+    - `getMemoryThread({threadId, agentId})` → `getMemoryThread(threadId, agentId)` (2 args)
+    - `tool.execute({args})` → `tool.execute({data})`
 3. **API response shapes:**
-   - Logs: `{logs: [...]}` not `[...]`
-   - Transports: `{transports: [...]}` not `[...]`  
-   - Indexes: `{indexes: [...]}` not `[...]`
+    - Logs: `{logs: [...]}` not `[...]`
+    - Transports: `{transports: [...]}` not `[...]`
+    - Indexes: `{indexes: [...]}` not `[...]`
 4. **AISpanRecord properties** - Used proper type guards for `startTime`, `duration`, `status`
 5. **entityType filter** - Cast to `"agent" | "workflow" | undefined`
 
 **Files Modified:**
+
 - `lib/hooks/use-mastra.ts` - Fixed API calls
 - `app/dashboard/page.tsx` - Fixed span property access
 - `app/dashboard/workflows/page.tsx` - Fixed href link
@@ -150,6 +151,7 @@ npm test -- --grep dashboard
 - `app/dashboard/logs/page.tsx` - Fixed logs/transports access
 
 **Remaining (style warnings only):**
+
 - Sourcery suggestions for inline returns (not errors)
 - CSS inline style warning in observability page
 
@@ -173,17 +175,17 @@ npm test -- --grep dashboard
 
 ## Completion Tracking
 
-| Phase | Tasks | Completed | Progress |
-|-------|-------|-----------|----------|
-| 1. Foundation | 4 | 0 | 0% |
-| 2. Shared Components | 6 | 0 | 0% |
-| 3. Agents | 3 | 0 | 0% |
-| 4. Workflows | 2 | 0 | 0% |
-| 5. Tools | 2 | 0 | 0% |
-| 6. Observability | 2 | 0 | 0% |
-| 7. Memory | 2 | 0 | 0% |
-| 8. Vectors/Logs/Telemetry | 4 | 0 | 0% |
-| 9. Dashboard Home & Polish | 3 | 0 | 0% |
-| 10. Auth Preparation | 2 | 0 | 0% |
-| 11. Testing & Docs | 3 | 0 | 0% |
-| **Total** | **33** | **0** | **0%** |
+| Phase                      | Tasks  | Completed | Progress |
+| -------------------------- | ------ | --------- | -------- |
+| 1. Foundation              | 4      | 0         | 0%       |
+| 2. Shared Components       | 6      | 0         | 0%       |
+| 3. Agents                  | 3      | 0         | 0%       |
+| 4. Workflows               | 2      | 0         | 0%       |
+| 5. Tools                   | 2      | 0         | 0%       |
+| 6. Observability           | 2      | 0         | 0%       |
+| 7. Memory                  | 2      | 0         | 0%       |
+| 8. Vectors/Logs/Telemetry  | 4      | 0         | 0%       |
+| 9. Dashboard Home & Polish | 3      | 0         | 0%       |
+| 10. Auth Preparation       | 2      | 0         | 0%       |
+| 11. Testing & Docs         | 3      | 0         | 0%       |
+| **Total**                  | **33** | **0**     | **0%**   |

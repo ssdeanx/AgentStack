@@ -17,12 +17,15 @@ Execute Gemini CLI commands with support for multiple models and flexible prompt
 - Alternative perspective on code problems
 
 ## Usage
+
 **Mandatory**: Run via uv with fixed timeout 7200000ms (foreground):
+
 ```bash
 uv run ~/.claude/skills/gemini/scripts/gemini.py "<prompt>" [working_dir]
 ```
 
 **Optional** (direct execution or using Python):
+
 ```bash
 ~/.claude/skills/gemini/scripts/gemini.py "<prompt>" [working_dir]
 # or
@@ -32,7 +35,7 @@ python3 ~/.claude/skills/gemini/scripts/gemini.py "<prompt>" [working_dir]
 ## Environment Variables
 
 - **GEMINI_MODEL**: Configure model (default: `gemini-3-pro-preview`)
-  - Example: `export GEMINI_MODEL=gemini-3`
+    - Example: `export GEMINI_MODEL=gemini-3`
 
 ## Timeout Control
 
@@ -64,9 +67,9 @@ When calling via Bash tool, always include the timeout parameter:
 
 ```yaml
 Bash tool parameters:
-- command: uv run ~/.claude/skills/gemini/scripts/gemini.py "<prompt>"
-- timeout: 7200000
-- description: <brief description of the task>
+    - command: uv run ~/.claude/skills/gemini/scripts/gemini.py "<prompt>"
+    - timeout: 7200000
+    - description: <brief description of the task>
 ```
 
 Alternatives:

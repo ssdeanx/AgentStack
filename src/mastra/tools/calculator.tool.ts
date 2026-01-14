@@ -1,5 +1,5 @@
-import { SpanType } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
@@ -326,12 +326,38 @@ export const calculatorTool = createTool({
         variables: z.record(z.string(), z.number()).optional(),
         message: z.string().optional(),
     }),
-
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Calculator tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                expression: input.expression,
+                variablesCount: Object.keys(input.variables ?? {}).length,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
-
         const requestCtx = context?.requestContext as
             | CalculatorToolContext
             | undefined
@@ -340,19 +366,31 @@ export const calculatorTool = createTool({
             requestCtx?.allowComplexExpressions ?? true
         const maxExpressionLength = requestCtx?.maxExpressionLength ?? 1000
 
-        // Create child span for calculator operation
-        const calculatorSpan = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+
+        // Create root span and child span for calculator operation
+        const rootSpan = getOrCreateSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'calculator',
+            input: inputData,
+            metadata: {
+                'tool.id': 'calculator',
+                'tool.input.expression': inputData.expression,
+                'user.id': requestCtx?.userId,
+            },
+            requestContext: context?.requestContext,
+            tracingContext,
+        })
+
+        const calculatorSpan = rootSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'calculator-operation',
             input: inputData,
             metadata: {
                 'tool.id': 'calculator',
-                'tool.input.expression': inputData.expression,
                 'tool.input.precision': precision,
-                'user.id': requestCtx?.userId,
             },
-            // Pass requestContext to allow automatic metadata extraction
-            requestContext: context?.requestContext,
         })
 
         await writer?.custom({
@@ -399,6 +437,15 @@ export const calculatorTool = createTool({
             })
             calculatorSpan?.end()
 
+            rootSpan?.update({
+                output: { success: true, result },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.output.result': result,
+                },
+            })
+            rootSpan?.end()
+
             return {
                 success: true,
                 result,
@@ -408,12 +455,51 @@ export const calculatorTool = createTool({
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
+
+            // Handle AbortError specifically
+            if (e instanceof Error && e.name === 'AbortError') {
+                const cancelMessage = `Calculator evaluation cancelled: ${inputData.expression}`
+                calculatorSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+                rootSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `🛑 ${cancelMessage}`,
+                        stage: 'calculator',
+                    },
+                    id: 'calculator',
+                })
+
+                log.warn(cancelMessage)
+
+                return {
+                    success: false,
+                    result: 0,
+                    formattedResult: '0',
+                    expression: inputData.expression,
+                    variables: inputData.variables,
+                    message: cancelMessage,
+                }
+            }
+
             log.error(`Calculator evaluation failed: ${errorMsg}`, {
                 error: errorMsg,
             })
 
-            // Record error in span
+            // Record error in spans
             calculatorSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
@@ -427,35 +513,6 @@ export const calculatorTool = createTool({
                 message: errorMsg,
             }
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Calculator tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                expression: input.expression,
-                variablesCount: Object.keys(input.variables ?? {}).length,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Calculator tool completed', {
@@ -502,15 +559,17 @@ export const unitConverterTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalculatorToolContext
             | undefined
 
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+
         // Create child span for unit conversion
-        const unitConverterSpan = tracingContext?.currentSpan?.createChildSpan({
+        const unitConverterSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'unit-conversion',
+            name: 'unit-converter-conversion',
             input: inputData,
             metadata: {
                 'tool.id': 'unit-converter',
@@ -519,8 +578,8 @@ export const unitConverterTool = createTool({
                 'tool.input.toUnit': inputData.toUnit,
                 'user.id': requestCtx?.userId,
             },
-            // Pass requestContext to allow automatic metadata extraction
             requestContext: context?.requestContext,
+            tracingContext,
         })
 
         await writer?.custom({
@@ -700,26 +759,37 @@ export const matrixCalculatorTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | CalculatorToolContext
             | undefined
 
-        // Create child span for matrix calculation
-        const matrixCalculatorSpan =
-            tracingContext?.currentSpan?.createChildSpan({
-                type: SpanType.TOOL_CALL,
-                name: 'matrix-calculation',
-                input: inputData,
-                metadata: {
-                    'tool.id': 'matrix-calculator',
-                    'tool.input.operation': inputData.operation,
-                    'tool.input.matrixASize': inputData.matrixA.length,
-                    'user.id': requestCtx?.userId,
-                },
-                // Pass requestContext to allow automatic metadata extraction
-                requestContext: context?.requestContext,
-            })
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+
+        // Create root span and child span for matrix calculation
+        const matrixRootSpan = getOrCreateSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'matrix-calculator',
+            input: inputData,
+            metadata: {
+                'tool.id': 'matrix-calculator',
+                'tool.input.operation': inputData.operation,
+                'tool.input.matrixASize': inputData.matrixA.length,
+                'user.id': requestCtx?.userId,
+            },
+            requestContext: context?.requestContext,
+            tracingContext,
+        })
+
+        const matrixCalculatorSpan = matrixRootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'matrix-calculation',
+            input: inputData,
+            metadata: {
+                'tool.id': 'matrix-calculator',
+                'tool.input.operation': inputData.operation,
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -822,6 +892,15 @@ export const matrixCalculatorTool = createTool({
             })
             matrixCalculatorSpan?.end()
 
+            matrixRootSpan?.update({
+                output: { success: true, result },
+                metadata: {
+                    'tool.output.success': true,
+                    'tool.input.operation': inputData.operation,
+                },
+            })
+            matrixRootSpan?.end()
+
             return {
                 success: true,
                 result,
@@ -836,8 +915,12 @@ export const matrixCalculatorTool = createTool({
                 error: errorMsg,
             })
 
-            // Record error in span
+            // Record error in spans
             matrixCalculatorSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            matrixRootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })

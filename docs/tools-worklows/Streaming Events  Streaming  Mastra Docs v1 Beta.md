@@ -1,13 +1,14 @@
 ---
-title: "Streaming Events | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/docs/v1/streaming/events"
+title: 'Streaming Events | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/docs/v1/streaming/events'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Learn about the different types of streaming events in Mastra, including text deltas, tool calls, step events, and how to handle them in your applications."
+description: 'Mastra v1 Beta: Learn about the different types of streaming events in Mastra, including text deltas, tool calls, step events, and how to handle them in your applications.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 Streaming from agents or workflows provides real-time visibility into either the LLM’s output or the status of a workflow run. This feedback can be passed directly to the user, or used within applications to handle workflow status more effectively, creating a smoother and more responsive experience.
 
 Events emitted from agents or workflows represent different stages of generation and execution, such as when a run starts, when text is produced, or when a tool is invoked.
@@ -47,14 +48,14 @@ When using `agent.network()` for multi-agent collaboration, additional event typ
 Iterate over the `stream` with a `for await` loop to inspect all emitted event chunks.
 
 ```typescript
-const testAgent = mastra.getAgent("testAgent");
+const testAgent = mastra.getAgent('testAgent')
 
 const stream = await testAgent.stream([
-  { role: "user", content: "Help me organize my day" },
-]);
+    { role: 'user', content: 'Help me organize my day' },
+])
 
 for await (const chunk of stream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 ```
 
@@ -96,18 +97,18 @@ Below is an example of events that may be emitted. Each event always includes a 
 Iterate over the `stream` with a `for await` loop to inspect all emitted event chunks.
 
 ```typescript
-const testWorkflow = mastra.getWorkflow("testWorkflow");
+const testWorkflow = mastra.getWorkflow('testWorkflow')
 
-const run = await testWorkflow.createRun();
+const run = await testWorkflow.createRun()
 
 const stream = await run.stream({
-  inputData: {
-    value: "initial data",
-  },
-});
+    inputData: {
+        value: 'initial data',
+    },
+})
 
 for await (const chunk of stream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 ```
 
@@ -141,14 +142,14 @@ Below is an example of events that may be emitted. Each event always includes a 
 When using multi-agent collaboration with `agent.network()`, iterate over the stream to track how tasks are delegated and executed across agents, workflows, and tools.
 
 ```typescript
-const networkAgent = mastra.getAgent("networkAgent");
+const networkAgent = mastra.getAgent('networkAgent')
 
 const networkStream = await networkAgent.network(
-  "Research dolphins then write a report",
-);
+    'Research dolphins then write a report'
+)
 
 for await (const chunk of networkStream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 ```
 
@@ -209,28 +210,28 @@ You can filter events by type to track specific aspects of the network execution
 
 ```typescript
 const networkStream = await networkAgent.network(
-  "Analyze data and create visualization",
-);
+    'Analyze data and create visualization'
+)
 
 for await (const chunk of networkStream) {
-  // Track routing decisions
-  if (chunk.type === "routing-agent-end") {
-    console.log(
-      "Selected:",
-      chunk.payload.resourceType,
-      chunk.payload.resourceId,
-    );
-    console.log("Reason:", chunk.payload.selectionReason);
-  }
+    // Track routing decisions
+    if (chunk.type === 'routing-agent-end') {
+        console.log(
+            'Selected:',
+            chunk.payload.resourceType,
+            chunk.payload.resourceId
+        )
+        console.log('Reason:', chunk.payload.selectionReason)
+    }
 
-  // Track agent delegations
-  if (chunk.type === "agent-execution-start") {
-    console.log("Delegating to agent:", chunk.payload.agentId);
-  }
+    // Track agent delegations
+    if (chunk.type === 'agent-execution-start') {
+        console.log('Delegating to agent:', chunk.payload.agentId)
+    }
 
-  // Track workflow delegations
-  if (chunk.type === "workflow-execution-start") {
-    console.log("Executing workflow:", chunk.payload.name);
-  }
+    // Track workflow delegations
+    if (chunk.type === 'workflow-execution-start') {
+        console.log('Executing workflow:', chunk.payload.name)
+    }
 }
 ```

@@ -12,7 +12,7 @@ Commits changes, pushes to remote, and then creates a Pull Request.
 - Changed files exist
 - Remote `origin` is configured
 - GitHub CLI (`gh`) is installed (for fallback)
-- On a working branch (feature/*, fix/*, etc.)
+- On a working branch (feature/_, fix/_, etc.)
 
 ## Execution Steps (Non-Interactive)
 
@@ -221,4 +221,3 @@ git add -A && git commit -m "$MSG" && git push -u origin "$BRANCH"
 - Commit message rules: `.windsurf/rules/commit-message-format.md`
 - PR message rules (optional): `.windsurf/rules/pr-message-format.md`
 - Development flow: Project-specific README / CONTRIBUTING / development guides, etc.
-

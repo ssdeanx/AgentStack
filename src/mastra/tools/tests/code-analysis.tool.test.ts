@@ -17,7 +17,9 @@ afterEach(async () => {
         for (const f of files) {
             await fs.unlink(path.join(tmpDir, f))
         }
-    } catch { /* empty */ }
+    } catch {
+        /* empty */
+    }
 })
 
 describe('codeAnalysisTool', () => {
@@ -27,7 +29,10 @@ describe('codeAnalysisTool', () => {
         const content = `// TODO: test\nconsole.log('hi')\nfunction f() { if (true) { return 1 } }\n${longLine}`
         await fs.writeFile(file, content, 'utf-8')
 
-        const res = await codeAnalysisTool.execute({ target: [file], options: { includeMetrics: true, detectPatterns: true } })
+        const res = await codeAnalysisTool.execute({
+            target: [file],
+            options: { includeMetrics: true, detectPatterns: true },
+        })
         expect(res.files.length).toBeGreaterThanOrEqual(1)
         const fileRes = res.files.find((f) => f.path === file)
         expect(fileRes).toBeDefined()

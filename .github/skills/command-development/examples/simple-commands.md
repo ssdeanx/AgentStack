@@ -17,24 +17,25 @@ allowed-tools: Read, Bash(git:*)
 Review the code in this repository for:
 
 1. **Code Quality:**
-   - Readability and maintainability
-   - Consistent style and formatting
-   - Appropriate abstraction levels
+    - Readability and maintainability
+    - Consistent style and formatting
+    - Appropriate abstraction levels
 
 2. **Potential Issues:**
-   - Logic errors or bugs
-   - Edge cases not handled
-   - Performance concerns
+    - Logic errors or bugs
+    - Edge cases not handled
+    - Performance concerns
 
 3. **Best Practices:**
-   - Design patterns used correctly
-   - Error handling present
-   - Documentation adequate
+    - Design patterns used correctly
+    - Error handling present
+    - Documentation adequate
 
 Provide specific feedback with file and line references.
 ```
 
 **Usage:**
+
 ```
 > /review
 ```
@@ -55,6 +56,7 @@ model: sonnet
 Perform comprehensive security review checking for:
 
 **Common Vulnerabilities:**
+
 - SQL injection risks
 - Cross-site scripting (XSS)
 - Authentication/authorization issues
@@ -62,6 +64,7 @@ Perform comprehensive security review checking for:
 - Hardcoded secrets or credentials
 
 **Security Best Practices:**
+
 - Input validation present
 - Output encoding correct
 - Secure defaults used
@@ -69,6 +72,7 @@ Perform comprehensive security review checking for:
 - Logging appropriate (no sensitive data)
 
 For each issue found:
+
 - File and line number
 - Severity (Critical/High/Medium/Low)
 - Description of vulnerability
@@ -78,6 +82,7 @@ Prioritize issues by severity.
 ```
 
 **Usage:**
+
 ```
 > /security-review
 ```
@@ -100,6 +105,7 @@ Run tests for $1:
 Test execution: !`npm test $1`
 
 Analyze results:
+
 - Tests passed/failed
 - Code coverage
 - Performance issues
@@ -109,6 +115,7 @@ If failures found, suggest fixes based on error messages.
 ```
 
 **Usage:**
+
 ```
 > /test-file src/utils/helpers.test.ts
 ```
@@ -130,22 +137,26 @@ Generate comprehensive documentation for @$1
 Include:
 
 **Overview:**
+
 - Purpose and responsibility
 - Main functionality
 - Dependencies
 
 **API Documentation:**
+
 - Function/method signatures
 - Parameter descriptions with types
 - Return values with types
 - Exceptions/errors thrown
 
 **Usage Examples:**
+
 - Basic usage
 - Common patterns
 - Edge cases
 
 **Implementation Notes:**
+
 - Algorithm complexity
 - Performance considerations
 - Known limitations
@@ -154,6 +165,7 @@ Format as Markdown suitable for project documentation.
 ```
 
 **Usage:**
+
 ```
 > /document src/api/users.ts
 ```
@@ -181,12 +193,14 @@ Repository Status Summary:
 **Remote Status:** !`git fetch && git status -sb`
 
 Provide:
+
 - Summary of changes
 - Suggested next actions
 - Any warnings or issues
 ```
 
 **Usage:**
+
 ```
 > /git-status
 ```
@@ -207,11 +221,13 @@ allowed-tools: Bash(kubectl:*), Read
 Deploy to $1 environment using version $2
 
 **Pre-deployment Checks:**
+
 1. Verify $1 configuration exists
 2. Check version $2 is valid
 3. Verify cluster accessibility: !`kubectl cluster-info`
 
 **Deployment Steps:**
+
 1. Update deployment manifest with version $2
 2. Apply configuration to $1
 3. Monitor rollout status
@@ -225,6 +241,7 @@ Proceed with deployment? (yes/no)
 ```
 
 **Usage:**
+
 ```
 > /deploy staging v1.2.3
 ```
@@ -246,30 +263,31 @@ Compare @$1 with @$2
 **Analysis:**
 
 1. **Differences:**
-   - Lines added
-   - Lines removed
-   - Lines modified
+    - Lines added
+    - Lines removed
+    - Lines modified
 
 2. **Functional Changes:**
-   - Breaking changes
-   - New features
-   - Bug fixes
-   - Refactoring
+    - Breaking changes
+    - New features
+    - Bug fixes
+    - Refactoring
 
 3. **Impact:**
-   - Affected components
-   - Required updates elsewhere
-   - Migration requirements
+    - Affected components
+    - Required updates elsewhere
+    - Migration requirements
 
 4. **Recommendations:**
-   - Code review focus areas
-   - Testing requirements
-   - Documentation updates needed
+    - Code review focus areas
+    - Testing requirements
+    - Documentation updates needed
 
 Present as structured comparison report.
 ```
 
 **Usage:**
+
 ```
 > /compare-files src/old-api.ts src/new-api.ts
 ```
@@ -290,12 +308,14 @@ model: haiku
 Quickly fix: $ARGUMENTS
 
 **Approach:**
+
 1. Identify the issue
 2. Find relevant code
 3. Propose fix
 4. Explain solution
 
 Focus on:
+
 - Simple, direct solution
 - Minimal changes
 - Following existing patterns
@@ -305,6 +325,7 @@ Provide code changes with file paths and line numbers.
 ```
 
 **Usage:**
+
 ```
 > /quick-fix button not responding to clicks
 > /quick-fix typo in error message
@@ -328,28 +349,29 @@ Research best practices for: $ARGUMENTS
 **Coverage:**
 
 1. **Current State:**
-   - How we currently handle this
-   - Existing implementations
+    - How we currently handle this
+    - Existing implementations
 
 2. **Industry Standards:**
-   - Common patterns
-   - Recommended approaches
-   - Tools and libraries
+    - Common patterns
+    - Recommended approaches
+    - Tools and libraries
 
 3. **Comparison:**
-   - Our approach vs standards
-   - Gaps or improvements needed
-   - Migration considerations
+    - Our approach vs standards
+    - Gaps or improvements needed
+    - Migration considerations
 
 4. **Recommendations:**
-   - Concrete action items
-   - Priority and effort estimates
-   - Resources for implementation
+    - Concrete action items
+    - Priority and effort estimates
+    - Resources for implementation
 
 Provide actionable guidance based on research.
 ```
 
 **Usage:**
+
 ```
 > /research error handling in async operations
 > /research API authentication patterns
@@ -372,34 +394,35 @@ Explain @$1 in detail
 **Explanation Structure:**
 
 1. **Overview:**
-   - What it does
-   - Why it exists
-   - How it fits in system
+    - What it does
+    - Why it exists
+    - How it fits in system
 
 2. **Step-by-Step:**
-   - Line-by-line walkthrough
-   - Key algorithms or logic
-   - Important details
+    - Line-by-line walkthrough
+    - Key algorithms or logic
+    - Important details
 
 3. **Inputs and Outputs:**
-   - Parameters and types
-   - Return values
-   - Side effects
+    - Parameters and types
+    - Return values
+    - Side effects
 
 4. **Edge Cases:**
-   - Error handling
-   - Special cases
-   - Limitations
+    - Error handling
+    - Special cases
+    - Limitations
 
 5. **Usage Examples:**
-   - How to call it
-   - Common patterns
-   - Integration points
+    - How to call it
+    - Common patterns
+    - Integration points
 
 Explain at level appropriate for junior engineer.
 ```
 
 **Usage:**
+
 ```
 > /explain src/utils/cache.ts
 > /explain AuthService.login

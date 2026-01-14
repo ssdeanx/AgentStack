@@ -1,7 +1,7 @@
-import { MastraClient } from "@mastra/client-js";
+import { MastraClient } from '@mastra/client-js'
 
 // Optional AbortController to support request cancellation across the client
-export const mastraAbortController = new AbortController();
+export const mastraAbortController = new AbortController()
 
 /**
  * Client-side Mastra SDK instance for frontend use.
@@ -11,11 +11,11 @@ export const mastraAbortController = new AbortController();
  * directly from "@/lib/client-stream-to-ai-sdk" instead.
  */
 export const mastraClient = new MastraClient({
-  baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL ?? "http://localhost:4111",
-  retries: 3,
-  backoffMs: 300,
-  maxBackoffMs: 5000,
-  abortSignal: mastraAbortController.signal,
-  headers: {},
-  credentials: "same-origin"
-});
+    baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL ?? 'http://localhost:4111',
+    retries: 3,
+    backoffMs: 300,
+    maxBackoffMs: 5000,
+    abortSignal: mastraAbortController.signal,
+    headers: {},
+    credentials: 'same-origin',
+})

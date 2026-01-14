@@ -12,7 +12,7 @@ Mastra v1 introduces multiple breaking changes across the core packages and APIs
 - Update Tool signatures to the new execute(inputData, context) shape and update tests that mock RuntimeContext/RequestContext
 - Migrate Agent run and voice API changes (RuntimeContext -> RequestContext, property->getter changes)
 - Update Workflows (createRunAsync -> createRun, function renames) and any call sites
-- Update Storage/Vectors to list* pattern and page/perPage pagination
+- Update Storage/Vectors to list\* pattern and page/perPage pagination
 - Update Tracing/Observability configuration (telemetry -> observability, processors rename)
 - Update Client SDK and Evals API changes
 - Replace deprecated patterns and add regression tests for new formats
@@ -28,10 +28,10 @@ Mastra v1 introduces multiple breaking changes across the core packages and APIs
 
 - Migration lead: TBD — pick a maintainer to own the campaign
 - Area owners (examples):
-  - Tools: @frontend-team / tool authors
-  - Memory & Storage: @backend-team / storage owners
-  - Workflows & Agents: @workflow-team
-  - Observability & CI: @infra-team
+    - Tools: @frontend-team / tool authors
+    - Memory & Storage: @backend-team / storage owners
+    - Workflows & Agents: @workflow-team
+    - Observability & CI: @infra-team
 
 ## Timeline & Estimates
 
@@ -42,15 +42,15 @@ Mastra v1 introduces multiple breaking changes across the core packages and APIs
 ## Risks & Mitigations
 
 - Risk: Codemod outputs will not cover bespoke adapter code or complex conversions
-  - Mitigation: Use codemod to fix obvious renames, then open small per-area PRs to handle manual fixes and tests
+    - Mitigation: Use codemod to fix obvious renames, then open small per-area PRs to handle manual fixes and tests
 
 - Risk: Tests break in many unrelated areas (due to type/shape changes)
-  - Mitigation: update tests incrementally in the same area PRs and add test factories / converters to reduce duplication
+    - Mitigation: update tests incrementally in the same area PRs and add test factories / converters to reduce duplication
 
 ## Rollback & Emergency plan
 
 If a migration PR causes serious regressions in mainline CI:
+
 1. Revert the problematic PR
 2. Re-run targeted codemod or manual fixes in a branch and add additional tests
 3. Run a CI smoke pipeline using a smaller test subset and debug failures before reintroducing the change
-

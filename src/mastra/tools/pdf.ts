@@ -56,14 +56,20 @@ export const readPDF = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as PdfToolContext | undefined
+        const requestContext = context?.requestContext as
+            | PdfToolContext
+            | undefined
 
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'read-pdf',
             input: { pdfPath: inputData.pdfPath },
-            metadata: { 'tool.id': 'readPDF', 'tool.input.pdfPath': inputData.pdfPath, service: 'unpdf' },
+            metadata: {
+                'tool.id': 'readPDF',
+                'tool.input.pdfPath': inputData.pdfPath,
+                service: 'unpdf',
+            },
         })
 
         const { pdfPath } = inputData
@@ -101,13 +107,22 @@ export const readPDF = createTool({
             log.info(chalk.blue('-----------------'))
             log.info(chalk.blue(`Number of pages: ${totalPages}`))
 
-            span?.update({ output: { content: text }, metadata: { 'tool.output.pageCount': totalPages, 'tool.output.textLength': text.length } })
+            span?.update({
+                output: { content: text },
+                metadata: {
+                    'tool.output.pageCount': totalPages,
+                    'tool.output.textLength': text.length,
+                },
+            })
             span?.end()
             return { content: text }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Error reading PDF: ${errorMsg}`)
-            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true })
+            span?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
             return {
                 content: `Error scanning PDF: ${errorMsg}`,
             }

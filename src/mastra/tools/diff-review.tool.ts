@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from "@mastra/core/observability";
+import { SpanType } from '@mastra/core/observability'
 import { createPatch, structuredPatch } from 'diff'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -101,7 +101,9 @@ Use for code review, comparing versions, and analyzing modifications.`,
             context: contextLines = 3,
         } = inputData
         const writer = context?.writer
-        const requestContext = context?.requestContext as DiffReviewContext | undefined
+        const requestContext = context?.requestContext as
+            | DiffReviewContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         const span = tracingContext?.currentSpan?.createChildSpan({
@@ -243,7 +245,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
                     additions,
                     deletions,
                     totalChanges,
-                }
+                },
             })
             await writer?.custom({
                 type: 'data-tool-progress',

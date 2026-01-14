@@ -6,12 +6,12 @@
 
 ### Decisions made
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Migration path | Codemods + manual fixes | Use automation where safe, manual updates for custom shapes and tests |
-| Node & CI | Node >= 22.13.0 | Upgrade CI / dev images before merging large PRs |
-| Scope defaults | Explicitly set `scope: 'thread'` where conversation-scoped behavior is required | Mastra v1 default scope changed to resource |
-| Type conversion | Replace MastraMessageV2 with MastraDBMessage and use converters for UI formats | Clearer semantics, simpler default storage format |
+| Decision        | Choice                                                                          | Rationale                                                             |
+| --------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Migration path  | Codemods + manual fixes                                                         | Use automation where safe, manual updates for custom shapes and tests |
+| Node & CI       | Node >= 22.13.0                                                                 | Upgrade CI / dev images before merging large PRs                      |
+| Scope defaults  | Explicitly set `scope: 'thread'` where conversation-scoped behavior is required | Mastra v1 default scope changed to resource                           |
+| Type conversion | Replace MastraMessageV2 with MastraDBMessage and use converters for UI formats  | Clearer semantics, simpler default storage format                     |
 
 ### Blockers / Open questions
 

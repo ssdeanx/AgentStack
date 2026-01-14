@@ -1,30 +1,31 @@
 ---
-title: "Reference: Run.observeStream() | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/reference/v1/streaming/workflows/observeStream"
+title: 'Reference: Run.observeStream() | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/reference/v1/streaming/workflows/observeStream'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Documentation for the `Run.observeStream()` method in workflows, which enables reopening the stream of an already active workflow run."
+description: 'Mastra v1 Beta: Documentation for the `Run.observeStream()` method in workflows, which enables reopening the stream of an already active workflow run.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 The `.observeStream()` method opens a new `ReadableStream` to a workflow run that is currently running, allowing you to observe the stream of events if the original stream is no longer available.
 
 ## Usage example
 
 ```typescript
-const run = await workflow.createRun();
+const run = await workflow.createRun()
 
 run.stream({
-  inputData: {
-    value: "initial data",
-  },
-});
+    inputData: {
+        value: 'initial data',
+    },
+})
 
-const stream = await run.observeStream();
+const stream = await run.observeStream()
 
 for await (const chunk of stream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 ```
 

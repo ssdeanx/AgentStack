@@ -16,18 +16,18 @@ Production-ready workflows showcasing ALL Mastra workflow capabilities with a Ne
 
 **Implemented Workflows (10):**
 
-| Workflow | Technique | Status |
-|----------|-----------|--------|
-| weatherWorkflow | `.then()` | ✅ Complete |
-| contentStudioWorkflow | `.dowhile()` | ✅ Complete |
-| contentReviewWorkflow | `.then()` | ✅ Complete |
-| documentProcessingWorkflow | `.then()` | ✅ Complete |
-| financialReportWorkflow | `.parallel()` | ✅ Complete |
-| learningExtractionWorkflow | `.then()` | ✅ Complete |
-| researchSynthesisWorkflow | `.then()` | ✅ Complete |
-| stockAnalysisWorkflow | `.then()` | ✅ Complete |
-| telephoneGameWorkflow | `.then()` | ✅ Complete |
-| changelogWorkflow | `.then()` | ✅ Complete |
+| Workflow                   | Technique     | Status      |
+| -------------------------- | ------------- | ----------- |
+| weatherWorkflow            | `.then()`     | ✅ Complete |
+| contentStudioWorkflow      | `.dowhile()`  | ✅ Complete |
+| contentReviewWorkflow      | `.then()`     | ✅ Complete |
+| documentProcessingWorkflow | `.then()`     | ✅ Complete |
+| financialReportWorkflow    | `.parallel()` | ✅ Complete |
+| learningExtractionWorkflow | `.then()`     | ✅ Complete |
+| researchSynthesisWorkflow  | `.then()`     | ✅ Complete |
+| stockAnalysisWorkflow      | `.then()`     | ✅ Complete |
+| telephoneGameWorkflow      | `.then()`     | ✅ Complete |
+| changelogWorkflow          | `.then()`     | ✅ Complete |
 
 **Existing Networks (4):**
 
@@ -61,13 +61,16 @@ Uses `@ai-sdk/react` with `DefaultChatTransport`:
 
 ```typescript
 const { messages, sendMessage, stop, status } = useChat({
-  transport: new DefaultChatTransport({
-    api: `http://localhost:4111/workflow/${selectedWorkflow}`,
-    prepareSendMessagesRequest({ messages }) {
-      const inputData = buildWorkflowInputData(selectedWorkflow, inputText)
-      return { body: { inputData } }
-    },
-  }),
+    transport: new DefaultChatTransport({
+        api: `http://localhost:4111/workflow/${selectedWorkflow}`,
+        prepareSendMessagesRequest({ messages }) {
+            const inputData = buildWorkflowInputData(
+                selectedWorkflow,
+                inputText
+            )
+            return { body: { inputData } }
+        },
+    }),
 })
 ```
 
@@ -89,84 +92,78 @@ workflowRoute({
 ### 1. Sequential (`.then()`)
 
 ```typescript
-workflow
-  .then(step1)
-  .then(step2)
-  .then(step3)
-  .commit();
+workflow.then(step1).then(step2).then(step3).commit()
 ```
 
 ### 2. Conditional (`.branch()`)
 
 ```typescript
 workflow
-  .branch([
-    [async ({ inputData }) => condition1, stepA],
-    [async ({ inputData }) => condition2, stepB]
-  ])
-  .commit();
+    .branch([
+        [async ({ inputData }) => condition1, stepA],
+        [async ({ inputData }) => condition2, stepB],
+    ])
+    .commit()
 ```
 
 ### 3. Schema Transformation (`.map()`)
 
 ```typescript
 workflow
-  .then(step1)
-  .map(async ({ inputData }) => ({
-    transformedField: inputData.originalField
-  }))
-  .then(step2)
-  .commit();
+    .then(step1)
+    .map(async ({ inputData }) => ({
+        transformedField: inputData.originalField,
+    }))
+    .then(step2)
+    .commit()
 ```
 
 ### 4. Parallel (`.parallel()`)
 
 ```typescript
 workflow
-  .parallel([stepA, stepB, stepC])
-  .then(mergeStep) // Access via inputData['step-id']
-  .commit();
+    .parallel([stepA, stepB, stepC])
+    .then(mergeStep) // Access via inputData['step-id']
+    .commit()
 ```
 
 ### 5. Loop Until (`.dountil()`)
 
 ```typescript
-workflow
-  .dountil(step, async ({ inputData }) => inputData.value > 10)
-  .commit();
+workflow.dountil(step, async ({ inputData }) => inputData.value > 10).commit()
 ```
 
 ### 6. Loop While (`.dowhile()`)
 
 ```typescript
 workflow
-  .then(step1)
-  .dowhile(refineStep, async ({ inputData }) => inputData.score < threshold)
-  .commit();
+    .then(step1)
+    .dowhile(refineStep, async ({ inputData }) => inputData.score < threshold)
+    .commit()
 ```
 
 ### 7. ForEach (`.foreach()`)
 
 ```typescript
 workflow
-  .foreach(processItemStep, { concurrency: 2 })
-  .then(aggregateStep)
-  .commit();
+    .foreach(processItemStep, { concurrency: 2 })
+    .then(aggregateStep)
+    .commit()
 ```
 
 ### 8. Suspend/Resume
 
 ```typescript
 const step = createStep({
-  suspendSchema: z.object({ message: z.string() }),
-  resumeSchema: z.object({ approved: z.boolean() }),
-  execute: async ({ inputData, resumeData, suspend }) => {
-    if (!resumeData?.approved) {
-      return await suspend({ message: 'Approval needed' });
-    }
-    return { result: 'approved' };
-  }
-});
+    suspendSchema: z.object({ message: z.string() }),
+    resumeSchema: z.object({ approved: z.boolean() }),
+    execute: async ({ inputData, resumeData, suspend }) => {
+        if (!resumeData?.approved) {
+            return await suspend({ message: 'Approval needed' })
+        }
+        return { result: 'approved' }
+    },
+})
 ```
 
 ## Streaming Patterns
@@ -175,10 +172,18 @@ const step = createStep({
 
 ```typescript
 execute: async ({ inputData, writer }) => {
-  await writer?.write({ type: 'step-start', stepId: 'my-step' });
-  await writer?.write({ type: 'progress', percent: 50, message: 'Processing...' });
-  await writer?.write({ type: 'step-complete', stepId: 'my-step', success: true });
-  return result;
+    await writer?.write({ type: 'step-start', stepId: 'my-step' })
+    await writer?.write({
+        type: 'progress',
+        percent: 50,
+        message: 'Processing...',
+    })
+    await writer?.write({
+        type: 'step-complete',
+        stepId: 'my-step',
+        success: true,
+    })
+    return result
 }
 ```
 
@@ -199,21 +204,21 @@ execute: async ({ inputData, writer }) => {
 
 ```typescript
 execute: async ({ inputData, tracingContext }) => {
-  const span = tracingContext.currentSpan?.createChildSpan({
-    type: 'generic',
-    name: 'api-call',
-    input: { url },
-    metadata: { service: 'polygon' }
-  });
-  
-  try {
-    const result = await fetchData();
-    span?.end({ output: result });
-    return result;
-  } catch (error) {
-    span?.error({ error, endSpan: true });
-    throw error;
-  }
+    const span = tracingContext.currentSpan?.createChildSpan({
+        type: 'generic',
+        name: 'api-call',
+        input: { url },
+        metadata: { service: 'polygon' },
+    })
+
+    try {
+        const result = await fetchData()
+        span?.end({ output: result })
+        return result
+    } catch (error) {
+        span?.error({ error, endSpan: true })
+        throw error
+    }
 }
 ```
 
@@ -221,11 +226,11 @@ execute: async ({ inputData, tracingContext }) => {
 
 ```typescript
 const workflow = createWorkflow({
-  id: 'my-workflow',
-  options: {
-    tracingPolicy: { internal: InternalSpans.NONE },
-    validateInputs: true
-  }
+    id: 'my-workflow',
+    options: {
+        tracingPolicy: { internal: InternalSpans.NONE },
+        validateInputs: true,
+    },
 })
 ```
 
@@ -233,9 +238,9 @@ const workflow = createWorkflow({
 
 **Internal:**
 
-- src/mastra/agents/* (23 existing agents)
-- src/mastra/tools/* (30+ existing tools)
-- src/mastra/config/* (models, storage, tracing)
+- src/mastra/agents/\* (23 existing agents)
+- src/mastra/tools/\* (30+ existing tools)
+- src/mastra/config/\* (models, storage, tracing)
 
 **External (already installed):**
 
@@ -264,22 +269,22 @@ const workflow = createWorkflow({
 
 ## Risk Mitigation
 
-| Risk | Mitigation |
-|------|------------|
-| API rate limits | Step-level retries, foreach concurrency |
-| Large documents | Chunking with progress streaming |
-| Infinite loops | Max iterations safeguard |
-| Parallel failures | Individual step error handling |
-| HITL timeouts | suspendSchema with timestamps |
-| Missing spans | try/catch with span?.error() |
+| Risk              | Mitigation                              |
+| ----------------- | --------------------------------------- |
+| API rate limits   | Step-level retries, foreach concurrency |
+| Large documents   | Chunking with progress streaming        |
+| Infinite loops    | Max iterations safeguard                |
+| Parallel failures | Individual step error handling          |
+| HITL timeouts     | suspendSchema with timestamps           |
+| Missing spans     | try/catch with span?.error()            |
 
 ## Network Integration Matrix
 
-| Workflow | agentNetwork | dataPipelineNetwork | reportGenerationNetwork | researchPipelineNetwork |
-|----------|:------------:|:-------------------:|:-----------------------:|:-----------------------:|
-| stockAnalysis | ✓ | ✓ | | |
-| documentProcessing | | ✓ | | ✓ |
-| contentReview | | | ✓ | |
-| financialReport | ✓ | | ✓ | |
-| researchSynthesis | | | ✓ | ✓ |
-| learningExtraction | | ✓ | | |
+| Workflow           | agentNetwork | dataPipelineNetwork | reportGenerationNetwork | researchPipelineNetwork |
+| ------------------ | :----------: | :-----------------: | :---------------------: | :---------------------: |
+| stockAnalysis      |      ✓       |          ✓          |                         |                         |
+| documentProcessing |              |          ✓          |                         |            ✓            |
+| contentReview      |              |                     |            ✓            |                         |
+| financialReport    |      ✓       |                     |            ✓            |                         |
+| researchSynthesis  |              |                     |            ✓            |            ✓            |
+| learningExtraction |              |          ✓          |                         |                         |

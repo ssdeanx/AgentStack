@@ -102,7 +102,9 @@ export const googleSearchTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as SerpApiSearchContext | undefined
+        const requestContext = context?.requestContext as
+            | SerpApiSearchContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled

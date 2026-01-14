@@ -7,6 +7,7 @@ applyTo: '**'
 # Self-explanatory Code Commenting Instructions
 
 ## Core Principle
+
 **Write code that speaks for itself. Comment only when necessary to explain WHY, not WHAT.**
 We do not need comments most of the time.
 
@@ -15,37 +16,42 @@ We do not need comments most of the time.
 ### ❌ AVOID These Comment Types
 
 **Obvious Comments**
+
 ```typescript
 // Bad: States the obvious
-let counter: number = 0;  // Initialize counter to zero
-counter++;  // Increment counter by one
+let counter: number = 0 // Initialize counter to zero
+counter++ // Increment counter by one
 ```
 
 **Redundant Comments**
+
 ```typescript
 // Bad: Comment repeats the code
 function getUserName(user: User): string {
-    return user.name;  // Return the user's name
+    return user.name // Return the user's name
 }
 ```
 
 **Outdated Comments**
+
 ```typescript
 // Bad: Comment doesn't match the code
 // Calculate tax at 5% rate
-const tax: number = price * 0.08;  // Actually 8%
+const tax: number = price * 0.08 // Actually 8%
 ```
 
 ### ✅ WRITE These Comment Types
 
 **Complex Business Logic**
+
 ```typescript
 // Good: Explains WHY this specific calculation
 // Apply progressive tax brackets: 10% up to 10k, 20% above
-const tax: number = calculateProgressiveTax(income, [0.10, 0.20], [10000]);
+const tax: number = calculateProgressiveTax(income, [0.1, 0.2], [10000])
 ```
 
 **Non-obvious Algorithms**
+
 ```typescript
 // Good: Explains the algorithm choice
 // Using Floyd-Warshall for all-pairs shortest paths
@@ -60,23 +66,26 @@ for (let k: number = 0; k < vertices; k++) {
 ```
 
 **Regex Patterns**
+
 ```typescript
 // Good: Explains what the regex matches
 // Match email format: username@domain.extension
-const emailPattern: RegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const emailPattern: RegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 ```
 
 **API Constraints or Gotchas**
+
 ```typescript
 // Good: Explains external constraint
 // GitHub API rate limit: 5000 requests/hour for authenticated users
-await rateLimiter.wait();
-const response: Response = await fetch(githubApiUrl);
+await rateLimiter.wait()
+const response: Response = await fetch(githubApiUrl)
 ```
 
 ## Decision Framework
 
 Before writing a comment, ask:
+
 1. **Is the code self-explanatory?** → No comment needed
 2. **Would a better variable/function name eliminate the need?** → Refactor instead
 3. **Does this explain WHY, not WHAT?** → Good comment
@@ -85,7 +94,8 @@ Before writing a comment, ask:
 ## Special Cases for Comments
 
 ### Public APIs
-```typescript
+
+````typescript
 /**
  * Calculate compound interest using the standard formula.
  * @param principal - Initial amount invested
@@ -101,23 +111,25 @@ Before writing a comment, ask:
  * @throws {Error} When principal is negative or rate/time are invalid
  */
 function calculateCompoundInterest(
-  principal: number,
-  rate: number,
-  time: number,
-  compoundFrequency: number = 1
+    principal: number,
+    rate: number,
+    time: number,
+    compoundFrequency: number = 1
 ): number {
-  // ... implementation
+    // ... implementation
 }
-```
+````
 
 ### Configuration and Constants
+
 ```typescript
 // Good: Explains the source or reasoning
-const MAX_RETRIES: number = 3;  // Based on network reliability studies
-const API_TIMEOUT: number = 5000;  // AWS Lambda timeout is 15s, leaving buffer
+const MAX_RETRIES: number = 3 // Based on network reliability studies
+const API_TIMEOUT: number = 5000 // AWS Lambda timeout is 15s, leaving buffer
 ```
 
 ### Annotations
+
 ```javascript
 // TODO: Replace with proper user authentication after security review
 // FIXME: Memory leak in production - investigate connection pooling
@@ -134,6 +146,7 @@ const API_TIMEOUT: number = 5000;  // AWS Lambda timeout is 15s, leaving buffer
 ## TSDoc Standards and File Headers
 
 ### File Headers
+
 ```typescript
 /**
  * @fileoverview User authentication utilities for the application.
@@ -144,7 +157,7 @@ const API_TIMEOUT: number = 5000;  // AWS Lambda timeout is 15s, leaving buffer
  * @license MIT
  */
 
-import { User } from './types';
+import { User } from './types'
 
 /**
  * Authenticates a user with email and password.
@@ -153,13 +166,17 @@ import { User } from './types';
  * @returns Promise resolving to authenticated user or null
  * @throws {AuthenticationError} When credentials are invalid
  */
-export async function authenticateUser(email: string, password: string): Promise<User | null> {
-  // implementation
+export async function authenticateUser(
+    email: string,
+    password: string
+): Promise<User | null> {
+    // implementation
 }
 ```
 
 ### Common TSDoc Tags
-```typescript
+
+````typescript
 /**
  * Processes user data with validation and transformation.
  *
@@ -178,26 +195,30 @@ export async function authenticateUser(email: string, password: string): Promise
  * @beta This API is in beta and may change
  * @internal For internal use only
  */
-async function processUser(user: User, options: ProcessingOptions): Promise<UserProfile> {
-  // implementation
+async function processUser(
+    user: User,
+    options: ProcessingOptions
+): Promise<UserProfile> {
+    // implementation
 }
-```
+````
 
 ### Type Documentation
+
 ```typescript
 /**
  * Represents a user in the system.
  * @public
  */
 export interface User {
-  /** Unique identifier for the user */
-  readonly id: number;
-  /** User's full name */
-  name: string;
-  /** User's email address */
-  email: string;
-  /** Optional profile picture URL */
-  avatarUrl?: string;
+    /** Unique identifier for the user */
+    readonly id: number
+    /** User's full name */
+    name: string
+    /** User's email address */
+    email: string
+    /** Optional profile picture URL */
+    avatarUrl?: string
 }
 
 /**
@@ -205,10 +226,13 @@ export interface User {
  * @template T - The type of the successful result
  * @template E - The type of the error
  */
-export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
+export type Result<T, E = Error> =
+    | { success: true; data: T }
+    | { success: false; error: E }
 ```
 
 ### Interface and Type Definitions
+
 ```typescript
 /**
  * User profile extending base user with optional personalization data.
@@ -216,14 +240,15 @@ export type Result<T, E = Error> = { success: true; data: T } | { success: false
  * @public
  */
 interface UserProfile extends User {
-  /** Optional biography text */
-  bio?: string;
-  /** Profile picture URL */
-  avatarUrl?: string;
+    /** Optional biography text */
+    bio?: string
+    /** Profile picture URL */
+    avatarUrl?: string
 }
 ```
 
 ### Generics
+
 ```typescript
 /**
  * Serializes data to JSON string with type safety.
@@ -233,11 +258,12 @@ interface UserProfile extends User {
  * @throws {TypeError} When data cannot be serialized
  */
 function serializeResponse<T extends Serializable>(data: T): string {
-    return JSON.stringify(data);
+    return JSON.stringify(data)
 }
 ```
 
 ### Type Guards
+
 ```typescript
 /**
  * Type guard to check if value is a valid User object.
@@ -246,11 +272,17 @@ function serializeResponse<T extends Serializable>(data: T): string {
  * @returns True if value is a User with required fields
  */
 function isUser(value: unknown): value is User {
-    return typeof value === 'object' && value !== null && 'name' in value && 'id' in value;
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        'name' in value &&
+        'id' in value
+    )
 }
 ```
 
 ### Advanced Types
+
 ```typescript
 /**
  * Creates a deep readonly version of any type T.
@@ -259,13 +291,14 @@ function isUser(value: unknown): value is User {
  * @template T - The type to make readonly
  */
 type ReadonlyDeep<T> = {
-    readonly [P in keyof T]: T[P] extends object ? ReadonlyDeep<T[P]> : T[P];
-};
+    readonly [P in keyof T]: T[P] extends object ? ReadonlyDeep<T[P]> : T[P]
+}
 ```
 
 ## Anti-Patterns to Avoid
 
 ### Dead Code Comments
+
 ```typescript
 // Bad: Don't comment out code
 // const oldFunction = () => { ... };
@@ -273,6 +306,7 @@ const newFunction = (): void => { ... };
 ```
 
 ### Changelog Comments
+
 ```typescript
 // Bad: Don't maintain history in comments
 // Modified by John on 2023-01-15
@@ -283,6 +317,7 @@ function processData(): void {
 ```
 
 ### Divider Comments
+
 ```typescript
 // Bad: Don't use decorative comments
 //=====================================
@@ -293,6 +328,7 @@ function processData(): void {
 ## Quality Checklist
 
 Before committing, ensure:
+
 - [ ] Comments explain WHY, not WHAT
 - [ ] Comments are grammatically correct and clear
 - [ ] Comments will remain accurate as code evolves

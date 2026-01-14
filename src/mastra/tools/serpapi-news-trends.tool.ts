@@ -6,7 +6,7 @@
  *
  * @module serpapi-news-trends-tool
  */
-import { SpanType } from "@mastra/core/observability";
+import { SpanType } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { getJson } from 'serpapi'
@@ -125,7 +125,9 @@ export const googleNewsTool = createTool({
     },
     execute: async (input, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as SerpApiNewsContext | undefined
+        const requestContext = context?.requestContext as
+            | SerpApiNewsContext
+            | undefined
         const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
@@ -148,8 +150,8 @@ export const googleNewsTool = createTool({
                 timeRange: input.timeRange,
                 topic: input.topic,
                 operation: 'google-news',
-            }
-        });
+            },
+        })
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -220,7 +222,7 @@ export const googleNewsTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.articlesFound': newsArticles.length,
-                }
+                },
             })
             newsSpan?.end()
             log.info('Google News search completed', {
@@ -295,8 +297,8 @@ export const googleNewsLiteTool = createTool({
                 'tool.id': 'google-news-lite',
                 query: input.query,
                 operation: 'google-news-lite',
-            }
-        });
+            },
+        })
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -343,7 +345,7 @@ export const googleNewsLiteTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.articlesFound': newsArticles.length,
-                }
+                },
             })
             newsLiteSpan?.end()
             log.info('Google News Lite search completed', {
@@ -457,8 +459,8 @@ export const googleTrendsTool = createTool({
                 query: input.query,
                 timeRange: input.timeRange,
                 operation: 'google-trends',
-            }
-        });
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -534,7 +536,7 @@ export const googleTrendsTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.dataPoints': interestOverTime.length,
-                }
+                },
             })
             trendsSpan?.end()
             log.info('Google Trends search completed', {
@@ -619,8 +621,8 @@ export const googleAutocompleteTool = createTool({
                 'tool.id': 'google-autocomplete',
                 query: input.query,
                 operation: 'google-autocomplete',
-            }
-        });
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -670,7 +672,7 @@ export const googleAutocompleteTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.suggestionCount': suggestions.length,
-                }
+                },
             })
             autocompleteSpan?.end()
             log.info('Google Autocomplete completed', {

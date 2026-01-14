@@ -12,10 +12,11 @@ The file `prompt-injection-guard.md` defines the **core defense logic** that the
 This document complements it by organizing **user-side operational options and how to handle false positives**.
 
 **Related documents:**
+
 - Threat analysis and design background: [`custom_instruction_plan_prompt_injection.md`](custom_instruction_plan_prompt_injection.md)
 - Implementation rules:
-  - Windsurf: `.windsurf/rules/prompt-injection-guard.md`
-  - Antigravity: `.agent/rules/prompt-injection-guard.md`
+    - Windsurf: `.windsurf/rules/prompt-injection-guard.md`
+    - Antigravity: `.agent/rules/prompt-injection-guard.md`
 
 ---
 
@@ -66,8 +67,8 @@ This document complements it by organizing **user-side operational options and h
 
 - In normal operation, keep `prompt-injection-guard.md` always enabled so that the guard is always active.
 - Even when false positives make it hard to work:
-  - First consider reducing noise via **organizing trusted sources** and **alert suppression settings**.
-  - Only when the impact remains significant should you temporarily change the rule application settings, and be sure to revert the setting after the work is done.
+    - First consider reducing noise via **organizing trusted sources** and **alert suppression settings**.
+    - Only when the impact remains significant should you temporarily change the rule application settings, and be sure to revert the setting after the work is done.
 - When you want to execute commands from external runbooks or wikis, we recommend a workflow where the AI first shows you the concrete commands and you explicitly approve them (for example, "Yes, run this command"), rather than implicitly executing imperative sentences from the document body.
 - When using an English UI or working in a multilingual environment, the same guard logic applies.  
   If your workspace contains both Japanese and English versions of the rules/guides, refer to whichever matches your working language as needed.
@@ -79,15 +80,12 @@ The strict guardrails the AI must follow are always defined by `prompt-injection
 
 ## 5. Common false-positive patterns and how to handle them
 
-- Example 1: **`instruction-quarantine` alerts on internal wiki runbooks**  
-  - Symptom: A trusted internal wiki page contains phrases like "Run the following command", and quoting it as-is triggers an alert.
-  - Handling: Treat the domain as a "trusted source" while **keeping the detection / blocking logic intact**.  
-    If UI noise becomes a problem, consider temporarily suppressing the corresponding `alert_type` in the UI (logging only).
+- Example 1: **`instruction-quarantine` alerts on internal wiki runbooks**
+    - Symptom: A trusted internal wiki page contains phrases like "Run the following command", and quoting it as-is triggers an alert.
+    - Handling: Treat the domain as a "trusted source" while **keeping the detection / blocking logic intact**.  
+      If UI noise becomes a problem, consider temporarily suppressing the corresponding `alert_type` in the UI (logging only).
 
-- Example 2: **Repeated `payload-splitting` alerts from test scripts**  
-  - Symptom: Tests frequently edit scripts that intentionally split commands across multiple strings, causing repeated `payload-splitting` alerts.
-  - Handling: Even if the test code itself is legitimate, it often contains **the same dangerous patterns as real attacks**, so keep the core defenses enabled.  
-    If you only want to reduce UI noise during development, consider temporarily hiding `payload-splitting` alerts in the UI and checking them via logs instead.
-
-
-
+- Example 2: **Repeated `payload-splitting` alerts from test scripts**
+    - Symptom: Tests frequently edit scripts that intentionally split commands across multiple strings, causing repeated `payload-splitting` alerts.
+    - Handling: Even if the test code itself is legitimate, it often contains **the same dangerous patterns as real attacks**, so keep the core defenses enabled.  
+      If you only want to reduce UI noise during development, consider temporarily hiding `payload-splitting` alerts in the UI and checking them via logs instead.

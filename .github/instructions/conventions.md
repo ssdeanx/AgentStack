@@ -3,6 +3,7 @@ name: Code Conventions
 description: Guidelines and best practices for writing code in the Mastra project.
 applyTo: '**'
 ---
+
 # Code Conventions
 
 ## Tool Implementation Pattern
@@ -10,11 +11,11 @@ applyTo: '**'
 All tools follow this structure:
 
 ```typescript
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import { AISpanType } from "@mastra/core/ai-tracing";
-import type { RuntimeContext } from "@mastra/core/runtime-context";
-import { log } from "../config/logger";
+import { createTool } from '@mastra/core/tools'
+import { z } from 'zod'
+import { AISpanType } from '@mastra/core/ai-tracing'
+import type { RuntimeContext } from '@mastra/core/runtime-context'
+import { log } from '../config/logger'
 
 // Define the Zod schema for the runtime context
 const myToolContextSchema = z.object({
@@ -25,39 +26,41 @@ const myToolContextSchema = z.object({
 export type MyToolContext = z.infer<typeof myToolContextSchema>
 
 export const myTool = createTool({
-  id: "my-tool",
-  description: "Clear description of what the tool does",
-  inputSchema: z.object({
-    param: z.string().describe("Parameter description")
-  }),
-  outputSchema: z.object({
-    data: z.any().describe("Result data"),
-    error: z.string().optional()
-  }),
-  execute: async ({ context, tracingContext, runtimeContext }) => {
-    const startTime = Date.now();
-    
-    // Create root tracing span
-    const rootSpan = tracingContext?.currentSpan?.createChildSpan({
-      type: AISpanType.TOOL_CALL,
-      name: 'my-tool',
-      input: context,
-      runtimeContext: myToolContextSchema.parse(runtimeContext.toObject()),
-    });
+    id: 'my-tool',
+    description: 'Clear description of what the tool does',
+    inputSchema: z.object({
+        param: z.string().describe('Parameter description'),
+    }),
+    outputSchema: z.object({
+        data: z.any().describe('Result data'),
+        error: z.string().optional(),
+    }),
+    execute: async ({ context, tracingContext, runtimeContext }) => {
+        const startTime = Date.now()
 
-    try {
-      // Tool logic here
-      log.info('my-tool executed', { context });
-      
-      rootSpan?.end({ output: result });
-      return result;
-    } catch (error) {
-      log.error('my-tool error', { error, context });
-      rootSpan?.error({ error });
-      return { data: null, error: errorMessage };
-    }
-  }
-});
+        // Create root tracing span
+        const rootSpan = tracingContext?.currentSpan?.createChildSpan({
+            type: AISpanType.TOOL_CALL,
+            name: 'my-tool',
+            input: context,
+            runtimeContext: myToolContextSchema.parse(
+                runtimeContext.toObject()
+            ),
+        })
+
+        try {
+            // Tool logic here
+            log.info('my-tool executed', { context })
+
+            rootSpan?.end({ output: result })
+            return result
+        } catch (error) {
+            log.error('my-tool error', { error, context })
+            rootSpan?.error({ error })
+            return { data: null, error: errorMessage }
+        }
+    },
+})
 ```
 
 ## Key Patterns
@@ -110,26 +113,26 @@ import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 
 export const myAgent = new Agent({
-  id: 'my-agent',
-  name: 'My Agent',
-  description: 'What this agent does',
-  instructions: ({ runtimeContext }) => {
-    // Dynamic instructions based on context
-    return `You are an expert at...`;
-  },
-  model: googleAI,
-  tools: {
-    tool1,
-    tool2,
-  },
-  memory: pgMemory,
-  scorers: {
-    quality: {
-      scorer: myScorer,
-      sampling: { type: "ratio", rate: 0.5 }
-    }
-  }
-});
+    id: 'my-agent',
+    name: 'My Agent',
+    description: 'What this agent does',
+    instructions: ({ runtimeContext }) => {
+        // Dynamic instructions based on context
+        return `You are an expert at...`
+    },
+    model: googleAI,
+    tools: {
+        tool1,
+        tool2,
+    },
+    memory: pgMemory,
+    scorers: {
+        quality: {
+            scorer: myScorer,
+            sampling: { type: 'ratio', rate: 0.5 },
+        },
+    },
+})
 ```
 
 ## Testing Conventions
@@ -140,45 +143,45 @@ export const myAgent = new Agent({
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 describe('myTool', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
 
-  it('should successfully execute', async () => {
-    // Mock external dependencies
-    global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve(mockData)
-    });
-
-    // Create mock contexts
-    const mockRuntimeContext = {
-      get: vi.fn().mockReturnValue(value)
-    } as any;
-
-    const mockTracingContext = {
-      currentSpan: {
-        createChildSpan: vi.fn().mockReturnValue({
-          end: vi.fn(),
-          error: vi.fn()
+    it('should successfully execute', async () => {
+        // Mock external dependencies
+        global.fetch = vi.fn().mockResolvedValue({
+            json: () => Promise.resolve(mockData),
         })
-      }
-    } as any;
 
-    // Execute and assert
-    const result = await myTool.execute({
-      context: { param: 'value' },
-      runtimeContext: mockRuntimeContext,
-      tracingContext: mockTracingContext
-    });
+        // Create mock contexts
+        const mockRuntimeContext = {
+            get: vi.fn().mockReturnValue(value),
+        } as any
 
-    expect(result.data).toBeDefined();
-    expect(result.error).toBeUndefined();
-  });
+        const mockTracingContext = {
+            currentSpan: {
+                createChildSpan: vi.fn().mockReturnValue({
+                    end: vi.fn(),
+                    error: vi.fn(),
+                }),
+            },
+        } as any
 
-  it('should handle errors', async () => {
-    // Test error cases
-  });
-});
+        // Execute and assert
+        const result = await myTool.execute({
+            context: { param: 'value' },
+            runtimeContext: mockRuntimeContext,
+            tracingContext: mockTracingContext,
+        })
+
+        expect(result.data).toBeDefined()
+        expect(result.error).toBeUndefined()
+    })
+
+    it('should handle errors', async () => {
+        // Test error cases
+    })
+})
 ```
 
 ### Testing Rules
@@ -203,15 +206,15 @@ describe('myTool', () => {
 
 ```typescript
 // 1. External framework imports
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { createTool } from '@mastra/core/tools'
+import { z } from 'zod'
 
 // 2. Type imports
-import type { RuntimeContext } from "@mastra/core/runtime-context";
+import type { RuntimeContext } from '@mastra/core/runtime-context'
 
 // 3. Internal imports (config, tools, etc.)
-import { log } from "../config/logger";
-import { pgQueryTool } from "../config/pg-storage";
+import { log } from '../config/logger'
+import { pgQueryTool } from '../config/pg-storage'
 ```
 
 ## Security Practices

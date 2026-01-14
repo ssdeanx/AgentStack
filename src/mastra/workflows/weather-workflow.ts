@@ -54,9 +54,11 @@ const fetchWeather = createStep({
             mastra,
         })
         try {
-
             if (!inputData?.city) {
-                span?.error({ error: new Error('City not provided in input data'), endSpan: true })
+                span?.error({
+                    error: new Error('City not provided in input data'),
+                    endSpan: true,
+                })
                 throw new Error('City not provided in input data')
             }
 
@@ -142,7 +144,8 @@ const fetchWeather = createStep({
             return forecast
         } catch (error) {
             span?.error({
-                error: error instanceof Error ? error : new Error(String(error)),
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
             throw error
@@ -177,7 +180,10 @@ const planActivities = createStep({
             const forecast = inputData
 
             if (!forecast?.date) {
-                span?.error({ error: new Error('Forecast data not found'), endSpan: true })
+                span?.error({
+                    error: new Error('Forecast data not found'),
+                    endSpan: true,
+                })
                 throw new Error('Forecast data not found')
             }
 
@@ -192,10 +198,15 @@ const planActivities = createStep({
                 id: 'plan-activities',
             })
 
-            const mastraInst = mastra ?? (globalThis as unknown as Record<string, unknown>).mastra
+            const mastraInst =
+                mastra ??
+                (globalThis as unknown as Record<string, unknown>).mastra
             const agent = mastraInst?.getAgent?.('weatherAgent')
             if (agent === undefined || agent === null) {
-                span?.error({ error: new Error('Weather agent not found'), endSpan: true })
+                span?.error({
+                    error: new Error('Weather agent not found'),
+                    endSpan: true,
+                })
                 throw new Error('Weather agent not found')
             }
 
@@ -303,7 +314,8 @@ const planActivities = createStep({
             return result
         } catch (error) {
             span?.error({
-                error: error instanceof Error ? error : new Error(String(error)),
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
             throw error

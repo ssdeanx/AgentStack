@@ -495,7 +495,9 @@ Perfect for RAG indexing, documentation conversion, and content processing.
     execute: async (inputData, context) => {
         const startTime = Date.now()
         logToolExecution('pdf-to-markdown', { input: inputData })
-        const requestContext = context?.requestContext as PdfDataConversionContext | undefined
+        const requestContext = context?.requestContext as
+            | PdfDataConversionContext
+            | undefined
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -510,7 +512,12 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             type: SpanType.TOOL_CALL,
             name: 'pdf-to-markdown-tool',
             input: { pdfPath: inputData.pdfPath, maxPages: inputData.maxPages },
-            metadata: { 'tool.id': 'pdfToMarkdown', 'tool.input.pdfPath': inputData.pdfPath, normalization: inputData.normalizeText, operation: 'pdf-to-markdown' }
+            metadata: {
+                'tool.id': 'pdfToMarkdown',
+                'tool.input.pdfPath': inputData.pdfPath,
+                normalization: inputData.normalizeText,
+                operation: 'pdf-to-markdown',
+            },
         })
         // Note: nested child spans will be created from tracingContext or rootSpan as needed
         const warnings: string[] = []
@@ -536,7 +543,16 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 )
             }
             // Read PDF file
-            const readSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'read-pdf-file', input: { filePath: absolutePath }, metadata: { 'tool.id': 'read-pdf-file', 'filePath': absolutePath, 'sizeBytes': fileStats.size } })
+            const readSpan = rootSpan?.createChildSpan({
+                type: SpanType.TOOL_CALL,
+                name: 'read-pdf-file',
+                input: { filePath: absolutePath },
+                metadata: {
+                    'tool.id': 'read-pdf-file',
+                    filePath: absolutePath,
+                    sizeBytes: fileStats.size,
+                },
+            })
             const readStart = Date.now()
             const pdfBuffer = await fs.readFile(absolutePath)
             const readDuration = Date.now() - readStart
@@ -548,16 +564,34 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 readDuration
             )
             // Extract text using unpdf (serverless PDF.js build)
-            const extractSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-pdf-text', input: { maxPages: inputData.maxPages }, metadata: { 'tool.id': 'extract-pdf-text', maxPages: inputData.maxPages } })
+            const extractSpan = rootSpan?.createChildSpan({
+                type: SpanType.TOOL_CALL,
+                name: 'extract-pdf-text',
+                input: { maxPages: inputData.maxPages },
+                metadata: {
+                    'tool.id': 'extract-pdf-text',
+                    maxPages: inputData.maxPages,
+                },
+            })
 
             const pdfContent = await extractPdfText(pdfBuffer, {
                 maxPages: inputData.maxPages,
             })
-            extractSpan?.update({ output: { pages: pdfContent.numpages, textLength: pdfContent.text.length } })
+            extractSpan?.update({
+                output: {
+                    pages: pdfContent.numpages,
+                    textLength: pdfContent.text.length,
+                },
+            })
             extractSpan?.end()
 
             // Extract metadata
-            const metadataSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-metadata', input: {}, metadata: { 'tool.id': 'extract-metadata' } })
+            const metadataSpan = rootSpan?.createChildSpan({
+                type: SpanType.TOOL_CALL,
+                name: 'extract-metadata',
+                input: {},
+                metadata: { 'tool.id': 'extract-metadata' },
+            })
 
             const metadata = await extractPdfMetadata(pdfContent)
             metadataSpan?.update({ output: metadata })
@@ -566,17 +600,37 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             // Normalize text if requested
             let processedText = pdfContent.text
             if (inputData.normalizeText) {
-                const normalizeSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'normalize-text', input: { textLength: processedText.length }, metadata: { 'tool.id': 'normalize-text', textLength: processedText.length } })
+                const normalizeSpan = rootSpan?.createChildSpan({
+                    type: SpanType.TOOL_CALL,
+                    name: 'normalize-text',
+                    input: { textLength: processedText.length },
+                    metadata: {
+                        'tool.id': 'normalize-text',
+                        textLength: processedText.length,
+                    },
+                })
 
                 processedText = normalizePdfText(processedText)
-                normalizeSpan?.update({ output: { newLength: processedText.length } })
+                normalizeSpan?.update({
+                    output: { newLength: processedText.length },
+                })
                 normalizeSpan?.end()
             }
 
             // Convert to markdown
-            const markdownSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'convert-to-markdown', input: {}, metadata: { 'tool.id': 'convert-to-markdown' } })
+            const markdownSpan = rootSpan?.createChildSpan({
+                type: SpanType.TOOL_CALL,
+                name: 'convert-to-markdown',
+                input: {},
+                metadata: { 'tool.id': 'convert-to-markdown' },
+            })
             const markdownResult = convertToMarkdown(processedText)
-            markdownSpan?.update({ output: { lineCount: markdownResult.lineCount, headingCount: markdownResult.headingCount } })
+            markdownSpan?.update({
+                output: {
+                    lineCount: markdownResult.lineCount,
+                    headingCount: markdownResult.headingCount,
+                },
+            })
             markdownSpan?.end()
 
             // Extract tables if requested
@@ -585,10 +639,17 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 tables: [],
             }
             if (inputData.includeTables) {
-                const tableSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-tables', input: {}, metadata: { 'tool.id': 'extract-tables' } })
+                const tableSpan = rootSpan?.createChildSpan({
+                    type: SpanType.TOOL_CALL,
+                    name: 'extract-tables',
+                    input: {},
+                    metadata: { 'tool.id': 'extract-tables' },
+                })
 
                 tableResult = extractTables(processedText)
-                tableSpan?.update({ output: { tableCount: tableResult.tableCount } })
+                tableSpan?.update({
+                    output: { tableCount: tableResult.tableCount },
+                })
                 tableSpan?.end()
             }
 
@@ -598,10 +659,17 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 images: [],
             }
             if (inputData.includeImages) {
-                const imageSpan = rootSpan?.createChildSpan({ type: SpanType.TOOL_CALL, name: 'extract-images', input: {}, metadata: { 'tool.id': 'extract-images' } })
+                const imageSpan = rootSpan?.createChildSpan({
+                    type: SpanType.TOOL_CALL,
+                    name: 'extract-images',
+                    input: {},
+                    metadata: { 'tool.id': 'extract-images' },
+                })
 
                 imageResult = extractImageReferences(pdfBuffer)
-                imageSpan?.update({ output: { imageCount: imageResult.imageCount } })
+                imageSpan?.update({
+                    output: { imageCount: imageResult.imageCount },
+                })
                 imageSpan?.end()
             }
 
@@ -707,7 +775,10 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             logStepEnd('pdf-to-markdown', output, totalProcessingTime)
 
             // End root tracing span
-            rootSpan?.update({ output, metadata: { 'tool.output.success': true } })
+            rootSpan?.update({
+                output,
+                metadata: { 'tool.output.success': true },
+            })
             rootSpan?.end()
 
             return output
@@ -724,7 +795,10 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             })
 
             // Record error in tracing span
-            rootSpan?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true })
+            rootSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
 
             return {
                 success: false,

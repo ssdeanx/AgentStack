@@ -8,29 +8,30 @@ Combine command and prompt hooks for layered validation:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh",
-          "timeout": 5
-        },
-        {
-          "type": "prompt",
-          "prompt": "Deep analysis of bash command: $TOOL_INPUT",
-          "timeout": 15
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh",
+                    "timeout": 5
+                },
+                {
+                    "type": "prompt",
+                    "prompt": "Deep analysis of bash command: $TOOL_INPUT",
+                    "timeout": 15
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Use case:** Fast deterministic checks followed by intelligent analysis
 
 **Example quick-check.sh:**
+
 ```bash
 #!/bin/bash
 input=$(cat)
@@ -65,11 +66,13 @@ input=$(cat)
 ```
 
 **Use cases:**
+
 - Different behavior in CI vs local development
 - Project-specific validation
 - User-specific rules
 
 **Example: Skip certain checks for trusted users:**
+
 ```bash
 #!/bin/bash
 # Skip detailed checks for admin users
@@ -135,11 +138,12 @@ fi
 ```
 
 **Example .claude-hooks-config.json:**
+
 ```json
 {
-  "strict_mode": true,
-  "allowed_commands": ["ls", "pwd", "grep"],
-  "forbidden_paths": ["/etc", "/sys"]
+    "strict_mode": true,
+    "allowed_commands": ["ls", "pwd", "grep"],
+    "forbidden_paths": ["/etc", "/sys"]
 }
 ```
 
@@ -149,17 +153,17 @@ Use transcript and session context for intelligent decisions:
 
 ```json
 {
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Review the full transcript at $TRANSCRIPT_PATH. Check: 1) Were tests run after code changes? 2) Did the build succeed? 3) Were all user questions answered? 4) Is there any unfinished work? Return 'approve' only if everything is complete."
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Review the full transcript at $TRANSCRIPT_PATH. Check: 1) Were tests run after code changes? 2) Did the build succeed? 3) Were all user questions answered? 4) Is there any unfinished work? Return 'approve' only if everything is complete."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -199,28 +203,28 @@ Since hooks run in parallel, design them to be independent:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash check-size.sh",      // Independent
-          "timeout": 2
-        },
-        {
-          "type": "command",
-          "command": "bash check-path.sh",      // Independent
-          "timeout": 2
-        },
-        {
-          "type": "prompt",
-          "prompt": "Check content safety",     // Independent
-          "timeout": 10
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash check-size.sh", // Independent
+                    "timeout": 2
+                },
+                {
+                    "type": "command",
+                    "command": "bash check-path.sh", // Independent
+                    "timeout": 2
+                },
+                {
+                    "type": "prompt",
+                    "prompt": "Check content safety", // Independent
+                    "timeout": 10
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -231,6 +235,7 @@ All three hooks run simultaneously, reducing total latency.
 Coordinate hooks across different events:
 
 **SessionStart - Set up tracking:**
+
 ```bash
 #!/bin/bash
 # Initialize session tracking
@@ -239,6 +244,7 @@ echo "0" > /tmp/build-count-$$
 ```
 
 **PostToolUse - Track events:**
+
 ```bash
 #!/bin/bash
 input=$(cat)
@@ -254,6 +260,7 @@ fi
 ```
 
 **Stop - Verify based on tracking:**
+
 ```bash
 #!/bin/bash
 test_count=$(cat /tmp/test-count-$$ 2>/dev/null || echo "0")

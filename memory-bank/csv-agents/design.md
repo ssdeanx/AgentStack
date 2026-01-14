@@ -21,13 +21,13 @@ graph TB
         DIA[DataIngestionAgent]
         DTA[DataTransformationAgent]
     end
-    
+
     subgraph "CSV Tools"
         CTJ[csvToJsonTool]
         JTC[jsonToCsvTool]
         DV[dataValidatorTool]
     end
-    
+
     subgraph "Data File Tools"
         RDF[readDataFileTool]
         WDF[writeDataFileTool]
@@ -35,24 +35,24 @@ graph TB
         SDF[searchDataFilesTool]
         BKP[backupDataTool]
     end
-    
+
     subgraph "Data Processing Tools"
         RCD[readCSVDataTool]
         CDF[convertDataFormatTool]
         VDT[validateDataTool]
         PXM[processXMLTool]
     end
-    
+
     DEA --> JTC
     DEA --> WDF
     DEA --> DV
     DEA --> BKP
-    
+
     DIA --> CTJ
     DIA --> RDF
     DIA --> DV
     DIA --> RCD
-    
+
     DTA --> CTJ
     DTA --> JTC
     DTA --> CDF
@@ -70,7 +70,7 @@ graph LR
         RA1 --> DTA[DataTransformationAgent]
         RA1 --> RPA[reportAgent]
     end
-    
+
     subgraph "ReportGenerationNetwork"
         RA2[Routing Agent] --> DIA2[DataIngestionAgent]
         RA2 --> DTA2[DataTransformationAgent]
@@ -92,33 +92,34 @@ graph LR
 
 **Tools:**
 
-| Tool | Purpose |
-|------|---------|
-| `jsonToCsvTool` | Convert JSON arrays to CSV |
-| `writeDataFileTool` | Write CSV to data directory |
+| Tool                | Purpose                               |
+| ------------------- | ------------------------------------- |
+| `jsonToCsvTool`     | Convert JSON arrays to CSV            |
+| `writeDataFileTool` | Write CSV to data directory           |
 | `dataValidatorTool` | Validate input data before conversion |
-| `backupDataTool` | Create backup before overwriting |
+| `backupDataTool`    | Create backup before overwriting      |
 
 **Agent Implementation Pattern:**
 
 ```typescript
 export const dataExportAgent = new Agent({
-  id: 'data-export-agent',
-  name: 'Data Export Agent',
-  description: 'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, and saving structured data to files.',
-  instructions: `You are a data export specialist...`,
-  model: googleAI,
-  memory: pgMemory,
-  tools: {
-    jsonToCsvTool,
-    writeDataFileTool,
-    dataValidatorTool,
-    backupDataTool
-  },
-  options: {
-    tracingPolicy: { internal: InternalSpans.ALL }
-  }
-});
+    id: 'data-export-agent',
+    name: 'Data Export Agent',
+    description:
+        'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, and saving structured data to files.',
+    instructions: `You are a data export specialist...`,
+    model: googleAI,
+    memory: pgMemory,
+    tools: {
+        jsonToCsvTool,
+        writeDataFileTool,
+        dataValidatorTool,
+        backupDataTool,
+    },
+    options: {
+        tracingPolicy: { internal: InternalSpans.ALL },
+    },
+})
 ```
 
 **Instructions:**
@@ -144,10 +145,10 @@ Always:
 
 ```typescript
 interface DataExportContext {
-  userId?: string
-  outputDirectory?: string
-  overwriteExisting?: boolean
-  delimiter?: string
+    userId?: string
+    outputDirectory?: string
+    overwriteExisting?: boolean
+    delimiter?: string
 }
 ```
 
@@ -159,12 +160,12 @@ interface DataExportContext {
 
 **Tools:**
 
-| Tool | Purpose |
-|------|---------|
-| `csvToJsonTool` | Parse CSV to JSON |
-| `readDataFileTool` | Read CSV from data directory |
+| Tool                | Purpose                             |
+| ------------------- | ----------------------------------- |
+| `csvToJsonTool`     | Parse CSV to JSON                   |
+| `readDataFileTool`  | Read CSV from data directory        |
 | `dataValidatorTool` | Validate parsed data against schema |
-| `readCSVDataTool` | Alternative CSV reader with headers |
+| `readCSVDataTool`   | Alternative CSV reader with headers |
 
 **Instructions:**
 
@@ -188,10 +189,10 @@ Always:
 
 ```typescript
 interface DataIngestionContext {
-  userId?: string
-  sourceDirectory?: string
-  validationSchema?: object
-  maxRows?: number
+    userId?: string
+    sourceDirectory?: string
+    validationSchema?: object
+    maxRows?: number
 }
 ```
 
@@ -203,13 +204,13 @@ interface DataIngestionContext {
 
 **Tools:**
 
-| Tool | Purpose |
-|------|---------|
-| `csvToJsonTool` | CSV → JSON |
-| `jsonToCsvTool` | JSON → CSV |
-| `convertDataFormatTool` | Multi-format conversion |
-| `validateDataTool` | Format-specific validation |
-| `processXMLTool` | XML processing |
+| Tool                    | Purpose                    |
+| ----------------------- | -------------------------- |
+| `csvToJsonTool`         | CSV → JSON                 |
+| `jsonToCsvTool`         | JSON → CSV                 |
+| `convertDataFormatTool` | Multi-format conversion    |
+| `validateDataTool`      | Format-specific validation |
+| `processXMLTool`        | XML processing             |
 
 **Instructions:**
 
@@ -241,10 +242,10 @@ Always:
 
 ```typescript
 interface DataTransformationContext {
-  userId?: string
-  preserveTypes?: boolean
-  flattenNested?: boolean
-  xmlRootElement?: string
+    userId?: string
+    preserveTypes?: boolean
+    flattenNested?: boolean
+    xmlRootElement?: string
 }
 ```
 
@@ -257,6 +258,7 @@ interface DataTransformationContext {
 **Implementation Pattern:** Based on `networks/index.ts` - Uses Agent class with `agents` property (NOT AgentNetwork class)
 
 **Critical Requirements:**
+
 1. Network is an `Agent` with `agents`, `workflows`, `tools` properties
 2. **MUST** have `memory: pgMemory` to enable `.network()` method
 3. All member agents need **clear descriptions** for routing decisions
@@ -271,7 +273,7 @@ flowchart TD
     ROUTE -->|"import/parse CSV"| DIA[DataIngestionAgent]
     ROUTE -->|"convert/transform"| DTA[DataTransformationAgent]
     ROUTE -->|"generate report"| RPA[reportAgent]
-    
+
     DEA --> OUTPUT[Response]
     DIA --> OUTPUT
     DTA --> OUTPUT
@@ -282,10 +284,11 @@ flowchart TD
 
 ```typescript
 export const dataPipelineNetwork = new Agent({
-  id: 'data-pipeline-network',
-  name: 'Data Pipeline Network',
-  description: 'A routing agent that coordinates data processing agents for CSV/JSON operations.',
-  instructions: `You are a routing agent for data processing requests.
+    id: 'data-pipeline-network',
+    name: 'Data Pipeline Network',
+    description:
+        'A routing agent that coordinates data processing agents for CSV/JSON operations.',
+    instructions: `You are a routing agent for data processing requests.
     Analyze the user's request and delegate to the appropriate specialist:
     
     - DataExportAgent: Creating CSV files, exporting data, converting JSON to CSV
@@ -294,13 +297,18 @@ export const dataPipelineNetwork = new Agent({
     - reportAgent: Generating reports and summaries from data
     
     Always explain which agent you're delegating to and why.`,
-  model: googleAI,
-  memory: pgMemory, // REQUIRED for network functionality
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
-  agents: { dataExportAgent, dataIngestionAgent, dataTransformationAgent, reportAgent },
-  tools: {},
-  workflows: {}
-});
+    model: googleAI,
+    memory: pgMemory, // REQUIRED for network functionality
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    agents: {
+        dataExportAgent,
+        dataIngestionAgent,
+        dataTransformationAgent,
+        reportAgent,
+    },
+    tools: {},
+    workflows: {},
+})
 ```
 
 ### 2. ReportGenerationNetwork
@@ -319,7 +327,7 @@ sequenceDiagram
     participant Transform as DataTransformationAgent
     participant Report as reportAgent
     participant Export as DataExportAgent
-    
+
     User->>Router: Generate report from data
     Router->>Research: Gather data
     Research-->>Router: Raw data
@@ -336,10 +344,11 @@ sequenceDiagram
 
 ```typescript
 export const reportGenerationNetwork = new Agent({
-  id: 'report-generation-network',
-  name: 'Report Generation Network',
-  description: 'A routing agent that coordinates research, data transformation, and report generation.',
-  instructions: `You are a routing agent for report generation workflows.
+    id: 'report-generation-network',
+    name: 'Report Generation Network',
+    description:
+        'A routing agent that coordinates research, data transformation, and report generation.',
+    instructions: `You are a routing agent for report generation workflows.
     Coordinate the following agents to create comprehensive reports:
     
     - researchAgent: Research and gather raw data from various sources
@@ -353,13 +362,18 @@ export const reportGenerationNetwork = new Agent({
     1. Gather data (researchAgent or DataIngestionAgent)
     2. Transform/normalize (DataTransformationAgent)
     3. Generate report (reportAgent)`,
-  model: googleAIPro,
-  memory: pgMemory,
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
-  agents: { dataIngestionAgent, dataTransformationAgent, researchAgent, reportAgent },
-  tools: {},
-  workflows: { weatherWorkflow }
-});
+    model: googleAIPro,
+    memory: pgMemory,
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    agents: {
+        dataIngestionAgent,
+        dataTransformationAgent,
+        researchAgent,
+        reportAgent,
+    },
+    tools: {},
+    workflows: { weatherWorkflow },
+})
 ```
 
 ## Data Flow Patterns
@@ -427,20 +441,20 @@ import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { dataValidatorTool } from '../tools/data-validator.tool'
 
 // Data File Tools (from tools/data-file-manager.ts)
-import { 
-  readDataFileTool, 
-  writeDataFileTool, 
-  listDataDirTool,
-  searchDataFilesTool,
-  backupDataTool 
+import {
+    readDataFileTool,
+    writeDataFileTool,
+    listDataDirTool,
+    searchDataFilesTool,
+    backupDataTool,
 } from '../tools/data-file-manager'
 
 // Data Processing Tools (from tools/data-processing-tools.ts)
 import {
-  readCSVDataTool,
-  convertDataFormatTool,
-  validateDataTool,
-  processXMLTool
+    readCSVDataTool,
+    convertDataFormatTool,
+    validateDataTool,
+    processXMLTool,
 } from '../tools/data-processing-tools'
 
 // Existing Agents (for networks)
@@ -467,12 +481,12 @@ From `google.ts`:
 
 ## Error Handling
 
-| Error Type | Handling |
-|------------|----------|
-| File not found | Return clear error with expected path |
-| Parse error | Return row/column location of error |
-| Validation failure | Return field-level error messages |
-| Transformation failure | Return partial results if possible |
+| Error Type             | Handling                              |
+| ---------------------- | ------------------------------------- |
+| File not found         | Return clear error with expected path |
+| Parse error            | Return row/column location of error   |
+| Validation failure     | Return field-level error messages     |
+| Transformation failure | Return partial results if possible    |
 
 ## Testing Strategy
 

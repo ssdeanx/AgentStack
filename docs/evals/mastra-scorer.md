@@ -5,14 +5,18 @@
 Example:
 
 ```typescript
-const scorer = createScorer({ name: "Quality Scorer" })
-  .preprocess(({ run }) => ({ wordCount: run.output.split(" ").length }))
-  .analyze(({ run, results }) => ({ hasSubstance: results.preprocessStepResult.wordCount > 10 }))
-  .generateScore(({ results }) => (results.analyzeStepResult.hasSubstance ? 1 : 0))
-  .generateReason(({ score, results }) => `Score: ${score}.`);
+const scorer = createScorer({ name: 'Quality Scorer' })
+    .preprocess(({ run }) => ({ wordCount: run.output.split(' ').length }))
+    .analyze(({ run, results }) => ({
+        hasSubstance: results.preprocessStepResult.wordCount > 10,
+    }))
+    .generateScore(({ results }) =>
+        results.analyzeStepResult.hasSubstance ? 1 : 0
+    )
+    .generateReason(({ score, results }) => `Score: ${score}.`)
 
-const result = await scorer.run({ input: "...", output: "..." });
-console.log(result.score);
+const result = await scorer.run({ input: '...', output: '...' })
+console.log(result.score)
 ```
 
-*Source: Mastra docs — reference/evals/mastra-scorer.mdx*
+_Source: Mastra docs — reference/evals/mastra-scorer.mdx_

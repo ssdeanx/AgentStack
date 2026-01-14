@@ -2,7 +2,7 @@ import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
-import { SpanType } from "@mastra/core/observability";
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { editorAgent } from '../agents/editorAgent'
 import { log } from '../config/logger'
@@ -102,7 +102,9 @@ export const editorTool = createTool({
             tone,
         } = inputData
         const writer = context?.writer
-        const requestContext = context?.requestContext as EditorAgentContext | undefined
+        const requestContext = context?.requestContext as
+            | EditorAgentContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         const span = tracingContext?.currentSpan?.createChildSpan({
@@ -227,7 +229,7 @@ export const editorTool = createTool({
                 output: parsedResult,
                 metadata: {
                     'tool.output.success': true,
-                }
+                },
             })
             span?.end()
 

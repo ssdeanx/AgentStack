@@ -13,18 +13,18 @@ Enable flexible vector storage options for the Governed RAG system, supporting v
 
 ## Key Files
 
-| File | Vector Store | Deployment | Key Features | Status |
-| ---- | ------------ | ---------- | ------------ | ------ |
-| `astra.ts` | **DataStax AstraDB** | Cloud | Enterprise-grade vector search, JSON metadata, N1QL queries, multi-region replication | ✅ Production |
-| `chroma.ts` | **ChromaDB** | Local/Cloud | Open-source vector database, metadata filtering, Python/JS clients, local persistence | ✅ Production |
-| `cloudflare.ts` | **Cloudflare Vectorize** | Cloud | Serverless vector storage, global CDN, Workers integration, automatic scaling | 🟡 Basic |
-| `couchbase.ts` | **Couchbase Server** | On-prem/Cloud | Full N1QL SQL queries, JSON documents, multi-model database, enterprise features | ✅ Production |
-| `lance.ts` | **LanceDB** | Local | Columnar vector storage, fast similarity search, embedded deployment, Sift syntax | ✅ Production |
-| `mongodb.ts` | **MongoDB Atlas** | Cloud | Document-based vectors, aggregation pipelines, Atlas Vector Search, enterprise MongoDB | ✅ Production |
-| `opensearch.ts` | **OpenSearch** | On-prem/Cloud | Elasticsearch-compatible, full-text search, aggregations, Kibana integration | ✅ Production |
-| `pinecone.ts` | **Pinecone** | Cloud | Managed vector database, pod-based scaling, metadata filtering, REST/gRPC APIs | 🟡 Basic |
-| `qdrant.ts` | **Qdrant** | Local/Cloud | High-performance vectors, HNSW indexing, payload filtering, distributed deployment | 🟡 Basic |
-| `s3vectors.ts` | **AWS S3 Vectors** | Cloud | Amazon S3 integration, MongoDB/Sift filters, serverless scaling, AWS ecosystem | ✅ Production |
+| File            | Vector Store             | Deployment    | Key Features                                                                           | Status        |
+| --------------- | ------------------------ | ------------- | -------------------------------------------------------------------------------------- | ------------- |
+| `astra.ts`      | **DataStax AstraDB**     | Cloud         | Enterprise-grade vector search, JSON metadata, N1QL queries, multi-region replication  | ✅ Production |
+| `chroma.ts`     | **ChromaDB**             | Local/Cloud   | Open-source vector database, metadata filtering, Python/JS clients, local persistence  | ✅ Production |
+| `cloudflare.ts` | **Cloudflare Vectorize** | Cloud         | Serverless vector storage, global CDN, Workers integration, automatic scaling          | 🟡 Basic      |
+| `couchbase.ts`  | **Couchbase Server**     | On-prem/Cloud | Full N1QL SQL queries, JSON documents, multi-model database, enterprise features       | ✅ Production |
+| `lance.ts`      | **LanceDB**              | Local         | Columnar vector storage, fast similarity search, embedded deployment, Sift syntax      | ✅ Production |
+| `mongodb.ts`    | **MongoDB Atlas**        | Cloud         | Document-based vectors, aggregation pipelines, Atlas Vector Search, enterprise MongoDB | ✅ Production |
+| `opensearch.ts` | **OpenSearch**           | On-prem/Cloud | Elasticsearch-compatible, full-text search, aggregations, Kibana integration           | ✅ Production |
+| `pinecone.ts`   | **Pinecone**             | Cloud         | Managed vector database, pod-based scaling, metadata filtering, REST/gRPC APIs         | 🟡 Basic      |
+| `qdrant.ts`     | **Qdrant**               | Local/Cloud   | High-performance vectors, HNSW indexing, payload filtering, distributed deployment     | 🟡 Basic      |
+| `s3vectors.ts`  | **AWS S3 Vectors**       | Cloud         | Amazon S3 integration, MongoDB/Sift filters, serverless scaling, AWS ecosystem         | ✅ Production |
 
 ## Architecture Overview
 
@@ -143,8 +143,8 @@ import { astraQueryTool, astraGraphTool } from './config/vector/astra'
 
 // Use in Mastra workflows
 const workflow = createWorkflow({
-  // ... workflow definition
-  tools: [astraQueryTool, astraGraphTool]
+    // ... workflow definition
+    tools: [astraQueryTool, astraGraphTool],
 })
 ```
 
@@ -172,16 +172,16 @@ const workflow = createWorkflow({
 
 ## Performance Characteristics
 
-| Store | Indexing Speed | Query Speed | Storage Efficiency | Scalability |
-| ----- | -------------- | ----------- | ------------------ | ----------- |
-| AstraDB | Fast | Very Fast | High | Excellent |
-| ChromaDB | Medium | Fast | Medium | Good |
-| LanceDB | Very Fast | Very Fast | High | Limited |
-| MongoDB | Medium | Fast | Medium | Excellent |
-| OpenSearch | Slow | Medium | Low | Excellent |
-| Pinecone | Fast | Very Fast | High | Excellent |
-| S3Vectors | Medium | Fast | High | Excellent |
-| Couchbase | Medium | Fast | Medium | Excellent |
+| Store      | Indexing Speed | Query Speed | Storage Efficiency | Scalability |
+| ---------- | -------------- | ----------- | ------------------ | ----------- |
+| AstraDB    | Fast           | Very Fast   | High               | Excellent   |
+| ChromaDB   | Medium         | Fast        | Medium             | Good        |
+| LanceDB    | Very Fast      | Very Fast   | High               | Limited     |
+| MongoDB    | Medium         | Fast        | Medium             | Excellent   |
+| OpenSearch | Slow           | Medium      | Low                | Excellent   |
+| Pinecone   | Fast           | Very Fast   | High               | Excellent   |
+| S3Vectors  | Medium         | Fast        | High               | Excellent   |
+| Couchbase  | Medium         | Fast        | Medium             | Excellent   |
 
 ## Migration Guide
 
@@ -231,8 +231,8 @@ Most stores don't support direct data export/import. For migration:
 
 ## Change Log
 
-| Version | Date (UTC) | Change |
-| ------- | ---------- | ------ |
-| 1.2.0   | 2025-10-20 | Added comprehensive environment variable documentation for all 10 vector stores with detailed configuration examples and comments |
+| Version | Date (UTC) | Change                                                                                                                                                   |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.2.0   | 2025-10-20 | Added comprehensive environment variable documentation for all 10 vector stores with detailed configuration examples and comments                        |
 | 1.1.0   | 2025-10-20 | Added comprehensive documentation for all 10 vector store configurations with selection criteria, performance characteristics, and troubleshooting guide |
-| 1.0.0   | 2025-10-20 | Initial comprehensive vector store documentation |
+| 1.0.0   | 2025-10-20 | Initial comprehensive vector store documentation                                                                                                         |

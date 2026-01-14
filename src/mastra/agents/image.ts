@@ -7,61 +7,65 @@ import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ImageRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-  aspectratio: '16:9' | '4:3' | '1:1'
-  resolution: '2K' | '1K'
-  numberOfImages: 1 | 2 | 4
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
+    aspectratio: '16:9' | '4:3' | '1:1'
+    resolution: '2K' | '1K'
+    numberOfImages: 1 | 2 | 4
 }
 
 log.info('Initializing Financial Chart Agents...')
 
-const aspectRatio = '16:9';
-const AspectRatio2K = '4:3';
-const resolution = '2K';
-const resolution1K = '1K';
+const aspectRatio = '16:9'
+const AspectRatio2K = '4:3'
+const resolution = '2K'
+const resolution1K = '1K'
 
 /**
  * Chart Type Advisor Agent
  * Recommends optimal chart types based on financial data characteristics
  */
 export const imageAgent = new Agent({
-  id: 'imageAgent',
-  name: 'Image Generator',
-  description: 'Expert in generating images based on user requirements.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<ImageRuntimeContext> }) => {
-    // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const aspectratioX = requestContext.get('aspectratio') ?? '16:9'
-    const resolutionY = requestContext.get('resolution') ?? '2K'
-    return {
-      role: 'system',
-      content: `You are an expert in generating images based on user requirements.
+    id: 'imageAgent',
+    name: 'Image Generator',
+    description: 'Expert in generating images based on user requirements.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<ImageRuntimeContext>
+    }) => {
+        // runtimeContext is read at invocation time
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        const aspectratioX = requestContext.get('aspectratio') ?? '16:9'
+        const resolutionY = requestContext.get('resolution') ?? '2K'
+        return {
+            role: 'system',
+            content: `You are an expert in generating images based on user requirements.
       tier: ${userTier}
       language: ${language}
       aspect ratio: ${aspectratioX}
       resolution: ${resolutionY}
       Your task is to create visually appealing and informative images that accurately represent the data provided by the user. Consider the user's preferences, such as color scheme and chart style, to ensure the image is both aesthetically pleasing and informative.`,
-      providerOptions: {
-        google: {
-          imageConfig: {
-          aspectRatio: aspectRatio || AspectRatio2K,
-          imageSize: resolution || resolution1K,
-          },
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAINanoBanana,
-  memory: pgMemory,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  tools: {},
-  scorers: {},
-  workflows: {},
-  maxRetries: 3
+            providerOptions: {
+                google: {
+                    imageConfig: {
+                        aspectRatio: aspectRatio || AspectRatio2K,
+                        imageSize: resolution || resolution1K,
+                    },
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAINanoBanana,
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    tools: {},
+    scorers: {},
+    workflows: {},
+    maxRetries: 3,
 })

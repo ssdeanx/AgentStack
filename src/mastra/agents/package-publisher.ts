@@ -1,18 +1,23 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core/agent'
 
-import { googleAIFlashLite } from '../config/google';
-import { pgMemory } from '../config/pg-storage';
+import { googleAIFlashLite } from '../config/google'
+import { pgMemory } from '../config/pg-storage'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { TokenLimiterProcessor } from '@mastra/core/processors';
-import type { RequestContext } from '@mastra/core/request-context';
-import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm-tool';
-import { InternalSpans } from '@mastra/core/observability';
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
+import {
+    activeDistTag,
+    pnpmBuild,
+    pnpmChangesetPublish,
+    pnpmChangesetStatus,
+} from '../tools/pnpm-tool'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface PackagePublisherRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 const packages_llm_text = `
@@ -22,7 +27,7 @@ const packages_llm_text = `
 - **Stores**: stores/{name} (e.g., @mastra/pg -> stores/pg)
 - **Speech**: speech/{name} (e.g., @mastra/speech-google -> speech/google)
 - **Validation**: No examples/ or integrations/ in paths. Exact matches only.
-`;
+`
 
 export const PACKAGES_LIST_PROMPT = `
         Please analyze the following monorepo directories and identify packages that need pnpm publishing:
@@ -37,7 +42,7 @@ export const PACKAGES_LIST_PROMPT = `
 
         Please list all packages that need building grouped by their directory.
         DO NOT NOT USE the 'pnpmBuild' tool during this step.
-    `;
+    `
 
 export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
       <build_execution>
@@ -91,7 +96,7 @@ export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
           Execute the builds in order and report any failures immediately.
         </output_format>
       </build_execution>
-`;
+`
 
 export const PUBLISH_PACKAGES_PROMPT = `
       <publish_changeset>
@@ -117,17 +122,21 @@ export const PUBLISH_PACKAGES_PROMPT = `
         </output_format>
       </publish_changeset>
 
-`;
+`
 
 export const danePackagePublisher = new Agent({
-  id: 'danePackagePublisher',
-  name: 'DanePackagePublisher',
-  instructions: ({ requestContext }: { requestContext: RequestContext<PackagePublisherRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free';
-    const language = requestContext.get('language') ?? 'en';
-    return {
-      role: 'system',
-      content: `
+    id: 'danePackagePublisher',
+    name: 'DanePackagePublisher',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<PackagePublisherRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        return {
+            role: 'system',
+            content: `
       I am Dane, a specialized agent for managing pnpm package publications in monorepos. My core responsibilities are:
       User: ${userTier}
       Language: ${language}
@@ -150,29 +159,29 @@ export const danePackagePublisher = new Agent({
       - Follow semantic versioning principles
       - Validate package.json configurations before publishing
       `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          }
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  tools: {
-    pnpmChangesetStatus,
-    pnpmBuild,
-    pnpmChangesetPublish,
-    activeDistTag,
-  },
-options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  scorers: {},
-  outputProcessors: [new TokenLimiterProcessor(128000)],
-});
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    tools: {
+        pnpmChangesetStatus,
+        pnpmBuild,
+        pnpmChangesetPublish,
+        activeDistTag,
+    },
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    scorers: {},
+    outputProcessors: [new TokenLimiterProcessor(128000)],
+})

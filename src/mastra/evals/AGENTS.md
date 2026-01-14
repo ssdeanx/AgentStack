@@ -5,10 +5,12 @@ This folder contains evaluation helpers and prebuilt scorers aligned with Mastra
 Purpose: Provide scorer utils, prebuilt scorers (bias, completeness, prompt-alignment, tool-call-accuracy, noise-sensitivity), and runEvals helper exports for local experiments and CI tests.
 
 Guidelines:
+
 - Use `createScorer` and `runEvals` from `@mastra/core/evals` when building scorers.
 - Keep prebuilt scorers small and well-tested; use judge (LLM) configuration for LLM-based scorers.
 
 Local Prebuilt Scorers (registered in Mastra instance):
+
 - completeness (createCompletenessScorer) — see src/mastra/evals/scorers/prebuilt.ts
 - keywordCoverage (keywordCoverageScorer) — src/mastra/evals/scorers/keyword-coverage.ts and docs/evals/keyword-coverage.md
 - textualDifference (createTextualDifferenceScorer) — src/mastra/evals/scorers/prebuilt.ts and docs/evals/textual-difference.md

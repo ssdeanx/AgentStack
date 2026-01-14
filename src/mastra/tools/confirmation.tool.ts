@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import { log } from '../config/logger'
 
@@ -26,7 +26,8 @@ const confirmationTool = createTool({
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'confirmation',
             input: { action },
@@ -35,6 +36,7 @@ const confirmationTool = createTool({
                 'tool.input.action': action,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
 
         await writer?.custom({
@@ -61,12 +63,12 @@ const confirmationTool = createTool({
                 id: 'confirmation-tool',
             })
 
-            span?.update({
+            rootSpan?.update({
                 metadata: {
                     'tool.status': 'suspended',
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             return suspend?.({
                 message: `Please confirm: ${action}`,
@@ -76,14 +78,15 @@ const confirmationTool = createTool({
 
         const result = { confirmed: true, action }
 
-        span?.update({
+        rootSpan?.update({
             output: result,
             metadata: {
                 'tool.output.confirmed': true,
                 'tool.status': 'completed',
+                'tool.output.success': true,
             },
         })
-        span?.end()
+        rootSpan?.end()
 
         await writer?.custom({
             type: 'data-tool-progress',

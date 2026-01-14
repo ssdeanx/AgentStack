@@ -20,12 +20,12 @@
 - **Database**: PostgreSQL with `pgvector` extension for embeddings and trace/eval storage, wired via `PostgresStore` and `PgVector` in `src/mastra/config/pg-storage.ts`. Local Mastra bootstrap also uses `LibSQLStore` with `mastra.db` for app storage.
 - **AI Providers**: Gemini (via `@ai-sdk/google`), OpenAI, Anthropic, OpenRouter, and Vertex are all represented in the `model-registry` and provider config files under `src/mastra/config`.
 - **Model Configuration**: Centralized in `app/chat/config/` with 150+ models from 6 providers:
-  - `models.ts` - Core types (`ModelConfig`, `ModelProvider`, `ModelCapability`) and aggregation
-  - `google-models.ts` - 25 Google AI models (Gemini 1.5/2.0/2.5/3.0)
-  - `openai-models.ts` - 28 OpenAI models (GPT-4o/4.1/5, o-series)
-  - `anthropic-models.ts` - 20 Anthropic models (Claude 3-4.5)
-  - `openrouter-models.ts` - 60+ aggregated models
-  - `ollama-models.ts` - 25 local models for Ollama
+    - `models.ts` - Core types (`ModelConfig`, `ModelProvider`, `ModelCapability`) and aggregation
+    - `google-models.ts` - 25 Google AI models (Gemini 1.5/2.0/2.5/3.0)
+    - `openai-models.ts` - 28 OpenAI models (GPT-4o/4.1/5, o-series)
+    - `anthropic-models.ts` - 20 Anthropic models (Claude 3-4.5)
+    - `openrouter-models.ts` - 60+ aggregated models
+    - `ollama-models.ts` - 25 local models for Ollama
 - **Secrets**: Environment variables such as `SUPABASE`, `DB_SCHEMA`, `PG_MIN_SCORE`, `GOOGLE_GENERATIVE_AI_API_KEY`, `SERPAPI_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY`, `POLYGON_API_KEY`, `PHOENIX_ENDPOINT`, `PHOENIX_API_KEY`, and `PHOENIX_PROJECT_NAME` are used across config and tools. `.env` is used locally (and should be git-ignored), while `.env.example` documents safe placeholders.
 - **Observability**: `@mastra/arize` and Mastra's tracing exporters (`CloudExporter`, `DefaultExporter`) capture traces and metrics configured in `src/mastra/index.ts`.
 

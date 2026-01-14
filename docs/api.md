@@ -1,7 +1,7 @@
 # Mastra Routes API Documentation
 
 Mastra API
- 1.0.0
+1.0.0
 OAS 3.1
 /openapi.json
 Mastra API
@@ -50,7 +50,7 @@ Send messages to an agent and stream the response in the AI SDK format
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 The ID of the agent to chat with
@@ -62,12 +62,12 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {
-      "role": "user",
-      "content": "string"
-    }
-  ]
+"messages": [
+{
+"role": "user",
+"content": "string"
+}
+]
 }
 Responses
 Code Description Links
@@ -91,7 +91,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 404
@@ -103,7 +103,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 
@@ -116,7 +116,7 @@ Starts a workflow run and streams events as AI SDK UIMessage chunks
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 The ID of the workflow to stream
@@ -128,21 +128,21 @@ application/json
 Example Value
 Schema
 {
-  "runId": "string",
-  "resourceId": "string",
-  "inputData": {
-    "additionalProp1": {}
-  },
-  "resumeData": {
-    "additionalProp1": {}
-  },
-  "runtimeContext": {
-    "additionalProp1": {}
-  },
-  "tracingOptions": {
-    "additionalProp1": {}
-  },
-  "step": "string"
+"runId": "string",
+"resourceId": "string",
+"inputData": {
+"additionalProp1": {}
+},
+"resumeData": {
+"additionalProp1": {}
+},
+"runtimeContext": {
+"additionalProp1": {}
+},
+"tracingOptions": {
+"additionalProp1": {}
+},
+"step": "string"
 }
 Responses
 Code Description Links
@@ -167,7 +167,7 @@ Routes a request to an agent network and streams UIMessage chunks in AI SDK form
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 The ID of the routing agent to execute as a network
@@ -179,25 +179,25 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "runtimeContext": {
-    "additionalProp1": {}
-  },
-  "runId": "string",
-  "maxSteps": 0,
-  "threadId": "string",
-  "resourceId": "string",
-  "modelSettings": {
-    "additionalProp1": {}
-  },
-  "telemetry": {
-    "additionalProp1": {}
-  },
-  "tools": [
-    {}
-  ]
+"messages": [
+{}
+],
+"runtimeContext": {
+"additionalProp1": {}
+},
+"runId": "string",
+"maxSteps": 0,
+"threadId": "string",
+"resourceId": "string",
+"modelSettings": {
+"additionalProp1": {}
+},
+"telemetry": {
+"additionalProp1": {}
+},
+"tools": [
+{}
+]
 }
 Responses
 Code Description Links
@@ -221,7 +221,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 agents
@@ -234,7 +234,7 @@ Get agent configuration
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -253,7 +253,7 @@ Execute agent via A2A protocol
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -263,15 +263,15 @@ application/json
 Example Value
 Schema
 {
-  "method": "message/send",
-  "params": {
-    "id": "string",
-    "sessionId": "string",
-    "message": {},
-    "pushNotification": {},
-    "historyLength": 0,
-    "metadata": {}
-  }
+"method": "message/send",
+"params": {
+"id": "string",
+"sessionId": "string",
+"message": {},
+"pushNotification": {},
+"historyLength": 0,
+"metadata": {}
+}
 }
 Responses
 Code Description Links
@@ -328,7 +328,7 @@ Get agent by ID
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -351,7 +351,7 @@ Get CI evals by agent ID
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -370,7 +370,7 @@ Get live evals by agent ID
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -389,7 +389,7 @@ Generate a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -399,18 +399,18 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "threadId": "string",
-  "resourceId": "string",
-  "runId": "string",
-  "output": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"messages": [
+{}
+],
+"threadId": "string",
+"resourceId": "string",
+"runId": "string",
+"output": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -431,7 +431,7 @@ Generate a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -441,24 +441,24 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "threadId": "string",
-  "resourceId": "string",
-  "runId": "string",
-  "structuredOutput": {
-    "schema": {},
-    "model": "string",
-    "instructions": "string",
-    "errorStrategy": "strict",
-    "fallbackValue": {}
-  },
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"messages": [
+{}
+],
+"threadId": "string",
+"resourceId": "string",
+"runId": "string",
+"structuredOutput": {
+"schema": {},
+"model": "string",
+"instructions": "string",
+"errorStrategy": "strict",
+"fallbackValue": {}
+},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -479,7 +479,7 @@ Execute an agent as a Network
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -489,29 +489,29 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "runId": "string",
-  "memory": {
-    "thread": "string",
-    "resource": "string",
-    "options": {}
-  },
-  "modelSettings": {
-    "maxTokens": 0,
-    "temperature": 1,
-    "topP": 1,
-    "topK": 0,
-    "presencePenalty": -1,
-    "frequencyPenalty": -1,
-    "stopSequences": [
-      "string"
-    ],
-    "seed": 0,
-    "maxRetries": 0,
-    "headers": {}
-  }
+"messages": [
+{}
+],
+"runId": "string",
+"memory": {
+"thread": "string",
+"resource": "string",
+"options": {}
+},
+"modelSettings": {
+"maxTokens": 0,
+"temperature": 1,
+"topP": 1,
+"topK": 0,
+"presencePenalty": -1,
+"frequencyPenalty": -1,
+"stopSequences": [
+"string"
+],
+"seed": 0,
+"maxRetries": 0,
+"headers": {}
+}
 }
 
 POST
@@ -522,7 +522,7 @@ Generate a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -532,44 +532,44 @@ application/json
 Example Value
 Schema
 {
-  "threadId": "string",
-  "resourceId": "string",
-  "output": {},
-  "instructions": "string",
-  "context": [
-    {}
-  ],
-  "savePerStep": true,
-  "toolChoice": "auto",
-  "format": "mastra",
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  },
-  "messages": [
-    {}
-  ],
-  "runId": "string",
-  "memory": {
-    "thread": "string",
-    "resource": "string",
-    "options": {}
-  },
-  "modelSettings": {
-    "maxTokens": 0,
-    "temperature": 1,
-    "topP": 1,
-    "topK": 0,
-    "presencePenalty": -1,
-    "frequencyPenalty": -1,
-    "stopSequences": [
-      "string"
-    ],
-    "seed": 0,
-    "maxRetries": 0,
-    "headers": {}
-  }
+"threadId": "string",
+"resourceId": "string",
+"output": {},
+"instructions": "string",
+"context": [
+{}
+],
+"savePerStep": true,
+"toolChoice": "auto",
+"format": "mastra",
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+},
+"messages": [
+{}
+],
+"runId": "string",
+"memory": {
+"thread": "string",
+"resource": "string",
+"options": {}
+},
+"modelSettings": {
+"maxTokens": 0,
+"temperature": 1,
+"topP": 1,
+"topK": 0,
+"presencePenalty": -1,
+"frequencyPenalty": -1,
+"stopSequences": [
+"string"
+],
+"seed": 0,
+"maxRetries": 0,
+"headers": {}
+}
 }
 Responses
 Code Description Links
@@ -593,7 +593,7 @@ Stream a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -603,18 +603,18 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "threadId": "string",
-  "resourceId": "string",
-  "runId": "string",
-  "output": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"messages": [
+{}
+],
+"threadId": "string",
+"resourceId": "string",
+"runId": "string",
+"output": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -635,7 +635,7 @@ Stream a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -645,24 +645,24 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {}
-  ],
-  "threadId": "string",
-  "resourceId": "string",
-  "runId": "string",
-  "structuredOutput": {
-    "schema": {},
-    "model": "string",
-    "instructions": "string",
-    "errorStrategy": "strict",
-    "fallbackValue": {}
-  },
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"messages": [
+{}
+],
+"threadId": "string",
+"resourceId": "string",
+"runId": "string",
+"structuredOutput": {
+"schema": {},
+"model": "string",
+"instructions": "string",
+"errorStrategy": "strict",
+"fallbackValue": {}
+},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -689,7 +689,7 @@ Stream a response from an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -699,44 +699,44 @@ application/json
 Example Value
 Schema
 {
-  "threadId": "string",
-  "resourceId": "string",
-  "output": {},
-  "instructions": "string",
-  "context": [
-    {}
-  ],
-  "savePerStep": true,
-  "toolChoice": "auto",
-  "format": "mastra",
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  },
-  "messages": [
-    {}
-  ],
-  "runId": "string",
-  "memory": {
-    "thread": "string",
-    "resource": "string",
-    "options": {}
-  },
-  "modelSettings": {
-    "maxTokens": 0,
-    "temperature": 1,
-    "topP": 1,
-    "topK": 0,
-    "presencePenalty": -1,
-    "frequencyPenalty": -1,
-    "stopSequences": [
-      "string"
-    ],
-    "seed": 0,
-    "maxRetries": 0,
-    "headers": {}
-  }
+"threadId": "string",
+"resourceId": "string",
+"output": {},
+"instructions": "string",
+"context": [
+{}
+],
+"savePerStep": true,
+"toolChoice": "auto",
+"format": "mastra",
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+},
+"messages": [
+{}
+],
+"runId": "string",
+"memory": {
+"thread": "string",
+"resource": "string",
+"options": {}
+},
+"modelSettings": {
+"maxTokens": 0,
+"temperature": 1,
+"topP": 1,
+"topK": 0,
+"presencePenalty": -1,
+"frequencyPenalty": -1,
+"stopSequences": [
+"string"
+],
+"seed": 0,
+"maxRetries": 0,
+"headers": {}
+}
 }
 Responses
 Code Description Links
@@ -757,7 +757,7 @@ Update the model for an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -767,8 +767,8 @@ application/json
 Example Value
 Schema
 {
-  "modelId": "string",
-  "provider": "openai"
+"modelId": "string",
+"provider": "openai"
 }
 Responses
 Code Description Links
@@ -789,7 +789,7 @@ Reset the agent model to the original model set during construction
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -812,7 +812,7 @@ Reorder the models for an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -822,9 +822,9 @@ application/json
 Example Value
 Schema
 {
-  "reorderedModelIds": [
-    "string"
-  ]
+"reorderedModelIds": [
+"string"
+]
 }
 Responses
 Code Description Links
@@ -845,11 +845,11 @@ Update the model for an agent in the model list
 Parameters
 Try it out
 Name Description
-agentId *
+agentId _
 string
 (path)
 agentId
-modelConfigId *
+modelConfigId _
 string
 (path)
 modelConfigId
@@ -859,12 +859,12 @@ application/json
 Example Value
 Schema
 {
-  "model": {
-    "modelId": "string",
-    "provider": "openai"
-  },
-  "maxRetries": 0,
-  "enabled": true
+"model": {
+"modelId": "string",
+"provider": "openai"
+},
+"maxRetries": 0,
+"enabled": true
 }
 Responses
 Code Description Links
@@ -885,7 +885,7 @@ GET
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -901,10 +901,10 @@ Controls Accept header.
 Example Value
 Schema
 [
-  {
-    "voiceId": "string",
-    "additionalProp1": {}
-  }
+{
+"voiceId": "string",
+"additionalProp1": {}
+}
 ]
 No links
 400
@@ -924,7 +924,7 @@ Get available speakers for an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -940,10 +940,10 @@ Controls Accept header.
 Example Value
 Schema
 [
-  {
-    "voiceId": "string",
-    "additionalProp1": {}
-  }
+{
+"voiceId": "string",
+"additionalProp1": {}
+}
 ]
 No links
 400
@@ -963,7 +963,7 @@ POST
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -973,11 +973,11 @@ application/json
 Example Value
 Schema
 {
-  "text": "string",
-  "options": {
-    "speaker": "string",
-    "additionalProp1": {}
-  }
+"text": "string",
+"options": {
+"speaker": "string",
+"additionalProp1": {}
+}
 }
 Responses
 Code Description Links
@@ -1012,7 +1012,7 @@ Get available listener for an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -1028,8 +1028,8 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "enabled": true,
-  "additionalProp1": {}
+"enabled": true,
+"additionalProp1": {}
 }
 No links
 400
@@ -1049,7 +1049,7 @@ POST
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -1069,7 +1069,7 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "text": "string"
+"text": "string"
 }
 No links
 400
@@ -1092,11 +1092,11 @@ Get agent tool by ID
 Parameters
 Try it out
 Name Description
-agentId *
+agentId _
 string
 (path)
 agentId
-toolId *
+toolId _
 string
 (path)
 toolId
@@ -1119,11 +1119,11 @@ Execute a tool through an agent
 Parameters
 Try it out
 Name Description
-agentId *
+agentId _
 string
 (path)
 agentId
-toolId *
+toolId _
 string
 (path)
 toolId
@@ -1133,8 +1133,8 @@ application/json
 Example Value
 Schema
 {
-  "data": {},
-  "runtimeContext": {}
+"data": {},
+"runtimeContext": {}
 }
 Responses
 Code Description Links
@@ -1155,7 +1155,7 @@ Approve a tool call in human-in-the-loop workflow
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -1165,10 +1165,10 @@ application/json
 Example Value
 Schema
 {
-  "runId": "string",
-  "toolCallId": "string",
-  "runtimeContext": {},
-  "format": "aisdk"
+"runId": "string",
+"toolCallId": "string",
+"runtimeContext": {},
+"format": "aisdk"
 }
 Responses
 Code Description Links
@@ -1189,7 +1189,7 @@ Decline a tool call in human-in-the-loop workflow
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (path)
 agentId
@@ -1199,10 +1199,10 @@ application/json
 Example Value
 Schema
 {
-  "runId": "string",
-  "toolCallId": "string",
-  "runtimeContext": {},
-  "format": "aisdk"
+"runId": "string",
+"toolCallId": "string",
+"runtimeContext": {},
+"format": "aisdk"
 }
 Responses
 Code Description Links
@@ -1231,7 +1231,7 @@ Send a message to an MCP server using Streamable HTTP
 Parameters
 Try it out
 Name Description
-serverId *
+serverId \*
 string
 (path)
 serverId
@@ -1260,7 +1260,7 @@ Send a message to an MCP server using Streamable HTTP
 Parameters
 Try it out
 Name Description
-serverId *
+serverId \*
 string
 (path)
 serverId
@@ -1283,7 +1283,7 @@ Establish an MCP Server-Sent Events (SSE) connection with a server instance.
 Parameters
 Try it out
 Name Description
-serverId *
+serverId \*
 string
 (path)
 The ID of the MCP server instance.
@@ -1312,7 +1312,7 @@ Send a message to an MCP server over an established SSE connection.
 Parameters
 Try it out
 Name Description
-serverId *
+serverId \*
 string
 (path)
 The ID of the MCP server instance.
@@ -1381,25 +1381,25 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "servers": [
-    {
-      "id": "string",
-      "name": "string",
-      "description": "string",
-      "repository": {
-        "url": "string",
-        "source": "github",
-        "id": "string"
-      },
-      "version_detail": {
-        "version": "string",
-        "release_date": "string",
-        "is_latest": true
-      }
-    }
-  ],
-  "next": "https://example.com/",
-  "total_count": 0
+"servers": [
+{
+"id": "string",
+"name": "string",
+"description": "string",
+"repository": {
+"url": "string",
+"source": "github",
+"id": "string"
+},
+"version_detail": {
+"version": "string",
+"release_date": "string",
+"is_latest": true
+}
+}
+],
+"next": "https://example.com/",
+"total_count": 0
 }
 No links
 
@@ -1411,7 +1411,7 @@ Get detailed information about a specific MCP server instance.
 Parameters
 Try it out
 Name Description
-id *
+id \*
 string
 (path)
 Unique ID of the MCP server instance.
@@ -1435,66 +1435,66 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "id": "string",
-  "name": "string",
-  "description": "string",
-  "repository": {
-    "url": "string",
-    "source": "string",
-    "id": "string"
-  },
-  "version_detail": {
-    "version": "string",
-    "release_date": "string",
-    "is_latest": true
-  },
-  "package_canonical": "string",
-  "packages": [
-    {
-      "registry_name": "string",
-      "name": "string",
-      "version": "string",
-      "command": {
-        "name": "string",
-        "subcommands": [
-          {
-            "name": "string",
-            "description": "string",
-            "is_required": true,
-            "subcommands": [
-              {}
-            ],
-            "positional_arguments": [
-              {}
-            ],
-            "named_arguments": [
-              {}
-            ]
-          }
-        ],
-        "positional_arguments": [
-          {}
-        ],
-        "named_arguments": [
-          {}
-        ]
-      },
-      "environment_variables": [
-        {
-          "name": "string",
-          "description": "string",
-          "required": true,
-          "default_value": "string"
-        }
-      ]
-    }
-  ],
-  "remotes": [
-    {
-      "transport_type": "string",
-      "url": "string"
-    }
-  ]
+"id": "string",
+"name": "string",
+"description": "string",
+"repository": {
+"url": "string",
+"source": "string",
+"id": "string"
+},
+"version_detail": {
+"version": "string",
+"release_date": "string",
+"is_latest": true
+},
+"package_canonical": "string",
+"packages": [
+{
+"registry_name": "string",
+"name": "string",
+"version": "string",
+"command": {
+"name": "string",
+"subcommands": [
+{
+"name": "string",
+"description": "string",
+"is_required": true,
+"subcommands": [
+{}
+],
+"positional_arguments": [
+{}
+],
+"named_arguments": [
+{}
+]
+}
+],
+"positional_arguments": [
+{}
+],
+"named_arguments": [
+{}
+]
+},
+"environment_variables": [
+{
+"name": "string",
+"description": "string",
+"required": true,
+"default_value": "string"
+}
+]
+}
+],
+"remotes": [
+{
+"transport_type": "string",
+"url": "string"
+}
+]
 }
 No links
 404
@@ -1506,7 +1506,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 
@@ -1529,7 +1529,7 @@ Get network memory status
 Parameters
 Try it out
 Name Description
-networkId *
+networkId \*
 string
 (query)
 networkId
@@ -1548,11 +1548,11 @@ Get all threads
 Parameters
 Try it out
 Name Description
-resourceid *
+resourceid _
 string
 (query)
 resourceid
-networkId *
+networkId _
 string
 (query)
 networkId
@@ -1591,7 +1591,7 @@ Create a new thread
 Parameters
 Try it out
 Name Description
-networkId *
+networkId \*
 string
 (query)
 networkId
@@ -1601,10 +1601,10 @@ application/json
 Example Value
 Schema
 {
-  "title": "string",
-  "metadata": {},
-  "resourceId": "string",
-  "threadId": "string"
+"title": "string",
+"metadata": {},
+"resourceId": "string",
+"threadId": "string"
 }
 Responses
 Code Description Links
@@ -1621,11 +1621,11 @@ Get thread by ID
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-networkId *
+networkId _
 string
 (query)
 networkId
@@ -1651,11 +1651,11 @@ Delete a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-networkId *
+networkId _
 string
 (query)
 networkId
@@ -1678,11 +1678,11 @@ Get messages for a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-networkId *
+networkId _
 string
 (query)
 networkId
@@ -1707,7 +1707,7 @@ Save messages
 Parameters
 Try it out
 Name Description
-networkId *
+networkId \*
 string
 (query)
 networkId
@@ -1717,37 +1717,37 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {
-      "id": "string",
-      "content": "string",
-      "role": "user",
-      "type": "text",
-      "createdAt": "2025-11-28T14:16:14.594Z",
-      "threadId": "string",
-      "resourceId": "string"
-    },
-    {
-      "id": "string",
-      "role": "user",
-      "createdAt": "2025-11-28T14:16:14.594Z",
-      "threadId": "string",
-      "resourceId": "string",
-      "content": {
-        "format": 2,
-        "parts": [
-          {}
-        ],
-        "content": "string",
-        "toolInvocations": [
-          {}
-        ],
-        "experimental_attachments": [
-          {}
-        ]
-      }
-    }
-  ]
+"messages": [
+{
+"id": "string",
+"content": "string",
+"role": "user",
+"type": "text",
+"createdAt": "2025-11-28T14:16:14.594Z",
+"threadId": "string",
+"resourceId": "string"
+},
+{
+"id": "string",
+"role": "user",
+"createdAt": "2025-11-28T14:16:14.594Z",
+"threadId": "string",
+"resourceId": "string",
+"content": {
+"format": 2,
+"parts": [
+{}
+],
+"content": "string",
+"toolInvocations": [
+{}
+],
+"experimental_attachments": [
+{}
+]
+}
+}
+]
 }
 Responses
 Code Description Links
@@ -1764,7 +1764,7 @@ Delete one or more messages
 Parameters
 Try it out
 Name Description
-networkId *
+networkId \*
 string
 (query)
 networkId
@@ -1774,7 +1774,7 @@ application/json
 Example Value
 Schema
 {
-  "messageIds": "string"
+"messageIds": "string"
 }
 Responses
 Code Description Links
@@ -1788,8 +1788,8 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "success": true,
-  "message": "string"
+"success": true,
+"message": "string"
 }
 No links
 memory
@@ -1805,7 +1805,7 @@ Get memory configuration
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (query)
 agentId
@@ -1821,18 +1821,18 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "config": {
-    "lastMessages": 0,
-    "semanticRecall": true,
-    "workingMemory": {
-      "enabled": true,
-      "scope": "thread",
-      "template": "string"
-    },
-    "threads": {
-      "generateTitle": true
-    }
-  }
+"config": {
+"lastMessages": 0,
+"semanticRecall": true,
+"workingMemory": {
+"enabled": true,
+"scope": "thread",
+"template": "string"
+},
+"threads": {
+"generateTitle": true
+}
+}
 }
 No links
 
@@ -1844,11 +1844,11 @@ Get all threads
 Parameters
 Try it out
 Name Description
-resourceid *
+resourceid _
 string
 (query)
 resourceid
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -1887,7 +1887,7 @@ Create a new thread
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (query)
 agentId
@@ -1897,10 +1897,10 @@ application/json
 Example Value
 Schema
 {
-  "title": "string",
-  "metadata": {},
-  "resourceId": "string",
-  "threadId": "string"
+"title": "string",
+"metadata": {},
+"resourceId": "string",
+"threadId": "string"
 }
 Responses
 Code Description Links
@@ -1917,11 +1917,11 @@ Get paginated threads
 Parameters
 Try it out
 Name Description
-resourceId *
+resourceId _
 string
 (query)
 resourceId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -1972,11 +1972,11 @@ Get thread by ID
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -1999,11 +1999,11 @@ Update a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -2032,11 +2032,11 @@ Delete a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -2059,11 +2059,11 @@ Get messages for a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -2088,7 +2088,7 @@ Get paginated messages for a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId \*
 string
 (path)
 The unique identifier of the thread
@@ -2131,13 +2131,13 @@ Search messages in a thread
 Parameters
 Try it out
 Name Description
-searchQuery *
+searchQuery \*
 string
 (query)
 The text to search for
 
 searchQuery
-resourceId *
+resourceId \*
 string
 (query)
 The resource ID (user/org) to validate thread ownership
@@ -2149,7 +2149,7 @@ string
 The thread ID to search within (optional - searches all threads if not provided)
 
 threadId
-agentId *
+agentId \*
 string
 (query)
 The agent ID
@@ -2179,16 +2179,16 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "results": [
-    {
-      "id": "string",
-      "role": "string",
-      "content": "string",
-      "createdAt": "string"
-    }
-  ],
-  "count": 0,
-  "query": "string"
+"results": [
+{
+"id": "string",
+"role": "string",
+"content": "string",
+"createdAt": "string"
+}
+],
+"count": 0,
+"query": "string"
 }
 No links
 400
@@ -2212,11 +2212,11 @@ Get working memory for a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -2243,11 +2243,11 @@ Update working memory for a thread
 Parameters
 Try it out
 Name Description
-threadId *
+threadId _
 string
 (path)
 threadId
-agentId *
+agentId _
 string
 (query)
 agentId
@@ -2257,8 +2257,8 @@ application/json
 Example Value
 Schema
 {
-  "workingMemory": "string",
-  "resourceId": "string"
+"workingMemory": "string",
+"resourceId": "string"
 }
 Responses
 Code Description Links
@@ -2279,7 +2279,7 @@ Save messages
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (query)
 agentId
@@ -2289,37 +2289,37 @@ application/json
 Example Value
 Schema
 {
-  "messages": [
-    {
-      "id": "string",
-      "content": "string",
-      "role": "user",
-      "type": "text",
-      "createdAt": "2025-11-28T14:16:14.646Z",
-      "threadId": "string",
-      "resourceId": "string"
-    },
-    {
-      "id": "string",
-      "role": "user",
-      "createdAt": "2025-11-28T14:16:14.646Z",
-      "threadId": "string",
-      "resourceId": "string",
-      "content": {
-        "format": 2,
-        "parts": [
-          {}
-        ],
-        "content": "string",
-        "toolInvocations": [
-          {}
-        ],
-        "experimental_attachments": [
-          {}
-        ]
-      }
-    }
-  ]
+"messages": [
+{
+"id": "string",
+"content": "string",
+"role": "user",
+"type": "text",
+"createdAt": "2025-11-28T14:16:14.646Z",
+"threadId": "string",
+"resourceId": "string"
+},
+{
+"id": "string",
+"role": "user",
+"createdAt": "2025-11-28T14:16:14.646Z",
+"threadId": "string",
+"resourceId": "string",
+"content": {
+"format": 2,
+"parts": [
+{}
+],
+"content": "string",
+"toolInvocations": [
+{}
+],
+"experimental_attachments": [
+{}
+]
+}
+}
+]
 }
 Responses
 Code Description Links
@@ -2336,7 +2336,7 @@ Delete one or more messages
 Parameters
 Try it out
 Name Description
-agentId *
+agentId \*
 string
 (query)
 agentId
@@ -2346,7 +2346,7 @@ application/json
 Example Value
 Schema
 {
-  "messageIds": "string"
+"messageIds": "string"
 }
 Responses
 Code Description Links
@@ -2360,8 +2360,8 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "success": true,
-  "message": "string"
+"success": true,
+"message": "string"
 }
 No links
 telemetry
@@ -2462,7 +2462,7 @@ Get a specific AI trace by ID
 Parameters
 Try it out
 Name Description
-traceId *
+traceId \*
 string
 (path)
 The ID of the trace to retrieve
@@ -2498,13 +2498,13 @@ application/json
 Example Value
 Schema
 {
-  "scorerName": "relevance-scorer",
-  "targets": [
-    {
-      "traceId": "trace-123",
-      "spanId": "span-456"
-    }
-  ]
+"scorerName": "relevance-scorer",
+"targets": [
+{
+"traceId": "trace-123",
+"spanId": "span-456"
+}
+]
 }
 Responses
 Code Description Links
@@ -2518,9 +2518,9 @@ Controls Accept header.
 Example Value
 Schema
 {
-  "status": "success",
-  "message": "Scoring started for 3 traces",
-  "traceCount": 3
+"status": "success",
+"message": "Scoring started for 3 traces",
+"traceCount": 3
 }
 No links
 400
@@ -2532,7 +2532,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 404
@@ -2544,7 +2544,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 500
@@ -2556,7 +2556,7 @@ application/json
 Example Value
 Schema
 {
-  "error": "string"
+"error": "string"
 }
 No links
 scores
@@ -2569,13 +2569,13 @@ Get scores by trace ID and span ID
 Parameters
 Try it out
 Name Description
-traceId *
+traceId \*
 string
 (path)
 Trace ID
 
 traceId
-spanId *
+spanId \*
 string
 (path)
 Span ID
@@ -2624,7 +2624,7 @@ Get a scorer by ID
 Parameters
 Try it out
 Name Description
-scorerId *
+scorerId \*
 string
 (path)
 scorerId
@@ -2643,7 +2643,7 @@ Get scores by run ID
 Parameters
 Try it out
 Name Description
-runId *
+runId \*
 string
 (path)
 runId
@@ -2674,7 +2674,7 @@ Get scores by scorer ID
 Parameters
 Try it out
 Name Description
-scorerId *
+scorerId \*
 string
 (path)
 scorerId
@@ -2705,13 +2705,13 @@ Get scores by entity ID and type
 Parameters
 Try it out
 Name Description
-entityType *
+entityType \*
 string
 (path)
 Type of entity (e.g., agent, workflow, tool)
 
 entityType
-entityId *
+entityId \*
 string
 (path)
 ID of the entity
@@ -2751,21 +2751,21 @@ application/json
 Example Value
 Schema
 {
-  "id": "string",
-  "runId": "string",
-  "scorer": {},
-  "result": {},
-  "input": {},
-  "output": {},
-  "source": "string",
-  "entityType": "string",
-  "entity": {},
-  "metadata": {},
-  "additionalLLMContext": {},
-  "runtimeContext": {},
-  "resourceId": "string",
-  "threadId": "string",
-  "traceId": "string"
+"id": "string",
+"runId": "string",
+"scorer": {},
+"result": {},
+"input": {},
+"output": {},
+"source": "string",
+"entityType": "string",
+"entity": {},
+"metadata": {},
+"additionalLLMContext": {},
+"runtimeContext": {},
+"resourceId": "string",
+"threadId": "string",
+"traceId": "string"
 }
 Responses
 Code Description Links
@@ -2832,7 +2832,7 @@ Get workflow by ID
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -2855,7 +2855,7 @@ Get all runs for a workflow
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -2894,11 +2894,11 @@ Get execution result for a workflow run
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (path)
 runId
@@ -2921,11 +2921,11 @@ Get workflow run by ID
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (path)
 runId
@@ -2948,11 +2948,11 @@ Resume a suspended workflow step
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -2962,9 +2962,9 @@ application/json
 Example Value
 Schema
 {
-  "step": "string",
-  "resumeData": {},
-  "runtimeContext": {}
+"step": "string",
+"resumeData": {},
+"runtimeContext": {}
 }
 
 POST
@@ -2975,11 +2975,11 @@ Resume a suspended workflow that uses streamVNext
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -2989,14 +2989,14 @@ application/json
 Example Value
 Schema
 {
-  "step": "string",
-  "resumeData": {},
-  "runtimeContext": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"step": "string",
+"resumeData": {},
+"runtimeContext": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 
 POST
@@ -3007,11 +3007,11 @@ Resume a suspended workflow step
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -3021,9 +3021,9 @@ application/json
 Example Value
 Schema
 {
-  "step": "string",
-  "resumeData": {},
-  "runtimeContext": {}
+"step": "string",
+"resumeData": {},
+"runtimeContext": {}
 }
 
 POST
@@ -3034,7 +3034,7 @@ Stream legacy workflow in real-time
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3048,13 +3048,13 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"inputData": {},
+"runtimeContext": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -3075,11 +3075,11 @@ Observe workflow stream in real-time
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -3102,7 +3102,7 @@ Stream workflow in real-time using the VNext streaming API
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3116,14 +3116,14 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {},
-  "closeOnSuspend": true,
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"inputData": {},
+"runtimeContext": {},
+"closeOnSuspend": true,
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -3144,11 +3144,11 @@ Observe workflow stream in real-time using the streaming API
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -3171,7 +3171,7 @@ Stream workflow in real-time using the streaming API
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3185,14 +3185,14 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {},
-  "closeOnSuspend": true,
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"inputData": {},
+"runtimeContext": {},
+"closeOnSuspend": true,
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -3213,11 +3213,11 @@ Observe workflow stream in real-time using the VNext streaming API
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -3240,7 +3240,7 @@ Create a new workflow run
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3263,7 +3263,7 @@ Execute/Start a workflow
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3277,13 +3277,13 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"inputData": {},
+"runtimeContext": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -3304,11 +3304,11 @@ Start an existing workflow run
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (query)
 runId
@@ -3318,13 +3318,13 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {},
-  "tracingOptions": {
-    "metadata": {
-      "additionalProp1": {}
-    }
-  }
+"inputData": {},
+"runtimeContext": {},
+"tracingOptions": {
+"metadata": {
+"additionalProp1": {}
+}
+}
 }
 Responses
 Code Description Links
@@ -3345,7 +3345,7 @@ Watch workflow transitions in real-time
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId \*
 string
 (path)
 workflowId
@@ -3368,11 +3368,11 @@ Cancel a workflow run
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (path)
 runId
@@ -3391,11 +3391,11 @@ Send an event to a workflow run
 Parameters
 Try it out
 Name Description
-workflowId *
+workflowId _
 string
 (path)
 workflowId
-runId *
+runId _
 string
 (path)
 runId
@@ -3405,8 +3405,8 @@ application/json
 Example Value
 Schema
 {
-  "event": "string",
-  "data": {}
+"event": "string",
+"data": {}
 }
 Responses
 Code Description Links
@@ -3424,7 +3424,7 @@ Get all logs
 Parameters
 Try it out
 Name Description
-transportId *
+transportId \*
 string
 (query)
 transportId
@@ -3483,11 +3483,11 @@ Get logs by run ID
 Parameters
 Try it out
 Name Description
-runId *
+runId _
 string
 (path)
 runId
-transportId *
+transportId _
 string
 (query)
 transportId
@@ -3547,7 +3547,7 @@ Get agent builder action by ID
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3570,7 +3570,7 @@ Get all runs for an agent builder action
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3609,11 +3609,11 @@ Get execution result for an agent builder action run
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (path)
 runId
@@ -3636,11 +3636,11 @@ Get agent builder action run by ID
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (path)
 runId
@@ -3663,11 +3663,11 @@ Resume a suspended agent builder action step
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (query)
 runId
@@ -3677,9 +3677,9 @@ application/json
 Example Value
 Schema
 {
-  "step": "string",
-  "resumeData": {},
-  "runtimeContext": {}
+"step": "string",
+"resumeData": {},
+"runtimeContext": {}
 }
 
 POST
@@ -3690,11 +3690,11 @@ Resume a suspended agent builder action step
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (query)
 runId
@@ -3704,9 +3704,9 @@ application/json
 Example Value
 Schema
 {
-  "step": "string",
-  "resumeData": {},
-  "runtimeContext": {}
+"step": "string",
+"resumeData": {},
+"runtimeContext": {}
 }
 
 POST
@@ -3717,7 +3717,7 @@ Stream agent builder action in real-time
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3731,8 +3731,8 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {}
+"inputData": {},
+"runtimeContext": {}
 }
 Responses
 Code Description Links
@@ -3753,7 +3753,7 @@ Stream agent builder action in real-time using the VNext streaming API
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3767,8 +3767,8 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {}
+"inputData": {},
+"runtimeContext": {}
 }
 Responses
 Code Description Links
@@ -3789,7 +3789,7 @@ Create a new agent builder action run
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3815,11 +3815,11 @@ Create and start a new agent builder action run
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (query)
 runId
@@ -3829,8 +3829,8 @@ application/json
 Example Value
 Schema
 {
-  "inputData": {},
-  "runtimeContext": {}
+"inputData": {},
+"runtimeContext": {}
 }
 Responses
 Code Description Links
@@ -3851,7 +3851,7 @@ Watch agent builder action transitions in real-time
 Parameters
 Try it out
 Name Description
-actionId *
+actionId \*
 string
 (path)
 actionId
@@ -3880,11 +3880,11 @@ Cancel an agent builder action run
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (path)
 runId
@@ -3903,11 +3903,11 @@ Send an event to an agent builder action run
 Parameters
 Try it out
 Name Description
-actionId *
+actionId _
 string
 (path)
 actionId
-runId *
+runId _
 string
 (path)
 runId
@@ -3917,8 +3917,8 @@ application/json
 Example Value
 Schema
 {
-  "event": "string",
-  "data": {}
+"event": "string",
+"data": {}
 }
 Responses
 Code Description Links
@@ -3952,7 +3952,7 @@ Get tool by ID
 Parameters
 Try it out
 Name Description
-toolId *
+toolId \*
 string
 (path)
 toolId
@@ -3975,7 +3975,7 @@ Execute a tool
 Parameters
 Try it out
 Name Description
-toolId *
+toolId \*
 string
 (path)
 toolId
@@ -3989,8 +3989,8 @@ application/json
 Example Value
 Schema
 {
-  "data": {},
-  "runtimeContext": {}
+"data": {},
+"runtimeContext": {}
 }
 Responses
 Code Description Links
@@ -4012,7 +4012,7 @@ Upsert vectors into an index
 Parameters
 Try it out
 Name Description
-vectorName *
+vectorName \*
 string
 (path)
 vectorName
@@ -4022,18 +4022,18 @@ application/json
 Example Value
 Schema
 {
-  "indexName": "string",
-  "vectors": [
-    [
-      0
-    ]
-  ],
-  "metadata": [
-    {}
-  ],
-  "ids": [
-    "string"
-  ]
+"indexName": "string",
+"vectors": [
+[
+0
+]
+],
+"metadata": [
+{}
+],
+"ids": [
+"string"
+]
 }
 Responses
 Code Description Links
@@ -4050,7 +4050,7 @@ Create a new vector index
 Parameters
 Try it out
 Name Description
-vectorName *
+vectorName \*
 string
 (path)
 vectorName
@@ -4060,9 +4060,9 @@ application/json
 Example Value
 Schema
 {
-  "indexName": "string",
-  "dimension": 0,
-  "metric": "cosine"
+"indexName": "string",
+"dimension": 0,
+"metric": "cosine"
 }
 Responses
 Code Description Links
@@ -4078,7 +4078,7 @@ Query vectors from an index
 
 Parameters
 Name Description
-vectorName *
+vectorName \*
 string
 (path)
 vectorName
@@ -4088,13 +4088,13 @@ application/json
 Example Value
 Schema
 {
-  "indexName": "string",
-  "queryVector": [
-    0
-  ],
-  "topK": 0,
-  "filter": {},
-  "includeVector": true
+"indexName": "string",
+"queryVector": [
+0
+],
+"topK": 0,
+"filter": {},
+"includeVector": true
 }
 Responses
 Code Description Links
@@ -4108,7 +4108,7 @@ List all indexes for a vector store
 
 Parameters
 Name Description
-vectorName *
+vectorName \*
 string
 (path)
 vectorName
@@ -4124,11 +4124,11 @@ Get details about a specific index
 
 Parameters
 Name Description
-vectorName *
+vectorName _
 string
 (path)
 vectorName
-indexName *
+indexName _
 string
 (path)
 indexName
@@ -4144,11 +4144,11 @@ Delete a specific index
 
 Parameters
 Name Description
-vectorName *
+vectorName _
 string
 (path)
 vectorName
-indexName *
+indexName _
 string
 (path)
 indexName

@@ -7,11 +7,11 @@ class: SearchAIExpert
 type: Agent
 behavior: AgentBehavior
 metadata:
-  mode: 'agent'
-  editable_response: true
-  writable: true
-  version: 1.0.0
-  tags: ['SEO', 'AEO', 'GEO', 'AI', 'Content Strategy']
+    mode: 'agent'
+    editable_response: true
+    writable: true
+    version: 1.0.0
+    tags: ['SEO', 'AEO', 'GEO', 'AI', 'Content Strategy']
 ---
 
 # Search & AI Optimization Expert

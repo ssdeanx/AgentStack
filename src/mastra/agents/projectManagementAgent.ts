@@ -145,12 +145,12 @@ export const projectManagementAgent = new Agent({
     agents: {
         calendarAgent,
         reportAgent,
-        evaluationAgent
+        evaluationAgent,
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
 })
 

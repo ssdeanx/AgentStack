@@ -52,4 +52,3 @@ git commit -m "<Prefix>: <Summary (imperative/concise)>"
 
 - Follow the commit message format and message generation principles in `.windsurf/rules/commit-message-format.md`.
 - Branch strategy (e.g., no direct commits to main, working branch workflow) and pushing to remote (`git push`) are outside the scope of this command. Define them in project-specific README / CONTRIBUTING / separate commands as needed.
-

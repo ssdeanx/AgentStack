@@ -22,7 +22,7 @@ custom cases and conditions for when and how to implement certain sections of th
 ### Instruction Sections and Configurable Instruction Sections
 
 There are several instruction sections in this document. The start of an instruction section is
-indicated by a level two header. Call this an **INSTRUCTION SECTION**.  Some instruction
+indicated by a level two header. Call this an **INSTRUCTION SECTION**. Some instruction
 sections are configurable. Some are not configurable and will always be used.
 
 Instruction sections that ARE configurable are not required, and are subject to additional context
@@ -62,23 +62,23 @@ of instructions that are independent of the entirety of this instruction file. C
 ### Instruction Configuration
 
 - **apply-doc-file-structure** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-doc-verification** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-doc-quality-standard** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-automation-tooling** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-doc-patterns** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-best-practices** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-validation-commands** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-maintenance-schedule** : true
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 - **apply-git-integration** : false
-  - **apply-condition** : unset
+    - **apply-condition** : unset
 
 <!--
 | Configuration Property         | Default | Description                                                                 | When to Enable/Disable                                      |
@@ -93,6 +93,7 @@ of instructions that are independent of the entirety of this instruction file. C
 | apply-maintenance-schedule    | true    | Schedules regular documentation maintenance.                                | Disable if maintenance is managed differently.              |
 | apply-git-integration         | false   | Integrates documentation updates with Git workflows.                        | Enable if you want automatic Git integration.               |
 -->
+
 ## When to Update Documentation
 
 ### Trigger Conditions
@@ -115,100 +116,100 @@ Automatically check if documentation updates are needed when:
 **Always update README.md when:**
 
 - Adding new features or capabilities
-  - Add feature description to "Features" section
-  - Include usage examples if applicable
-  - Update table of contents if present
+    - Add feature description to "Features" section
+    - Include usage examples if applicable
+    - Update table of contents if present
 
 - Modifying installation or setup process
-  - Update "Installation" or "Getting Started" section
-  - Revise dependency requirements
-  - Update prerequisite lists
+    - Update "Installation" or "Getting Started" section
+    - Revise dependency requirements
+    - Update prerequisite lists
 
 - Adding new CLI commands or options
-  - Document command syntax and examples
-  - Include option descriptions and default values
-  - Add usage examples
+    - Document command syntax and examples
+    - Include option descriptions and default values
+    - Add usage examples
 
 - Changing configuration options
-  - Update configuration examples
-  - Document new environment variables
-  - Update config file templates
+    - Update configuration examples
+    - Document new environment variables
+    - Update config file templates
 
 ### API Documentation Updates
 
 **Sync API documentation when:**
 
 - New endpoints are added
-  - Document HTTP method, path, parameters
-  - Include request/response examples
-  - Update OpenAPI/Swagger specs
+    - Document HTTP method, path, parameters
+    - Include request/response examples
+    - Update OpenAPI/Swagger specs
 
 - Endpoint signatures change
-  - Update parameter lists
-  - Revise response schemas
-  - Document breaking changes
+    - Update parameter lists
+    - Revise response schemas
+    - Document breaking changes
 
 - Authentication or authorization changes
-  - Update authentication examples
-  - Revise security requirements
-  - Update API key/token documentation
+    - Update authentication examples
+    - Revise security requirements
+    - Update API key/token documentation
 
 ### Code Example Synchronization
 
 **Verify and update code examples when:**
 
 - Function signatures change
-  - Update all code snippets using the function
-  - Verify examples still compile/run
-  - Update import statements if needed
+    - Update all code snippets using the function
+    - Verify examples still compile/run
+    - Update import statements if needed
 
 - API interfaces change
-  - Update example requests and responses
-  - Revise client code examples
-  - Update SDK usage examples
+    - Update example requests and responses
+    - Revise client code examples
+    - Update SDK usage examples
 
 - Best practices evolve
-  - Replace outdated patterns in examples
-  - Update to use current recommended approaches
-  - Add deprecation notices for old patterns
+    - Replace outdated patterns in examples
+    - Update to use current recommended approaches
+    - Add deprecation notices for old patterns
 
 ### Configuration Documentation
 
 **Update configuration docs when:**
 
 - New environment variables are added
-  - Add to .env.example file
-  - Document in README.md or docs/configuration.md
-  - Include default values and descriptions
+    - Add to .env.example file
+    - Document in README.md or docs/configuration.md
+    - Include default values and descriptions
 
 - Config file structure changes
-  - Update example config files
-  - Document new options
-  - Mark deprecated options
+    - Update example config files
+    - Document new options
+    - Mark deprecated options
 
 - Deployment configuration changes
-  - Update Docker/Kubernetes configs
-  - Revise deployment guides
-  - Update infrastructure-as-code examples
+    - Update Docker/Kubernetes configs
+    - Revise deployment guides
+    - Update infrastructure-as-code examples
 
 ### Migration and Breaking Changes
 
 **Create migration guides when:**
 
 - Breaking API changes occur
-  - Document what changed
-  - Provide before/after examples
-  - Include step-by-step migration instructions
+    - Document what changed
+    - Provide before/after examples
+    - Include step-by-step migration instructions
 
 - Major version updates
-  - List all breaking changes
-  - Provide upgrade checklist
-  - Include common migration issues and solutions
+    - List all breaking changes
+    - Provide upgrade checklist
+    - Include common migration issues and solutions
 
 - Deprecating features
-  - Mark deprecated features clearly
-  - Suggest alternative approaches
-  - Include timeline for removal
+    - Mark deprecated features clearly
+    - Suggest alternative approaches
+    - Include timeline for removal
 
 ## Documentation File Structure `apply-doc-file-structure`
 
@@ -221,11 +222,11 @@ Maintain these documentation files and update as needed:
 - **README.md**: Project overview, quick start, basic usage
 - **CHANGELOG.md**: Version history and user-facing changes
 - **docs/**: Detailed documentation
-  - `installation.md`: Setup and installation guide
-  - `configuration.md`: Configuration options and examples
-  - `api.md`: API reference documentation
-  - `contributing.md`: Contribution guidelines
-  - `migration-guides/`: Version migration guides
+    - `installation.md`: Setup and installation guide
+    - `configuration.md`: Configuration options and examples
+    - `api.md`: API reference documentation
+    - `contributing.md`: Contribution guidelines
+    - `migration-guides/`: Version migration guides
 - **examples/**: Working code examples and tutorials
 
 ### Changelog Management
@@ -466,14 +467,14 @@ Example scripts to apply to your project for documentation validation:
 
 ```json
 {
-  "scripts": {
-    "docs:build": "Build documentation",
-    "docs:test": "Test code examples in docs",
-    "docs:lint": "Lint documentation files",
-    "docs:links": "Check for broken links",
-    "docs:spell": "Spell check documentation",
-    "docs:validate": "Run all documentation checks"
-  }
+    "scripts": {
+        "docs:build": "Build documentation",
+        "docs:test": "Test code examples in docs",
+        "docs:lint": "Lint documentation files",
+        "docs:links": "Check for broken links",
+        "docs:spell": "Spell check documentation",
+        "docs:validate": "Run all documentation checks"
+    }
 }
 ```
 
@@ -527,7 +528,7 @@ If `apply-git-integration == true`, then apply the following configurable instru
 Before considering documentation complete, and concluding on the **final procedure**:
 
 - [ ] **Compiled instructions** are based on the sum of **constant instruction sections** and
-**configurable instruction sections**
+      **configurable instruction sections**
 - [ ] README.md reflects current project state
 - [ ] All new features are documented
 - [ ] Code examples are tested and work

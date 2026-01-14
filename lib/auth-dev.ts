@@ -6,37 +6,39 @@
 import { signInWithPassword } from './auth'
 
 async function main() {
-  const email = process.env.USER_EMAIL
-  const password = process.env.USER_PASSWORD
-  if (!email || !password) {
-    console.warn('USER_EMAIL and USER_PASSWORD are not set; skipping dev sign-in.')
-    return
-  }
-
-  try {
-    const res = await signInWithPassword(email, password)
-    if (res?.data?.user) {
-      // eslint-disable-next-line no-console
-      console.log('Dev sign-in success:', res.data.user.id)
-    } else if (res?.error) {
-      // eslint-disable-next-line no-console
-      console.error('Dev sign-in error:', res.error)
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('Dev sign-in result:', res)
+    const email = process.env.USER_EMAIL
+    const password = process.env.USER_PASSWORD
+    if (!email || !password) {
+        console.warn(
+            'USER_EMAIL and USER_PASSWORD are not set; skipping dev sign-in.'
+        )
+        return
     }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Unexpected error during dev sign-in:', err)
-  }
+
+    try {
+        const res = await signInWithPassword(email, password)
+        if (res?.data?.user) {
+            // eslint-disable-next-line no-console
+            console.log('Dev sign-in success:', res.data.user.id)
+        } else if (res?.error) {
+            // eslint-disable-next-line no-console
+            console.error('Dev sign-in error:', res.error)
+        } else {
+            // eslint-disable-next-line no-console
+            console.log('Dev sign-in result:', res)
+        }
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Unexpected error during dev sign-in:', err)
+    }
 }
 
 if (require.main === module) {
-  main().catch((err) => {
-    /* eslint-disable no-console */
-    console.error('Dev sign-in failed:', err)
-    process.exit(1)
-  })
+    main().catch((err) => {
+        /* eslint-disable no-console */
+        console.error('Dev sign-in failed:', err)
+        process.exit(1)
+    })
 }
 
 export default main

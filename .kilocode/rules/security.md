@@ -8,7 +8,9 @@ All file operations MUST validate paths to prevent directory traversal:
 function validateDataPath(filePath: string): string {
     const absolutePath = path.resolve(DATA_DIR, filePath)
     if (!absolutePath.startsWith(DATA_DIR)) {
-        throw new Error(`Access denied: File path "${filePath}" is outside the allowed data directory.`)
+        throw new Error(
+            `Access denied: File path "${filePath}" is outside the allowed data directory.`
+        )
     }
     return absolutePath
 }
@@ -26,12 +28,27 @@ Use JSDOM for HTML processing with dangerous element/attribute removal:
 
 ```typescript
 const DANGEROUS_TAGS = new Set([
-    'script', 'style', 'iframe', 'embed', 'object', 'noscript',
-    'meta', 'link', 'form', 'input', 'button', 'select', 'textarea'
+    'script',
+    'style',
+    'iframe',
+    'embed',
+    'object',
+    'noscript',
+    'meta',
+    'link',
+    'form',
+    'input',
+    'button',
+    'select',
+    'textarea',
 ])
 
 const DANGEROUS_ATTRS = new Set([
-    'onload', 'onerror', 'onclick', 'onmouseover', 'formaction'
+    'onload',
+    'onerror',
+    'onclick',
+    'onmouseover',
+    'formaction',
 ])
 
 function sanitizeHtml(html: string): string {
@@ -51,7 +68,10 @@ function sanitizeHtml(html: string): string {
     const allElements = document.querySelectorAll('*')
     allElements.forEach((element) => {
         Array.from(element.attributes).forEach((attr) => {
-            if (attr.name.startsWith('on') || DANGEROUS_ATTRS.has(attr.name.toLowerCase())) {
+            if (
+                attr.name.startsWith('on') ||
+                DANGEROUS_ATTRS.has(attr.name.toLowerCase())
+            ) {
                 element.removeAttribute(attr.name)
             }
         })
@@ -105,6 +125,6 @@ Tools can optionally extract governance information from runtimeContext for logg
 - All file operations restricted to specific directories
 - Use `validateDataPath()` before any file operation
 - Common data directories:
-  - `docs/data/` - main data directory
-  - `src/mastra/data/` - Excalidraw and test data
-  - `./data/` - scraped content and generated files
+    - `docs/data/` - main data directory
+    - `src/mastra/data/` - Excalidraw and test data
+    - `./data/` - scraped content and generated files

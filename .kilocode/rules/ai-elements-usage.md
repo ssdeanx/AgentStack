@@ -1,9 +1,10 @@
 ---
 name: AI Elements Usage Guide
 description: A comprehensive guide on using AI Elements for building AI-native applications.
-glob: ["app/**/*", "ui/**/*", "src/components/**/*"]
-tags: ["AI", "Elements", "shadcn/ui", "React", "Tailwind CSS", "AI SDK"]
+glob: ['app/**/*', 'ui/**/*', 'src/components/**/*']
+tags: ['AI', 'Elements', 'shadcn/ui', 'React', 'Tailwind CSS', 'AI SDK']
 ---
+
 # AI Elements Usage Guide
 
 This document provides comprehensive guidance on using AI Elements, a component library built on shadcn/ui for building AI-native applications. Based on the official documentation at https://ai-sdk.dev/elements and https://ai-sdk.dev/elements/usage.
@@ -303,5 +304,5 @@ If you encounter issues:
 
 ---
 
-*Last updated: December 8, 2025*
-*Sources: https://ai-sdk.dev/elements, https://ai-sdk.dev/elements/usage*
+_Last updated: December 8, 2025_
+_Sources: https://ai-sdk.dev/elements, https://ai-sdk.dev/elements/usage_

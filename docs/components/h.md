@@ -4,23 +4,22 @@ Custom metadata allows you to attach additional context to your traces, making i
 You can add metadata to any span using the tracing context:
 
 execute: async ({ inputData, tracingContext }) => {
-  const startTime = Date.now();
-  const response = await fetch(inputData.endpoint);
+const startTime = Date.now();
+const response = await fetch(inputData.endpoint);
 
-  // Add custom metadata to the current span
-  tracingContext.currentSpan?.update({
-    metadata: {
-      apiStatusCode: response.status,
-      endpoint: inputData.endpoint,
-      responseTimeMs: Date.now() - startTime,
-      userTier: inputData.userTier,
-      region: process.env.AWS_REGION,
-    },
-  });
+// Add custom metadata to the current span
+tracingContext.currentSpan?.update({
+metadata: {
+apiStatusCode: response.status,
+endpoint: inputData.endpoint,
+responseTimeMs: Date.now() - startTime,
+userTier: inputData.userTier,
+region: process.env.AWS_REGION,
+},
+});
 
-  return await response.json();
+return await response.json();
 };
-
 
 Metadata set here will be shown in all configured exporters.
 
@@ -32,17 +31,16 @@ Define which RequestContext keys to extract in your tracing configuration. These
 
 src/mastra/index.ts
 export const mastra = new Mastra({
-  observability: new Observability({
-    configs: {
-      default: {
-        serviceName: "my-service",
-        requestContextKeys: ["userId", "environment", "tenantId"],
-        exporters: [new DefaultExporter()],
-      },
-    },
-  }),
+observability: new Observability({
+configs: {
+default: {
+serviceName: "my-service",
+requestContextKeys: ["userId", "environment", "tenantId"],
+exporters: [new DefaultExporter()],
+},
+},
+}),
 });
-
 
 Now when you execute agents or workflows with a RequestContext, these values are automatically extracted:
 
@@ -53,10 +51,9 @@ requestContext.set("tenantId", "tenant-456");
 
 // All spans in this trace automatically get userId, environment, and tenantId metadata
 const result = await agent.generate({
-  messages: [{ role: "user", content: "Hello" }],
-  requestContext,
+messages: [{ role: "user", content: "Hello" }],
+requestContext,
 });
-
 
 Per-Request Additions
 You can add trace-specific keys using tracingOptions.requestContextKeys. These are merged with the configuration-level keys:
@@ -67,28 +64,27 @@ requestContext.set("environment", "production");
 requestContext.set("experimentId", "exp-789");
 
 const result = await agent.generate({
-  messages: [{ role: "user", content: "Hello" }],
-  requestContext,
-  tracingOptions: {
-    requestContextKeys: ["experimentId"], // Adds to configured keys
-  },
+messages: [{ role: "user", content: "Hello" }],
+requestContext,
+tracingOptions: {
+requestContextKeys: ["experimentId"], // Adds to configured keys
+},
 });
 
 // All spans now have: userId, environment, AND experimentId
-
 
 Nested Value Extraction
 Use dot notation to extract nested values from RequestContext:
 
 export const mastra = new Mastra({
-  observability: new Observability({
-    configs: {
-      default: {
-        requestContextKeys: ["user.id", "session.data.experimentId"],
-        exporters: [new DefaultExporter()],
-      },
-    },
-  }),
+observability: new Observability({
+configs: {
+default: {
+requestContextKeys: ["user.id", "session.data.experimentId"],
+exporters: [new DefaultExporter()],
+},
+},
+}),
 });
 
 const requestContext = new RequestContext();
@@ -96,7 +92,6 @@ requestContext.set("user", { id: "user-456", name: "John Doe" });
 requestContext.set("session", { data: { experimentId: "exp-999" } });
 
 // Metadata will include: { user: { id: 'user-456' }, session: { data: { experimentId: 'exp-999' } } }
-
 
 How It Works
 TraceState Computation: At the start of a trace (root span creation), Mastra computes which keys to extract by merging configuration-level and per-request keys
@@ -110,21 +105,20 @@ Use tracingOptions.tags to add tags when executing agents or workflows:
 
 // With agents
 const result = await agent.generate({
-  messages: [{ role: "user", content: "Hello" }],
-  tracingOptions: {
-    tags: ["production", "experiment-v2", "user-request"],
-  },
+messages: [{ role: "user", content: "Hello" }],
+tracingOptions: {
+tags: ["production", "experiment-v2", "user-request"],
+},
 });
 
 // With workflows
 const run = await mastra.getWorkflow("myWorkflow").createRun();
 const result = await run.start({
-  inputData: { data: "process this" },
-  tracingOptions: {
-    tags: ["batch-processing", "priority-high"],
-  },
+inputData: { data: "process this" },
+tracingOptions: {
+tags: ["batch-processing", "priority-high"],
+},
 });
-
 
 How Tags Work
 Root span only: Tags are applied only to the root span of a trace (the agent run or workflow run span)
@@ -136,13 +130,12 @@ OtelExporter - mastra.tags span attribute
 OtelBridge - mastra.tags span attribute
 Combinable with metadata: You can use both tags and metadata in the same tracingOptions
 const result = await agent.generate({
-  messages: [{ role: "user", content: "Analyze this" }],
-  tracingOptions: {
-    tags: ["production", "analytics"],
-    metadata: { userId: "user-123", experimentId: "exp-456" },
-  },
+messages: [{ role: "user", content: "Analyze this" }],
+tracingOptions: {
+tags: ["production", "analytics"],
+metadata: { userId: "user-123", experimentId: "exp-456" },
+},
 });
-
 
 Common Tag Patterns
 Environment: "production", "staging", "development"
@@ -154,26 +147,25 @@ Child Spans and Metadata Extraction
 When creating child spans within tools or workflow steps, you can pass the requestContext parameter to enable metadata extraction:
 
 execute: async ({ tracingContext, requestContext }) => {
-  // Create child span WITH requestContext - gets metadata extraction
-  const dbSpan = tracingContext.currentSpan?.createChildSpan({
-    type: "generic",
-    name: "database-query",
-    requestContext, // Pass to enable metadata extraction
-  });
+// Create child span WITH requestContext - gets metadata extraction
+const dbSpan = tracingContext.currentSpan?.createChildSpan({
+type: "generic",
+name: "database-query",
+requestContext, // Pass to enable metadata extraction
+});
 
-  const results = await db.query("SELECT * FROM users");
-  dbSpan?.end({ output: results });
+const results = await db.query("SELECT \* FROM users");
+dbSpan?.end({ output: results });
 
-  // Or create child span WITHOUT requestContext - no metadata extraction
-  const cacheSpan = tracingContext.currentSpan?.createChildSpan({
-    type: "generic",
-    name: "cache-check",
-    // No requestContext - won't extract metadata
-  });
+// Or create child span WITHOUT requestContext - no metadata extraction
+const cacheSpan = tracingContext.currentSpan?.createChildSpan({
+type: "generic",
+name: "cache-check",
+// No requestContext - won't extract metadata
+});
 
-  return results;
+return results;
 };
-
 
 This gives you fine-grained control over which child spans include RequestContext metadata. Root spans (agent/workflow executions) always extract metadata automatically, while child spans only extract when you explicitly pass requestContext.
 
@@ -183,34 +175,33 @@ Child spans allow you to track fine-grained operations within your workflow step
 Create child spans inside a tool call or workflow step to track specific operations:
 
 execute: async ({ inputData, tracingContext }) => {
-  // Create another child span for the main database operation
-  const querySpan = tracingContext.currentSpan?.createChildSpan({
-    type: "generic",
-    name: "database-query",
-    input: { query: inputData.query },
-    metadata: { database: "production" },
-  });
+// Create another child span for the main database operation
+const querySpan = tracingContext.currentSpan?.createChildSpan({
+type: "generic",
+name: "database-query",
+input: { query: inputData.query },
+metadata: { database: "production" },
+});
 
-  try {
-    const results = await db.query(inputData.query);
-    querySpan?.end({
-      output: results.data,
-      metadata: {
-        rowsReturned: results.length,
-        queryTimeMs: results.executionTime,
-        cacheHit: results.fromCache,
-      },
-    });
-    return results;
-  } catch (error) {
-    querySpan?.error({
-      error,
-      metadata: { retryable: isRetryableError(error) },
-    });
-    throw error;
-  }
+try {
+const results = await db.query(inputData.query);
+querySpan?.end({
+output: results.data,
+metadata: {
+rowsReturned: results.length,
+queryTimeMs: results.executionTime,
+cacheHit: results.fromCache,
+},
+});
+return results;
+} catch (error) {
+querySpan?.error({
+error,
+metadata: { retryable: isRetryableError(error) },
+});
+throw error;
+}
 };
-
 
 Child spans automatically inherit the trace context from their parent, maintaining the relationship hierarchy in your observability platform.
 
@@ -226,30 +217,29 @@ src/processors/lowercase-input-processor.ts
 import type { SpanOutputProcessor, AnySpan } from "@mastra/observability";
 
 export class LowercaseInputProcessor implements SpanOutputProcessor {
-  name = "lowercase-processor";
+name = "lowercase-processor";
 
-  process(span: AnySpan): AnySpan {
-    span.input = `${span.input}`.toLowerCase();
-    return span;
-  }
+process(span: AnySpan): AnySpan {
+span.input = `${span.input}`.toLowerCase();
+return span;
+}
 
-  async shutdown(): Promise<void> {
-    // Cleanup if needed
-  }
+async shutdown(): Promise<void> {
+// Cleanup if needed
+}
 }
 
 // Use the custom processor
 export const mastra = new Mastra({
-  observability: new Observability({
-    configs: {
-      development: {
-        spanOutputProcessors: [new LowercaseInputProcessor(), new SensitiveDataFilter()],
-        exporters: [new DefaultExporter()],
-      },
-    },
-  }),
+observability: new Observability({
+configs: {
+development: {
+spanOutputProcessors: [new LowercaseInputProcessor(), new SensitiveDataFilter()],
+exporters: [new DefaultExporter()],
+},
+},
+}),
 });
-
 
 Processors are executed in the order they're defined, allowing you to chain multiple transformations. Common use cases for custom processors include:
 
@@ -266,18 +256,17 @@ Both generate and stream methods return the trace ID in their response:
 
 // Using generate
 const result = await agent.generate({
-  messages: [{ role: "user", content: "Hello" }],
+messages: [{ role: "user", content: "Hello" }],
 });
 
 console.log("Trace ID:", result.traceId);
 
 // Using stream
 const streamResult = await agent.stream({
-  messages: [{ role: "user", content: "Tell me a story" }],
+messages: [{ role: "user", content: "Tell me a story" }],
 });
 
 console.log("Trace ID:", streamResult.traceId);
-
 
 Workflow Trace IDs
 Workflow executions also return trace IDs:
@@ -287,20 +276,19 @@ const run = await mastra.getWorkflow("myWorkflow").createRun();
 
 // Start the workflow
 const result = await run.start({
-  inputData: { data: "process this" },
+inputData: { data: "process this" },
 });
 
 console.log("Trace ID:", result.traceId);
 
 // Or stream the workflow
 const { stream, getWorkflowState } = run.stream({
-  inputData: { data: "process this" },
+inputData: { data: "process this" },
 });
 
 // Get the final state which includes the trace ID
 const finalState = await getWorkflowState();
 console.log("Trace ID:", finalState.traceId);
-
 
 Using Trace IDs
 Once you have a trace ID, you can:
@@ -323,14 +311,13 @@ const parentSpanId = getCurrentSpanId(); // Your tracing system
 
 // Execute Mastra operations as part of the parent trace
 const result = await agent.generate("Analyze this data", {
-  tracingOptions: {
-    traceId: parentTraceId,
-    parentSpanId: parentSpanId,
-  },
+tracingOptions: {
+traceId: parentTraceId,
+parentSpanId: parentSpanId,
+},
 });
 
 // The Mastra trace will now appear as a child in your distributed trace
-
 
 OpenTelemetry Integration
 Integration with OpenTelemetry allows Mastra traces to appear seamlessly in your existing observability platform:
@@ -342,14 +329,13 @@ const currentSpan = trace.getActiveSpan();
 const spanContext = currentSpan?.spanContext();
 
 if (spanContext) {
-  const result = await agent.generate(userMessage, {
-    tracingOptions: {
-      traceId: spanContext.traceId,
-      parentSpanId: spanContext.spanId,
-    },
-  });
+const result = await agent.generate(userMessage, {
+tracingOptions: {
+traceId: spanContext.traceId,
+parentSpanId: spanContext.spanId,
+},
+});
 }
-
 
 Workflow Integration
 Workflows support the same pattern for trace propagation:
@@ -358,13 +344,12 @@ const workflow = mastra.getWorkflow("data-pipeline");
 const run = await workflow.createRun();
 
 const result = await run.start({
-  inputData: { data: "..." },
-  tracingOptions: {
-    traceId: externalTraceId,
-    parentSpanId: externalSpanId,
-  },
+inputData: { data: "..." },
+tracingOptions: {
+traceId: externalTraceId,
+parentSpanId: externalSpanId,
+},
 });
-
 
 ID Format Requirements
 Mastra validates trace and span IDs to ensure compatibility:
@@ -386,22 +371,21 @@ import express from "express";
 const app = express();
 
 app.post("/api/analyze", async (req, res) => {
-  // Get current OpenTelemetry context
-  const currentSpan = trace.getActiveSpan();
-  const spanContext = currentSpan?.spanContext();
+// Get current OpenTelemetry context
+const currentSpan = trace.getActiveSpan();
+const spanContext = currentSpan?.spanContext();
 
-  const result = await agent.generate(req.body.message, {
-    tracingOptions: spanContext
-      ? {
-          traceId: spanContext.traceId,
-          parentSpanId: spanContext.spanId,
-        }
-      : undefined,
-  });
-
-  res.json(result);
+const result = await agent.generate(req.body.message, {
+tracingOptions: spanContext
+? {
+traceId: spanContext.traceId,
+parentSpanId: spanContext.spanId,
+}
+: undefined,
 });
 
+res.json(result);
+});
 
 This creates a single distributed trace that includes both the HTTP request handling and the Mastra agent execution, viewable in your observability platform of choice.
 

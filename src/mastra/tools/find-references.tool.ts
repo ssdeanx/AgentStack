@@ -98,18 +98,18 @@ export const findReferencesTool = createTool({
 
         const allReferences: ReferenceInfo[] = []
 
-const tracingContext = context?.tracingContext
-    const span = tracingContext?.currentSpan?.createChildSpan({
-        type: SpanType.TOOL_CALL,
-        name: 'find_references',
-        input: { symbolName, projectPath, filePath, line, maxReferences },
-        metadata: {
-            'tool.id': 'semantic:find-references',
-            symbolName,
-            projectPath,
-            filePath,
-            line,
-            maxReferences,
+        const tracingContext = context?.tracingContext
+        const span = tracingContext?.currentSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'find_references',
+            input: { symbolName, projectPath, filePath, line, maxReferences },
+            metadata: {
+                'tool.id': 'semantic:find-references',
+                symbolName,
+                projectPath,
+                filePath,
+                line,
+                maxReferences,
             },
         })
 
@@ -360,7 +360,10 @@ const tracingContext = context?.tracingContext
                 id: 'semantic:find-references',
             })
 
-            span?.update({ output: { references: allReferences.length }, metadata: { 'tool.output.count': allReferences.length } })
+            span?.update({
+                output: { references: allReferences.length },
+                metadata: { 'tool.output.count': allReferences.length },
+            })
             span?.end()
 
             return {
@@ -385,7 +388,10 @@ const tracingContext = context?.tracingContext
                 },
                 id: 'semantic:find-references',
             })
-            span?.error({ error: error instanceof Error ? error : new Error(errorMessage), endSpan: true })
+            span?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
             throw error
         }
     },

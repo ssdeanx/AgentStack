@@ -204,7 +204,9 @@ export const listRepositories = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -245,7 +247,7 @@ export const listRepositories = createTool({
                     metadata: {
                         status: 'cancelled',
                         message: 'Operation cancelled during API call',
-                    }
+                    },
                 })
                 span?.end()
                 throw new Error(
@@ -288,7 +290,7 @@ export const listRepositories = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.count': repositories.length,
-                }
+                },
             })
             span?.end()
 
@@ -303,7 +305,7 @@ export const listRepositories = createTool({
                     metadata: {
                         status: 'cancelled',
                         message: cancelMessage,
-                    }
+                    },
                 })
                 span?.end()
 
@@ -325,7 +327,7 @@ export const listRepositories = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -441,7 +443,9 @@ export const listPullRequests = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -507,7 +511,7 @@ export const listPullRequests = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.count': pullRequests.length,
-                }
+                },
             })
             span?.end()
 
@@ -518,7 +522,7 @@ export const listPullRequests = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -559,7 +563,9 @@ export const listCommits = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -621,7 +627,7 @@ export const listCommits = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.count': commits.length,
-                }
+                },
             })
             span?.end()
             return { success: true, commits }
@@ -630,7 +636,7 @@ export const listCommits = createTool({
             log.error(`GitHub list commits failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -674,7 +680,9 @@ export const listIssues = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -752,7 +760,7 @@ export const listIssues = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.count': issues.length,
-                }
+                },
             })
             span?.end()
 
@@ -763,7 +771,7 @@ export const listIssues = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -797,7 +805,9 @@ export const createIssue = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -860,7 +870,7 @@ export const createIssue = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.issueNumber': issue.number,
-                }
+                },
             })
             span?.end()
 
@@ -871,7 +881,7 @@ export const createIssue = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -904,7 +914,9 @@ export const createRelease = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -966,14 +978,14 @@ export const createRelease = createTool({
                     metadata: {
                         'tool.output.success': true,
                         'tool.output.releaseId': release.id,
-                    }
+                    },
                 })
                 span?.end()
                 return { success: true, release }
             }
             span?.error({
                 error: new Error(`Failed with status ${res.status}`),
-                endSpan: true
+                endSpan: true,
             })
             return {
                 success: false,
@@ -984,7 +996,7 @@ export const createRelease = createTool({
             log.error(`GitHub create release failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -1022,7 +1034,9 @@ export const getRepositoryInfo = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1090,7 +1104,7 @@ export const getRepositoryInfo = createTool({
                 output: { success: true },
                 metadata: {
                     'tool.output.success': true,
-                }
+                },
             })
             span?.end()
 
@@ -1101,7 +1115,7 @@ export const getRepositoryInfo = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -1141,7 +1155,9 @@ export const searchCode = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1216,7 +1232,7 @@ export const searchCode = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.totalCount': data.data.total_count,
-                }
+                },
             })
             span?.end()
 
@@ -1227,7 +1243,7 @@ export const searchCode = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -1258,7 +1274,9 @@ export const getFileContent = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1322,7 +1340,7 @@ export const getFileContent = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.size': data.size,
-                }
+                },
             })
             span?.end()
 
@@ -1339,7 +1357,7 @@ export const getFileContent = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -1377,7 +1395,9 @@ export const getRepoFileTree = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1463,7 +1483,7 @@ export const getRepoFileTree = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.count': tree.length,
-                }
+                },
             })
             span?.end()
 
@@ -1474,7 +1494,7 @@ export const getRepoFileTree = createTool({
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
 
             return { success: false, message: errorMsg }
@@ -1514,7 +1534,9 @@ export const createPullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1576,7 +1598,7 @@ export const createPullRequest = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.prNumber': pullRequest.number,
-                }
+                },
             })
             span?.end()
 
@@ -1586,7 +1608,7 @@ export const createPullRequest = createTool({
             log.error(`GitHub create PR failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -1619,7 +1641,9 @@ export const mergePullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1674,7 +1698,7 @@ export const mergePullRequest = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.merged': response.data.merged,
-                }
+                },
             })
             span?.end()
 
@@ -1688,7 +1712,7 @@ export const mergePullRequest = createTool({
             log.error(`GitHub merge PR failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -1715,7 +1739,9 @@ export const addIssueComment = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1773,7 +1799,7 @@ export const addIssueComment = createTool({
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.commentId': comment.id,
-                }
+                },
             })
             span?.end()
 
@@ -1783,7 +1809,7 @@ export const addIssueComment = createTool({
             log.error(`GitHub add comment failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -1821,7 +1847,9 @@ export const getPullRequest = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -1892,7 +1920,7 @@ export const getPullRequest = createTool({
                 output: { success: true },
                 metadata: {
                     'tool.output.success': true,
-                }
+                },
             })
             span?.end()
 
@@ -1902,7 +1930,7 @@ export const getPullRequest = createTool({
             log.error(`GitHub get PR failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }
@@ -1936,7 +1964,9 @@ export const getIssue = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as GithubToolContext | undefined
+        const requestContext = context?.requestContext as
+            | GithubToolContext
+            | undefined
         const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
@@ -2004,7 +2034,7 @@ export const getIssue = createTool({
                 output: { success: true },
                 metadata: {
                     'tool.output.success': true,
-                }
+                },
             })
             span?.end()
 
@@ -2014,7 +2044,7 @@ export const getIssue = createTool({
             log.error(`GitHub get issue failed: ${errorMsg}`)
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
-                endSpan: true
+                endSpan: true,
             })
             return { success: false, message: errorMsg }
         }

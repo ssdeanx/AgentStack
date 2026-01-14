@@ -23,7 +23,7 @@ This document describes the `lib/` package: lightweight frontend helpers, the cl
 ### Scope
 
 - In scope: `mastra-client.ts`, `client-stream-to-ai-sdk.ts`, `utils.ts`, `hooks/*`, and `types/mastra-api.ts`.
-- Out of scope: backend Mastra runtime (src/mastra), UI components that consume these helpers (app/*).
+- Out of scope: backend Mastra runtime (src/mastra), UI components that consume these helpers (app/\*).
 
 ### System relationships
 
@@ -59,26 +59,26 @@ graph TD
 Key public exports:
 
 - `mastraClient` (lib/mastra-client.ts)
-  - Preconfigured frontend MastraClient instance; uses `NEXT_PUBLIC_MASTRA_API_URL`.
+    - Preconfigured frontend MastraClient instance; uses `NEXT_PUBLIC_MASTRA_API_URL`.
 
 - `createAgentStreamResponse` (lib/client-stream-to-ai-sdk.ts)
-  - Server-side utility that accepts a Mastra instance + agentId + messages + options, and returns a streaming `Response` compatible with the AI SDK UI format.
-  - Input Options: { format?: 'aisdk'|'mastra', threadId?, resourceId?, memory?, maxSteps? }.
+    - Server-side utility that accepts a Mastra instance + agentId + messages + options, and returns a streaming `Response` compatible with the AI SDK UI format.
+    - Input Options: { format?: 'aisdk'|'mastra', threadId?, resourceId?, memory?, maxSteps? }.
 
 - `cn(...inputs)` (lib/utils.ts)
-  - Small CSS class helper combining clsx + tailwind-merge for deterministic classname merging.
+    - Small CSS class helper combining clsx + tailwind-merge for deterministic classname merging.
 
 - Hooks (lib/hooks)
-  - `useMastraFetch` — generic client-side fetch helper (data, loading, error, refetch).
-  - `useAgents`, `useAgent`, `useAgentEvals`, `useWorkflows`, `useWorkflow`, etc. — shallow wrappers returning typed results from `mastraClient` (used outside React Query).
+    - `useMastraFetch` — generic client-side fetch helper (data, loading, error, refetch).
+    - `useAgents`, `useAgent`, `useAgentEvals`, `useWorkflows`, `useWorkflow`, etc. — shallow wrappers returning typed results from `mastraClient` (used outside React Query).
 
 - Query layer (lib/hooks/use-dashboard-queries.ts)
-  - Query keys exported by `queryKeys` for centralized cache usage.
-  - Hooks using `@tanstack/react-query` for the UI (useAgentsQuery, useWorkflowsQuery, useTracesQuery, useMemoryThreadsQuery, useVectorIndexesQuery, etc.).
-  - Mutation helpers for executing tools, creating threads, running vector queries, and scoring traces.
+    - Query keys exported by `queryKeys` for centralized cache usage.
+    - Hooks using `@tanstack/react-query` for the UI (useAgentsQuery, useWorkflowsQuery, useTracesQuery, useMemoryThreadsQuery, useVectorIndexesQuery, etc.).
+    - Mutation helpers for executing tools, creating threads, running vector queries, and scoring traces.
 
 - Types (lib/types/mastra-api.ts)
-  - Zod schemas for Agent, Workflow, Tool, Trace, Span, MemoryThread, Message, WorkingMemory, LogEntry, TelemetryEntry, VectorIndex, VectorQueryResult.
+    - Zod schemas for Agent, Workflow, Tool, Trace, Span, MemoryThread, Message, WorkingMemory, LogEntry, TelemetryEntry, VectorIndex, VectorQueryResult.
 
 ## 4. Implementation Details
 
@@ -123,8 +123,13 @@ import { mastra } from '@/src/mastra'
 import { createAgentStreamResponse } from '@/lib/client-stream-to-ai-sdk'
 
 export async function POST(req: Request) {
-  const payload = await req.json()
-  return createAgentStreamResponse(mastra, payload.agentId, payload.messages, { threadId: payload.threadId })
+    const payload = await req.json()
+    return createAgentStreamResponse(
+        mastra,
+        payload.agentId,
+        payload.messages,
+        { threadId: payload.threadId }
+    )
 }
 ```
 
@@ -134,8 +139,8 @@ export async function POST(req: Request) {
 import { useAgentsQuery } from '@/lib/hooks/use-dashboard-queries'
 
 export default function Example() {
-  const { data: agents, isLoading } = useAgentsQuery()
-  // render
+    const { data: agents, isLoading } = useAgentsQuery()
+    // render
 }
 ```
 
@@ -149,12 +154,12 @@ export default function Example() {
 ## 7. Testing & Observability
 
 - Unit tests to add:
-  - `createAgentStreamResponse` behavior for readable streams and async iterables.
-  - `mastraClient` configuration sanity checks.
-  - Hook tests for `useMastraFetch` and higher-level hooks using mocked `mastraClient`.
+    - `createAgentStreamResponse` behavior for readable streams and async iterables.
+    - `mastraClient` configuration sanity checks.
+    - Hook tests for `useMastraFetch` and higher-level hooks using mocked `mastraClient`.
 
 - Integration tests:
-  - Mock Mastra server streaming outputs to verify `createAgentStreamResponse` produces a valid UI message stream response consumed by frontend streaming components.
+    - Mock Mastra server streaming outputs to verify `createAgentStreamResponse` produces a valid UI message stream response consumed by frontend streaming components.
 
 ## 8. Next actions / Recommendations
 

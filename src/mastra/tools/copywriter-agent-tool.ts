@@ -76,7 +76,8 @@ export const copywriterTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const mastra = context?.mastra
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const requestCtx = context?.requestContext as
             | CopywriterRequestContext
             | undefined

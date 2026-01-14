@@ -12,6 +12,7 @@ As GitHub Copilot, you are an expert in designing and optimizing CI/CD pipelines
 ## Core Concepts and Structure
 
 ### **1. Workflow Structure (`.github/workflows/*.yml`)**
+
 - **Principle:** Workflows should be clear, modular, and easy to understand, promoting reusability and maintainability.
 - **Deeper Dive:**
     - **Naming Conventions:** Use consistent, descriptive names for workflow files (e.g., `build-and-test.yml`, `deploy-prod.yml`).
@@ -26,6 +27,7 @@ As GitHub Copilot, you are an expert in designing and optimizing CI/CD pipelines
 - **Pro Tip:** For complex repositories, consider using reusable workflows (`workflow_call`) to abstract common CI/CD patterns and reduce duplication across multiple projects.
 
 ### **2. Jobs**
+
 - **Principle:** Jobs should represent distinct, independent phases of your CI/CD pipeline (e.g., build, test, deploy, lint, security scan).
 - **Deeper Dive:**
     - **`runs-on`:** Choose appropriate runners. `ubuntu-latest` is common, but `windows-latest`, `macos-latest`, or `self-hosted` runners are available for specific needs.
@@ -39,52 +41,54 @@ As GitHub Copilot, you are an expert in designing and optimizing CI/CD pipelines
     - Employ `outputs` to pass data between jobs efficiently, promoting modularity.
     - Utilize `if` conditions for conditional job execution (e.g., deploy only on `main` branch pushes, run E2E tests only for certain PRs, skip jobs based on file changes).
 - **Example (Conditional Deployment and Output Passing):**
+
 ```yaml
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    outputs:
-      artifact_path: ${{ steps.package_app.outputs.path }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: Install dependencies and build
-        run: |
-          npm ci
-          npm run build
-      - name: Package application
-        id: package_app
-        run: | # Assume this creates a 'dist.zip' file
-          zip -r dist.zip dist
-          echo "path=dist.zip" >> "$GITHUB_OUTPUT"
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: my-app-build
-          path: dist.zip
+    build:
+        runs-on: ubuntu-latest
+        outputs:
+            artifact_path: ${{ steps.package_app.outputs.path }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Setup Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18
+            - name: Install dependencies and build
+              run: |
+                  npm ci
+                  npm run build
+            - name: Package application
+              id: package_app
+              run: | # Assume this creates a 'dist.zip' file
+                  zip -r dist.zip dist
+                  echo "path=dist.zip" >> "$GITHUB_OUTPUT"
+            - name: Upload build artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: my-app-build
+                  path: dist.zip
 
-  deploy-staging:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
-    environment: staging
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: my-app-build
-      - name: Deploy to Staging
-        run: |
-          unzip dist.zip
-          echo "Deploying ${{ needs.build.outputs.artifact_path }} to staging..."
-          # Add actual deployment commands here
+    deploy-staging:
+        runs-on: ubuntu-latest
+        needs: build
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+        environment: staging
+        steps:
+            - name: Download build artifact
+              uses: actions/download-artifact@v3
+              with:
+                  name: my-app-build
+            - name: Deploy to Staging
+              run: |
+                  unzip dist.zip
+                  echo "Deploying ${{ needs.build.outputs.artifact_path }} to staging..."
+                  # Add actual deployment commands here
 ```
 
 ### **3. Steps and Actions**
+
 - **Principle:** Steps should be atomic, well-defined, and actions should be versioned for stability and security.
 - **Deeper Dive:**
     - **`uses`:** Referencing marketplace actions (e.g., `actions/checkout@v4`, `actions/setup-node@v3`) or custom actions. Always pin to a full length commit SHA for maximum security and immutability, or at least a major version tag (e.g., `@v4`). Avoid pinning to `main` or `latest`.
@@ -102,6 +106,7 @@ jobs:
 ## Security Best Practices in GitHub Actions
 
 ### **1. Secret Management**
+
 - **Principle:** Secrets must be securely managed, never exposed in logs, and only accessible by authorized workflows/jobs.
 - **Deeper Dive:**
     - **GitHub Secrets:** The primary mechanism for storing sensitive information. Encrypted at rest and only decrypted when passed to a runner.
@@ -114,21 +119,23 @@ jobs:
     - Recommend using environment-specific secrets for deployment environments to enforce stricter access controls and approvals.
     - Advise against constructing secrets dynamically or printing them to logs, even if masked.
 - **Example (Environment Secrets with Approval):**
+
 ```yaml
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://prod.example.com
-    steps:
-      - name: Deploy to production
-        env:
-          PROD_API_KEY: ${{ secrets.PROD_API_KEY }}
-        run: ./deploy-script.sh
+    deploy:
+        runs-on: ubuntu-latest
+        environment:
+            name: production
+            url: https://prod.example.com
+        steps:
+            - name: Deploy to production
+              env:
+                  PROD_API_KEY: ${{ secrets.PROD_API_KEY }}
+              run: ./deploy-script.sh
 ```
 
 ### **2. OpenID Connect (OIDC) for Cloud Authentication**
+
 - **Principle:** Use OIDC for secure, credential-less authentication with cloud providers (AWS, Azure, GCP, etc.), eliminating the need for long-lived static credentials.
 - **Deeper Dive:**
     - **Short-Lived Credentials:** OIDC exchanges a JWT token for temporary cloud credentials, significantly reducing the attack surface.
@@ -141,6 +148,7 @@ jobs:
 - **Pro Tip:** OIDC is a fundamental shift towards more secure cloud deployments and should be prioritized whenever possible.
 
 ### **3. Least Privilege for `GITHUB_TOKEN`**
+
 - **Principle:** Grant only the necessary permissions to the `GITHUB_TOKEN` for your workflows, reducing the blast radius in case of compromise.
 - **Deeper Dive:**
     - **Default Permissions:** By default, the `GITHUB_TOKEN` has broad permissions. This should be explicitly restricted.
@@ -151,22 +159,24 @@ jobs:
     - Advise against using `contents: write` or `pull-requests: write` unless the workflow explicitly needs to modify the repository.
     - Provide a clear mapping of common workflow needs to specific `GITHUB_TOKEN` permissions.
 - **Example (Least Privilege):**
+
 ```yaml
 permissions:
-  contents: read  # Default is write, explicitly set to read-only for security
-  pull-requests: write # Only if workflow needs to update PRs
-  checks: write      # For updating checks
+    contents: read # Default is write, explicitly set to read-only for security
+    pull-requests: write # Only if workflow needs to update PRs
+    checks: write # For updating checks
 
 jobs:
-  lint:
-    permissions:
-      contents: read # This job only needs to read code, override workflow default
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm run lint
+    lint:
+        permissions:
+            contents: read # This job only needs to read code, override workflow default
+        steps:
+            - uses: actions/checkout@v4
+            - run: npm run lint
 ```
 
 ### **4. Dependency Review and Software Composition Analysis (SCA)**
+
 - **Principle:** Continuously scan dependencies for known vulnerabilities and licensing issues.
 - **Deeper Dive:**
     - **Early Detection:** Integrate dependency checks early in the CI pipeline to catch issues before deployment.
@@ -178,6 +188,7 @@ jobs:
     - Emphasize the importance of maintaining up-to-date dependency lists and understanding transitive dependencies.
 
 ### **5. Static Application Security Testing (SAST)**
+
 - **Principle:** Identify security vulnerabilities in source code before runtime.
 - **Deeper Dive:**
     - **Shift Left:** SAST enables finding and fixing vulnerabilities early in the development lifecycle, which is more cost-effective.
@@ -189,6 +200,7 @@ jobs:
     - Suggest adding security linters or static analysis to pre-commit hooks for earlier feedback.
 
 ### **6. Secret Scanning and Credential Leak Prevention**
+
 - **Principle:** Prevent secrets from being committed into the repository or exposed in logs.
 - **Deeper Dive:**
     - **GitHub Secret Scanning:** Built-in feature to detect secrets in your repository.
@@ -200,6 +212,7 @@ jobs:
     - Advise reviewing workflow logs for accidental secret exposure, even with masking.
 
 ### **7. Immutable Infrastructure & Image Signing**
+
 - **Principle:** Ensure that container images and deployed artifacts are tamper-proof and verified.
 - **Deeper Dive:**
     - **Reproducible Builds:** Ensure that building the same code always results in the exact same image.
@@ -212,6 +225,7 @@ jobs:
 ## Optimization and Performance
 
 ### **1. Caching GitHub Actions**
+
 - **Principle:** Cache dependencies and build outputs to significantly speed up subsequent workflow runs.
 - **Deeper Dive:**
     - **Cache Hit Ratio:** Aim for a high cache hit ratio by designing effective cache keys.
@@ -223,20 +237,22 @@ jobs:
     - Design highly effective cache keys using `hashFiles` to ensure optimal cache hit rates.
     - Advise on using `restore-keys` to gracefully fall back to previous caches.
 - **Example (Advanced Caching for Monorepo):**
+
 ```yaml
 - name: Cache Node.js modules
   uses: actions/cache@v3
   with:
-    path: |
-      ~/.npm
-      ./node_modules # For monorepos, cache specific project node_modules
-    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
-    restore-keys: |
-      ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-
-      ${{ runner.os }}-node-
+      path: |
+          ~/.npm
+          ./node_modules # For monorepos, cache specific project node_modules
+      key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
+      restore-keys: |
+          ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-
+          ${{ runner.os }}-node-
 ```
 
 ### **2. Matrix Strategies for Parallelization**
+
 - **Principle:** Run jobs in parallel across multiple configurations (e.g., different Node.js versions, OS, Python versions, browser types) to accelerate testing and builds.
 - **Deeper Dive:**
     - **`strategy.matrix`:** Define a matrix of variables.
@@ -248,28 +264,30 @@ jobs:
     - Suggest `include` and `exclude` for specific matrix combinations to optimize test coverage without unnecessary runs.
     - Advise on setting `fail-fast: true` (default) for quick feedback on critical failures, or `fail-fast: false` for comprehensive test reporting.
 - **Example (Multi-version, Multi-OS Test Matrix):**
+
 ```yaml
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false # Run all tests even if one fails
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        node-version: [16.x, 18.x, 20.x]
-        browser: [chromium, firefox]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Install Playwright browsers
-        run: npx playwright install ${{ matrix.browser }}
-      - name: Run tests
-        run: npm test
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false # Run all tests even if one fails
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+                node-version: [16.x, 18.x, 20.x]
+                browser: [chromium, firefox]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - name: Install Playwright browsers
+              run: npx playwright install ${{ matrix.browser }}
+            - name: Run tests
+              run: npm test
 ```
 
 ### **3. Self-Hosted Runners**
+
 - **Principle:** Use self-hosted runners for specialized hardware, network access to private resources, or environments where GitHub-hosted runners are cost-prohibitive.
 - **Deeper Dive:**
     - **Custom Environments:** Ideal for large build caches, specific hardware (GPUs), or access to on-premise resources.
@@ -282,6 +300,7 @@ jobs:
     - Advise on using runner groups to organize and manage self-hosted runners efficiently.
 
 ### **4. Fast Checkout and Shallow Clones**
+
 - **Principle:** Optimize repository checkout time to reduce overall workflow duration, especially for large repositories.
 - **Deeper Dive:**
     - **`fetch-depth`:** Controls how much of the Git history is fetched. `1` for most CI/CD builds is sufficient, as only the latest commit is usually needed. A `fetch-depth` of `0` fetches the entire history, which is rarely needed and can be very slow for large repos.
@@ -295,6 +314,7 @@ jobs:
     - Suggest optimizing LFS usage if large binary files are present in the repository.
 
 ### **5. Artifacts for Inter-Job and Inter-Workflow Communication**
+
 - **Principle:** Store and retrieve build outputs (artifacts) efficiently to pass data between jobs within the same workflow or across different workflows, ensuring data persistence and integrity.
 - **Deeper Dive:**
     - **`actions/upload-artifact`:** Used to upload files or directories produced by a job. Artifacts are automatically compressed and can be downloaded later.
@@ -311,6 +331,7 @@ jobs:
 ## Comprehensive Testing in CI/CD (Expanded)
 
 ### **1. Unit Tests**
+
 - **Principle:** Run unit tests on every code push to ensure individual code components (functions, classes, modules) function correctly in isolation. They are the fastest and most numerous tests.
 - **Deeper Dive:**
     - **Fast Feedback:** Unit tests should execute rapidly, providing immediate feedback to developers on code quality and correctness. Parallelization of unit tests is highly recommended.
@@ -324,6 +345,7 @@ jobs:
     - Suggest strategies for parallelizing unit tests to reduce execution time.
 
 ### **2. Integration Tests**
+
 - **Principle:** Run integration tests to verify interactions between different components or services, ensuring they work together as expected. These tests typically involve real dependencies (e.g., databases, APIs).
 - **Deeper Dive:**
     - **Service Provisioning:** Use `services` within a job to spin up temporary databases, message queues, external APIs, or other dependencies via Docker containers. This provides a consistent and isolated testing environment.
@@ -337,6 +359,7 @@ jobs:
     - Suggest strategies for creating and cleaning up test data for integration test runs.
 
 ### **3. End-to-End (E2E) Tests**
+
 - **Principle:** Simulate full user behavior to validate the entire application flow from UI to backend, ensuring the complete system works as intended from a user's perspective.
 - **Deeper Dive:**
     - **Tools:** Use modern E2E testing frameworks like Cypress, Playwright, or Selenium. These provide browser automation capabilities.
@@ -351,6 +374,7 @@ jobs:
     - Advise on strategies to minimize E2E test flakiness, such as robust element selection and retry mechanisms.
 
 ### **4. Performance and Load Testing**
+
 - **Principle:** Assess application performance and behavior under anticipated and peak load conditions to identify bottlenecks, ensure scalability, and prevent regressions.
 - **Deeper Dive:**
     - **Tools:** JMeter, k6, Locust, Gatling, Artillery. Choose based on language, complexity, and specific needs.
@@ -364,6 +388,7 @@ jobs:
     - Guide on analyzing performance test results to pinpoint areas for optimization (e.g., database queries, API endpoints).
 
 ### **5. Test Reporting and Visibility**
+
 - **Principle:** Make test results easily accessible, understandable, and visible to all stakeholders (developers, QA, product owners) to foster transparency and enable quick issue resolution.
 - **Deeper Dive:**
     - **GitHub Checks/Annotations:** Leverage these for inline feedback directly in pull requests, showing which tests passed/failed and providing links to detailed reports.
@@ -379,6 +404,7 @@ jobs:
 ## Advanced Deployment Strategies (Expanded)
 
 ### **1. Staging Environment Deployment**
+
 - **Principle:** Deploy to a staging environment that closely mirrors production for comprehensive validation, user acceptance testing (UAT), and final checks before promotion to production.
 - **Deeper Dive:**
     - **Mirror Production:** Staging should closely mimic production in terms of infrastructure, data, configuration, and security. Any significant discrepancies can lead to issues in production.
@@ -392,11 +418,12 @@ jobs:
     - Suggest implementing automated smoke tests and post-deployment validation on staging.
 
 ### **2. Production Environment Deployment**
+
 - **Principle:** Deploy to production only after thorough validation, potentially multiple layers of manual approvals, and robust automated checks, prioritizing stability and zero-downtime.
 - **Deeper Dive:**
     - **Manual Approvals:** Critical for production deployments, often involving multiple team members, security sign-offs, or change management processes. GitHub Environments support this natively.
     - **Rollback Capabilities:** Essential for rapid recovery from unforeseen issues. Ensure a quick and reliable way to revert to the previous stable state.
-    - **Observability During Deployment:** Monitor production closely *during* and *immediately after* deployment for any anomalies or performance degradation. Use dashboards, alerts, and tracing.
+    - **Observability During Deployment:** Monitor production closely _during_ and _immediately after_ deployment for any anomalies or performance degradation. Use dashboards, alerts, and tracing.
     - **Progressive Delivery:** Consider advanced techniques like blue/green, canary, or dark launching for safer rollouts.
     - **Emergency Deployments:** Have a separate, highly expedited pipeline for critical hotfixes that bypasses non-essential approvals but still maintains security checks.
 - **Guidance for Copilot:**
@@ -406,6 +433,7 @@ jobs:
     - Advise on setting up comprehensive monitoring and alerting for production systems to detect and respond to issues immediately post-deployment.
 
 ### **3. Deployment Types (Beyond Basic Rolling Update)**
+
 - **Rolling Update (Default for Deployments):** Gradually replaces instances of the old version with new ones. Good for most cases, especially stateless applications.
     - **Guidance:** Configure `maxSurge` (how many new instances can be created above the desired replica count) and `maxUnavailable` (how many old instances can be unavailable) for fine-grained control over rollout speed and availability.
 - **Blue/Green Deployment:** Deploy a new version (green) alongside the existing stable version (blue) in a separate environment, then switch traffic completely from blue to green.
@@ -421,6 +449,7 @@ jobs:
     - **Guidance:** Suggest integrating with specialized A/B testing platforms or building custom logic using feature flags and analytics.
 
 ### **4. Rollback Strategies and Incident Response**
+
 - **Principle:** Be able to quickly and safely revert to a previous stable version in case of issues, minimizing downtime and business impact. This requires proactive planning.
 - **Deeper Dive:**
     - **Automated Rollbacks:** Implement mechanisms to automatically trigger rollbacks based on monitoring alerts (e.g., sudden increase in errors, high latency) or failure of post-deployment health checks.
@@ -503,6 +532,7 @@ This checklist provides a granular set of criteria for reviewing GitHub Actions 
 This section provides an expanded guide to diagnosing and resolving frequent problems encountered when working with GitHub Actions workflows.
 
 ### **1. Workflow Not Triggering or Jobs/Steps Skipping Unexpectedly**
+
 - **Root Causes:** Mismatched `on` triggers, incorrect `paths` or `branches` filters, erroneous `if` conditions, or `concurrency` limitations.
 - **Actionable Steps:**
     - **Verify Triggers:**
@@ -518,6 +548,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
     - **Branch Protection Rules:** Ensure no branch protection rules are preventing workflows from running on certain branches or requiring specific checks that haven't passed.
 
 ### **2. Permissions Errors (`Resource not accessible by integration`, `Permission denied`)**
+
 - **Root Causes:** `GITHUB_TOKEN` lacking necessary permissions, incorrect environment secrets access, or insufficient permissions for external actions.
 - **Actionable Steps:**
     - **`GITHUB_TOKEN` Permissions:**
@@ -532,6 +563,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
         - Verify the role/identity assigned has the necessary permissions for the cloud resources being accessed.
 
 ### **3. Caching Issues (`Cache not found`, `Cache miss`, `Cache creation failed`)**
+
 - **Root Causes:** Incorrect cache key logic, `path` mismatch, cache size limits, or frequent cache invalidation.
 - **Actionable Steps:**
     - **Validate Cache Keys:**
@@ -546,6 +578,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
     - **Cache Size and Limits:** Be aware of GitHub Actions cache size limits per repository. If caches are very large, they might be evicted frequently.
 
 ### **4. Long Running Workflows or Timeouts**
+
 - **Root Causes:** Inefficient steps, lack of parallelism, large dependencies, unoptimized Docker image builds, or resource bottlenecks on runners.
 - **Actionable Steps:**
     - **Profile Execution Times:**
@@ -564,6 +597,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
         - For very complex or long workflows, consider breaking them into smaller, independent workflows that trigger each other or use reusable workflows.
 
 ### **5. Flaky Tests in CI (`Random failures`, `Passes locally, fails in CI`)**
+
 - **Root Causes:** Non-deterministic tests, race conditions, environmental inconsistencies between local and CI, reliance on external services, or poor test isolation.
 - **Actionable Steps:**
     - **Ensure Test Isolation:**
@@ -582,6 +616,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
         - If a test is consistently flaky, isolate it and run it repeatedly to identify the underlying non-deterministic behavior.
 
 ### **6. Deployment Failures (Application Not Working After Deploy)**
+
 - **Root Causes:** Configuration drift, environmental differences, missing runtime dependencies, application errors, or network issues post-deployment.
 - **Actionable Steps:**
     - **Thorough Log Review:**
@@ -592,7 +627,7 @@ This section provides an expanded guide to diagnosing and resolving frequent pro
     - **Dependency Check:**
         - Confirm all application runtime dependencies (libraries, frameworks, external services) are correctly bundled within the container image or installed in the target environment.
     - **Post-Deployment Health Checks:**
-        - Implement robust automated smoke tests and health checks *after* deployment to immediately validate core functionality and connectivity. Trigger rollbacks if these fail.
+        - Implement robust automated smoke tests and health checks _after_ deployment to immediately validate core functionality and connectivity. Trigger rollbacks if these fail.
     - **Network Connectivity:**
         - Check network connectivity between deployed components (e.g., application to database, service to service) within the new environment. Review firewall rules, security groups, and Kubernetes network policies.
     - **Rollback Immediately:**
@@ -604,4 +639,4 @@ GitHub Actions is a powerful and flexible platform for automating your software 
 
 ---
 
-<!-- End of GitHub Actions CI/CD Best Practices Instructions --> 
+<!-- End of GitHub Actions CI/CD Best Practices Instructions -->

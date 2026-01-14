@@ -1,90 +1,108 @@
-import type { RequestContext } from '@mastra/core/request-context';
-import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { SpanType, getOrCreateSpan } from '@mastra/core/observability';
-import { z } from 'zod';
+import type { RequestContext } from '@mastra/core/request-context'
+import { createStep, createWorkflow } from '@mastra/core/workflows'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import { z } from 'zod'
 
-export type UserTier = 'free' | 'pro' | 'enterprise';
+export type UserTier = 'free' | 'pro' | 'enterprise'
 export interface SpecRuntimeContext {
-  'user-tier': UserTier;
+    'user-tier': UserTier
 }
 
 // --- Schemas ---
 
 const specInputSchema = z.object({
-  request: z.string().describe('The user\'s high-level idea or requirement'),
-  context: z.string().optional().describe('Additional context, existing code, or constraints'),
-  githubRepo: z.string().optional().describe('GitHub repository (owner/repo) to analyze'),
-  githubIssue: z.number().optional().describe('GitHub issue number to reference'),
-});
+    request: z.string().describe("The user's high-level idea or requirement"),
+    context: z
+        .string()
+        .optional()
+        .describe('Additional context, existing code, or constraints'),
+    githubRepo: z
+        .string()
+        .optional()
+        .describe('GitHub repository (owner/repo) to analyze'),
+    githubIssue: z
+        .number()
+        .optional()
+        .describe('GitHub issue number to reference'),
+})
 
 const planOutputSchema = z.object({
-  plan: z.string(),
-  documentsNeeded: z.array(z.enum(['PRD', 'Architecture', 'Tasks'])),
-});
+    plan: z.string(),
+    documentsNeeded: z.array(z.enum(['PRD', 'Architecture', 'Tasks'])),
+})
 
 const prdOutputSchema = z.object({
-  prd: z.string(),
-});
+    prd: z.string(),
+})
 
 const archOutputSchema = z.object({
-  architecture: z.string(),
-  prd: z.string(),
-});
+    architecture: z.string(),
+    prd: z.string(),
+})
 
 const tasksOutputSchema = z.object({
-  tasks: z.string(),
-});
+    tasks: z.string(),
+})
 
 const workflowOutputSchema = z.object({
-  plan: z.string(),
-  prd: z.string().optional(),
-  architecture: z.string().optional(),
-  tasks: z.string().optional(),
-});
+    plan: z.string(),
+    prd: z.string().optional(),
+    architecture: z.string().optional(),
+    tasks: z.string().optional(),
+})
 
 // --- Steps ---
 
 // Step 1: Orchestrator / Planner
 // Uses SPARC framework: System, Project, Role, Context
 const planStep = createStep({
-  id: 'create-plan',
-  inputSchema: specInputSchema,
-  outputSchema: planOutputSchema,
-  execute: async ({ inputData, mastra, requestContext, writer }) => {
-    const { request, context, githubRepo, githubIssue } = inputData;
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'create-plan',
-      input: inputData,
-      metadata: {
-        'workflow.step': 'create-plan',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    const agent = mastra.getAgent('code-architect'); // Use code-architect for planning
+    id: 'create-plan',
+    inputSchema: specInputSchema,
+    outputSchema: planOutputSchema,
+    execute: async ({ inputData, mastra, requestContext, writer }) => {
+        const { request, context, githubRepo, githubIssue } = inputData
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'create-plan',
+            input: inputData,
+            metadata: {
+                'workflow.step': 'create-plan',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        const agent = mastra.getAgent('code-architect') // Use code-architect for planning
 
-    const hasGithubRepo = typeof githubRepo === 'string' && githubRepo.length > 0;
-    const hasGithubIssue = typeof githubIssue === 'number' && Number.isFinite(githubIssue);
+        const hasGithubRepo =
+            typeof githubRepo === 'string' && githubRepo.length > 0
+        const hasGithubIssue =
+            typeof githubIssue === 'number' && Number.isFinite(githubIssue)
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Creating plan for request: ${request.slice(0, 120)}${request.length > 120 ? '…' : ''}`,
-        stage: 'create-plan',
-      },
-      id: 'create-plan',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Creating plan for request: ${request.slice(0, 120)}${request.length > 120 ? '…' : ''}`,
+                stage: 'create-plan',
+            },
+            id: 'create-plan',
+        })
 
-    const userTierSchema = z.enum(['free', 'pro', 'enterprise']).default('free');
-    const userTier = userTierSchema.parse(
-      (requestContext as RequestContext<SpecRuntimeContext>)?.get('user-tier')
-    );
-    const detailLevel = userTier === 'enterprise' ? 'extremely detailed and comprehensive' : 'standard';
+        const userTierSchema = z
+            .enum(['free', 'pro', 'enterprise'])
+            .default('free')
+        const userTier = userTierSchema.parse(
+            (requestContext as RequestContext<SpecRuntimeContext>)?.get(
+                'user-tier'
+            )
+        )
+        const detailLevel =
+            userTier === 'enterprise'
+                ? 'extremely detailed and comprehensive'
+                : 'standard'
 
-    const prompt = `
+        const prompt = `
       [ROLE]
       You are an expert Software Development Orchestrator. Your goal is to analyze a user request and plan the documentation generation process.
 
@@ -103,164 +121,171 @@ const planStep = createStep({
       Return a JSON object with:
       - "plan": A markdown string describing the project approach.
       - "documentsNeeded": An array of strings ["PRD", "Architecture", "Tasks"] based on complexity.
-    `;
+    `
 
-    try {
-      const stream = await agent.stream(prompt);
-      const finalText = await stream.text;
-      const result = { text: finalText };
+        try {
+            const stream = await agent.stream(prompt)
+            const finalText = await stream.text
+            const result = { text: finalText }
 
-    // Parse the result assuming the agent returns JSON or we need to extract it
-    // For now, we'll assume the agent is configured to return structured output or we parse the text
-    // Since codeArchitectAgent uses structuredOutput: true in its config, we might get an object directly if we used the output schema in generate options.
-    // However, here we are just getting text. Let's try to parse it if it's a string, or use it if it's an object.
+            // Parse the result assuming the agent returns JSON or we need to extract it
+            // For now, we'll assume the agent is configured to return structured output or we parse the text
+            // Since codeArchitectAgent uses structuredOutput: true in its config, we might get an object directly if we used the output schema in generate options.
+            // However, here we are just getting text. Let's try to parse it if it's a string, or use it if it's an object.
 
-    // Note: In a real scenario, we should pass the schema to agent.generate for structured output.
-    // But to keep it simple and compatible with the existing pattern:
-      try {
-        const { text } = result;
-        // Simple heuristic to find JSON in markdown code blocks if present
-        const jsonMatch = (/```json\n([\s\S]*?)\n```/.exec(text)) ?? (/\{[\s\S]*\}/.exec(text));
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            // Note: In a real scenario, we should pass the schema to agent.generate for structured output.
+            // But to keep it simple and compatible with the existing pattern:
+            try {
+                const { text } = result
+                // Simple heuristic to find JSON in markdown code blocks if present
+                const jsonMatch =
+                    /```json\n([\s\S]*?)\n```/.exec(text) ??
+                    /\{[\s\S]*\}/.exec(text)
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0])
 
-          await writer?.custom({
-            type: 'data-tool-progress',
-            data: {
-              status: 'done',
-              message: `Plan created (documents: ${(parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']).join(', ')})`,
-              stage: 'create-plan',
-            },
-            id: 'create-plan',
-          });
+                    await writer?.custom({
+                        type: 'data-tool-progress',
+                        data: {
+                            status: 'done',
+                            message: `Plan created (documents: ${(parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']).join(', ')})`,
+                            stage: 'create-plan',
+                        },
+                        id: 'create-plan',
+                    })
 
-          const res = {
-            plan: parsed.plan ?? text,
-            documentsNeeded: parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']
-          };
+                    const res = {
+                        plan: parsed.plan ?? text,
+                        documentsNeeded: parsed.documentsNeeded ?? [
+                            'PRD',
+                            'Architecture',
+                            'Tasks',
+                        ],
+                    }
 
-          span?.update({
-            output: res,
-            metadata: {
-              responseTimeMs: Date.now() - startTime,
-            },
-          });
-          span?.end();
+                    span?.update({
+                        output: res,
+                        metadata: {
+                            responseTimeMs: Date.now() - startTime,
+                        },
+                    })
+                    span?.end()
 
-          return res;
+                    return res
+                }
+
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message:
+                            'Plan created (unstructured output parsed as text)',
+                        stage: 'create-plan',
+                    },
+                    id: 'create-plan',
+                })
+
+                const resText = {
+                    plan: text,
+                    documentsNeeded: ['PRD', 'Architecture', 'Tasks'],
+                }
+
+                span?.update({
+                    output: resText,
+                    metadata: {
+                        responseTimeMs: Date.now() - startTime,
+                    },
+                })
+                span?.end()
+
+                return resText
+            } catch (e) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'done',
+                        message: `Plan parsing failed; returning text output. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                        stage: 'create-plan',
+                    },
+                    id: 'create-plan',
+                })
+
+                const resFail = {
+                    plan: result.text,
+                    documentsNeeded: ['PRD', 'Architecture', 'Tasks'],
+                }
+
+                span?.update({
+                    output: resFail,
+                    metadata: {
+                        responseTimeMs: Date.now() - startTime,
+                        error: e instanceof Error ? e.message : 'Unknown error',
+                    },
+                })
+                span?.end()
+
+                return resFail
+            }
+        } catch (e) {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Failed to create plan. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                    stage: 'create-plan',
+                },
+                id: 'create-plan',
+            })
+
+            span?.error({
+                error: e instanceof Error ? e : new Error(String(e)),
+                endSpan: true,
+            })
+
+            throw e
         }
-
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'done',
-            message: 'Plan created (unstructured output parsed as text)',
-            stage: 'create-plan',
-          },
-          id: 'create-plan',
-        });
-
-        const resText = {
-          plan: text,
-          documentsNeeded: ['PRD', 'Architecture', 'Tasks']
-        };
-
-        span?.update({
-          output: resText,
-          metadata: {
-            responseTimeMs: Date.now() - startTime,
-          },
-        });
-        span?.end();
-
-        return resText;
-      } catch (e) {
-        await writer?.custom({
-          type: 'data-tool-progress',
-          data: {
-            status: 'done',
-            message: `Plan parsing failed; returning text output. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-            stage: 'create-plan',
-          },
-          id: 'create-plan',
-        });
-
-        const resFail = {
-          plan: result.text,
-          documentsNeeded: ['PRD', 'Architecture', 'Tasks']
-        };
-
-        span?.update({
-          output: resFail,
-          metadata: {
-            responseTimeMs: Date.now() - startTime,
-            error: e instanceof Error ? e.message : 'Unknown error',
-          },
-        });
-        span?.end();
-
-        return resFail;
-      }
-    } catch (e) {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Failed to create plan. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-          stage: 'create-plan',
-        },
-        id: 'create-plan',
-      });
-
-      span?.error({
-        error: e instanceof Error ? e : new Error(String(e)),
-        endSpan: true,
-      });
-
-      throw e;
-    }
-  },
-});
+    },
+})
 
 // Step 2: Product Manager (PRD)
 // Uses TCREI: Task, Context, References, Evaluate, Iterate
 const prdStep = createStep({
-  id: 'generate-prd',
-  // This step consumes the output of the planner which includes
-  // the generated plan and the documentsNeeded array. The original
-  // request is optional here (it may come from earlier workflow input).
-  inputSchema: z.object({
-    plan: z.string(),
-    documentsNeeded: z.array(z.enum(['PRD', 'Architecture', 'Tasks'])),
-    request: z.string().optional(),
-  }),
-  outputSchema: prdOutputSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const { request, plan, documentsNeeded } = inputData;
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'generate-prd',
-      input: { planLength: plan.length, documentsNeeded },
-      metadata: {
-        'workflow.step': 'generate-prd',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    const agent = mastra.getAgent('code-architect');
+    id: 'generate-prd',
+    // This step consumes the output of the planner which includes
+    // the generated plan and the documentsNeeded array. The original
+    // request is optional here (it may come from earlier workflow input).
+    inputSchema: z.object({
+        plan: z.string(),
+        documentsNeeded: z.array(z.enum(['PRD', 'Architecture', 'Tasks'])),
+        request: z.string().optional(),
+    }),
+    outputSchema: prdOutputSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const { request, plan, documentsNeeded } = inputData
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-prd',
+            input: { planLength: plan.length, documentsNeeded },
+            metadata: {
+                'workflow.step': 'generate-prd',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        const agent = mastra.getAgent('code-architect')
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating PRD for request: ${(request ?? '').slice(0, 120)}${(request ?? '').length > 120 ? '…' : ''}`,
-        stage: 'generate-prd',
-      },
-      id: 'generate-prd',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Generating PRD for request: ${(request ?? '').slice(0, 120)}${(request ?? '').length > 120 ? '…' : ''}`,
+                stage: 'generate-prd',
+            },
+            id: 'generate-prd',
+        })
 
-    const prompt = `
+        const prompt = `
       [ROLE]
       You are an elite Product Manager using the TCREI framework.
 
@@ -277,106 +302,108 @@ const prdStep = createStep({
 
       [EVALUATE]
       Ensure the PRD is actionable and unambiguous for architects and developers.
-    `;
+    `
 
-    // If PRD isn't needed according to the plan, return an empty PRD
-    // to keep the workflow types consistent.
-    if (!documentsNeeded?.includes('PRD')) {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: 'PRD skipped (not requested by plan)',
-          stage: 'generate-prd',
-        },
-        id: 'generate-prd',
-      });
-      const resSkipped = { prd: '' };
-      span?.update({
-        output: resSkipped,
-        metadata: { skipped: true },
-      });
-      span?.end();
+        // If PRD isn't needed according to the plan, return an empty PRD
+        // to keep the workflow types consistent.
+        if (!documentsNeeded?.includes('PRD')) {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: 'PRD skipped (not requested by plan)',
+                    stage: 'generate-prd',
+                },
+                id: 'generate-prd',
+            })
+            const resSkipped = { prd: '' }
+            span?.update({
+                output: resSkipped,
+                metadata: { skipped: true },
+            })
+            span?.end()
 
-      return resSkipped;
-    }
+            return resSkipped
+        }
 
-    try {
-      const stream = await agent.stream(prompt);
-      const finalText = await stream.text;
-      const result = { text: finalText };
+        try {
+            const stream = await agent.stream(prompt)
+            const finalText = await stream.text
+            const result = { text: finalText }
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `PRD generated (length: ${(result?.text ?? '').length})`,
-          stage: 'generate-prd',
-        },
-        id: 'generate-prd',
-      });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `PRD generated (length: ${(result?.text ?? '').length})`,
+                    stage: 'generate-prd',
+                },
+                id: 'generate-prd',
+            })
 
-      const res = { prd: result?.text || '# PRD\n\n(Generated PRD content)' };
-      span?.update({
-        output: res,
-        metadata: { responseTimeMs: Date.now() - startTime },
-      });
-      span?.end();
+            const res = {
+                prd: result?.text || '# PRD\n\n(Generated PRD content)',
+            }
+            span?.update({
+                output: res,
+                metadata: { responseTimeMs: Date.now() - startTime },
+            })
+            span?.end()
 
-      return res;
-    } catch (e) {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `PRD generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-          stage: 'generate-prd',
-        },
-        id: 'generate-prd',
-      });
+            return res
+        } catch (e) {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `PRD generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                    stage: 'generate-prd',
+                },
+                id: 'generate-prd',
+            })
 
-      span?.error({
-        error: e instanceof Error ? e : new Error(String(e)),
-        endSpan: true,
-      });
+            span?.error({
+                error: e instanceof Error ? e : new Error(String(e)),
+                endSpan: true,
+            })
 
-      throw e;
-    }
-  },
-});
+            throw e
+        }
+    },
+})
 
 // Step 3: Architect (System Design)
 // Uses Chain of Thought for architectural decisions
 const archStep = createStep({
-  id: 'generate-architecture',
-  inputSchema: z.object({ prd: z.string() }),
-  outputSchema: archOutputSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const { prd } = inputData;
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'generate-architecture',
-      input: { prdLength: prd.length },
-      metadata: {
-        'workflow.step': 'generate-architecture',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    const agent = mastra.getAgent('code-architect');
+    id: 'generate-architecture',
+    inputSchema: z.object({ prd: z.string() }),
+    outputSchema: archOutputSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const { prd } = inputData
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-architecture',
+            input: { prdLength: prd.length },
+            metadata: {
+                'workflow.step': 'generate-architecture',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        const agent = mastra.getAgent('code-architect')
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating architecture from PRD (length: ${prd.length})...`,
-        stage: 'generate-architecture',
-      },
-      id: 'generate-architecture',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Generating architecture from PRD (length: ${prd.length})...`,
+                stage: 'generate-architecture',
+            },
+            id: 'generate-architecture',
+        })
 
-    const prompt = `
+        const prompt = `
       [ROLE]
       You are a Senior Software Architect.
 
@@ -392,84 +419,92 @@ const archStep = createStep({
       3. Select appropriate technologies and patterns (e.g., microservices, serverless, event-driven).
       4. Address scalability, security, and maintainability.
       5. Output the final design document (ADR style or System Design doc).
-    `;
+    `
 
-    try {
-      const stream = await agent.stream(prompt);
-      const finalText = await stream.text;
-      const result = { text: finalText };
+        try {
+            const stream = await agent.stream(prompt)
+            const finalText = await stream.text
+            const result = { text: finalText }
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Architecture generated (length: ${(result?.text ?? '').length})`,
-          stage: 'generate-architecture',
-        },
-        id: 'generate-architecture',
-      });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Architecture generated (length: ${(result?.text ?? '').length})`,
+                    stage: 'generate-architecture',
+                },
+                id: 'generate-architecture',
+            })
 
-      const res = { architecture: result?.text || '# Architecture\n\n(Generated Architecture content)', prd: inputData.prd };
-      span?.update({
-        output: res,
-        metadata: { responseTimeMs: Date.now() - startTime },
-      });
-      span?.end();
+            const res = {
+                architecture:
+                    result?.text ||
+                    '# Architecture\n\n(Generated Architecture content)',
+                prd: inputData.prd,
+            }
+            span?.update({
+                output: res,
+                metadata: { responseTimeMs: Date.now() - startTime },
+            })
+            span?.end()
 
-      return res;
-    } catch (e) {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Architecture generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-          stage: 'generate-architecture',
-        },
-        id: 'generate-architecture',
-      });
+            return res
+        } catch (e) {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Architecture generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                    stage: 'generate-architecture',
+                },
+                id: 'generate-architecture',
+            })
 
-      span?.error({
-        error: e instanceof Error ? e : new Error(String(e)),
-        endSpan: true,
-      });
+            span?.error({
+                error: e instanceof Error ? e : new Error(String(e)),
+                endSpan: true,
+            })
 
-      throw e;
-    }
-  },
-});
+            throw e
+        }
+    },
+})
 
 // Step 4: Engineering Lead (Tasks)
 // Uses SPARC to break down work
 const tasksStep = createStep({
-  id: 'generate-tasks',
-  inputSchema: z.object({ architecture: z.string(), prd: z.string() }),
-  outputSchema: tasksOutputSchema,
-  execute: async ({ inputData, mastra, writer, requestContext }) => {
-    const { architecture, prd } = inputData;
-    const span = getOrCreateSpan({
-      type: SpanType.WORKFLOW_STEP,
-      name: 'generate-tasks',
-      input: { architectureLength: architecture.length, prdLength: prd.length },
-      metadata: {
-        'workflow.step': 'generate-tasks',
-      },
-      requestContext,
-      mastra,
-    });
-    const startTime = Date.now();
-    const agent = mastra.getAgent('code-architect'); // Using code-architect for task breakdown as well
+    id: 'generate-tasks',
+    inputSchema: z.object({ architecture: z.string(), prd: z.string() }),
+    outputSchema: tasksOutputSchema,
+    execute: async ({ inputData, mastra, writer, requestContext }) => {
+        const { architecture, prd } = inputData
+        const span = getOrCreateSpan({
+            type: SpanType.WORKFLOW_STEP,
+            name: 'generate-tasks',
+            input: {
+                architectureLength: architecture.length,
+                prdLength: prd.length,
+            },
+            metadata: {
+                'workflow.step': 'generate-tasks',
+            },
+            requestContext,
+            mastra,
+        })
+        const startTime = Date.now()
+        const agent = mastra.getAgent('code-architect') // Using code-architect for task breakdown as well
 
-    await writer?.custom({
-      type: 'data-tool-progress',
-      data: {
-        status: 'in-progress',
-        message: `Generating tasks (architecture length: ${architecture.length}, prd length: ${prd.length})...`,
-        stage: 'generate-tasks',
-      },
-      id: 'generate-tasks',
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: `Generating tasks (architecture length: ${architecture.length}, prd length: ${prd.length})...`,
+                stage: 'generate-tasks',
+            },
+            id: 'generate-tasks',
+        })
 
-    const prompt = `
+        const prompt = `
       [ROLE]
       You are an Engineering Lead.
 
@@ -486,61 +521,61 @@ const tasksStep = createStep({
       - Phase 3: Testing & Polish
 
       Each task should have a clear "Definition of Done".
-    `;
+    `
 
-    try {
-      const stream = await agent.stream(prompt);
-      const finalText = await stream.text;
-      const result = { text: finalText };
+        try {
+            const stream = await agent.stream(prompt)
+            const finalText = await stream.text
+            const result = { text: finalText }
 
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Tasks generated (length: ${(result?.text ?? '').length})`,
-          stage: 'generate-tasks',
-        },
-        id: 'generate-tasks',
-      });
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Tasks generated (length: ${(result?.text ?? '').length})`,
+                    stage: 'generate-tasks',
+                },
+                id: 'generate-tasks',
+            })
 
-      const res = { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' };
-      span?.update({
-        output: res,
-        metadata: { responseTimeMs: Date.now() - startTime },
-      });
-      span?.end();
+            const res = { tasks: result?.text || '# Tasks\n\n- [ ] Task 1' }
+            span?.update({
+                output: res,
+                metadata: { responseTimeMs: Date.now() - startTime },
+            })
+            span?.end()
 
-      return res;
-    } catch (e) {
-      await writer?.custom({
-        type: 'data-tool-progress',
-        data: {
-          status: 'done',
-          message: `Task generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-          stage: 'generate-tasks',
-        },
-        id: 'generate-tasks',
-      });
+            return res
+        } catch (e) {
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Task generation failed. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                    stage: 'generate-tasks',
+                },
+                id: 'generate-tasks',
+            })
 
-      span?.error({
-        error: e instanceof Error ? e : new Error(String(e)),
-        endSpan: true,
-      });
+            span?.error({
+                error: e instanceof Error ? e : new Error(String(e)),
+                endSpan: true,
+            })
 
-      throw e;
-    }
-  },
-});
+            throw e
+        }
+    },
+})
 
 // --- Workflow ---
 
 export const specGenerationWorkflow = createWorkflow({
-  id: 'specGenerationWorkflow',
-  inputSchema: specInputSchema,
-  outputSchema: workflowOutputSchema,
+    id: 'specGenerationWorkflow',
+    inputSchema: specInputSchema,
+    outputSchema: workflowOutputSchema,
 })
-  .then(planStep)
-  .then(prdStep)
-  .then(archStep)
-  .then(tasksStep)
-  .commit();
+    .then(planStep)
+    .then(prdStep)
+    .then(archStep)
+    .then(tasksStep)
+    .commit()

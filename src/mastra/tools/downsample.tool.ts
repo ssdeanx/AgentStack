@@ -2,7 +2,7 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import lttb from 'downsample-lttb'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 
 export const downsampleTool = createTool({
@@ -25,7 +25,8 @@ export const downsampleTool = createTool({
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'downsample',
             input,
@@ -36,6 +37,18 @@ export const downsampleTool = createTool({
                 'tool.input.algorithm': input.algorithm,
             },
             requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for downsampling operation
+        const downsampleSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'downsample-operation',
+            input,
+            metadata: {
+                'tool.id': 'downsample-exec',
+                'operation.type': input.algorithm,
+            },
         })
 
         await writer?.custom({
@@ -59,14 +72,22 @@ export const downsampleTool = createTool({
                 target,
             }
 
-            span?.update({
+            downsampleSpan?.update({
+                output: result,
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            downsampleSpan?.end()
+
+            rootSpan?.update({
                 output: result,
                 metadata: {
                     'tool.output.success': true,
                     'tool.status': 'skipped',
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -162,14 +183,22 @@ export const downsampleTool = createTool({
                 }
             }
 
-            span?.update({
+            downsampleSpan?.update({
+                output: result,
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            downsampleSpan?.end()
+
+            rootSpan?.update({
                 output: result,
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.sampledCount': result.values.length,
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -186,7 +215,9 @@ export const downsampleTool = createTool({
             const error = err instanceof Error ? err : new Error(String(err))
             log.error('downsample tool failed', { error: error.message })
 
-            span?.error({ error, endSpan: true })
+            // Record error in both spans
+            downsampleSpan?.error({ error, endSpan: true })
+            rootSpan?.error({ error, endSpan: true })
 
             // Fallback: uniform sampling
             const step = Math.max(1, Math.floor(originalLength / target))

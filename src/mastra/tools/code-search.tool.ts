@@ -1,7 +1,7 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import type { TracingContext } from '@mastra/core/observability'
 import fg, { type Options as FastGlobOptions } from 'fast-glob'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
@@ -137,8 +137,12 @@ Use for finding usages, identifying patterns, and code exploration.`,
             },
             id: 'coding:codeSearch',
         })
-        const tracingContext: TracingContext | undefined = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'code-search',
             input: {
@@ -147,11 +151,22 @@ Use for finding usages, identifying patterns, and code exploration.`,
                     ? input.target.length
                     : 1,
             },
-            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'coding:codeSearch',
                 'tool.input.pattern': input.pattern,
-                operation: 'code-search',
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for search operation
+        const searchSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'code-search-operation',
+            input: { pattern: input.pattern },
+            metadata: {
+                'tool.id': 'code-search',
+                'operation.type': 'file-search',
             },
         })
 
@@ -195,7 +210,14 @@ Use for finding usages, identifying patterns, and code exploration.`,
             if (abortSignal?.aborted) {
                 const cancelMessage =
                     'Code search cancelled during file processing'
-                span?.error({ error: new Error(cancelMessage), endSpan: true })
+                searchSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+                rootSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
                 await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -324,7 +346,27 @@ Use for finding usages, identifying patterns, and code exploration.`,
                 },
                 id: 'coding:codeSearch',
             })
-            span?.end()
+
+            // Update spans with successful result
+            searchSpan?.update({
+                output: result,
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            searchSpan?.end()
+
+            rootSpan?.update({
+                output: result,
+                metadata: {
+                    'tool.output.totalMatches': result.stats.totalMatches,
+                    'tool.output.filesWithMatches':
+                        result.stats.filesWithMatches,
+                    'tool.output.success': true,
+                },
+            })
+            rootSpan?.end()
+
             return result
         } catch (error) {
             const errorMessage =
@@ -333,7 +375,14 @@ Use for finding usages, identifying patterns, and code exploration.`,
             // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Code search cancelled for pattern "${input.pattern}"`
-                span?.error({ error: new Error(cancelMessage), endSpan: true })
+                searchSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+                rootSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
 
                 await writer?.custom({
                     type: 'data-tool-progress',
@@ -349,7 +398,9 @@ Use for finding usages, identifying patterns, and code exploration.`,
                 throw new Error(cancelMessage)
             }
 
-            span?.error({ error: new Error(errorMessage), endSpan: true })
+            // Record error in both spans
+            searchSpan?.error({ error: new Error(errorMessage), endSpan: true })
+            rootSpan?.error({ error: new Error(errorMessage), endSpan: true })
             throw error
         }
     },

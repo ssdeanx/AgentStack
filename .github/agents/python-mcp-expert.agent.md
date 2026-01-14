@@ -1,6 +1,6 @@
 ---
-description: "Expert assistant for developing Model Context Protocol (MCP) servers in Python"
-name: "Python MCP Server Expert"
+description: 'Expert assistant for developing Model Context Protocol (MCP) servers in Python'
+name: 'Python MCP Server Expert'
 ---
 
 # Python MCP Server Expert

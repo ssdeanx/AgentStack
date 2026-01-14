@@ -1,13 +1,13 @@
 ---
-title: "UI & Theming"
-description: "Component library, theming, tokens, and guidelines for building interface components in AgentStack (Mastra)."
-date: "2025-12-01"
-readTime: "7 min read"
-category: "Docs"
-slug: "ui"
+title: 'UI & Theming'
+description: 'Component library, theming, tokens, and guidelines for building interface components in AgentStack (Mastra).'
+date: '2025-12-01'
+readTime: '7 min read'
+category: 'Docs'
+slug: 'ui'
 ---
 
-import { CodeBlock } from "@/app/components/api-components"
+import { CodeBlock } from '@/app/components/api-components'
 
 # UI & Theming
 
@@ -44,12 +44,12 @@ We configure tokens with Tailwind utilities and CSS variables. For quick referen
 
 ```css
 :root {
-  --bg: #0f172a;
-  --muted-text: #94a3b8;
-  --primary: #0ea5e9;
-  --foreground: #ffffff;
-  --card-bg: #001122;
-  --border: rgba(255, 255, 255, 0.06);
+    --bg: #0f172a;
+    --muted-text: #94a3b8;
+    --primary: #0ea5e9;
+    --foreground: #ffffff;
+    --card-bg: #001122;
+    --border: rgba(255, 255, 255, 0.06);
 }
 ```
 
@@ -63,19 +63,19 @@ We use `next-themes` to provide client-side theme toggling. `ThemeToggle` is the
 
 ```tsx
 // placing ThemeToggle in the Navbar
-import { ThemeToggle } from "@/ui/theme-toggle";
+import { ThemeToggle } from '@/ui/theme-toggle'
 
 export function Navbar() {
-  return (
-    <header className="px-4 py-4 bg-background">
-      <div className="container mx-auto flex items-center justify-between">
-        <div>AgentStack</div>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-        </div>
-      </div>
-    </header>
-  );
+    return (
+        <header className="px-4 py-4 bg-background">
+            <div className="container mx-auto flex items-center justify-between">
+                <div>AgentStack</div>
+                <div className="flex items-center gap-4">
+                    <ThemeToggle />
+                </div>
+            </div>
+        </header>
+    )
 }
 ```
 
@@ -97,17 +97,17 @@ Design tips:
 Example `Button` usage:
 
 ```tsx
-import { Button } from "@/ui/button";
+import { Button } from '@/ui/button'
 
 export default function ExampleButtons() {
-  return (
-    <div className="flex gap-3">
-      <Button>Default</Button>
-      <Button variant="primary">Primary</Button>
-      <Button variant="destructive">Delete</Button>
-      <Button variant="ghost">Ghost</Button>
-    </div>
-  );
+    return (
+        <div className="flex gap-3">
+            <Button>Default</Button>
+            <Button variant="primary">Primary</Button>
+            <Button variant="destructive">Delete</Button>
+            <Button variant="ghost">Ghost</Button>
+        </div>
+    )
 }
 ```
 
@@ -118,15 +118,15 @@ export default function ExampleButtons() {
 - MDX is used for documentation pages and examples. We provide `mdx-components.tsx` to map MDX tags to custom React components (like `code` -> styled blocks).
 - When authoring MDX docs in the repo, import UI components for live previews and use fenced code blocks for examples:
 
-```mdx
-import { Button } from "@/ui/button"
+````mdx
+import { Button } from '@/ui/button'
 
 <Button variant="primary">Primary</Button>
 
     ```tsx
     <Button variant="primary">Primary</Button>
     ```
-```
+````
 
 Note: be careful to keep interactive client components vs server components in mind; importing client components inside MDX may render them as client components in Next.js App Router.
 
@@ -142,18 +142,18 @@ Note: be careful to keep interactive client components vs server components in m
 Common example for `Input`:
 
 ```tsx
-import { Input } from "@/ui/input"
-import { Label } from "@/ui/label"
+import { Input } from '@/ui/input'
+import { Label } from '@/ui/label'
 
 export function ExampleForm() {
-  return (
-    <form className="space-y-4">
-      <div>
-        <Label>Email</Label>
-        <Input placeholder="you@example.com" />
-      </div>
-    </form>
-  )
+    return (
+        <form className="space-y-4">
+            <div>
+                <Label>Email</Label>
+                <Input placeholder="you@example.com" />
+            </div>
+        </form>
+    )
 }
 ```
 
@@ -164,9 +164,9 @@ export function ExampleForm() {
 - Ensure keyboard navigation and focus states are covered (Tab ordering, ESC to exit dialogs).
 - For components with ARIA, add `aria-label` or `aria-describedby` as needed.
 - Build tests that target both looks and behaviors:
-  - Verify className application for variants (snapshot)
-  - Verify onClick and other UI interactions
-  - Check accessibility roles and properties with `@testing-library/jest-dom` and axe
+    - Verify className application for variants (snapshot)
+    - Verify onClick and other UI interactions
+    - Check accessibility roles and properties with `@testing-library/jest-dom` and axe
 
 ---
 
@@ -182,10 +182,10 @@ export function ExampleForm() {
 ## Extensibility
 
 - When adding a new component:
-  1. Create a file in `mastra/ui` or `app/components` depending on its scope.
-  2. Add typed props and defaults, export the component.
-  3. Add a code sample for the docs (`/docs/components`) as MDX codeblock.
-  4. Add tests and (optionally) a story or a minimal interactive demo.
+    1. Create a file in `mastra/ui` or `app/components` depending on its scope.
+    2. Add typed props and defaults, export the component.
+    3. Add a code sample for the docs (`/docs/components`) as MDX codeblock.
+    4. Add tests and (optionally) a story or a minimal interactive demo.
 
 ---
 
@@ -207,11 +207,11 @@ export function ExampleForm() {
 ## Final Notes & Next Steps
 
 - If you want, I can:
-  - Add a set of per-component MDX pages under `/docs/components/examples` with interactive demos and code samples.
-  - Add a `Design Tokens` page that enumerates all the theme variables and sample usage.
-  - Create a Storybook configuration with per-UI component stories for development and documentation.
+    - Add a set of per-component MDX pages under `/docs/components/examples` with interactive demos and code samples.
+    - Add a `Design Tokens` page that enumerates all the theme variables and sample usage.
+    - Create a Storybook configuration with per-UI component stories for development and documentation.
 - Tell me whether you want the live previews to use a playground iframe or client MDX examples.
 
 ---
 
-*Framework Version: 1.0.0 | Last Updated: 2025-12-01*
+_Framework Version: 1.0.0 | Last Updated: 2025-12-01_

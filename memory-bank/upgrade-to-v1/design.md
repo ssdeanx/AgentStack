@@ -11,7 +11,7 @@ High-level areas we must address:
 - Agents: runtime/voice API changes and property->getter conversions
 - Workflows: run function renames (createRunAsync → createRun) and API cleanups
 - Memory: query → recall, parameter & type renames (MastraMessageV2 → MastraDBMessage)
-- Storage/Vectors: switch to list* patterns and page/perPage pagination
+- Storage/Vectors: switch to list\* patterns and page/perPage pagination
 - Tracing/Observability: telemetry → observability & processor name changes
 - Client SDKs & Evals: type and method renames
 - Voice packages: package name changes and API updates
@@ -20,8 +20,8 @@ High-level areas we must address:
 
 1. Add migration docs in repo and update memory-bank notes (this feature)
 2. Run Mastra codemods where available to convert method names and types
-   - Run the bulk codemod to start: `npx @mastra/codemod@beta v1 .`
-   - Use targeted codemods for specific areas as needed (examples below)
+    - Run the bulk codemod to start: `npx @mastra/codemod@beta v1 .`
+    - Use targeted codemods for specific areas as needed (examples below)
 3. Manually inspect and update call sites that can't be safely codemodded (custom param shapes, adapters)
 4. Add bridging unit tests that exercise the memory layer and ensure recall() returns expected formats
 5. Update docs and internal helper conversion utilities to use `MastraDBMessage` where applicable
@@ -34,10 +34,10 @@ Before (old execute signature):
 
 ```ts
 export const myTool = createTool({
-   id: 'example',
-   execute: async ({ context, runtimeContext, writer, tracingContext }) => {
-      // implementation
-   }
+    id: 'example',
+    execute: async ({ context, runtimeContext, writer, tracingContext }) => {
+        // implementation
+    },
 })
 ```
 
@@ -45,11 +45,11 @@ After (v1 execute signature):
 
 ```ts
 export const myTool = createTool({
-   id: 'example',
-   execute: async (inputData, context) => {
-      // inputData is the tool input payload
-      // context contains requestContext (renamed) + writer + tracingContext
-   }
+    id: 'example',
+    execute: async (inputData, context) => {
+        // inputData is the tool input payload
+        // context contains requestContext (renamed) + writer + tracingContext
+    },
 })
 ```
 
@@ -74,14 +74,22 @@ import { RequestContext } from '@mastra/core/request-context'
 ### Memory (query() → recall())
 
 ```ts
-const result = await memory.query({ threadId: 't-123', vectorMessageSearch: 'notes' })
+const result = await memory.query({
+    threadId: 't-123',
+    vectorMessageSearch: 'notes',
+})
 // used: result.messagesV2 or result.uiMessages
 ```
 
 After (v1):
 
 ```ts
-const result = await memory.recall({ threadId: 't-123', vectorSearchString: 'notes', page: 0, perPage: 20 })
+const result = await memory.recall({
+    threadId: 't-123',
+    vectorSearchString: 'notes',
+    page: 0,
+    perPage: 20,
+})
 const messages = result.messages // MastraDBMessage[]
 // Convert to UI format with @mastra/ai-sdk/ui converters when required
 ```
@@ -154,20 +162,20 @@ Run codemods in a clean git working tree, and commit each codemod run as a separ
 Most codemods automate safe renames, but there are common failure modes you'll hit and how to resolve them:
 
 - Typed execute parameters in tools
-   - Symptom: TypeScript errors where the execute param is annotated with optional props (writer, tracingContext, runtimeContext).
-   - Fix: Change the execute function shape and update its type annotations OR use a lightweight wrapper that adapts the old signature to the new one while you refactor tests.
+    - Symptom: TypeScript errors where the execute param is annotated with optional props (writer, tracingContext, runtimeContext).
+    - Fix: Change the execute function shape and update its type annotations OR use a lightweight wrapper that adapts the old signature to the new one while you refactor tests.
 
 - Memory return shape changes
-   - Symptom: Code expects result.uiMessages or messagesV2 and destructures them; codemod renames method but can't handle custom destructuring.
-   - Fix: Replace destructuring with canonical result.messages and convert using toAISdkV5Messages(messages) where UI shapes are needed.
+    - Symptom: Code expects result.uiMessages or messagesV2 and destructures them; codemod renames method but can't handle custom destructuring.
+    - Fix: Replace destructuring with canonical result.messages and convert using toAISdkV5Messages(messages) where UI shapes are needed.
 
 - RuntimeContext → RequestContext mismatches in tests
-   - Symptom: Tests creating new RuntimeContext cause type errors or missing methods.
-   - Fix: Create test helpers to produce a RequestContext-like mock with the same API as `requestContext.get()` and update tests incrementally.
+    - Symptom: Tests creating new RuntimeContext cause type errors or missing methods.
+    - Fix: Create test helpers to produce a RequestContext-like mock with the same API as `requestContext.get()` and update tests incrementally.
 
 - Vector store provider differences
-   - Symptom: The store's `query()` method is provider-specific and codemod cannot unambiguously rename to `list()`.
-   - Fix: Inspect each provider (qdrant, pinecone, chroma, lance) and update the call site to the new store method signature and parameter format.
+    - Symptom: The store's `query()` method is provider-specific and codemod cannot unambiguously rename to `list()`.
+    - Fix: Inspect each provider (qdrant, pinecone, chroma, lance) and update the call site to the new store method signature and parameter format.
 
 ## PR checklist (per-area PR)
 
@@ -213,8 +221,6 @@ sample_patches:
    - ...
 notes: 10 files required manual fixes after codemod because of custom execute shapes
 ```
-
-
 
 ## Rollback plan
 

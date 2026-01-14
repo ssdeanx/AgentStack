@@ -9,10 +9,10 @@ Settings files use markdown with YAML frontmatter:
 ```markdown
 ---
 field1: value1
-field2: "value with spaces"
+field2: 'value with spaces'
 numeric_field: 42
 boolean_field: true
-list_field: ["item1", "item2", "item3"]
+list_field: ['item1', 'item2', 'item3']
 ---
 
 # Markdown Content
@@ -34,6 +34,7 @@ FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
 ```
 
 **How it works:**
+
 - `sed -n` - Suppress automatic printing
 - `/^---$/,/^---$/` - Range from first `---` to second `---`
 - `{ /^---$/d; p; }` - Delete the `---` lines, print everything else
@@ -41,6 +42,7 @@ FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$FILE")
 ### Extract Individual Fields
 
 **String fields:**
+
 ```bash
 # Simple value
 VALUE=$(echo "$FRONTMATTER" | grep '^field_name:' | sed 's/field_name: *//')
@@ -50,6 +52,7 @@ VALUE=$(echo "$FRONTMATTER" | grep '^field_name:' | sed 's/field_name: *//' | se
 ```
 
 **Boolean fields:**
+
 ```bash
 ENABLED=$(echo "$FRONTMATTER" | grep '^enabled:' | sed 's/enabled: *//')
 
@@ -60,6 +63,7 @@ fi
 ```
 
 **Numeric fields:**
+
 ```bash
 MAX=$(echo "$FRONTMATTER" | grep '^max_value:' | sed 's/max_value: *//')
 
@@ -73,6 +77,7 @@ fi
 ```
 
 **List fields (simple):**
+
 ```bash
 # YAML: list: ["item1", "item2", "item3"]
 LIST=$(echo "$FRONTMATTER" | grep '^list:' | sed 's/list: *//')
@@ -85,6 +90,7 @@ fi
 ```
 
 **List fields (proper parsing with jq):**
+
 ```bash
 # For proper list handling, use yq or convert to JSON
 # This requires yq to be installed (brew install yq)
@@ -112,6 +118,7 @@ BODY=$(awk '/^---$/{i++; next} i>=2' "$FILE")
 ```
 
 **How it works:**
+
 - `/^---$/` - Match `---` lines
 - `{i++; next}` - Increment counter and skip the `---` line
 - `i>=2` - Print all lines after second `---`
@@ -306,11 +313,12 @@ YAML allows both quoted and unquoted strings:
 ```yaml
 # These are equivalent:
 field1: value
-field2: "value"
+field2: 'value'
 field3: 'value'
 ```
 
 **Handle both:**
+
 ```bash
 # Remove surrounding quotes if present
 VALUE=$(echo "$FRONTMATTER" | grep '^field:' | sed 's/field: *//' | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\\(.*\\)'$/\\1/")
@@ -327,8 +335,7 @@ field: value
 
 # Body
 
-Here's a separator:
----
+## Here's a separator:
 
 More content after the separator.
 ```
@@ -341,11 +348,12 @@ Handle missing or empty fields:
 
 ```yaml
 field1:
-field2: ""
+field2: ''
 field3: null
 ```
 
 **Parsing:**
+
 ```bash
 VALUE=$(echo "$FRONTMATTER" | grep '^field1:' | sed 's/field1: *//')
 # VALUE will be empty string
@@ -361,12 +369,13 @@ fi
 Values with special characters need careful handling:
 
 ```yaml
-message: "Error: Something went wrong!"
-path: "/path/with spaces/file.txt"
-regex: "^[a-zA-Z0-9_]+$"
+message: 'Error: Something went wrong!'
+path: '/path/with spaces/file.txt'
+regex: '^[a-zA-Z0-9_]+$'
 ```
 
 **Safe parsing:**
+
 ```bash
 # Always quote variables when using
 MESSAGE=$(echo "$FRONTMATTER" | grep '^message:' | sed 's/message: *//' | sed 's/^"\(.*\)"$/\1/')
@@ -472,11 +481,13 @@ done
 ```
 
 **Pros:**
+
 - Proper YAML parsing
 - Handles complex structures
 - Better list/object support
 
 **Cons:**
+
 - Requires yq installation
 - Additional dependency
 - May not be available on all systems

@@ -4,9 +4,12 @@
 
 ```typescript
 interface ObservabilityRegistryConfig {
-  default?: { enabled?: boolean };
-  configs?: Record<string, Omit<ObservabilityInstanceConfig, "name"> | ObservabilityInstance>;
-  configSelector?: ConfigSelector;
+    default?: { enabled?: boolean }
+    configs?: Record<
+        string,
+        Omit<ObservabilityInstanceConfig, 'name'> | ObservabilityInstance
+    >
+    configSelector?: ConfigSelector
 }
 ```
 
@@ -14,20 +17,20 @@ interface ObservabilityRegistryConfig {
 
 ```typescript
 interface ObservabilityInstanceConfig {
-  name: string;
-  serviceName: string;
-  sampling?: SamplingStrategy;
-  exporters?: ObservabilityExporter[];
-  spanOutputProcessors?: SpanOutputProcessor[];
-  includeInternalSpans?: boolean;
-  requestContextKeys?: string[];
-  /**
-   * NOTE: Tools executing long-running or expensive logic should emit TOOL_CALL spans
-   * and include `tool.*` metadata (e.g., `tool.id`, `tool.input.dataCount`). If you
-   * need to capture request-context-derived values for tool spans, add those keys to
-   * requestContextKeys so they are included automatically in trace metadata.
-   */
-  serializationOptions?: SerializationOptions;
+    name: string
+    serviceName: string
+    sampling?: SamplingStrategy
+    exporters?: ObservabilityExporter[]
+    spanOutputProcessors?: SpanOutputProcessor[]
+    includeInternalSpans?: boolean
+    requestContextKeys?: string[]
+    /**
+     * NOTE: Tools executing long-running or expensive logic should emit TOOL_CALL spans
+     * and include `tool.*` metadata (e.g., `tool.id`, `tool.input.dataCount`). If you
+     * need to capture request-context-derived values for tool spans, add those keys to
+     * requestContextKeys so they are included automatically in trace metadata.
+     */
+    serializationOptions?: SerializationOptions
 }
 ```
 
@@ -37,10 +40,10 @@ Options for controlling how span data is serialized before export.
 
 ```typescript
 interface SerializationOptions {
-  maxStringLength?: number;
-  maxDepth?: number;
-  maxArrayLength?: number;
-  maxObjectKeys?: number;
+    maxStringLength?: number
+    maxDepth?: number
+    maxArrayLength?: number
+    maxObjectKeys?: number
 }
 ```
 
@@ -48,26 +51,26 @@ interface SerializationOptions {
 
 ```typescript
 type SamplingStrategy =
-  | { type: "always" }
-  | { type: "never" }
-  | { type: "ratio"; probability: number }
-  | { type: "custom"; sampler: (options?: TracingOptions) => boolean };
+    | { type: 'always' }
+    | { type: 'never' }
+    | { type: 'ratio'; probability: number }
+    | { type: 'custom'; sampler: (options?: TracingOptions) => boolean }
 ```
 
 ## ConfigSelector
 
 ```typescript
 type ConfigSelector = (
-  options: ConfigSelectorOptions,
-  availableConfigs: ReadonlyMap<string, ObservabilityInstance>,
-) => string | undefined;
+    options: ConfigSelectorOptions,
+    availableConfigs: ReadonlyMap<string, ObservabilityInstance>
+) => string | undefined
 ```
 
 ## ConfigSelectorOptions
 
 ```typescript
 interface ConfigSelectorOptions {
-  requestContext?: RequestContext;
+    requestContext?: RequestContext
 }
 ```
 

@@ -128,8 +128,8 @@ Provide structured results with:
     maxRetries: 5,
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [
         new TokenLimiterProcessor(128000),

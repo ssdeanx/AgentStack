@@ -1,13 +1,13 @@
 ---
-title: "Client-side createTool Integration (Next.js)"
-category: "API Integration"
-status: "🔴 Not Started"
-priority: "High"
-timebox: "1 week"
+title: 'Client-side createTool Integration (Next.js)'
+category: 'API Integration'
+status: '🔴 Not Started'
+priority: 'High'
+timebox: '1 week'
 created: 2026-01-10
 updated: 2026-01-10
-owner: "ssdsk"
-tags: ["technical-spike", "api-integration", "mastra", "client-js"]
+owner: 'ssdsk'
+tags: ['technical-spike', 'api-integration', 'mastra', 'client-js']
 ---
 
 # Client-side createTool Integration (Next.js)
@@ -94,10 +94,10 @@ tags: ["technical-spike", "api-integration", "mastra", "client-js"]
 ### Prototype/Testing Notes
 
 - The example will be a client component with a "Change Background Color" tool (validated via Zod) and a small chat-style UI that calls an agent.text prompt telling it to call the tool. The PoC will demonstrate:
-  - createTool usage in browser
-  - Passing clientTools to agent.generate/agent.stream
-  - Handling streaming chunks and tool-calls
-  - Using onOutput hook to display completion
+    - createTool usage in browser
+    - Passing clientTools to agent.generate/agent.stream
+    - Handling streaming chunks and tool-calls
+    - Using onOutput hook to display completion
 - Server-side: either use an existing sample agent id (e.g., "frontend-demo-agent") or include instructions to create a simple stored agent on local Mastra server that will request the tool by name.
 
 ### External Resources
@@ -122,12 +122,12 @@ Proceed with a 1-week spike that implements the PoC component in app/examples/cl
 ### Implementation Notes
 
 - Add files:
-  - lib/mastra/mastra-client.ts — creates and exports MastraClient with base URL from NEXT_PUBLIC_MASTRA_API_URL
-  - app/examples/client-tools/page.tsx — client component demo showing createTool usage and a small UI for running an agent command
-  - tests/unit/client-tool.spec.ts — unit tests for helper functions and Zod validation
-  - tests/e2e/client-tool.spec.ts — Playwright test that runs the page and asserts color change / logs
-  - docs/examples/client-tools.md — short README describing how to run locally and security guidance
-- Use tenant-safe patterns: use NEXT_PUBLIC_ prefix for public env and clearly document how to run Mastra server locally to test
+    - lib/mastra/mastra-client.ts — creates and exports MastraClient with base URL from NEXT_PUBLIC_MASTRA_API_URL
+    - app/examples/client-tools/page.tsx — client component demo showing createTool usage and a small UI for running an agent command
+    - tests/unit/client-tool.spec.ts — unit tests for helper functions and Zod validation
+    - tests/e2e/client-tool.spec.ts — Playwright test that runs the page and asserts color change / logs
+    - docs/examples/client-tools.md — short README describing how to run locally and security guidance
+- Use tenant-safe patterns: use NEXT*PUBLIC* prefix for public env and clearly document how to run Mastra server locally to test
 - Ensure the agent used in examples exists or include a helper script that registers a stored agent via Mastra REST API
 
 ## Follow-up Actions
@@ -140,10 +140,9 @@ Proceed with a 1-week spike that implements the PoC component in app/examples/cl
 
 ## Status History
 
-| Date       | Status         | Notes                                   |
-| ---------- | -------------- | ---------------------------------------- |
-| 2026-01-10 | 🔴 Not Started | Spike created and scoped                 |
-
+| Date       | Status         | Notes                    |
+| ---------- | -------------- | ------------------------ |
+| 2026-01-10 | 🔴 Not Started | Spike created and scoped |
 
 ---
 

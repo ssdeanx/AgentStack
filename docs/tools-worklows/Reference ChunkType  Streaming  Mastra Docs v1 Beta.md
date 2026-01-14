@@ -1,13 +1,14 @@
 ---
-title: "Reference: ChunkType | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/reference/v1/streaming/ChunkType"
+title: 'Reference: ChunkType | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/reference/v1/streaming/ChunkType'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Documentation for the ChunkType type used in Mastra streaming responses, defining all possible chunk types and their payloads."
+description: 'Mastra v1 Beta: Documentation for the ChunkType type used in Mastra streaming responses, defining all possible chunk types and their payloads.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 The `ChunkType` type defines the mastra format of stream chunks that can be emitted during streaming responses from agents.
 
 ## Base Properties
@@ -215,37 +216,38 @@ Emitted when the stream is forcibly terminated due to content being blocked by a
 ## Usage Example
 
 ```typescript
-const stream = await agent.stream("Hello");
+const stream = await agent.stream('Hello')
 
 for await (const chunk of stream.fullStream) {
-  switch (chunk.type) {
-    case "text-delta":
-      console.log("Text:", chunk.payload.text);
-      break;
+    switch (chunk.type) {
+        case 'text-delta':
+            console.log('Text:', chunk.payload.text)
+            break
 
-    case "tool-call":
-      console.log("Calling tool:", chunk.payload.toolName);
-      break;
+        case 'tool-call':
+            console.log('Calling tool:', chunk.payload.toolName)
+            break
 
-    case "tool-result":
-      console.log("Tool result:", chunk.payload.result);
-      break;
+        case 'tool-result':
+            console.log('Tool result:', chunk.payload.result)
+            break
 
-    case "reasoning-delta":
-      console.log("Reasoning:", chunk.payload.text);
-      break;
+        case 'reasoning-delta':
+            console.log('Reasoning:', chunk.payload.text)
+            break
 
-    case "finish":
-      console.log("Finished:", chunk.payload.stepResult.reason);
-      console.log("Usage:", chunk.payload.output.usage);
-      break;
+        case 'finish':
+            console.log('Finished:', chunk.payload.stepResult.reason)
+            console.log('Usage:', chunk.payload.output.usage)
+            break
 
-    case "error":
-      console.error("Error:", chunk.payload.error);
-      break;
-  }
+        case 'error':
+            console.error('Error:', chunk.payload.error)
+            break
+    }
 }
 ```
+
 - [.stream()](https://mastra.ai/reference/v1/streaming/agents/stream) - Method that returns streams emitting these chunks
 - [MastraModelOutput](https://mastra.ai/reference/v1/streaming/agents/MastraModelOutput) - The stream object that emits these chunks
 - [workflow.stream()](https://mastra.ai/reference/v1/streaming/workflows/stream) - Method that returns streams emitting these chunks for workflows

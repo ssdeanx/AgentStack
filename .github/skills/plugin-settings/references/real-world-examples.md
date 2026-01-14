@@ -15,8 +15,8 @@ task_number: 3.5
 pr_number: 1234
 coordinator_session: team-leader
 enabled: true
-dependencies: ["Task 3.4"]
-additional_instructions: "Use JWT tokens, not sessions"
+dependencies: ['Task 3.4']
+additional_instructions: 'Use JWT tokens, not sessions'
 ---
 
 # Task: Implement Authentication
@@ -24,17 +24,20 @@ additional_instructions: "Use JWT tokens, not sessions"
 Build JWT-based authentication for the REST API.
 
 ## Requirements
+
 - JWT token generation and validation
 - Refresh token flow
 - Secure password hashing
 
 ## Success Criteria
+
 - Auth endpoints implemented
 - Tests passing (100% coverage)
 - PR created and CI green
 - Documentation updated
 
 ## Coordination
+
 Depends on Task 3.4 (user model).
 Report status to 'team-leader' session.
 ```
@@ -86,6 +89,7 @@ exit 0
 ```
 
 **Key patterns:**
+
 1. **Quick exit** (line 7-9): Returns immediately if file doesn't exist
 2. **Field extraction** (lines 11-17): Parses each frontmatter field
 3. **Enabled check** (lines 19-21): Respects enabled flag
@@ -136,8 +140,8 @@ mv temp.md ".claude/multi-agent-swarm.local.md"
 ---
 iteration: 1
 max_iterations: 10
-completion_promise: "All tests passing and build successful"
-started_at: "2025-01-15T14:30:00Z"
+completion_promise: 'All tests passing and build successful'
+started_at: '2025-01-15T14:30:00Z'
 ---
 
 Fix all the linting errors in the project.
@@ -219,6 +223,7 @@ exit 0
 ```
 
 **Key patterns:**
+
 1. **Quick exit** (line 7-9): Skip if not active
 2. **Iteration tracking** (lines 11-20): Count and enforce max iterations
 3. **Promise detection** (lines 25-33): Check for completion signal in output
@@ -253,15 +258,15 @@ echo "Ralph loop initialized: .claude/ralph-loop.local.md"
 
 ## Pattern Comparison
 
-| Feature | multi-agent-swarm | ralph-wiggum |
-|---------|-------------------|--------------|
-| **File** | `.claude/multi-agent-swarm.local.md` | `.claude/ralph-loop.local.md` |
-| **Purpose** | Agent coordination state | Loop iteration state |
-| **Frontmatter** | Agent metadata | Loop configuration |
-| **Body** | Task assignment | Prompt to loop |
-| **Updates** | PR number, status | Iteration counter |
-| **Deletion** | Manual or on completion | On loop exit |
-| **Hook** | Stop (notifications) | Stop (loop control) |
+| Feature         | multi-agent-swarm                    | ralph-wiggum                  |
+| --------------- | ------------------------------------ | ----------------------------- |
+| **File**        | `.claude/multi-agent-swarm.local.md` | `.claude/ralph-loop.local.md` |
+| **Purpose**     | Agent coordination state             | Loop iteration state          |
+| **Frontmatter** | Agent metadata                       | Loop configuration            |
+| **Body**        | Task assignment                      | Prompt to loop                |
+| **Updates**     | PR number, status                    | Iteration counter             |
+| **Deletion**    | Manual or on completion              | On loop exit                  |
+| **Hook**        | Stop (notifications)                 | Stop (loop control)           |
 
 ## Best Practices from Real Plugins
 
@@ -386,6 +391,7 @@ awk '/^---$/{i++; next} i>=2'  # For body
 ## Conclusion
 
 The `.claude/plugin-name.local.md` pattern provides:
+
 - Simple, human-readable configuration
 - Version-control friendly (gitignored)
 - Per-project settings

@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from "@mastra/core/observability";
+import { SpanType } from '@mastra/core/observability'
 import { z } from 'zod'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { log } from '../config/logger'
@@ -61,7 +61,9 @@ export const evaluateResultTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as EvaluateResultContext | undefined
+        const requestContext = context?.requestContext as
+            | EvaluateResultContext
+            | undefined
         await context?.writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -94,8 +96,11 @@ export const evaluateResultTool = createTool({
             // Check if URL already exists (only if existingUrls was provided)
             if (existingUrls?.includes(result.url)) {
                 evalSpan?.update({
-                    output: { isRelevant: false, reason: 'URL already processed' },
-                    metadata: { 'tool.output.status': 'already-processed' }
+                    output: {
+                        isRelevant: false,
+                        reason: 'URL already processed',
+                    },
+                    metadata: { 'tool.output.status': 'already-processed' },
                 })
                 evalSpan?.end()
                 await context?.writer?.custom({
@@ -175,7 +180,10 @@ export const evaluateResultTool = createTool({
                     const errorMessage =
                         err instanceof Error ? err.message : String(err)
                     evalSpan?.error({
-                        error: err instanceof Error ? err : new Error(errorMessage),
+                        error:
+                            err instanceof Error
+                                ? err
+                                : new Error(errorMessage),
                         endSpan: true,
                     })
 
