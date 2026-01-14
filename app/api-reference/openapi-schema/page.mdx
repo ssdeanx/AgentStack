@@ -9,16 +9,18 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## System
 
-<details><summary>System (2 endpoints)</summary>
+<details>
+<summary>System (2 endpoints)</summary>
 
 - **GET** `/health` - Health check endpoint (no params | 200: healthy)
 - **GET** `/api` - Get API status (no params | 200: success)
 
-</details>
+</details> 
 
 ## AI SDK
 
-<details><summary>AI SDK (3 endpoints)</summary>
+<details>
+<summary>AI SDK (3 endpoints)</summary>
 
 - **POST** `/chat/{agentId}` - Chat with agent, stream AI SDK (path: agentId;
   body: messages[] | 200: stream, 400: invalid input, 404: agent not found)
@@ -27,11 +29,12 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 - **POST** `/network/{agentId}` - Execute network, stream AI SDK (path: agentId;
   body: messages[], runtimeContext, maxSteps | 200: stream, 404: not found)
 
-</details>
+</details> 
 
 ## Agents
 
-<details><summary>Agents (35 endpoints)</summary>
+<details>
+<summary>Agents (35 endpoints)</summary>
 
 - **GET** `/.well-known/{agentId}/agent-card.json` - Get agent config
   (path: agentId | 200: config)
@@ -99,7 +102,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## MCP
 
-<details><summary>MCP (9 endpoints)</summary>
+<details>
+<summary>MCP (9 endpoints)</summary>
 
 - **POST** `/api/mcp/{serverId}/mcp` - MCP Streamable HTTP (path: serverId;
   body: {} | 200: processed, 404: not found)
@@ -121,7 +125,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Network Memory
 
-<details><summary>Network Memory (9 endpoints)</summary>
+<details>
+<summary>Network Memory (9 endpoints)</summary>
 
 - **GET** `/api/memory/network/status` - Network memory status (query: networkId |
   200: status)
@@ -146,7 +151,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Memory
 
-<details><summary>Memory (12 endpoints)</summary>
+<details>
+<summary>Memory (12 endpoints)</summary>
 
 - **GET** `/api/memory/status` - Memory status
 - **GET** `/api/memory/config` - Memory config (query: agentId | 200: config)
@@ -173,7 +179,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Telemetry
 
-<details><summary>Telemetry (2 endpoints)</summary>
+<details>
+<summary>Telemetry (2 endpoints)</summary>
 
 - **GET** `/api/telemetry` - Get telemetry
 - **POST** `/api/telemetry` - Post telemetry
@@ -182,7 +189,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Observability
 
-<details><summary>Observability (3 endpoints)</summary>
+<details>
+<summary>Observability (3 endpoints)</summary>
 
 - **GET** `/api/observability/traces` - List traces
 - **GET** `/api/observability/traces/{traceId}` - Get trace
@@ -192,7 +200,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Scores
 
-<details><summary>Scores (7 endpoints)</summary>
+<details>
+<summary>Scores (7 endpoints)</summary>
 
 - **GET** `/api/observability/traces/{traceId}/{spanId}/scores` - Span scores
 - **GET** `/api/scores/scorers` - List scorers
@@ -206,7 +215,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Legacy Workflows
 
-<details><summary>Legacy Workflows (10 endpoints)</summary>
+<details>
+<summary>Legacy Workflows (10 endpoints)</summary>
 
 - **GET** `/api/workflows/legacy` - List legacy
 - **GET** `/api/workflows/legacy/{workflowId}` - Get legacy
@@ -222,7 +232,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Workflows
 
-<details><summary>Workflows (18 endpoints)</summary>
+<details>
+<summary>Workflows (18 endpoints)</summary>
 
 - **GET** `/api/workflows` - List workflows
 - **GET** `/api/workflows/{workflowId}` - Get workflow
@@ -249,7 +260,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Logs
 
-<details><summary>Logs (3 endpoints)</summary>
+<details>
+<summary>Logs (3 endpoints)</summary>
 
 - **GET** `/api/logs` - List logs
 - **GET** `/api/logs/transports` - List transports
@@ -259,7 +271,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Agent Builder
 
-<details><summary>Agent Builder (13 endpoints)</summary>
+<details>
+<summary>Agent Builder (13 endpoints)</summary>
 
 - **GET** `/api/agent-builder` - List builders
 - **GET** `/api/agent-builder/{actionId}` - Get action
@@ -281,7 +294,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Tools
 
-<details><summary>Tools (3 endpoints)</summary>
+<details>
+<summary>Tools (3 endpoints)</summary>
 
 - **GET** `/api/tools` - List tools
 - **GET** `/api/tools/{toolId}` - Get tool
@@ -291,7 +305,8 @@ This section provides a detailed reference for the OpenAPI schema definitions ut
 
 ## Vector
 
-<details><summary>Vector (6 endpoints)</summary>
+<details>
+<summary>Vector (6 endpoints)</summary>
 
 - **POST** `/api/vector/{vectorName}/upsert` - Upsert vectors
 - **POST** `/api/vector/{vectorName}/create-index` - Create index

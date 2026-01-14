@@ -76,7 +76,7 @@ export const weatherAgent = new Agent({
     },
     maxRetries: 5,
 
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  //  defaultOptions: {
+//       autoResumeSuspendedTools: true,
+ //   },
 })

@@ -144,6 +144,6 @@ ${
     },
     maxRetries: 3,
     defaultOptions: {
-        autoResumeSuspendedTools: true,
+ //       autoResumeSuspendedTools: true,
     },
 })

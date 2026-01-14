@@ -130,7 +130,7 @@ User: ${userId} | Role: ${roleConstraint}
             internal: InternalSpans.ALL,
         },
     },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+ //   defaultOptions: {
+//        autoResumeSuspendedTools: true,
+//    },
 })

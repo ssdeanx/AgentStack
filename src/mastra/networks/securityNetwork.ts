@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
 import { codeReviewerAgent } from '../agents/codingAgents'
 import { evaluationAgent } from '../agents/evaluationAgent'
@@ -10,16 +9,15 @@ import { researchAgent } from '../agents/researchAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { confirmationTool } from '../tools/confirmation.tool'
 
 log.info('Initializing Security Network...')
 
 export const securityNetwork = new Agent({
-    id: 'security-network',
-    name: 'Security Network',
-    description:
-        'Provides comprehensive security assessment, vulnerability management, compliance monitoring, and security best practices implementation.',
-    instructions: `You are a Chief Information Security Officer (CISO). Your role is to establish and maintain comprehensive security programs that protect organizational assets, ensure compliance, and manage cyber risks.
+  id: 'security-network',
+  name: 'Security Network',
+  description:
+    'Provides comprehensive security assessment, vulnerability management, compliance monitoring, and security best practices implementation.',
+  instructions: `You are a Chief Information Security Officer (CISO). Your role is to establish and maintain comprehensive security programs that protect organizational assets, ensure compliance, and manage cyber risks.
 
 ## Security Assessment Capabilities
 
@@ -165,26 +163,26 @@ export const securityNetwork = new Agent({
 - Recommend security metrics and monitoring approaches
 - Include incident response planning and testing procedures
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        codeReviewerAgent,
-        evaluationAgent,
-        researchAgent,
-        reportAgent,
-    },
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    codeReviewerAgent,
+    evaluationAgent,
+    researchAgent,
+    reportAgent,
+  },
 
-    tools: { confirmationTool },
-    options: {},
-    defaultNetworkOptions: { autoResumeSuspendedTools: true } as unknown as any,
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 20,
-            maxWaitTime: 100,
-            emitOnNonText: true,
-        }),
-    ],
+  //   tools: { confirmationTool },
+  options: {},
+  //  defaultNetworkOptions: { autoResumeSuspendedTools: true } as unknown as any,
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //  new BatchPartsProcessor({
+    //      batchSize: 20,
+    //      maxWaitTime: 100,
+    //      emitOnNonText: true,
+    //  }),
+  ],
 })
 
 log.info('Security Network initialized')

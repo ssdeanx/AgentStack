@@ -1,36 +1,34 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
-import { googleTools } from '@ai-sdk/google/internal'
 import { Agent } from '@mastra/core/agent'
-import { BaseSpan } from '@mastra/observability'
+import { InternalSpans } from '@mastra/core/observability'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { webScraperTool } from '../tools/web-scraper-tool'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
-import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ScriptWriterRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 export const scriptWriterAgent = new Agent({
-    id: 'scriptWriterAgent',
-    name: 'Script Writer',
-    description:
-        'Master scriptwriter focused on retention, pacing, and psychological engagement.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ScriptWriterRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        return {
-            role: 'system',
-            content: `
+  id: 'scriptWriterAgent',
+  name: 'Script Writer',
+  description:
+    'Master scriptwriter focused on retention, pacing, and psychological engagement.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ScriptWriterRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    return {
+      role: 'system',
+      content: `
 # Master Scriptwriter
 User: ${userTier} | Lang: ${language}
 
@@ -47,45 +45,45 @@ User: ${userTier} | Lang: ${language}
 ## Rules
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                    responseModalities: ['TEXT'],
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+          responseModalities: ['TEXT'],
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ScriptWriterRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI
+    }
+    // cheaper/faster model for free tier
+    return google.chat('gemini-2.5-flash-preview-09-2025')
+  },
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ScriptWriterRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
-            return google.chat('gemini-3-pro-preview')
-        } else if (userTier === 'pro') {
-            // Chat bison for pro as well
-            return googleAI
-        }
-        // cheaper/faster model for free tier
-        return google.chat('gemini-2.5-flash-preview-09-2025')
-    },
-    memory: pgMemory,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    scorers: {},
-    tools: {
-        webScraperTool,
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  scorers: {},
+  tools: {
+    webScraperTool,
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //  defaultOptions: {
+  //      autoResumeSuspendedTools: true,
+  //  },
 })

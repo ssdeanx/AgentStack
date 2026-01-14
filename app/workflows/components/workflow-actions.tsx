@@ -7,10 +7,10 @@ import {
     DownloadIcon,
     CodeIcon,
     ExternalLinkIcon,
-    LayoutHorizontalIcon,
-    LayoutVerticalIcon,
+    LayoutPanelLeftIcon,
+    LayoutPanelTopIcon,
     LayoutGridIcon,
-} from 'lucide-react'
+} from 'lucide-react' 
 import { useCallback } from 'react'
 import { useReactFlow } from '@xyflow/react'
 
@@ -60,8 +60,8 @@ export function WorkflowActions() {
                         className="h-8 w-8"
                         title="Horizontal Layout"
                     >
-                        <LayoutHorizontalIcon className="size-3.5" />
-                    </Button>
+                        <LayoutPanelLeftIcon className="size-3.5" />
+                    </Button> 
                     <Button
                         size="icon-sm"
                         variant="ghost"
@@ -69,7 +69,7 @@ export function WorkflowActions() {
                         className="h-8 w-8"
                         title="Vertical Layout"
                     >
-                        <LayoutVerticalIcon className="size-3.5" />
+                        <LayoutPanelTopIcon className="size-3.5" />
                     </Button>
                     <Button
                         size="icon-sm"

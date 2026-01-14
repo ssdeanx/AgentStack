@@ -1,27 +1,27 @@
-import { Agent } from '@mastra/core/agent'
-import { googleAI, pgMemory } from '../config'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
+import { googleAI, pgMemory } from '../config'
 
 export interface CsvToExcalidrawRuntimeContext {
-    userId?: string
+  userId?: string
 }
 
 export const csvToExcalidrawAgent = new Agent({
-    id: 'csvToExcalidrawAgent',
-    name: 'CSV to Excalidraw Converter',
-    description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<CsvToExcalidrawRuntimeContext>
-    }) => {
-        const userId = requestContext.get('userId')
-        return {
-            role: 'system',
-            content: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
+  id: 'csvToExcalidrawAgent',
+  name: 'CSV to Excalidraw Converter',
+  description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<CsvToExcalidrawRuntimeContext>
+  }) => {
+    const userId = requestContext.get('userId')
+    return {
+      role: 'system',
+      content: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
 user: ${userId}
 Your response MUST be a JSON object with two fields:
 1. "filename": A string ending in .excalidraw
@@ -63,7 +63,7 @@ The contents field must follow this exact schema:
       "locked": boolean,          // Whether element is locked
 
       // Type-specific properties:
-      
+
       // For rectangles:
       "width": number,            // Width of rectangle
       "height": number,           // Height of rectangle
@@ -166,30 +166,30 @@ Structure:
 - Cedar action required for "save", "add to canvas", "persist" keywords
 </decision_logic>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                    responseModalities: ['TEXT'],
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+          responseModalities: ['TEXT'],
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: googleAI,
+  memory: pgMemory,
+  tools: {},
+  scorers: {},
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAI,
-    memory: pgMemory,
-    tools: {},
-    scorers: {},
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    workflows: {},
-    maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  workflows: {},
+  maxRetries: 5,
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //  defaultOptions: {
+  //     autoResumeSuspendedTools: true,
+  // },
 })

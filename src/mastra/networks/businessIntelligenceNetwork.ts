@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
@@ -13,16 +12,15 @@ import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import { confirmationTool } from '../tools/confirmation.tool'
 
 log.info('Initializing Business Intelligence Network...')
 
 export const businessIntelligenceNetwork = new Agent({
-    id: 'business-intelligence-network',
-    name: 'Business Intelligence Network',
-    description:
-        'Provides comprehensive business intelligence through data analysis, visualization, reporting, and actionable insights generation.',
-    instructions: `You are a Chief Data Officer. Your role is to transform raw data into actionable business intelligence through advanced analytics, visualization, and strategic reporting.
+  id: 'business-intelligence-network',
+  name: 'Business Intelligence Network',
+  description:
+    'Provides comprehensive business intelligence through data analysis, visualization, reporting, and actionable insights generation.',
+  instructions: `You are a Chief Data Officer. Your role is to transform raw data into actionable business intelligence through advanced analytics, visualization, and strategic reporting.
 
 ## Business Intelligence Capabilities
 
@@ -171,27 +169,27 @@ export const businessIntelligenceNetwork = new Agent({
 - Include risk assessment and mitigation strategies
 - Recommend pilot projects for proof of concept before full implementation
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        dataIngestionAgent,
-        dataTransformationAgent,
-        reportAgent,
-        stockAnalysisAgent,
-        researchAgent,
-        evaluationAgent,
-        chartSupervisorAgent,
-    },
-    options: {},
-    tools: { confirmationTool },
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 20,
-            maxWaitTime: 100,
-            emitOnNonText: true,
-        }),
-    ],
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    dataIngestionAgent,
+    dataTransformationAgent,
+    reportAgent,
+    stockAnalysisAgent,
+    researchAgent,
+    evaluationAgent,
+    chartSupervisorAgent,
+  },
+  options: {},
+  //  tools: { confirmationTool },
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //     new BatchPartsProcessor({
+    //        batchSize: 20,
+    //         maxWaitTime: 100,
+    //         emitOnNonText: true,
+    //     }),
+  ],
 })
 
 log.info('Business Intelligence Network initialized')

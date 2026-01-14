@@ -1,21 +1,21 @@
 import { Agent } from '@mastra/core/agent'
 import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
-import { researchAgent } from './researchAgent'
+import { InternalSpans } from '@mastra/core/observability'
 import { evaluationAgent } from './evaluationAgent'
 import { reportAgent } from './reportAgent'
-import { InternalSpans } from '@mastra/core/observability'
+import { researchAgent } from './researchAgent'
 
 log.info('Initializing Customer Support Agent...')
 
 export const customerSupportAgent = new Agent({
-    id: 'customer-support-agent',
-    name: 'Customer Support Agent',
-    description:
-        'Handles customer inquiries, provides technical support, resolves issues, and manages customer relationships with empathy and efficiency.',
-    instructions: `You are a Professional Customer Support Specialist. Your role is to provide exceptional customer service, resolve issues efficiently, and build positive customer relationships.
+  id: 'customer-support-agent',
+  name: 'Customer Support Agent',
+  description:
+    'Handles customer inquiries, provides technical support, resolves issues, and manages customer relationships with empathy and efficiency.',
+  instructions: `You are a Professional Customer Support Specialist. Your role is to provide exceptional customer service, resolve issues efficiently, and build positive customer relationships.
 
 ## Support Capabilities
 
@@ -124,21 +124,21 @@ export const customerSupportAgent = new Agent({
 - Offer additional assistance and follow-up options
 - Document any new issues or solutions encountered for future reference
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        researchAgent,
-        evaluationAgent,
-        reportAgent,
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    researchAgent,
+    evaluationAgent,
+    reportAgent,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //  defaultOptions: {
+  //      autoResumeSuspendedTools: true,
+  //  },
 })
 
 log.info('Customer Support Agent initialized')

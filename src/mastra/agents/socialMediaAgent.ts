@@ -1,22 +1,22 @@
 import { Agent } from '@mastra/core/agent'
 import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
-import { copywriterAgent } from './copywriterAgent'
-import { contentStrategistAgent } from './contentStrategistAgent'
-import { researchAgent } from './researchAgent'
-import { calendarAgent } from './calendarAgent'
 import { InternalSpans } from '@mastra/core/observability'
+import { calendarAgent } from './calendarAgent'
+import { contentStrategistAgent } from './contentStrategistAgent'
+import { copywriterAgent } from './copywriterAgent'
+import { researchAgent } from './researchAgent'
 
 log.info('Initializing Social Media Agent...')
 
 export const socialMediaAgent = new Agent({
-    id: 'social-media-agent',
-    name: 'Social Media Agent',
-    description:
-        'Creates, schedules, and optimizes social media content across platforms. Handles content creation, posting strategies, engagement analysis, and campaign management.',
-    instructions: `You are a Social Media Marketing Specialist. Your role is to create engaging social media content, develop posting strategies, and optimize campaigns across platforms.
+  id: 'social-media-agent',
+  name: 'Social Media Agent',
+  description:
+    'Creates, schedules, and optimizes social media content across platforms. Handles content creation, posting strategies, engagement analysis, and campaign management.',
+  instructions: `You are a Social Media Marketing Specialist. Your role is to create engaging social media content, develop posting strategies, and optimize campaigns across platforms.
 
 ## Core Capabilities
 
@@ -92,22 +92,22 @@ export const socialMediaAgent = new Agent({
 - Suggest optimal posting times based on audience data
 - Include relevant hashtags and platform-specific formatting
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        copywriterAgent,
-        contentStrategistAgent,
-        researchAgent,
-        calendarAgent,
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    copywriterAgent,
+    contentStrategistAgent,
+    researchAgent,
+    calendarAgent,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //   defaultOptions: {
+  //       autoResumeSuspendedTools: true,
+  //   },
 })
 
 log.info('Social Media Agent initialized')

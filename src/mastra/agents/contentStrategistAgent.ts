@@ -1,53 +1,52 @@
 import { Agent } from '@mastra/core/agent'
-import { google3, googleAI } from '../config/google'
+import { google3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import {
-    scrapingSchedulerTool,
-    webScraperTool,
+  scrapingSchedulerTool,
+  webScraperTool,
 } from '../tools/web-scraper-tool'
 
-import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
-import {
-    createToneScorer,
-    createTextualDifferenceScorer,
-    createCompletenessScorer,
-} from '../evals/scorers/prebuilt'
-import { log } from '../config/logger'
 import { InternalSpans } from '@mastra/core/observability'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
+import {
+  createCompletenessScorer,
+  createTextualDifferenceScorer,
+  createToneScorer,
+} from '../evals/scorers/prebuilt'
+import { chartSupervisorTool } from '../tools/financial-chart-tools'
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ContentAgentContext {
-    userId?: string
-    'user-tier': UserTier
-    staggeredOutput?: boolean
-    sectionCount?: number
-    strategy?: 'iceberg' | 'blue-ocean' | 'structured' | 'hybrid' | 'custom'
-    backupDataTools?: string[]
+  userId?: string
+  'user-tier': UserTier
+  staggeredOutput?: boolean
+  sectionCount?: number
+  strategy?: 'iceberg' | 'blue-ocean' | 'structured' | 'hybrid' | 'custom'
+  backupDataTools?: string[]
 }
 
 export const contentStrategistAgent = new Agent({
-    id: 'contentStrategistAgent',
-    name: 'Content Strategist',
-    description:
-        'Elite content strategist specializing in high-impact, data-driven content planning.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ContentAgentContext>
-    }) => {
-        const userId = requestContext.get('userId') ?? 'anonymous'
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const staggeredOutput = requestContext.get('staggeredOutput') ?? false
-        const sectionCount = requestContext.get('sectionCount') ?? 5
-        const strategy = requestContext.get('strategy') ?? 'iceberg'
-        const backupDataTools = requestContext.get('backupDataTools') ?? [
-            'chartSupervisorTool',
-        ]
-        return {
-            role: 'system',
-            content: `
+  id: 'contentStrategistAgent',
+  name: 'Content Strategist',
+  description:
+    'Elite content strategist specializing in high-impact, data-driven content planning.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ContentAgentContext>
+  }) => {
+    const userId = requestContext.get('userId') ?? 'anonymous'
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const staggeredOutput = requestContext.get('staggeredOutput') ?? false
+    const sectionCount = requestContext.get('sectionCount') ?? 5
+    const strategy = requestContext.get('strategy') ?? 'iceberg'
+    const backupDataTools = requestContext.get('backupDataTools') ?? [
+      'chartSupervisorTool',
+    ]
+    return {
+      role: 'system',
+      content: `
 # Content Strategist
 User: ${userId} | Tier: ${userTier} | Style: ${strategy}
 
@@ -67,37 +66,37 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
 - **Titles**: FOMO/Urgency triggers, 60 char max.
 - **Output**: JSON only; always cite sources.
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-                    responseModalities: ['TEXT'],
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+          responseModalities: ['TEXT'],
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: google3,
+  memory: pgMemory,
+  tools: {
+    webScraperTool,
+    chartSupervisorTool,
+    scrapingSchedulerTool,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: google3,
-    memory: pgMemory,
-    tools: {
-        webScraperTool,
-        chartSupervisorTool,
-        scrapingSchedulerTool,
-    },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    scorers: {
-        toneConsistency: { scorer: createToneScorer() },
-        textualDifference: { scorer: createTextualDifferenceScorer() },
-        completeness: { scorer: createCompletenessScorer() },
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  scorers: {
+    toneConsistency: { scorer: createToneScorer() },
+    textualDifference: { scorer: createTextualDifferenceScorer() },
+    completeness: { scorer: createCompletenessScorer() },
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //defaultOptions: {
+  //    autoResumeSuspendedTools: true,
+  // },
 })

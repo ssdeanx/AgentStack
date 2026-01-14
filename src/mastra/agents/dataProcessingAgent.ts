@@ -7,50 +7,50 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import {
-    //    documentChunkingTool,
-    //    codeChunkingTool,
-    //    dataProcessingTools,
-    csvToJsonTool,
-    jsonToCsvTool,
-    //    dataValidatorTool,
-    dateTimeTool,
-    colorChangeTool,
-    randomGeneratorTool,
-    calculatorTool,
+  calculatorTool,
+  colorChangeTool,
+  //    documentChunkingTool,
+  //    codeChunkingTool,
+  //    dataProcessingTools,
+  csvToJsonTool,
+  //    dataValidatorTool,
+  dateTimeTool,
+  jsonToCsvTool,
+  randomGeneratorTool,
 } from '../tools'
 
-import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { InternalSpans } from '@mastra/core/observability'
+import { evaluateResultTool } from '../tools/evaluateResultTool'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
 export interface DataProcessingRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    userId?: string
-    processingMode?: 'fast' | 'accurate' | 'balanced'
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+  userId?: string
+  processingMode?: 'fast' | 'accurate' | 'balanced'
 }
 
 log.info('Initializing Data Processing Agent...')
 
 export const dataProcessingAgent = new Agent({
-    id: 'dataProcessingAgent',
-    name: 'Data Processing Agent',
-    description:
-        'Specialist in data transformation, validation, and processing. Handles document chunking, format conversion, data cleaning, and quality checks.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<DataProcessingRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const processingMode =
-            requestContext.get('processingMode') ?? 'balanced'
+  id: 'dataProcessingAgent',
+  name: 'Data Processing Agent',
+  description:
+    'Specialist in data transformation, validation, and processing. Handles document chunking, format conversion, data cleaning, and quality checks.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<DataProcessingRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const processingMode =
+      requestContext.get('processingMode') ?? 'balanced'
 
-        return {
-            role: 'system',
-            content: `
+    return {
+      role: 'system',
+      content: `
 # Data Processing Specialist
 Tier: ${userTier} | Lang: ${language} | Mode: ${processingMode}
 
@@ -96,69 +96,68 @@ Provide processed data with:
 - Any warnings or issues found
 - Processing time and resource usage
 
-${
-    processingMode === 'accurate'
-        ? `
+${processingMode === 'accurate'
+          ? `
 ## Accurate Mode
 - Double-check all calculations
 - Use higher precision where possible
 - Validate outputs against multiple criteria
 `
-        : processingMode === 'fast'
-          ? `
+          : processingMode === 'fast'
+            ? `
 ## Fast Mode
 - Prioritize speed over precision where acceptable
 - Use optimized algorithms
 - Batch operations when possible
 `
-          : ''
-}
+            : ''
+        }
 `,
-            providerOptions: {
-                google: {
-                    responseModalities: ['TEXT'],
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingLevel: 'medium',
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT'],
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingLevel: 'medium',
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<DataProcessingRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      return 'google/gemini-3-flash-preview'
+    }
+    return google.chat('gemini-3-flash-preview')
+  },
+  tools: {
+    //     documentChunkingTool,
+    //     codeChunkingTool,
+    //     dataProcessingTools,
+    csvToJsonTool,
+    jsonToCsvTool,
+    //     dataValidatorTool,
+    dateTimeTool,
+    colorChangeTool,
+    randomGeneratorTool,
+    calculatorTool,
+    evaluateResultTool,
+  },
+  memory: pgMemory,
+  maxRetries: 3,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<DataProcessingRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            return google.chat('gemini-3-pro-preview')
-        } else if (userTier === 'pro') {
-            return 'google/gemini-3-flash-preview'
-        }
-        return google.chat('gemini-3-flash-preview')
-    },
-    tools: {
-        //     documentChunkingTool,
-        //     codeChunkingTool,
-        //     dataProcessingTools,
-        csvToJsonTool,
-        jsonToCsvTool,
-        //     dataValidatorTool,
-        dateTimeTool,
-        colorChangeTool,
-        randomGeneratorTool,
-        calculatorTool,
-        evaluateResultTool,
-    },
-    memory: pgMemory,
-    maxRetries: 3,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //  defaultOptions: {
+  //     autoResumeSuspendedTools: true,
+  // },
 })
