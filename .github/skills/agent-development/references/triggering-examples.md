@@ -25,6 +25,7 @@ assistant: "[How Claude triggers the agent - usually 'I'll use the [agent-name] 
 **Purpose:** Set the scene - what happened before the user's message
 
 **Good contexts:**
+
 ```
 Context: User just implemented a new authentication feature
 Context: User has created a PR and wants it reviewed
@@ -33,6 +34,7 @@ Context: After writing several functions without documentation
 ```
 
 **Bad contexts:**
+
 ```
 Context: User needs help (too vague)
 Context: Normal usage (not specific)
@@ -43,6 +45,7 @@ Context: Normal usage (not specific)
 **Purpose:** Show the exact phrasing that should trigger the agent
 
 **Good user messages:**
+
 ```
 user: "I've added the OAuth flow, can you check it?"
 user: "Review PR #123"
@@ -52,6 +55,7 @@ user: "Add docs for these functions"
 
 **Vary the phrasing:**
 Include multiple examples with different phrasings for the same intent:
+
 ```
 Example 1: user: "Review my code"
 Example 2: user: "Can you check this implementation?"
@@ -63,6 +67,7 @@ Example 3: user: "Look over my changes"
 **Purpose:** Show what Claude says before launching the agent
 
 **Good responses:**
+
 ```
 assistant: "I'll analyze your OAuth implementation."
 assistant: "Let me review that PR for you."
@@ -70,6 +75,7 @@ assistant: "I'll investigate the test failure."
 ```
 
 **Proactive example:**
+
 ```
 assistant: "Great! Now let me review the code quality."
 <commentary>
@@ -82,6 +88,7 @@ Code was just written, proactively trigger review agent.
 **Purpose:** Explain the reasoning - WHY this agent should trigger
 
 **Good commentary:**
+
 ```
 <commentary>
 User explicitly requested code review, trigger the code-reviewer agent.
@@ -97,6 +104,7 @@ PR analysis request matches pr-analyzer agent's expertise.
 ```
 
 **Include decision logic:**
+
 ```
 <commentary>
 User wrote tests (Test tool used). The test-analyzer agent should check
@@ -109,11 +117,13 @@ test quality and coverage before continuing.
 **Purpose:** Show how Claude invokes the agent
 
 **Standard pattern:**
+
 ```
 assistant: "I'll use the [agent-name] agent to [what it will do]."
 ```
 
 **Examples:**
+
 ```
 assistant: "I'll use the code-reviewer agent to analyze the changes."
 assistant: "Let me use the test-generator agent to create comprehensive tests."
@@ -327,12 +337,14 @@ Review request triggers the agent.
 ### Minimum: 2 Examples
 
 Cover at least:
+
 1. Explicit request
 2. One variation or proactive trigger
 
 ### Recommended: 3-4 Examples
 
 Cover:
+
 1. Explicit request (direct ask)
 2. Implicit request (user implies need)
 3. Proactive trigger (after relevant work)
@@ -441,6 +453,7 @@ Explicit validation request triggers the agent.
 ### Agent Not Triggering
 
 **Check:**
+
 1. Examples include relevant keywords from user message
 2. Context matches actual usage scenarios
 3. Commentary explains triggering logic clearly
@@ -452,6 +465,7 @@ Add more examples covering different phrasings.
 ### Agent Triggers Too Often
 
 **Check:**
+
 1. Examples are too broad or generic
 2. Triggering conditions overlap with other agents
 3. Commentary doesn't distinguish when NOT to use
@@ -462,6 +476,7 @@ Make examples more specific, add negative examples.
 ### Agent Triggers in Wrong Scenarios
 
 **Check:**
+
 1. Examples don't match actual intended use
 2. Commentary suggests inappropriate triggering
 
@@ -471,6 +486,7 @@ Revise examples to show only correct triggering scenarios.
 ## Best Practices Summary
 
 ✅ **DO:**
+
 - Include 2-4 concrete, specific examples
 - Show both explicit and proactive triggering
 - Provide clear context for each example
@@ -479,6 +495,7 @@ Revise examples to show only correct triggering scenarios.
 - Show Claude using Agent tool
 
 ❌ **DON'T:**
+
 - Use generic, vague examples
 - Omit context or commentary
 - Show only one type of triggering

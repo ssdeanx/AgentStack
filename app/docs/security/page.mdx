@@ -1,10 +1,10 @@
 ---
-title: "Security"
-description: "Security best practices for AgentStack (Mastra) — protecting secrets, telemetry redaction, API security, PII & memory, tool approvals, and deployment hardening."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "Docs"
-slug: "security"
+title: 'Security'
+description: 'Security best practices for AgentStack (Mastra) — protecting secrets, telemetry redaction, API security, PII & memory, tool approvals, and deployment hardening.'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'Docs'
+slug: 'security'
 ---
 
 # Security: Protecting your Agents and Data
@@ -32,6 +32,7 @@ Keep credentials out of source control and limit their scope.
 - Rotate keys and limit privileges (e.g., use read-only DB users for ingestion, restrict APIs).
 
 Typical environment variables to secure:
+
 - SUPABASE / PG connection string (postgres credentials)
 - OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY
 - LANGFUSE_SECRET_KEY / LANGFUSE_PUBLIC_KEY (telemetry)
@@ -46,6 +47,7 @@ Example: never commit your secrets, always use environment variables or a secret
 Telemetry is essential for debugging and observability, but it often contains sensitive pieces. Use `SensitiveDataFilter` or a similar redaction processor to ensure secrets are not exported.
 
 Example (observability snippet):
+
 ```ts
 import { DefaultExporter, SamplingStrategyType, SensitiveDataFilter } from '@mastra/core/ai-tracing';
 import { LangfuseExporter } from './config/tracing';
@@ -75,6 +77,7 @@ observability: {
 ```
 
 Guidance:
+
 - Mark fields as sensitive to prevent accidental telemetry disclosure.
 - Keep minimal metadata in traces for production.
 - Ensure telemetry storage has retention and access control.
@@ -90,28 +93,37 @@ Memory (embeddings, message store, working memory) can contain user data, which 
 - For regulated data (GDPR, HIPAA), replace or omit PII in the content before indexing.
 
 Example: `maskStreamTags` and `maskSensitiveMessageData` (in `src/mastra/config/pg-storage.ts`):
+
 ```ts
-import { maskStreamTags } from '@mastra/core';
+import { maskStreamTags } from '@mastra/core'
 
 // Mask sensitive tags in a stream, e.g., <password>secret-value</password>
-function createMaskedStream(inputStream: AsyncIterable<string>, sensitiveTags = ['password', 'token']) {
-  let masked = inputStream;
-  for (const tag of sensitiveTags) {
-    masked = maskStreamTags(masked, tag);
-  }
-  return masked;
+function createMaskedStream(
+    inputStream: AsyncIterable<string>,
+    sensitiveTags = ['password', 'token']
+) {
+    let masked = inputStream
+    for (const tag of sensitiveTags) {
+        masked = maskStreamTags(masked, tag)
+    }
+    return masked
 }
 ```
 
 Example: safe message logging — remove secrets:
+
 ```ts
 function maskSensitiveMessageData(content) {
-  const sensitiveFields = ['password', 'secret', 'token', 'apiKey'];
-  return content.replace(/("?(password|token|secret|apiKey)"?\s*:\s*)"[^"]*"/gi, '$1"[REDACTED]"');
+    const sensitiveFields = ['password', 'secret', 'token', 'apiKey']
+    return content.replace(
+        /("?(password|token|secret|apiKey)"?\s*:\s*)"[^"]*"/gi,
+        '$1"[REDACTED]"'
+    )
 }
 ```
 
 Guidance:
+
 - Use dedicated data policies (PII detection) to identify and exclude private data.
 - Keep sensitive fields out of the vector store.
 - For user content that must be retained (e.g., for productivity features), use explicit opt-ins and anonymize data.
@@ -128,11 +140,13 @@ Server routes like `/chat`, `/workflow`, `/api/tools/:id/execute` should be prot
 - Validate & sanitize incoming payloads (message content, file uploads).
 
 Practical steps:
+
 - Require an authentication token for POST to `/chat` in production.
 - Implement request validation in middleware: ensure `agent` and `messages` fields are expected and sanitized.
 - Enforce rate-limits and quotas for users and IPs.
 
 Example (middleware in `index.ts`):
+
 ```ts
 server.middleware: [
   async (c, next) => {
@@ -156,6 +170,7 @@ Tools have side effects (e.g., DB writes, exec commands). Use tool approval flow
 - Implement audit trails for tool calls and approval decisions.
 
 Important:
+
 - Some tools should be disabled by default in production (e.g., `execa-tool`, or tools that grant system access).
 - Disallow local file system writes unless explicit.
 
@@ -196,6 +211,7 @@ MCP (A2A / resource discovery) makes metadata available to agents. Limit exposur
 ## 10. Templates & Short-Running Incidents
 
 If exposing high-risk tools (shell exec or fs writes), use a safety template:
+
 - Require `tool` approval for any tool that mutates external state.
 - Validate all tool inputs and apply policy checks before execution.
 - Add `deny-list` and `allow-list` to restrict external execution.
@@ -214,13 +230,14 @@ If exposing high-risk tools (shell exec or fs writes), use a safety template:
 
 - We’ve outlined secure practices across the stack: secrets, observability, data privacy, API security, tool approval, and production hardening.
 - Recommended immediate actions:
-  1. Add `SensitiveDataFilter` into your `observability` config used by `index.ts`.
-  2. Verify the `pg-storage.ts` sanitizes PII prior to embedding.
-  3. Add API authentication middleware for your `/chat` & `/workflow` endpoints.
-  4. Create CI checks to block committing secrets.
-  5. Harden `mcp` endpoint declarations for A2A discovery.
+    1. Add `SensitiveDataFilter` into your `observability` config used by `index.ts`.
+    2. Verify the `pg-storage.ts` sanitizes PII prior to embedding.
+    3. Add API authentication middleware for your `/chat` & `/workflow` endpoints.
+    4. Create CI checks to block committing secrets.
+    5. Harden `mcp` endpoint declarations for A2A discovery.
 
 Would you like me to:
+
 - Add an `observability` snippet to your `index.ts` to redact sensitive telemetry automatically?
 - Create a `docs/security/checklist.md` to serve as the repository-specific guide for security audits?
 - Add a `tool-approval` sample workflow and UI approval button example?

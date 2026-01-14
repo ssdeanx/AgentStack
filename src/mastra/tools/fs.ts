@@ -24,7 +24,9 @@ export const fsTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as FsToolContext | undefined
+        const requestContext = context?.requestContext as
+            | FsToolContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         if (abortSignal?.aborted === true) {
@@ -57,7 +59,9 @@ export const fsTool = createTool({
             // Check for cancellation before file operations
             if (abortSignal?.aborted) {
                 fsSpan?.error({
-                    error: new Error('Operation cancelled during file operations'),
+                    error: new Error(
+                        'Operation cancelled during file operations'
+                    ),
                     endSpan: true,
                 })
                 throw new Error('FS operation cancelled during file operations')

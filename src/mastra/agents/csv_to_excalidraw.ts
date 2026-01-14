@@ -1,20 +1,24 @@
-import { Agent } from "@mastra/core/agent";
-import { googleAI, pgMemory } from "../config";
-import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
+import { Agent } from '@mastra/core/agent'
+import { googleAI, pgMemory } from '../config'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from "@mastra/core/processors";
-import { InternalSpans } from "@mastra/core/observability";
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 export interface CsvToExcalidrawRuntimeContext {
     userId?: string
 }
 
 export const csvToExcalidrawAgent = new Agent({
-  id: "csvToExcalidrawAgent",
-  name: "CSV to Excalidraw Converter",
-  description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
-  instructions: ({ requestContext }: { requestContext: RequestContext<CsvToExcalidrawRuntimeContext> }) => {
-        const userId = requestContext.get('userId');
+    id: 'csvToExcalidrawAgent',
+    name: 'CSV to Excalidraw Converter',
+    description: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.`,
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<CsvToExcalidrawRuntimeContext>
+    }) => {
+        const userId = requestContext.get('userId')
         return {
             role: 'system',
             content: `You are an expert at converting CSV data into Excalidraw diagrams. Your task is to analyze CSV data and create a visual representation using the Excalidraw JSON format.
@@ -170,24 +174,22 @@ Structure:
                     },
                     responseModalities: ['TEXT'],
                 } satisfies GoogleGenerativeAIProviderOptions,
-            }
+            },
         }
     },
-  model: googleAI,
-  memory: pgMemory,
-  tools: {},
-  scorers: {
-
-  },
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
+    model: googleAI,
+    memory: pgMemory,
+    tools: {},
+    scorers: {},
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
     },
-  workflows: {},
-  maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
-});
+    workflows: {},
+    maxRetries: 5,
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
+})

@@ -1,13 +1,17 @@
 ---
-title: "Agents API"
-description: "Detailed API reference for Agents — endpoints, request and response shapes, examples, and best practices for calling and managing agents in AgentStack."
-date: "2025-12-01"
-readTime: "6 min read"
-category: "API"
-slug: "agents"
+title: 'Agents API'
+description: 'Detailed API reference for Agents — endpoints, request and response shapes, examples, and best practices for calling and managing agents in AgentStack.'
+date: '2025-12-01'
+readTime: '6 min read'
+category: 'API'
+slug: 'agents'
 ---
 
-import { ApiEndpoint, ApiParam, CodeBlock } from "@/app/components/api-components"
+import {
+    ApiEndpoint,
+    ApiParam,
+    CodeBlock,
+} from '@/app/components/api-components'
 
 # Agents API Reference
 
@@ -25,7 +29,11 @@ Authentication
 ### List agents
 
 ```tsx
-<ApiEndpoint method="GET" path="/api/agents" description="List all registered agents" />
+<ApiEndpoint
+    method="GET"
+    path="/api/agents"
+    description="List all registered agents"
+/>
 ```
 
 - Description: Returns a list of all agents including ID, name, description, and capabilities.
@@ -38,11 +46,15 @@ curl -X GET "http://localhost:4111/api/agents" -H "Authorization: Bearer $KEY"
 ### Get agent details
 
 ```tsx
-<ApiEndpoint method="GET" path="/api/agents/{agentId}" description="Get a specific agent's details" />
+<ApiEndpoint
+    method="GET"
+    path="/api/agents/{agentId}"
+    description="Get a specific agent's details"
+/>
 ```
 
 - Path param:
-  - `agentId` — the ID of the agent to fetch.
+    - `agentId` — the ID of the agent to fetch.
 - Response: Agent config, tools, models, and metadata.
 
 ---
@@ -50,7 +62,11 @@ curl -X GET "http://localhost:4111/api/agents" -H "Authorization: Bearer $KEY"
 ## Generate (single/call/structured)
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/generate" description="Generate a response from an agent (non-streaming)" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/generate"
+    description="Generate a response from an agent (non-streaming)"
+/>
 ```
 
 - Usage: Synchronous call to run the agent and get a final response. Useful for smaller flows or for SDK use.
@@ -58,10 +74,10 @@ curl -X GET "http://localhost:4111/api/agents" -H "Authorization: Bearer $KEY"
 
 ```json
 {
-  "messages": [
-    { "role": "user", "content": "Write a short intro about AgentStack." }
-  ],
-  "structuredOutput": false
+    "messages": [
+        { "role": "user", "content": "Write a short intro about AgentStack." }
+    ],
+    "structuredOutput": false
 }
 ```
 
@@ -83,7 +99,11 @@ curl -s -X POST "http://localhost:4111/api/agents/my-agent/generate" \
 ## Stream/Realtime (server-sent events / streaming)
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/stream" description="Open a streaming session with the agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/stream"
+    description="Open a streaming session with the agent"
+/>
 ```
 
 - This route returns an SSE/stream where partial reasoning and content events are emitted. Use this endpoint in UIs for incremental responses.
@@ -94,12 +114,16 @@ curl -s -X POST "http://localhost:4111/api/agents/my-agent/generate" \
 ## Tool Execution
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/tools/{toolId}/execute" description="Execute a specific tool within the context of an agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/tools/{toolId}/execute"
+    description="Execute a specific tool within the context of an agent"
+/>
 ```
 
 - Path parameters:
-  - `agentId` — ID of the agent invoking the tool (context for tool security).
-  - `toolId` — ID of the tool to execute.
+    - `agentId` — ID of the agent invoking the tool (context for tool security).
+    - `toolId` — ID of the tool to execute.
 - Body: Depends on the tool; each tool defines its `inputSchema`.
 - Example:
 
@@ -116,10 +140,15 @@ curl -X POST "http://localhost:4111/api/agents/copywriter-agent/tools/copywriter
 ---
 
 ## Managing Agent Config
+
 ### Update/Enhance Instructions
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/instructions" description="Update instruction sets for an agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/instructions"
+    description="Update instruction sets for an agent"
+/>
 ```
 
 - Body: `instructions` payload or an enhancer.
@@ -128,7 +157,11 @@ curl -X POST "http://localhost:4111/api/agents/copywriter-agent/tools/copywriter
 ### Enhance Instructions using assistant enhancements
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/instructions/enhance" description="Automatic enhancement of instructions" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/instructions/enhance"
+    description="Automatic enhancement of instructions"
+/>
 ```
 
 - This endpoint may be used to automatically rewrite or improve agent instruction text.
@@ -136,23 +169,32 @@ curl -X POST "http://localhost:4111/api/agents/copywriter-agent/tools/copywriter
 ---
 
 ## Tool approvals
+
 Agents may request approvals for specific tool calls (dangerous or costly tools). Admins or policy services can approve or decline tool calls.
 
 - Approve tool call:
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/approve-tool-call" description="Approve a tool call requested by an agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/approve-tool-call"
+    description="Approve a tool call requested by an agent"
+/>
 ```
 
 - Decline tool call:
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/agents/{agentId}/decline-tool-call" description="Decline a tool call requested by an agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/agents/{agentId}/decline-tool-call"
+    description="Decline a tool call requested by an agent"
+/>
 ```
 
 - Body fields:
-  - `runId`: The running session or call ID tied to that tool invocation.
-  - `toolCallId`: The tool call ID to approve or reject.
+    - `runId`: The running session or call ID tied to that tool invocation.
+    - `toolCallId`: The tool call ID to approve or reject.
 - Example:
 
 ```bash
@@ -166,8 +208,8 @@ curl -X POST "http://localhost:4111/api/agents/my-agent/approve-tool-call" \
 ## Evals / CI endpoints
 
 - Some agents expose continuous integration or live evaluation endpoints:
-  - `GET /api/agents/{agentId}/evals/ci` — CI-run evaluations
-  - `GET /api/agents/{agentId}/evals/live` — Live running evaluations & results
+    - `GET /api/agents/{agentId}/evals/ci` — CI-run evaluations
+    - `GET /api/agents/{agentId}/evals/live` — Live running evaluations & results
 
 These endpoints are useful for CI/CD that automates or validates agent behavior.
 
@@ -185,18 +227,18 @@ These endpoints are useful for CI/CD that automates or validates agent behavior.
 ## Body & Response Shapes
 
 - `messages[]`:
-  - List of messages in standard roles (`user`, `assistant`, `system`, `tool`). For example:
-  
-    ```json
-    [
-      {"role":"user","content":"Hello!"},
-      {"role":"system","content":"You are a helpful assistant."}
-    ]
-    ```
+    - List of messages in standard roles (`user`, `assistant`, `system`, `tool`). For example:
+
+        ```json
+        [
+            { "role": "user", "content": "Hello!" },
+            { "role": "system", "content": "You are a helpful assistant." }
+        ]
+        ```
 
 - Agent responses usually return `UIMessage` shape:
-  - `id`, `createdAt`, `role`, `parts` (array; each part may include `text`, `type`, `tool_data`, `structured_output` etc.)
-  - `metadata` — run/trace info
+    - `id`, `createdAt`, `role`, `parts` (array; each part may include `text`, `type`, `tool_data`, `structured_output` etc.)
+    - `metadata` — run/trace info
 
 - For structured output flows, the `structuredOutput` flag returns typed results as described in the agent's output schema.
 
@@ -214,18 +256,23 @@ These endpoints are useful for CI/CD that automates or validates agent behavior.
 
 ```ts
 // fetch / generate example
-const resp = await fetch("http://localhost:4111/api/agents/hello-world-agent/generate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`
-  },
-  body: JSON.stringify({
-    messages: [{ role: "user", content: "Say hello in a friendly tone" }]
-  })
-});
-const data = await resp.json();
-console.log("Agent response:", data);
+const resp = await fetch(
+    'http://localhost:4111/api/agents/hello-world-agent/generate',
+    {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
+        },
+        body: JSON.stringify({
+            messages: [
+                { role: 'user', content: 'Say hello in a friendly tone' },
+            ],
+        }),
+    }
+)
+const data = await resp.json()
+console.log('Agent response:', data)
 ```
 
 ---

@@ -13,7 +13,6 @@ import { SpanType } from '@mastra/core/observability'
 import { httpFetch } from '../lib/http-client'
 const fetch = httpFetch
 
-
 /**
  * Governance-aware Runtime Context for Polygon.io tools
  * Includes security, tenant, and access control information
@@ -239,7 +238,12 @@ export const polygonStockQuotesTool = createTool({
             })
 
             const apiStartTime = Date.now()
-            const resp = await httpFetch(finalUrl, { method: 'GET', timeout: 30000, responseType: 'json', signal: abortSignal })
+            const resp = await httpFetch(finalUrl, {
+                method: 'GET',
+                timeout: 30000,
+                responseType: 'json',
+                signal: abortSignal,
+            })
             const data = resp.data
             const apiDuration = Date.now() - apiStartTime
 

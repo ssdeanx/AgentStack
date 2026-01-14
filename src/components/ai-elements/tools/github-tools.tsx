@@ -222,61 +222,59 @@ export function RepositoryCard({
             <CardContent>
                 <ScrollArea className="h-75 pr-4">
                     <div className="space-y-3">
-                        {repos.map(
-                            (repo) => (
-                                <div
-                                    key={repo.url}
-                                    className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            {repo.isPrivate ? (
-                                                <Lock className="size-3 text-muted-foreground" />
-                                            ) : (
-                                                <Globe className="size-3 text-muted-foreground" />
-                                            )}
-                                            <a
-                                                href={repo.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm font-medium hover:underline truncate"
-                                            >
-                                                {repo.name}
-                                            </a>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-muted-foreground">
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <Star className="size-3" />
-                                                {repo.stars}
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs">
-                                                <GitFork className="size-3" />
-                                                {repo.forks}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {repo.description && (
-                                        <p className="text-xs text-muted-foreground line-clamp-2">
-                                            {repo.description}
-                                        </p>
-                                    )}
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Badge
-                                            variant="outline"
-                                            className="text-[10px] h-5"
+                        {repos.map((repo) => (
+                            <div
+                                key={repo.url}
+                                className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        {repo.isPrivate ? (
+                                            <Lock className="size-3 text-muted-foreground" />
+                                        ) : (
+                                            <Globe className="size-3 text-muted-foreground" />
+                                        )}
+                                        <a
+                                            href={repo.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium hover:underline truncate"
                                         >
-                                            {repo.defaultBranch}
-                                        </Badge>
-                                        <span>
-                                            Updated{' '}
-                                            {new Date(
-                                                repo.updatedAt
-                                            ).toLocaleDateString()}
-                                        </span>
+                                            {repo.name}
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-muted-foreground">
+                                        <div className="flex items-center gap-1 text-xs">
+                                            <Star className="size-3" />
+                                            {repo.stars}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs">
+                                            <GitFork className="size-3" />
+                                            {repo.forks}
+                                        </div>
                                     </div>
                                 </div>
-                            )
-                        )}
+                                {repo.description && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                        {repo.description}
+                                    </p>
+                                )}
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Badge
+                                        variant="outline"
+                                        className="text-[10px] h-5"
+                                    >
+                                        {repo.defaultBranch}
+                                    </Badge>
+                                    <span>
+                                        Updated{' '}
+                                        {new Date(
+                                            repo.updatedAt
+                                        ).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </ScrollArea>
             </CardContent>
@@ -335,59 +333,58 @@ export function PullRequestList({
                 <ScrollArea className="h-75 pr-4">
                     <div className="space-y-3">
                         {prs.map((pr: PullRequest) => (
-                                <div
-                                    key={pr.number}
-                                    className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <span className="text-xs text-muted-foreground">
-                                                #{pr.number}
-                                            </span>
-                                            <a
-                                                href={pr.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm font-medium hover:underline truncate"
-                                            >
-                                                {pr.title}
-                                            </a>
-                                        </div>
-                                        <Badge
-                                            variant={
-                                                pr.state === 'open'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                            className="text-[10px] capitalize"
-                                        >
-                                            {pr.state}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {pr.labels.map((label) => (
-                                            <Badge
-                                                key={label}
-                                                variant="outline"
-                                                className="text-[10px] h-5 px-1.5 bg-muted/50"
-                                            >
-                                                {label}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                                        <div className="flex items-center gap-1">
-                                            <span>by {pr.author}</span>
-                                        </div>
-                                        <span>
-                                            {new Date(
-                                                pr.createdAt
-                                            ).toLocaleDateString()}
+                            <div
+                                key={pr.number}
+                                className="flex flex-col gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-xs text-muted-foreground">
+                                            #{pr.number}
                                         </span>
+                                        <a
+                                            href={pr.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium hover:underline truncate"
+                                        >
+                                            {pr.title}
+                                        </a>
                                     </div>
+                                    <Badge
+                                        variant={
+                                            pr.state === 'open'
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                        className="text-[10px] capitalize"
+                                    >
+                                        {pr.state}
+                                    </Badge>
                                 </div>
-                            )
-                        )}
+                                <div className="flex flex-wrap gap-1">
+                                    {pr.labels.map((label) => (
+                                        <Badge
+                                            key={label}
+                                            variant="outline"
+                                            className="text-[10px] h-5 px-1.5 bg-muted/50"
+                                        >
+                                            {label}
+                                        </Badge>
+                                    ))}
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                                    <div className="flex items-center gap-1">
+                                        <span>by {pr.author}</span>
+                                    </div>
+                                    <span>
+                                        {new Date(
+                                            pr.createdAt
+                                        ).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </ScrollArea>
             </CardContent>

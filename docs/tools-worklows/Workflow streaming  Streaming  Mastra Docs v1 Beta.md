@@ -1,13 +1,14 @@
 ---
-title: "Workflow streaming | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/docs/v1/streaming/workflow-streaming"
+title: 'Workflow streaming | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/docs/v1/streaming/workflow-streaming'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Learn how to use workflow streaming in Mastra, including handling workflow execution events, step streaming, and workflow integration with agents and tools."
+description: 'Mastra v1 Beta: Learn how to use workflow streaming in Mastra, including handling workflow execution events, step streaming, and workflow integration with agents and tools.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 Workflow streaming in Mastra enables workflows to send incremental results while they execute, rather than waiting until completion. This allows you to surface partial progress, intermediate states, or progressive data directly to users or upstream agents and workflows.
 
 Streams can be written to in two main ways:
@@ -56,29 +57,29 @@ export const testStep = createStep({
 Events written to the stream are included in the emitted chunks. These chunks can be inspected to access any custom fields, such as event types, intermediate values, or step-specific data.
 
 ```typescript
-const testWorkflow = mastra.getWorkflow("testWorkflow");
+const testWorkflow = mastra.getWorkflow('testWorkflow')
 
-const run = await testWorkflow.createRun();
+const run = await testWorkflow.createRun()
 
 const stream = await run.stream({
-  inputData: {
-    value: "initial data",
-  },
-});
+    inputData: {
+        value: 'initial data',
+    },
+})
 
 for await (const chunk of stream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 
-if (result!.status === "suspended") {
-  // if the workflow is suspended, we can resume it with the resumeStream method
-  const resumedStream = await run.resumeStream({
-    resumeData: { value: "resume data" },
-  });
+if (result!.status === 'suspended') {
+    // if the workflow is suspended, we can resume it with the resumeStream method
+    const resumedStream = await run.resumeStream({
+        resumeData: { value: 'resume data' },
+    })
 
-  for await (const chunk of resumedStream) {
-    console.log(chunk);
-  }
+    for await (const chunk of resumedStream) {
+        console.log(chunk)
+    }
 }
 ```
 
@@ -87,10 +88,10 @@ if (result!.status === "suspended") {
 If a workflow stream is closed or interrupted for any reason, you can resume it with the `resumeStream` method. This will return a new `ReadableStream` that you can use to observe the workflow events.
 
 ```typescript
-const newStream = await run.resumeStream();
+const newStream = await run.resumeStream()
 
 for await (const chunk of newStream) {
-  console.log(chunk);
+    console.log(chunk)
 }
 ```
 

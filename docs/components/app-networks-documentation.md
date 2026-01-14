@@ -82,10 +82,10 @@ Public types of interest (partial):
 ### NetworkProvider (providers/network-context.tsx)
 
 - Responsibilities:
-  - Configure `useChat` transport for `${MASTRA_API_URL}/network` and prepare request payload with `resourceId` and `networkId`.
-  - Track derived, UI-friendly state: `routingSteps`, `toolInvocations`, `sources`, `networkStatus`, `streamingOutput` and `streamingReasoning`.
-  - Convert Mastra `data-network` and `data-tool-*` parts into a consistent `dynamic-tool` representation via `mapDataPartToDynamicTool()`.
-  - Initialize `routingSteps` when `data-network` parts are present and network configuration indicates applicable agents.
+    - Configure `useChat` transport for `${MASTRA_API_URL}/network` and prepare request payload with `resourceId` and `networkId`.
+    - Track derived, UI-friendly state: `routingSteps`, `toolInvocations`, `sources`, `networkStatus`, `streamingOutput` and `streamingReasoning`.
+    - Convert Mastra `data-network` and `data-tool-*` parts into a consistent `dynamic-tool` representation via `mapDataPartToDynamicTool()`.
+    - Initialize `routingSteps` when `data-network` parts are present and network configuration indicates applicable agents.
 
 ### Key behaviors
 
@@ -107,15 +107,15 @@ Public types of interest (partial):
 
 ```tsx
 export default function NetworksPage() {
-  return (
-    <NetworkProvider defaultNetwork="agentNetwork">
-      <main>
-        <NetworkHeader />
-        <NetworkChat />
-        <NetworkRoutingPanel />
-      </main>
-    </NetworkProvider>
-  )
+    return (
+        <NetworkProvider defaultNetwork="agentNetwork">
+            <main>
+                <NetworkHeader />
+                <NetworkChat />
+                <NetworkRoutingPanel />
+            </main>
+        </NetworkProvider>
+    )
 }
 ```
 
@@ -125,8 +125,8 @@ export default function NetworksPage() {
 import { useNetworkContext } from '@/app/networks/providers/network-context'
 
 function MyToolList() {
-  const { toolInvocations } = useNetworkContext()
-  return <div>{toolInvocations.length} tools invoked</div>
+    const { toolInvocations } = useNetworkContext()
+    return <div>{toolInvocations.length} tools invoked</div>
 }
 ```
 
@@ -140,9 +140,9 @@ function MyToolList() {
 ## 7. Testing & Observability
 
 - Unit tests (Vitest):
-  - `NetworkProvider` — test `mapDataPartToDynamicTool`, `sendMessage`, `selectNetwork`, and routing state transitions.
-  - `NetworkChat` — ensure rendering for different message parts (reasoning, tools, artifacts, web preview). Mock `useChat` for streaming scenarios.
-  - `NetworkHeader` — model/network selection, stop/clear interactions.
+    - `NetworkProvider` — test `mapDataPartToDynamicTool`, `sendMessage`, `selectNetwork`, and routing state transitions.
+    - `NetworkChat` — ensure rendering for different message parts (reasoning, tools, artifacts, web preview). Mock `useChat` for streaming scenarios.
+    - `NetworkHeader` — model/network selection, stop/clear interactions.
 
 - Integration tests: simulate a streaming `data-network` payload from the Mastra network endpoint and assert the routing steps are populated and update statuses correctly.
 

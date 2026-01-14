@@ -7,10 +7,10 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import {
-//   polygonTool,
-//    finnhubTool,
+    //   polygonTool,
+    //    finnhubTool,
     alphaVantageTool,
-//    financialChartTool,
+    //    financialChartTool,
     technicalAnalysisTool,
 } from '../tools'
 import { InternalSpans } from '@mastra/core/observability'
@@ -130,16 +130,16 @@ ${
         return google.chat('gemini-3-flash-preview')
     },
     tools: {
-//        polygonTool,
-//        finnhubTool,
+        //        polygonTool,
+        //        finnhubTool,
         alphaVantageTool,
-//        financialChartTool,
+        //        financialChartTool,
         technicalAnalysisTool,
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     memory: pgMemory,
     maxRetries: 3,

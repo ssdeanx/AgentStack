@@ -27,7 +27,8 @@ export const colorChangeTool = createTool({
         const { color } = input
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const requestCtx = context?.requestContext as
             | ColorChangeRequestContext
             | undefined

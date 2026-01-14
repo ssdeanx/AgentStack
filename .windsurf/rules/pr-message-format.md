@@ -80,4 +80,3 @@ Summary of what was implemented/fixed in this PR
 - Ambiguous titles that don't convey meaning (e.g., abstract expressions like "update", "fix issue", "changes")
 - Body with only unstructured long text (without section headings or bullet points, making content hard to grasp)
 - Descriptions that differ from actual diffs or intentionally omit important changes, impacts, or test results
-

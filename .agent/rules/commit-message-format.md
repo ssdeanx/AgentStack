@@ -49,6 +49,7 @@ Prefix corresponds to `type` in Conventional Commits and uses lowercase English 
 - revert: Revert
 
 As with Conventional Commits, the format `<Prefix>(scope):` is also allowed as needed (e.g., `fix(translation): ...`).
+
 - For detailed specifications, also refer to the official [Conventional Commits](https://www.conventionalcommits.org/) documentation.
 
 ## Summary (First Line)

@@ -7,12 +7,12 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import {
-//    documentChunkingTool,
-//    codeChunkingTool,
-//    dataProcessingTools,
+    //    documentChunkingTool,
+    //    codeChunkingTool,
+    //    dataProcessingTools,
     csvToJsonTool,
     jsonToCsvTool,
-//    dataValidatorTool,
+    //    dataValidatorTool,
     dateTimeTool,
     colorChangeTool,
     randomGeneratorTool,
@@ -139,12 +139,12 @@ ${
         return google.chat('gemini-3-flash-preview')
     },
     tools: {
-   //     documentChunkingTool,
-   //     codeChunkingTool,
-   //     dataProcessingTools,
+        //     documentChunkingTool,
+        //     codeChunkingTool,
+        //     dataProcessingTools,
         csvToJsonTool,
         jsonToCsvTool,
-   //     dataValidatorTool,
+        //     dataValidatorTool,
         dateTimeTool,
         colorChangeTool,
         randomGeneratorTool,
@@ -155,9 +155,9 @@ ${
     maxRetries: 3,
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
-      },
+            internal: InternalSpans.ALL,
+        },
+    },
     defaultOptions: {
         autoResumeSuspendedTools: true,
     },

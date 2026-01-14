@@ -2,7 +2,6 @@ import { Memory } from '@mastra/memory'
 import { log } from '../config/logger'
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
-
 export interface ChunkingOptions {
     tokenSize?: number
     maxChunkSize?: number
@@ -23,7 +22,9 @@ export class ChunkingService {
         // Initialize Memory instance for access to native chunking
         // We need to provide an embedder even though we won't use it for embedding
         this.memory = new Memory({
-            embedder:  new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
+            embedder: new ModelRouterEmbeddingModel(
+                'google/gemini-embedding-001)'
+            ),
         })
     }
 

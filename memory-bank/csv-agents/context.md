@@ -15,10 +15,11 @@ import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 
 export const exampleAgent = new Agent({
-  id: 'example-agent',           // REQUIRED: unique identifier
-  name: 'Example Agent',          // Human-readable name
-  description: 'Clear description for network routing. Explains when to use this agent.',  // CRITICAL for network routing
-  instructions: `You are an example agent. Your role is to...
+    id: 'example-agent', // REQUIRED: unique identifier
+    name: 'Example Agent', // Human-readable name
+    description:
+        'Clear description for network routing. Explains when to use this agent.', // CRITICAL for network routing
+    instructions: `You are an example agent. Your role is to...
   
   Workflow:
   1. Step one
@@ -28,15 +29,15 @@ export const exampleAgent = new Agent({
   Always:
   - Guideline one
   - Guideline two`,
-  model: googleAI,
-  memory: pgMemory,              // Include for stateful agents
-  tools: {
-    toolOne,
-    toolTwo,
-  },
-  options: {
-    tracingPolicy: { internal: InternalSpans.ALL }  // From reportAgent pattern
-  }
+    model: googleAI,
+    memory: pgMemory, // Include for stateful agents
+    tools: {
+        toolOne,
+        toolTwo,
+    },
+    options: {
+        tracingPolicy: { internal: InternalSpans.ALL }, // From reportAgent pattern
+    },
 })
 ```
 
@@ -58,21 +59,21 @@ import { agentTwo } from '../agents/agentTwo'
 import { workflowOne } from '../workflows/workflowOne'
 
 export const exampleNetwork = new Agent({
-  id: 'example-network',
-  name: 'Example Network',
-  description: 'A routing agent that coordinates specialized agents.',  // CRITICAL
-  instructions: `You are a routing agent. Analyze requests and delegate to appropriate agents:
+    id: 'example-network',
+    name: 'Example Network',
+    description: 'A routing agent that coordinates specialized agents.', // CRITICAL
+    instructions: `You are a routing agent. Analyze requests and delegate to appropriate agents:
     
     - agentOne: Use for task type A
     - agentTwo: Use for task type B
     
     Always explain which agent you're delegating to and why.`,
-  model: googleAI,
-  memory: pgMemory,              // REQUIRED for .network() method
-  options: { tracingPolicy: { internal: InternalSpans.ALL } },
-  agents: { agentOne, agentTwo },  // Object of agents
-  tools: {},                       // Can be empty
-  workflows: { workflowOne }       // Object of workflows (optional)
+    model: googleAI,
+    memory: pgMemory, // REQUIRED for .network() method
+    options: { tracingPolicy: { internal: InternalSpans.ALL } },
+    agents: { agentOne, agentTwo }, // Object of agents
+    tools: {}, // Can be empty
+    workflows: { workflowOne }, // Object of workflows (optional)
 })
 ```
 
@@ -97,21 +98,21 @@ export const exampleTool = createTool({
   execute: async ({ context, writer, runtimeContext, tracingContext }) => {
     // Progress streaming
     await writer?.write({ type: 'progress', data: { message: '📊 Starting...' } })
-    
+
     // Tracing span
     const rootSpan = tracingContext?.currentSpan?.createChildSpan({
       type: AISpanType.TOOL_CALL,
       name: 'example-tool',
       input: { ...context }
     })
-    
+
     try {
       // Runtime context for configuration
       const config = runtimeContext?.get('contextKey')
-      
+
       // Tool logic here...
       const result = { /* ... */ }
-      
+
       rootSpan?.end({ output: result })
       await writer?.write({ type: 'progress', data: { message: '✅ Complete' } })
       return result
@@ -138,18 +139,18 @@ import { dataValidatorTool } from '../tools/data-validator.tool'
 
 ```typescript
 import {
-  readDataFileTool,
-  writeDataFileTool,
-  deleteDataFileTool,
-  listDataDirTool,
-  copyDataFileTool,
-  moveDataFileTool,
-  searchDataFilesTool,
-  getDataFileInfoTool,
-  createDataDirTool,
-  removeDataDirTool,
-  archiveDataTool,
-  backupDataTool,
+    readDataFileTool,
+    writeDataFileTool,
+    deleteDataFileTool,
+    listDataDirTool,
+    copyDataFileTool,
+    moveDataFileTool,
+    searchDataFilesTool,
+    getDataFileInfoTool,
+    createDataDirTool,
+    removeDataDirTool,
+    archiveDataTool,
+    backupDataTool,
 } from '../tools/data-file-manager'
 ```
 
@@ -157,14 +158,14 @@ import {
 
 ```typescript
 import {
-  readCSVDataTool,
-  csvToExcalidrawTool,
-  imageToCSVTool,
-  validateExcalidrawTool,
-  processSVGTool,
-  processXMLTool,
-  convertDataFormatTool,
-  validateDataTool,
+    readCSVDataTool,
+    csvToExcalidrawTool,
+    imageToCSVTool,
+    validateExcalidrawTool,
+    processSVGTool,
+    processXMLTool,
+    convertDataFormatTool,
+    validateDataTool,
 } from '../tools/data-processing-tools'
 ```
 
@@ -173,20 +174,24 @@ import {
 ```typescript
 import { webScraperTool, batchWebScraperTool } from '../tools/web-scraper-tool'
 import { readPDF } from '../tools/pdf'
-import { mastraChunker, mdocumentChunker, documentRerankerTool } from '../tools/document-chunking.tool'
+import {
+    mastraChunker,
+    mdocumentChunker,
+    documentRerankerTool,
+} from '../tools/document-chunking.tool'
 ```
 
 ## Model Configuration (from config/google.ts)
 
 ```typescript
 // Fast, cost-effective - use for simple agents (DataExport, DataIngestion)
-import { googleAI } from '../config/google'  // gemini-2.5-flash
+import { googleAI } from '../config/google' // gemini-2.5-flash
 
 // More capable reasoning - use for complex agents (DataTransformation, Networks)
-import { googleAI3 } from '../config/google'  // gemini-3-pro  
+import { googleAI3 } from '../config/google' // gemini-3-pro
 
 // Even faster, lighter weight - use for simple routing
-import { googleAIFlashLite } from '../config/google'  // gemini-flash-lite
+import { googleAIFlashLite } from '../config/google' // gemini-flash-lite
 ```
 
 ## Memory Configuration (from config/pg-storage.ts)
@@ -208,30 +213,30 @@ In `src/mastra/index.ts`, agents are registered like:
 
 ```typescript
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow, contentStudioWorkflow },
-  agents: {
-    weatherAgent,
-    a2aCoordinatorAgent,
-    csvToExcalidrawAgent,
-    imageToCsvAgent,
-    copywriterAgent,
-    editorAgent,
-    excalidrawValidatorAgent,
-    reportAgent,
-    learningExtractionAgent,
-    evaluationAgent,
-    researchAgent,
-    agentNetwork,
-    contentStrategistAgent,
-    scriptWriterAgent,
-    // ADD NEW AGENTS HERE:
-    dataExportAgent,
-    dataIngestionAgent,
-    dataTransformationAgent,
-    dataPipelineNetwork,
-    reportGenerationNetwork,
-  },
-  // ...
+    workflows: { weatherWorkflow, contentStudioWorkflow },
+    agents: {
+        weatherAgent,
+        a2aCoordinatorAgent,
+        csvToExcalidrawAgent,
+        imageToCsvAgent,
+        copywriterAgent,
+        editorAgent,
+        excalidrawValidatorAgent,
+        reportAgent,
+        learningExtractionAgent,
+        evaluationAgent,
+        researchAgent,
+        agentNetwork,
+        contentStrategistAgent,
+        scriptWriterAgent,
+        // ADD NEW AGENTS HERE:
+        dataExportAgent,
+        dataIngestionAgent,
+        dataTransformationAgent,
+        dataPipelineNetwork,
+        reportGenerationNetwork,
+    },
+    // ...
 })
 ```
 
@@ -251,7 +256,7 @@ import { reportGenerationNetwork } from './networks/reportGenerationNetwork'
 agents: {
   // ... existing agents
   dataExportAgent,
-  dataIngestionAgent, 
+  dataIngestionAgent,
   dataTransformationAgent,
   dataPipelineNetwork,
   reportGenerationNetwork,
@@ -277,45 +282,45 @@ import { describe, it, expect } from 'vitest'
 import { dataExportAgent } from '../dataExportAgent'
 
 describe('DataExportAgent', () => {
-  it('should be defined', () => {
-    expect(dataExportAgent).toBeDefined()
-  })
+    it('should be defined', () => {
+        expect(dataExportAgent).toBeDefined()
+    })
 
-  it('should have correct id and name', () => {
-    expect(dataExportAgent.id).toBe('data-export-agent')
-    expect(dataExportAgent.name).toBe('Data Export Agent')
-  })
+    it('should have correct id and name', () => {
+        expect(dataExportAgent.id).toBe('data-export-agent')
+        expect(dataExportAgent.name).toBe('Data Export Agent')
+    })
 
-  it('should have required tools', () => {
-    const toolIds = Object.keys(dataExportAgent.tools)
-    expect(toolIds).toContain('jsonToCsvTool')
-    expect(toolIds).toContain('dataValidatorTool')
-  })
+    it('should have required tools', () => {
+        const toolIds = Object.keys(dataExportAgent.tools)
+        expect(toolIds).toContain('jsonToCsvTool')
+        expect(toolIds).toContain('dataValidatorTool')
+    })
 
-  it('should have memory configured', () => {
-    expect(dataExportAgent.memory).toBeDefined()
-  })
+    it('should have memory configured', () => {
+        expect(dataExportAgent.memory).toBeDefined()
+    })
 
-  it('should have description for routing', () => {
-    expect(dataExportAgent.description).toBeDefined()
-    expect(dataExportAgent.description.length).toBeGreaterThan(20)
-  })
+    it('should have description for routing', () => {
+        expect(dataExportAgent.description).toBeDefined()
+        expect(dataExportAgent.description.length).toBeGreaterThan(20)
+    })
 })
 ```
 
 ## File Paths
 
-| Component | Path |
-|-----------|------|
-| DataExportAgent | `src/mastra/agents/dataExportAgent.ts` |
-| DataIngestionAgent | `src/mastra/agents/dataIngestionAgent.ts` |
-| DataTransformationAgent | `src/mastra/agents/dataTransformationAgent.ts` |
-| DataPipelineNetwork | `src/mastra/networks/dataPipelineNetwork.ts` |
+| Component               | Path                                             |
+| ----------------------- | ------------------------------------------------ |
+| DataExportAgent         | `src/mastra/agents/dataExportAgent.ts`           |
+| DataIngestionAgent      | `src/mastra/agents/dataIngestionAgent.ts`        |
+| DataTransformationAgent | `src/mastra/agents/dataTransformationAgent.ts`   |
+| DataPipelineNetwork     | `src/mastra/networks/dataPipelineNetwork.ts`     |
 | ReportGenerationNetwork | `src/mastra/networks/reportGenerationNetwork.ts` |
-| Agent Tests | `src/mastra/agents/tests/csv-agents.test.ts` |
-| Network Tests | `src/mastra/networks/tests/csv-networks.test.ts` |
-| Networks Index | `src/mastra/networks/index.ts` (update exports) |
-| Main Index | `src/mastra/index.ts` (register agents) |
+| Agent Tests             | `src/mastra/agents/tests/csv-agents.test.ts`     |
+| Network Tests           | `src/mastra/networks/tests/csv-networks.test.ts` |
+| Networks Index          | `src/mastra/networks/index.ts` (update exports)  |
+| Main Index              | `src/mastra/index.ts` (register agents)          |
 
 ## Validation Checklist
 

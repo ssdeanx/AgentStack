@@ -34,6 +34,7 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 ## User Stories
 
 ### US-1: Data Export
+
 **As a** developer  
 **I want to** export structured data (JSON, API responses) to CSV format  
 **So that** I can create spreadsheets, reports, or downloadable data dumps
@@ -46,6 +47,7 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 - [ ] Agent supports custom delimiters and headers
 
 ### US-2: Data Ingestion
+
 **As a** data analyst  
 **I want to** ingest CSV files with validation  
 **So that** I can process uploaded files safely with schema enforcement
@@ -58,6 +60,7 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 - [ ] Agent reports validation errors clearly
 
 ### US-3: Data Transformation
+
 **As a** integration engineer  
 **I want to** transform data between formats (CSV, JSON, XML)  
 **So that** I can normalize data for different systems
@@ -70,6 +73,7 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 - [ ] Agent preserves data integrity during transformation
 
 ### US-4: Data Pipeline Orchestration
+
 **As a** system architect  
 **I want to** coordinate multiple agents for complex data workflows  
 **So that** I can build automated ETL pipelines
@@ -82,6 +86,7 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 - [ ] Network provides clear status updates
 
 ### US-5: Report Generation Pipeline
+
 **As a** business user  
 **I want to** generate CSV reports from research data  
 **So that** I can export analysis results for stakeholders
@@ -112,13 +117,13 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 
 ## Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Agents Created | 3 |
-| Networks Created | 2 |
-| Tool Utilization | 8+ tools used across agents |
-| Test Coverage | Basic smoke tests for each agent/network |
-| Integration | Registered in index.ts |
+| Metric           | Target                                   |
+| ---------------- | ---------------------------------------- |
+| Agents Created   | 3                                        |
+| Networks Created | 2                                        |
+| Tool Utilization | 8+ tools used across agents              |
+| Test Coverage    | Basic smoke tests for each agent/network |
+| Integration      | Registered in index.ts                   |
 
 ## Dependencies
 
@@ -131,17 +136,17 @@ While specialized agents exist (`image_to_csv.ts`, `csv_to_excalidraw.ts`), ther
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Tool compatibility issues | Medium | Follow existing patterns from researchAgent |
-| Memory state conflicts in networks | Low | Use isolated memory contexts |
-| Complex transformation failures | Medium | Add robust validation at each step |
+| Risk                               | Impact | Mitigation                                  |
+| ---------------------------------- | ------ | ------------------------------------------- |
+| Tool compatibility issues          | Medium | Follow existing patterns from researchAgent |
+| Memory state conflicts in networks | Low    | Use isolated memory contexts                |
+| Complex transformation failures    | Medium | Add robust validation at each step          |
 
 ## Approval
 
-- [ ] PRD Approved by: _______________
-- [ ] Design Approved by: _______________
-- [ ] Ready for Implementation: _______________
+- [ ] PRD Approved by: **\*\***\_\_\_**\*\***
+- [ ] Design Approved by: **\*\***\_\_\_**\*\***
+- [ ] Ready for Implementation: **\*\***\_\_\_**\*\***
 
 ---
 

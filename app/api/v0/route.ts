@@ -1,7 +1,7 @@
-import { v0 } from 'v0-sdk';
+import { v0 } from 'v0-sdk'
 
 export async function POST(req: Request) {
-    const { prompt }: { prompt: string } = await req.json();
+    const { prompt }: { prompt: string } = await req.json()
     const result = await v0.chats.create({
         system: 'You are an expert coder',
         message: prompt,
@@ -10,6 +10,6 @@ export async function POST(req: Request) {
             imageGenerations: false,
             thinking: false,
         },
-    });
-    return Response.json(result);
+    })
+    return Response.json(result)
 }

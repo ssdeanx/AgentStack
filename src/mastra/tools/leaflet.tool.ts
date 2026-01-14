@@ -86,7 +86,10 @@ export const leafletTool = createTool({
             },
         })
         const startTime = Date.now()
-        logToolExecution('leaflet-generator', { pointsCount: input.points?.length ?? 0, cluster: input.cluster ?? true })
+        logToolExecution('leaflet-generator', {
+            pointsCount: input.points?.length ?? 0,
+            cluster: input.cluster ?? true,
+        })
 
         const { points: rawPoints, bounds, center, zoom } = input
 
@@ -200,7 +203,11 @@ export const leafletTool = createTool({
             })
             toolSpan?.end()
 
-            logToolExecution('leaflet-generator', { pointsCount: input.points?.length ?? 0 }, { markers: markers.length, durationMs: duration })
+            logToolExecution(
+                'leaflet-generator',
+                { pointsCount: input.points?.length ?? 0 },
+                { markers: markers.length, durationMs: duration }
+            )
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -214,10 +221,15 @@ export const leafletTool = createTool({
 
             return result
         } catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error))
+            const err =
+                error instanceof Error ? error : new Error(String(error))
             toolSpan?.error({ error: err, endSpan: true })
             log.error('leaflet-generator failed', { error: err.message })
-            logToolExecution('leaflet-generator', { pointsCount: input.points?.length ?? 0 }, { success: false, error: err.message })
+            logToolExecution(
+                'leaflet-generator',
+                { pointsCount: input.points?.length ?? 0 },
+                { success: false, error: err.message }
+            )
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -277,4 +289,3 @@ export const leafletTool = createTool({
 })
 
 export type LeafletUITool = InferUITool<typeof leafletTool>
-

@@ -24,13 +24,22 @@ export default function AdminHomePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                        <Link href={'/chat' as Route} className="block underline-offset-4 hover:underline">
+                        <Link
+                            href={'/chat' as Route}
+                            className="block underline-offset-4 hover:underline"
+                        >
                             Open Chat
                         </Link>
-                        <Link href={'/networks' as Route} className="block underline-offset-4 hover:underline">
+                        <Link
+                            href={'/networks' as Route}
+                            className="block underline-offset-4 hover:underline"
+                        >
                             Open Networks
                         </Link>
-                        <Link href={'/workflows' as Route} className="block underline-offset-4 hover:underline">
+                        <Link
+                            href={'/workflows' as Route}
+                            className="block underline-offset-4 hover:underline"
+                        >
                             Open Workflows
                         </Link>
                     </CardContent>
@@ -47,7 +56,9 @@ export default function AdminHomePage() {
                         </div>
                         <div className="flex items-center justify-between">
                             <span>Workflows</span>
-                            <Badge variant="secondary">{workflows.length}</Badge>
+                            <Badge variant="secondary">
+                                {workflows.length}
+                            </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                             <span>Networks</span>
@@ -64,13 +75,19 @@ export default function AdminHomePage() {
                         This Admin UI reads from local config files:
                         <ul className="mt-2 list-disc pl-5">
                             <li>
-                                <code className="rounded bg-muted px-1 py-0.5">app/chat/config/agents.ts</code>
+                                <code className="rounded bg-muted px-1 py-0.5">
+                                    app/chat/config/agents.ts
+                                </code>
                             </li>
                             <li>
-                                <code className="rounded bg-muted px-1 py-0.5">app/networks/config/networks.ts</code>
+                                <code className="rounded bg-muted px-1 py-0.5">
+                                    app/networks/config/networks.ts
+                                </code>
                             </li>
                             <li>
-                                <code className="rounded bg-muted px-1 py-0.5">app/workflows/config/workflows.ts</code>
+                                <code className="rounded bg-muted px-1 py-0.5">
+                                    app/workflows/config/workflows.ts
+                                </code>
                             </li>
                         </ul>
                     </CardContent>

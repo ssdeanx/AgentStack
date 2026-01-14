@@ -45,7 +45,7 @@ sequenceDiagram
     Extractor->>State: Update progressEvents<br/>and suspendPayload
     State->>Panel: Trigger re-render with<br/>new events
     Panel->>Panel: Group by stage &<br/>render event items
-    
+
     Note over Panel: If suspendPayload exists<br/>& status="paused"
     Panel->>Panel: Show SuspendDialog<br/>with approve/reject
     Panel->>Context: User clicks Approve<br/>(calls approveWorkflow)
@@ -57,18 +57,22 @@ sequenceDiagram
 Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` to connect to Mastra's `/workflow/:workflowId` routes:
 
 ```tsx
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 
 const { messages, sendMessage, stop, status } = useChat({
-  transport: new DefaultChatTransport({
-    api: `http://localhost:4111/workflow/${selectedWorkflow}`,
-    prepareSendMessagesRequest({ messages }) {
-      const inputText = messages[messages.length - 1]?.parts?.[0]?.text ?? ""
-      const inputData = buildWorkflowInputData(selectedWorkflow, inputText)
-      return { body: { inputData } }
-    },
-  }),
+    transport: new DefaultChatTransport({
+        api: `http://localhost:4111/workflow/${selectedWorkflow}`,
+        prepareSendMessagesRequest({ messages }) {
+            const inputText =
+                messages[messages.length - 1]?.parts?.[0]?.text ?? ''
+            const inputData = buildWorkflowInputData(
+                selectedWorkflow,
+                inputText
+            )
+            return { body: { inputData } }
+        },
+    }),
 })
 ```
 
@@ -76,47 +80,47 @@ const { messages, sendMessage, stop, status } = useChat({
 
 Each workflow expects specific input fields:
 
-| Workflow | Input Field | Example |
-|----------|-------------|---------|
-| weatherWorkflow | `{ city }` | "San Francisco" |
-| contentStudioWorkflow | `{ topic }` | "AI trends 2025" |
-| stockAnalysisWorkflow | `{ symbol }` | "AAPL" |
-| financialReportWorkflow | `{ symbol }` | "TSLA" |
-| researchSynthesisWorkflow | `{ topic }` | "ML best practices" |
+| Workflow                   | Input Field        | Example             |
+| -------------------------- | ------------------ | ------------------- |
+| weatherWorkflow            | `{ city }`         | "San Francisco"     |
+| contentStudioWorkflow      | `{ topic }`        | "AI trends 2025"    |
+| stockAnalysisWorkflow      | `{ symbol }`       | "AAPL"              |
+| financialReportWorkflow    | `{ symbol }`       | "TSLA"              |
+| researchSynthesisWorkflow  | `{ topic }`        | "ML best practices" |
 | documentProcessingWorkflow | `{ documentPath }` | "./docs/report.pdf" |
-| telephoneGameWorkflow | `{ message }` | "Hello world" |
-| changelogWorkflow | `{ repository }` | "main..HEAD" |
-| contentReviewWorkflow | `{ content }` | "Your content here" |
-| learningExtractionWorkflow | `{ content }` | "Text to analyze" |
+| telephoneGameWorkflow      | `{ message }`      | "Hello world"       |
+| changelogWorkflow          | `{ repository }`   | "main..HEAD"        |
+| contentReviewWorkflow      | `{ content }`      | "Your content here" |
+| learningExtractionWorkflow | `{ content }`      | "Text to analyze"   |
 
 ## AI Elements Components Used
 
-| Component | Purpose |
-|-----------|---------|
-| **Canvas** | React Flow wrapper with pre-configured defaults |
-| **Node** | Card-based node with header, content, footer |
-| **Edge** | Animated (active) and temporary (pending) edge types |
-| **Panel** | Positioned panels for UI overlays |
-| **Controls** | Zoom/pan controls |
-| **Toolbar** | Node-attached toolbar with actions |
-| **Connection** | Custom bezier curve connection lines |
+| Component      | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
+| **Canvas**     | React Flow wrapper with pre-configured defaults      |
+| **Node**       | Card-based node with header, content, footer         |
+| **Edge**       | Animated (active) and temporary (pending) edge types |
+| **Panel**      | Positioned panels for UI overlays                    |
+| **Controls**   | Zoom/pan controls                                    |
+| **Toolbar**    | Node-attached toolbar with actions                   |
+| **Connection** | Custom bezier curve connection lines                 |
 
 ## Workflow Configuration
 
 All 10 Mastra workflows are configured in `config/workflows.ts`:
 
-| Workflow | Category | Steps |
-|----------|----------|-------|
-| weatherWorkflow | utility | 2 |
-| contentStudioWorkflow | content | 8 |
-| contentReviewWorkflow | content | 3 |
-| documentProcessingWorkflow | data | 4 |
-| financialReportWorkflow | financial | 4 |
-| learningExtractionWorkflow | research | 3 |
-| researchSynthesisWorkflow | research | 4 |
-| stockAnalysisWorkflow | financial | 4 |
-| telephoneGameWorkflow | utility | 5 |
-| changelogWorkflow | utility | 3 |
+| Workflow                   | Category  | Steps |
+| -------------------------- | --------- | ----- |
+| weatherWorkflow            | utility   | 2     |
+| contentStudioWorkflow      | content   | 8     |
+| contentReviewWorkflow      | content   | 3     |
+| documentProcessingWorkflow | data      | 4     |
+| financialReportWorkflow    | financial | 4     |
+| learningExtractionWorkflow | research  | 3     |
+| researchSynthesisWorkflow  | research  | 4     |
+| stockAnalysisWorkflow      | financial | 4     |
+| telephoneGameWorkflow      | utility   | 5     |
+| changelogWorkflow          | utility   | 3     |
 
 ## Context API
 
@@ -124,29 +128,29 @@ All 10 Mastra workflows are configured in `config/workflows.ts`:
 
 ```tsx
 interface WorkflowContextValue {
-  // State
-  selectedWorkflow: WorkflowId
-  workflowConfig: WorkflowConfig | undefined
-  workflowStatus: "idle" | "running" | "paused" | "completed" | "error"
-  currentRun: WorkflowRun | null
-  activeStepIndex: number
-  
-  // Actions
-  selectWorkflow: (workflowId: WorkflowId) => void
-  runWorkflow: (inputData?: Record<string, unknown>) => void
-  pauseWorkflow: () => void
-  resumeWorkflow: () => void
-  stopWorkflow: () => void
-  runStep: (stepId: string) => Promise<void>
-  getStepStatus: (stepId: string) => StepStatus
-  
-  // React Flow data
-  nodes: WorkflowNode[]
-  edges: WorkflowEdge[]
-  
-  // Streaming
-  messages: UIMessage[]
-  streamingOutput: string
+    // State
+    selectedWorkflow: WorkflowId
+    workflowConfig: WorkflowConfig | undefined
+    workflowStatus: 'idle' | 'running' | 'paused' | 'completed' | 'error'
+    currentRun: WorkflowRun | null
+    activeStepIndex: number
+
+    // Actions
+    selectWorkflow: (workflowId: WorkflowId) => void
+    runWorkflow: (inputData?: Record<string, unknown>) => void
+    pauseWorkflow: () => void
+    resumeWorkflow: () => void
+    stopWorkflow: () => void
+    runStep: (stepId: string) => Promise<void>
+    getStepStatus: (stepId: string) => StepStatus
+
+    // React Flow data
+    nodes: WorkflowNode[]
+    edges: WorkflowEdge[]
+
+    // Streaming
+    messages: UIMessage[]
+    streamingOutput: string
 }
 ```
 
@@ -178,19 +182,19 @@ interface WorkflowContextValue {
 ## Usage
 
 ```tsx
-import { WorkflowProvider } from "./providers/workflow-context"
-import { WorkflowHeader } from "./components/workflow-header"
-import { WorkflowCanvas } from "./components/workflow-canvas"
+import { WorkflowProvider } from './providers/workflow-context'
+import { WorkflowHeader } from './components/workflow-header'
+import { WorkflowCanvas } from './components/workflow-canvas'
 
 export default function WorkflowsPage() {
-  return (
-    <WorkflowProvider defaultWorkflow="contentStudioWorkflow">
-      <main className="flex h-screen flex-col bg-background">
-        <WorkflowHeader />
-        <WorkflowCanvas />
-      </main>
-    </WorkflowProvider>
-  )
+    return (
+        <WorkflowProvider defaultWorkflow="contentStudioWorkflow">
+            <main className="flex h-screen flex-col bg-background">
+                <WorkflowHeader />
+                <WorkflowCanvas />
+            </main>
+        </WorkflowProvider>
+    )
 }
 ```
 
@@ -208,4 +212,5 @@ workflowRoute({
 ```
 
 ---
+
 Last updated: 2025-12-04

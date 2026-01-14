@@ -33,8 +33,8 @@ This document describes the Workflow Visualizer subsystem, including the provide
 
 - Pattern: Provider + presentational composition. `WorkflowProvider` exposes high-level state and actions; `WorkflowCanvas` and components render and interact with that state.
 - Responsibilities separation:
-  - Provider: manage runs, step progress, streaming output, nodes/edges generation and SDK transport.
-  - Canvas/UI: visualization, user actions (run, pause, resume, step-run), and display.
+    - Provider: manage runs, step progress, streaming output, nodes/edges generation and SDK transport.
+    - Canvas/UI: visualization, user actions (run, pause, resume, step-run), and display.
 
 ```mermaid
 graph TD
@@ -102,8 +102,8 @@ Actions:
 
 ```tsx
 <WorkflowProvider defaultWorkflow="contentStudioWorkflow">
-  <WorkflowHeader />
-  <WorkflowCanvas />
+    <WorkflowHeader />
+    <WorkflowCanvas />
 </WorkflowProvider>
 ```
 
@@ -131,9 +131,9 @@ await runStep('step-id')
 ## 7. Testing & Observability
 
 - Unit tests (Vitest):
-  - Provider: `buildWorkflowInputData` mappings, run lifecycle state transitions, `runStep` behavior and node/edge generation.
-  - Canvas & Node components: rendering states for pending/running/completed/error/skipped.
-  - Header controls: selection disabled while run is active; pause/resume/stop flows.
+    - Provider: `buildWorkflowInputData` mappings, run lifecycle state transitions, `runStep` behavior and node/edge generation.
+    - Canvas & Node components: rendering states for pending/running/completed/error/skipped.
+    - Header controls: selection disabled while run is active; pause/resume/stop flows.
 
 - Integration tests: mocked `useChat` streaming back assistant messages to simulate a full workflow run and assert `currentRun.stepProgress` updates and UI transitions.
 
@@ -148,10 +148,10 @@ await runStep('step-id')
 ## 9. References
 
 - Relevant files:
-  - `app/workflows/page.tsx`
-  - `app/workflows/providers/workflow-context.tsx`
-  - `app/workflows/components/*` (header, canvas, node, actions, input/output)
-  - `app/workflows/config/workflows.ts` — workflow definitions and steps
+    - `app/workflows/page.tsx`
+    - `app/workflows/providers/workflow-context.tsx`
+    - `app/workflows/components/*` (header, canvas, node, actions, input/output)
+    - `app/workflows/config/workflows.ts` — workflow definitions and steps
 
 ## Change history
 

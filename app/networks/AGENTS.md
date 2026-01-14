@@ -37,22 +37,22 @@ The network chat uses AI Elements components for a rich chat experience:
 Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport`:
 
 ```tsx
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 
 const { messages, sendMessage, stop, status } = useChat({
-  transport: new DefaultChatTransport({
-    api: "http://localhost:4111/network",
-    prepareSendMessagesRequest({ messages }) {
-      return {
-        body: {
-          messages,
-          resourceId: selectedNetwork,
-          data: { networkId, input },
+    transport: new DefaultChatTransport({
+        api: 'http://localhost:4111/network',
+        prepareSendMessagesRequest({ messages }) {
+            return {
+                body: {
+                    messages,
+                    resourceId: selectedNetwork,
+                    data: { networkId, input },
+                },
+            }
         },
-      }
-    },
-  }),
+    }),
 })
 ```
 
@@ -60,25 +60,24 @@ const { messages, sendMessage, stop, status } = useChat({
 
 All 4 Mastra networks are configured in `config/networks.ts`:
 
-| Network | Description |
-|---------|-------------|
-| agentNetwork | Intelligent routing to specialized agents |
-| dataPipelineNetwork | Data ingestion, transformation, export |
-| reportGenerationNetwork | Research, analysis, report generation |
-| researchPipelineNetwork | Multi-source research aggregation |
+| Network                 | Description                               |
+| ----------------------- | ----------------------------------------- |
+| agentNetwork            | Intelligent routing to specialized agents |
+| dataPipelineNetwork     | Data ingestion, transformation, export    |
+| reportGenerationNetwork | Research, analysis, report generation     |
+| researchPipelineNetwork | Multi-source research aggregation         |
 
 ## Usage
 
 ```tsx
-import { NetworkProvider } from "./providers/network-context"
-import { NetworkHeader } from "./components/network-header"
-import { NetworkChat } from "./components/network-chat"
-import { NetworkRoutingPanel } from "./components/network-routing-panel"
-
-<NetworkProvider defaultNetwork="agentNetwork">
-  <NetworkHeader />
-  <NetworkChat />
-  <NetworkRoutingPanel />
+import { NetworkProvider } from './providers/network-context'
+import { NetworkHeader } from './components/network-header'
+import { NetworkChat } from './components/network-chat'
+import { NetworkRoutingPanel } from './components/network-routing-panel'
+;<NetworkProvider defaultNetwork="agentNetwork">
+    <NetworkHeader />
+    <NetworkChat />
+    <NetworkRoutingPanel />
 </NetworkProvider>
 ```
 
@@ -86,17 +85,17 @@ import { NetworkRoutingPanel } from "./components/network-routing-panel"
 
 `useNetworkContext()` provides:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `selectedNetwork` | string | Currently selected network ID |
-| `networkConfig` | NetworkConfig | Current network configuration |
-| `networkStatus` | Status | idle \| routing \| executing \| completed \| error |
-| `messages` | UIMessage[] | AI SDK message history |
-| `streamingOutput` | string | Current streaming text |
-| `routingSteps` | RoutingStep[] | Agent routing visualization |
-| `sendMessage(text)` | function | Send message to network |
-| `stopExecution()` | function | Stop streaming |
-| `clearHistory()` | function | Clear conversation |
+| Property            | Type          | Description                                        |
+| ------------------- | ------------- | -------------------------------------------------- |
+| `selectedNetwork`   | string        | Currently selected network ID                      |
+| `networkConfig`     | NetworkConfig | Current network configuration                      |
+| `networkStatus`     | Status        | idle \| routing \| executing \| completed \| error |
+| `messages`          | UIMessage[]   | AI SDK message history                             |
+| `streamingOutput`   | string        | Current streaming text                             |
+| `routingSteps`      | RoutingStep[] | Agent routing visualization                        |
+| `sendMessage(text)` | function      | Send message to network                            |
+| `stopExecution()`   | function      | Stop streaming                                     |
+| `clearHistory()`    | function      | Clear conversation                                 |
 
 ## Features
 

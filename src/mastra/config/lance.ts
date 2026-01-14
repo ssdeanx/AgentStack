@@ -35,7 +35,6 @@ const LANCE_STORAGE_CONFIG = {
     tablePrefix: process.env.LANCE_STORAGE_TABLE_PREFIX ?? 'dev_',
 } as const
 
-
 // Using LanceStorage.create with uri, name, and prefix as per Mastra v1 storage specs
 export const lanceStorage = await LanceStorage.create(
     LANCE_STORAGE_CONFIG.dbUri,
@@ -43,8 +42,7 @@ export const lanceStorage = await LanceStorage.create(
     LANCE_STORAGE_CONFIG.tablePrefix
 )
 
-const vectorStore = await LanceVectorStore.create("/path/to/db");
-
+const vectorStore = await LanceVectorStore.create('/path/to/db')
 
 /**
  * LanceDB Memory instance configured like pgMemory (pg-storage.ts)

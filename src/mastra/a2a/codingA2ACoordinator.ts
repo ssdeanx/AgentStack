@@ -1,13 +1,20 @@
 import { Agent } from '@mastra/core/agent'
-import type { RequestContext } from '@mastra/core/request-context';
-import { createAnswerRelevancyScorer, createToxicityScorer } from '@mastra/evals/scorers/prebuilt'
+import type { RequestContext } from '@mastra/core/request-context'
+import {
+    createAnswerRelevancyScorer,
+    createToxicityScorer,
+} from '@mastra/evals/scorers/prebuilt'
 
 import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
-
-import { codeArchitectAgent, codeReviewerAgent, testEngineerAgent, refactoringAgent } from '../agents/codingAgents'
+import {
+    codeArchitectAgent,
+    codeReviewerAgent,
+    testEngineerAgent,
+    refactoringAgent,
+} from '../agents/codingAgents'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
 import * as e2bTools from '../tools/e2b'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
@@ -19,30 +26,44 @@ import { safeRefactoringWorkflow } from '../workflows/safe-refactoring-workflow'
 import { testGenerationWorkflow } from '../workflows/test-generation-workflow'
 import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
 import { automatedReportingWorkflow } from '../workflows/automated-reporting-workflow'
-import { checkFileExists, createDirectory, createSandbox, deleteFile, getFileInfo, getFileSize, listFiles, runCode, runCommand, watchDirectory, writeFile, writeFiles } from '../tools/e2b';
+import {
+    checkFileExists,
+    createDirectory,
+    createSandbox,
+    deleteFile,
+    getFileInfo,
+    getFileSize,
+    listFiles,
+    runCode,
+    runCommand,
+    watchDirectory,
+    writeFile,
+    writeFiles,
+} from '../tools/e2b'
 
 log.info('Initializing Coding A2A Coordinator...')
 
 /**
  * Coding A2A Coordinator
- * 
+ *
  * Orchestrates multiple coding agents in parallel for complex development tasks.
  * Exposed via A2A protocol for external agent communication.
- * 
+ *
  * Use for tasks that benefit from multiple specialists working simultaneously:
  * - Full feature development (design + implement + test)
  * - Comprehensive code review (security + quality + performance)
  * - Refactoring with test coverage (refactor + generate tests)
  */
 export const codingA2ACoordinator = new Agent({
-  id: 'codingA2A',
-  name: 'Coding A2A Coordinator',
-  description: 'A2A Coordinator that orchestrates multiple coding agents in parallel for complex development tasks like full feature development, comprehensive reviews, and refactoring with tests.',
-  instructions: ({ requestContext }) => {
-    const userId = requestContext.get('userId')
-    return {
-      role: 'system',
-      content: `You are a Coding A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent coding workflows.
+    id: 'codingA2A',
+    name: 'Coding A2A Coordinator',
+    description:
+        'A2A Coordinator that orchestrates multiple coding agents in parallel for complex development tasks like full feature development, comprehensive reviews, and refactoring with tests.',
+    instructions: ({ requestContext }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `You are a Coding A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent coding workflows.
 
 ## Core Capabilities
 
@@ -170,63 +191,63 @@ This coordinator also exposes higher-level workflows:
 - **testGenerationWorkflow**: Generate and verify tests in E2B sandbox
 
 When a user's request requires prolonged, structured work across multiple subtasks, prefer invoking these workflows and orchestrating agents around them.`,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
-          responseModalities: ['TEXT', 'IMAGE'],
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                    responseModalities: ['TEXT', 'IMAGE'],
+                },
+            },
         }
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  options: {},
-  agents: {
-    codeArchitectAgent,
-    codeReviewerAgent,
-    testEngineerAgent,
-    refactoringAgent,
-  },
-  workflows: {
-    researchSynthesisWorkflow,
-    financialReportWorkflow,
-    specGenerationWorkflow,
-    repoIngestionWorkflow,
-    learningExtractionWorkflow,
-    safeRefactoringWorkflow,
-    testGenerationWorkflow,
-    dataAnalysisWorkflow,
-    automatedReportingWorkflow,
-  },
-  tools: {
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
-  },
-  maxRetries: 5,
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.4 }
     },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 }
-    }
-  },
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    options: {},
+    agents: {
+        codeArchitectAgent,
+        codeReviewerAgent,
+        testEngineerAgent,
+        refactoringAgent,
+    },
+    workflows: {
+        researchSynthesisWorkflow,
+        financialReportWorkflow,
+        specGenerationWorkflow,
+        repoIngestionWorkflow,
+        learningExtractionWorkflow,
+        safeRefactoringWorkflow,
+        testGenerationWorkflow,
+        dataAnalysisWorkflow,
+        automatedReportingWorkflow,
+    },
+    tools: {
+        createSandbox,
+        writeFile,
+        writeFiles,
+        listFiles,
+        deleteFile,
+        createDirectory,
+        getFileInfo,
+        checkFileExists,
+        getFileSize,
+        watchDirectory,
+        runCommand,
+        runCode,
+    },
+    maxRetries: 5,
+    scorers: {
+        relevancy: {
+            scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.4 },
+        },
+        safety: {
+            scorer: createToxicityScorer({ model: googleAIFlashLite }),
+            sampling: { type: 'ratio', rate: 0.3 },
+        },
+    },
 })
 
 log.info('Coding A2A Coordinator initialized')

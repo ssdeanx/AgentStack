@@ -7,12 +7,12 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import {
-//    serpapiSearchTool,
-//    serpapiAcademicTool,
+    //    serpapiSearchTool,
+    //    serpapiAcademicTool,
     arxivTool,
-//    pdfTool,
-//    documentChunkingTool,
-//   dataValidatorTool,
+    //    pdfTool,
+    //    documentChunkingTool,
+    //   dataValidatorTool,
 } from '../tools'
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
@@ -128,19 +128,19 @@ ${
         return google.chat('gemini-3-flash-preview')
     },
     tools: {
-       // serpapiSearchTool,
-      //  serpapiAcademicTool,
+        // serpapiSearchTool,
+        //  serpapiAcademicTool,
         arxivTool,
-     //   pdfTool,
-      //  documentChunkingTool,
-     //   dataValidatorTool,
+        //   pdfTool,
+        //  documentChunkingTool,
+        //   dataValidatorTool,
         extractLearningsTool,
     },
     memory: pgMemory,
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     maxRetries: 3,
     defaultOptions: {

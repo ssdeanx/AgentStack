@@ -7,46 +7,46 @@ This scan is a first-pass audit intended to give scoped, actionable work items f
 Summary of notable matches (high-level):
 
 - memory.query usage (should migrate to memory.recall & pagination):
-  - src/mastra/config/upstashMemory.ts (call sites that expect uiMessages and messagesV2)
-  - lib/hooks/use-mastra.ts, lib/hooks/use-dashboard-queries.ts (vector.query usage in hooks)
+    - src/mastra/config/upstashMemory.ts (call sites that expect uiMessages and messagesV2)
+    - lib/hooks/use-mastra.ts, lib/hooks/use-dashboard-queries.ts (vector.query usage in hooks)
 
 - MastraMessageV2 type usage (replace with MastraDBMessage + conversion helpers):
-  - src/mastra/config/processors.ts (type guards and helper functions reference MastraMessageV2 extensively)
-  - many unit tests and utilities reference v2 types — these will need conversions or updated type imports
+    - src/mastra/config/processors.ts (type guards and helper functions reference MastraMessageV2 extensively)
+    - many unit tests and utilities reference v2 types — these will need conversions or updated type imports
 
 - Memory instances with processors configured (processors option should be moved to Agent-level after v1):
-  - src/mastra/config/vector/lance.ts (Memory constructed with processors)
-  - src/mastra/config/vector/cloudflare.ts
-  - src/mastra/config/upstash.ts / upstashMemory.ts
-  - src/mastra/config/pg-storage.ts
-  - src/mastra/config/mongodb.ts
+    - src/mastra/config/vector/lance.ts (Memory constructed with processors)
+    - src/mastra/config/vector/cloudflare.ts
+    - src/mastra/config/upstash.ts / upstashMemory.ts
+    - src/mastra/config/pg-storage.ts
+    - src/mastra/config/mongodb.ts
 
 - Potential UI/format conversions to check:
-  - Any code that expects result.uiMessages or messagesV2 shapes (upstashMemory.ts is a candidate)
+    - Any code that expects result.uiMessages or messagesV2 shapes (upstashMemory.ts is a candidate)
 
 Other high-risk areas found in the scan (representative files):
 
 - Tools / createTool execute signature (lots of tools):
-  - `src/mastra/tools/*` — many tools use the older execute payload shape (e.g. `execute: async ({ context, runtimeContext, writer, tracingContext })`). Representative files:
-    - src/mastra/tools/web-scraper-tool.ts
-    - src/mastra/tools/csv-to-json.tool.ts
-    - src/mastra/tools/pg-sql-tool.ts
-    - src/mastra/tools/finnhub-tools.ts
-    - src/mastra/tools/* (dozens more) — run the tools codemod first
+    - `src/mastra/tools/*` — many tools use the older execute payload shape (e.g. `execute: async ({ context, runtimeContext, writer, tracingContext })`). Representative files:
+        - src/mastra/tools/web-scraper-tool.ts
+        - src/mastra/tools/csv-to-json.tool.ts
+        - src/mastra/tools/pg-sql-tool.ts
+        - src/mastra/tools/finnhub-tools.ts
+        - src/mastra/tools/\* (dozens more) — run the tools codemod first
 
 - RuntimeContext → RequestContext (workflows, tools, tests):
-  - src/mastra/workflows/* imports RuntimeContext in several workflows
-  - Many tool tests instantiate `new RuntimeContext()` or mock it — tests must change to RequestContext shapes
+    - src/mastra/workflows/\* imports RuntimeContext in several workflows
+    - Many tool tests instantiate `new RuntimeContext()` or mock it — tests must change to RequestContext shapes
 
 - Workflows: createRunAsync → createRun
-  - app/dashboard/workflows/page.tsx (createRunAsync usage)
+    - app/dashboard/workflows/page.tsx (createRunAsync usage)
 
 - Storage / Vectors: vector.query and store-specific query usages
-  - src/mastra/config/vector/* (chroma, qdrant, pinecone, astra, s3vectors, lance)
-  - lib/hooks/* (hooks using vector.query)
+    - src/mastra/config/vector/\* (chroma, qdrant, pinecone, astra, s3vectors, lance)
+    - lib/hooks/\* (hooks using vector.query)
 
 - Tracing / Observability config changes
-  - search for `telemetry` and `processors` in config; examples in src/mastra/config/tracing.ts and other config files
+    - search for `telemetry` and `processors` in config; examples in src/mastra/config/tracing.ts and other config files
 
 Counts (rough, first-pass):
 

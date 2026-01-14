@@ -1,10 +1,10 @@
 ---
-title: "Runtime Context"
-description: "Detailed guide for `runtimeContext` in AgentStack (Mastra) — what it is, how to use it in agents/tools/workflows, best practices, and examples."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "Docs"
-slug: "runtime-context"
+title: 'Runtime Context'
+description: 'Detailed guide for `runtimeContext` in AgentStack (Mastra) — what it is, how to use it in agents/tools/workflows, best practices, and examples.'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'Docs'
+slug: 'runtime-context'
 ---
 
 # Runtime Context
@@ -29,11 +29,11 @@ To put it plainly: it avoids hard-coding choices in agents and allows request-sp
 
 - `runtimeContext.get(key)` / `runtimeContext.set(key, value)` — getter/setter for context keys.
 - `runtimeContext` is commonly used in:
-  - Agent `instructions` (contextual system prompt composition)
-  - Agent `tools` (allowed tools per user tier)
-  - `memory` selection (per-tenant memory stores or per-tier memory strategies)
-  - `model` selection (choose cheaper vs more capable model depending on tier)
-  - Telemetry / tracing contexts (add user id or run id)
+    - Agent `instructions` (contextual system prompt composition)
+    - Agent `tools` (allowed tools per user tier)
+    - `memory` selection (per-tenant memory stores or per-tier memory strategies)
+    - `model` selection (choose cheaper vs more capable model depending on tier)
+    - Telemetry / tracing contexts (add user id or run id)
 - Don’t trust unvalidated values from user inputs. Authors should set and validate every runtime context property on the server (or via trusted middleware).
 
 ---
@@ -46,8 +46,8 @@ Here’s a recommended pattern for typing `runtimeContext` for a particular agen
 // Example: types used for Support runtime context
 export type UserTier = 'free' | 'pro' | 'enterprise'
 export type SupportRuntimeContext = {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 ```
 
@@ -63,28 +63,28 @@ Example middleware snippet (from `src/mastra/index.ts`):
 
 ```ts
 // Example: middleware copies request-provided context into runtimeContext
-async (c, next) => {
-  const runtimeContext = c.get('runtimeContext');
+;async (c, next) => {
+    const runtimeContext = c.get('runtimeContext')
 
-  if (c.req.method === "POST") {
-    try {
-      const clonedReq = c.req.raw.clone();
-      const body = await clonedReq.json();
+    if (c.req.method === 'POST') {
+        try {
+            const clonedReq = c.req.raw.clone()
+            const body = await clonedReq.json()
 
-      if (body?.data) {
-        for (const [key, value] of Object.entries(body.data)) {
-          runtimeContext.set(key, value);
+            if (body?.data) {
+                for (const [key, value] of Object.entries(body.data)) {
+                    runtimeContext.set(key, value)
+                }
+            }
+        } catch {
+            // handle parse errors
         }
-      }
-    } catch {
-      // handle parse errors
     }
-  }
-  await next();
+    await next()
 }
 ```
 
-> Important: Only copy *trusted* or validated fields into `runtimeContext` from client input. Sensitive keys should be added on the server side only.
+> Important: Only copy _trusted_ or validated fields into `runtimeContext` from client input. Sensitive keys should be added on the server side only.
 
 ---
 
@@ -95,12 +95,15 @@ Tools can read `runtimeContext` for permission checks, locale preferences, or ot
 ```ts
 // src/mastra/tools/support-tools.ts
 export const knowledgeBase = {
-  name: 'knowledge-base',
-  description: 'Search internal knowledge base and return compact results',
-  run: async (query: string, execCtx: { runtimeContext?: RuntimeContext<SupportRuntimeContext> }) => {
-    const lang = execCtx?.runtimeContext?.get('language') ?? 'en'
-    return { text: `KB results for "${query}" (language: ${lang})` }
-  }
+    name: 'knowledge-base',
+    description: 'Search internal knowledge base and return compact results',
+    run: async (
+        query: string,
+        execCtx: { runtimeContext?: RuntimeContext<SupportRuntimeContext> }
+    ) => {
+        const lang = execCtx?.runtimeContext?.get('language') ?? 'en'
+        return { text: `KB results for "${query}" (language: ${lang})` }
+    },
 }
 ```
 
@@ -118,39 +121,40 @@ Agents can adapt their behavior based on `runtimeContext`. Example from `support
 
 ```ts
 export const supportAgent = new Agent({
-  id: 'support',
-  name: 'dynamic-support-agent',
-  instructions: async ({ runtimeContext }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const language = runtimeContext.get('language') ?? 'en'
+    id: 'support',
+    name: 'dynamic-support-agent',
+    instructions: async ({ runtimeContext }) => {
+        const userTier = runtimeContext.get('user-tier') ?? 'free'
+        const language = runtimeContext.get('language') ?? 'en'
 
-    return {
-      role: 'system',
-      content: `
+        return {
+            role: 'system',
+            content: `
         You are a customer support agent.
         The current user is on the ${userTier} tier and prefers language ${language} ...
-      `
-    }
-  },
+      `,
+        }
+    },
 
-  model: ({ runtimeContext }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') return 'google/chat-bison@001'
-    if (userTier === 'pro') return 'google/chat-bison@001'
-    return 'google/text-bison@001'
-  },
+    model: ({ runtimeContext }) => {
+        const userTier = runtimeContext.get('user-tier') ?? 'free'
+        if (userTier === 'enterprise') return 'google/chat-bison@001'
+        if (userTier === 'pro') return 'google/chat-bison@001'
+        return 'google/text-bison@001'
+    },
 
-  tools: ({ runtimeContext }) => {
-    const userTier = runtimeContext.get('user-tier') ?? 'free'
-    const baseTools = [knowledgeBase, ticketSystem]
-    if (userTier === 'pro' || userTier === 'enterprise') baseTools.push(advancedAnalytics)
-    if (userTier === 'enterprise') baseTools.push(customIntegration)
-    return baseTools
-  },
+    tools: ({ runtimeContext }) => {
+        const userTier = runtimeContext.get('user-tier') ?? 'free'
+        const baseTools = [knowledgeBase, ticketSystem]
+        if (userTier === 'pro' || userTier === 'enterprise')
+            baseTools.push(advancedAnalytics)
+        if (userTier === 'enterprise') baseTools.push(customIntegration)
+        return baseTools
+    },
 
-  memory: ({ runtimeContext }) => {
-    // pick memory storage based on tier/tenant
-  }
+    memory: ({ runtimeContext }) => {
+        // pick memory storage based on tier/tenant
+    },
 })
 ```
 
@@ -169,14 +173,23 @@ Per-tier memory configuration fosters strong tenant separation and resource cont
 
 ```ts
 memory: ({ runtimeContext }) => {
-  const userTier = runtimeContext.get('user-tier') ?? 'free'
-  if (userTier === 'enterprise') {
-    return new Memory({ storage: enterpriseStore, options: { semanticRecall: { topK: 15 } } })
-  }
-  if (userTier === 'pro') {
-    return new Memory({ storage: proStore, options: { semanticRecall: { topK: 8 } } })
-  }
-  return new Memory({ storage: freeStore, options: { semanticRecall: { topK: 3 } } })
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+        return new Memory({
+            storage: enterpriseStore,
+            options: { semanticRecall: { topK: 15 } },
+        })
+    }
+    if (userTier === 'pro') {
+        return new Memory({
+            storage: proStore,
+            options: { semanticRecall: { topK: 8 } },
+        })
+    }
+    return new Memory({
+        storage: freeStore,
+        options: { semanticRecall: { topK: 3 } },
+    })
 }
 ```
 
@@ -184,10 +197,11 @@ Tools can similarly be added/removed:
 
 ```ts
 tools: ({ runtimeContext }) => {
-  const userTier = runtimeContext.get('user-tier') ?? 'free'
-  const allowed = [knowledgeBase, ticketSystem]
-  if (userTier === 'pro' || userTier === 'enterprise') allowed.push(advancedAnalytics)
-  return allowed
+    const userTier = runtimeContext.get('user-tier') ?? 'free'
+    const allowed = [knowledgeBase, ticketSystem]
+    if (userTier === 'pro' || userTier === 'enterprise')
+        allowed.push(advancedAnalytics)
+    return allowed
 }
 ```
 
@@ -223,17 +237,17 @@ If you record traces, you can add `runtimeContext` metadata to each trace so you
 
 ```ts
 observability: {
-  // ... config
-  exporters: [
-    new LangfuseExporter({
-      // ...
-      telemetryContextMap: (runtimeContext) => ({
-        userId: runtimeContext.get('userId'),
-        tenantId: runtimeContext.get('tenantId'),
-        userTier: runtimeContext.get('user-tier'),
-      })
-    })
-  ]
+    // ... config
+    exporters: [
+        new LangfuseExporter({
+            // ...
+            telemetryContextMap: (runtimeContext) => ({
+                userId: runtimeContext.get('userId'),
+                tenantId: runtimeContext.get('tenantId'),
+                userTier: runtimeContext.get('user-tier'),
+            }),
+        }),
+    ]
 }
 ```
 
@@ -262,10 +276,10 @@ Be sure to redact or mask PII and secrets before exporting. Use `SensitiveDataFi
 
 - `runtimeContext` is the canonical way to communicate per-execution state to agents, tools and workflows.
 - Use it to:
-  - determine agent model & memory selection,
-  - gate tool access,
-  - localize outputs,
-  - add telemetry info.
+    - determine agent model & memory selection,
+    - gate tool access,
+    - localize outputs,
+    - add telemetry info.
 - Always validate and sanitize context inputs, protect sensitive data, and use server-side middleware for mapping context values.
 
 ---

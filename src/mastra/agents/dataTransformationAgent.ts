@@ -8,14 +8,11 @@ import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import {
- //   convertDataFormatTool,
+    //   convertDataFormatTool,
     validateDataTool,
- //   processXMLTool,
+    //   processXMLTool,
 } from '../tools/data-processing-tools'
-import {
-    readDataFileTool,
-    writeDataFileTool,
-} from '../tools/data-file-manager'
+import { readDataFileTool, writeDataFileTool } from '../tools/data-file-manager'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
@@ -30,11 +27,15 @@ export interface DataTransformationContext {
 log.info('Initializing Data Transformation Agent...')
 
 export const dataTransformationAgent = new Agent({
-  id: 'dataTransformationAgent',
+    id: 'dataTransformationAgent',
     name: 'Data Transformation Agent',
     description:
         'Performs complex format transformations between CSV, JSON, and XML. Use for converting data between formats, transforming nested structures, flattening hierarchical data, and batch format conversions.',
-    instructions: ({ requestContext }: { requestContext: RequestContext<DataTransformationContext> }) => {
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DataTransformationContext>
+    }) => {
         const userId = requestContext.get('userId') ?? 'default'
         const preserveTypes = requestContext.get('preserveTypes') ?? true
         const flattenNested = requestContext.get('flattenNested') ?? false
@@ -111,25 +112,25 @@ export const dataTransformationAgent = new Agent({
 - Schema mismatch: Report specific field-level issues
 - Large data: Warn about potential memory constraints
 `
-   },
-   model: googleAI3,
-   memory: pgMemory,
-   tools: {
+    },
+    model: googleAI3,
+    memory: pgMemory,
+    tools: {
         csvToJsonTool,
         jsonToCsvTool,
         dataValidatorToolJSON,
-     //   convertDataFormatTool,
+        //   convertDataFormatTool,
         validateDataTool,
-      //  processXMLTool,
+        //  processXMLTool,
         readDataFileTool,
         writeDataFileTool,
-   },
+    },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
-   },
-   outputProcessors: [new TokenLimiterProcessor(1048576)]
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 log.info('Data Transformation Agent initialized')

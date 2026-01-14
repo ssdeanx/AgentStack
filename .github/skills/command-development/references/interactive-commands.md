@@ -5,6 +5,7 @@ Comprehensive guide to creating commands that gather user feedback and make deci
 ## Overview
 
 Some commands need user input that doesn't work well with simple arguments. For example:
+
 - Choosing between multiple complex options with trade-offs
 - Selecting multiple items from a list
 - Making decisions that require explanation
@@ -35,31 +36,33 @@ For these cases, use the **AskUserQuestion tool** within command execution rathe
 
 ```typescript
 {
-  questions: [
-    {
-      question: "Which authentication method should we use?",
-      header: "Auth method",  // Short label (max 12 chars)
-      multiSelect: false,     // true for multiple selection
-      options: [
+    questions: [
         {
-          label: "OAuth 2.0",
-          description: "Industry standard, supports multiple providers"
+            question: 'Which authentication method should we use?',
+            header: 'Auth method', // Short label (max 12 chars)
+            multiSelect: false, // true for multiple selection
+            options: [
+                {
+                    label: 'OAuth 2.0',
+                    description:
+                        'Industry standard, supports multiple providers',
+                },
+                {
+                    label: 'JWT',
+                    description: 'Stateless, good for APIs',
+                },
+                {
+                    label: 'Session',
+                    description: 'Traditional, server-side state',
+                },
+            ],
         },
-        {
-          label: "JWT",
-          description: "Stateless, good for APIs"
-        },
-        {
-          label: "Session",
-          description: "Traditional, server-side state"
-        }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Key points:**
+
 - Users can always choose "Other" to provide custom input (automatic)
 - `multiSelect: true` allows selecting multiple options
 - Options should be 2-4 choices (not more)
@@ -84,31 +87,34 @@ This command will guide you through configuring the plugin with a series of ques
 Use the AskUserQuestion tool to ask:
 
 **Question 1 - Deployment target:**
+
 - header: "Deploy to"
 - question: "Which deployment platform will you use?"
 - options:
-  - AWS (Amazon Web Services with ECS/EKS)
-  - GCP (Google Cloud with GKE)
-  - Azure (Microsoft Azure with AKS)
-  - Local (Docker on local machine)
+    - AWS (Amazon Web Services with ECS/EKS)
+    - GCP (Google Cloud with GKE)
+    - Azure (Microsoft Azure with AKS)
+    - Local (Docker on local machine)
 
 **Question 2 - Environment strategy:**
+
 - header: "Environments"
 - question: "How many environments do you need?"
 - options:
-  - Single (Just production)
-  - Standard (Dev, Staging, Production)
-  - Complete (Dev, QA, Staging, Production)
+    - Single (Just production)
+    - Standard (Dev, Staging, Production)
+    - Complete (Dev, QA, Staging, Production)
 
 **Question 3 - Features to enable:**
+
 - header: "Features"
 - question: "Which features do you want to enable?"
 - multiSelect: true
 - options:
-  - Auto-scaling (Automatic resource scaling)
-  - Monitoring (Health checks and metrics)
-  - CI/CD (Automated deployment pipeline)
-  - Backups (Automated database backups)
+    - Auto-scaling (Automatic resource scaling)
+    - Monitoring (Health checks and metrics)
+    - CI/CD (Automated deployment pipeline)
+    - Backups (Automated database backups)
 
 ## Step 2: Process Answers
 
@@ -123,15 +129,16 @@ Based on the answers received from AskUserQuestion:
 
 Create `.claude/plugin-name.local.md` with:
 
-\`\`\`yaml
----
+## \`\`\`yaml
+
 deployment_target: [answer from Q1]
 environments: [answer from Q2]
 features:
-  auto_scaling: [true if selected in Q3]
-  monitoring: [true if selected in Q3]
-  ci_cd: [true if selected in Q3]
-  backups: [true if selected in Q3]
+auto_scaling: [true if selected in Q3]
+monitoring: [true if selected in Q3]
+ci_cd: [true if selected in Q3]
+backups: [true if selected in Q3]
+
 ---
 
 # Plugin Configuration
@@ -169,11 +176,13 @@ Based on answers, determine which additional questions to ask.
 If user selected "Advanced" deployment in Stage 1:
 
 Use AskUserQuestion to ask about:
+
 - Load balancing strategy
 - Caching configuration
 - Security hardening options
 
 If user selected "Simple" deployment:
+
 - Skip advanced questions
 - Use sensible defaults
 
@@ -182,12 +191,13 @@ If user selected "Simple" deployment:
 Show summary of all selections.
 
 Use AskUserQuestion for final confirmation:
+
 - header: "Confirm"
 - question: "Does this configuration look correct?"
 - options:
-  - Yes (Proceed with setup)
-  - No (Start over)
-  - Modify (Let me adjust specific settings)
+    - Yes (Proceed with setup)
+    - No (Start over)
+    - Modify (Let me adjust specific settings)
 
 If "Modify", ask which specific setting to change.
 
@@ -201,38 +211,45 @@ Based on confirmed configuration, execute setup steps.
 ### Question Structure
 
 **Good questions:**
+
 ```markdown
 Question: "Which database should we use for this project?"
 Header: "Database"
 Options:
-  - PostgreSQL (Relational, ACID compliant, best for complex queries)
-  - MongoDB (Document store, flexible schema, best for rapid iteration)
-  - Redis (In-memory, fast, best for caching and sessions)
+
+- PostgreSQL (Relational, ACID compliant, best for complex queries)
+- MongoDB (Document store, flexible schema, best for rapid iteration)
+- Redis (In-memory, fast, best for caching and sessions)
 ```
 
 **Poor questions:**
+
 ```markdown
-Question: "Database?"  // Too vague
-Header: "DB"  // Unclear abbreviation
+Question: "Database?" // Too vague
+Header: "DB" // Unclear abbreviation
 Options:
-  - Option 1  // Not descriptive
-  - Option 2
+
+- Option 1 // Not descriptive
+- Option 2
 ```
 
 ### Option Design Best Practices
 
 **Clear labels:**
+
 - Use 1-5 words
 - Specific and descriptive
 - No jargon without context
 
 **Helpful descriptions:**
+
 - Explain what the option means
 - Mention key benefits or trade-offs
 - Help user make informed decision
 - Keep to 1-2 sentences
 
 **Appropriate number:**
+
 - 2-4 options per question
 - Don't overwhelm with too many choices
 - Group related options
@@ -247,12 +264,13 @@ Use AskUserQuestion for enabling features:
 
 Question: "Which features do you want to enable?"
 Header: "Features"
-multiSelect: true  // Allow selecting multiple
+multiSelect: true // Allow selecting multiple
 Options:
-  - Logging (Detailed operation logs)
-  - Metrics (Performance monitoring)
-  - Alerts (Error notifications)
-  - Backups (Automatic backups)
+
+- Logging (Detailed operation logs)
+- Metrics (Performance monitoring)
+- Alerts (Error notifications)
+- Backups (Automatic backups)
 ```
 
 User can select any combination: none, some, or all.
@@ -261,7 +279,7 @@ User can select any combination: none, some, or all.
 
 ```markdown
 Question: "Which authentication method?"
-multiSelect: false  // Only one auth method makes sense
+multiSelect: false // Only one auth method makes sense
 ```
 
 Mutually exclusive choices should not use multiSelect.
@@ -285,16 +303,17 @@ Use AskUserQuestion to confirm:
 Question: "This will delete all cached data. Are you sure?"
 Header: "Confirm"
 Options:
-  - Yes (Proceed with deletion)
-  - No (Cancel operation)
+
+- Yes (Proceed with deletion)
+- No (Cancel operation)
 
 If user selects "Yes":
-  Execute deletion
-  Report completion
+Execute deletion
+Report completion
 
 If user selects "No":
-  Cancel operation
-  Exit without changes
+Cancel operation
+Exit without changes
 ```
 
 ### Pattern 2: Multiple Configuration Questions
@@ -312,22 +331,26 @@ Gather configuration through multiple questions.
 Use AskUserQuestion with multiple questions in one call:
 
 **Question 1:**
+
 - question: "Which programming language?"
 - header: "Language"
 - options: Python, TypeScript, Go, Rust
 
 **Question 2:**
+
 - question: "Which test framework?"
 - header: "Testing"
 - options: Jest, PyTest, Go Test, Cargo Test
   (Adapt based on language from Q1)
 
 **Question 3:**
+
 - question: "Which CI/CD platform?"
 - header: "CI/CD"
 - options: GitHub Actions, GitLab CI, CircleCI
 
 **Question 4:**
+
 - question: "Which features do you need?"
 - header: "Features"
 - multiSelect: true
@@ -353,25 +376,29 @@ Use AskUserQuestion:
 Question: "How complex is your deployment?"
 Header: "Complexity"
 Options:
-  - Simple (Single server, straightforward)
-  - Standard (Multiple servers, load balancing)
-  - Complex (Microservices, orchestration)
+
+- Simple (Single server, straightforward)
+- Standard (Multiple servers, load balancing)
+- Complex (Microservices, orchestration)
 
 ## Conditional Questions Based on Answer
 
 If answer is "Simple":
-  - No additional questions
-  - Use minimal configuration
+
+- No additional questions
+- Use minimal configuration
 
 If answer is "Standard":
-  - Ask about load balancing strategy
-  - Ask about scaling policy
+
+- Ask about load balancing strategy
+- Ask about scaling policy
 
 If answer is "Complex":
-  - Ask about orchestration platform (Kubernetes, Docker Swarm)
-  - Ask about service mesh (Istio, Linkerd, None)
-  - Ask about monitoring (Prometheus, Datadog, CloudWatch)
-  - Ask about logging aggregation
+
+- Ask about orchestration platform (Kubernetes, Docker Swarm)
+- Ask about service mesh (Istio, Linkerd, None)
+- Ask about monitoring (Prometheus, Datadog, CloudWatch)
+- Ask about logging aggregation
 
 ## Process Conditional Answers
 
@@ -397,10 +424,11 @@ Use AskUserQuestion:
 Question: "How many team members should we set up?"
 Header: "Team size"
 Options:
-  - 2 people
-  - 3 people
-  - 4 people
-  - 6 people
+
+- 2 people
+- 3 people
+- 4 people
+- 6 people
 
 ## Iterate Through Team Members
 
@@ -411,11 +439,12 @@ Use AskUserQuestion for member details:
 Question: "What role for team member [number]?"
 Header: "Role"
 Options:
-  - Frontend Developer
-  - Backend Developer
-  - DevOps Engineer
-  - QA Engineer
-  - Designer
+
+- Frontend Developer
+- Backend Developer
+- DevOps Engineer
+- QA Engineer
+- Designer
 
 Store each member's information.
 
@@ -442,17 +471,19 @@ Question: "Which libraries does your project need?"
 Header: "Dependencies"
 multiSelect: true
 Options:
-  - React (UI framework)
-  - Express (Web server)
-  - TypeORM (Database ORM)
-  - Jest (Testing framework)
-  - Axios (HTTP client)
+
+- React (UI framework)
+- Express (Web server)
+- TypeORM (Database ORM)
+- Jest (Testing framework)
+- Axios (HTTP client)
 
 User can select any combination.
 
 ## Process Selections
 
 For each selected library:
+
 - Add to package.json dependencies
 - Generate sample configuration
 - Create usage examples
@@ -477,15 +508,15 @@ For each selected library:
 After calling AskUserQuestion, verify answers received:
 
 If answers are empty or invalid:
-  Something went wrong gathering responses.
+Something went wrong gathering responses.
 
-  Please try again or provide configuration manually:
-  [Show alternative approach]
+Please try again or provide configuration manually:
+[Show alternative approach]
 
-  Exit.
+Exit.
 
 If answers look correct:
-  Process as expected
+Process as expected
 ```
 
 ### Progressive Disclosure
@@ -500,40 +531,44 @@ Use AskUserQuestion:
 Question: "How would you like to set up?"
 Header: "Setup type"
 Options:
-  - Quick (Use recommended defaults)
-  - Custom (Configure all options)
-  - Guided (Step-by-step with explanations)
+
+- Quick (Use recommended defaults)
+- Custom (Configure all options)
+- Guided (Step-by-step with explanations)
 
 If "Quick":
-  Apply defaults, minimal questions
+Apply defaults, minimal questions
 
 If "Custom":
-  Ask all available configuration questions
+Ask all available configuration questions
 
 If "Guided":
-  Ask questions with extra explanation
-  Provide recommendations along the way
+Ask questions with extra explanation
+Provide recommendations along the way
 ```
 
 ### Multi-Select Guidelines
 
 **Good multi-select use:**
+
 ```markdown
 Question: "Which features do you want to enable?"
 multiSelect: true
 Options:
-  - Logging
-  - Metrics
-  - Alerts
-  - Backups
+
+- Logging
+- Metrics
+- Alerts
+- Backups
 
 Reason: User might want any combination
 ```
 
 **Bad multi-select use:**
+
 ```markdown
 Question: "Which database engine?"
-multiSelect: true  // ❌ Should be single-select
+multiSelect: true // ❌ Should be single-select
 
 Reason: Can only use one database engine
 ```
@@ -557,23 +592,21 @@ Use AskUserQuestion to collect settings.
 ## Validate Configuration
 
 Check if configuration is valid:
+
 - Required dependencies available?
 - Settings compatible with each other?
 - No conflicts detected?
 
 If validation fails:
-  Show validation errors
+Show validation errors
 
-  Use AskUserQuestion to ask:
+Use AskUserQuestion to ask:
 
-  Question: "Configuration has issues. What would you like to do?"
-  Header: "Next step"
-  Options:
-    - Fix (Adjust settings to resolve issues)
-    - Override (Proceed despite warnings)
-    - Cancel (Abort setup)
+Question: "Configuration has issues. What would you like to do?"
+Header: "Next step"
+Options: - Fix (Adjust settings to resolve issues) - Override (Proceed despite warnings) - Cancel (Abort setup)
 
-  Based on answer, retry or proceed or exit.
+Based on answer, retry or proceed or exit.
 ```
 
 ### Build Configuration Incrementally
@@ -597,6 +630,7 @@ Save to `.claude/config-partial.yml`
 Show user the core settings:
 
 Based on these core settings, you need to configure:
+
 - [Setting A] (because you chose [X])
 - [Setting B] (because you chose [Y])
 
@@ -616,9 +650,10 @@ Use AskUserQuestion for confirmation:
 
 Question: "Is this configuration correct?"
 Options:
-  - Yes (Save and apply)
-  - No (Start over)
-  - Modify (Edit specific settings)
+
+- Yes (Save and apply)
+- No (Start over)
+- Modify (Edit specific settings)
 ```
 
 ### Dynamic Options Based on Context
@@ -634,6 +669,7 @@ allowed-tools: AskUserQuestion, Bash, Read
 ## Detect Current State
 
 Check existing configuration:
+
 - Current language: !`detect-language.sh`
 - Existing frameworks: !`detect-frameworks.sh`
 - Available tools: !`check-tools.sh`
@@ -644,23 +680,17 @@ Based on detected language, ask relevant questions.
 
 If language is TypeScript:
 
-  Use AskUserQuestion:
+Use AskUserQuestion:
 
-  Question: "Which TypeScript features should we enable?"
-  Options:
-    - Strict Mode (Maximum type safety)
-    - Decorators (Experimental decorator support)
-    - Path Mapping (Module path aliases)
+Question: "Which TypeScript features should we enable?"
+Options: - Strict Mode (Maximum type safety) - Decorators (Experimental decorator support) - Path Mapping (Module path aliases)
 
 If language is Python:
 
-  Use AskUserQuestion:
+Use AskUserQuestion:
 
-  Question: "Which Python tools should we configure?"
-  Options:
-    - Type Hints (mypy for type checking)
-    - Black (Code formatting)
-    - Pylint (Linting and style)
+Question: "Which Python tools should we configure?"
+Options: - Type Hints (mypy for type checking) - Black (Code formatting) - Pylint (Linting and style)
 
 Questions adapt to project context.
 ```
@@ -688,11 +718,12 @@ Use AskUserQuestion:
 Question: "How many agents should we launch?"
 Header: "Agent count"
 Options:
-  - 2 agents (Best for simple projects)
-  - 3 agents (Good for medium projects)
-  - 4 agents (Standard team size)
-  - 6 agents (Large projects)
-  - 8 agents (Complex multi-component projects)
+
+- 2 agents (Best for simple projects)
+- 3 agents (Good for medium projects)
+- 4 agents (Standard team size)
+- 6 agents (Large projects)
+- 8 agents (Complex multi-component projects)
 
 ### Question 2: Task Definition Approach
 
@@ -701,16 +732,17 @@ Use AskUserQuestion:
 Question: "How would you like to define tasks?"
 Header: "Task setup"
 Options:
-  - File (I have a task list file ready)
-  - Guided (Help me create tasks interactively)
-  - Custom (Other approach)
+
+- File (I have a task list file ready)
+- Guided (Help me create tasks interactively)
+- Custom (Other approach)
 
 If "File":
-  Ask for file path
-  Validate file exists and has correct format
+Ask for file path
+Validate file exists and has correct format
 
 If "Guided":
-  Enter iterative task creation mode (see below)
+Enter iterative task creation mode (see below)
 
 ### Question 3: Coordination Mode
 
@@ -719,9 +751,10 @@ Use AskUserQuestion:
 Question: "How should agents coordinate?"
 Header: "Coordination"
 Options:
-  - Team Leader (One agent coordinates others)
-  - Collaborative (Agents coordinate as peers)
-  - Autonomous (Independent work, minimal coordination)
+
+- Team Leader (One agent coordinates others)
+- Collaborative (Agents coordinate as peers)
+- Autonomous (Independent work, minimal coordination)
 
 ### Iterative Task Creation (If "Guided" Selected)
 
@@ -731,38 +764,42 @@ For each agent (1 to N from Question 1):
 Question: "What should we call agent [number]?"
 Header: "Agent name"
 Options:
-  - auth-agent
-  - api-agent
-  - ui-agent
-  - db-agent
+
+- auth-agent
+- api-agent
+- ui-agent
+- db-agent
   (Provide relevant suggestions based on common patterns)
 
 **Question B: Task Type**
 Question: "What task for [agent-name]?"
 Header: "Task type"
 Options:
-  - Authentication (User auth, JWT, OAuth)
-  - API Endpoints (REST/GraphQL APIs)
-  - UI Components (Frontend components)
-  - Database (Schema, migrations, queries)
-  - Testing (Test suites and coverage)
-  - Documentation (Docs, README, guides)
+
+- Authentication (User auth, JWT, OAuth)
+- API Endpoints (REST/GraphQL APIs)
+- UI Components (Frontend components)
+- Database (Schema, migrations, queries)
+- Testing (Test suites and coverage)
+- Documentation (Docs, README, guides)
 
 **Question C: Dependencies**
 Question: "What does [agent-name] depend on?"
 Header: "Dependencies"
 multiSelect: true
 Options:
-  - [List of previously defined agents]
-  - No dependencies
+
+- [List of previously defined agents]
+- No dependencies
 
 **Question D: Base Branch**
 Question: "Which base branch for PR?"
 Header: "PR base"
 Options:
-  - main
-  - staging
-  - develop
+
+- main
+- staging
+- develop
 
 Store all task information for each agent.
 
@@ -822,10 +859,11 @@ Question: "Which features do you need?"
 Header: "Features"
 multiSelect: true
 Options:
-  - Authentication
-  - Authorization
-  - Rate Limiting
-  - Caching
+
+- Authentication
+- Authorization
+- Rate Limiting
+- Caching
 ```
 
 ### Pattern: Environment Configuration
@@ -836,9 +874,10 @@ Use AskUserQuestion:
 Question: "Which environment is this?"
 Header: "Environment"
 Options:
-  - Development (Local development)
-  - Staging (Pre-production testing)
-  - Production (Live environment)
+
+- Development (Local development)
+- Staging (Pre-production testing)
+- Production (Live environment)
 ```
 
 ### Pattern: Priority Selection
@@ -849,10 +888,11 @@ Use AskUserQuestion:
 Question: "What's the priority for this task?"
 Header: "Priority"
 Options:
-  - Critical (Must be done immediately)
-  - High (Important, do soon)
-  - Medium (Standard priority)
-  - Low (Nice to have)
+
+- Critical (Must be done immediately)
+- High (Important, do soon)
+- Medium (Standard priority)
+- Low (Nice to have)
 ```
 
 ### Pattern: Scope Selection
@@ -863,9 +903,10 @@ Use AskUserQuestion:
 Question: "What scope should we analyze?"
 Header: "Scope"
 Options:
-  - Current file (Just this file)
-  - Current directory (All files in directory)
-  - Entire project (Full codebase scan)
+
+- Current file (Just this file)
+- Current directory (All files in directory)
+- Entire project (Full codebase scan)
 ```
 
 ## Combining Arguments and Questions
@@ -873,6 +914,7 @@ Options:
 ### Use Both Appropriately
 
 **Arguments for known values:**
+
 ```markdown
 ---
 argument-hint: [project-name]
@@ -887,10 +929,12 @@ Use AskUserQuestion for options that require explanation.
 ```
 
 **Questions for complex choices:**
+
 ```markdown
 Project name from argument: $1
 
 Now use AskUserQuestion to choose:
+
 - Architecture pattern
 - Technology stack
 - Deployment strategy
@@ -901,17 +945,20 @@ These require explanation, so questions work better than arguments.
 ## Troubleshooting
 
 **Questions not appearing:**
+
 - Verify AskUserQuestion in allowed-tools
 - Check question format is correct
 - Ensure options array has 2-4 items
 
 **User can't make selection:**
+
 - Check option labels are clear
 - Verify descriptions are helpful
 - Consider if too many options
 - Ensure multiSelect setting is correct
 
 **Flow feels confusing:**
+
 - Reduce number of questions
 - Group related questions
 - Add explanation between stages

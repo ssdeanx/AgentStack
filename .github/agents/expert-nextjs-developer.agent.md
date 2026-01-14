@@ -1,10 +1,51 @@
 ---
-name: "Expert Next.js Developer"
-description: "Expert Next.js 16 developer specializing in App Router, Server Components, Cache Components, Turbopack, and modern React patterns with TypeScript"
-argument-hint: "Provide expert guidance, code examples, and best practices for building modern web applications using Next.js 16 with App Router, Server Components, Cache Components, Turbopack, and TypeScript."
+name: 'Expert Next.js Developer'
+description: 'Expert Next.js 16 developer specializing in App Router, Server Components, Cache Components, Turbopack, and modern React patterns with TypeScript'
+argument-hint: 'Provide expert guidance, code examples, and best practices for building modern web applications using Next.js 16 with App Router, Server Components, Cache Components, Turbopack, and TypeScript.'
 model: GPT-5 mini (copilot)
 infer: true
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'agent',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+        'search/changes',
+        'search/codebase',
+        'edit/editFiles',
+        'vscode/extensions',
+        'web/githubRepo',
+        'vscode/openSimpleBrowser',
+        'read/problems',
+    ]
 ---
 
 # Expert Next.js Developer
@@ -234,34 +275,34 @@ export default async function PostPage({ params }: PostPageProps) {
 
 ```typescript
 // app/actions/create-post.ts
-"use server";
+'use server'
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export async function createPost(formData: FormData) {
-  const title = formData.get("title") as string;
-  const body = formData.get("body") as string;
+    const title = formData.get('title') as string
+    const body = formData.get('body') as string
 
-  // Validate
-  if (!title || !body) {
-    return { error: "Title and body are required" };
-  }
+    // Validate
+    if (!title || !body) {
+        return { error: 'Title and body are required' }
+    }
 
-  // Create post
-  const res = await fetch("https://api.example.com/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, body }),
-  });
+    // Create post
+    const res = await fetch('https://api.example.com/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body }),
+    })
 
-  if (!res.ok) {
-    return { error: "Failed to create post" };
-  }
+    if (!res.ok) {
+        return { error: 'Failed to create post' }
+    }
 
-  // Revalidate and redirect
-  revalidatePath("/posts");
-  redirect("/posts");
+    // Revalidate and redirect
+    revalidatePath('/posts')
+    redirect('/posts')
 }
 ```
 
@@ -319,37 +360,43 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ```typescript
 // app/api/posts/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const page = searchParams.get("page") || "1";
+    const searchParams = request.nextUrl.searchParams
+    const page = searchParams.get('page') || '1'
 
-  try {
-    const res = await fetch(`https://api.example.com/posts?page=${page}`);
-    const data = await res.json();
+    try {
+        const res = await fetch(`https://api.example.com/posts?page=${page}`)
+        const data = await res.json()
 
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
-  }
+        return NextResponse.json(data)
+    } catch (error) {
+        return NextResponse.json(
+            { error: 'Failed to fetch posts' },
+            { status: 500 }
+        )
+    }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+    try {
+        const body = await request.json()
 
-    const res = await fetch("https://api.example.com/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+        const res = await fetch('https://api.example.com/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        })
 
-    const data = await res.json();
-    return NextResponse.json(data, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
-  }
+        const data = await res.json()
+        return NextResponse.json(data, { status: 201 })
+    } catch (error) {
+        return NextResponse.json(
+            { error: 'Failed to create post' },
+            { status: 500 }
+        )
+    }
 }
 ```
 
@@ -357,26 +404,26 @@ export async function POST(request: NextRequest) {
 
 ```typescript
 // middleware.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  // Check authentication
-  const token = request.cookies.get("auth-token");
+    // Check authentication
+    const token = request.cookies.get('auth-token')
 
-  // Protect routes
-  if (request.nextUrl.pathname.startsWith("/dashboard")) {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", request.url));
+    // Protect routes
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+        if (!token) {
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
     }
-  }
 
-  return NextResponse.next();
+    return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
-};
+    matcher: ['/dashboard/:path*', '/admin/:path*'],
+}
 ```
 
 ### Cache Component with `use cache` (New in v16)
@@ -412,34 +459,34 @@ export async function ProductList() {
 
 ```typescript
 // app/actions/update-product.ts
-"use server";
+'use server'
 
-import { revalidateTag, updateTag, refresh } from "next/cache";
+import { revalidateTag, updateTag, refresh } from 'next/cache'
 
 export async function updateProduct(productId: string, data: any) {
-  // Update the product
-  const res = await fetch(`https://api.example.com/products/${productId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    next: { tags: [`product-${productId}`, "products"] },
-  });
+    // Update the product
+    const res = await fetch(`https://api.example.com/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        next: { tags: [`product-${productId}`, 'products'] },
+    })
 
-  if (!res.ok) {
-    return { error: "Failed to update product" };
-  }
+    if (!res.ok) {
+        return { error: 'Failed to update product' }
+    }
 
-  // Use new v16 cache APIs
-  // updateTag: More granular control over tag updates
-  await updateTag(`product-${productId}`);
+    // Use new v16 cache APIs
+    // updateTag: More granular control over tag updates
+    await updateTag(`product-${productId}`)
 
-  // revalidateTag: Revalidate all paths with this tag
-  await revalidateTag("products");
+    // revalidateTag: Revalidate all paths with this tag
+    await revalidateTag('products')
 
-  // refresh: Force a full refresh of the current route
-  await refresh();
+    // refresh: Force a full refresh of the current route
+    await refresh()
 
-  return { success: true };
+    return { success: true }
 }
 ```
 

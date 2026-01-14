@@ -1,13 +1,13 @@
 ---
-title: "ui-dojo/src/mastra/tools/nested-agent-stream-tool.ts at main · mastra-ai/ui-dojo"
-source: "https://github.com/mastra-ai/ui-dojo/blob/main/src/pages/ai-sdk/generative-user-interfaces-with-custom-events.tsx"
+title: 'ui-dojo/src/mastra/tools/nested-agent-stream-tool.ts at main · mastra-ai/ui-dojo'
+source: 'https://github.com/mastra-ai/ui-dojo/blob/main/src/pages/ai-sdk/generative-user-interfaces-with-custom-events.tsx'
 author:
-  - "[[LekoArts]]"
+    - '[[LekoArts]]'
 published:
 created: 2026-01-13
-description: "Mastra + UI Frameworks. Contribute to mastra-ai/ui-dojo development by creating an account on GitHub."
+description: 'Mastra + UI Frameworks. Contribute to mastra-ai/ui-dojo development by creating an account on GitHub.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
 
 src/pages/ai-sdk/generative-user-interfaces-with-custom-events.tsx

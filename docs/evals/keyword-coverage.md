@@ -56,21 +56,23 @@ A coverage score between 0 and 1:
 Evaluate keyword coverage between input queries and agent responses (use local/mocked examples in CI):
 
 ```typescript
-import { runEvals } from "@mastra/core/evals";
-import { createKeywordCoverageScorer } from "@mastra/evals/scorers/prebuilt";
+import { runEvals } from '@mastra/core/evals'
+import { createKeywordCoverageScorer } from '@mastra/evals/scorers/prebuilt'
 
-const scorer = createKeywordCoverageScorer();
+const scorer = createKeywordCoverageScorer()
 const result = await runEvals({
-  data: [
-    { input: "JavaScript frameworks like React and Vue" },
-    { input: "TypeScript offers interfaces, generics, and type inference" },
-    { input: "Machine learning models require data preprocessing, feature engineering, and hyperparameter tuning" },
-  ],
-  scorers: [scorer],
-  target: myAgent,
-});
+    data: [
+        { input: 'JavaScript frameworks like React and Vue' },
+        { input: 'TypeScript offers interfaces, generics, and type inference' },
+        {
+            input: 'Machine learning models require data preprocessing, feature engineering, and hyperparameter tuning',
+        },
+    ],
+    scorers: [scorer],
+    target: myAgent,
+})
 
-console.log(result.scores);
+console.log(result.scores)
 ```
 
-*Source: Mastra docs — reference/v1/evals/keyword-coverage*
+_Source: Mastra docs — reference/v1/evals/keyword-coverage_

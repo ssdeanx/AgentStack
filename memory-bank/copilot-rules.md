@@ -9,9 +9,9 @@ Project rules, safety policies, validation requirements, and learned patterns.
 - Do NOT store API keys, `.env`, or secrets in version control
 - Use `.env.example` with placeholder values only
 - If a secret is leaked:
-  1. Rotate credentials immediately
-  2. Purge from git history (`git filter-branch` or BFG)
-  3. Notify team and audit access logs
+    1. Rotate credentials immediately
+    2. Purge from git history (`git filter-branch` or BFG)
+    3. Notify team and audit access logs
 - Use GitHub Secret Scanning and pre-commit hooks
 
 ---
@@ -41,6 +41,7 @@ Project rules, safety policies, validation requirements, and learned patterns.
 ## ✅ Validation Hooks
 
 ### After Every Implementation
+
 Run these checks before marking any task complete
 
 1. **Lint**: `npx eslint <affected-files> --max-warnings=0`
@@ -63,27 +64,27 @@ If any fail, do NOT proceed. Fix issues first.
 ### For Architectural or Security Decisions
 
 1. **Generate Alternatives**: Propose as many approaches as necessary (3-7) personas or points of view
-   - All points of view
-     - Many perspectives
-     - Diverse pros/cons
-     - Consider trade-offs
-     - Balance complexity vs. benefit
-     - Scalability implications
-     - Long-term maintenance
-     - Security impacts
-     - Performance effects
+    - All points of view
+        - Many perspectives
+        - Diverse pros/cons
+        - Consider trade-offs
+        - Balance complexity vs. benefit
+        - Scalability implications
+        - Long-term maintenance
+        - Security impacts
+        - Performance effects
 2. **Evaluate**: Score each against acceptance criteria
-
     - Criteria examples:
-      - Performance
-      - Maintainability
-      - Scalability
-      - User experience
-      - Security
+        - Performance
+        - Maintainability
+        - Scalability
+        - User experience
+        - Security
+
 3. **Select**: Choose approach with best alignment
     - Justify with pros/cons and criteria scores [0-1 using .1 increments like 0.7, 0.3 ]
 4. **Document**: Record rejected alternatives with reasons
-   - Save to `design.md` in ADR format (see below)
+    - Save to `design.md` in ADR format (see below)
 
 ### ADR Format (in design.md)
 
@@ -93,38 +94,43 @@ If any fail, do NOT proceed. Fix issues first.
 ### Status: [Proposed | Accepted | Deprecated]
 
 ### Context
+
 [Why this decision is needed]
 
 ### Options
+
 1. [Option A]: [Pros/Cons]
-  - [Details]
-  -
-  -
-  -
+
+- [Details]
+-
+-
+-
+
 2. [Option B]: [Pros/Cons]
-  - [Details]
-  -
-  -
+
+- [Details]
+-
+-
+
 3. [Option C]: [Pros/Cons]
-  - [Details]
-  -
-4...
-  - [Details]
-  -
-5...
-  - [Details]
-  -
-6...
-  - [Details]
-  -
-7...
-  - [Details]
-  -
+
+- [Details]
+- 4...
+- [Details]
+- 5...
+- [Details]
+- 6...
+- [Details]
+- 7...
+- [Details]
+-
 
 ### Decision
+
 [Selected option and rationale]
 
 ### Consequences
+
 [Impact of this decision]
 ```
 
@@ -140,15 +146,15 @@ If any fail, do NOT proceed. Fix issues first.
 
 ### Directory Reference
 
-| Path | Contains |
-|------|----------|
-| `src/mastra/agents/` | 22+ specialized agents |
-| `src/mastra/tools/` | 30+ enterprise tools with Zod schemas |
-| `src/mastra/workflows/` | 10 multi-step workflows |
-| `src/mastra/networks/` | 4 agent networks |
-| `src/mastra/config/` | Provider clients, storage, role hierarchy |
-| `src/mastra/mcp/` | Model Context Protocol server |
-| `file://./src/mastra/scorers/` | Custom evaluation metrics |
+| Path                           | Contains                                  |
+| ------------------------------ | ----------------------------------------- |
+| `src/mastra/agents/`           | 22+ specialized agents                    |
+| `src/mastra/tools/`            | 30+ enterprise tools with Zod schemas     |
+| `src/mastra/workflows/`        | 10 multi-step workflows                   |
+| `src/mastra/networks/`         | 4 agent networks                          |
+| `src/mastra/config/`           | Provider clients, storage, role hierarchy |
+| `src/mastra/mcp/`              | Model Context Protocol server             |
+| `file://./src/mastra/scorers/` | Custom evaluation metrics                 |
 
 ---
 
@@ -158,22 +164,22 @@ All tools must follow the TASK001 streaming convention:
 
 - Prefer the runtime agent instance via `context.mastra.getAgent('<agentId>')` when available, otherwise fall back to the local agent import.
 - If the agent exposes a stream API, call `agent.stream(prompt)` returning a `MastraModelOutput` and:
-  - Pipe `textStream` / `fullStream` to `context.writer` so the UI receives nested chunks
-  - Await `stream.text` for the final text
-  - Use `stream.object` when present for structured responses and fall back to JSON parsing of `stream.text`
+    - Pipe `textStream` / `fullStream` to `context.writer` so the UI receives nested chunks
+    - Await `stream.text` for the final text
+    - Use `stream.object` when present for structured responses and fall back to JSON parsing of `stream.text`
 - If no streaming API, call `agent.generate(prompt)` and parse `response.object` or JSON text as a fallback.
 - Emit progress events with the exact format below at start/in-progress/done:
 
 ```typescript
 await context?.writer?.custom({
-  type: 'data-tool-progress',
-  data: {
-    status: 'in-progress',
-    message: `📈 Fetching tool-id data for ${inputData.symbol}/${inputData.market}`,
-    stage: 'tool-id'
-  },
-  id: 'tool-id'
-});
+    type: 'data-tool-progress',
+    data: {
+        status: 'in-progress',
+        message: `📈 Fetching tool-id data for ${inputData.symbol}/${inputData.market}`,
+        stage: 'tool-id',
+    },
+    id: 'tool-id',
+})
 ```
 
 - Update the TASK001 scratchpad (`/memory-bank/tasks/TASK001-tool-streaming.md`) when implementing or changing tool streaming behavior.
@@ -182,10 +188,10 @@ await context?.writer?.custom({
 
 ### Component Locations
 
-| Type | Path | Count |
-|------|------|-------|
-| AI Elements | `src/components/ai-elements/` | 30 components |
-| Base shadcn/ui | `ui/` | 19 components |
+| Type           | Path                          | Count         |
+| -------------- | ----------------------------- | ------------- |
+| AI Elements    | `src/components/ai-elements/` | 30 components |
+| Base shadcn/ui | `ui/`                         | 19 components |
 
 ### Import Conventions
 
@@ -197,11 +203,7 @@ import { Button } from '@/ui/button'
 import { Message } from '@/src/components/ai-elements/message'
 
 // AI SDK v5 type guards (for message part filtering)
-import {
-  isTextUIPart,
-  isReasoningUIPart,
-  isToolOrDynamicToolUIPart,
-} from "ai"
+import { isTextUIPart, isReasoningUIPart, isToolOrDynamicToolUIPart } from 'ai'
 ```
 
 ### AI SDK v5 Patterns
@@ -214,7 +216,7 @@ const content = message.content
 
 // ✅ CORRECT - v5 pattern
 const textPart = message.parts?.find(isTextUIPart)
-const content = textPart?.text || ""
+const content = textPart?.text || ''
 ```
 
 **Tool Invocation Types:**
@@ -262,6 +264,7 @@ case "finish":         // payload.output.usage.inputTokens
 - Use Vitest for all tests
 
 ### Protected Areas
+
 Never modify without explicit review:
 
 - Observability configuration
@@ -286,6 +289,7 @@ Never modify without explicit review:
 - Complete validation before proceeding
 
 ### Recovery Protocol
+
 After context reset:
 
 1. Read `activeContext.md` — current state
@@ -299,12 +303,12 @@ After context reset:
 
 ### When to Update Memory Bank
 
-| Trigger | Update |
-|---------|--------|
-| New pattern discovered | Add to `copilot-rules.md` |
-| Task completed | Update `progress.md` |
-| Decision made | Write to feature `context.md` |
-| User says "update memory bank" | Review ALL files |
+| Trigger                        | Update                        |
+| ------------------------------ | ----------------------------- |
+| New pattern discovered         | Add to `copilot-rules.md`     |
+| Task completed                 | Update `progress.md`          |
+| Decision made                  | Write to feature `context.md` |
+| User says "update memory bank" | Review ALL files              |
 
 ### Commit Message Format
 
@@ -367,18 +371,21 @@ Correct method names (verified from @mastra/client-js):
 
 ```typescript
 // ✅ Correct method names
-mastraClient.getWorkflows()      // NOT listWorkflows()
-mastraClient.getLogTransports()  // NOT listLogTransports()
-mastraClient.getLogs()           // NOT listLogs()
+mastraClient.getWorkflows() // NOT listWorkflows()
+mastraClient.getLogTransports() // NOT listLogTransports()
+mastraClient.getLogs() // NOT listLogs()
 
 // ✅ getMemoryThread takes 2 args, not object
-mastraClient.getMemoryThread(threadId, agentId)
-
-// ✅ Type casting for API responses
-(agent as unknown as Record<string, unknown>).name
+mastraClient.getMemoryThread(
+    threadId,
+    agentId
+)(
+    // ✅ Type casting for API responses
+    agent as unknown as Record<string, unknown>
+).name
 ```
 
 ---
 
-*Last updated: 2025-12-05*
-*Version: 2.1.0*
+_Last updated: 2025-12-05_
+_Version: 2.1.0_

@@ -26,6 +26,7 @@ npx shadcn@latest add --registry ai-elements
 ## Chatbot Components
 
 ### Chain of Thought
+
 **Installation:** `npx ai-elements@latest add chain-of-thought`
 
 A collapsible component that visualizes AI reasoning steps with support for search results, images, and step-by-step progress indicators.
@@ -58,6 +59,7 @@ A collapsible component that visualizes AI reasoning steps with support for sear
 - `ChainOfThoughtImage` - Image display with captions
 
 ### Checkpoint
+
 **Installation:** `npx ai-elements@latest add checkpoint`
 
 A simple component for marking conversation history points and restoring the chat to a previous state.
@@ -70,6 +72,7 @@ A simple component for marking conversation history points and restoring the cha
 - State persistence
 
 ### Confirmation
+
 **Installation:** `npx ai-elements@latest add confirmation`
 
 Handle user confirmations and approval workflows in AI conversations.
@@ -82,6 +85,7 @@ Handle user confirmations and approval workflows in AI conversations.
 - State management
 
 ### Conversation
+
 **Installation:** `npx ai-elements@latest add conversation`
 
 Wraps messages and automatically scrolls to the bottom. Includes a scroll button that appears when not at the bottom.
@@ -110,6 +114,7 @@ Wraps messages and automatically scrolls to the bottom. Includes a scroll button
 - `ConversationScrollButton` - Scroll to bottom button
 
 ### Context
+
 **Installation:** `npx ai-elements@latest add context`
 
 A compound component system for displaying AI model context window usage, token consumption, and cost estimation.
@@ -122,6 +127,7 @@ A compound component system for displaying AI model context window usage, token 
 - Model performance metrics
 
 ### Inline Citation
+
 **Installation:** `npx ai-elements@latest add inline-citation`
 
 A hoverable citation component that displays source information and quotes inline with text, perfect for AI-generated content with references.
@@ -134,6 +140,7 @@ A hoverable citation component that displays source information and quotes inlin
 - Reference management
 
 ### Message
+
 **Installation:** `npx ai-elements@latest add message`
 
 A comprehensive suite of components for displaying chat messages, including message rendering, branching, actions, and markdown responses.
@@ -175,6 +182,7 @@ Add to `globals.css`:
 - `MessageAttachment` - Individual attachments
 
 ### Model Selector
+
 **Installation:** `npx ai-elements@latest add model-selector`
 
 A searchable command palette for selecting AI models in your chat interface.
@@ -187,6 +195,7 @@ A searchable command palette for selecting AI models in your chat interface.
 - Keyboard navigation
 
 ### Plan
+
 **Installation:** `npx ai-elements@latest add plan`
 
 A collapsible plan component for displaying AI-generated execution plans with streaming support and shimmer animations.
@@ -199,6 +208,7 @@ A collapsible plan component for displaying AI-generated execution plans with st
 - Step-by-step plan visualization
 
 ### Prompt Input
+
 **Installation:** `npx ai-elements@latest add prompt-input`
 
 Allows a user to send a message with file attachments to a large language model. Includes a textarea, file upload capabilities, a submit button, and a dropdown for selecting the model.
@@ -242,6 +252,7 @@ Allows a user to send a message with file attachments to a large language model.
 - `PromptInputTools` - Toolbar container
 
 ### Queue
+
 **Installation:** `npx ai-elements@latest add queue`
 
 A comprehensive queue component system for displaying message lists, todos, and collapsible task sections in AI applications.
@@ -254,6 +265,7 @@ A comprehensive queue component system for displaying message lists, todos, and 
 - Queue management
 
 ### Reasoning
+
 **Installation:** `npx ai-elements@latest add reasoning`
 
 Display AI reasoning processes and step-by-step thinking.
@@ -265,6 +277,7 @@ Display AI reasoning processes and step-by-step thinking.
 - Progress tracking
 
 ### Shimmer
+
 **Installation:** `npx ai-elements@latest add shimmer`
 
 An animated text shimmer component for creating eye-catching loading states and progressive reveal effects.
@@ -276,6 +289,7 @@ An animated text shimmer component for creating eye-catching loading states and 
 - Progressive content reveal
 
 ### Sources
+
 **Installation:** `npx ai-elements@latest add sources`
 
 A component that allows a user to view the sources or citations used to generate a response.
@@ -301,6 +315,7 @@ A component that allows a user to view the sources or citations used to generate
 - `Source` - Individual source items
 
 ### Suggestions
+
 **Installation:** `npx ai-elements@latest add suggestion`
 
 A suggestion component that displays a horizontal row of clickable suggestions for user interaction.
@@ -312,6 +327,7 @@ A suggestion component that displays a horizontal row of clickable suggestions f
 - User engagement enhancement
 
 ### Task
+
 **Installation:** `npx ai-elements@latest add task`
 
 Track task progress with status indicators and collapsible details.
@@ -324,6 +340,7 @@ Track task progress with status indicators and collapsible details.
 - Progress visualization
 
 ### Tool
+
 **Installation:** `npx ai-elements@latest add tool`
 
 Display tool usage, invocation tracking, and result visualization.
@@ -340,6 +357,7 @@ Display tool usage, invocation tracking, and result visualization.
 ## Workflow Components
 
 ### Canvas
+
 **Installation:** `npx ai-elements@latest add canvas`
 
 Visual workflow editor and canvas interface.
@@ -351,6 +369,7 @@ Visual workflow editor and canvas interface.
 - Visual workflow creation
 
 ### Connection
+
 **Installation:** `npx ai-elements@latest add connection`
 
 Connect workflow nodes and manage relationships.
@@ -362,6 +381,7 @@ Connect workflow nodes and manage relationships.
 - Connection visualization
 
 ### Controls
+
 **Installation:** `npx ai-elements@latest add controls`
 
 Workflow control panel and management tools.
@@ -373,6 +393,7 @@ Workflow control panel and management tools.
 - Control panel
 
 ### Edge
+
 **Installation:** `npx ai-elements@latest add edge`
 
 Connection lines and edges between workflow nodes.
@@ -384,6 +405,7 @@ Connection lines and edges between workflow nodes.
 - Flow representation
 
 ### Node
+
 **Installation:** `npx ai-elements@latest add node`
 
 Individual workflow steps and processing nodes.
@@ -395,6 +417,7 @@ Individual workflow steps and processing nodes.
 - Node management
 
 ### Panel
+
 **Installation:** `npx ai-elements@latest add panel`
 
 Side panels and configuration interfaces.
@@ -406,6 +429,7 @@ Side panels and configuration interfaces.
 - Interface components
 
 ### Toolbar
+
 **Installation:** `npx ai-elements@latest add toolbar`
 
 Workflow toolbar with tools and actions.
@@ -421,6 +445,7 @@ Workflow toolbar with tools and actions.
 ## Vibe Coding Components
 
 ### Artifact
+
 **Installation:** `npx ai-elements@latest add artifact`
 
 Display generated code and content artifacts.
@@ -432,6 +457,7 @@ Display generated code and content artifacts.
 - Artifact management
 
 ### Web Preview
+
 **Installation:** `npx ai-elements@latest add web-preview`
 
 Preview generated web content and interfaces.
@@ -447,6 +473,7 @@ Preview generated web content and interfaces.
 ## Documentation Components
 
 ### Open in Chat
+
 **Installation:** `npx ai-elements@latest add open-in-chat`
 
 Link documentation to chat interfaces.
@@ -462,6 +489,7 @@ Link documentation to chat interfaces.
 ## Utility Components
 
 ### Code Block
+
 **Installation:** `npx ai-elements@latest add code-block`
 
 Syntax-highlighted code display with copy functionality.
@@ -474,6 +502,7 @@ Syntax-highlighted code display with copy functionality.
 - Language detection
 
 ### Image
+
 **Installation:** `npx ai-elements@latest add image`
 
 Enhanced image display and management.
@@ -485,6 +514,7 @@ Enhanced image display and management.
 - Image management
 
 ### Loader
+
 **Installation:** `npx ai-elements@latest add loader`
 
 Loading indicators and progress visualization.
@@ -581,5 +611,5 @@ function ChatWithSources({ messages }) {
 
 ---
 
-*Last updated: December 8, 2025*
-*Source: https://ai-sdk.dev/elements and component documentation*
+_Last updated: December 8, 2025_
+_Source: https://ai-sdk.dev/elements and component documentation_

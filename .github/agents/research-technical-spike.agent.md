@@ -1,7 +1,48 @@
 ---
-description: "Systematically research and validate technical spike documents through exhaustive investigation and controlled experimentation."
-name: "Technical Spike"
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
+description: 'Systematically research and validate technical spike documents through exhaustive investigation and controlled experimentation.'
+name: 'Technical Spike'
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'agent',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+        'search/changes',
+        'search/codebase',
+        'edit/editFiles',
+        'vscode/extensions',
+        'web/githubRepo',
+        'vscode/openSimpleBrowser',
+        'read/problems',
+    ]
 ---
 
 # Technical spike research mode
@@ -111,11 +152,11 @@ Systematically validate technical spike documents through exhaustive investigati
 
 - Mark documentation update todo as in-progress
 - Update spike document sections:
-  - Investigation Results: detailed findings with evidence
-  - Prototype/Testing Notes: experimental results
-  - External Resources: all sources found with recursive research trails
-  - Decision/Recommendation: clear conclusion based on exhaustive research
-  - Status History: mark complete
+    - Investigation Results: detailed findings with evidence
+    - Prototype/Testing Notes: experimental results
+    - External Resources: all sources found with recursive research trails
+    - Decision/Recommendation: clear conclusion based on exhaustive research
+    - Status History: mark complete
 - Ensure all todos are marked complete or have clear next steps
 
 ## Evidence Standards
@@ -166,11 +207,11 @@ Systematically validate technical spike documents through exhaustive investigati
 - Update sections immediately after each significant finding or tool use
 - Never batch updates - document findings as they emerge
 - Use spike document sections strategically:
-  - **Investigation Results**: Real-time findings with timestamps
-  - **External Resources**: Immediate source documentation with context
-  - **Prototype/Testing Notes**: Live experimental logs and observations
-  - **Technical Constraints**: Discovered limitations and blockers
-  - **Decision Trail**: Evolving conclusions and reasoning
+    - **Investigation Results**: Real-time findings with timestamps
+    - **External Resources**: Immediate source documentation with context
+    - **Prototype/Testing Notes**: Live experimental logs and observations
+    - **Technical Constraints**: Discovered limitations and blockers
+    - **Decision Trail**: Evolving conclusions and reasoning
 - Maintain clear research chronology showing investigation progression
 - Document both successful findings AND dead ends for future reference
 

@@ -1,10 +1,9 @@
+import { SpanType, TracingContext } from '@mastra/core/observability'
+import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
+import { BollingerBands, EMA, MACD, RSI, SMA } from 'technicalindicators'
 import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
-import type { InferUITool } from '@mastra/core/tools'
-import { SMA, EMA, RSI, MACD, BollingerBands } from 'technicalindicators'
 import { downsampleTool } from './downsample.tool'
 
 export const chartJsTool = createTool({
@@ -88,7 +87,8 @@ export const chartJsTool = createTool({
         })
 
         // Tracing: create a TOOL_CALL span for this tool execution
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const abortSignal = context?.abortSignal
 
         if (abortSignal?.aborted === true) {

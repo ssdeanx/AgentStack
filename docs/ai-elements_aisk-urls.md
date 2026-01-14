@@ -69,14 +69,13 @@ Location `C:/Users/ssdsk/mastra/ui` & `C:/Users/ssdsk/mastra/src/components/ai-e
 - [Image](https://ai-sdk.dev/elements/components/image)
 - [Loader](https://ai-sdk.dev/elements/components/loader)
 
-
 ---
 
 # Mastra Event Types and Templates
 
 - The following TypeScript code defines event types and templates for Mastra workflow streaming.
 - This is what the event stream looks like when a workflow is executed.
-- This might be useful for building custom UIs or debugging workflows.  Ai-SDK integration uses similar event structures for streaming data.  These events can be adapted for various frontend components.
+- This might be useful for building custom UIs or debugging workflows. Ai-SDK integration uses similar event structures for streaming data. These events can be adapted for various frontend components.
 
 ```ts
 /**

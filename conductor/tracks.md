@@ -5,4 +5,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 ---
 
 ## [~] Track: Implement Custom AI UI Components for Mastra Tools
-*Link: [./conductor/tracks/custom_ai_ui_20260108/](./conductor/tracks/custom_ai_ui_20260108/)*
+
+_Link: [./conductor/tracks/custom_ai_ui_20260108/](./conductor/tracks/custom_ai_ui_20260108/)_

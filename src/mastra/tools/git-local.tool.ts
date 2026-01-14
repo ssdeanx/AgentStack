@@ -1807,15 +1807,17 @@ export const gitStashTool = createTool({
 // New Git Config Management Tool
 export const gitConfigTool = createTool({
     id: 'git:config',
-    description:
-        'Manage git configuration settings (get, set, list, unset)',
+    description: 'Manage git configuration settings (get, set, list, unset)',
     inputSchema: z.object({
         repoPath: z.string().optional().describe('Path to the git repository'),
         operation: z
             .enum(['get', 'set', 'list', 'unset'])
             .describe('Configuration operation to perform'),
         key: z.string().optional().describe('Configuration key'),
-        value: z.string().optional().describe('Configuration value for set operation'),
+        value: z
+            .string()
+            .optional()
+            .describe('Configuration value for set operation'),
         global: z
             .boolean()
             .optional()
@@ -1921,7 +1923,9 @@ export const gitConfigTool = createTool({
 
                 case 'set': {
                     if (!inputData.key || inputData.value === undefined) {
-                        throw new Error('Key and value required for set operation')
+                        throw new Error(
+                            'Key and value required for set operation'
+                        )
                     }
 
                     const args = ['config']
@@ -1940,7 +1944,9 @@ export const gitConfigTool = createTool({
                         timeout,
                     })
 
-                    result = { message: `Set ${inputData.key} = ${inputData.value}` }
+                    result = {
+                        message: `Set ${inputData.key} = ${inputData.value}`,
+                    }
                     break
                 }
 

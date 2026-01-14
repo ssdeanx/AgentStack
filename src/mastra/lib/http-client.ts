@@ -1,4 +1,4 @@
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 import Bottleneck from 'bottleneck'
@@ -51,7 +51,10 @@ export interface ClientBundle {
 
 // Create a configurable http client bundle
 export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
-    const limiter = new Bottleneck({ minTime: opts?.minTime ?? 200, maxConcurrent: opts?.maxConcurrent ?? 5 })
+    const limiter = new Bottleneck({
+        minTime: opts?.minTime ?? 200,
+        maxConcurrent: opts?.maxConcurrent ?? 5,
+    })
 
     const axiosConfig: AxiosRequestConfig = {
         baseURL: opts?.baseURL,
@@ -66,11 +69,16 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
     axiosRetry(client, {
         retries: typeof opts?.retries === 'number' ? opts.retries : 3,
         retryDelay: opts?.retryDelay ?? axiosRetry.exponentialDelay,
-        retryCondition: (error) => axiosRetry.isNetworkOrIdempotentRequestError(error) || error.response?.status === 429,
+        retryCondition: (error) =>
+            axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+            error.response?.status === 429,
     })
 
-    const fetch = async (url: string, init?: HttpFetchInit): Promise<HttpFetchResponse> => {
-        const method = (init?.method ?? 'GET')
+    const fetch = async (
+        url: string,
+        init?: HttpFetchInit
+    ): Promise<HttpFetchResponse> => {
+        const method = init?.method ?? 'GET'
         const timeout = init?.timeout ?? axiosConfig.timeout ?? 30000
         const responseType = init?.responseType ?? 'json'
 
@@ -79,7 +87,12 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
                 url,
                 method,
                 timeout,
-                responseType: responseType === 'json' ? 'json' : responseType === 'text' ? 'text' : 'arraybuffer',
+                responseType:
+                    responseType === 'json'
+                        ? 'json'
+                        : responseType === 'text'
+                          ? 'text'
+                          : 'arraybuffer',
                 signal: init?.signal,
                 headers: init?.headers,
                 params: init?.params,
@@ -91,7 +104,9 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
 
         const headers: Record<string, string> = {}
         Object.entries(resp.headers ?? {}).forEach(([k, v]) => {
-            headers[String(k).toLowerCase()] = Array.isArray(v) ? v.join(',') : String(v ?? '')
+            headers[String(k).toLowerCase()] = Array.isArray(v)
+                ? v.join(',')
+                : String(v ?? '')
         })
 
         return {
@@ -101,13 +116,20 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
             data,
             headers,
             json: async <T = unknown>() => data as T,
-            text: async () => (typeof data === 'string' ? data : JSON.stringify(data)),
+            text: async () =>
+                typeof data === 'string' ? data : JSON.stringify(data),
             arrayBuffer: async () => {
                 const toArrayBuffer = (input: unknown): ArrayBuffer => {
-                    if (typeof ArrayBuffer !== 'undefined' && input instanceof ArrayBuffer) {
+                    if (
+                        typeof ArrayBuffer !== 'undefined' &&
+                        input instanceof ArrayBuffer
+                    ) {
                         return input
                     }
-                    if (typeof SharedArrayBuffer !== 'undefined' && input instanceof SharedArrayBuffer) {
+                    if (
+                        typeof SharedArrayBuffer !== 'undefined' &&
+                        input instanceof SharedArrayBuffer
+                    ) {
                         const view = new Uint8Array(input as ArrayBufferLike)
                         const copy = new Uint8Array(view.length)
                         copy.set(view)
@@ -117,7 +139,10 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
                         const copy = Uint8Array.from(input)
                         return copy.buffer
                     }
-                    const str = typeof input === 'string' ? input : JSON.stringify(input)
+                    const str =
+                        typeof input === 'string'
+                            ? input
+                            : JSON.stringify(input)
                     const buf = Buffer.from(str)
                     const copy = Uint8Array.from(buf)
                     return copy.buffer
@@ -136,5 +161,8 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
 }
 
 // Default shared client (convenience)
-export const { client: httpClient, limiter: httpLimiter, fetch: httpFetch } = createHttpClient()
-
+export const {
+    client: httpClient,
+    limiter: httpLimiter,
+    fetch: httpFetch,
+} = createHttpClient()

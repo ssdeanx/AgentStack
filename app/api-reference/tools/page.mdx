@@ -1,13 +1,17 @@
 ---
-title: "Tools API"
-description: "API reference and examples for Tools in AgentStack (Mastra) — list, fetch, execute, and security best practices."
-date: "2025-12-01"
-readTime: "6 min read"
-category: "API"
-slug: "tools"
+title: 'Tools API'
+description: 'API reference and examples for Tools in AgentStack (Mastra) — list, fetch, execute, and security best practices.'
+date: '2025-12-01'
+readTime: '6 min read'
+category: 'API'
+slug: 'tools'
 ---
 
-import { ApiEndpoint, ApiParam, CodeBlock } from "@/app/components/api-components"
+import {
+    ApiEndpoint,
+    ApiParam,
+    CodeBlock,
+} from '@/app/components/api-components'
 
 # Tools API
 
@@ -22,7 +26,11 @@ Tools are defined in `src/mastra/tools/*` and often expose an `inputSchema` to v
 ### List all tools
 
 ```tsx
-<ApiEndpoint method="GET" path="/api/tools" description="List all available tools (id, description, metadata)" />
+<ApiEndpoint
+    method="GET"
+    path="/api/tools"
+    description="List all available tools (id, description, metadata)"
+/>
 ```
 
 - Returns an array of tools with their ID, description, supported params, and metadata.
@@ -32,11 +40,15 @@ Tools are defined in `src/mastra/tools/*` and often expose an `inputSchema` to v
 ### Get tool details
 
 ```tsx
-<ApiEndpoint method="GET" path="/api/tools/{toolId}" description="Get a tool's metadata and input schema" />
+<ApiEndpoint
+    method="GET"
+    path="/api/tools/{toolId}"
+    description="Get a tool's metadata and input schema"
+/>
 ```
 
 - Path param:
-  - `toolId` — the ID of the tool to fetch.
+    - `toolId` — the ID of the tool to fetch.
 - Response includes the tool's `inputSchema` (e.g., displayed as a simplified schema or `zod` representation) and supported metadata.
 
 ---
@@ -44,26 +56,30 @@ Tools are defined in `src/mastra/tools/*` and often expose an `inputSchema` to v
 ### Execute a tool
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/tools/{toolId}/execute" description="Execute a tool in the context of an optional runtime or user" />
+<ApiEndpoint
+    method="POST"
+    path="/api/tools/{toolId}/execute"
+    description="Execute a tool in the context of an optional runtime or user"
+/>
 ```
 
 - Path param:
-  - `toolId` — the ID of the tool to execute.
+    - `toolId` — the ID of the tool to execute.
 - Request body:
-  - The shape depends on the tool’s `inputSchema` (tools usually apply validation).
+    - The shape depends on the tool’s `inputSchema` (tools usually apply validation).
 - Example body (generic):
 
 ```json
 {
-  "input": {
-    "topic": "Generate an outline for a blog post on AgentStack",
-    "length": "short",
-    "metadata": { "userId":"123" }
-  },
-  "runtimeContext": {
-    "userId": "123",
-    "tier": "pro"
-  }
+    "input": {
+        "topic": "Generate an outline for a blog post on AgentStack",
+        "length": "short",
+        "metadata": { "userId": "123" }
+    },
+    "runtimeContext": {
+        "userId": "123",
+        "tier": "pro"
+    }
 }
 ```
 
@@ -74,7 +90,11 @@ Tools are defined in `src/mastra/tools/*` and often expose an `inputSchema` to v
 `copywriter-agent` is a typical tool that wraps an internal agent to produce text for a topic:
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/tools/copywriter-agent/execute" description="Create short copy using copywriter agent" />
+<ApiEndpoint
+    method="POST"
+    path="/api/tools/copywriter-agent/execute"
+    description="Create short copy using copywriter agent"
+/>
 ```
 
 Example `curl`:
@@ -112,7 +132,11 @@ Tools that run shell commands should be guarded. Example of an "execa-like" tool
 - Implement sandboxing and input validation to avoid arbitrary command execution.
 
 ```tsx
-<ApiEndpoint method="POST" path="/api/tools/execa-tool/execute" description="Execute a safer, constrained shell command (admin-only)" />
+<ApiEndpoint
+    method="POST"
+    path="/api/tools/execa-tool/execute"
+    description="Execute a safer, constrained shell command (admin-only)"
+/>
 ```
 
 Example recommended policy:
@@ -143,18 +167,18 @@ Tools must validate input using schema libraries (e.g., `zod`) so invalid inputs
 Example:
 
 ```ts
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const myTool = createTool({
-  id: 'my-tool',
-  inputSchema: z.object({
-    topic: z.string(),
-    userId: z.string().optional()
-  }),
-  execute: async ({ input }) => {
-    // validated input available
-  }
-});
+    id: 'my-tool',
+    inputSchema: z.object({
+        topic: z.string(),
+        userId: z.string().optional(),
+    }),
+    execute: async ({ input }) => {
+        // validated input available
+    },
+})
 ```
 
 ---
@@ -165,12 +189,12 @@ Return a well-structured JSON:
 
 ```json
 {
-  "status": "success",
-  "output": {
-    "content": "...",
-    "metadata": { "generationTimeMs": 123 }
-  },
-  "errors": []
+    "status": "success",
+    "output": {
+        "content": "...",
+        "metadata": { "generationTimeMs": 123 }
+    },
+    "errors": []
 }
 ```
 

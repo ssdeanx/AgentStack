@@ -1,34 +1,35 @@
 ---
-title: "Reference: Run.resumeStream() | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/reference/v1/streaming/workflows/resumeStream"
+title: 'Reference: Run.resumeStream() | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/reference/v1/streaming/workflows/resumeStream'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Documentation for the `Run.resumeStream()` method in workflows, which enables real-time resumption and streaming of suspended workflow runs."
+description: 'Mastra v1 Beta: Documentation for the `Run.resumeStream()` method in workflows, which enables real-time resumption and streaming of suspended workflow runs.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 The `.resumeStream()` method resumes a suspended workflow run with new data, allowing you to continue execution from a specific step and to observe the stream of events.
 
 ## Usage example
 
 ```typescript
-const run = await workflow.createRun();
+const run = await workflow.createRun()
 
 const stream = run.stream({
-  inputData: {
-    value: "initial data",
-  },
-});
-
-const result = await stream.result;
-
-if (result!.status === "suspended") {
-  const resumedStream = await run.resumeStream({
-    resumeData: {
-      value: "resume data",
+    inputData: {
+        value: 'initial data',
     },
-  });
+})
+
+const result = await stream.result
+
+if (result!.status === 'suspended') {
+    const resumedStream = await run.resumeStream({
+        resumeData: {
+            value: 'resume data',
+        },
+    })
 }
 ```
 

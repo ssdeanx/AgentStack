@@ -1,32 +1,33 @@
 ---
-title: "Reference: Run.timeTravelStream() | Streaming | Mastra Docs v1 Beta"
-source: "https://mastra.ai/reference/v1/streaming/workflows/timeTravelStream"
+title: 'Reference: Run.timeTravelStream() | Streaming | Mastra Docs v1 Beta'
+source: 'https://mastra.ai/reference/v1/streaming/workflows/timeTravelStream'
 author:
 published:
 created: 2026-01-13
-description: "Mastra v1 Beta: Documentation for the `Run.timeTravelStream()` method for streaming workflow time travel execution."
+description: 'Mastra v1 Beta: Documentation for the `Run.timeTravelStream()` method for streaming workflow time travel execution.'
 tags:
-  - "clippings"
+    - 'clippings'
 ---
+
 The `.timeTravelStream()` method re-executes a workflow starting from any specific step with streaming events. This allows you to receive real-time updates during time travel execution while maintaining full visibility into each step's progress.
 
 ## Usage example
 
 ```typescript
-const run = await workflow.createRun();
+const run = await workflow.createRun()
 
 const output = run.timeTravelStream({
-  step: "step2",
-  inputData: { value: 10 },
-});
+    step: 'step2',
+    inputData: { value: 10 },
+})
 
 // Process events as they arrive
 for await (const event of output.fullStream) {
-  console.log(event.type, event.payload);
+    console.log(event.type, event.payload)
 }
 
 // Get the final result
-const result = await output.result;
+const result = await output.result
 ```
 
 ## Parameters
@@ -95,50 +96,50 @@ console.log("Time travel completed:", result);
 
 ```typescript
 const output = run.timeTravelStream({
-  step: "step2",
-  context: {
-    step1: {
-      status: "success",
-      payload: { value: 0 },
-      output: { step1Result: 2 },
-      startedAt: Date.now(),
-      endedAt: Date.now(),
+    step: 'step2',
+    context: {
+        step1: {
+            status: 'success',
+            payload: { value: 0 },
+            output: { step1Result: 2 },
+            startedAt: Date.now(),
+            endedAt: Date.now(),
+        },
     },
-  },
-});
+})
 
 for await (const event of output.fullStream) {
-  // Handle events
-  console.log(event);
+    // Handle events
+    console.log(event)
 }
 
-const result = await output.result;
+const result = await output.result
 ```
 
 ### Time travel stream with nested workflows
 
 ```typescript
 const output = run.timeTravelStream({
-  step: ["nestedWorkflow", "step3"],
-  inputData: { value: 10 },
-  nestedStepsContext: {
-    nestedWorkflow: {
-      step2: {
-        status: "success",
-        payload: { step1Result: 2 },
-        output: { step2Result: 3 },
-        startedAt: Date.now(),
-        endedAt: Date.now(),
-      },
+    step: ['nestedWorkflow', 'step3'],
+    inputData: { value: 10 },
+    nestedStepsContext: {
+        nestedWorkflow: {
+            step2: {
+                status: 'success',
+                payload: { step1Result: 2 },
+                output: { step2Result: 3 },
+                startedAt: Date.now(),
+                endedAt: Date.now(),
+            },
+        },
     },
-  },
-});
+})
 
 for await (const event of output.fullStream) {
-  console.log(event.type, event.payload);
+    console.log(event.type, event.payload)
 }
 
-const result = await output.result;
+const result = await output.result
 ```
 
 ## Notes

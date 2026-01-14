@@ -47,23 +47,23 @@ First, import the necessary AI Elements components in your `app/page.tsx`:
 app/page.tsx
 
 ```typescript
-'use client';
+'use client'
 
-import { Canvas } from '@/components/ai-elements/canvas';
-import { Connection } from '@/components/ai-elements/connection';
-import { Controls } from '@/components/ai-elements/controls';
-import { Edge } from '@/components/ai-elements/edge';
+import { Canvas } from '@/components/ai-elements/canvas'
+import { Connection } from '@/components/ai-elements/connection'
+import { Controls } from '@/components/ai-elements/controls'
+import { Edge } from '@/components/ai-elements/edge'
 import {
-  Node,
-  NodeContent,
-  NodeDescription,
-  NodeFooter,
-  NodeHeader,
-  NodeTitle,
-} from '@/components/ai-elements/node';
-import { Panel } from '@/components/ai-elements/panel';
-import { Toolbar } from '@/components/ai-elements/toolbar';
-import { Button } from '@/components/ui/button';
+    Node,
+    NodeContent,
+    NodeDescription,
+    NodeFooter,
+    NodeHeader,
+    NodeTitle,
+} from '@/components/ai-elements/node'
+import { Panel } from '@/components/ai-elements/panel'
+import { Toolbar } from '@/components/ai-elements/toolbar'
+import { Button } from '@/components/ui/button'
 ```
 
 #### Define node IDs
@@ -74,13 +74,13 @@ app/page.tsx
 
 ```typescript
 const nodeIds = {
-  start: 'start',
-  process1: 'process1',
-  process2: 'process2',
-  decision: 'decision',
-  output1: 'output1',
-  output2: 'output2',
-};
+    start: 'start',
+    process1: 'process1',
+    process2: 'process2',
+    decision: 'decision',
+    output1: 'output1',
+    output2: 'output2',
+}
 ```
 
 #### Create mock nodes
@@ -91,79 +91,79 @@ app/page.tsx
 
 ```typescript
 const nodes = [
-  {
-    id: nodeIds.start,
-    type: 'workflow',
-    position: { x: 0, y: 0 },
-    data: {
-      label: 'Start',
-      description: 'Initialize workflow',
-      handles: { target: false, source: true },
-      content: 'Triggered by user action at 09:30 AM',
-      footer: 'Status: Ready',
+    {
+        id: nodeIds.start,
+        type: 'workflow',
+        position: { x: 0, y: 0 },
+        data: {
+            label: 'Start',
+            description: 'Initialize workflow',
+            handles: { target: false, source: true },
+            content: 'Triggered by user action at 09:30 AM',
+            footer: 'Status: Ready',
+        },
     },
-  },
-  {
-    id: nodeIds.process1,
-    type: 'workflow',
-    position: { x: 500, y: 0 },
-    data: {
-      label: 'Process Data',
-      description: 'Transform input',
-      handles: { target: true, source: true },
-      content: 'Validating 1,234 records and applying business rules',
-      footer: 'Duration: ~2.5s',
+    {
+        id: nodeIds.process1,
+        type: 'workflow',
+        position: { x: 500, y: 0 },
+        data: {
+            label: 'Process Data',
+            description: 'Transform input',
+            handles: { target: true, source: true },
+            content: 'Validating 1,234 records and applying business rules',
+            footer: 'Duration: ~2.5s',
+        },
     },
-  },
-  {
-    id: nodeIds.decision,
-    type: 'workflow',
-    position: { x: 1000, y: 0 },
-    data: {
-      label: 'Decision Point',
-      description: 'Route based on conditions',
-      handles: { target: true, source: true },
-      content: "Evaluating: data.status === 'valid' && data.score > 0.8",
-      footer: 'Confidence: 94%',
+    {
+        id: nodeIds.decision,
+        type: 'workflow',
+        position: { x: 1000, y: 0 },
+        data: {
+            label: 'Decision Point',
+            description: 'Route based on conditions',
+            handles: { target: true, source: true },
+            content: "Evaluating: data.status === 'valid' && data.score > 0.8",
+            footer: 'Confidence: 94%',
+        },
     },
-  },
-  {
-    id: nodeIds.output1,
-    type: 'workflow',
-    position: { x: 1500, y: -300 },
-    data: {
-      label: 'Success Path',
-      description: 'Handle success case',
-      handles: { target: true, source: true },
-      content: '1,156 records passed validation (93.7%)',
-      footer: 'Next: Send to production',
+    {
+        id: nodeIds.output1,
+        type: 'workflow',
+        position: { x: 1500, y: -300 },
+        data: {
+            label: 'Success Path',
+            description: 'Handle success case',
+            handles: { target: true, source: true },
+            content: '1,156 records passed validation (93.7%)',
+            footer: 'Next: Send to production',
+        },
     },
-  },
-  {
-    id: nodeIds.output2,
-    type: 'workflow',
-    position: { x: 1500, y: 300 },
-    data: {
-      label: 'Error Path',
-      description: 'Handle error case',
-      handles: { target: true, source: true },
-      content: '78 records failed validation (6.3%)',
-      footer: 'Next: Queue for review',
+    {
+        id: nodeIds.output2,
+        type: 'workflow',
+        position: { x: 1500, y: 300 },
+        data: {
+            label: 'Error Path',
+            description: 'Handle error case',
+            handles: { target: true, source: true },
+            content: '78 records failed validation (6.3%)',
+            footer: 'Next: Queue for review',
+        },
     },
-  },
-  {
-    id: nodeIds.process2,
-    type: 'workflow',
-    position: { x: 2000, y: 0 },
-    data: {
-      label: 'Complete',
-      description: 'Finalize workflow',
-      handles: { target: true, source: false },
-      content: 'All records processed and routed successfully',
-      footer: 'Total time: 4.2s',
+    {
+        id: nodeIds.process2,
+        type: 'workflow',
+        position: { x: 2000, y: 0 },
+        data: {
+            label: 'Complete',
+            description: 'Finalize workflow',
+            handles: { target: true, source: false },
+            content: 'All records processed and routed successfully',
+            footer: 'Total time: 4.2s',
+        },
     },
-  },
-];
+]
 ```
 
 #### Create mock edges
@@ -174,43 +174,43 @@ app/page.tsx
 
 ```typescript
 const edges = [
-  {
-    id: 'edge1',
-    source: nodeIds.start,
-    target: nodeIds.process1,
-    type: 'animated',
-  },
-  {
-    id: 'edge2',
-    source: nodeIds.process1,
-    target: nodeIds.decision,
-    type: 'animated',
-  },
-  {
-    id: 'edge3',
-    source: nodeIds.decision,
-    target: nodeIds.output1,
-    type: 'animated',
-  },
-  {
-    id: 'edge4',
-    source: nodeIds.decision,
-    target: nodeIds.output2,
-    type: 'temporary',
-  },
-  {
-    id: 'edge5',
-    source: nodeIds.output1,
-    target: nodeIds.process2,
-    type: 'animated',
-  },
-  {
-    id: 'edge6',
-    source: nodeIds.output2,
-    target: nodeIds.process2,
-    type: 'temporary',
-  },
-];
+    {
+        id: 'edge1',
+        source: nodeIds.start,
+        target: nodeIds.process1,
+        type: 'animated',
+    },
+    {
+        id: 'edge2',
+        source: nodeIds.process1,
+        target: nodeIds.decision,
+        type: 'animated',
+    },
+    {
+        id: 'edge3',
+        source: nodeIds.decision,
+        target: nodeIds.output1,
+        type: 'animated',
+    },
+    {
+        id: 'edge4',
+        source: nodeIds.decision,
+        target: nodeIds.output2,
+        type: 'temporary',
+    },
+    {
+        id: 'edge5',
+        source: nodeIds.output1,
+        target: nodeIds.process2,
+        type: 'animated',
+    },
+    {
+        id: 'edge6',
+        source: nodeIds.output2,
+        target: nodeIds.process2,
+        type: 'temporary',
+    },
+]
 ```
 
 #### Create the node types
@@ -264,9 +264,9 @@ app/page.tsx
 
 ```typescript
 const edgeTypes = {
-  animated: Edge.Animated,
-  temporary: Edge.Temporary,
-};
+    animated: Edge.Animated,
+    temporary: Edge.Temporary,
+}
 ```
 
 #### Build the main component
@@ -342,10 +342,10 @@ npx ai-elements@latest add canvas
 
 ### <Canvas />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| children | ReactNode | - | Child components to render inside the canvas |
-| ...props | ReactFlowProps | - | All other React Flow props are passed through |
+| Prop     | Type           | Default | Description                                   |
+| -------- | -------------- | ------- | --------------------------------------------- |
+| children | ReactNode      | -       | Child components to render inside the canvas  |
+| ...props | ReactFlowProps | -       | All other React Flow props are passed through |
 
 ## Canvas
 
@@ -383,12 +383,12 @@ npx ai-elements@latest add connection
 
 ### <Connection />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| fromX | number | - | Starting X coordinate |
-| fromY | number | - | Starting Y coordinate |
-| toX | number | - | Ending X coordinate |
-| toY | number | - | Ending Y coordinate |
+| Prop  | Type   | Default | Description           |
+| ----- | ------ | ------- | --------------------- |
+| fromX | number | -       | Starting X coordinate |
+| fromY | number | -       | Starting Y coordinate |
+| toX   | number | -       | Ending X coordinate   |
+| toY   | number | -       | Ending Y coordinate   |
 
 ## Connection
 
@@ -426,10 +426,10 @@ npx ai-elements@latest add controls
 
 ### <Controls />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| className | string | - | Additional CSS classes |
-| ...props | ReactFlowControlsProps | - | All other React Flow Controls props |
+| Prop      | Type                   | Default | Description                         |
+| --------- | ---------------------- | ------- | ----------------------------------- |
+| className | string                 | -       | Additional CSS classes              |
+| ...props  | ReactFlowControlsProps | -       | All other React Flow Controls props |
 
 ## Controls
 
@@ -478,19 +478,19 @@ A solid edge with an animated circle that moves along the path. The animation re
 
 Both edge types accept standard React Flow `EdgeProps`:
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| id | string | - | Unique identifier for the edge |
-| source | string | - | ID of the source node |
-| target | string | - | ID of the target node |
-| sourceX | number | - | X coordinate of source handle |
-| sourceY | number | - | Y coordinate of source handle |
-| targetX | number | - | X coordinate of target handle |
-| targetY | number | - | Y coordinate of target handle |
-| sourcePosition | Position | - | Position of source handle |
-| targetPosition | Position | - | Position of target handle |
-| markerEnd | string | - | SVG marker for the end of the edge |
-| style | CSSProperties | - | Custom styles for the edge |
+| Prop           | Type          | Default | Description                        |
+| -------------- | ------------- | ------- | ---------------------------------- |
+| id             | string        | -       | Unique identifier for the edge     |
+| source         | string        | -       | ID of the source node              |
+| target         | string        | -       | ID of the target node              |
+| sourceX        | number        | -       | X coordinate of source handle      |
+| sourceY        | number        | -       | Y coordinate of source handle      |
+| targetX        | number        | -       | X coordinate of target handle      |
+| targetY        | number        | -       | Y coordinate of target handle      |
+| sourcePosition | Position      | -       | Position of source handle          |
+| targetPosition | Position      | -       | Position of target handle          |
+| markerEnd      | string        | -       | SVG marker for the end of the edge |
+| style          | CSSProperties | -       | Custom styles for the edge         |
 
 ## Edge
 
@@ -529,50 +529,50 @@ npx ai-elements@latest add node
 
 ### <Node />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| handles | { target?: boolean; source?: boolean } | - | Configuration for connection handles |
-| className | string | - | Additional CSS classes |
-| ...props | HTMLDivElement | - | Standard div props |
+| Prop      | Type                                   | Default | Description                          |
+| --------- | -------------------------------------- | ------- | ------------------------------------ |
+| handles   | { target?: boolean; source?: boolean } | -       | Configuration for connection handles |
+| className | string                                 | -       | Additional CSS classes               |
+| ...props  | HTMLDivElement                         | -       | Standard div props                   |
 
 ### <NodeHeader />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| className | string | - | Additional CSS classes |
-| ...props | HTMLDivElement | - | Standard div props |
+| Prop      | Type           | Default | Description            |
+| --------- | -------------- | ------- | ---------------------- |
+| className | string         | -       | Additional CSS classes |
+| ...props  | HTMLDivElement | -       | Standard div props     |
 
 ### <NodeTitle />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| ...props | HTMLHeadingElement | - | Standard heading props |
+| Prop     | Type               | Default | Description            |
+| -------- | ------------------ | ------- | ---------------------- |
+| ...props | HTMLHeadingElement | -       | Standard heading props |
 
 ### <NodeDescription />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| ...props | HTMLParagraphElement | - | Standard paragraph props |
+| Prop     | Type                 | Default | Description              |
+| -------- | -------------------- | ------- | ------------------------ |
+| ...props | HTMLParagraphElement | -       | Standard paragraph props |
 
 ### <NodeAction />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| ...props | HTMLButtonElement | - | Standard button props |
+| Prop     | Type              | Default | Description           |
+| -------- | ----------------- | ------- | --------------------- |
+| ...props | HTMLButtonElement | -       | Standard button props |
 
 ### <NodeContent />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| className | string | - | Additional CSS classes |
-| ...props | HTMLDivElement | - | Standard div props |
+| Prop      | Type           | Default | Description            |
+| --------- | -------------- | ------- | ---------------------- |
+| className | string         | -       | Additional CSS classes |
+| ...props  | HTMLDivElement | -       | Standard div props     |
 
 ### <NodeFooter />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| className | string | - | Additional CSS classes |
-| ...props | HTMLDivElement | - | Standard div props |
+| Prop      | Type           | Default | Description            |
+| --------- | -------------- | ------- | ---------------------- |
+| className | string         | -       | Additional CSS classes |
+| ...props  | HTMLDivElement | -       | Standard div props     |
 
 ## Node
 
@@ -610,11 +610,11 @@ npx ai-elements@latest add panel
 
 ### <Panel />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| position | 'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right' \| 'top-center' \| 'bottom-center' | 'bottom-left' | Position of the panel on the canvas |
-| className | string | - | Additional CSS classes |
-| ...props | HTMLDivElement | - | Standard div props |
+| Prop      | Type                                                                                            | Default       | Description                         |
+| --------- | ----------------------------------------------------------------------------------------------- | ------------- | ----------------------------------- |
+| position  | 'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right' \| 'top-center' \| 'bottom-center' | 'bottom-left' | Position of the panel on the canvas |
+| className | string                                                                                          | -             | Additional CSS classes              |
+| ...props  | HTMLDivElement                                                                                  | -             | Standard div props                  |
 
 ## Panel
 
@@ -652,10 +652,10 @@ npx ai-elements@latest add toolbar
 
 ### <Toolbar />
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| className | string | - | Additional CSS classes |
-| ...props | NodeToolbarProps | - | All React Flow NodeToolbar props |
+| Prop      | Type             | Default | Description                      |
+| --------- | ---------------- | ------- | -------------------------------- |
+| className | string           | -       | Additional CSS classes           |
+| ...props  | NodeToolbarProps | -       | All React Flow NodeToolbar props |
 
 ## Toolbar
 
@@ -667,4 +667,4 @@ The Toolbar component is designed to be used with the [Node](https://ai-sdk.dev/
 
 ---
 
-*Documentation fetched from ai-sdk.dev on December 8, 2025*
+_Documentation fetched from ai-sdk.dev on December 8, 2025_

@@ -1,7 +1,6 @@
 ---
-description: "Expert assistant for developing Model Context Protocol (MCP) servers in TypeScript"
-name: "TypeScript MCP Server Expert"
-
+description: 'Expert assistant for developing Model Context Protocol (MCP) servers in TypeScript'
+name: 'TypeScript MCP Server Expert'
 ---
 
 # TypeScript MCP Server Expert

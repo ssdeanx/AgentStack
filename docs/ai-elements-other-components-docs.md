@@ -11,13 +11,13 @@ This document contains fetched documentation for all non-workflow AI Elements co
 When creating agents in Mastra, you can specify any AI SDK-supported model.
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
+import { Agent } from '@mastra/core/agent'
 
 export const weatherAgent = new Agent({
-  name: "Weather Agent",
-  instructions: "Instructions for the agent...",
-  model: "openai/gpt-4-turbo",
-});
+    name: 'Weather Agent',
+    instructions: 'Instructions for the agent...',
+    model: 'openai/gpt-4-turbo',
+})
 ```
 
 See [Using AI SDK with Mastra](https://mastra.ai/models#use-ai-sdk-with-mastra) for more information.
@@ -29,51 +29,51 @@ See [Using AI SDK with Mastra](https://mastra.ai/models#use-ai-sdk-with-mastra) 
 When setting up a [custom API route](https://mastra.ai/docs/server-db/custom-api-routes), use the `chatRoute()` utility to create a route handler that automatically formats the agent stream into an AI SDK-compatible format.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { chatRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core/mastra'
+import { chatRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      chatRoute({
-        path: "/chat",
-        agent: "weatherAgent",
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            chatRoute({
+                path: '/chat',
+                agent: 'weatherAgent',
+            }),
+        ],
+    },
+})
 ```
 
 Once you have your `/chat` API route set up, you can call the `useChat()` hook in your application.
 
 ```typescript
 const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-  transport: new DefaultChatTransport({
-    api: "http://localhost:4111/chat",
-  }),
-});
+    transport: new DefaultChatTransport({
+        api: 'http://localhost:4111/chat',
+    }),
+})
 ```
 
 Pass extra agent stream execution options:
 
 ```typescript
 const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-  transport: new DefaultChatTransport({
-    api: "http://localhost:4111/chat",
-    prepareSendMessagesRequest({ messages }) {
-      return {
-        body: {
-          messages,
-          // Pass memory config
-          memory: {
-            thread: "user-1",
-            resource: "user-1",
-          },
+    transport: new DefaultChatTransport({
+        api: 'http://localhost:4111/chat',
+        prepareSendMessagesRequest({ messages }) {
+            return {
+                body: {
+                    messages,
+                    // Pass memory config
+                    memory: {
+                        thread: 'user-1',
+                        resource: 'user-1',
+                    },
+                },
+            }
         },
-      };
-    },
-  }),
-});
+    }),
+})
 ```
 
 ##### `workflowRoute()`
@@ -81,42 +81,43 @@ const { error, status, sendMessage, messages, regenerate, stop } = useChat({
 Use the `workflowRoute()` utility to create a route handler that automatically formats the workflow stream into an AI SDK-compatible format.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { workflowRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core/mastra'
+import { workflowRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      workflowRoute({
-        path: "/workflow",
-        workflow: "weatherWorkflow",
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            workflowRoute({
+                path: '/workflow',
+                workflow: 'weatherWorkflow',
+            }),
+        ],
+    },
+})
 ```
 
 Once you have your `/workflow` API route set up, you can call the `useChat()` hook in your application.
 
 ```typescript
 const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-  transport: new DefaultChatTransport({
-    api: "http://localhost:4111/workflow",
-    prepareSendMessagesRequest({ messages }) {
-      return {
-        body: {
-          inputData: {
-            city: messages[messages.length - 1].parts[0].text,
-          },
-          //Or resumeData for resuming a suspended workflow
-          resumeData: {
-            confirmation: messages[messages.length - 1].parts[0].text
-          }
+    transport: new DefaultChatTransport({
+        api: 'http://localhost:4111/workflow',
+        prepareSendMessagesRequest({ messages }) {
+            return {
+                body: {
+                    inputData: {
+                        city: messages[messages.length - 1].parts[0].text,
+                    },
+                    //Or resumeData for resuming a suspended workflow
+                    resumeData: {
+                        confirmation:
+                            messages[messages.length - 1].parts[0].text,
+                    },
+                },
+            }
         },
-      };
-    },
-  }),
-});
+    }),
+})
 ```
 
 To enable agent text chunks and tool calls streaming when a workflow step pipes an agent's stream to the workflow writer (see [Workflow Streaming](https://mastra.ai/docs/streaming/workflow-streaming#workflow-using-an-agent)).
@@ -124,21 +125,21 @@ To enable agent text chunks and tool calls streaming when a workflow step pipes 
 Set the `includeTextStreamParts` `workflowRoute` option to `true`
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { workflowRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core/mastra'
+import { workflowRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      workflowRoute({
-        path: "/workflow",
-        workflow: "weatherWorkflow",
-        //This provides a seamless streaming experience even when agents are running inside workflow steps.
-        includeTextStreamParts: true
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            workflowRoute({
+                path: '/workflow',
+                workflow: 'weatherWorkflow',
+                //This provides a seamless streaming experience even when agents are running inside workflow steps.
+                includeTextStreamParts: true,
+            }),
+        ],
+    },
+})
 ```
 
 ##### `networkRoute()`
@@ -146,29 +147,29 @@ export const mastra = new Mastra({
 Use the `networkRoute()` utility to create a route handler that automatically formats the agent network stream into an AI SDK-compatible format.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { networkRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core/mastra'
+import { networkRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      networkRoute({
-        path: "/network",
-        agent: "weatherAgent",
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            networkRoute({
+                path: '/network',
+                agent: 'weatherAgent',
+            }),
+        ],
+    },
+})
 ```
 
 Once you have your `/network` API route set up, you can call the `useChat()` hook in your application.
 
 ```typescript
 const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-  transport: new DefaultChatTransport({
-    api: "http://localhost:4111/network",
-  }),
-});
+    transport: new DefaultChatTransport({
+        api: 'http://localhost:4111/network',
+    }),
+})
 ```
 
 ##### Custom UI
@@ -176,12 +177,12 @@ const { error, status, sendMessage, messages, regenerate, stop } = useChat({
 The `@mastra/ai-sdk` package transforms and emits Mastra streams (e.g workflow, network streams) into AI SDK-compatible [uiMessages DataParts](https://ai-sdk.dev/docs/reference/ai-sdk-core/ui-message#datauipart) format.
 
 - Top-level parts: These are streamed via direct workflow and network stream transformations (e.g in `workflowRoute()` and `networkRoute()`)
-  - `data-workflow`: Aggregates a workflow run with step inputs/outputs and final usage.
-  - `data-network`: Aggregates a routing/network run with ordered steps (agent/workflow/tool executions) and outputs.
+    - `data-workflow`: Aggregates a workflow run with step inputs/outputs and final usage.
+    - `data-network`: Aggregates a routing/network run with ordered steps (agent/workflow/tool executions) and outputs.
 - Nested parts: These are streamed via nested and merged streams from within a tool's `execute()` method.
-  - `data-tool-workflow`: Nested workflow emitted from within a tool stream.
-  - `data-tool-network`: Nested network emitted from within an tool stream.
-  - `data-tool-agent`: Nested agent emitted from within an tool stream.
+    - `data-tool-workflow`: Nested workflow emitted from within a tool stream.
+    - `data-tool-network`: Nested network emitted from within an tool stream.
+    - `data-tool-agent`: Nested agent emitted from within an tool stream.
 
 Here's an example: For a [nested agent stream within a tool](https://mastra.ai/docs/streaming/tool-streaming#tool-using-an-agent), `data-tool-agent` UI message parts will be emitted and can be leveraged on the client as documented below:
 
@@ -274,28 +275,30 @@ For more information about tool streaming see [Tool streaming documentation](htt
 To manually transform Mastra's streams to AI SDK-compatible format, use the `toAISdkFormat()` utility.
 
 ```typescript
-import { mastra } from "../../mastra";
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { toAISdkFormat } from "@mastra/ai-sdk";
+import { mastra } from '../../mastra'
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
+import { toAISdkFormat } from '@mastra/ai-sdk'
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
-  const stream = await myAgent.stream(messages);
+    const { messages } = await req.json()
+    const myAgent = mastra.getAgent('weatherAgent')
+    const stream = await myAgent.stream(messages)
 
-  // Transform stream into AI SDK format and create UI messages stream
-  const uiMessageStream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      for await (const part of toAISdkFormat(stream, { from: "agent" })!) {
-        writer.write(part);
-      }
-    },
-  });
+    // Transform stream into AI SDK format and create UI messages stream
+    const uiMessageStream = createUIMessageStream({
+        execute: async ({ writer }) => {
+            for await (const part of toAISdkFormat(stream, {
+                from: 'agent',
+            })!) {
+                writer.write(part)
+            }
+        },
+    })
 
-  // Create a Response that streams the UI message stream to the client
-  return createUIMessageStreamResponse({
-    stream: uiMessageStream,
-  });
+    // Create a Response that streams the UI message stream to the client
+    return createUIMessageStreamResponse({
+        stream: uiMessageStream,
+    })
 }
 ```
 
@@ -304,41 +307,41 @@ export async function POST(req: Request) {
 If you have a client-side `response` from `agent.stream(...)` and want AI SDK-formatted parts without custom SSE parsing, wrap `response.processDataStream` into a `ReadableStream<ChunkType>` and pipe it through `toAISdkFormat`:
 
 ```typescript
-import { createUIMessageStream } from "ai";
-import { toAISdkFormat } from "@mastra/ai-sdk";
-import type { ChunkType, MastraModelOutput } from "@mastra/core/stream";
+import { createUIMessageStream } from 'ai'
+import { toAISdkFormat } from '@mastra/ai-sdk'
+import type { ChunkType, MastraModelOutput } from '@mastra/core/stream'
 
 // Client SDK agent stream
 const response = await agent.stream({
-  messages: "What is the weather in Tokyo",
-});
+    messages: 'What is the weather in Tokyo',
+})
 
 // Transform to AI SDK format
 const chunkStream: ReadableStream<ChunkType> = new ReadableStream<ChunkType>({
-  start(controller) {
-    response
-      .processDataStream({
-        onChunk: async (chunk) => {
-          controller.enqueue(chunk as ChunkType);
-        },
-      })
-      .finally(() => controller.close());
-  },
-});
+    start(controller) {
+        response
+            .processDataStream({
+                onChunk: async (chunk) => {
+                    controller.enqueue(chunk as ChunkType)
+                },
+            })
+            .finally(() => controller.close())
+    },
+})
 
 const uiMessageStream = createUIMessageStream({
-  execute: async ({ writer }) => {
-    for await (const part of toAISdkFormat(
-      chunkStream as unknown as MastraModelOutput,
-      { from: "agent" },
-    )) {
-      writer.write(part);
-    }
-  },
-});
+    execute: async ({ writer }) => {
+        for await (const part of toAISdkFormat(
+            chunkStream as unknown as MastraModelOutput,
+            { from: 'agent' }
+        )) {
+            writer.write(part)
+        }
+    },
+})
 
 for await (const part of uiMessageStream) {
-  console.log(part);
+    console.log(part)
 }
 ```
 
@@ -389,13 +392,13 @@ export function Chat() {
 Requests sent using the `useChat()` hook are handled by a standard server route. This example shows how to define a POST route using a Next.js Route Handler.
 
 ```typescript
-import { mastra } from "../../mastra";
+import { mastra } from '../../mastra'
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
-  const stream = await myAgent.stream(messages, { format: "aisdk" });
-  return stream.toUIMessageStreamResponse();
+    const { messages } = await req.json()
+    const myAgent = mastra.getAgent('weatherAgent')
+    const stream = await myAgent.stream(messages, { format: 'aisdk' })
+    return stream.toUIMessageStreamResponse()
 }
 ```
 
@@ -428,15 +431,15 @@ export function Completion() {
 Requests sent using the `useCompletion()` hook are handled by a standard server route. This example shows how to define a POST route using a Next.js Route Handler.
 
 ```typescript
-import { mastra } from "../../../mastra";
+import { mastra } from '../../../mastra'
 
 export async function POST(req: Request) {
-  const { prompt } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
-  const stream = await myAgent.stream([{ role: "user", content: prompt }], {
-    format: "aisdk",
-  });
-  return stream.toUIMessageStreamResponse();
+    const { prompt } = await req.json()
+    const myAgent = mastra.getAgent('weatherAgent')
+    const stream = await myAgent.stream([{ role: 'user', content: prompt }], {
+        format: 'aisdk',
+    })
+    return stream.toUIMessageStreamResponse()
 }
 ```
 
@@ -485,25 +488,25 @@ export function ChatExtra() {
 ```
 
 ```typescript
-import { mastra } from "../../../mastra";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { mastra } from '../../../mastra'
+import { RuntimeContext } from '@mastra/core/runtime-context'
 
 export async function POST(req: Request) {
-  const { messages, data } = await req.json();
-  const myAgent = mastra.getAgent("weatherAgent");
+    const { messages, data } = await req.json()
+    const myAgent = mastra.getAgent('weatherAgent')
 
-  const runtimeContext = new RuntimeContext();
-  if (data) {
-    for (const [key, value] of Object.entries(data)) {
-      runtimeContext.set(key, value);
+    const runtimeContext = new RuntimeContext()
+    if (data) {
+        for (const [key, value] of Object.entries(data)) {
+            runtimeContext.set(key, value)
+        }
     }
-  }
 
-  const stream = await myAgent.stream(messages, {
-    runtimeContext,
-    format: "aisdk",
-  });
-  return stream.toUIMessageStreamResponse();
+    const stream = await myAgent.stream(messages, {
+        runtimeContext,
+        format: 'aisdk',
+    })
+    return stream.toUIMessageStreamResponse()
 }
 ```
 
@@ -512,30 +515,32 @@ export async function POST(req: Request) {
 You can also populate the `RuntimeContext` by reading custom data in a server middleware:
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
+import { Mastra } from '@mastra/core/mastra'
 
 export const mastra = new Mastra({
-  agents: { weatherAgent },
-  server: {
-    middleware: [
-      async (c, next) => {
-        const runtimeContext = c.get("runtimeContext");
-        if (c.req.method === "POST") {
-          try {
-            const clonedReq = c.req.raw.clone();
-            const body = await clonedReq.json();
-            if (body?.data) {
-              for (const [key, value] of Object.entries(body.data)) {
-                runtimeContext.set(key, value);
-              }
-            }
-          } catch {}
-        }
-        await next();
-      },
-    ],
-  },
-});
+    agents: { weatherAgent },
+    server: {
+        middleware: [
+            async (c, next) => {
+                const runtimeContext = c.get('runtimeContext')
+                if (c.req.method === 'POST') {
+                    try {
+                        const clonedReq = c.req.raw.clone()
+                        const body = await clonedReq.json()
+                        if (body?.data) {
+                            for (const [key, value] of Object.entries(
+                                body.data
+                            )) {
+                                runtimeContext.set(key, value)
+                            }
+                        }
+                    } catch {}
+                }
+                await next()
+            },
+        ],
+    },
+})
 ```
 
 You can then access this data in your tools via the `runtimeContext` parameter. See the [Runtime Context documentation](https://mastra.ai/docs/server-db/runtime-context) for more details.
@@ -551,13 +556,13 @@ Mastra automatically handles AI SDK v4 data using its internal `MessageList` cla
 For cases where you need to manually convert messages between AI SDK and Mastra formats, use the `convertMessages()` utility:
 
 ```typescript
-import { convertMessages } from "@mastra/core/agent";
+import { convertMessages } from '@mastra/core/agent'
 
 // Convert AI SDK v4 messages to v5
-const aiv5Messages = convertMessages(aiv4Messages).to("AIV5.UI");
+const aiv5Messages = convertMessages(aiv4Messages).to('AIV5.UI')
 
 // Convert Mastra messages to AI SDK v5
-const aiv5Messages = convertMessages(mastraMessages).to("AIV5.Core");
+const aiv5Messages = convertMessages(mastraMessages).to('AIV5.Core')
 
 // Supported output formats:
 // 'Mastra.V2', 'AIV4.UI', 'AIV5.UI', 'AIV5.Core', 'AIV5.Model'
@@ -574,29 +579,29 @@ When using tools with TypeScript in AI SDK v5, Mastra provides type inference he
 The `InferUITool` type helper infers the input and output types of a single Mastra tool:
 
 ```typescript
-import { InferUITool, createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { InferUITool, createTool } from '@mastra/core/tools'
+import { z } from 'zod'
 
 const weatherTool = createTool({
-  id: "get-weather",
-  description: "Get the current weather",
-  inputSchema: z.object({
-    location: z.string().describe("The city and state"),
-  }),
-  outputSchema: z.object({
-    temperature: z.number(),
-    conditions: z.string(),
-  }),
-  execute: async ({ context }) => {
-    return {
-      temperature: 72,
-      conditions: "sunny",
-    };
-  },
-});
+    id: 'get-weather',
+    description: 'Get the current weather',
+    inputSchema: z.object({
+        location: z.string().describe('The city and state'),
+    }),
+    outputSchema: z.object({
+        temperature: z.number(),
+        conditions: z.string(),
+    }),
+    execute: async ({ context }) => {
+        return {
+            temperature: 72,
+            conditions: 'sunny',
+        }
+    },
+})
 
 // Infer the types from the tool
-type WeatherUITool = InferUITool<typeof weatherTool>;
+type WeatherUITool = InferUITool<typeof weatherTool>
 // This creates:
 // {
 //   input: { location: string };
@@ -609,32 +614,32 @@ type WeatherUITool = InferUITool<typeof weatherTool>;
 The `InferUITools` type helper infers the input and output types of multiple tools:
 
 ```typescript
-import { InferUITools, createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import { InferUITools, createTool } from '@mastra/core/tools'
+import { z } from 'zod'
 
 // Using weatherTool from the previous example
 const tools = {
-  weather: weatherTool,
-  calculator: createTool({
-    id: "calculator",
-    description: "Perform basic arithmetic",
-    inputSchema: z.object({
-      operation: z.enum(["add", "subtract", "multiply", "divide"]),
-      a: z.number(),
-      b: z.number(),
+    weather: weatherTool,
+    calculator: createTool({
+        id: 'calculator',
+        description: 'Perform basic arithmetic',
+        inputSchema: z.object({
+            operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
+            a: z.number(),
+            b: z.number(),
+        }),
+        outputSchema: z.object({
+            result: z.number(),
+        }),
+        execute: async ({ context }) => {
+            // implementation...
+            return { result: 0 }
+        },
     }),
-    outputSchema: z.object({
-      result: z.number(),
-    }),
-    execute: async ({ context }) => {
-      // implementation...
-      return { result: 0 };
-    },
-  }),
-};
+}
 
 // Infer types from the tool set
-export type MyUITools = InferUITools<typeof tools>;
+export type MyUITools = InferUITools<typeof tools>
 // This creates:
 // {
 //   weather: { input: { location: string }; output: { temperature: number; conditions: string } };
@@ -879,11 +884,11 @@ Create checkpoints automatically after significant conversation milestones:
 
 ```typescript
 useEffect(() => {
-  // Create checkpoint every 5 messages
-  if (messages.length > 0 && messages.length % 5 === 0) {
-    createCheckpoint(messages.length - 1);
-  }
-}, [messages.length]);
+    // Create checkpoint every 5 messages
+    if (messages.length > 0 && messages.length % 5 === 0) {
+        createCheckpoint(messages.length - 1)
+    }
+}, [messages.length])
 ```
 
 ##### Branching Conversations
@@ -892,12 +897,12 @@ Use checkpoints to enable conversation branching where users can explore differe
 
 ```typescript
 const restoreAndBranch = (messageIndex: number) => {
-  // Save current branch
-  const currentBranch = messages.slice(messageIndex + 1);
-  saveBranch(currentBranch);
-  // Restore to checkpoint
-  restoreToCheckpoint(messageIndex);
-};
+    // Save current branch
+    const currentBranch = messages.slice(messageIndex + 1)
+    saveBranch(currentBranch)
+    // Restore to checkpoint
+    restoreToCheckpoint(messageIndex)
+}
 ```
 
 ### Confirmation
@@ -2518,45 +2523,45 @@ The `.set()` method takes two arguments:
 2. value: The data to associate with that key.
 
 ```typescript
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { RuntimeContext } from '@mastra/core/runtime-context'
 
 export type UserTier = {
-  "user-tier": "enterprise" | "pro";
-};
+    'user-tier': 'enterprise' | 'pro'
+}
 
-const runtimeContext = new RuntimeContext<UserTier>();
-runtimeContext.set("user-tier", "enterprise");
+const runtimeContext = new RuntimeContext<UserTier>()
+runtimeContext.set('user-tier', 'enterprise')
 
-const agent = mastra.getAgent("weatherAgent");
+const agent = mastra.getAgent('weatherAgent')
 await agent.generate("What's the weather in London?", {
-  runtimeContext,
-});
+    runtimeContext,
+})
 
-const routingAgent = mastra.getAgent("routingAgent");
+const routingAgent = mastra.getAgent('routingAgent')
 routingAgent.network("What's the weather in London?", {
-  runtimeContext,
-});
+    runtimeContext,
+})
 
-const run = await mastra.getWorkflow("weatherWorkflow").createRunAsync();
+const run = await mastra.getWorkflow('weatherWorkflow').createRunAsync()
 await run.start({
-  inputData: {
-    city: "London",
-  },
-  runtimeContext,
-});
+    inputData: {
+        city: 'London',
+    },
+    runtimeContext,
+})
 await run.resume({
-  resumeData: {
-    city: "New York",
-  },
-  runtimeContext,
-});
+    resumeData: {
+        city: 'New York',
+    },
+    runtimeContext,
+})
 
 await weatherTool.execute({
-  context: {
-    location: "London",
-  },
-  runtimeContext,
-});
+    context: {
+        location: 'London',
+    },
+    runtimeContext,
+})
 ```
 
 ##### Setting values based on request headers
@@ -2564,27 +2569,27 @@ await weatherTool.execute({
 You can populate `runtimeContext` dynamically in server middleware by extracting information from the request. In this example, the `temperature-unit` is set based on the Cloudflare `CF-IPCountry` header to ensure responses match the user's locale.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { RuntimeContext } from "@mastra/core/runtime-context";
+import { Mastra } from '@mastra/core/mastra'
+import { RuntimeContext } from '@mastra/core/runtime-context'
 
 export const mastra = new Mastra({
-  agents: { testWeatherAgent },
-  server: {
-    middleware: [
-      async (context, next) => {
-        const country = context.req.header("CF-IPCountry");
-        const runtimeContext = context.get("runtimeContext");
+    agents: { testWeatherAgent },
+    server: {
+        middleware: [
+            async (context, next) => {
+                const country = context.req.header('CF-IPCountry')
+                const runtimeContext = context.get('runtimeContext')
 
-        runtimeContext.set(
-          "temperature-unit",
-          country === "US" ? "fahrenheit" : "celsius",
-        );
+                runtimeContext.set(
+                    'temperature-unit',
+                    country === 'US' ? 'fahrenheit' : 'celsius'
+                )
 
-        await next();
-      },
-    ],
-  },
-});
+                await next()
+            },
+        ],
+    },
+})
 ```
 
 #### Accessing values with agents
@@ -2593,29 +2598,31 @@ You can access the `runtimeContext` argument from any supported configuration op
 
 ```typescript
 export type UserTier = {
-  "user-tier": "enterprise" | "pro";
-};
+    'user-tier': 'enterprise' | 'pro'
+}
 
 export const weatherAgent = new Agent({
-  name: "weather-agent",
-  instructions: async ({ runtimeContext }) => {
-    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];
+    name: 'weather-agent',
+    instructions: async ({ runtimeContext }) => {
+        const userTier = runtimeContext.get(
+            'user-tier'
+        ) as UserTier['user-tier']
 
-    if (userTier === "enterprise") {
-      // ...
-    }
-    // ...
-  },
-  model: ({ runtimeContext }) => {
-    // ...
-  },
-  tools: ({ runtimeContext }) => {
-    // ...
-  },
-  memory: ({ runtimeContext }) => {
-    // ...
-  },
-});
+        if (userTier === 'enterprise') {
+            // ...
+        }
+        // ...
+    },
+    model: ({ runtimeContext }) => {
+        // ...
+    },
+    tools: ({ runtimeContext }) => {
+        // ...
+    },
+    memory: ({ runtimeContext }) => {
+        // ...
+    },
+})
 ```
 
 You can also use `runtimeContext` with other options like `agents`, `workflows`, `scorers`, `inputProcessors`, and `outputProcessors`.
@@ -2626,20 +2633,22 @@ You can access the `runtimeContext` argument from a workflow step's `execute` fu
 
 ```typescript
 export type UserTier = {
-  "user-tier": "enterprise" | "pro";
-};
+    'user-tier': 'enterprise' | 'pro'
+}
 
 const stepOne = createStep({
-  id: "step-one",
-  execute: async ({ runtimeContext }) => {
-    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];
+    id: 'step-one',
+    execute: async ({ runtimeContext }) => {
+        const userTier = runtimeContext.get(
+            'user-tier'
+        ) as UserTier['user-tier']
 
-    if (userTier === "enterprise") {
-      // ...
-    }
-    // ...
-  },
-});
+        if (userTier === 'enterprise') {
+            // ...
+        }
+        // ...
+    },
+})
 ```
 
 #### Accessing values with tools
@@ -2648,20 +2657,22 @@ You can access the `runtimeContext` argument from a tool's `execute` function. T
 
 ```typescript
 export type UserTier = {
-  "user-tier": "enterprise" | "pro";
-};
+    'user-tier': 'enterprise' | 'pro'
+}
 
 export const weatherTool = createTool({
-  id: "weather-tool",
-  execute: async ({ runtimeContext }) => {
-    const userTier = runtimeContext.get("user-tier") as UserTier["user-tier"];
+    id: 'weather-tool',
+    execute: async ({ runtimeContext }) => {
+        const userTier = runtimeContext.get(
+            'user-tier'
+        ) as UserTier['user-tier']
 
-    if (userTier === "enterprise") {
-      // ...
-    }
-    // ...
-  },
-});
+        if (userTier === 'enterprise') {
+            // ...
+        }
+        // ...
+    },
+})
 ```
 
 ### Middleware
@@ -2671,50 +2682,50 @@ Mastra servers can execute custom middleware functions before or after an API ro
 A middleware receives the [Hono](https://hono.dev/) `Context` (`c`) and a `next` function. If it returns a `Response` the request is short-circuited. Calling `next()` continues processing the next middleware or route handler.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
+import { Mastra } from '@mastra/core/mastra'
 
 export const mastra = new Mastra({
-  // ...
-  server: {
-    middleware: [
-      {
-        handler: async (c, next) => {
-          // Example: Add authentication check
-          const authHeader = c.req.header("Authorization");
-          if (!authHeader) {
-            return new Response("Unauthorized", { status: 401 });
-          }
+    // ...
+    server: {
+        middleware: [
+            {
+                handler: async (c, next) => {
+                    // Example: Add authentication check
+                    const authHeader = c.req.header('Authorization')
+                    if (!authHeader) {
+                        return new Response('Unauthorized', { status: 401 })
+                    }
 
-          await next();
-        },
-        path: "/api/*",
-      },
-      // Add a global request logger
-      async (c, next) => {
-        console.log(`${c.req.method} ${c.req.url}`);
-        await next();
-      },
-    ],
-  },
-});
+                    await next()
+                },
+                path: '/api/*',
+            },
+            // Add a global request logger
+            async (c, next) => {
+                console.log(`${c.req.method} ${c.req.url}`)
+                await next()
+            },
+        ],
+    },
+})
 ```
 
 To attach middleware to a single route pass the `middleware` option to `registerApiRoute`:
 
 ```typescript
-registerApiRoute("/my-custom-route", {
-  method: "GET",
-  middleware: [
-    async (c, next) => {
-      console.log(`${c.req.method} ${c.req.url}`);
-      await next();
+registerApiRoute('/my-custom-route', {
+    method: 'GET',
+    middleware: [
+        async (c, next) => {
+            console.log(`${c.req.method} ${c.req.url}`)
+            await next()
+        },
+    ],
+    handler: async (c) => {
+        const mastra = c.get('mastra')
+        return c.json({ message: 'Custom route' })
     },
-  ],
-  handler: async (c) => {
-    const mastra = c.get("mastra");
-    return c.json({ message: "Custom route" });
-  },
-});
+})
 ```
 
 #### Common examples
@@ -2795,25 +2806,25 @@ By default Mastra automatically exposes registered agents and workflows via the 
 Routes are provided with a helper `registerApiRoute` from `@mastra/core/server`. Routes can live in the same file as the `Mastra` instance but separating them helps keep configuration concise.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { registerApiRoute } from "@mastra/core/server";
+import { Mastra } from '@mastra/core/mastra'
+import { registerApiRoute } from '@mastra/core/server'
 
 export const mastra = new Mastra({
-  // ...
-  server: {
-    apiRoutes: [
-      registerApiRoute("/my-custom-route", {
-        method: "GET",
-        handler: async (c) => {
-          const mastra = c.get("mastra");
-          const agents = await mastra.getAgent("my-agent");
+    // ...
+    server: {
+        apiRoutes: [
+            registerApiRoute('/my-custom-route', {
+                method: 'GET',
+                handler: async (c) => {
+                    const mastra = c.get('mastra')
+                    const agents = await mastra.getAgent('my-agent')
 
-          return c.json({ message: "Custom route" });
-        },
-      }),
-    ],
-  },
-});
+                    return c.json({ message: 'Custom route' })
+                },
+            }),
+        ],
+    },
+})
 ```
 
 Once registered, a custom route will be accessible from the root of the server. For example:
@@ -2827,28 +2838,28 @@ Each route's handler receives the Hono `Context`. Within the handler you can acc
 To add route-specific middleware pass the `middleware` array when calling `registerApiRoute`.
 
 ```typescript
-import { Mastra } from "@mastra/core/mastra";
-import { registerApiRoute } from "@mastra/core/server";
+import { Mastra } from '@mastra/core/mastra'
+import { registerApiRoute } from '@mastra/core/server'
 
 export const mastra = new Mastra({
-  // ...
-  server: {
-    apiRoutes: [
-      registerApiRoute("/my-custom-route", {
-        method: "GET",
-        middleware: [
-          async (c, next) => {
-            console.log(`${c.req.method} ${c.req.url}`);
-            await next();
-          },
+    // ...
+    server: {
+        apiRoutes: [
+            registerApiRoute('/my-custom-route', {
+                method: 'GET',
+                middleware: [
+                    async (c, next) => {
+                        console.log(`${c.req.method} ${c.req.url}`)
+                        await next()
+                    },
+                ],
+                handler: async (c) => {
+                    return c.json({ message: 'Custom route with middleware' })
+                },
+            }),
         ],
-        handler: async (c) => {
-          return c.json({ message: "Custom route with middleware" });
-        },
-      }),
-    ],
-  },
-});
+    },
+})
 ```
 
 ### Integrate Mastra in your Next.js project
@@ -2870,111 +2881,112 @@ Use this guide to scaffold and integrate Mastra with your Next.js project.
 #### Setup
 
 1. To integrate Mastra into your project, you have two options:
+    - Use the One-Liner
 
-   - Use the One-Liner
+    Run the following command to quickly scaffold the default Weather agent with sensible defaults:
 
-   Run the following command to quickly scaffold the default Weather agent with sensible defaults:
+    ```
+    npx mastra@latest init --dir . --components agents,tools --example --llm openai
+    ```
 
-   ```
-   npx mastra@latest init --dir . --components agents,tools --example --llm openai
-   ```
+    - Use the Interactive CLI
 
-   - Use the Interactive CLI
+    If you prefer to customize the setup, run the `init` command and choose from the options when prompted:
 
-   If you prefer to customize the setup, run the `init` command and choose from the options when prompted:
-
-   ```
-   npx mastra@latest init
-   ```
+    ```
+    npx mastra@latest init
+    ```
 
 2. Set Up API Key
 
-   ```
-   OPENAI_API_KEY=<your-api-key>
-   ```
+    ```
+    OPENAI_API_KEY=<your-api-key>
+    ```
 
-   Each LLM provider uses a different env var. See [Model Capabilities](https://sdk.vercel.ai/providers) for more information.
+    Each LLM provider uses a different env var. See [Model Capabilities](https://sdk.vercel.ai/providers) for more information.
 
 3. Add to your `next.config.ts`:
 
-   ```typescript
-   import type { NextConfig } from "next";
+    ```typescript
+    import type { NextConfig } from 'next'
 
-   const nextConfig: NextConfig = {
-     serverExternalPackages: ["@mastra/*"],
-   };
+    const nextConfig: NextConfig = {
+        serverExternalPackages: ['@mastra/*'],
+    }
 
-   export default nextConfig;
-   ```
+    export default nextConfig
+    ```
 
 4. You can start your Next.js app in the usual way.
 
 5. Create a new directory that will contain a Page, Action, and Form for testing purposes.
 
-   ```
-   mkdir app/test
-   ```
+    ```
+    mkdir app/test
+    ```
 
 6. Create a new Action, and add the example code:
 
-   ```typescript
-   "use server";
+    ```typescript
+    'use server'
 
-   import { mastra } from "../../mastra";
+    import { mastra } from '../../mastra'
 
-   export async function getWeatherInfo(formData: FormData) {
-     const city = formData.get("city")?.toString();
-     const agent = mastra.getAgent("weatherAgent");
+    export async function getWeatherInfo(formData: FormData) {
+        const city = formData.get('city')?.toString()
+        const agent = mastra.getAgent('weatherAgent')
 
-     const result = await agent.generate(`What's the weather like in ${city}?`);
+        const result = await agent.generate(
+            `What's the weather like in ${city}?`
+        )
 
-     return result.text;
-   }
-   ```
+        return result.text
+    }
+    ```
 
 7. Create a new Form component, and add the example code:
 
-   ```typescript
-   "use client";
+    ```typescript
+    "use client";
 
-   import { useState } from "react";
-   import { getWeatherInfo } from "./action";
+    import { useState } from "react";
+    import { getWeatherInfo } from "./action";
 
-   export function Form() {
-     const [result, setResult] = useState<string | null>(null);
+    export function Form() {
+      const [result, setResult] = useState<string | null>(null);
 
-     async function handleSubmit(formData: FormData) {
-       const res = await getWeatherInfo(formData);
-       setResult(res);
-     }
+      async function handleSubmit(formData: FormData) {
+        const res = await getWeatherInfo(formData);
+        setResult(res);
+      }
 
-     return (
-       <form action={handleSubmit}>
-         <input name="city" placeholder="Enter city" required />
-         <button type="submit">Get Weather</button>
-       </form>
-       {result && <pre>{result}</pre>}
-     );
-   }
-   ```
+      return (
+        <form action={handleSubmit}>
+          <input name="city" placeholder="Enter city" required />
+          <button type="submit">Get Weather</button>
+        </form>
+        {result && <pre>{result}</pre>}
+      );
+    }
+    ```
 
 8. Create a new Page, and add the example code:
 
-   ```typescript
-   import { Form } from "./form";
+    ```typescript
+    import { Form } from "./form";
 
-   export default async function Page() {
-     return (
-       <>
-         <h1>Test</h1>
-         <Form />
-       </>
-     );
-   }
-   ```
+    export default async function Page() {
+      return (
+        <>
+          <h1>Test</h1>
+          <Form />
+        </>
+      );
+    }
+    ```
 
 You can now navigate to `/test` in your browser to try it out.
 
 ---
 
-*Documentation fetched from various sources on December 8, 2025*
+_Documentation fetched from various sources on December 8, 2025_

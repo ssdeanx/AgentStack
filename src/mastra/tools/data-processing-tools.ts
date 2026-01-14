@@ -344,23 +344,43 @@ export const csvToExcalidrawTool = createTool({
         })
 
         try {
-            const { csvData, delimiter = ',', hasHeaders = true, layoutType = 'table', title } = inputData
+            const {
+                csvData,
+                delimiter = ',',
+                hasHeaders = true,
+                layoutType = 'table',
+                title,
+            } = inputData
 
-            const lines = String(csvData || '').trim().split('\n').filter((l) => l.length > 0)
+            const lines = String(csvData || '')
+                .trim()
+                .split('\n')
+                .filter((l) => l.length > 0)
 
             let headers: string[] = []
             const rows: string[][] = []
 
             if (hasHeaders && lines.length > 0) {
-                headers = lines[0].split(delimiter).map((h) => h.trim().replace(/"/g, ''))
+                headers = lines[0]
+                    .split(delimiter)
+                    .map((h) => h.trim().replace(/"/g, ''))
                 for (let i = 1; i < lines.length; i++) {
-                    rows.push(lines[i].split(delimiter).map((v) => v.trim().replace(/"/g, '')))
+                    rows.push(
+                        lines[i]
+                            .split(delimiter)
+                            .map((v) => v.trim().replace(/"/g, ''))
+                    )
                 }
             } else {
                 for (const line of lines) {
-                    rows.push(line.split(delimiter).map((v) => v.trim().replace(/"/g, '')))
+                    rows.push(
+                        line
+                            .split(delimiter)
+                            .map((v) => v.trim().replace(/"/g, ''))
+                    )
                 }
-                headers = rows.length > 0 ? rows[0].map((_, i) => `col${i + 1}`) : []
+                headers =
+                    rows.length > 0 ? rows[0].map((_, i) => `col${i + 1}`) : []
             }
 
             const elements: ExcalidrawElementType[] = []
@@ -476,7 +496,11 @@ export const csvToExcalidrawTool = createTool({
             // Render data rows
             for (let r = 0; r < rows.length; r++) {
                 const row = rows[r]
-                for (let col = 0; col < Math.max(row.length, headers.length); col++) {
+                for (
+                    let col = 0;
+                    col < Math.max(row.length, headers.length);
+                    col++
+                ) {
                     const x = startX + col * (cellW + spacing)
                     const value = row[col] ?? ''
 
@@ -539,7 +563,8 @@ export const csvToExcalidrawTool = createTool({
             }
 
             const totalCols = Math.max(headers.length, rows[0]?.length ?? 0)
-            const totalWidth = totalCols * cellW + Math.max(0, totalCols - 1) * spacing
+            const totalWidth =
+                totalCols * cellW + Math.max(0, totalCols - 1) * spacing
             const totalHeight = currentY - startY
 
             const excalidrawData = {
@@ -592,7 +617,9 @@ export const csvToExcalidrawTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })
-            throw new Error(`CSV to Excalidraw conversion failed: ${errorMessage}`)
+            throw new Error(
+                `CSV to Excalidraw conversion failed: ${errorMessage}`
+            )
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -642,7 +669,8 @@ export const validateDataTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
 
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'validate-data',
@@ -998,7 +1026,8 @@ export const excalidrawToSVGTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
 
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'excalidraw-to-svg',
@@ -1176,7 +1205,8 @@ export const svgToExcalidrawTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
 
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'svg-to-excalidraw',
@@ -1487,4 +1517,3 @@ export type CsvToExcalidrawUITool = InferUITool<typeof csvToExcalidrawTool>
 export type DataValidationUITool = InferUITool<typeof validateDataTool>
 export type ExcalidrawToSVGUITool = InferUITool<typeof excalidrawToSVGTool>
 export type SVGToExcalidrawUITool = InferUITool<typeof svgToExcalidrawTool>
-

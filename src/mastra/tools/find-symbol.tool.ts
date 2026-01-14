@@ -143,7 +143,7 @@ export const findSymbolTool = createTool({
                     metadata: {
                         status: 'cancelled',
                         message: 'Operation cancelled during symbol search',
-                    }
+                    },
                 })
                 span?.end()
                 throw new Error('Symbol search cancelled during processing')
@@ -318,7 +318,7 @@ export const findSymbolTool = createTool({
                     'tool.output.processedFiles': processedFiles,
                     'tool.output.searchTime': searchTime,
                     'tool.output.cacheHits': cacheHits,
-                }
+                },
             })
             span?.end()
 
@@ -342,7 +342,7 @@ export const findSymbolTool = createTool({
                     metadata: {
                         status: 'cancelled',
                         message: cancelMessage,
-                    }
+                    },
                 })
                 span?.end()
 
@@ -362,7 +362,7 @@ export const findSymbolTool = createTool({
 
             span?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
-                endSpan: true
+                endSpan: true,
             })
             throw error
         }

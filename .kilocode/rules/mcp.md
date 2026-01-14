@@ -8,28 +8,28 @@ MCP servers expose agents, tools, resources, and prompts via the Model Context P
 import { MCPServer } from '@mastra/mcp'
 
 export const myMcpServer = new MCPServer({
-  id: 'my-mcp-server',
-  name: 'My MCP Server',
-  version: '1.0.0',
-  description: 'Server description',
-  
-  // Expose agents
-  agents: {
-    myAgent: myAgent,
-  },
-  
-  // Define resources
-  resources: {
-    listResources: async () => resourceList,
-    getResourceContent: async ({ uri }) => content,
-    resourceTemplates: async () => templates,
-  },
-  
-  // Define prompts
-  prompts: {
-    listPrompts: async () => promptList,
-    getPromptMessages: async ({ name, version, args }) => messages,
-  },
+    id: 'my-mcp-server',
+    name: 'My MCP Server',
+    version: '1.0.0',
+    description: 'Server description',
+
+    // Expose agents
+    agents: {
+        myAgent: myAgent,
+    },
+
+    // Define resources
+    resources: {
+        listResources: async () => resourceList,
+        getResourceContent: async ({ uri }) => content,
+        resourceTemplates: async () => templates,
+    },
+
+    // Define prompts
+    prompts: {
+        listPrompts: async () => promptList,
+        getPromptMessages: async ({ name, version, args }) => messages,
+    },
 })
 ```
 
@@ -49,12 +49,12 @@ Define URI templates for dynamic resources:
 
 ```typescript
 const myResourceTemplates: ResourceTemplate[] = [
-  {
-    uriTemplate: "agents://{agentId}/metadata",
-    name: "Agent Metadata",
-    description: "Metadata for a specific agent",
-    mimeType: "application/json",
-  },
+    {
+        uriTemplate: 'agents://{agentId}/metadata',
+        name: 'Agent Metadata',
+        description: 'Metadata for a specific agent',
+        mimeType: 'application/json',
+    },
 ]
 ```
 
@@ -64,22 +64,25 @@ Prompts provide pre-defined coordination workflows:
 
 ```typescript
 const coordinationPrompts = [
-  {
-    name: 'parallel-financial-analysis',
-    description: 'Run parallel financial analysis across crypto and stock agents',
-    version: '1.0.0',
-  },
+    {
+        name: 'parallel-financial-analysis',
+        description:
+            'Run parallel financial analysis across crypto and stock agents',
+        version: '1.0.0',
+    },
 ]
 
 // Prompt messages with argument substitution
 getPromptMessages: async ({ name, version, args }) => {
-  return [{
-    role: 'user',
-    content: {
-      type: 'text',
-      text: `Execute parallel financial analysis: Analyze ${args?.ticker ?? 'AAPL'}...`,
-    },
-  }]
+    return [
+        {
+            role: 'user',
+            content: {
+                type: 'text',
+                text: `Execute parallel financial analysis: Analyze ${args?.ticker ?? 'AAPL'}...`,
+            },
+        },
+    ]
 }
 ```
 

@@ -74,7 +74,6 @@ export const urlValidationTool = createTool({
         const abortSignal = context?.abortSignal
         const tracingContext = context?.tracingContext
 
-
         const requestCtx = context?.requestContext as UrlToolContext | undefined
         const defaultProtocol = requestCtx?.defaultProtocol ?? 'https'
         const allowLocalhost = requestCtx?.allowLocalhost ?? false
@@ -153,7 +152,8 @@ export const urlValidationTool = createTool({
                         )
                         break
                     case 'get-metadata': {
-                        const followRedirects = inputData.options?.followRedirects ?? false
+                        const followRedirects =
+                            inputData.options?.followRedirects ?? false
                         if (followRedirects) {
                             results[operation] = await getUrlMetadata(
                                 inputData.url,
@@ -186,7 +186,10 @@ export const urlValidationTool = createTool({
 
             // Update span with successful result
             urlValidationSpan?.update({
-                output: { success: true, operationsCount: inputData.operations.length },
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operationsCount': inputData.operations.length,
@@ -313,17 +316,18 @@ export const urlManipulationTool = createTool({
         const requestCtx = context?.requestContext as UrlToolContext | undefined
 
         // Create child span for URL manipulation
-        const urlManipulationSpan = tracingContext?.currentSpan?.createChildSpan({
-            type: SpanType.TOOL_CALL,
-            name: 'url-manipulation',
-            input: inputData,
-            metadata: {
-                'tool.id': 'url-manipulation',
-                'tool.input.baseUrl': inputData.baseUrl,
-                'tool.input.operationsCount': inputData.operations.length,
-                'user.id': requestCtx?.userId,
-            },
-        })
+        const urlManipulationSpan =
+            tracingContext?.currentSpan?.createChildSpan({
+                type: SpanType.TOOL_CALL,
+                name: 'url-manipulation',
+                input: inputData,
+                metadata: {
+                    'tool.id': 'url-manipulation',
+                    'tool.input.baseUrl': inputData.baseUrl,
+                    'tool.input.operationsCount': inputData.operations.length,
+                    'user.id': requestCtx?.userId,
+                },
+            })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -486,7 +490,10 @@ export const urlManipulationTool = createTool({
 
             // Update span with successful result
             urlManipulationSpan?.update({
-                output: { success: true, operationsCount: inputData.operations.length },
+                output: {
+                    success: true,
+                    operationsCount: inputData.operations.length,
+                },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.operationsCount': inputData.operations.length,
@@ -657,7 +664,10 @@ async function checkUrlReachability(
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-        const headers = userAgent && userAgent.length > 0 ? { 'User-Agent': userAgent } : undefined
+        const headers =
+            userAgent && userAgent.length > 0
+                ? { 'User-Agent': userAgent }
+                : undefined
         const response = await fetch(url, {
             method: 'HEAD',
             signal: controller.signal,
@@ -679,7 +689,10 @@ async function getUrlMetadata(url: string, timeout = 5000, userAgent?: string) {
         const response = await fetch(url, {
             method: 'HEAD',
             signal: controller.signal,
-            headers: userAgent && userAgent.length > 0 ? { 'User-Agent': userAgent } : undefined,
+            headers:
+                userAgent && userAgent.length > 0
+                    ? { 'User-Agent': userAgent }
+                    : undefined,
         })
 
         clearTimeout(timeoutId)
@@ -719,7 +732,10 @@ function removeQueryParams(url: string, keys: string[]): string {
     return urlObj.toString()
 }
 
-function updateQueryParams(url: string, params: Record<string, unknown>): string {
+function updateQueryParams(
+    url: string,
+    params: Record<string, unknown>
+): string {
     const urlObj = new URL(url)
     Object.entries(params).forEach(([key, value]) => {
         if (value === null || value === undefined) {
@@ -786,15 +802,34 @@ function getOperationDescription(
 ): string {
     switch (operation) {
         case 'add-query': {
-            const queryKeys = params && typeof params.query === 'object' && params.query !== null ? Object.keys(params.query as Record<string, unknown>).join(', ') : ''
+            const queryKeys =
+                params &&
+                typeof params.query === 'object' &&
+                params.query !== null
+                    ? Object.keys(params.query as Record<string, unknown>).join(
+                          ', '
+                      )
+                    : ''
             return `Added query parameters: ${queryKeys}`
         }
         case 'remove-query': {
-            const keys = params && 'queryKeys' in params && Array.isArray((params)['queryKeys']) ? ((params)['queryKeys'] as string[]).join(', ') : ''
+            const keys =
+                params &&
+                'queryKeys' in params &&
+                Array.isArray(params['queryKeys'])
+                    ? (params['queryKeys'] as string[]).join(', ')
+                    : ''
             return `Removed query parameters: ${keys}`
         }
         case 'update-query': {
-            const updated = params && typeof params.query === 'object' && params.query !== null ? Object.keys(params.query as Record<string, unknown>).join(', ') : ''
+            const updated =
+                params &&
+                typeof params.query === 'object' &&
+                params.query !== null
+                    ? Object.keys(params.query as Record<string, unknown>).join(
+                          ', '
+                      )
+                    : ''
             return `Updated query parameters: ${updated}`
         }
         case 'add-path':

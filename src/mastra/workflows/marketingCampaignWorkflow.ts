@@ -31,7 +31,11 @@ const planningStep = createStep({
             span?.end()
             return result
         } catch (error) {
-            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
             throw error
         }
     },
@@ -65,7 +69,11 @@ const contentStep = createStep({
             span?.end()
             return result
         } catch (error) {
-            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
             throw error
         }
     },

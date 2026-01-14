@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
@@ -431,17 +431,38 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
             })
         }
 
-        const tracingContext: TracingContext | undefined = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+        const abortSignal = context?.abortSignal
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted ?? false) {
+            throw new Error('Code analysis cancelled')
+        }
+
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'code-analysis',
             input: { target: inputData.target },
-            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'coding:codeAnalysis',
                 'tool.input.target': Array.isArray(inputData.target)
                     ? inputData.target.join(',')
                     : inputData.target,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for code analysis operation
+        const analysisSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'code-analysis-operation',
+            input: { target: inputData.target },
+            metadata: {
+                'tool.id': 'code-analysis',
+                'operation.type': 'analyze-files',
             },
         })
 
@@ -570,16 +591,26 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
                 id: 'coding:codeAnalysis',
             })
 
-            span?.update({
+            // Update spans with successful result
+            analysisSpan?.update({
+                output: { files: fileAnalyses },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            analysisSpan?.end()
+
+            rootSpan?.update({
                 output: { files: fileAnalyses },
                 metadata: {
                     'tool.output.totalFiles': fileAnalyses.length,
                     'tool.output.totalLoc': totalLoc,
                     'tool.output.avgComplexity': avgComplexity,
                     'tool.output.issueCount': issueCount,
+                    'tool.output.success': true,
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             return {
                 files: fileAnalyses,
@@ -604,7 +635,12 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
                 id: 'coding:codeAnalysis',
             })
 
-            span?.error({
+            // Record error in both spans
+            analysisSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })

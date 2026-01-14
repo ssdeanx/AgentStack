@@ -102,11 +102,11 @@ export const socialMediaAgent = new Agent({
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     defaultOptions: {
-      autoResumeSuspendedTools: true,
+        autoResumeSuspendedTools: true,
     },
 })
 

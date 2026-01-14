@@ -5,7 +5,10 @@ import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors'
+import {
+    BatchPartsProcessor,
+    TokenLimiterProcessor,
+} from '@mastra/core/processors'
 import { scrapingSchedulerTool, webScraperTool } from '../tools'
 import { InternalSpans } from '@mastra/core/observability'
 
@@ -14,14 +17,18 @@ export interface DaneContext {
 }
 
 export const daneCommitMessage = new Agent({
-  id: 'daneCommitMessage',
-  name: 'Dane Commit Message',
-  description: 'Generate commit messages for engineers',
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    id: 'daneCommitMessage',
+    name: 'Dane Commit Message',
+    description: 'Generate commit messages for engineers',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DaneContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers generate commit messages.
     user: ${userId}
@@ -29,85 +36,95 @@ export const daneCommitMessage = new Agent({
     GENERATE A SCOPE FOR THE COMMIT MESSAGE IF NECESSARY.
     FIGURE OUT THE BEST TOP LEVEL SEMANTIC MATCH TO USE AS THE SCOPE.
     `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-  outputProcessors: [new TokenLimiterProcessor(128576),
-    new BatchPartsProcessor({
-          batchSize: 10,
-          maxWaitTime: 75,
-          emitOnNonText: true
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [
+        new TokenLimiterProcessor(128576),
+        new BatchPartsProcessor({
+            batchSize: 10,
+            maxWaitTime: 75,
+            emitOnNonText: true,
         }),
-  ]
+    ],
 })
 
 export const daneIssueLabeler = new Agent({
-  id: 'daneIssueLabeler',
-  name: 'Dane Issue Labeler',
-  description: 'Label issues based on their content',
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    id: 'daneIssueLabeler',
+    name: 'Dane Issue Labeler',
+    description: 'Label issues based on their content',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DaneContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
     You are Dane, the ultimate GitHub operator.
     You help engineers label their issues.
     user: ${userId}
       `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  outputProcessors: [new TokenLimiterProcessor(128576),
-    new BatchPartsProcessor({
-          batchSize: 10,
-          maxWaitTime: 75,
-          emitOnNonText: true
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    outputProcessors: [
+        new TokenLimiterProcessor(128576),
+        new BatchPartsProcessor({
+            batchSize: 10,
+            maxWaitTime: 75,
+            emitOnNonText: true,
         }),
-  ],
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
-  },
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
+    ],
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
 })
 
 export const daneLinkChecker = new Agent({
-  id: 'daneLinkChecker',
-  name: 'Dane Link Checker',
-  description: 'Check links for broken links',
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    id: 'daneLinkChecker',
+    name: 'Dane Link Checker',
+    description: 'Check links for broken links',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DaneContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
     You are Dane, the link checker for Mastra AI. You report on broken links whenever you see them.
     Make sure to include the url in the message.
     user: ${userId}
@@ -117,42 +134,47 @@ export const daneLinkChecker = new Agent({
     - Avoid marketing language
     - Link to relevant documentation
     `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  outputProcessors: [new TokenLimiterProcessor(128576),
-    new BatchPartsProcessor({
-      batchSize: 10,
-      maxWaitTime: 75,
-      emitOnNonText: true
-    }),
-  ]
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [
+        new TokenLimiterProcessor(128576),
+        new BatchPartsProcessor({
+            batchSize: 10,
+            maxWaitTime: 75,
+            emitOnNonText: true,
+        }),
+    ],
 })
 
 export const daneChangeLog = new Agent({
-  id: 'daneChangeLog',
-  name: 'Dane Package Publisher',
-  description: 'Publish packages to npm',
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    id: 'daneChangeLog',
+    name: 'Dane Package Publisher',
+    description: 'Publish packages to npm',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DaneContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
     You are Dane, the changelog writer for Mastra AI. Every week we need to write a changelog for the Mastra AI project.
     user: ${userId}
     ## Style Guide
@@ -164,45 +186,50 @@ export const daneChangeLog = new Agent({
     - Link to relevant documentation
     - Use consistent formatting for code references
     `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAIFlashLite,
-  memory: pgMemory,
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
     },
-  outputProcessors: [new TokenLimiterProcessor(128576),
-    new BatchPartsProcessor({
-          batchSize: 10,
-          maxWaitTime: 75,
-          emitOnNonText: true
+    model: googleAIFlashLite,
+    memory: pgMemory,
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [
+        new TokenLimiterProcessor(128576),
+        new BatchPartsProcessor({
+            batchSize: 10,
+            maxWaitTime: 75,
+            emitOnNonText: true,
         }),
-  ]
+    ],
 })
 
 export const dane = new Agent({
-  id: 'dane',
-  name: 'Dane',
-  description: 'My personal assistant and best friend',
-  instructions: ({ requestContext }: { requestContext: RequestContext<DaneContext> }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    id: 'dane',
+    name: 'Dane',
+    description: 'My personal assistant and best friend',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DaneContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
     You are Dane, my assistant and one of my best friends. We are an ace team!
     You help me with my code, write tests, and even deploy my code to the cloud!
     user: ${userId}
@@ -233,39 +260,40 @@ export const dane = new Agent({
     * Don't reference tools when you communicate with the user. Do not mention what tools you are using.
     * Tell the user what you are doing.
     `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingLevel: 'low',
-          },
-          responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: 'google/gemini-3-flash-preview',
-  memory: pgMemory,
-  tools: {
-    execaTool,
-    browserTool,
-    webScraperTool,
-    listEvents,
-    scrapingSchedulerTool
-  },
-  outputProcessors: [new TokenLimiterProcessor(128576),
-    new BatchPartsProcessor({
-      batchSize: 25,
-      maxWaitTime: 100,
-      emitOnNonText: true
-    }),
-  ],
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingLevel: 'low',
+                    },
+                    responseModalities: ['TEXT'],
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: 'google/gemini-3-flash-preview',
+    memory: pgMemory,
+    tools: {
+        execaTool,
+        browserTool,
+        webScraperTool,
+        listEvents,
+        scrapingSchedulerTool,
+    },
+    outputProcessors: [
+        new TokenLimiterProcessor(128576),
+        new BatchPartsProcessor({
+            batchSize: 25,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
 })

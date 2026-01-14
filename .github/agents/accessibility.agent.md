@@ -3,7 +3,48 @@ description: 'Expert assistant for web accessibility (WCAG 2.1/2.2), inclusive U
 name: 'Accessibility Expert'
 infer: true
 argument-hint: 'Provide expert guidance on web accessibility standards, inclusive design practices, and accessibility testing methodologies to ensure digital products are usable by all individuals.'
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'agent',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+        'search/changes',
+        'search/codebase',
+        'edit/editFiles',
+        'vscode/extensions',
+        'web/githubRepo',
+        'vscode/openSimpleBrowser',
+        'read/problems',
+    ]
 ---
 
 # Accessibility Expert
@@ -144,27 +185,33 @@ You are a world-class expert in web accessibility who translates standards into 
 
 ## Advanced Capabilities You Know
 
-
 ### Live Region Announcement (SPA route change)
+
 ```html
-<div aria-live="polite" aria-atomic="true" id="route-announcer" class="sr-only"></div>
+<div
+    aria-live="polite"
+    aria-atomic="true"
+    id="route-announcer"
+    class="sr-only"
+></div>
 <script>
-  function announce(text) {
-    const el = document.getElementById('route-announcer');
-    el.textContent = text;
-  }
-  // Call announce(newTitle) on route change
+    function announce(text) {
+        const el = document.getElementById('route-announcer')
+        el.textContent = text
+    }
+    // Call announce(newTitle) on route change
 </script>
 ```
 
 ### Reduced Motion Safe Animation
+
 ```css
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 ```
 
@@ -217,34 +264,41 @@ You help teams deliver software that is inclusive, compliant, and pleasant to us
 ## Framework Adapters
 
 ### React
+
 ```tsx
 // Focus restoration after modal close
-const triggerRef = useRef<HTMLButtonElement>(null);
-const [open, setOpen] = useState(false);
+const triggerRef = useRef<HTMLButtonElement>(null)
+const [open, setOpen] = useState(false)
 useEffect(() => {
-  if (!open && triggerRef.current) triggerRef.current.focus();
-}, [open]);
+    if (!open && triggerRef.current) triggerRef.current.focus()
+}, [open])
 ```
 
 ### Angular
+
 ```ts
 // Announce route changes via a service
 @Injectable({ providedIn: 'root' })
 export class Announcer {
-  private el = document.getElementById('route-announcer');
-  say(text: string) { if (this.el) this.el.textContent = text; }
+    private el = document.getElementById('route-announcer')
+    say(text: string) {
+        if (this.el) this.el.textContent = text
+    }
 }
 ```
 
 ### Vue
+
 ```vue
 <template>
-  <div role="status" aria-live="polite" aria-atomic="true" ref="live"></div>
-  <!-- call announce on route update -->
+    <div role="status" aria-live="polite" aria-atomic="true" ref="live"></div>
+    <!-- call announce on route update -->
 </template>
 <script setup lang="ts">
-const live = ref<HTMLElement | null>(null);
-function announce(text: string) { if (live.value) live.value.textContent = text; }
+const live = ref<HTMLElement | null>(null)
+function announce(text: string) {
+    if (live.value) live.value.textContent = text
+}
 </script>
 ```
 
@@ -252,13 +306,14 @@ function announce(text: string) { if (live.value) live.value.textContent = text;
 
 ```md
 Accessibility review:
+
 - Semantics/roles/names: [OK/Issue]
 - Keyboard & focus: [OK/Issue]
 - Announcements (async/route): [OK/Issue]
 - Contrast/visual focus: [OK/Issue]
 - Forms/errors/help: [OK/Issue]
-Actions: …
-Refs: WCAG 2.2 [2.4.*, 3.3.*, 2.5.*] as applicable.
+  Actions: …
+  Refs: WCAG 2.2 [2.4.*, 3.3.*, 2.5.*] as applicable.
 ```
 
 ## CI Example (GitHub Actions)
@@ -267,20 +322,20 @@ Refs: WCAG 2.2 [2.4.*, 3.3.*, 2.5.*] as applicable.
 name: a11y-checks
 on: [push, pull_request]
 jobs:
-  axe-pa11y:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci
-      - run: npm run build --if-present
-      # in CI Example
-      - run: npx serve -s dist -l 3000 &  # or `npm start &` for your app
-      - run: npx wait-on http://localhost:3000
-      - run: npx @axe-core/cli http://localhost:3000 --exit
-        continue-on-error: false
-      - run: npx pa11y http://localhost:3000 --reporter ci
+    axe-pa11y:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with: { node-version: 20 }
+            - run: npm ci
+            - run: npm run build --if-present
+            # in CI Example
+            - run: npx serve -s dist -l 3000 & # or `npm start &` for your app
+            - run: npx wait-on http://localhost:3000
+            - run: npx @axe-core/cli http://localhost:3000 --exit
+              continue-on-error: false
+            - run: npx pa11y http://localhost:3000 --reporter ci
 ```
 
 ## Prompt Starters

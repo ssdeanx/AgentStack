@@ -69,11 +69,11 @@ graph TD
 
 Primary public types and interfaces in `providers/chat-context.tsx`:
 
-| Name | Purpose | Key Methods / Properties | Notes |
-|---|---:|---|---|
-| ChatProvider | App-level provider that maintains chat state and exposes actions | messages, status, selectedAgent, sendMessage(text, files?), stopGeneration(), createCheckpoint(), restoreCheckpoint(), setWebPreview(), setThreadId(), setResourceId() | Wraps @ai-sdk/react useChat with DefaultChatTransport and prepares request metadata for Mastra chat endpoint |
-| useChatContext | Hook to consume ChatContext | Returns ChatContextValue (full typed API) | Throws if used outside provider |
-| ChatPage | Layout component composing Header + Messages + Input | defaultAgent prop | Lightweight `page.tsx` wrapper |
+| Name           |                                                          Purpose | Key Methods / Properties                                                                                                                                               | Notes                                                                                                        |
+| -------------- | ---------------------------------------------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| ChatProvider   | App-level provider that maintains chat state and exposes actions | messages, status, selectedAgent, sendMessage(text, files?), stopGeneration(), createCheckpoint(), restoreCheckpoint(), setWebPreview(), setThreadId(), setResourceId() | Wraps @ai-sdk/react useChat with DefaultChatTransport and prepares request metadata for Mastra chat endpoint |
+| useChatContext |                                      Hook to consume ChatContext | Returns ChatContextValue (full typed API)                                                                                                                              | Throws if used outside provider                                                                              |
+| ChatPage       |             Layout component composing Header + Messages + Input | defaultAgent prop                                                                                                                                                      | Lightweight `page.tsx` wrapper                                                                               |
 
 ChatContextValue (high level) — partial list (see file for full list):
 
@@ -91,10 +91,10 @@ ChatContextValue (high level) — partial list (see file for full list):
 ### ChatProvider (providers/chat-context.tsx)
 
 - Responsibilities:
-  - Wire @ai-sdk/react's useChat transport with Mastra chat endpoint (DefaultChatTransport)
-  - Convert messages → UI-friendly pieces (tools, reasoning, file parts)
-  - Maintain derived state (streaming content/reasoning, token usage, sources, queued tasks, checkpoints, webPreview)
-  - Provide state mutation helpers (sendMessage, stopGeneration, add/update/remove tasks, approval flow handlers, checkpoints management, thread/resource id mapping)
+    - Wire @ai-sdk/react's useChat transport with Mastra chat endpoint (DefaultChatTransport)
+    - Convert messages → UI-friendly pieces (tools, reasoning, file parts)
+    - Maintain derived state (streaming content/reasoning, token usage, sources, queued tasks, checkpoints, webPreview)
+    - Provide state mutation helpers (sendMessage, stopGeneration, add/update/remove tasks, approval flow handlers, checkpoints management, thread/resource id mapping)
 
 ### Key algorithms / behaviors
 
@@ -117,15 +117,15 @@ import { ChatMessages } from './components/chat-messages'
 import { ChatInput } from './components/chat-input'
 
 export default function ChatPage() {
-  return (
-    <ChatProvider defaultAgent="researchAgent">
-      <main>
-        <ChatHeader />
-        <ChatMessages />
-        <ChatInput />
-      </main>
-    </ChatProvider>
-  )
+    return (
+        <ChatProvider defaultAgent="researchAgent">
+            <main>
+                <ChatHeader />
+                <ChatMessages />
+                <ChatInput />
+            </main>
+        </ChatProvider>
+    )
 }
 ```
 
@@ -143,10 +143,10 @@ export default function ChatPage() {
 ## 7. Testing & Observability
 
 - Unit tests (Vitest) should cover:
-  - `ChatProvider` helpers (createCheckpoint, restoreCheckpoint, add/update/remove tasks, approval flow)
-  - `ChatInput` behavior: submit, file attachments, suggestions
-  - `ChatMessages` render branches for reasoning, tools, artifacts, web previews
-  - `ChatHeader` interactions: model/agent selection, memory settings, checkpoint restore
+    - `ChatProvider` helpers (createCheckpoint, restoreCheckpoint, add/update/remove tasks, approval flow)
+    - `ChatInput` behavior: submit, file attachments, suggestions
+    - `ChatMessages` render branches for reasoning, tools, artifacts, web previews
+    - `ChatHeader` interactions: model/agent selection, memory settings, checkpoint restore
 
 - Integration tests using mocked `useChat` transport to simulate streaming messages and tool responses — verify UI updates and checkpointing behavior.
 
@@ -159,11 +159,11 @@ export default function ChatPage() {
 ## 9. References
 
 - File locations:
-  - `app/chat/page.tsx` (entry)
-  - `app/chat/providers/chat-context.tsx` (provider & types)
-  - `app/chat/components/*` (header, input, messages, agent helpers)
-  - `src/components/ai-elements/*` (Message, Conversation, PromptInput primitives)
-  - `NEXT_PUBLIC_MASTRA_API_URL` env var
+    - `app/chat/page.tsx` (entry)
+    - `app/chat/providers/chat-context.tsx` (provider & types)
+    - `app/chat/components/*` (header, input, messages, agent helpers)
+    - `src/components/ai-elements/*` (Message, Conversation, PromptInput primitives)
+    - `NEXT_PUBLIC_MASTRA_API_URL` env var
 
 ## 10. Change history
 

@@ -2,83 +2,83 @@
 
 This file breaks the migration into realistic manual work items after automated codemods run. Each item contains: scope, representative files, sample before/after diffs, and acceptance criteria.
 
-1) Tools — update createTool execute signature
-   - Scope: `src/mastra/tools/**` (many tools use old execute signature)
-   - Representative files: `web-scraper-tool.ts`, `csv-to-json.tool.ts`, `pg-sql-tool.ts`, `finnhub-tools.ts`, `web-scraper-tool.ts`, `data-file-manager.ts`, ...
+1. Tools — update createTool execute signature
+    - Scope: `src/mastra/tools/**` (many tools use old execute signature)
+    - Representative files: `web-scraper-tool.ts`, `csv-to-json.tool.ts`, `pg-sql-tool.ts`, `finnhub-tools.ts`, `web-scraper-tool.ts`, `data-file-manager.ts`, ...
 
-   Before (old):
+    Before (old):
 
-   ```diff
-   - export const exampleTool = createTool({
-   -   execute: async ({ context, runtimeContext, writer, tracingContext }) => { /* ... */ }
-   - })
+    ```diff
+    - export const exampleTool = createTool({
+    -   execute: async ({ context, runtimeContext, writer, tracingContext }) => { /* ... */ }
+    - })
 
-   ```
+    ```
 
-   After (v1):
+    After (v1):
 
-   ```diff
-   + export const exampleTool = createTool({
-   +   execute: async (inputData, context) => { /* inputData == old context, context contains requestContext + writer + tracingContext */ }
-   + })
+    ```diff
+    + export const exampleTool = createTool({
+    +   execute: async (inputData, context) => { /* inputData == old context, context contains requestContext + writer + tracingContext */ }
+    + })
 
-   ```
+    ```
 
-   Acceptance
-   - Tool compiles and unit tests using the tool pass
-   - Tests using RuntimeContext mocks updated to RequestContext equivalents
+    Acceptance
+    - Tool compiles and unit tests using the tool pass
+    - Tests using RuntimeContext mocks updated to RequestContext equivalents
 
-2) Agents & Context — RuntimeContext → RequestContext
-   - Scope: `src/mastra/workflows/**`, `src/mastra/tools/**`, `src/mastra/agents/**`, `tests/**`
-   - Representative files: `repo-ingestion-workflow.ts`, `spec-generation-workflow.ts`, many tests
+2. Agents & Context — RuntimeContext → RequestContext
+    - Scope: `src/mastra/workflows/**`, `src/mastra/tools/**`, `src/mastra/agents/**`, `tests/**`
+    - Representative files: `repo-ingestion-workflow.ts`, `spec-generation-workflow.ts`, many tests
 
-   Change: replace imports and types
+    Change: replace imports and types
 
-   Acceptance
-   - No unresolved RuntimeContext import usages remain
-   - Tests updated and passing
+    Acceptance
+    - No unresolved RuntimeContext import usages remain
+    - Tests updated and passing
 
-3) Memory — query/rememberMessages → recall, types
-   - Scope: memory call sites, helper utilities, tests
-   - Representative files: `src/mastra/config/upstashMemory.ts`, `lib/hooks/*`
+3. Memory — query/rememberMessages → recall, types
+    - Scope: memory call sites, helper utilities, tests
+    - Representative files: `src/mastra/config/upstashMemory.ts`, `lib/hooks/*`
 
-   Before:
+    Before:
 
-   ```diff
-   - const { uiMessages } = await memory.query({ threadId, vectorMessageSearch: 'query' })
+    ```diff
+    - const { uiMessages } = await memory.query({ threadId, vectorMessageSearch: 'query' })
 
-   ```
+    ```
 
-   After:
+    After:
 
-   ```diff
-   + const { messages } = await memory.recall({ threadId, vectorSearchString: 'query', page: 0, perPage: 20 })
-   + const uiMessages = toAISdkV5Messages(messages)
-   ```
+    ```diff
+    + const { messages } = await memory.recall({ threadId, vectorSearchString: 'query', page: 0, perPage: 20 })
+    + const uiMessages = toAISdkV5Messages(messages)
+    ```
 
-   Acceptance
-   - All `memory.query()` and `rememberMessages()` replaced
-   - All code uses `MastraDBMessage` as storage format or converts to UI formats via helper
+    Acceptance
+    - All `memory.query()` and `rememberMessages()` replaced
+    - All code uses `MastraDBMessage` as storage format or converts to UI formats via helper
 
-4) Workflows — createRunAsync → createRun
-   - Scope: all call sites in app and tests
-   - Representative file: `app/dashboard/workflows/page.tsx`
+4. Workflows — createRunAsync → createRun
+    - Scope: all call sites in app and tests
+    - Representative file: `app/dashboard/workflows/page.tsx`
 
-   Acceptance
-   - Dashboard and any callers updated and verified in tests
+    Acceptance
+    - Dashboard and any callers updated and verified in tests
 
-5) Storage/Vectors — get/list pattern and pagination
-   - Files: `src/mastra/config/vector/*`, `lib/hooks/*`
-   - Change offsets to page/perPage where applicable and update method names to list*.
+5. Storage/Vectors — get/list pattern and pagination
+    - Files: `src/mastra/config/vector/*`, `lib/hooks/*`
+    - Change offsets to page/perPage where applicable and update method names to list\*.
 
-6) Tracing/Observability
-   - Replace telemetry config with `observability` and rename `processors` usage to new names
+6. Tracing/Observability
+    - Replace telemetry config with `observability` and rename `processors` usage to new names
 
-7) Tests — mass updates
-   - Tests referencing RuntimeContext, memory query outputs, messagesV2/uiMessages, or old tool signatures must be updated.
+7. Tests — mass updates
+    - Tests referencing RuntimeContext, memory query outputs, messagesV2/uiMessages, or old tool signatures must be updated.
 
-8) CI & release
-   - Update CI Node versions and run full suite. Split work into per-area PRs, validate in CI.
+8. CI & release
+    - Update CI Node versions and run full suite. Split work into per-area PRs, validate in CI.
 
 How to work
 
@@ -87,7 +87,7 @@ How to work
 
 Test migration examples (common patterns)
 
-1) Replace RuntimeContext in tests
+1. Replace RuntimeContext in tests
 
 Before:
 
@@ -96,8 +96,8 @@ Before:
 import { RuntimeContext } from '@mastra/core/runtime-context'
 
 it('calls the tool', async () => {
-   const runtimeContext = new RuntimeContext()
-   // test passes runtimeContext into tool
+    const runtimeContext = new RuntimeContext()
+    // test passes runtimeContext into tool
 })
 ```
 
@@ -107,8 +107,8 @@ After:
 import { RequestContext } from '@mastra/core/request-context'
 
 it('calls the tool', async () => {
-   const requestContext = new RequestContext()
-   // ensure requestContext conforms to helper factory if needed
+    const requestContext = new RequestContext()
+    // ensure requestContext conforms to helper factory if needed
 })
 ```
 
@@ -175,4 +175,3 @@ After:
 +   }
 + })
 ```
-

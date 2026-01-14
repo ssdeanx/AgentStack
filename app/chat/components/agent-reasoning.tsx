@@ -1,30 +1,32 @@
-"use client"
+'use client'
 
 import {
-  Reasoning,
-  ReasoningTrigger,
-  ReasoningContent,
-} from "@/src/components/ai-elements/reasoning"
+    Reasoning,
+    ReasoningTrigger,
+    ReasoningContent,
+} from '@/src/components/ai-elements/reasoning'
 
-import type { AgentReasoningProps } from "./chat.types"
+import type { AgentReasoningProps } from './chat.types'
 
 export function AgentReasoning({
-  reasoning,
-  isStreaming,
-  duration,
-  className,
+    reasoning,
+    isStreaming,
+    duration,
+    className,
 }: AgentReasoningProps) {
-  if (!reasoning && !isStreaming) {return null}
+    if (!reasoning && !isStreaming) {
+        return null
+    }
 
-  return (
-    <Reasoning
-      isStreaming={isStreaming}
-      duration={duration}
-      autoClose={false}
-      className={className}
-    >
-      <ReasoningTrigger />
-      <ReasoningContent>{reasoning}</ReasoningContent>
-    </Reasoning>
-  )
+    return (
+        <Reasoning
+            isStreaming={isStreaming}
+            duration={duration}
+            autoClose={false}
+            className={className}
+        >
+            <ReasoningTrigger />
+            <ReasoningContent>{reasoning}</ReasoningContent>
+        </Reasoning>
+    )
 }

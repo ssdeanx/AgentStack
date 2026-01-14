@@ -26,7 +26,11 @@ describe('arxivTool', () => {
   </entry>
 </feed>`
 
-        httpFetchMock.mockResolvedValueOnce({ status: 200, statusText: 'OK', data: sampleXml })
+        httpFetchMock.mockResolvedValueOnce({
+            status: 200,
+            statusText: 'OK',
+            data: sampleXml,
+        })
 
         const res = await arxivTool.execute({ query: 'test' }, {})
 

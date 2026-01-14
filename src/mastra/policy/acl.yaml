@@ -1,21 +1,36 @@
 docs:
     - path: './corpus/finance-policy.md'
       allow:
-          roles: ['finance.viewer', 'finance.admin', 'pro_user', 'pro_dept_viewer', 'enterprise_user']
+          roles:
+              [
+                  'finance.viewer',
+                  'finance.admin',
+                  'pro_user',
+                  'pro_dept_viewer',
+                  'enterprise_user',
+              ]
           tiers: ['pro', 'enterprise']
       tenant: 'acme'
       classification: 'internal'
 
     - path: './corpus/engineering-handbook.md'
       allow:
-          roles: ['engineering.viewer', 'engineering.admin', 'free_user', 'pro_user', 'enterprise_user']
+          roles:
+              [
+                  'engineering.viewer',
+                  'engineering.admin',
+                  'free_user',
+                  'pro_user',
+                  'enterprise_user',
+              ]
           tiers: ['free', 'pro', 'enterprise']
       tenant: 'acme'
       classification: 'public'
 
     - path: './corpus/hr-confidential.md'
       allow:
-          roles: ['hr.admin', 'admin', 'enterprise_dept_admin', 'enterprise_admin']
+          roles:
+              ['hr.admin', 'admin', 'enterprise_dept_admin', 'enterprise_admin']
           tiers: ['enterprise']
       tenant: 'acme'
       classification: 'confidential'

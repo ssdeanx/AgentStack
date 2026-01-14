@@ -8,17 +8,17 @@ Block dangerous file writes using prompt-based hooks:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "File path: $TOOL_INPUT.file_path. Verify: 1) Not in /etc or system directories 2) Not .env or credentials 3) Path doesn't contain '..' traversal. Return 'approve' or 'deny'."
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "File path: $TOOL_INPUT.file_path. Verify: 1) Not in /etc or system directories 2) Not .env or credentials 3) Path doesn't contain '..' traversal. Return 'approve' or 'deny'."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -30,17 +30,17 @@ Ensure tests run before stopping:
 
 ```json
 {
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Review transcript. If code was modified (Write/Edit tools used), verify tests were executed. If no tests were run, block with reason 'Tests must be run after code changes'."
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Review transcript. If code was modified (Write/Edit tools used), verify tests were executed. If no tests were run, block with reason 'Tests must be run after code changes'."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -52,21 +52,22 @@ Load project-specific context at session start:
 
 ```json
 {
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "SessionStart": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Example script (load-context.sh):**
+
 ```bash
 #!/bin/bash
 cd "$CLAUDE_PROJECT_DIR" || exit 1
@@ -89,17 +90,17 @@ Log all notifications for audit or analysis:
 
 ```json
 {
-  "Notification": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "Notification": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-notification.sh"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/log-notification.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -111,17 +112,17 @@ Monitor and validate MCP tool usage:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "mcp__.*__delete.*",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Deletion operation detected. Verify: Is this deletion intentional? Can it be undone? Are there backups? Return 'approve' only if safe."
+            "matcher": "mcp__.*__delete.*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Deletion operation detected. Verify: Is this deletion intentional? Can it be undone? Are there backups? Return 'approve' only if safe."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -133,17 +134,17 @@ Ensure project builds after code changes:
 
 ```json
 {
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Check if code was modified. If Write/Edit tools were used, verify the project was built (npm run build, cargo build, etc). If not built, block and request build."
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Check if code was modified. If Write/Edit tools were used, verify the project was built (npm run build, cargo build, etc). If not built, block and request build."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -155,17 +156,17 @@ Ask user before dangerous operations:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Command: $TOOL_INPUT.command. If command contains 'rm', 'delete', 'drop', or other destructive operations, return 'ask' to confirm with user. Otherwise 'approve'."
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Command: $TOOL_INPUT.command. If command contains 'rm', 'delete', 'drop', or other destructive operations, return 'ask' to confirm with user. Otherwise 'approve'."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -177,21 +178,22 @@ Run linters or formatters on file edits:
 
 ```json
 {
-  "PostToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+    "PostToolUse": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-quality.sh"
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-quality.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Example script (check-quality.sh):**
+
 ```bash
 #!/bin/bash
 input=$(cat)
@@ -211,48 +213,48 @@ Combine multiple patterns for comprehensive protection:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Validate file write safety"
-        }
-      ]
-    },
-    {
-      "matcher": "Bash",
-      "hooks": [
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate file write safety"
+                }
+            ]
+        },
         {
-          "type": "prompt",
-          "prompt": "Validate bash command safety"
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate bash command safety"
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    ],
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Verify tests run and build succeeded"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Verify tests run and build succeeded"
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
+    ],
+    "SessionStart": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -281,6 +283,7 @@ security-scanner "$file_path"
 ```
 
 **Activation:**
+
 ```bash
 # Enable the hook
 touch .enable-security-scan
@@ -290,6 +293,7 @@ rm .enable-security-scan
 ```
 
 **Use for:**
+
 - Temporary debugging hooks
 - Feature flags for development
 - Project-specific validation that's opt-in
@@ -331,15 +335,17 @@ fi
 ```
 
 **Configuration file (.claude/my-plugin.local.json):**
+
 ```json
 {
-  "strictMode": true,
-  "maxFileSize": 500000,
-  "allowedPaths": ["/tmp", "/home/user/projects"]
+    "strictMode": true,
+    "maxFileSize": 500000,
+    "allowedPaths": ["/tmp", "/home/user/projects"]
 }
 ```
 
 **Use for:**
+
 - User-configurable hook behavior
 - Per-project settings
 - Team-specific rules

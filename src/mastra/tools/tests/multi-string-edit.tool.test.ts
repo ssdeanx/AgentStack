@@ -25,7 +25,10 @@ describe('multiStringEditTool', () => {
         const file = path.join(tmpDir, 'file.txt')
         await fs.writeFile(file, 'hello world', 'utf-8')
 
-        const res = await multiStringEditTool.execute({ edits: [ { filePath: file, oldString: 'hello', newString: 'hi' } ], dryRun: true })
+        const res = await multiStringEditTool.execute({
+            edits: [{ filePath: file, oldString: 'hello', newString: 'hi' }],
+            dryRun: true,
+        })
         expect(res.success).toBe(true)
         expect(res.results[0].diff).toBeDefined()
         const content = await fs.readFile(file, 'utf-8')
@@ -36,7 +39,12 @@ describe('multiStringEditTool', () => {
         const file = path.join(tmpDir, 'apply.txt')
         await fs.writeFile(file, 'foo bar', 'utf-8')
 
-        const res = await multiStringEditTool.execute({ edits: [ { filePath: file, oldString: 'bar', newString: 'baz' } ], dryRun: false, createBackup: true, projectRoot: tmpDir })
+        const res = await multiStringEditTool.execute({
+            edits: [{ filePath: file, oldString: 'bar', newString: 'baz' }],
+            dryRun: false,
+            createBackup: true,
+            projectRoot: tmpDir,
+        })
         expect(res.success).toBe(true)
         expect(res.results[0].status).toBe('applied')
         const content = await fs.readFile(file, 'utf-8')

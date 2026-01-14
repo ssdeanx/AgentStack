@@ -21,7 +21,7 @@ graph TB
             ChatPage["app/chat/page.tsx"]
             TestPage["app/test/page.tsx"]
         end
-        
+
         subgraph AIElements["AI Elements (30)"]
             ChatCore["Chat Core"]
             AIDisplay["AI Reasoning"]
@@ -30,7 +30,7 @@ graph TB
             Feedback["Feedback"]
             Interactive["Interactive"]
         end
-        
+
         subgraph BaseUI["Base UI (19)"]
             Button[button]
             Input[input]
@@ -39,24 +39,24 @@ graph TB
             Select[select]
         end
     end
-    
+
     subgraph State["State Management"]
         ChatContext["ChatContext Provider"]
         AgentContext["AgentContext Provider"]
     end
-    
+
     subgraph SDK["Mastra Client SDK"]
         MastraClient["mastraClient"]
         AgentAPI["agent.stream()"]
         StreamHandler["processDataStream()"]
     end
-    
+
     subgraph Backend["Mastra Server"]
         ChatRoute["/chat API"]
         Agents["26+ Agents"]
         Tools["30+ Tools"]
     end
-    
+
     ChatPage --> ChatContext
     ChatContext --> AIElements
     AIElements --> BaseUI
@@ -70,28 +70,28 @@ graph TB
 graph TD
     ChatPage["ChatPage"]
     ChatPage --> ChatProvider["ChatProvider (Context)"]
-    
+
     ChatProvider --> Header["Header"]
     ChatProvider --> Main["Main Content"]
     ChatProvider --> Footer["Footer"]
-    
+
     Header --> ModelSelector["ModelSelector"]
     Header --> ContextTrigger["Context (Tokens)"]
-    
+
     Main --> Conversation["Conversation"]
     Conversation --> ConversationContent["ConversationContent"]
     ConversationContent --> Messages["Message[]"]
-    
+
     Messages --> MessageContent["MessageContent"]
     Messages --> MessageAttachments["MessageAttachments"]
     Messages --> Reasoning["Reasoning (if applicable)"]
     Messages --> ChainOfThought["ChainOfThought (if applicable)"]
     Messages --> Tool["Tool (for tool calls)"]
     Messages --> Sources["Sources (for research)"]
-    
+
     Conversation --> ConversationScrollButton["ScrollButton"]
     Conversation --> Suggestions["Suggestions"]
-    
+
     Footer --> PromptInput["PromptInput"]
     PromptInput --> PromptInputTextarea["Textarea"]
     PromptInput --> PromptInputAttachments["Attachments"]
@@ -106,6 +106,7 @@ graph TD
 ### 1. Chat Core Components
 
 #### Message Component
+
 **File:** `src/components/ai-elements/message.tsx`
 
 **Exports:**
@@ -141,6 +142,7 @@ graph TD
 ```
 
 #### Conversation Component
+
 **File:** `src/components/ai-elements/conversation.tsx`
 
 **Exports:**
@@ -156,7 +158,7 @@ graph TD
 <Conversation>
   <ConversationContent>
     {messages.length === 0 ? (
-      <ConversationEmptyState 
+      <ConversationEmptyState
         title="Start a conversation"
         description={`Chat with ${selectedAgent}`}
       />
@@ -169,6 +171,7 @@ graph TD
 ```
 
 #### PromptInput Component
+
 **File:** `src/components/ai-elements/prompt-input.tsx`
 
 **Exports:**
@@ -216,6 +219,7 @@ graph TD
 ### 2. AI Reasoning Components
 
 #### Reasoning Component
+
 **File:** `src/components/ai-elements/reasoning.tsx`
 
 **Exports:**
@@ -236,6 +240,7 @@ graph TD
 ```
 
 #### ChainOfThought Component
+
 **File:** `src/components/ai-elements/chain-of-thought.tsx`
 
 **Exports:**
@@ -264,6 +269,7 @@ graph TD
 ```
 
 #### Plan Component
+
 **File:** `src/components/ai-elements/plan.tsx`
 
 **Exports:**
@@ -282,6 +288,7 @@ graph TD
 ### 3. Tool Display Components
 
 #### Tool Component
+
 **File:** `src/components/ai-elements/tool.tsx`
 
 **Exports:**
@@ -299,7 +306,7 @@ graph TD
 ```typescript
 {message.toolInvocations?.map((tool) => (
   <Tool key={tool.toolCallId}>
-    <ToolHeader 
+    <ToolHeader
       title={tool.toolName}
       type={tool.type}
       state={tool.state}
@@ -313,6 +320,7 @@ graph TD
 ```
 
 #### CodeBlock Component
+
 **File:** `src/components/ai-elements/code-block.tsx`
 
 **Exports:**
@@ -323,6 +331,7 @@ graph TD
 **Features:** Light/dark theme, line numbers, language detection
 
 #### Artifact Component
+
 **File:** `src/components/ai-elements/artifact.tsx`
 
 **Exports:**
@@ -341,6 +350,7 @@ graph TD
 ### 4. Sources & Citations
 
 #### Sources Component
+
 **File:** `src/components/ai-elements/sources.tsx`
 
 **Exports:**
@@ -366,6 +376,7 @@ graph TD
 ```
 
 #### InlineCitation Component
+
 **File:** `src/components/ai-elements/inline-citation.tsx`
 
 **Use Case:** Citations within message text
@@ -373,6 +384,7 @@ graph TD
 ### 5. Interactive Components
 
 #### ModelSelector Component
+
 **File:** `src/components/ai-elements/model-selector.tsx`
 
 **Exports:**
@@ -392,17 +404,39 @@ graph TD
 
 ```typescript
 const AGENT_CATEGORIES = {
-  core: ['weatherAgent', 'a2aCoordinatorAgent'],
-  research: ['researchAgent', 'researchPaperAgent', 'documentProcessingAgent', 'knowledgeIndexingAgent'],
-  content: ['copywriterAgent', 'editorAgent', 'contentStrategistAgent', 'scriptWriterAgent', 'reportAgent'],
-  data: ['dataExportAgent', 'dataIngestionAgent', 'dataTransformationAgent'],
-  financial: ['stockAnalysisAgent', 'chartTypeAdvisorAgent', 'chartDataProcessorAgent', 'chartGeneratorAgent', 'chartSupervisorAgent'],
-  diagram: ['csvToExcalidrawAgent', 'imageToCsvAgent', 'excalidrawValidatorAgent'],
-  utility: ['evaluationAgent', 'learningExtractionAgent', 'dane', 'sqlAgent'],
+    core: ['weatherAgent', 'a2aCoordinatorAgent'],
+    research: [
+        'researchAgent',
+        'researchPaperAgent',
+        'documentProcessingAgent',
+        'knowledgeIndexingAgent',
+    ],
+    content: [
+        'copywriterAgent',
+        'editorAgent',
+        'contentStrategistAgent',
+        'scriptWriterAgent',
+        'reportAgent',
+    ],
+    data: ['dataExportAgent', 'dataIngestionAgent', 'dataTransformationAgent'],
+    financial: [
+        'stockAnalysisAgent',
+        'chartTypeAdvisorAgent',
+        'chartDataProcessorAgent',
+        'chartGeneratorAgent',
+        'chartSupervisorAgent',
+    ],
+    diagram: [
+        'csvToExcalidrawAgent',
+        'imageToCsvAgent',
+        'excalidrawValidatorAgent',
+    ],
+    utility: ['evaluationAgent', 'learningExtractionAgent', 'dane', 'sqlAgent'],
 }
 ```
 
 #### Confirmation Component
+
 **File:** `src/components/ai-elements/confirmation.tsx`
 
 **Exports:**
@@ -418,6 +452,7 @@ const AGENT_CATEGORIES = {
 **Use Cases:** Tool approval, destructive actions
 
 #### Context Component
+
 **File:** `src/components/ai-elements/context.tsx`
 
 **Exports:**
@@ -458,6 +493,7 @@ const AGENT_CATEGORIES = {
 ### 6. Feedback Components
 
 #### Loader Component
+
 **File:** `src/components/ai-elements/loader.tsx`
 
 **Exports:**
@@ -465,11 +501,13 @@ const AGENT_CATEGORIES = {
 - `Loader` - Spinning loader icon
 
 #### Shimmer Component
+
 **File:** `src/components/ai-elements/shimmer.tsx`
 
 **Use Case:** Text loading placeholder with animation
 
 #### Checkpoint Component
+
 **File:** `src/components/ai-elements/checkpoint.tsx`
 
 **Exports:**
@@ -483,6 +521,7 @@ const AGENT_CATEGORIES = {
 ### 7. Canvas Components
 
 #### Canvas Component
+
 **File:** `src/components/ai-elements/canvas.tsx`
 
 **Exports:**
@@ -504,34 +543,34 @@ const AGENT_CATEGORIES = {
 
 ### Component Matrix
 
-| Agent | Message | Reasoning | ChainOfThought | Tool | Sources | Canvas | Artifact |
-|-------|---------|-----------|----------------|------|---------|--------|----------|
-| weatherAgent | ✓ | | | ✓ | | | |
-| researchAgent | ✓ | ✓ | ✓ | ✓ | ✓ | | |
-| researchPaperAgent | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| documentProcessingAgent | ✓ | | ✓ | ✓ | ✓ | | ✓ |
-| knowledgeIndexingAgent | ✓ | | ✓ | ✓ | | | |
-| copywriterAgent | ✓ | ✓ | | | | | ✓ |
-| editorAgent | ✓ | ✓ | | | | | ✓ |
-| contentStrategistAgent | ✓ | ✓ | ✓ | | | | |
-| scriptWriterAgent | ✓ | ✓ | | | | | ✓ |
-| reportAgent | ✓ | | ✓ | ✓ | ✓ | | ✓ |
-| dataExportAgent | ✓ | | ✓ | ✓ | | | ✓ |
-| dataIngestionAgent | ✓ | | ✓ | ✓ | | | |
-| dataTransformationAgent | ✓ | | ✓ | ✓ | | | |
-| stockAnalysisAgent | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| chartTypeAdvisorAgent | ✓ | ✓ | | | | | |
-| chartDataProcessorAgent | ✓ | | ✓ | ✓ | | | |
-| chartGeneratorAgent | ✓ | | | ✓ | | | ✓ |
-| chartSupervisorAgent | ✓ | ✓ | ✓ | ✓ | | | ✓ |
-| csvToExcalidrawAgent | ✓ | | ✓ | ✓ | | ✓ | ✓ |
-| imageToCsvAgent | ✓ | | ✓ | ✓ | | | ✓ |
-| excalidrawValidatorAgent | ✓ | | | ✓ | | ✓ | |
-| evaluationAgent | ✓ | ✓ | ✓ | ✓ | | | ✓ |
-| learningExtractionAgent | ✓ | ✓ | | ✓ | | | |
-| a2aCoordinatorAgent | ✓ | | ✓ | ✓ | | | |
-| dane | ✓ | | | ✓ | | | |
-| sqlAgent | ✓ | | | ✓ | | | ✓ |
+| Agent                    | Message | Reasoning | ChainOfThought | Tool | Sources | Canvas | Artifact |
+| ------------------------ | ------- | --------- | -------------- | ---- | ------- | ------ | -------- |
+| weatherAgent             | ✓       |           |                | ✓    |         |        |          |
+| researchAgent            | ✓       | ✓         | ✓              | ✓    | ✓       |        |          |
+| researchPaperAgent       | ✓       | ✓         | ✓              | ✓    | ✓       |        | ✓        |
+| documentProcessingAgent  | ✓       |           | ✓              | ✓    | ✓       |        | ✓        |
+| knowledgeIndexingAgent   | ✓       |           | ✓              | ✓    |         |        |          |
+| copywriterAgent          | ✓       | ✓         |                |      |         |        | ✓        |
+| editorAgent              | ✓       | ✓         |                |      |         |        | ✓        |
+| contentStrategistAgent   | ✓       | ✓         | ✓              |      |         |        |          |
+| scriptWriterAgent        | ✓       | ✓         |                |      |         |        | ✓        |
+| reportAgent              | ✓       |           | ✓              | ✓    | ✓       |        | ✓        |
+| dataExportAgent          | ✓       |           | ✓              | ✓    |         |        | ✓        |
+| dataIngestionAgent       | ✓       |           | ✓              | ✓    |         |        |          |
+| dataTransformationAgent  | ✓       |           | ✓              | ✓    |         |        |          |
+| stockAnalysisAgent       | ✓       | ✓         | ✓              | ✓    | ✓       |        | ✓        |
+| chartTypeAdvisorAgent    | ✓       | ✓         |                |      |         |        |          |
+| chartDataProcessorAgent  | ✓       |           | ✓              | ✓    |         |        |          |
+| chartGeneratorAgent      | ✓       |           |                | ✓    |         |        | ✓        |
+| chartSupervisorAgent     | ✓       | ✓         | ✓              | ✓    |         |        | ✓        |
+| csvToExcalidrawAgent     | ✓       |           | ✓              | ✓    |         | ✓      | ✓        |
+| imageToCsvAgent          | ✓       |           | ✓              | ✓    |         |        | ✓        |
+| excalidrawValidatorAgent | ✓       |           |                | ✓    |         | ✓      |          |
+| evaluationAgent          | ✓       | ✓         | ✓              | ✓    |         |        | ✓        |
+| learningExtractionAgent  | ✓       | ✓         |                | ✓    |         |        |          |
+| a2aCoordinatorAgent      | ✓       |           | ✓              | ✓    |         |        |          |
+| dane                     | ✓       |           |                | ✓    |         |        |          |
+| sqlAgent                 | ✓       |           |                | ✓    |         |        | ✓        |
 
 ## State Management
 
@@ -543,19 +582,19 @@ import { createContext, useContext, ReactNode } from 'react'
 import { UIMessage, LanguageModelUsage } from 'ai'
 
 interface ChatState {
-  messages: UIMessage[]
-  isLoading: boolean
-  status: 'ready' | 'submitted' | 'streaming' | 'error'
-  selectedAgent: string
-  streamingContent: string
-  usage: LanguageModelUsage | null
+    messages: UIMessage[]
+    isLoading: boolean
+    status: 'ready' | 'submitted' | 'streaming' | 'error'
+    selectedAgent: string
+    streamingContent: string
+    usage: LanguageModelUsage | null
 }
 
 interface ChatActions {
-  sendMessage: (text: string, files?: File[]) => Promise<void>
-  stopGeneration: () => void
-  clearMessages: () => void
-  selectAgent: (agentId: string) => void
+    sendMessage: (text: string, files?: File[]) => Promise<void>
+    stopGeneration: () => void
+    clearMessages: () => void
+    selectAgent: (agentId: string) => void
 }
 
 interface ChatContextValue extends ChatState, ChatActions {}
@@ -563,13 +602,14 @@ interface ChatContextValue extends ChatState, ChatActions {}
 const ChatContext = createContext<ChatContextValue | null>(null)
 
 export const useChatContext = () => {
-  const context = useContext(ChatContext)
-  if (!context) throw new Error('useChatContext must be used within ChatProvider')
-  return context
+    const context = useContext(ChatContext)
+    if (!context)
+        throw new Error('useChatContext must be used within ChatProvider')
+    return context
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  // Implementation
+    // Implementation
 }
 ```
 
@@ -578,54 +618,61 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 ```typescript
 // app/chat/config/agents.ts
 export interface AgentConfig {
-  id: string
-  name: string
-  description: string
-  category: 'core' | 'research' | 'content' | 'data' | 'financial' | 'diagram' | 'utility'
-  features: {
-    reasoning: boolean
-    chainOfThought: boolean
-    tools: boolean
-    sources: boolean
-    canvas: boolean
-    artifacts: boolean
-    fileUpload: boolean
-  }
-  icon?: string
+    id: string
+    name: string
+    description: string
+    category:
+        | 'core'
+        | 'research'
+        | 'content'
+        | 'data'
+        | 'financial'
+        | 'diagram'
+        | 'utility'
+    features: {
+        reasoning: boolean
+        chainOfThought: boolean
+        tools: boolean
+        sources: boolean
+        canvas: boolean
+        artifacts: boolean
+        fileUpload: boolean
+    }
+    icon?: string
 }
 
 export const AGENT_CONFIGS: Record<string, AgentConfig> = {
-  weatherAgent: {
-    id: 'weatherAgent',
-    name: 'Weather Agent',
-    description: 'Get weather forecasts and activity suggestions',
-    category: 'core',
-    features: {
-      reasoning: false,
-      chainOfThought: false,
-      tools: true,
-      sources: false,
-      canvas: false,
-      artifacts: false,
-      fileUpload: false,
+    weatherAgent: {
+        id: 'weatherAgent',
+        name: 'Weather Agent',
+        description: 'Get weather forecasts and activity suggestions',
+        category: 'core',
+        features: {
+            reasoning: false,
+            chainOfThought: false,
+            tools: true,
+            sources: false,
+            canvas: false,
+            artifacts: false,
+            fileUpload: false,
+        },
     },
-  },
-  researchAgent: {
-    id: 'researchAgent',
-    name: 'Research Agent',
-    description: 'Conduct web research with source citations',
-    category: 'research',
-    features: {
-      reasoning: true,
-      chainOfThought: true,
-      tools: true,
-      sources: true,
-      canvas: false,
-      artifacts: false,
-      fileUpload: false,
+    researchAgent: {
+        id: 'researchAgent',
+        name: 'Research Agent',
+        description: 'Conduct web research with source citations',
+        category: 'research',
+        features: {
+            reasoning: true,
+            chainOfThought: true,
+            tools: true,
+            sources: true,
+            canvas: false,
+            artifacts: false,
+            fileUpload: false,
+        },
     },
-  },
-  // ... more agents
+    // ... more agents
 }
 ```
 
@@ -663,7 +710,7 @@ sequenceDiagram
     participant MastraClient
     participant Server
     participant Agent
-    
+
     User->>PromptInput: Type message + submit
     PromptInput->>ChatContext: sendMessage(text, files)
     ChatContext->>ChatContext: Add user message
@@ -671,7 +718,7 @@ sequenceDiagram
     ChatContext->>MastraClient: agent.stream({messages})
     MastraClient->>Server: POST /chat
     Server->>Agent: Process request
-    
+
     loop Streaming
         Agent-->>Server: Chunk (reasoning/text/tool)
         Server-->>MastraClient: Stream chunk
@@ -679,7 +726,7 @@ sequenceDiagram
         ChatContext-->>ChatContext: Update streamingContent
         ChatContext-->>Message: Re-render with new content
     end
-    
+
     Agent-->>Server: Complete
     Server-->>MastraClient: Stream end
     MastraClient-->>ChatContext: onFinish
@@ -691,28 +738,34 @@ sequenceDiagram
 
 ```typescript
 interface StreamChunk {
-  type: 'text-delta' | 'reasoning' | 'tool-call' | 'tool-result' | 'source' | 'finish'
-  payload: {
-    text?: string
-    reasoning?: string
-    toolName?: string
-    toolArgs?: object
-    toolResult?: object
-    source?: { url: string; title: string }
-    usage?: LanguageModelUsage
-  }
+    type:
+        | 'text-delta'
+        | 'reasoning'
+        | 'tool-call'
+        | 'tool-result'
+        | 'source'
+        | 'finish'
+    payload: {
+        text?: string
+        reasoning?: string
+        toolName?: string
+        toolArgs?: object
+        toolResult?: object
+        source?: { url: string; title: string }
+        usage?: LanguageModelUsage
+    }
 }
 ```
 
 ## Error Handling
 
-| Error Type | Component | Handling |
-|------------|-----------|----------|
-| Stream error | ChatContext | Show error message, allow retry |
-| Tool error | Tool | Display error in ToolOutput |
-| File upload error | PromptInput | Show error via onError callback |
-| Agent not found | ChatContext | Fallback to default agent |
-| Token limit | Context | Show warning, suggest truncation |
+| Error Type        | Component   | Handling                         |
+| ----------------- | ----------- | -------------------------------- |
+| Stream error      | ChatContext | Show error message, allow retry  |
+| Tool error        | Tool        | Display error in ToolOutput      |
+| File upload error | PromptInput | Show error via onError callback  |
+| Agent not found   | ChatContext | Fallback to default agent        |
+| Token limit       | Context     | Show warning, suggest truncation |
 
 ## Testing Strategy
 

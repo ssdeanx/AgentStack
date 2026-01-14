@@ -33,18 +33,18 @@
 
 **Components Improved:**
 
-| Component                    | Changes                                                        |
-| ---------------------------- | -------------------------------------------------------------- |
-| `agent-task.tsx`             | Fixed pending icon bug (was throwing error)                    |
-| `agent-tools.tsx`            | Readable names, auto-open on error, streaming indicator        |
-| `agent-reasoning.tsx`        | Proper ai-elements integration with ReasoningContent           |
-| `agent-chain-of-thought.tsx` | Progress badge, step categorization (search/analysis/decision) |
-| `agent-plan.tsx`             | Step completion tracking, progress bar, current step highlight |
-| `agent-sources.tsx`          | Favicons, domain grouping, deduplication                       |
-| `agent-suggestions.tsx`      | Agent-specific suggestions, className prop                     |
-| `agent-queue.tsx`            | Relative time, TaskSection extraction, status badges           |
-| `agent-confirmation.tsx`     | Severity levels (info/warning/danger), styled status           |
-| `agent-checkpoint.tsx`       | Relative time, message count badge                             |
+| Component                    | Changes                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| `agent-task.tsx`             | Fixed pending icon bug (was throwing error)                                      |
+| `agent-tools.tsx`            | Readable names, auto-open on error, streaming indicator                          |
+| `agent-reasoning.tsx`        | Proper ai-elements integration with ReasoningContent                             |
+| `agent-chain-of-thought.tsx` | Progress badge, step categorization (search/analysis/decision)                   |
+| `agent-plan.tsx`             | Step completion tracking, progress bar, current step highlight                   |
+| `agent-sources.tsx`          | Favicons, domain grouping, deduplication                                         |
+| `agent-suggestions.tsx`      | Agent-specific suggestions, className prop                                       |
+| `agent-queue.tsx`            | Relative time, TaskSection extraction, status badges                             |
+| `agent-confirmation.tsx`     | Severity levels (info/warning/danger), styled status                             |
+| `agent-checkpoint.tsx`       | Relative time, message count badge                                               |
 | `chat-input.tsx`             | Compact status bar showing agent/model/tokens. **Fixed background/noise issue.** |
 
 ## Workflow System Audit (Dec 8, 2025)
@@ -75,6 +75,7 @@
 **Location:** `app/chat/config/`
 
 **Shared by:**
+
 - `app/chat/` - Chat interface with model selector
 - `app/networks/` - Network interface with model selector
 
@@ -92,22 +93,35 @@
 **Type Definitions:**
 
 ```typescript
-type ModelProvider = "google" | "openai" | "anthropic" | "openrouter" | "google-vertex" | "ollama"
-type ModelCapability = "chat" | "reasoning" | "vision" | "embedding" | "code" | "audio"
+type ModelProvider =
+    | 'google'
+    | 'openai'
+    | 'anthropic'
+    | 'openrouter'
+    | 'google-vertex'
+    | 'ollama'
+type ModelCapability =
+    | 'chat'
+    | 'reasoning'
+    | 'vision'
+    | 'embedding'
+    | 'code'
+    | 'audio'
 
 interface ModelConfig {
-  id: string
-  name: string
-  provider: ModelProvider
-  contextWindow: number
-  capabilities: ModelCapability[]
-  description?: string
-  isDefault?: boolean
-  pricing?: { input: number; output: number }
+    id: string
+    name: string
+    provider: ModelProvider
+    contextWindow: number
+    capabilities: ModelCapability[]
+    description?: string
+    isDefault?: boolean
+    pricing?: { input: number; output: number }
 }
 ```
 
 **Key Functions:**
+
 - `getModelsByProvider()` - Groups models by provider for UI
 - `getModelConfig(id)` - Get specific model config
 - `getDefaultModel()` - Returns default model (Gemini 2.5 Flash)
@@ -119,10 +133,10 @@ interface ModelConfig {
 
 1. Review and approve PRD, design, tasks
 2. Start Phase 1: Foundation
-   - DASH-001: Install TanStack Query
-   - DASH-002: Create TypeScript Types
-   - DASH-003: Create Query Client Provider
-   - DASH-004: Create React Query Hooks
+    - DASH-001: Install TanStack Query
+    - DASH-002: Create TypeScript Types
+    - DASH-003: Create Query Client Provider
+    - DASH-004: Create React Query Hooks
 
 ```mermaid
 graph TB
@@ -201,8 +215,8 @@ graph TB
 
 **Implemented Components:**
 
-| Component          | Path                                       | Status    |
-| ------------------ | ------------------------------------------ | --------- |
+| Component          | Path                                       | Status     |
+| ------------------ | ------------------------------------------ | ---------- |
 | ProjectCache       | `src/mastra/tools/semantic-utils.ts`       | ✅ Created |
 | PythonParser       | `src/mastra/tools/semantic-utils.ts`       | ✅ Created |
 | FindReferencesTool | `src/mastra/tools/find-references.tool.ts` | ✅ Created |
@@ -211,6 +225,7 @@ graph TB
 | Agent Integration  | `src/mastra/agents/codingAgents.ts`        | ✅ Updated |
 
 **Next Steps:**
+
 1. Verify tools with manual testing (optional)
 2. Proceed to next feature
 
@@ -223,8 +238,8 @@ graph TB
 
 **Implemented Components:**
 
-| Component               | Path                                             | Status    |
-| ----------------------- | ------------------------------------------------ | --------- |
+| Component               | Path                                             | Status     |
+| ----------------------- | ------------------------------------------------ | ---------- |
 | DataExportAgent         | `src/mastra/agents/dataExportAgent.ts`           | ✅ Created |
 | DataIngestionAgent      | `src/mastra/agents/dataIngestionAgent.ts`        | ✅ Created |
 | DataTransformationAgent | `src/mastra/agents/dataTransformationAgent.ts`   | ✅ Created |
@@ -261,8 +276,8 @@ graph TB
 
 **Completed Tasks (Nov 28-29):**
 
-| Task     | Component                        | Status    |
-| -------- | -------------------------------- | --------- |
+| Task     | Component                        | Status     |
+| -------- | -------------------------------- | ---------- |
 | AIEL-001 | ChatContext provider (AI SDK v5) | ✅         |
 | AIEL-002 | Agent config system (26+ agents) | ✅         |
 | AIEL-003 | ChatHeader with ModelSelector    | ✅         |
@@ -331,8 +346,8 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 
 **Implemented Components:**
 
-| Component               | Path                                             | Status    |
-| ----------------------- | ------------------------------------------------ | --------- |
+| Component               | Path                                             | Status     |
+| ----------------------- | ------------------------------------------------ | ---------- |
 | ResearchPaperAgent      | `src/mastra/agents/researchPaperAgent.ts`        | ✅ Created |
 | DocumentProcessingAgent | `src/mastra/agents/documentProcessingAgent.ts`   | ✅ Created |
 | KnowledgeIndexingAgent  | `src/mastra/agents/knowledgeIndexingAgent.ts`    | ✅ Created |
@@ -343,13 +358,13 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 **Agent Capabilities:**
 
 - **ResearchPaperAgent**: Search arXiv, download papers, parse PDFs to markdown
-  - Tools: `arxivTool`, `arxivPdfParserTool`, `arxivPaperDownloaderTool`
+    - Tools: `arxivTool`, `arxivPdfParserTool`, `arxivPaperDownloaderTool`
 - **DocumentProcessingAgent**: Convert PDFs to markdown, chunk for RAG
-  - Tools: `pdfToMarkdownTool`, `mastraChunker`, file management tools
+    - Tools: `pdfToMarkdownTool`, `mastraChunker`, file management tools
 - **KnowledgeIndexingAgent**: Index documents into PgVector, semantic search
-  - Tools: `mdocumentChunker`, `documentRerankerTool`
+    - Tools: `mdocumentChunker`, `documentRerankerTool`
 - **ResearchPipelineNetwork**: Coordinates full research workflow
-  - Agents: ResearchPaperAgent, DocumentProcessingAgent, KnowledgeIndexingAgent, ResearchAgent
+    - Agents: ResearchPaperAgent, DocumentProcessingAgent, KnowledgeIndexingAgent, ResearchAgent
 
 **API Routes Updated:**
 
@@ -362,6 +377,7 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 2. Index research papers into vector store for RAG
 3. Semantic search over indexed research content
 4. Build knowledge bases from academic literature
+
 ---
 
 ## Active Feature: Mastra Admin Dashboard
@@ -373,8 +389,8 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 
 **Implemented Components (Dec 5, 2025):**
 
-| Component           | Path                                   | Status    |
-| ------------------- | -------------------------------------- | --------- |
+| Component           | Path                                   | Status     |
+| ------------------- | -------------------------------------- | ---------- |
 | Dashboard Layout    | `app/dashboard/layout.tsx`             | ✅ Created |
 | Dashboard Home      | `app/dashboard/page.tsx`               | ✅ Created |
 | Agents Page         | `app/dashboard/agents/page.tsx`        | ✅ Created |

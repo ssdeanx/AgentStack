@@ -1,6 +1,6 @@
 ---
-description: "Create plugin settings file with user preferences"
-allowed-tools: ["Write", "AskUserQuestion"]
+description: 'Create plugin settings file with user preferences'
+allowed-tools: ['Write', 'AskUserQuestion']
 ---
 
 # Create Plugin Settings
@@ -15,42 +15,42 @@ Use AskUserQuestion to gather configuration:
 
 ```json
 {
-  "questions": [
-    {
-      "question": "Enable plugin for this project?",
-      "header": "Enable Plugin",
-      "multiSelect": false,
-      "options": [
+    "questions": [
         {
-          "label": "Yes",
-          "description": "Plugin will be active"
+            "question": "Enable plugin for this project?",
+            "header": "Enable Plugin",
+            "multiSelect": false,
+            "options": [
+                {
+                    "label": "Yes",
+                    "description": "Plugin will be active"
+                },
+                {
+                    "label": "No",
+                    "description": "Plugin will be disabled"
+                }
+            ]
         },
         {
-          "label": "No",
-          "description": "Plugin will be disabled"
+            "question": "Validation mode?",
+            "header": "Mode",
+            "multiSelect": false,
+            "options": [
+                {
+                    "label": "Strict",
+                    "description": "Maximum validation and security checks"
+                },
+                {
+                    "label": "Standard",
+                    "description": "Balanced validation (recommended)"
+                },
+                {
+                    "label": "Lenient",
+                    "description": "Minimal validation only"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "question": "Validation mode?",
-      "header": "Mode",
-      "multiSelect": false,
-      "options": [
-        {
-          "label": "Strict",
-          "description": "Maximum validation and security checks"
-        },
-        {
-          "label": "Standard",
-          "description": "Balanced validation (recommended)"
-        },
-        {
-          "label": "Lenient",
-          "description": "Minimal validation only"
-        }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -83,6 +83,7 @@ To modify settings, edit this file and restart Claude Code.
 ### Step 4: Inform User
 
 Tell the user:
+
 - Settings file created at `.claude/my-plugin.local.md`
 - Current configuration summary
 - How to edit manually if needed
@@ -92,6 +93,7 @@ Tell the user:
 ## Implementation Notes
 
 Always validate user input before writing:
+
 - Check mode is valid
 - Validate numeric fields are numbers
 - Ensure paths don't have traversal attempts

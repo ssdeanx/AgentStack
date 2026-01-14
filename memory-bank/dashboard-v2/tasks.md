@@ -3,6 +3,7 @@
 ## Phase 1: Foundation & Infrastructure
 
 ### DASH-001: Install TanStack Query
+
 **Description:** Add React Query for data fetching and caching.
 
 **Acceptance Criteria:**
@@ -26,6 +27,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-002: Create TypeScript Types
+
 **Description:** Define Zod schemas and TypeScript types for MastraClient responses.
 
 **Acceptance Criteria:**
@@ -46,6 +48,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-003: Create Query Client Provider
+
 **Description:** Set up React Query provider with default options.
 
 **Acceptance Criteria:**
@@ -68,6 +71,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-004: Create React Query Hooks
+
 **Description:** Convert existing `use-mastra.ts` hooks to React Query.
 
 **Acceptance Criteria:**
@@ -91,6 +95,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 2: Shared Components
 
 ### DASH-005: Extract Sidebar Component
+
 **Description:** Extract sidebar navigation from layout into reusable component.
 
 **Acceptance Criteria:**
@@ -113,6 +118,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-006: Create Error Fallback Components
+
 **Description:** Create reusable error boundary fallback UI.
 
 **Acceptance Criteria:**
@@ -135,6 +141,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-007: Create Loading Components
+
 **Description:** Create page-level and component-level loading skeletons.
 
 **Acceptance Criteria:**
@@ -158,6 +165,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-008: Create Empty State Component
+
 **Description:** Create reusable empty state display.
 
 **Acceptance Criteria:**
@@ -178,6 +186,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-009: Create Data Table Component
+
 **Description:** Create generic data table with sorting/filtering.
 
 **Acceptance Criteria:**
@@ -199,6 +208,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-010: Create Detail Panel Component
+
 **Description:** Create reusable side panel for detail views.
 
 **Acceptance Criteria:**
@@ -221,6 +231,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 3: Feature Components - Agents
 
 ### DASH-011: Extract Agent List Component
+
 **Description:** Extract agent list from page into component.
 
 **Acceptance Criteria:**
@@ -243,6 +254,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-012: Extract Agent Details Component
+
 **Description:** Extract agent details panel into component.
 
 **Acceptance Criteria:**
@@ -266,6 +278,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-013: Refactor Agents Page
+
 **Description:** Update agents page to use new components.
 
 **Acceptance Criteria:**
@@ -289,6 +302,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 4: Feature Components - Workflows
 
 ### DASH-014: Extract Workflow Components
+
 **Description:** Extract workflow list and details components.
 
 **Acceptance Criteria:**
@@ -311,6 +325,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-015: Refactor Workflows Page
+
 **Description:** Update workflows page to use new components.
 
 **Files:**
@@ -326,6 +341,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 5: Feature Components - Tools
 
 ### DASH-016: Extract Tool Components
+
 **Description:** Extract tool list, details, and executor components.
 
 **Acceptance Criteria:**
@@ -349,6 +365,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-017: Refactor Tools Page
+
 **Description:** Update tools page to use new components.
 
 **Files:**
@@ -364,6 +381,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 6: Feature Components - Observability
 
 ### DASH-018: Extract Trace Components
+
 **Description:** Extract trace list, filters, and detail components.
 
 **Acceptance Criteria:**
@@ -389,6 +407,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-019: Refactor Observability Page
+
 **Description:** Update observability page to use new components.
 
 **Files:**
@@ -404,6 +423,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 7: Feature Components - Memory
 
 ### DASH-020: Extract Memory Components
+
 **Description:** Extract thread list, message viewer, and working memory editor.
 
 **Acceptance Criteria:**
@@ -428,6 +448,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-021: Refactor Memory Page
+
 **Description:** Update memory page to use new components.
 
 **Files:**
@@ -443,6 +464,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 8: Feature Components - Vectors, Logs, Telemetry
 
 ### DASH-022: Extract Vectors Components
+
 **Description:** Extract vector index management components.
 
 **Files:**
@@ -459,6 +481,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-023: Extract Logs Components
+
 **Description:** Extract log viewing and filtering components.
 
 **Files:**
@@ -474,6 +497,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-024: Extract Telemetry Components
+
 **Description:** Extract telemetry viewing components.
 
 **Files:**
@@ -489,6 +513,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-025: Refactor Remaining Pages
+
 **Description:** Update vectors, logs, telemetry pages to use new components.
 
 **Files:**
@@ -506,6 +531,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 9: Dashboard Home & Polish
 
 ### DASH-026: Refactor Dashboard Home
+
 **Description:** Update dashboard home page with stats and quick links.
 
 **Acceptance Criteria:**
@@ -529,6 +555,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-027: Add Loading States
+
 **Description:** Add loading.tsx files to all dashboard routes.
 
 **Files:**
@@ -550,6 +577,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-028: Add Error Boundaries
+
 **Description:** Add error.tsx files to all dashboard routes.
 
 **Files:**
@@ -572,6 +600,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 10: Auth Preparation
 
 ### DASH-029: Create Auth Context Structure
+
 **Description:** Create auth context and hooks for future authentication.
 
 **Acceptance Criteria:**
@@ -593,6 +622,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-030: Add Protected Route Middleware
+
 **Description:** Create middleware structure for route protection.
 
 **Acceptance Criteria:**
@@ -615,6 +645,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## Phase 11: Testing & Documentation
 
 ### DASH-031: Add Component Tests
+
 **Description:** Add unit tests for shared components.
 
 **Files:**
@@ -628,6 +659,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-032: Add Hook Tests
+
 **Description:** Add unit tests for React Query hooks.
 
 **Files:**
@@ -641,6 +673,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ---
 
 ### DASH-033: Update Documentation
+
 **Description:** Update AGENTS.md and README with dashboard v2 info.
 
 **Files:**
@@ -656,41 +689,41 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 
 ## Task Summary
 
-| ID | Title | Effort | Phase | Dependencies | Status |
-|----|-------|--------|-------|--------------|--------|
-| DASH-001 | Install TanStack Query | S | 1 | None | ⬜ |
-| DASH-002 | Create TypeScript Types | M | 1 | None | ⬜ |
-| DASH-003 | Create Query Client Provider | S | 1 | DASH-001 | ⬜ |
-| DASH-004 | Create React Query Hooks | L | 1 | DASH-002,003 | ⬜ |
-| DASH-005 | Extract Sidebar Component | M | 2 | None | ⬜ |
-| DASH-006 | Create Error Fallback Components | S | 2 | None | ⬜ |
-| DASH-007 | Create Loading Components | M | 2 | None | ⬜ |
-| DASH-008 | Create Empty State Component | S | 2 | None | ⬜ |
-| DASH-009 | Create Data Table Component | L | 2 | None | ⬜ |
-| DASH-010 | Create Detail Panel Component | M | 2 | None | ⬜ |
-| DASH-011 | Extract Agent List Component | M | 3 | DASH-004,009 | ⬜ |
-| DASH-012 | Extract Agent Details Component | L | 3 | DASH-004,010 | ⬜ |
-| DASH-013 | Refactor Agents Page | S | 3 | DASH-011,012 | ⬜ |
-| DASH-014 | Extract Workflow Components | L | 4 | DASH-004 | ⬜ |
-| DASH-015 | Refactor Workflows Page | S | 4 | DASH-014 | ⬜ |
-| DASH-016 | Extract Tool Components | L | 5 | DASH-004 | ⬜ |
-| DASH-017 | Refactor Tools Page | S | 5 | DASH-016 | ⬜ |
-| DASH-018 | Extract Trace Components | XL | 6 | DASH-004 | ⬜ |
-| DASH-019 | Refactor Observability Page | S | 6 | DASH-018 | ⬜ |
-| DASH-020 | Extract Memory Components | L | 7 | DASH-004 | ⬜ |
-| DASH-021 | Refactor Memory Page | S | 7 | DASH-020 | ⬜ |
-| DASH-022 | Extract Vectors Components | L | 8 | DASH-004 | ⬜ |
-| DASH-023 | Extract Logs Components | M | 8 | DASH-004 | ⬜ |
-| DASH-024 | Extract Telemetry Components | M | 8 | DASH-004 | ⬜ |
-| DASH-025 | Refactor Remaining Pages | M | 8 | DASH-022-024 | ⬜ |
-| DASH-026 | Refactor Dashboard Home | M | 9 | DASH-004 | ⬜ |
-| DASH-027 | Add Loading States | M | 9 | DASH-007 | ⬜ |
-| DASH-028 | Add Error Boundaries | M | 9 | DASH-006 | ⬜ |
-| DASH-029 | Create Auth Context Structure | M | 10 | None | ⬜ |
-| DASH-030 | Add Protected Route Middleware | M | 10 | None | ⬜ |
-| DASH-031 | Add Component Tests | L | 11 | All components | ⬜ |
-| DASH-032 | Add Hook Tests | M | 11 | DASH-004 | ⬜ |
-| DASH-033 | Update Documentation | S | 11 | All tasks | ⬜ |
+| ID       | Title                            | Effort | Phase | Dependencies   | Status |
+| -------- | -------------------------------- | ------ | ----- | -------------- | ------ |
+| DASH-001 | Install TanStack Query           | S      | 1     | None           | ⬜     |
+| DASH-002 | Create TypeScript Types          | M      | 1     | None           | ⬜     |
+| DASH-003 | Create Query Client Provider     | S      | 1     | DASH-001       | ⬜     |
+| DASH-004 | Create React Query Hooks         | L      | 1     | DASH-002,003   | ⬜     |
+| DASH-005 | Extract Sidebar Component        | M      | 2     | None           | ⬜     |
+| DASH-006 | Create Error Fallback Components | S      | 2     | None           | ⬜     |
+| DASH-007 | Create Loading Components        | M      | 2     | None           | ⬜     |
+| DASH-008 | Create Empty State Component     | S      | 2     | None           | ⬜     |
+| DASH-009 | Create Data Table Component      | L      | 2     | None           | ⬜     |
+| DASH-010 | Create Detail Panel Component    | M      | 2     | None           | ⬜     |
+| DASH-011 | Extract Agent List Component     | M      | 3     | DASH-004,009   | ⬜     |
+| DASH-012 | Extract Agent Details Component  | L      | 3     | DASH-004,010   | ⬜     |
+| DASH-013 | Refactor Agents Page             | S      | 3     | DASH-011,012   | ⬜     |
+| DASH-014 | Extract Workflow Components      | L      | 4     | DASH-004       | ⬜     |
+| DASH-015 | Refactor Workflows Page          | S      | 4     | DASH-014       | ⬜     |
+| DASH-016 | Extract Tool Components          | L      | 5     | DASH-004       | ⬜     |
+| DASH-017 | Refactor Tools Page              | S      | 5     | DASH-016       | ⬜     |
+| DASH-018 | Extract Trace Components         | XL     | 6     | DASH-004       | ⬜     |
+| DASH-019 | Refactor Observability Page      | S      | 6     | DASH-018       | ⬜     |
+| DASH-020 | Extract Memory Components        | L      | 7     | DASH-004       | ⬜     |
+| DASH-021 | Refactor Memory Page             | S      | 7     | DASH-020       | ⬜     |
+| DASH-022 | Extract Vectors Components       | L      | 8     | DASH-004       | ⬜     |
+| DASH-023 | Extract Logs Components          | M      | 8     | DASH-004       | ⬜     |
+| DASH-024 | Extract Telemetry Components     | M      | 8     | DASH-004       | ⬜     |
+| DASH-025 | Refactor Remaining Pages         | M      | 8     | DASH-022-024   | ⬜     |
+| DASH-026 | Refactor Dashboard Home          | M      | 9     | DASH-004       | ⬜     |
+| DASH-027 | Add Loading States               | M      | 9     | DASH-007       | ⬜     |
+| DASH-028 | Add Error Boundaries             | M      | 9     | DASH-006       | ⬜     |
+| DASH-029 | Create Auth Context Structure    | M      | 10    | None           | ⬜     |
+| DASH-030 | Add Protected Route Middleware   | M      | 10    | None           | ⬜     |
+| DASH-031 | Add Component Tests              | L      | 11    | All components | ⬜     |
+| DASH-032 | Add Hook Tests                   | M      | 11    | DASH-004       | ⬜     |
+| DASH-033 | Update Documentation             | S      | 11    | All tasks      | ⬜     |
 
 **Legend:** S = Small (< 30 min), M = Medium (30-60 min), L = Large (> 1 hr), XL = Extra Large (> 2 hrs)
 

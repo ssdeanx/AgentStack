@@ -28,4 +28,4 @@ Mastra includes a set of ready-to-use scorers for common evaluation categories.
 
 Use these built-in scorers directly from `@mastra/evals/scorers/prebuilt`.
 
-*Source: Mastra docs — evals/built-in-scorers.mdx*
+_Source: Mastra docs — evals/built-in-scorers.mdx_

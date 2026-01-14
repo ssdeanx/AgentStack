@@ -349,9 +349,9 @@ describe('calendar-tool', () => {
 
             // Should have free slots between meetings
             const { freeSlots } = result as any
-            expect(freeSlots.some((slot: FreeSlot) => slot.durationMinutes >= 30)).toBe(
-                true
-            )
+            expect(
+                freeSlots.some((slot: FreeSlot) => slot.durationMinutes >= 30)
+            ).toBe(true)
         })
 
         it('should handle day with no events', async () => {
@@ -432,7 +432,9 @@ describe('calendar-tool', () => {
             // The 15-minute meeting creates gaps, but we require 60+ minutes
             // Should filter out slots smaller than 60 minutes
             expect(
-                (result as any).freeSlots.every((slot: FreeSlot) => slot.durationMinutes >= 60)
+                (result as any).freeSlots.every(
+                    (slot: FreeSlot) => slot.durationMinutes >= 60
+                )
             ).toBe(true)
         })
     })

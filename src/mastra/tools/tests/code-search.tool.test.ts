@@ -23,10 +23,14 @@ afterEach(async () => {
 describe('codeSearchTool', () => {
     it('finds simple string matches in files', async () => {
         const file1 = path.join(tmpDir, 'a.js')
-        const content = 'const foo = 1\nconsole.log(foo)\n// TODO: remove' 
+        const content = 'const foo = 1\nconsole.log(foo)\n// TODO: remove'
         await fs.writeFile(file1, content, 'utf-8')
 
-        const res = await codeSearchTool.execute({ pattern: 'foo', target: [file1], options: { includeContext: true } })
+        const res = await codeSearchTool.execute({
+            pattern: 'foo',
+            target: [file1],
+            options: { includeContext: true },
+        })
         expect(res.matches.length).toBeGreaterThanOrEqual(1)
         expect(res.stats.totalMatches).toBeGreaterThanOrEqual(1)
         expect(res.matches[0].content).toContain('foo')
@@ -38,7 +42,11 @@ describe('codeSearchTool', () => {
         const lines = Array.from({ length: 50 }, (_, i) => `val${i}`)
         await fs.writeFile(file, lines.join('\n'), 'utf-8')
 
-        const res = await codeSearchTool.execute({ pattern: 'val\\d+', target: [file], options: { isRegex: true, maxResults: 10 } })
+        const res = await codeSearchTool.execute({
+            pattern: 'val\\d+',
+            target: [file],
+            options: { isRegex: true, maxResults: 10 },
+        })
         expect(res.matches.length).toBeLessThanOrEqual(10)
     })
 })

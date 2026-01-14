@@ -52,7 +52,6 @@ import {
 } from '../tools/finnhub-tools'
 import { InternalSpans } from '@mastra/core/observability'
 
-
 export interface GraphingRuntimeContext extends RequestContext {
     language?: 'en' | 'es' | 'fr' | 'ja'
     userTier?: 'free' | 'pro' | 'enterprise'
@@ -145,8 +144,8 @@ Rules and best practices:
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     inputProcessors: [
         new UnicodeNormalizer({
@@ -211,9 +210,9 @@ export const technicalAnalysisAgent = new Agent({
         candlestickPatternTool,
     },
     options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
@@ -263,8 +262,8 @@ export const mappingAgent = new Agent({
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
@@ -287,9 +286,9 @@ export const fetchAgent = new Agent({
     memory: pgMemory,
     tools: { resilientFetchTool },
     options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(32768)],
 })
@@ -320,8 +319,8 @@ export const finnhubAgent = new Agent({
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
@@ -391,8 +390,8 @@ Rules:
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
 })
@@ -450,9 +449,9 @@ Rules:
         getRepositoryInfo,
     },
     options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
     },
     outputProcessors: [new TokenLimiterProcessor(65536)],
     defaultOptions: {

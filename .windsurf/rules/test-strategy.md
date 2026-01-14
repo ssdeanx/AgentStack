@@ -21,11 +21,11 @@ These rules define the testing process that must be followed when implementing o
 
 ### Template Example
 
-| Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result                               | Notes |
-|--------|----------------------|---------------------------------------|----------------------------------------------|-------|
+| Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result                                | Notes |
+| ------- | -------------------- | ------------------------------------ | ---------------------------------------------- | ----- |
 | TC-N-01 | Valid input A        | Equivalence – normal                 | Processing succeeds and returns expected value | -     |
-| TC-A-01 | NULL                 | Boundary – NULL                      | Validation error (required field)            | -     |
-| ...     | ...                  | ...                                   | ...                                          | ...   |
+| TC-A-01 | NULL                 | Boundary – NULL                      | Validation error (required field)              | -     |
+| ...     | ...                  | ...                                  | ...                                            | ...   |
 
 ---
 
@@ -34,12 +34,12 @@ These rules define the testing process that must be followed when implementing o
 1. Implement **all** cases listed in the above table as automated tests.
 2. **Always include failure cases equal to or more than normal cases** (validation errors, exceptions, external dependency failures, etc.).
 3. Cover the following perspectives in tests:
-   - Normal cases (main scenarios)
-   - Error cases (validation errors, exception paths)
-   - Boundary values (0, minimum, maximum, ±1, empty, NULL)
-   - Invalid type/format inputs
-   - External dependency failures (API / DB / messaging, etc. when applicable)
-   - Exception types and error messages
+    - Normal cases (main scenarios)
+    - Error cases (validation errors, exception paths)
+    - Boundary values (0, minimum, maximum, ±1, empty, NULL)
+    - Invalid type/format inputs
+    - External dependency failures (API / DB / messaging, etc. when applicable)
+    - Exception types and error messages
 4. Furthermore, aim for 100% branch coverage and design additional cases yourself as needed.
    100% branch coverage is a target; if not reasonably achievable, at minimum cover branches with high business impact and main error paths.
    If there are uncovered branches, state the reason and impact in `Notes` or the PR body.
@@ -71,7 +71,7 @@ Write comments directly above the test code or within steps to keep the scenario
 ## 5. Execution Commands and Coverage
 
 1. At the end of test implementation, always document the **execution command** and **coverage acquisition method** at the end of documentation or PR body.
-   - Examples: `npm run test`, `pnpm vitest run --coverage`, `pytest --cov=...`
+    - Examples: `npm run test`, `pnpm vitest run --coverage`, `pytest --cov=...`
 2. Check branch coverage and statement coverage, aiming for 100% branch coverage (if not reasonably achievable, prioritize branches with high business impact and main error paths).
 3. Attach coverage report verification results (screenshots or summaries) where possible.
 
@@ -91,4 +91,3 @@ Write comments directly above the test code or within steps to keep the scenario
 ---
 
 Follow this rule and always self-check for missing perspectives before designing and implementing tests.
-

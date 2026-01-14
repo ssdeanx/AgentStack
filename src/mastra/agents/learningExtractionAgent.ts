@@ -9,28 +9,32 @@ import type { RequestContext } from '@mastra/core/request-context'
 import { InternalSpans } from '@mastra/core/observability'
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface LearningExtractionAgentContext {
-  userId?: string
-  researchPhase?: string
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    userId?: string
+    researchPhase?: string
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Learning Extraction Agent...')
 
 export const learningExtractionAgent = new Agent({
-  id: 'learningExtractionAgent',
-  name: 'Learning Extraction Agent',
-  description:
-    'An expert at analyzing search results and extracting key insights to deepen research understanding.',
-  instructions: ({ requestContext }: { requestContext: RequestContext<LearningExtractionAgentContext> }) => {
-    const userId = requestContext.get('userId')
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+    id: 'learningExtractionAgent',
+    name: 'Learning Extraction Agent',
+    description:
+        'An expert at analyzing search results and extracting key insights to deepen research understanding.',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<LearningExtractionAgentContext>
+    }) => {
+        const userId = requestContext.get('userId')
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        const researchPhase = requestContext.get('researchPhase') ?? 'initial'
 
-    return {
-      role: 'system',
-      content: `
+        return {
+            role: 'system',
+            content: `
 # Learning Extraction Agent
 User: ${userId ?? 'anonymous'} | Tier: ${userTier} | Phase: ${researchPhase}
 
@@ -42,27 +46,25 @@ Extract the single most important learning and create one relevant follow-up que
 - **Focus**: Actionable insights and specific info only.
 - **Context**: Consider the original research query.
 `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          }
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: googleAI,
-  memory: pgMemory,
-  scorers: {
-
-  },
-  options: {
-    tracingPolicy: {
-      internal: InternalSpans.ALL
-    }
-  },
-  workflows: {},
-  maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(128000)]
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: googleAI,
+    memory: pgMemory,
+    scorers: {},
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    workflows: {},
+    maxRetries: 5,
+    outputProcessors: [new TokenLimiterProcessor(128000)],
 })

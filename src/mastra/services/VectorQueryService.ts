@@ -162,7 +162,9 @@ export class VectorQueryService {
 
     static async generateQueryEmbedding(question: string): Promise<number[]> {
         const { embeddings } = await embedMany({
-            model: new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
+            model: new ModelRouterEmbeddingModel(
+                'google/gemini-embedding-001)'
+            ),
             values: [question],
         })
         return embeddings[0] as number[]

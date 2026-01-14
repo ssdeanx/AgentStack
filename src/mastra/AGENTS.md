@@ -12,17 +12,17 @@ This folder contains the middleware and high-level components that define Mastra
 
 ## Key Files
 
-| File | Description |
-| ---- | ----------- |
-| `index.ts` | Library entry point bootstrapping Mastra with 25+ agents, 10 workflows, 4 networks, MCP servers, and observability |
-| `agents/` | 22+ agent definitions (weather, research, stock analysis, content, data processing) |
-| `workflows/` | 10 workflow definitions (weather, content, financial, document, research) |
-| `networks/` | 4 agent networks for routing (agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork) |
-| `tools/` | 30+ reusable tools for agents (see `src/mastra/tools/AGENTS.md`) |
-| `config/` | Runtime configuration for models, storage, and logging (see `src/mastra/config/AGENTS.md`) |
-| `mcp/` | MCP server for A2A coordination |
-| `a2a/` | Agent-to-Agent coordinator |
-| `scorers/` | Evaluation scorers for quality assessment |
+| File         | Description                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `index.ts`   | Library entry point bootstrapping Mastra with 25+ agents, 10 workflows, 4 networks, MCP servers, and observability |
+| `agents/`    | 22+ agent definitions (weather, research, stock analysis, content, data processing)                                |
+| `workflows/` | 10 workflow definitions (weather, content, financial, document, research)                                          |
+| `networks/`  | 4 agent networks for routing (agentNetwork, dataPipelineNetwork, reportGenerationNetwork, researchPipelineNetwork) |
+| `tools/`     | 30+ reusable tools for agents (see `src/mastra/tools/AGENTS.md`)                                                   |
+| `config/`    | Runtime configuration for models, storage, and logging (see `src/mastra/config/AGENTS.md`)                         |
+| `mcp/`       | MCP server for A2A coordination                                                                                    |
+| `a2a/`       | Agent-to-Agent coordinator                                                                                         |
+| `scorers/`   | Evaluation scorers for quality assessment                                                                          |
 
 ## How to extend
 
@@ -48,4 +48,5 @@ This folder contains the middleware and high-level components that define Mastra
 - Use `RequestContext` (per-request) or agent-specific runtime context types (e.g. `EditorRuntimeContext`) to enforce access control in tools and workflows.
 
 ---
+
 Last updated: 2025-11-26

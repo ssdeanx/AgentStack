@@ -62,7 +62,12 @@ export type TimeRange =
 /**
  * Sort options for various searches
  */
-export type SortBy = 'relevance' | 'date' | 'rating' | 'price-asc' | 'price-desc'
+export type SortBy =
+    | 'relevance'
+    | 'date'
+    | 'rating'
+    | 'price-asc'
+    | 'price-desc'
 
 /**
  * News topic categories

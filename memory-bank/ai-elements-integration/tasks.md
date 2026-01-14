@@ -2,21 +2,21 @@
 
 ## Task Overview
 
-| ID | Task | Status | Priority | Estimate | Dependencies |
-|----|------|--------|----------|----------|--------------|
-| AIEL-001 | Create ChatContext provider | ✅ Complete | High | 2h | None |
-| AIEL-002 | Create agent configuration system | ✅ Complete | High | 1h | None |
-| AIEL-003 | Implement ChatHeader with ModelSelector | ✅ Complete | High | 2h | AIEL-002 |
-| AIEL-004 | Implement ChatMessages with AI Elements | ✅ Complete | High | 3h | AIEL-001 |
-| AIEL-005 | Implement ChatInput with PromptInput | ✅ Complete | High | 2h | AIEL-001 |
-| AIEL-006 | Add Reasoning display for applicable agents | ✅ Complete | Medium | 2h | AIEL-004 |
-| AIEL-007 | Add Tool execution display | ✅ Complete | Medium | 2h | AIEL-004 |
-| AIEL-008 | Add Sources display for research agents | ✅ Complete | Medium | 1.5h | AIEL-004 |
-| AIEL-009 | Add Context (token usage) tracking | ✅ Complete | Low | 1h | AIEL-003 |
-| AIEL-010 | Add file upload support | ✅ Complete | Medium | 2h | AIEL-005 |
-| AIEL-011 | Add Artifact display for generated content | ✅ Complete | Medium | 1.5h | AIEL-004 |
-| AIEL-012 | Integrate chat page with all components | ✅ Complete | High | 2h | AIEL-001 to AIEL-005 |
-| AIEL-013 | Add E2E tests for core flows | Not Started | Medium | 3h | AIEL-012 |
+| ID       | Task                                        | Status      | Priority | Estimate | Dependencies         |
+| -------- | ------------------------------------------- | ----------- | -------- | -------- | -------------------- |
+| AIEL-001 | Create ChatContext provider                 | ✅ Complete | High     | 2h       | None                 |
+| AIEL-002 | Create agent configuration system           | ✅ Complete | High     | 1h       | None                 |
+| AIEL-003 | Implement ChatHeader with ModelSelector     | ✅ Complete | High     | 2h       | AIEL-002             |
+| AIEL-004 | Implement ChatMessages with AI Elements     | ✅ Complete | High     | 3h       | AIEL-001             |
+| AIEL-005 | Implement ChatInput with PromptInput        | ✅ Complete | High     | 2h       | AIEL-001             |
+| AIEL-006 | Add Reasoning display for applicable agents | ✅ Complete | Medium   | 2h       | AIEL-004             |
+| AIEL-007 | Add Tool execution display                  | ✅ Complete | Medium   | 2h       | AIEL-004             |
+| AIEL-008 | Add Sources display for research agents     | ✅ Complete | Medium   | 1.5h     | AIEL-004             |
+| AIEL-009 | Add Context (token usage) tracking          | ✅ Complete | Low      | 1h       | AIEL-003             |
+| AIEL-010 | Add file upload support                     | ✅ Complete | Medium   | 2h       | AIEL-005             |
+| AIEL-011 | Add Artifact display for generated content  | ✅ Complete | Medium   | 1.5h     | AIEL-004             |
+| AIEL-012 | Integrate chat page with all components     | ✅ Complete | High     | 2h       | AIEL-001 to AIEL-005 |
+| AIEL-013 | Add E2E tests for core flows                | Not Started | Medium   | 3h       | AIEL-012             |
 
 **Total Estimate:** ~24 hours  
 **Completed:** ~23 hours (AIEL-001 through AIEL-012)
@@ -26,22 +26,26 @@
 ## Critical Fix: AI SDK v5 Compatibility
 
 ### Issue
+
 The chat components were using deprecated AI SDK v4 types and patterns.
 
 ### Changes Made
 
 #### chat-context.tsx
+
 - Replaced `UIToolInvocation` with `DynamicToolUIPart`
 - Removed `content` field from `UIMessage` (v5 uses parts only)
 - Changed `reasoning` chunk type to `reasoning-delta` (Mastra format)
 - Fixed finish payload: `chunk.payload.output.usage.inputTokens`
 - Added `getTextFromParts()` helper for text extraction
 
-#### chat-messages.tsx  
+#### chat-messages.tsx
+
 - Using AI SDK v5 type guards: `isTextUIPart`, `isReasoningUIPart`, `isToolOrDynamicToolUIPart`
 - Extracting content from parts instead of `message.content`
 
 #### agent-tools.tsx
+
 - Always constructing `tool-${toolName}` for ToolHeader type prop
 - Using `DynamicToolUIPart` for type safety
 
@@ -55,6 +59,7 @@ The chat components were using deprecated AI SDK v4 types and patterns.
 **Dependencies:** None
 
 ### Description
+
 Create a React Context provider for managing chat state across all components.
 
 ### Acceptance Criteria
@@ -72,13 +77,13 @@ Create a React Context provider for managing chat state across all components.
 ```typescript
 // File: app/chat/providers/chat-context.tsx
 interface ChatState {
-  messages: UIMessage[]
-  isLoading: boolean
-  status: 'ready' | 'submitted' | 'streaming' | 'error'
-  selectedAgent: string
-  streamingContent: string
-  usage: LanguageModelUsage | null
-  error: string | null
+    messages: UIMessage[]
+    isLoading: boolean
+    status: 'ready' | 'submitted' | 'streaming' | 'error'
+    selectedAgent: string
+    streamingContent: string
+    usage: LanguageModelUsage | null
+    error: string | null
 }
 ```
 
@@ -96,6 +101,7 @@ interface ChatState {
 **Dependencies:** None
 
 ### Description
+
 Create a centralized configuration system for all 26+ agents with their UI features.
 
 ### Acceptance Criteria
@@ -112,19 +118,26 @@ Create a centralized configuration system for all 26+ agents with their UI featu
 ```typescript
 // File: app/chat/config/agents.ts
 export interface AgentConfig {
-  id: string
-  name: string
-  description: string
-  category: 'core' | 'research' | 'content' | 'data' | 'financial' | 'diagram' | 'utility'
-  features: {
-    reasoning: boolean
-    chainOfThought: boolean
-    tools: boolean
-    sources: boolean
-    canvas: boolean
-    artifacts: boolean
-    fileUpload: boolean
-  }
+    id: string
+    name: string
+    description: string
+    category:
+        | 'core'
+        | 'research'
+        | 'content'
+        | 'data'
+        | 'financial'
+        | 'diagram'
+        | 'utility'
+    features: {
+        reasoning: boolean
+        chainOfThought: boolean
+        tools: boolean
+        sources: boolean
+        canvas: boolean
+        artifacts: boolean
+        fileUpload: boolean
+    }
 }
 
 // Must include ALL 26+ agents:
@@ -152,6 +165,7 @@ export interface AgentConfig {
 **Dependencies:** AIEL-002
 
 ### Description
+
 Create the chat header component with agent/model selection using the ModelSelector AI Element.
 
 ### Acceptance Criteria
@@ -169,15 +183,24 @@ Create the chat header component with agent/model selection using the ModelSelec
 ```typescript
 // File: app/chat/components/chat-header.tsx
 // Use these AI Elements:
-import { 
-  ModelSelector, ModelSelectorTrigger, ModelSelectorContent,
-  ModelSelectorInput, ModelSelectorList, ModelSelectorGroup,
-  ModelSelectorItem, ModelSelectorName
+import {
+    ModelSelector,
+    ModelSelectorTrigger,
+    ModelSelectorContent,
+    ModelSelectorInput,
+    ModelSelectorList,
+    ModelSelectorGroup,
+    ModelSelectorItem,
+    ModelSelectorName,
 } from '@/components/ai-elements/model-selector'
 
 import {
-  Context, ContextTrigger, ContextContent,
-  ContextContentHeader, ContextContentBody, ContextContentFooter
+    Context,
+    ContextTrigger,
+    ContextContent,
+    ContextContentHeader,
+    ContextContentBody,
+    ContextContentFooter,
 } from '@/components/ai-elements/context'
 ```
 
@@ -195,6 +218,7 @@ import {
 **Dependencies:** AIEL-001
 
 ### Description
+
 Create the chat messages component using Conversation and Message AI Elements.
 
 ### Acceptance Criteria
@@ -213,13 +237,19 @@ Create the chat messages component using Conversation and Message AI Elements.
 ```typescript
 // File: app/chat/components/chat-messages.tsx
 import {
-  Conversation, ConversationContent, ConversationEmptyState,
-  ConversationScrollButton
+    Conversation,
+    ConversationContent,
+    ConversationEmptyState,
+    ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 
 import {
-  Message, MessageContent, MessageResponse, MessageToolbar,
-  MessageActions, MessageAction
+    Message,
+    MessageContent,
+    MessageResponse,
+    MessageToolbar,
+    MessageActions,
+    MessageAction,
 } from '@/components/ai-elements/message'
 ```
 
@@ -237,6 +267,7 @@ import {
 **Dependencies:** AIEL-001
 
 ### Description
+
 Create the chat input component using the PromptInput AI Element.
 
 ### Acceptance Criteria
@@ -254,9 +285,13 @@ Create the chat input component using the PromptInput AI Element.
 ```typescript
 // File: app/chat/components/chat-input.tsx
 import {
-  PromptInput, PromptInputTextarea, PromptInputFooter,
-  PromptInputTools, PromptInputSubmit, PromptInputButton,
-  PromptInputSpeechButton
+    PromptInput,
+    PromptInputTextarea,
+    PromptInputFooter,
+    PromptInputTools,
+    PromptInputSubmit,
+    PromptInputButton,
+    PromptInputSpeechButton,
 } from '@/components/ai-elements/prompt-input'
 ```
 
@@ -274,6 +309,7 @@ import {
 **Dependencies:** AIEL-004
 
 ### Description
+
 Add Reasoning and ChainOfThought components for agents that support reasoning.
 
 ### Acceptance Criteria
@@ -293,10 +329,16 @@ Add Reasoning and ChainOfThought components for agents that support reasoning.
 // contentStrategistAgent, scriptWriterAgent, stockAnalysisAgent,
 // chartTypeAdvisorAgent, chartSupervisorAgent, evaluationAgent, learningExtractionAgent
 
-import { Reasoning, ReasoningTrigger, ReasoningContent } from '@/components/ai-elements/reasoning'
 import {
-  ChainOfThought, ChainOfThoughtHeader, ChainOfThoughtContent,
-  ChainOfThoughtStep
+    Reasoning,
+    ReasoningTrigger,
+    ReasoningContent,
+} from '@/components/ai-elements/reasoning'
+import {
+    ChainOfThought,
+    ChainOfThoughtHeader,
+    ChainOfThoughtContent,
+    ChainOfThoughtStep,
 } from '@/components/ai-elements/chain-of-thought'
 ```
 
@@ -315,6 +357,7 @@ import {
 **Dependencies:** AIEL-004
 
 ### Description
+
 Add Tool component to display tool calls and results.
 
 ### Acceptance Criteria
@@ -332,12 +375,22 @@ Add Tool component to display tool calls and results.
 ```typescript
 // Almost all agents have tools: true in their features
 import {
-  Tool, ToolHeader, ToolContent, ToolInput, ToolOutput
+    Tool,
+    ToolHeader,
+    ToolContent,
+    ToolInput,
+    ToolOutput,
 } from '@/components/ai-elements/tool'
 
-import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-block'
 import {
-  Confirmation, ConfirmationTitle, ConfirmationActions, ConfirmationAction
+    CodeBlock,
+    CodeBlockCopyButton,
+} from '@/components/ai-elements/code-block'
+import {
+    Confirmation,
+    ConfirmationTitle,
+    ConfirmationActions,
+    ConfirmationAction,
 } from '@/components/ai-elements/confirmation'
 ```
 
@@ -356,6 +409,7 @@ import {
 **Dependencies:** AIEL-004
 
 ### Description
+
 Add Sources component for research agents that cite sources.
 
 ### Acceptance Criteria
@@ -374,7 +428,10 @@ Add Sources component for research agents that cite sources.
 // researchAgent, researchPaperAgent, documentProcessingAgent, reportAgent, stockAnalysisAgent
 
 import {
-  Sources, SourcesTrigger, SourcesContent, Source
+    Sources,
+    SourcesTrigger,
+    SourcesContent,
+    Source,
 } from '@/components/ai-elements/sources'
 ```
 
@@ -393,6 +450,7 @@ import {
 **Dependencies:** AIEL-003
 
 ### Description
+
 Add Context component to display token usage and cost estimates.
 
 ### Acceptance Criteria
@@ -426,6 +484,7 @@ Add Context component to display token usage and cost estimates.
 **Dependencies:** AIEL-005
 
 ### Description
+
 Add file attachment support using PromptInput attachment components.
 
 ### Acceptance Criteria
@@ -444,9 +503,12 @@ Add file attachment support using PromptInput attachment components.
 // documentProcessingAgent, dataIngestionAgent, imageToCsvAgent, dataTransformationAgent
 
 import {
-  PromptInputAttachments, PromptInputAttachment,
-  PromptInputActionMenu, PromptInputActionMenuTrigger,
-  PromptInputActionMenuContent, PromptInputActionAddAttachments
+    PromptInputAttachments,
+    PromptInputAttachment,
+    PromptInputActionMenu,
+    PromptInputActionMenuTrigger,
+    PromptInputActionMenuContent,
+    PromptInputActionAddAttachments,
 } from '@/components/ai-elements/prompt-input'
 ```
 
@@ -464,6 +526,7 @@ import {
 **Dependencies:** AIEL-004
 
 ### Description
+
 Add Artifact component for displaying generated code, diagrams, and reports.
 
 ### Acceptance Criteria
@@ -485,11 +548,20 @@ Add Artifact component for displaying generated code, diagrams, and reports.
 // imageToCsvAgent, evaluationAgent, sqlAgent
 
 import {
-  Artifact, ArtifactHeader, ArtifactTitle, ArtifactDescription,
-  ArtifactActions, ArtifactAction, ArtifactClose, ArtifactContent
+    Artifact,
+    ArtifactHeader,
+    ArtifactTitle,
+    ArtifactDescription,
+    ArtifactActions,
+    ArtifactAction,
+    ArtifactClose,
+    ArtifactContent,
 } from '@/components/ai-elements/artifact'
 
-import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-block'
+import {
+    CodeBlock,
+    CodeBlockCopyButton,
+} from '@/components/ai-elements/code-block'
 ```
 
 ### Files to Create/Modify
@@ -507,6 +579,7 @@ import { CodeBlock, CodeBlockCopyButton } from '@/components/ai-elements/code-bl
 **Dependencies:** AIEL-001 through AIEL-005
 
 ### Description
+
 Rebuild the main chat page integrating all created components.
 
 ### Acceptance Criteria
@@ -555,6 +628,7 @@ export default function ChatPage() {
 **Dependencies:** AIEL-012
 
 ### Description
+
 Create end-to-end tests for the core chat functionality.
 
 ### Acceptance Criteria
@@ -614,38 +688,38 @@ Create end-to-end tests for the core chat functionality.
 
 ### AI Elements Used (23 of 30)
 
-| Component | Task(s) | Status |
-|-----------|---------|--------|
-| message | AIEL-004 | Not Started |
-| conversation | AIEL-004 | Not Started |
-| prompt-input | AIEL-005, AIEL-010 | Not Started |
-| suggestion | Future | - |
-| reasoning | AIEL-006 | Not Started |
-| chain-of-thought | AIEL-006 | Not Started |
-| plan | Future | - |
-| task | Future | - |
-| tool | AIEL-007 | Not Started |
-| code-block | AIEL-007, AIEL-011 | Not Started |
-| artifact | AIEL-011 | Not Started |
-| sources | AIEL-008 | Not Started |
-| canvas | Future (diagram agents) | - |
-| node | Future | - |
-| edge | Future | - |
-| connection | Future | - |
-| controls | Future | - |
-| loader | AIEL-004 | Not Started |
-| shimmer | AIEL-006 | Not Started |
-| checkpoint | Future | - |
-| context | AIEL-009 | Not Started |
-| confirmation | AIEL-007 | Not Started |
-| model-selector | AIEL-003 | Not Started |
-| open-in-chat | Future | - |
-| web-preview | Future | - |
-| image | Future | - |
-| inline-citation | Future | - |
-| panel | Future | - |
-| toolbar | Future | - |
-| queue | Future | - |
+| Component        | Task(s)                 | Status      |
+| ---------------- | ----------------------- | ----------- |
+| message          | AIEL-004                | Not Started |
+| conversation     | AIEL-004                | Not Started |
+| prompt-input     | AIEL-005, AIEL-010      | Not Started |
+| suggestion       | Future                  | -           |
+| reasoning        | AIEL-006                | Not Started |
+| chain-of-thought | AIEL-006                | Not Started |
+| plan             | Future                  | -           |
+| task             | Future                  | -           |
+| tool             | AIEL-007                | Not Started |
+| code-block       | AIEL-007, AIEL-011      | Not Started |
+| artifact         | AIEL-011                | Not Started |
+| sources          | AIEL-008                | Not Started |
+| canvas           | Future (diagram agents) | -           |
+| node             | Future                  | -           |
+| edge             | Future                  | -           |
+| connection       | Future                  | -           |
+| controls         | Future                  | -           |
+| loader           | AIEL-004                | Not Started |
+| shimmer          | AIEL-006                | Not Started |
+| checkpoint       | Future                  | -           |
+| context          | AIEL-009                | Not Started |
+| confirmation     | AIEL-007                | Not Started |
+| model-selector   | AIEL-003                | Not Started |
+| open-in-chat     | Future                  | -           |
+| web-preview      | Future                  | -           |
+| image            | Future                  | -           |
+| inline-citation  | Future                  | -           |
+| panel            | Future                  | -           |
+| toolbar          | Future                  | -           |
+| queue            | Future                  | -           |
 
 ---
 

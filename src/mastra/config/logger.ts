@@ -1,4 +1,4 @@
-import { PinoLogger } from "@mastra/loggers";
+import { PinoLogger } from '@mastra/loggers'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 // Logger intentionally contains no tracing logic. Observability exporters/bridges handle traces separately.
@@ -29,11 +29,10 @@ export const log = new PinoLogger({
     }),
     formatters: {
         // Add custom formatter to include trace and baggage info
-//        log(object) {
-//            return attachTraceAndBaggage(object)
-//        },
+        //        log(object) {
+        //            return attachTraceAndBaggage(object)
+        //        },
     },
-
 })
 
 // Create a simple file logger wrapper

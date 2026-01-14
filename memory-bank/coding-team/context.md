@@ -11,6 +11,7 @@ Researched Mastra's network and A2A patterns using official docs and examples. A
 ### Key Findings
 
 #### How Mastra Networks Work
+
 1. **Agent Networks** are routing agents with sub-agents, workflows, and tools
 2. Use `agent.network()` method for LLM-based multi-primitive orchestration
 3. Memory is **required** for network capabilities
@@ -18,6 +19,7 @@ Researched Mastra's network and A2A patterns using official docs and examples. A
 5. Networks emit streaming events for progress tracking
 
 #### How A2A Works
+
 1. **A2A Protocol** enables agent-to-agent communication
 2. Exposed via MCP server for external access
 3. Supports parallel orchestration using `Promise.all()` patterns
@@ -26,13 +28,13 @@ Researched Mastra's network and A2A patterns using official docs and examples. A
 
 ### Decisions Made
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Tool: Multi-edit | Atomic with backup | Safety for batch file operations |
-| Tool: Code analysis | Regex-based (no AST) | Simpler, language-agnostic |
-| Test framework | Vitest only | Project standard |
-| Model selection | googleAI3 for complex tasks | Following businessLegalAgents pattern |
-| New packages | `diff`, `glob` | Minimal additions, specific needs |
+| Decision            | Choice                      | Rationale                             |
+| ------------------- | --------------------------- | ------------------------------------- |
+| Tool: Multi-edit    | Atomic with backup          | Safety for batch file operations      |
+| Tool: Code analysis | Regex-based (no AST)        | Simpler, language-agnostic            |
+| Test framework      | Vitest only                 | Project standard                      |
+| Model selection     | googleAI3 for complex tasks | Following businessLegalAgents pattern |
+| New packages        | `diff`, `glob`              | Minimal additions, specific needs     |
 
 ### Architecture Confirmed
 
@@ -50,14 +52,16 @@ codingA2ACoordinator (Parallel Orchestrator)
 ### Required Packages
 
 **New Dependencies:**
+
 ```json
 {
-  "diff": "^7.0.0",
-  "glob": "^11.0.0"
+    "diff": "^7.0.0",
+    "glob": "^11.0.0"
 }
 ```
 
 **Existing Packages to Leverage:**
+
 - `fs-extra` - Already in project for file operations
 - `execa` - Already in project for shell commands (execaTool)
 - `zod` - Schema validation (core dependency)
@@ -65,16 +69,16 @@ codingA2ACoordinator (Parallel Orchestrator)
 
 ### Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/mastra/tools/multi-string-edit.tool.ts` | Batch file editing |
-| `src/mastra/tools/code-analysis.tool.ts` | Static analysis |
-| `src/mastra/tools/test-generator.tool.ts` | Vitest scaffolds |
-| `src/mastra/tools/diff-review.tool.ts` | Unified diff generation |
-| `src/mastra/tools/code-search.tool.ts` | Pattern searching |
-| `src/mastra/agents/codingAgents.ts` | 4 coding agents |
-| `src/mastra/networks/codingTeamNetwork.ts` | Network router |
-| `src/mastra/a2a/codingA2ACoordinator.ts` | A2A coordinator |
+| File                                         | Purpose                 |
+| -------------------------------------------- | ----------------------- |
+| `src/mastra/tools/multi-string-edit.tool.ts` | Batch file editing      |
+| `src/mastra/tools/code-analysis.tool.ts`     | Static analysis         |
+| `src/mastra/tools/test-generator.tool.ts`    | Vitest scaffolds        |
+| `src/mastra/tools/diff-review.tool.ts`       | Unified diff generation |
+| `src/mastra/tools/code-search.tool.ts`       | Pattern searching       |
+| `src/mastra/agents/codingAgents.ts`          | 4 coding agents         |
+| `src/mastra/networks/codingTeamNetwork.ts`   | Network router          |
+| `src/mastra/a2a/codingA2ACoordinator.ts`     | A2A coordinator         |
 
 ### Blockers
 
@@ -104,4 +108,3 @@ codingA2ACoordinator (Parallel Orchestrator)
 - [businessLegalAgents.ts](src/mastra/agents/businessLegalAgents.ts)
 - [dataPipelineNetwork.ts](src/mastra/networks/dataPipelineNetwork.ts)
 - [a2aCoordinatorAgent.ts](src/mastra/a2a/a2aCoordinatorAgent.ts)
-

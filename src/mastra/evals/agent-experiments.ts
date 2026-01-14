@@ -1,4 +1,4 @@
-import { createScorer, runEvals } from '@mastra/core/evals';
+import { createScorer, runEvals } from '@mastra/core/evals'
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { scriptWriterAgent } from '../agents/scriptWriterAgent'
@@ -9,27 +9,31 @@ import { evaluationAgent } from '../agents/evaluationAgent'
 import { imageToCsvAgent } from '../agents/image_to_csv'
 import { csvToExcalidrawAgent } from '../agents/csv_to_excalidraw'
 import { weatherAgent } from '../agents/weather-agent'
-import { log } from '../config/logger';
-import { researchAgent } from '../agents/researchAgent';
+import { log } from '../config/logger'
+import { researchAgent } from '../agents/researchAgent'
 
 export async function runContentStrategistExperiment() {
-    log.info('Running Content Strategist Experiment', { event: 'Running Content Strategist Experiment' })
+    log.info('Running Content Strategist Experiment', {
+        event: 'Running Content Strategist Experiment',
+    })
     const results = await runEvals({
         target: contentStrategistAgent,
         data: [
             {
-                input: 'Create a content plan for a new AI-powered coffee machine. Focus on tech enthusiasts. Tone: Exciting.'
+                input: 'Create a content plan for a new AI-powered coffee machine. Focus on tech enthusiasts. Tone: Exciting.',
             },
             {
-                input: 'Develop a strategy for a sustainable fashion brand launch. Target audience: Gen Z. Tone: Authentic and urgent.'
+                input: 'Develop a strategy for a sustainable fashion brand launch. Target audience: Gen Z. Tone: Authentic and urgent.',
             },
             {
-                input: 'Plan a blog series for a B2B SaaS accounting tool. Target audience: CFOs. Tone: Professional and authoritative.'
-            }
+                input: 'Plan a blog series for a B2B SaaS accounting tool. Target audience: CFOs. Tone: Professional and authoritative.',
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Content Strategist Experiment Results', { results: JSON.stringify(results, null, 2) })
+    log.info('Content Strategist Experiment Results', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -46,11 +50,13 @@ export async function runCopywriterExperiment() {
             },
             {
                 input: 'Write a product description for a luxury watch. Tone: Sophisticated and elegant.',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Copywriter Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Copywriter Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -64,11 +70,13 @@ export async function runScriptWriterExperiment() {
             },
             {
                 input: 'Create a YouTube intro for a tech review channel.',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Script Writer Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Script Writer Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -82,11 +90,13 @@ export async function runStockAnalysisExperiment() {
             },
             {
                 input: 'Should I buy TSLA right now?',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Stock Analysis Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Stock Analysis Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -100,11 +110,13 @@ export async function runReportAgentExperiment() {
             },
             {
                 input: 'Summarize the key findings from the user research interviews.',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Report Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Report Agent Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -114,13 +126,15 @@ export async function runLearningExtractionExperiment() {
         target: learningExtractionAgent,
         data: [
             {
-                input: 'Extract key learning points from this article about Rust ownership.'
-            }
+                input: 'Extract key learning points from this article about Rust ownership.',
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-        log.info('Learning Extraction Experiment Results:', { results: JSON.stringify(results, null, 2) })
-        return results
+    log.info('Learning Extraction Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
+    return results
 }
 
 export async function runEvaluationAgentExperiment() {
@@ -130,11 +144,13 @@ export async function runEvaluationAgentExperiment() {
         data: [
             {
                 input: 'Evaluate this python code for efficiency: def fib(n): return n if n < 2 else fib(n-1) + fib(n-2)',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Evaluation Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Evaluation Agent Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -145,11 +161,13 @@ export async function runImageToCsvExperiment() {
         data: [
             {
                 input: 'https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Image to CSV Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Image to CSV Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -160,11 +178,13 @@ export async function runCsvToExcalidrawExperiment() {
         data: [
             {
                 input: 'id,label,x,y\n1,Start,0,0\n2,Process,100,0\n3,End,200,0',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('CSV to Excalidraw Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('CSV to Excalidraw Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -178,55 +198,87 @@ export async function runWeatherAgentExperiment() {
             },
             {
                 input: 'Forecast for London tomorrow.',
-            }
+            },
         ],
-        scorers: []
+        scorers: [],
     })
-    log.info('Weather Agent Experiment Results:', { results: JSON.stringify(results, null, 2) })
+    log.info('Weather Agent Experiment Results:', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
 export async function runKeywordCoverageExperiment() {
     log.info('Running Keyword Coverage Experiment...')
-    const scorer = await import('./scorers/keyword-coverage').then(m => m.keywordCoverageScorer)
+    const scorer = await import('./scorers/keyword-coverage').then(
+        (m) => m.keywordCoverageScorer
+    )
     const results = await runEvals({
         target: researchAgent,
         data: [
-            { input: 'Compare React and Vue frameworks', requestContext: { requiredKeywords: ['React', 'Vue'] } as any },
-            { input: 'Discuss TypeScript features like generics and interfaces', requestContext: { requiredKeywords: ['TypeScript', 'generics', 'interfaces'] } as any }
+            {
+                input: 'Compare React and Vue frameworks',
+                requestContext: { requiredKeywords: ['React', 'Vue'] } as any,
+            },
+            {
+                input: 'Discuss TypeScript features like generics and interfaces',
+                requestContext: {
+                    requiredKeywords: ['TypeScript', 'generics', 'interfaces'],
+                } as any,
+            },
         ],
-        scorers: [scorer]
+        scorers: [scorer],
     })
-    log.info('Keyword Coverage Results', { results: JSON.stringify(results, null, 2) })
+    log.info('Keyword Coverage Results', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
 export async function runTextualDifferenceExperiment() {
     log.info('Running Textual Difference Experiment...')
-    const scorer = await import('./scorers/prebuilt').then(m => m.createTextualDifferenceScorer())
+    const scorer = await import('./scorers/prebuilt').then((m) =>
+        m.createTextualDifferenceScorer()
+    )
     const results = await runEvals({
         target: contentStrategistAgent,
         data: [
-            { input: 'Summarize the concept of recursion', groundTruth: 'Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems.' },
-            { input: 'What is the capital of France?', groundTruth: 'The capital of France is Paris.' }
+            {
+                input: 'Summarize the concept of recursion',
+                groundTruth:
+                    'Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems.',
+            },
+            {
+                input: 'What is the capital of France?',
+                groundTruth: 'The capital of France is Paris.',
+            },
         ],
-        scorers: [scorer]
+        scorers: [scorer],
     })
-    log.info('Textual Difference Results', { results: JSON.stringify(results, null, 2) })
+    log.info('Textual Difference Results', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
 export async function runSourceDiversityExperiment() {
     log.info('Running Source Diversity Experiment...')
-    const scorer = await import('./scorers/custom-scorers').then(m => m.sourceDiversityScorer)
+    const scorer = await import('./scorers/custom-scorers').then(
+        (m) => m.sourceDiversityScorer
+    )
     const results = await runEvals({
         target: researchAgent,
         data: [
-            { input: 'Collect sources about climate change', requestContext: {} as any }
+            {
+                input: 'Collect sources about climate change',
+                requestContext: {} as any,
+            },
         ],
-        scorers: [scorer]
+        scorers: [scorer],
     })
-    log.info('Source Diversity Results', { results: JSON.stringify(results, null, 2) })
+    log.info('Source Diversity Results', {
+        results: JSON.stringify(results, null, 2),
+    })
     return results
 }
 
@@ -246,4 +298,3 @@ export async function runAllExperiments(p0: unknown) {
     // await runTextualDifferenceExperiment()
     // await runSourceDiversityExperiment()
 }
-

@@ -22,20 +22,25 @@ allowed-tools: Bash(gh:*), Read, Grep
 # PR Review Workflow for #$1
 
 ## Step 1: Fetch PR Details
+
 !`gh pr view $1 --json title,body,author,files`
 
 ## Step 2: Review Files
+
 Files changed: !`gh pr diff $1 --name-only`
 
 For each file:
+
 - Check code quality
 - Verify tests exist
 - Review documentation
 
 ## Step 3: Run Checks
+
 Test status: !`gh pr checks $1`
 
 Verify:
+
 - All tests passing
 - No merge conflicts
 - CI/CD successful
@@ -43,11 +48,13 @@ Verify:
 ## Step 4: Provide Feedback
 
 Summarize:
+
 - Issues found (critical/minor)
 - Suggestions for improvement
 - Approval recommendation
 
 Would you like to:
+
 1. Approve PR
 2. Request changes
 3. Leave comments only
@@ -56,6 +63,7 @@ Reply with your choice and I'll help complete the action.
 ```
 
 **Key features:**
+
 - Numbered steps for clarity
 - Bash execution for context
 - Decision points for user input
@@ -80,13 +88,14 @@ Latest commit: !`git log -1 --format=%H`
 
 Deployment state saved to `.claude/deployment-state.local.md`:
 
-\`\`\`markdown
----
+## \`\`\`markdown
+
 initialized: true
 branch: $(git branch --show-current)
 commit: $(git log -1 --format=%H)
 timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 status: initialized
+
 ---
 
 # Deployment Tracking
@@ -95,15 +104,17 @@ Branch: $(git branch --show-current)
 Started: $(date)
 
 Next steps:
+
 1. Run tests: /deploy-test
 2. Build: /deploy-build
 3. Deploy: /deploy-execute
-\`\`\`
+   \`\`\`
 
 State saved. Run `/deploy-test` to continue.
 ```
 
 **Next command** (`/deploy-test`):
+
 ```markdown
 ---
 description: Run deployment tests
@@ -120,6 +131,7 @@ Tests complete. Run `/deploy-build` to continue.
 ```
 
 **Pattern benefits:**
+
 - Persistent state across commands
 - Clear workflow progression
 - Safety checkpoints
@@ -146,19 +158,19 @@ Status: !`git status --short`
 **Checking conditions:**
 
 1. Branch status:
-   - If main/master: Require approval
-   - If feature branch: Warning about target
-   - If hotfix: Fast-track process
+    - If main/master: Require approval
+    - If feature branch: Warning about target
+    - If hotfix: Fast-track process
 
 2. Tests:
    !`npm test`
-   - If tests fail: STOP - fix tests first
-   - If tests pass: Continue
+    - If tests fail: STOP - fix tests first
+    - If tests pass: Continue
 
 3. Environment:
-   - If $1 = 'production': Extra validation
-   - If $1 = 'staging': Standard process
-   - If $1 = 'dev': Minimal checks
+    - If $1 = 'production': Extra validation
+    - If $1 = 'staging': Standard process
+    - If $1 = 'dev': Minimal checks
 
 **Workflow decision:**
 Based on above, proceeding with: [determined workflow]
@@ -196,6 +208,7 @@ Starting sequence...
 ```
 
 **Individual commands** are simple:
+
 - `/format-code` - Just formats
 - `/lint-code` - Just lints
 - `/test-all` - Just tests
@@ -214,28 +227,35 @@ description: Analyze test failures
 # Analyze Test Failures
 
 ## Step 1: Get test results
+
 (Run /test-all first if not done)
 
 Reading test output...
 
 ## Step 2: Categorize failures
+
 - Flaky tests (random failures)
 - Consistent failures
 - New failures vs existing
 
 ## Step 3: Prioritize
+
 Rank by:
+
 - Impact (critical path vs edge case)
 - Frequency (always fails vs sometimes)
 - Effort (quick fix vs major work)
 
 ## Step 4: Generate fix plan
+
 For each failure:
+
 - Root cause hypothesis
 - Suggested fix approach
 - Estimated effort
 
 Would you like me to:
+
 1. Fix highest priority failure
 2. Generate detailed fix plans for all
 3. Create GitHub issues for each
@@ -256,6 +276,7 @@ allowed-tools: Bash(*), Read
 Running validations in parallel...
 
 Starting:
+
 - Code quality checks
 - Security scanning
 - Dependency audit
@@ -267,6 +288,7 @@ and report when complete.
 [Poll each process and report progress]
 
 All validations complete. Summary:
+
 - Quality: PASS (0 issues)
 - Security: WARN (2 minor issues)
 - Dependencies: PASS
@@ -286,6 +308,7 @@ Store workflow state in plugin-specific files:
 .claude/plugin-name-workflow.local.md:
 
 ---
+
 workflow: deployment
 stage: testing
 started: 2025-01-15T10:30:00Z
@@ -294,6 +317,7 @@ branch: feature/new-api
 commit: abc123def
 tests_passed: false
 build_complete: false
+
 ---
 
 # Deployment Workflow State
@@ -302,11 +326,13 @@ Current stage: Testing
 Started: 2025-01-15 10:30 UTC
 
 Completed steps:
+
 - ✅ Validation
 - ✅ Branch check
 - ⏳ Testing (in progress)
 
 Pending steps:
+
 - Build
 - Deploy
 - Smoke tests
@@ -346,11 +372,13 @@ Checking for interrupted workflow...
 State file: @.claude/plugin-name-workflow.local.md
 
 **Workflow found:**
+
 - Started: [timestamp]
 - Environment: [env]
 - Last completed: [step]
 
 **Recovery options:**
+
 1. Resume from last step
 2. Restart from beginning
 3. Abort and clean up
@@ -377,6 +405,7 @@ Writing completion marker...
 Creating: .claude/feature-complete.flag
 
 This signals other commands that feature is ready for:
+
 - Integration testing (/integration-test will auto-detect)
 - Documentation generation (/docs-generate will include)
 - Release notes (/release-notes will add)
@@ -395,7 +424,7 @@ allowed-tools: Read, Bash(git:*)
 Checking for completed features...
 
 if [ -f .claude/feature-complete.flag ]; then
-  Feature ready for release notes
+Feature ready for release notes
 fi
 
 [Include in release notes]
@@ -416,13 +445,13 @@ allowed-tools: Read, Write, Bash
 Checking for active deployments...
 
 if [ -f .claude/deployment.lock ]; then
-  ERROR: Deployment already in progress
-  Started: [timestamp from lock file]
+ERROR: Deployment already in progress
+Started: [timestamp from lock file]
 
-  Cannot start concurrent deployment.
-  Wait for completion or run /deployment-abort
+Cannot start concurrent deployment.
+Wait for completion or run /deployment-abort
 
-  Exit.
+Exit.
 fi
 
 Creating deployment lock...
@@ -463,6 +492,7 @@ Version: ${2:-latest}
 Deploying ${2:-latest} to ${1:-staging}...
 
 Note: Using defaults for missing arguments:
+
 - Environment defaults to 'staging'
 - Version defaults to 'latest'
 ```
@@ -481,9 +511,9 @@ Validating environment...
 
 valid_envs="dev staging production"
 if ! echo "$valid_envs" | grep -w "$1" > /dev/null; then
-  ERROR: Invalid environment '$1'
-  Valid options: dev, staging, production
-  Exit.
+ERROR: Invalid environment '$1'
+Valid options: dev, staging, production
+Exit.
 fi
 
 Environment validated. Proceeding...
@@ -500,15 +530,16 @@ argument-hint: [env-shorthand]
 Input: $1
 
 Expanding shorthand:
+
 - d/dev → development
 - s/stg → staging
 - p/prod → production
 
 case "$1" in
-  d|dev) ENV="development";;
-  s|stg) ENV="staging";;
-  p|prod) ENV="production";;
-  *) ENV="$1";;
+d|dev) ENV="development";;
+s|stg) ENV="staging";;
+p|prod) ENV="production";;
+\*) ENV="$1";;
 esac
 
 Deploying to: $ENV
@@ -528,22 +559,25 @@ description: Resilient deployment workflow
 Running steps with error handling...
 
 ## Step 1: Tests
+
 !`npm test`
 
 if [ $? -ne 0 ]; then
-  ERROR: Tests failed
+ERROR: Tests failed
 
-  Options:
-  1. Fix tests and retry
-  2. Skip tests (NOT recommended)
-  3. Abort deployment
+Options:
 
-  What would you like to do?
+1. Fix tests and retry
+2. Skip tests (NOT recommended)
+3. Abort deployment
 
-  [Wait for user input before continuing]
+What would you like to do?
+
+[Wait for user input before continuing]
 fi
 
 ## Step 2: Build
+
 [Continue only if Step 1 succeeded]
 ```
 
@@ -564,13 +598,13 @@ Deploying new version...
 !`deploy.sh`
 
 if [ $? -ne 0 ]; then
-  DEPLOYMENT FAILED
+DEPLOYMENT FAILED
 
-  Initiating automatic rollback...
-  !`rollback.sh`
+Initiating automatic rollback...
+!`rollback.sh`
 
-  Rolled back to previous version.
-  Check logs for failure details.
+Rolled back to previous version.
+Check logs for failure details.
 fi
 
 Deployment complete.
@@ -586,14 +620,17 @@ description: Workflow with checkpoints
 # Multi-Stage Deployment
 
 ## Checkpoint 1: Validation
+
 !`validate.sh`
 echo "checkpoint:validation" >> .claude/deployment-checkpoints.log
 
 ## Checkpoint 2: Build
+
 !`build.sh`
 echo "checkpoint:build" >> .claude/deployment-checkpoints.log
 
 ## Checkpoint 3: Deploy
+
 !`deploy.sh`
 echo "checkpoint:deploy" >> .claude/deployment-checkpoints.log
 
@@ -649,15 +686,17 @@ allowed-tools: Write, Bash(git:*)
 
 Creating workflow state...
 
-\`\`\`yaml
----
+## \`\`\`yaml
+
 workflow: deployment
 environment: $1
 branch: !`git branch --show-current`
 commit: !`git rev-parse HEAD`
 stage: initialized
 timestamp: !`date -u +%Y-%m-%dT%H:%M:%SZ`
+
 ---
+
 \`\`\`
 
 Written to .claude/deployment-state.local.md
@@ -676,6 +715,7 @@ allowed-tools: Read, Bash
 Reading state: @.claude/deployment-state.local.md
 
 Running validation...
+
 - Branch check: PASS
 - Tests: PASS
 - Build: PASS

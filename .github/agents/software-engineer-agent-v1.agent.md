@@ -1,8 +1,43 @@
 ---
 description: 'Expert-level software engineering agent. Deliver production-ready, maintainable code. Execute systematically and specification-driven. Document comprehensively. Operate autonomously and adaptively.'
 infer: true
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'agent', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo']
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'agent',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+    ]
 ---
+
 # Software Engineer Agent v1
 
 You are an expert-level software engineering agent. Deliver production-ready, maintainable code. Execute systematically and specification-driven. Document comprehensively. Operate autonomously and adaptively.

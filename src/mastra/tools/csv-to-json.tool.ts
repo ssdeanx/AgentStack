@@ -2,7 +2,7 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { parse } from 'csv-parse/sync'
 import * as fs from 'node:fs/promises'
 import { z } from 'zod'
@@ -71,16 +71,28 @@ export const csvToJsonTool = createTool({
             id: 'csv-to-json',
         })
 
-        // Create child span for CSV conversion
-        const csvSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'csv-to-json-conversion',
+            name: 'csv-to-json',
             input,
-            requestContext: context?.requestContext,
             metadata: {
                 'tool.id': 'csv-to-json',
                 'tool.input.hasFilePath': !!input.filePath,
                 'tool.input.hasCsvData': !!input.csvData,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for CSV conversion
+        const csvSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'csv-to-json-conversion-operation',
+            input,
+            metadata: {
+                'tool.id': 'csv-conversion',
+                'operation.type': 'parse-csv',
             },
         })
 
@@ -91,6 +103,12 @@ export const csvToJsonTool = createTool({
             // Check for cancellation before file operations
             if (abortSignal?.aborted) {
                 csvSpan?.error({
+                    error: new Error(
+                        'Operation cancelled during file operations'
+                    ),
+                    endSpan: true,
+                })
+                rootSpan?.error({
                     error: new Error(
                         'Operation cancelled during file operations'
                     ),
@@ -145,14 +163,25 @@ export const csvToJsonTool = createTool({
                 type: 'progress',
                 data: { message: `✅ Converted ${records.length} records` },
             })
+
+            // Update spans with successful result
             csvSpan?.update({
+                output: { data: records },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            csvSpan?.end()
+
+            rootSpan?.update({
                 output: { data: records },
                 metadata: {
                     'tool.output.recordCount': records.length,
                     'tool.output.success': true,
                 },
             })
-            csvSpan?.end()
+            rootSpan?.end()
+
             return { data: records }
         } catch (error) {
             const errorMessage =
@@ -164,6 +193,10 @@ export const csvToJsonTool = createTool({
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `CSV to JSON conversion cancelled`
                 csvSpan?.error({
+                    error: new Error(cancelMessage),
+                    endSpan: true,
+                })
+                rootSpan?.error({
                     error: new Error(cancelMessage),
                     endSpan: true,
                 })
@@ -182,7 +215,12 @@ export const csvToJsonTool = createTool({
                 throw new Error(cancelMessage)
             }
 
+            // Record error in both spans
             csvSpan?.error({
+                error: error instanceof Error ? error : new Error(errorMessage),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })

@@ -1,23 +1,26 @@
-import { Agent } from '@mastra/core/agent';
-import { BatchPartsProcessor, TokenLimiterProcessor } from '@mastra/core/processors';
-import { dataExportAgent } from '../agents/dataExportAgent';
-import { dataIngestionAgent } from '../agents/dataIngestionAgent';
-import { dataTransformationAgent } from '../agents/dataTransformationAgent';
-import { reportAgent } from '../agents/reportAgent';
-import { googleAI } from '../config/google';
-import { log } from '../config/logger';
-import { pgMemory } from '../config/pg-storage';
-import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow';
-import { confirmationTool } from '../tools/confirmation.tool';
+import { Agent } from '@mastra/core/agent'
+import {
+    BatchPartsProcessor,
+    TokenLimiterProcessor,
+} from '@mastra/core/processors'
+import { dataExportAgent } from '../agents/dataExportAgent'
+import { dataIngestionAgent } from '../agents/dataIngestionAgent'
+import { dataTransformationAgent } from '../agents/dataTransformationAgent'
+import { reportAgent } from '../agents/reportAgent'
+import { googleAI } from '../config/google'
+import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
+import { stockAnalysisWorkflow } from '../workflows/stock-analysis-workflow'
+import { confirmationTool } from '../tools/confirmation.tool'
 
 log.info('Initializing Data Pipeline Network...')
 
 export const dataPipelineNetwork = new Agent({
-  id: 'data-pipeline-network',
-  name: 'Data Pipeline Network',
-  description:
-    'A routing agent that coordinates data processing agents for CSV/JSON operations. Routes requests to DataExportAgent, DataIngestionAgent, DataTransformationAgent, or reportAgent based on the task.',
-  instructions: `You are a Data Pipeline Routing Agent. Your role is to analyze user requests and delegate to the appropriate specialist agent.
+    id: 'data-pipeline-network',
+    name: 'Data Pipeline Network',
+    description:
+        'A routing agent that coordinates data processing agents for CSV/JSON operations. Routes requests to DataExportAgent, DataIngestionAgent, DataTransformationAgent, or reportAgent based on the task.',
+    instructions: `You are a Data Pipeline Routing Agent. Your role is to analyze user requests and delegate to the appropriate specialist agent.
 
 ## Available Agents
 
@@ -79,22 +82,27 @@ For complex requests requiring multiple agents:
 - Chain agents when the task requires multiple steps
 - Preserve context when passing between agents
 `,
-  model: googleAI,
-  memory: pgMemory,
-  options: {
-
-  },
-  agents: {
-    dataExportAgent,
-    dataIngestionAgent,
-    dataTransformationAgent,
-    reportAgent,
-  },
-  tools: { confirmationTool },
-  workflows: {
-    stockAnalysisWorkflow,
-  },
-  outputProcessors: [new TokenLimiterProcessor(128000), new BatchPartsProcessor({ batchSize: 20, maxWaitTime: 100, emitOnNonText: true })]
+    model: googleAI,
+    memory: pgMemory,
+    options: {},
+    agents: {
+        dataExportAgent,
+        dataIngestionAgent,
+        dataTransformationAgent,
+        reportAgent,
+    },
+    tools: { confirmationTool },
+    workflows: {
+        stockAnalysisWorkflow,
+    },
+    outputProcessors: [
+        new TokenLimiterProcessor(128000),
+        new BatchPartsProcessor({
+            batchSize: 20,
+            maxWaitTime: 100,
+            emitOnNonText: true,
+        }),
+    ],
 })
 
 log.info('Data Pipeline Network initialized')

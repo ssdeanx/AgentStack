@@ -20,13 +20,13 @@ npm install @ai-sdk/react
 When creating agents in Mastra, you can specify any AI SDK-supported model:
 
 ```typescript
-import { Agent } from "@mastra/core/agent";
+import { Agent } from '@mastra/core/agent'
 
 export const weatherAgent = new Agent({
-  name: "Weather Agent",
-  instructions: "Instructions for the agent...",
-  model: "openai/gpt-4-turbo",
-});
+    name: 'Weather Agent',
+    instructions: 'Instructions for the agent...',
+    model: 'openai/gpt-4-turbo',
+})
 ```
 
 See [Using AI SDK with Mastra](https://mastra.ai/models#use-ai-sdk-with-mastra) for more information.
@@ -38,19 +38,19 @@ See [Using AI SDK with Mastra](https://mastra.ai/models#use-ai-sdk-with-mastra) 
 Use the `chatRoute()` utility to create route handlers that automatically format agent streams into AI SDK-compatible format:
 
 ```typescript
-import { Mastra } from '@mastra/core/mastra';
-import { chatRoute } from "@mastra/ai-sdk";
+import { Mastra } from '@mastra/core/mastra'
+import { chatRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      chatRoute({
-        path: "/chat",
-        agent: "weatherAgent",
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            chatRoute({
+                path: '/chat',
+                agent: 'weatherAgent',
+            }),
+        ],
+    },
+})
 ```
 
 ### workflowRoute()
@@ -58,19 +58,19 @@ export const mastra = new Mastra({
 For workflows, use `workflowRoute()` to stream workflow executions:
 
 ```typescript
-import { workflowRoute } from "@mastra/ai-sdk";
+import { workflowRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      workflowRoute({
-        path: "/workflow",
-        workflow: "weatherWorkflow",
-        includeTextStreamParts: true,
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            workflowRoute({
+                path: '/workflow',
+                workflow: 'weatherWorkflow',
+                includeTextStreamParts: true,
+            }),
+        ],
+    },
+})
 ```
 
 ### networkRoute()
@@ -78,18 +78,18 @@ export const mastra = new Mastra({
 For agent networks, use `networkRoute()`:
 
 ```typescript
-import { networkRoute } from "@mastra/ai-sdk";
+import { networkRoute } from '@mastra/ai-sdk'
 
 export const mastra = new Mastra({
-  server: {
-    apiRoutes: [
-      networkRoute({
-        path: "/network",
-        agent: "weatherAgent",
-      }),
-    ],
-  },
-});
+    server: {
+        apiRoutes: [
+            networkRoute({
+                path: '/network',
+                agent: 'weatherAgent',
+            }),
+        ],
+    },
+})
 ```
 
 ## UI Hooks
@@ -207,26 +207,26 @@ export default function Page() {
 Stream custom data from tool executions:
 
 ```typescript
-import { createTool } from "@mastra/core/tools";
+import { createTool } from '@mastra/core/tools'
 
 export const testTool = createTool({
-  // ... tool config
-  execute: async ({ context, writer }) => {
-    await writer?.custom({
-      type: "data-tool-progress",
-      status: "pending"
-    });
+    // ... tool config
+    execute: async ({ context, writer }) => {
+        await writer?.custom({
+            type: 'data-tool-progress',
+            status: 'pending',
+        })
 
-    // ... tool logic
+        // ... tool logic
 
-    await writer?.custom({
-      type: "data-tool-progress",
-      status: "success"
-    });
+        await writer?.custom({
+            type: 'data-tool-progress',
+            status: 'success',
+        })
 
-    return { value: "" };
-  }
-});
+        return { value: '' }
+    },
+})
 ```
 
 ## Stream Transformations
@@ -236,16 +236,16 @@ export const testTool = createTool({
 Use `toAISdkFormat()` for manual stream conversion:
 
 ```typescript
-import { toAISdkFormat } from "@mastra/ai-sdk";
+import { toAISdkFormat } from '@mastra/ai-sdk'
 
-const stream = await myAgent.stream(messages);
+const stream = await myAgent.stream(messages)
 const uiMessageStream = createUIMessageStream({
-  execute: async ({ writer }) => {
-    for await (const part of toAISdkFormat(stream, { from: "agent" })) {
-      writer.write(part);
-    }
-  },
-});
+    execute: async ({ writer }) => {
+        for await (const part of toAISdkFormat(stream, { from: 'agent' })) {
+            writer.write(part)
+        }
+    },
+})
 ```
 
 ### Client-Side Transformations
@@ -253,26 +253,32 @@ const uiMessageStream = createUIMessageStream({
 For client-side streams:
 
 ```typescript
-import { toAISdkFormat } from "@mastra/ai-sdk";
+import { toAISdkFormat } from '@mastra/ai-sdk'
 
-const response = await agent.stream({ messages: "What is the weather in Tokyo" });
+const response = await agent.stream({
+    messages: 'What is the weather in Tokyo',
+})
 const chunkStream = new ReadableStream({
-  start(controller) {
-    response.processDataStream({
-      onChunk: async (chunk) => {
-        controller.enqueue(chunk as ChunkType);
-      },
-    }).finally(() => controller.close());
-  },
-});
+    start(controller) {
+        response
+            .processDataStream({
+                onChunk: async (chunk) => {
+                    controller.enqueue(chunk as ChunkType)
+                },
+            })
+            .finally(() => controller.close())
+    },
+})
 
 const uiMessageStream = createUIMessageStream({
-  execute: async ({ writer }) => {
-    for await (const part of toAISdkFormat(chunkStream, { from: "agent" })) {
-      writer.write(part);
-    }
-  },
-});
+    execute: async ({ writer }) => {
+        for await (const part of toAISdkFormat(chunkStream, {
+            from: 'agent',
+        })) {
+            writer.write(part)
+        }
+    },
+})
 ```
 
 ## Memory and Context
@@ -283,24 +289,24 @@ Configure memory for agents:
 
 ```typescript
 chatRoute({
-  path: "/chat/:agentId",
-  defaultOptions: {
-    memory: {
-      thread: {
-        id: ':agentIdChat',
-        resourceId: 'chat',
-        metadata: { agent: ':agentId' }
-      },
-      resource: "chat",
-      options: {
-        lastMessages: 500,
-        semanticRecall: true,
-        workingMemory: { enabled: true },
-        threads: { generateTitle: true }
-      },
-      readOnly: false,
+    path: '/chat/:agentId',
+    defaultOptions: {
+        memory: {
+            thread: {
+                id: ':agentIdChat',
+                resourceId: 'chat',
+                metadata: { agent: ':agentId' },
+            },
+            resource: 'chat',
+            options: {
+                lastMessages: 500,
+                semanticRecall: true,
+                workingMemory: { enabled: true },
+                threads: { generateTitle: true },
+            },
+            readOnly: false,
+        },
     },
-  },
 })
 ```
 
@@ -310,24 +316,24 @@ Pass additional data via middleware:
 
 ```typescript
 // Server middleware
-async (c, next) => {
-  const runtimeContext = c.get("runtimeContext");
+;async (c, next) => {
+    const runtimeContext = c.get('runtimeContext')
 
-  if (c.req.method === "POST") {
-    try {
-      const clonedReq = c.req.raw.clone();
-      const body = await clonedReq.json();
+    if (c.req.method === 'POST') {
+        try {
+            const clonedReq = c.req.raw.clone()
+            const body = await clonedReq.json()
 
-      if (body?.data) {
-        for (const [key, value] of Object.entries(body.data)) {
-          runtimeContext.set(key, value);
+            if (body?.data) {
+                for (const [key, value] of Object.entries(body.data)) {
+                    runtimeContext.set(key, value)
+                }
+            }
+        } catch {
+            // handle error
         }
-      }
-    } catch {
-      // handle error
     }
-  }
-  await next();
+    await next()
 }
 ```
 
@@ -342,13 +348,13 @@ Mastra automatically handles message format conversion between AI SDK versions.
 Use `convertMessages()` for manual conversions:
 
 ```typescript
-import { convertMessages } from "@mastra/core/agent";
+import { convertMessages } from '@mastra/core/agent'
 
 // Convert AI SDK v4 to v5
-const aiv5Messages = convertMessages(aiv4Messages).to("AIV5.UI");
+const aiv5Messages = convertMessages(aiv4Messages).to('AIV5.UI')
 
 // Convert Mastra to AI SDK v5
-const aiv5Messages = convertMessages(mastraMessages).to("AIV5.Core");
+const aiv5Messages = convertMessages(mastraMessages).to('AIV5.Core')
 ```
 
 ### Type Inference
@@ -356,10 +362,10 @@ const aiv5Messages = convertMessages(mastraMessages).to("AIV5.Core");
 Use type helpers for TypeScript support:
 
 ```typescript
-import { InferUITool, InferUITools } from "@mastra/core/tools";
+import { InferUITool, InferUITools } from '@mastra/core/tools'
 
-type WeatherUITool = InferUITool<typeof weatherTool>;
-type MyUITools = InferUITools<typeof tools>;
+type WeatherUITool = InferUITool<typeof weatherTool>
+type MyUITools = InferUITools<typeof tools>
 ```
 
 ## Additional Resources
@@ -372,5 +378,5 @@ type MyUITools = InferUITools<typeof tools>;
 
 ---
 
-*Last updated: December 8, 2025*
-*Source: https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk*
+_Last updated: December 8, 2025_
+_Source: https://mastra.ai/docs/frameworks/agentic-uis/ai-sdk_

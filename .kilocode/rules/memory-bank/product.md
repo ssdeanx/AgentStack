@@ -1,6 +1,6 @@
 # Agent Product Domain: Problem Spaces and Solution Orchestration
 
-*What challenges agents face and how they coordinate solutions across cognitive domains*
+_What challenges agents face and how they coordinate solutions across cognitive domains_
 
 ---
 
@@ -76,34 +76,34 @@ Complex Problem
 
 1. **Task Broadcasting**: Coordinator distributes work based on agent capabilities
 
-   ```typescript
-   const tasks = [
-     { agent: 'researchAgent', type: 'financialResearch' },
-     { agent: 'stockAnalysisAgent', type: 'technicalAnalysis' }
-   ]
-   await Promise.all(tasks.map(executeAgentTask))
-   ```
+    ```typescript
+    const tasks = [
+        { agent: 'researchAgent', type: 'financialResearch' },
+        { agent: 'stockAnalysisAgent', type: 'technicalAnalysis' },
+    ]
+    await Promise.all(tasks.map(executeAgentTask))
+    ```
 
 2. **Capability Discovery**: Agents register skills and availability
 
-   ```typescript
-   agent.registerCapability({
-     domain: 'financial',
-     tools: ['polygonStockQuotesTool', 'finnhubAnalysisTool'],
-     confidence: 'high',
-     availability: 'immediate'
-   })
-   ```
+    ```typescript
+    agent.registerCapability({
+        domain: 'financial',
+        tools: ['polygonStockQuotesTool', 'finnhubAnalysisTool'],
+        confidence: 'high',
+        availability: 'immediate',
+    })
+    ```
 
 3. **Result Synthesis**: Multi-agent outputs are merged with conflict resolution
 
-   ```typescript
-   const synthesis = await synthesizeResults({
-     researchFindings: researchAgent.result,
-     technicalAnalysis: stockAgent.result,
-     confidenceWeights: { research: 0.4, technical: 0.6 }
-   })
-   ```
+    ```typescript
+    const synthesis = await synthesizeResults({
+        researchFindings: researchAgent.result,
+        technicalAnalysis: stockAgent.result,
+        confidenceWeights: { research: 0.4, technical: 0.6 },
+    })
+    ```
 
 ### Quality Assurance Integration
 
@@ -117,7 +117,7 @@ Complex Problem
 Agents dynamically adjust confidence ranges based on:
 
 - Evidence strength across multiple data sources
-- Consistency of findings across reasoning pathways  
+- Consistency of findings across reasoning pathways
 - Quality of source materials and data freshness
 
 ## User Experience Goals
@@ -201,4 +201,4 @@ Complete traceability of agent decisions, reasoning processes, and resource usag
 
 ---
 
-*AgentStack exists to solve complex problems that require multiple specialized cognitive capabilities working in sophisticated coordination. Our agents don't just execute tasks - they think, collaborate, and adapt to deliver superior outcomes.*
+_AgentStack exists to solve complex problems that require multiple specialized cognitive capabilities working in sophisticated coordination. Our agents don't just execute tasks - they think, collaborate, and adapt to deliver superior outcomes._

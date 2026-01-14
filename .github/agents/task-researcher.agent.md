@@ -1,9 +1,50 @@
 ---
-description: "Task research specialist for comprehensive project analysis - Brought to you by microsoft/edge-ai"
-name: "Task Researcher"
+description: 'Task research specialist for comprehensive project analysis - Brought to you by microsoft/edge-ai'
+name: 'Task Researcher'
 infer: true
-argument-hint: "Perform deep research and analysis to inform task planning and implementation strategies."
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'lotus/*', 'mastrabeta/mastraBlog', 'mastrabeta/mastraChanges', 'mastrabeta/mastraDocs', 'mastrabeta/mastraExamples', 'mastrabeta/mastraMigration', 'multi_orchestrator/*', 'next-devtools/*', 's-ai/*', 'thoughtbox/*', 'docfork/*', 'vscode.mermaid-chat-features/renderMermaidDiagram', 'updateUserPreferences', 'memory', 'malaksedarous.copilot-context-optimizer/askAboutFile', 'malaksedarous.copilot-context-optimizer/runAndExtract', 'malaksedarous.copilot-context-optimizer/askFollowUp', 'malaksedarous.copilot-context-optimizer/researchTopic', 'malaksedarous.copilot-context-optimizer/deepResearch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'ms-vscode.vscode-websearchforcopilot/websearch', 'todo', 'search/changes', "search/codebase", "edit/editFiles", 'vscode/extensions', 'web/githubRepo', 'vscode/openSimpleBrowser', 'read/problems']
+argument-hint: 'Perform deep research and analysis to inform task planning and implementation strategies.'
+tools:
+    [
+        'vscode',
+        'execute',
+        'read',
+        'edit',
+        'search',
+        'web',
+        'agent',
+        'lotus/*',
+        'mastrabeta/mastraBlog',
+        'mastrabeta/mastraChanges',
+        'mastrabeta/mastraDocs',
+        'mastrabeta/mastraExamples',
+        'mastrabeta/mastraMigration',
+        'multi_orchestrator/*',
+        'next-devtools/*',
+        's-ai/*',
+        'thoughtbox/*',
+        'docfork/*',
+        'vscode.mermaid-chat-features/renderMermaidDiagram',
+        'updateUserPreferences',
+        'memory',
+        'malaksedarous.copilot-context-optimizer/askAboutFile',
+        'malaksedarous.copilot-context-optimizer/runAndExtract',
+        'malaksedarous.copilot-context-optimizer/askFollowUp',
+        'malaksedarous.copilot-context-optimizer/researchTopic',
+        'malaksedarous.copilot-context-optimizer/deepResearch',
+        'ms-python.python/getPythonEnvironmentInfo',
+        'ms-python.python/getPythonExecutableCommand',
+        'ms-python.python/installPythonPackage',
+        'ms-python.python/configurePythonEnvironment',
+        'ms-vscode.vscode-websearchforcopilot/websearch',
+        'todo',
+        'search/changes',
+        'search/codebase',
+        'edit/editFiles',
+        'vscode/extensions',
+        'web/githubRepo',
+        'vscode/openSimpleBrowser',
+        'read/problems',
+    ]
 ---
 
 # Task Researcher Instructions
@@ -101,21 +142,21 @@ You MUST use this exact template for all research notes, preserving all formatti
 ### File Analysis
 
 - {{file_path}}
-  - {{findings_summary}}
+    - {{findings_summary}}
 
 ### Code Search Results
 
 - {{relevant_search_term}}
-  - {{actual_matches_found}}
+    - {{actual_matches_found}}
 - {{relevant_search_pattern}}
-  - {{files_discovered}}
+    - {{files_discovered}}
 
 ### External Research
 
 - #githubRepo:"{{org_repo}} {{search_terms}}"
-  - {{actual_patterns_examples_found}}
+    - {{actual_patterns_examples_found}}
 - #fetch:{{url}}
-  - {{key_information_gathered}}
+    - {{key_information_gathered}}
 
 ### Project Conventions
 

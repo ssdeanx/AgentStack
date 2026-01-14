@@ -1,6 +1,7 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -78,18 +79,34 @@ export const randomGeneratorTool = createTool({
         const locale =
             inputData.options?.locale ?? requestContext?.locale ?? 'en'
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
+        const writer = context?.writer
+
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
-            name: 'random-generate',
+            name: 'random-generator',
             input: { type: inputData.type, count: inputData.count },
             metadata: {
                 'tool.id': 'random-generator',
                 'tool.input.type': inputData.type,
                 'tool.input.count': inputData.count,
             },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
         })
-        const writer = context?.writer
+
+        // Create child span for generation operation
+        const generationSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'random-generation-operation',
+            input: { type: inputData.type, count: inputData.count },
+            metadata: {
+                'tool.id': 'random-generation',
+                'operation.type': inputData.type,
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -138,15 +155,24 @@ export const randomGeneratorTool = createTool({
                 id: 'random-generator',
             })
 
-            span?.update({
+            // Update spans with successful result
+            generationSpan?.update({
+                output: { success: true, count: inputData.count },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            generationSpan?.end()
+
+            rootSpan?.update({
                 output: { success: true, count: inputData.count },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.type': inputData.type,
                     'tool.output.count': inputData.count,
-                }
+                },
             })
-            span?.end()
+            rootSpan?.end()
 
             return {
                 success: true,
@@ -158,7 +184,15 @@ export const randomGeneratorTool = createTool({
             const errorMsg = e instanceof Error ? e.message : String(e)
             log.error(`Random generation failed: ${errorMsg}`)
 
-            span?.error({ error: e instanceof Error ? e : new Error(errorMsg), endSpan: true })
+            // Record error in both spans
+            generationSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
 
             return {
                 success: false,
@@ -432,9 +466,7 @@ function generateRandomArray(length: number, itemType: string): unknown[] {
     return result
 }
 
-function generateRandomObject(
-    properties: number
-): Record<string, unknown> {
+function generateRandomObject(properties: number): Record<string, unknown> {
     const result: Record<string, unknown> = {}
     for (let i = 0; i < properties; i++) {
         const key = `prop${i + 1}`

@@ -52,7 +52,9 @@ export class EmbeddingService {
 
         // Initialize Memory instance for native embedding with caching
         this.memory = new Memory({
-            embedder:  new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
+            embedder: new ModelRouterEmbeddingModel(
+                'google/gemini-embedding-001)'
+            ),
         })
     }
 
@@ -99,7 +101,8 @@ export class EmbeddingService {
             const normalized = this.formatError(err)
             log.error('pgGenerateEmbeddings fallback failed', normalized)
             throw new Error(
-                normalized.message ?? 'Failed to generate embeddings via pg fallback'
+                normalized.message ??
+                    'Failed to generate embeddings via pg fallback'
             )
         }
     }
@@ -119,7 +122,9 @@ export class EmbeddingService {
         // Use the standard AI SDK embedMany function since Memory might not be properly configured
         // The Memory instance requires more complex setup that we don't need for just chunking
         const { embeddings } = await embedMany({
-            model:  new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
+            model: new ModelRouterEmbeddingModel(
+                'google/gemini-embedding-001)'
+            ),
             values: chunks,
             maxRetries: this.defaultOptions.maxRetries,
         })
@@ -170,7 +175,9 @@ export class EmbeddingService {
 
             try {
                 const { embeddings } = await embedMany({
-                    model: new ModelRouterEmbeddingModel("google/gemini-embedding-001)"),
+                    model: new ModelRouterEmbeddingModel(
+                        'google/gemini-embedding-001)'
+                    ),
                     values: batch,
                     maxRetries,
                 })
@@ -340,5 +347,3 @@ export class EmbeddingService {
         }
     }
 }
-
-

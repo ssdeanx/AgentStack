@@ -16,13 +16,13 @@ To migrate, update `createTool` signatures to use `inputData` as the first param
 
 ```typescript
 createTool({
-  id: 'weather-tool',
-  execute: async (inputData, context) => {
-    const location = inputData.location;
-    const userTier = context?.requestContext?.get('userTier');
-    return getWeather(location, userTier);
-  },
-});
+    id: 'weather-tool',
+    execute: async (inputData, context) => {
+        const location = inputData.location
+        const userTier = context?.requestContext?.get('userTier')
+        return getWeather(location, userTier)
+    },
+})
 ```
 
 #### `createTool` context properties organization
@@ -33,33 +33,33 @@ For tools that are executed inside an agent, access agent-specific properties th
 
 ```typescript
 createTool({
-  id: 'suspendable-tool',
-  suspendSchema: z.object({ message: z.string() }),
-  resumeSchema: z.object({ approval: z.boolean() }),
-  execute: async (inputData, context) => {
-    if (!context?.agent?.resumeData) {
-      return await context?.agent?.suspend({
-        message: 'Waiting for approval',
-      });
-    }
-    if (context.agent.resumeData.approval) {
-      return { success: true };
-    }
-  },
-});
+    id: 'suspendable-tool',
+    suspendSchema: z.object({ message: z.string() }),
+    resumeSchema: z.object({ approval: z.boolean() }),
+    execute: async (inputData, context) => {
+        if (!context?.agent?.resumeData) {
+            return await context?.agent?.suspend({
+                message: 'Waiting for approval',
+            })
+        }
+        if (context.agent.resumeData.approval) {
+            return { success: true }
+        }
+    },
+})
 ```
 
 For tools that are executed inside a workflow, access workflow-specific properties through `context.workflow`.
 
 ```typescript
 createTool({
-  id: 'workflow-tool',
-  execute: async (inputData, context) => {
-    const currentState = context?.workflow?.state;
-    context?.workflow?.setState({ step: 'completed' });
-    return { result: 'done' };
-  },
-});
+    id: 'workflow-tool',
+    execute: async (inputData, context) => {
+        const currentState = context?.workflow?.state
+        context?.workflow?.setState({ step: 'completed' })
+        return { result: 'done' }
+    },
+})
 ```
 
 The `suspendPayload` gets validated against the `suspendSchema` when the tool is executed. If the suspendPayload doesn't match the `suspendSchema`, a warning is logged and the error is returned as tool output, but suspension continues. Also, when the tool is resumed, the `resumeData` gets validated against the `resumeSchema`. If the resumeData doesn't match the `resumeSchema`, the tool will return a `ValidationError`, preventing the tool resumption.
@@ -76,12 +76,12 @@ To migrate, update references from `runtimeContext` to `requestContext` in tool 
 
 ```typescript
 createTool({
-  id: 'my-tool',
-  execute: async (inputData, context) => {
-    const userTier = context?.requestContext?.get('userTier');
-    return { result: userTier };
-  },
-});
+    id: 'my-tool',
+    execute: async (inputData, context) => {
+        const userTier = context?.requestContext?.get('userTier')
+        return { result: userTier }
+    },
+})
 ```
 
 Codemod: You can use Mastra's codemod CLI to update your imports automatically:
@@ -102,23 +102,23 @@ To fix validation errors, ensure the tool's output matches the schema definition
 
 ```typescript
 const getUserTool = createTool({
-  id: "get-user",
-  outputSchema: z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string().email(),
-  }),
-  execute: async (inputData) => {
-    return { id: "123", name: "John", email: "john@example.com" };
-  },
-});
+    id: 'get-user',
+    outputSchema: z.object({
+        id: z.string(),
+        name: z.string(),
+        email: z.string().email(),
+    }),
+    execute: async (inputData) => {
+        return { id: '123', name: 'John', email: 'john@example.com' }
+    },
+})
 ```
 
 When validation fails, the tool returns a `ValidationError`:
 
 ```typescript
 // Before v1 - invalid output would silently pass through
-await getUserTool.execute({});
+await getUserTool.execute({})
 // { id: "123", name: "John" } - missing email
 
 // After v1 - validation error returned
@@ -136,15 +136,15 @@ The return type of `tool.execute` now includes `ValidationError` to handle valid
 When calling `tool.execute`, check if the result contains an error before accessing output properties:
 
 ```typescript
-const result = await getUserTool.execute({});
+const result = await getUserTool.execute({})
 // Type-safe check for validation errors
 if ('error' in result && result.error) {
-  console.error('Validation failed:', result.message);
-  console.error('Details:', result.validationErrors);
-  return;
+    console.error('Validation failed:', result.message)
+    console.error('Details:', result.validationErrors)
+    return
 }
 // TypeScript knows result is valid here
-console.log(result.id, result.name, result.email);
+console.log(result.id, result.name, result.email)
 ```
 
 Alternatively, update the `outputSchema` to match your actual output, or remove `outputSchema` entirely if you don't need validation.
@@ -160,32 +160,32 @@ If you're using the old `telemetry:` configuration in Mastra, the system has bee
 Before (0.x with OTEL telemetry):
 
 ```typescript
-import { Mastra } from '@mastra/core';
+import { Mastra } from '@mastra/core'
 export const mastra = new Mastra({
-  telemetry: {
-    serviceName: 'my-app',
-    enabled: true,
-    sampling: {
-      type: 'always_on',
+    telemetry: {
+        serviceName: 'my-app',
+        enabled: true,
+        sampling: {
+            type: 'always_on',
+        },
+        export: {
+            type: 'otlp',
+            endpoint: 'http://localhost:4318',
+        },
     },
-    export: {
-      type: 'otlp',
-      endpoint: 'http://localhost:4318',
-    },
-  },
-});
+})
 ```
 
 After (v1 with observability - quick start):
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { Observability } from '@mastra/observability';
+import { Mastra } from '@mastra/core'
+import { Observability } from '@mastra/observability'
 export const mastra = new Mastra({
-  observability: new Observability({
-    default: { enabled: true },
-  }),
-});
+    observability: new Observability({
+        default: { enabled: true },
+    }),
+})
 ```
 
 This minimal configuration automatically includes the `DefaultExporter`, `CloudExporter`, and `SensitiveDataFilter` processor. See the [observability tracing documentation](https://mastra.ai/docs/v1/observability/tracing/overview) for full configuration options.
@@ -199,29 +199,29 @@ npm install @mastra/otel-exporter@beta @opentelemetry/exporter-trace-otlp-proto
 ```
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { Observability } from '@mastra/observability';
-import { OtelExporter } from '@mastra/otel-exporter';
+import { Mastra } from '@mastra/core'
+import { Observability } from '@mastra/observability'
+import { OtelExporter } from '@mastra/otel-exporter'
 export const mastra = new Mastra({
-  observability: new Observability({
-    configs: {
-      production: {
-        serviceName: 'my-app',
-        sampling: { type: 'always' },
-        exporters: [
-          new OtelExporter({
-            provider: {
-              custom: {
-                endpoint: 'http://localhost:4318/v1/traces',
-                protocol: 'http/protobuf',
-              },
+    observability: new Observability({
+        configs: {
+            production: {
+                serviceName: 'my-app',
+                sampling: { type: 'always' },
+                exporters: [
+                    new OtelExporter({
+                        provider: {
+                            custom: {
+                                endpoint: 'http://localhost:4318/v1/traces',
+                                protocol: 'http/protobuf',
+                            },
+                        },
+                    }),
+                ],
             },
-          }),
-        ],
-      },
-    },
-  }),
-});
+        },
+    }),
+})
 ```
 
 Key changes:
@@ -240,24 +240,24 @@ If you already upgraded to AI tracing (the intermediate system), you only need t
 Before (AI tracing):
 
 ```typescript
-import { Mastra } from '@mastra/core';
+import { Mastra } from '@mastra/core'
 export const mastra = new Mastra({
-  observability: {
-    default: { enabled: true },
-  },
-});
+    observability: {
+        default: { enabled: true },
+    },
+})
 ```
 
 After (v1 observability):
 
 ```typescript
-import { Mastra } from '@mastra/core';
-import { Observability } from '@mastra/observability';
+import { Mastra } from '@mastra/core'
+import { Observability } from '@mastra/observability'
 export const mastra = new Mastra({
-  observability: new Observability({
-    default: { enabled: true },
-  }),
-});
+    observability: new Observability({
+        default: { enabled: true },
+    }),
+})
 ```
 
 Key changes:
@@ -363,7 +363,7 @@ You needed an instrumentation file:
 
 ```javascript
 // instrumentation.mjs
-import { NodeSDK } from '@opentelemetry/sdk-node';
+import { NodeSDK } from '@opentelemetry/sdk-node'
 // ... OTEL setup
 ```
 
@@ -379,12 +379,12 @@ Simply remove the `instrumentation.mjs` file and configure observability in your
 
 ```typescript
 // src/mastra/index.ts
-import { Observability } from '@mastra/observability';
+import { Observability } from '@mastra/observability'
 export const mastra = new Mastra({
-  observability: new Observability({
-    default: { enabled: true },
-  }),
-});
+    observability: new Observability({
+        default: { enabled: true },
+    }),
+})
 ```
 
 Start your process normally without the `--import` flag:
@@ -399,14 +399,14 @@ No separate instrumentation files or special startup flags required.
 
 If you were using OTEL-based telemetry with specific providers in 0.x, here's how to configure them in v1:
 
-| Provider | Exporter | Guide | Reference |
-|----------|----------|-------|-----------|
-| Arize AX, Arize Phoenix | Arize | Guide | Reference |
-| Braintrust | Braintrust | Guide | Reference |
-| Langfuse | Langfuse | Guide | Reference |
-| LangSmith | LangSmith | Guide | Reference |
+| Provider                                                  | Exporter      | Guide | Reference |
+| --------------------------------------------------------- | ------------- | ----- | --------- |
+| Arize AX, Arize Phoenix                                   | Arize         | Guide | Reference |
+| Braintrust                                                | Braintrust    | Guide | Reference |
+| Langfuse                                                  | Langfuse      | Guide | Reference |
+| LangSmith                                                 | LangSmith     | Guide | Reference |
 | Dash0, Laminar, New Relic, SigNoz, Traceloop, Custom OTEL | OpenTelemetry | Guide | Reference |
-| LangWatch | <coming soon> | - | - |
+| LangWatch                                                 | <coming soon> | -     | -         |
 
 #### Installation
 

@@ -12,19 +12,22 @@ Highlights:
 Example (Vitest):
 
 ```typescript
-import { createNoiseSensitivityScorerLLM } from "@mastra/evals/scorers/prebuilt";
+import { createNoiseSensitivityScorerLLM } from '@mastra/evals/scorers/prebuilt'
 
 const scorer = createNoiseSensitivityScorerLLM({
-  model: "google/gemini-2.5-flash-lite",
-  options: {
-    baselineResponse: "The capital of France is Paris.",
-    noisyQuery: "What is the capital of France? Berlin is the capital...",
-    noiseType: "misinformation"
-  }
-});
+    model: 'google/gemini-2.5-flash-lite',
+    options: {
+        baselineResponse: 'The capital of France is Paris.',
+        noisyQuery: 'What is the capital of France? Berlin is the capital...',
+        noiseType: 'misinformation',
+    },
+})
 
-const evaluation = await scorer.run({ input: originalQuery, output: noisyAgentOutput });
-expect(evaluation.score).toBeGreaterThan(0.8);
+const evaluation = await scorer.run({
+    input: originalQuery,
+    output: noisyAgentOutput,
+})
+expect(evaluation.score).toBeGreaterThan(0.8)
 ```
 
-*Source: Mastra docs — reference/evals/noise-sensitivity.mdx*
+_Source: Mastra docs — reference/evals/noise-sensitivity.mdx_

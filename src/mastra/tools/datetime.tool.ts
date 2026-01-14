@@ -1,6 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -88,7 +88,7 @@ export const dateTimeTool = createTool({
         input: z.string().optional(),
         message: z.string().optional(),
     }),
-onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('DateTime tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
@@ -119,7 +119,8 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
         const requestCtx = context?.requestContext as
             | DateTimeToolContext
             | undefined
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
         const defaultTimezone = requestCtx?.defaultTimezone ?? 'UTC'
         const defaultLocale = requestCtx?.defaultLocale ?? 'en-US'
         const allowFutureDates = requestCtx?.allowFutureDates ?? true
@@ -131,7 +132,8 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
             allowFutureDates,
         })
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'datetime-operation',
             input: inputData,
@@ -139,6 +141,19 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
                 'tool.id': 'datetime',
                 'tool.input.operation': inputData.operation,
                 'tool.input.input': inputData.input,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for operation
+        const operationSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'datetime-execution',
+            input: inputData,
+            metadata: {
+                'tool.id': 'datetime-exec',
+                'operation.type': inputData.operation,
             },
         })
 
@@ -295,7 +310,20 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
                 id: 'datetime',
             })
 
-            span?.update({
+            // Update spans with successful result
+            operationSpan?.update({
+                output: {
+                    success: true,
+                    operation: inputData.operation,
+                    result,
+                },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            operationSpan?.end()
+
+            rootSpan?.update({
                 output: {
                     success: true,
                     operation: inputData.operation,
@@ -306,7 +334,7 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
                     'tool.output.operation': inputData.operation,
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             return {
                 success: true,
@@ -320,7 +348,12 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
                 error: errorMsg,
             })
 
-            span?.error({
+            // Record error in both spans
+            operationSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
@@ -334,7 +367,7 @@ onInputStart: ({ toolCallId, messages, abortSignal }) => {
             }
         }
     },
-    
+
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('DateTime tool completed', {
             toolCallId,
@@ -407,15 +440,30 @@ export const timeZoneTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        // Create root span using getOrCreateSpan (creates root OR attaches to parent)
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'timezone-operation',
             input: inputData,
             metadata: {
                 'tool.id': 'timezone',
                 'tool.input.operation': inputData.operation,
+            },
+            requestContext: context?.requestContext,
+            mastra: (globalThis as any).mastra,
+        })
+
+        // Create child span for operation
+        const operationSpan = rootSpan?.createChildSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'timezone-execution',
+            input: inputData,
+            metadata: {
+                'tool.id': 'timezone-exec',
+                'operation.type': inputData.operation,
             },
         })
 
@@ -496,7 +544,20 @@ export const timeZoneTool = createTool({
                 id: 'timezone',
             })
 
-            span?.update({
+            // Update spans with successful result
+            operationSpan?.update({
+                output: {
+                    success: true,
+                    operation: inputData.operation,
+                    result,
+                },
+                metadata: {
+                    'operation.completed': true,
+                },
+            })
+            operationSpan?.end()
+
+            rootSpan?.update({
                 output: {
                     success: true,
                     operation: inputData.operation,
@@ -507,7 +568,7 @@ export const timeZoneTool = createTool({
                     'tool.output.operation': inputData.operation,
                 },
             })
-            span?.end()
+            rootSpan?.end()
 
             return {
                 success: true,
@@ -520,7 +581,12 @@ export const timeZoneTool = createTool({
                 error: errorMsg,
             })
 
-            span?.error({
+            // Record error in both spans
+            operationSpan?.error({
+                error: e instanceof Error ? e : new Error(errorMsg),
+                endSpan: true,
+            })
+            rootSpan?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
@@ -534,7 +600,7 @@ export const timeZoneTool = createTool({
         }
     },
 
-    onOutput: ({ output, toolCallId, toolName,  abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Timezone tool completed', {
             toolCallId,
             toolName,

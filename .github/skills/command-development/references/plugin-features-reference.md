@@ -25,6 +25,7 @@ plugin-name/
 ```
 
 **Key points:**
+
 - Commands are discovered at plugin load time
 - No manual registration required
 - Commands appear in `/help` with "(plugin:plugin-name)" label
@@ -46,6 +47,7 @@ plugin-name/
 ```
 
 **Namespace behavior:**
+
 - Subdirectory name becomes namespace
 - Shown as "(plugin:plugin-name:namespace)" in `/help`
 - Helps organize related commands
@@ -54,12 +56,14 @@ plugin-name/
 ### Command Naming Conventions
 
 **Plugin command names should:**
+
 1. Be descriptive and action-oriented
 2. Avoid conflicts with common command names
 3. Use hyphens for multi-word names
 4. Consider prefixing with plugin name for uniqueness
 
 **Examples:**
+
 ```
 Good:
 - /mylyn-sync          (plugin-specific prefix)
@@ -79,6 +83,7 @@ Avoid:
 `${CLAUDE_PLUGIN_ROOT}` is a special environment variable available in plugin commands that resolves to the absolute path of the plugin directory.
 
 **Why it matters:**
+
 - Enables portable paths within plugin
 - Allows referencing plugin files and scripts
 - Works across different installations
@@ -100,6 +105,7 @@ Read template: @${CLAUDE_PLUGIN_ROOT}/templates/report.md
 ```
 
 **Expands to:**
+
 ```
 Run analysis: !`node /path/to/plugins/plugin-name/scripts/analyze.js`
 
@@ -164,56 +170,64 @@ Review results and report status.
 ### Best Practices
 
 1. **Always use for plugin-internal paths:**
-   ```markdown
-   # Good
-   @${CLAUDE_PLUGIN_ROOT}/templates/foo.md
 
-   # Bad
-   @./templates/foo.md  # Relative to current directory, not plugin
-   ```
+    ```markdown
+    # Good
+
+    @${CLAUDE_PLUGIN_ROOT}/templates/foo.md
+
+    # Bad
+
+    @./templates/foo.md # Relative to current directory, not plugin
+    ```
 
 2. **Validate file existence:**
-   ```markdown
-   ---
-   description: Use plugin config if exists
-   allowed-tools: Bash(test:*), Read
-   ---
 
-   !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "exists" || echo "missing"`
+    ```markdown
+    ---
+    description: Use plugin config if exists
+    allowed-tools: Bash(test:*), Read
+    ---
 
-   If config exists, load it: @${CLAUDE_PLUGIN_ROOT}/config.json
-   Otherwise, use defaults...
-   ```
+    !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "exists" || echo "missing"`
+
+    If config exists, load it: @${CLAUDE_PLUGIN_ROOT}/config.json
+    Otherwise, use defaults...
+    ```
 
 3. **Document plugin file structure:**
-   ```markdown
-   <!--
-   Plugin structure:
-   ${CLAUDE_PLUGIN_ROOT}/
-   ├── scripts/analyze.js  (analysis script)
-   ├── templates/          (report templates)
-   └── config/             (configuration files)
-   -->
-   ```
+
+    ```markdown
+    <!--
+    Plugin structure:
+    ${CLAUDE_PLUGIN_ROOT}/
+    ├── scripts/analyze.js  (analysis script)
+    ├── templates/          (report templates)
+    └── config/             (configuration files)
+    -->
+    ```
 
 4. **Combine with arguments:**
-   ```markdown
-   Run: !`${CLAUDE_PLUGIN_ROOT}/bin/process.sh $1 $2`
-   ```
+    ```markdown
+    Run: !`${CLAUDE_PLUGIN_ROOT}/bin/process.sh $1 $2`
+    ```
 
 ### Troubleshooting
 
 **Variable not expanding:**
+
 - Ensure command is loaded from plugin
 - Check bash execution is allowed
 - Verify syntax is exact: `${CLAUDE_PLUGIN_ROOT}`
 
 **File not found errors:**
+
 - Verify file exists in plugin directory
 - Check file path is correct relative to plugin root
 - Ensure file permissions allow reading/execution
 
 **Path with spaces:**
+
 - Bash commands automatically handle spaces
 - File references work with spaces in paths
 - No special quoting needed
@@ -233,6 +247,7 @@ allowed-tools: Read, Bash(*)
 Load configuration: @${CLAUDE_PLUGIN_ROOT}/deploy-config.json
 
 Deploy to $1 environment using:
+
 1. Configuration settings above
 2. Current git branch: !`git branch --show-current`
 3. Application version: !`cat package.json | grep version`
@@ -256,6 +271,7 @@ Template: @${CLAUDE_PLUGIN_ROOT}/templates/component-docs.md
 
 Generate documentation for $1 component following the template structure.
 Include:
+
 - Component purpose and usage
 - API reference
 - Examples
@@ -279,6 +295,7 @@ Validate: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh`
 Test: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/test.sh`
 
 Review all outputs and report:
+
 1. Build status
 2. Validation results
 3. Test results
@@ -342,6 +359,7 @@ argument-hint: [file-path]
 Initiate deep code analysis of @$1 using the code-analyzer agent.
 
 The agent will:
+
 1. Analyze code structure
 2. Identify patterns
 3. Suggest improvements
@@ -351,6 +369,7 @@ Note: This uses the Task tool to launch the plugin's code-analyzer agent.
 ```
 
 **Key points:**
+
 - Agent must be defined in plugin's `agents/` directory
 - Claude will automatically use Task tool to launch agent
 - Agent has access to same plugin resources
@@ -368,6 +387,7 @@ argument-hint: [api-file]
 Document the API in @$1 following our API documentation standards.
 
 Use the api-docs-standards skill to ensure documentation includes:
+
 - Endpoint descriptions
 - Parameter specifications
 - Response formats
@@ -378,6 +398,7 @@ Note: This leverages the plugin's api-docs-standards skill for consistency.
 ```
 
 **Key points:**
+
 - Skill must be defined in plugin's `skills/` directory
 - Mention skill by name to hint Claude should invoke it
 - Skills provide specialized domain knowledge
@@ -401,6 +422,7 @@ Review hook output for any issues.
 ```
 
 **Key points:**
+
 - Hooks execute automatically on events
 - Commands can prepare state for hooks
 - Document hook interaction in command
@@ -451,12 +473,13 @@ argument-hint: [environment]
 Validate environment: !`echo "$1" | grep -E "^(dev|staging|prod)$" || echo "INVALID"`
 
 $IF($1 in [dev, staging, prod],
-  Deploy to $1 environment using validated configuration,
-  ERROR: Invalid environment '$1'. Must be one of: dev, staging, prod
+Deploy to $1 environment using validated configuration,
+ERROR: Invalid environment '$1'. Must be one of: dev, staging, prod
 )
 ```
 
 **Validation approaches:**
+
 1. Bash validation using grep/test
 2. Inline validation in prompt
 3. Script-based validation
@@ -476,6 +499,7 @@ Check file: !`test -f $1 && echo "EXISTS" || echo "MISSING"`
 Process configuration if file exists: @$1
 
 If file doesn't exist, explain:
+
 - Expected location
 - Required format
 - How to create it
@@ -494,8 +518,8 @@ argument-hint: [environment] [version]
 Validate inputs: !`test -n "$1" -a -n "$2" && echo "OK" || echo "MISSING"`
 
 $IF($1 AND $2,
-  Deploy version $2 to $1 environment,
-  ERROR: Both environment and version required. Usage: /deploy [env] [version]
+Deploy version $2 to $1 environment,
+ERROR: Both environment and version required. Usage: /deploy [env] [version]
 )
 ```
 
@@ -510,6 +534,7 @@ allowed-tools: Bash(test:*)
 ---
 
 Validate plugin setup:
+
 - Config exists: !`test -f ${CLAUDE_PLUGIN_ROOT}/config.json && echo "✓" || echo "✗"`
 - Scripts exist: !`test -d ${CLAUDE_PLUGIN_ROOT}/scripts && echo "✓" || echo "✗"`
 - Tools available: !`test -x ${CLAUDE_PLUGIN_ROOT}/bin/analyze && echo "✓" || echo "✗"`
@@ -531,6 +556,7 @@ allowed-tools: Bash(*)
 Build: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/build.sh`
 
 Validate output:
+
 - Exit code: !`echo $?`
 - Output exists: !`test -d dist && echo "✓" || echo "✗"`
 - File count: !`find dist -type f | wc -l`
@@ -551,10 +577,12 @@ argument-hint: [file-path]
 Try processing: !`node ${CLAUDE_PLUGIN_ROOT}/scripts/process.js $1 2>&1 || echo "ERROR: $?"`
 
 If processing succeeded:
+
 - Report results
 - Suggest next steps
 
 If processing failed:
+
 - Explain likely causes
 - Provide troubleshooting steps
 - Suggest alternative approaches
@@ -565,43 +593,43 @@ If processing failed:
 ### Plugin Commands Should:
 
 1. **Use ${CLAUDE_PLUGIN_ROOT} for all plugin-internal paths**
-   - Scripts, templates, configuration, resources
+    - Scripts, templates, configuration, resources
 
 2. **Validate inputs early**
-   - Check required arguments
-   - Verify file existence
-   - Validate argument formats
+    - Check required arguments
+    - Verify file existence
+    - Validate argument formats
 
 3. **Document plugin structure**
-   - Explain required files
-   - Document script purposes
-   - Clarify dependencies
+    - Explain required files
+    - Document script purposes
+    - Clarify dependencies
 
 4. **Integrate with plugin components**
-   - Reference agents for complex tasks
-   - Use skills for specialized knowledge
-   - Coordinate with hooks when relevant
+    - Reference agents for complex tasks
+    - Use skills for specialized knowledge
+    - Coordinate with hooks when relevant
 
 5. **Provide helpful error messages**
-   - Explain what went wrong
-   - Suggest how to fix
-   - Offer alternatives
+    - Explain what went wrong
+    - Suggest how to fix
+    - Offer alternatives
 
 6. **Handle edge cases**
-   - Missing files
-   - Invalid arguments
-   - Failed script execution
-   - Missing dependencies
+    - Missing files
+    - Invalid arguments
+    - Failed script execution
+    - Missing dependencies
 
 7. **Keep commands focused**
-   - One clear purpose per command
-   - Delegate complex logic to scripts
-   - Use agents for multi-step workflows
+    - One clear purpose per command
+    - Delegate complex logic to scripts
+    - Use agents for multi-step workflows
 
 8. **Test across installations**
-   - Verify paths work everywhere
-   - Test with different arguments
-   - Validate error cases
+    - Verify paths work everywhere
+    - Test with different arguments
+    - Validate error cases
 
 ---
 

@@ -297,5 +297,5 @@ If you encounter issues:
 
 ---
 
-*Last updated: December 8, 2025*
-*Sources: https://ai-sdk.dev/elements, https://ai-sdk.dev/elements/usage*
+_Last updated: December 8, 2025_
+_Sources: https://ai-sdk.dev/elements, https://ai-sdk.dev/elements/usage_

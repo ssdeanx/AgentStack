@@ -1,6 +1,6 @@
-import type { editor } from 'monaco-editor';
+import type { editor } from 'monaco-editor'
 
 declare module './themes/*.json' {
-  const value: editor.IStandaloneThemeData
-  export default value
+    const value: editor.IStandaloneThemeData
+    export default value
 }

@@ -1,13 +1,17 @@
 ---
-title: "Workflows API"
-description: "Reference for Workflows endpoints — creating, starting, streaming, managing and observing workflow runs in AgentStack (Mastra)."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "API"
-slug: "workflows"
+title: 'Workflows API'
+description: 'Reference for Workflows endpoints — creating, starting, streaming, managing and observing workflow runs in AgentStack (Mastra).'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'API'
+slug: 'workflows'
 ---
 
-import { ApiEndpoint, ApiParam, CodeBlock } from "@/app/components/api-components"
+import {
+    ApiEndpoint,
+    ApiParam,
+    CodeBlock,
+} from '@/app/components/api-components'
 
 # Workflows API
 
@@ -29,33 +33,60 @@ Workflows in AgentStack compose multiple steps and agents to execute multi-step,
 
 ## Workflow endpoints overview
 
-<ApiEndpoint method="GET" path="/api/workflows" description="List all available workflows" />
+<ApiEndpoint
+    method="GET"
+    path="/api/workflows"
+    description="List all available workflows"
+/>
 
-<ApiEndpoint method="GET" path="/api/workflows/{workflowId}" description="Get workflow details" />
-- Params:
-  - `workflowId`: ID of the workflow to fetch.
+<ApiEndpoint
+    method="GET"
+    path="/api/workflows/{workflowId}"
+    description="Get workflow details"
+/>
+- Params: - `workflowId`: ID of the workflow to fetch.
 
-<ApiEndpoint method="GET" path="/api/workflows/{workflowId}/runs" description="List runs for a workflow" />
-- Query:
-  - `page` / `perPage` for pagination.
+<ApiEndpoint
+    method="GET"
+    path="/api/workflows/{workflowId}/runs"
+    description="List runs for a workflow"
+/>
+- Query: - `page` / `perPage` for pagination.
 
-<ApiEndpoint method="GET" path="/api/workflows/{workflowId}/runs/{runId}" description="Get run details" />
-- Params:
-  - `workflowId`
-  - `runId` — the unique identifier for a run.
+<ApiEndpoint
+    method="GET"
+    path="/api/workflows/{workflowId}/runs/{runId}"
+    description="Get run details"
+/>
+- Params: - `workflowId` - `runId` — the unique identifier for a run.
 
 ---
 
 ## Creating and Starting Runs
 
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/create-run" description="Create a new run for a workflow (returns runId)" >
-  <ApiParam name="workflowId" type="string" required description="ID of the workflow" />
-  <ApiParam name="input" type="object" required description="Workflow input object (conforms to workflow input schema)" />
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/create-run"
+    description="Create a new run for a workflow (returns runId)"
+>
+    <ApiParam
+        name="workflowId"
+        type="string"
+        required
+        description="ID of the workflow"
+    />
+    <ApiParam
+        name="input"
+        type="object"
+        required
+        description="Workflow input object (conforms to workflow input schema)"
+    />
 </ApiEndpoint>
 
 Example: create a run via cURL:
+
 <CodeBlock title="Create a run: cURL example" language="bash">
-{`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/create-run" \
+    {`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/create-run" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_KEY" \
   -d '{
@@ -69,12 +100,21 @@ Example: create a run via cURL:
 
 Once you have a `runId`, you can start the run:
 
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/start" description="Start a created workflow run (synchronous or blocking)" />
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/start-async" description="Start a workflow run asynchronously (non-blocking)" />
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/start"
+    description="Start a created workflow run (synchronous or blocking)"
+/>
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/start-async"
+    description="Start a workflow run asynchronously (non-blocking)"
+/>
 
 Example: Start a run with a `runId`:
+
 <CodeBlock title="Start a run: cURL example" language="bash">
-{`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/start" \
+    {`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/start" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_KEY" \
   -d '{"runId": "run-12345", "runtimeContext": { "userId": "123" } }'`}
@@ -86,13 +126,26 @@ Example: Start a run with a `runId`:
 
 You can stream step-by-step output for user feedback and progressive updates.
 
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/stream" description="Stream workflow steps & updates (SSE/streaming)"/>
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/observe" description="Observe run state via structured snapshots"/>
-<ApiEndpoint method="GET" path="/api/workflows/{workflowId}/watch" description="Open a watch/stream for run updates (SSE)"/>
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/stream"
+    description="Stream workflow steps & updates (SSE/streaming)"
+/>
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/observe"
+    description="Observe run state via structured snapshots"
+/>
+<ApiEndpoint
+    method="GET"
+    path="/api/workflows/{workflowId}/watch"
+    description="Open a watch/stream for run updates (SSE)"
+/>
 
 Streaming Example:
+
 <CodeBlock title="Stream a run via the streaming endpoint" language="bash">
-{`curl -s -N -X POST "http://localhost:4111/api/workflows/content-studio-workflow/stream" \
+    {`curl -s -N -X POST "http://localhost:4111/api/workflows/content-studio-workflow/stream" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_KEY" \
   -d '{ "runId": "run-12345", "runtimeContext": { "userId": "123" } }'`}
@@ -106,18 +159,29 @@ Streaming Example:
 
 A workflow run can be paused or suspended; resume endpoints allow continuing a suspended run. Use `cancel` to stop a running work in emergencies or to abort.
 
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/resume" description="Resume a previously paused run" />
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/resume-async" description="Resume a run asynchronously" />
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/resume"
+    description="Resume a previously paused run"
+/>
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/resume-async"
+    description="Resume a run asynchronously"
+/>
 
-<ApiEndpoint method="POST" path="/api/workflows/{workflowId}/runs/{runId}/cancel" description="Cancel a run" />
-- Params:
-  - `workflowId`, `runId`
-- Body:
-  - Optional: a reason string for why the run was canceled.
+<ApiEndpoint
+    method="POST"
+    path="/api/workflows/{workflowId}/runs/{runId}/cancel"
+    description="Cancel a run"
+/>
+- Params: - `workflowId`, `runId` - Body: - Optional: a reason string for why
+the run was canceled.
 
 Example: Cancel a run:
+
 <CodeBlock title="Cancel a run: cURL example" language="bash">
-{`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/runs/run-12345/cancel" \
+    {`curl -X POST "http://localhost:4111/api/workflows/content-studio-workflow/runs/run-12345/cancel" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "reason": "User requested cancel" }'`}
@@ -158,6 +222,7 @@ These are useful for debugging, CI integration, or export of execution traces.
 ---
 
 ## Example: Create & observe a run with JS (node)
+
 <CodeBlock title="Create & observe a run (JS)" language="js">
 {`// Create
 const createRes = await fetch("http://localhost:4111/api/workflows/content-studio-workflow/create-run", {
@@ -170,14 +235,15 @@ const runId = createBody.runId;
 
 // Stream updates
 const streamRes = await fetch("http://localhost:4111/api/workflows/content-studio-workflow/stream", {
-  method: "POST",
-  headers: { "Authorization": \`Bearer ${API_KEY}\`, "Content-Type": "application/json" },
-  body: JSON.stringify({ runId })
+method: "POST",
+headers: { "Authorization": \`Bearer ${API_KEY}\`, "Content-Type": "application/json" },
+body: JSON.stringify({ runId })
 });
 
 // Handle streaming events (SSE or chunked JSON)
 streamRes.body.on('data', (chunk) => { console.log('event:', chunk.toString()) });
 `}
+
 </CodeBlock>
 
 ---

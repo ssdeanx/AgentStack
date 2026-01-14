@@ -150,7 +150,7 @@
     --liquid-glass-opacity: 0.15;
     --liquid-glass-blur: 24px;
     --liquid-glass-border: oklch(1 0 0 / 20%);
-    
+
     /* Ambient Animation Tokens */
     --ambient-pulse-duration: 6s;
 
@@ -375,25 +375,28 @@
         background: color-mix(in oklch, var(--surface-glass), transparent 10%);
         backdrop-filter: none;
         border: 1px solid var(--liquid-glass-border);
-        box-shadow: 
+        box-shadow:
             0 8px 32px -1px oklch(0 0 0 / 15%),
             inset 0 0 0 1px var(--liquid-glass-border);
     }
 
     /* Ambient Pulse Animation */
     .animate-ambient-pulse {
-        animation: ambient-pulse var(--ambient-pulse-duration) ease-in-out infinite;
+        animation: ambient-pulse var(--ambient-pulse-duration) ease-in-out
+            infinite;
     }
 
     @keyframes ambient-pulse {
-        0%, 100% { 
-            opacity: 0.9; 
+        0%,
+        100% {
+            opacity: 0.9;
             filter: brightness(1) saturate(1);
             transform: scale(1);
         }
-        50% { 
-            opacity: 1; 
-            filter: brightness(1.1) saturate(1.2) drop-shadow(0 0 15px var(--glow-primary));
+        50% {
+            opacity: 1;
+            filter: brightness(1.1) saturate(1.2)
+                drop-shadow(0 0 15px var(--glow-primary));
             transform: scale(1.01);
         }
     }
@@ -403,7 +406,9 @@
         transition: font-variation-settings 0.3s ease;
     }
     .kinetic-text:hover {
-        font-variation-settings: "wght" 700, "wdth" 120;
+        font-variation-settings:
+            'wght' 700,
+            'wdth' 120;
     }
 
     /* Scroll-driven Reveal */
@@ -483,8 +488,12 @@
     }
 
     @keyframes liquid-flow {
-        from { transform: translateX(-100%); }
-        to { transform: translateX(0); }
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(0);
+        }
     }
 
     /* Focus Mode Utility */
@@ -498,7 +507,7 @@
     /* Spatial Depth Utility */
     .spatial-depth {
         transform: translateZ(50px);
-        box-shadow: 
+        box-shadow:
             0 20px 50px -10px oklch(0 0 0 / 30%),
             0 10px 20px -5px oklch(0 0 0 / 20%);
         transition: transform 0.5s var(--ease-spring);
@@ -520,12 +529,24 @@
     }
 
     @keyframes fade-out {
-        from { opacity: 1; transform: scale(1); }
-        to { opacity: 0; transform: scale(0.98); }
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.98);
+        }
     }
     @keyframes fade-in {
-        from { opacity: 0; transform: scale(1.02); }
-        to { opacity: 1; transform: scale(1); }
+        from {
+            opacity: 0;
+            transform: scale(1.02);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 
     /* Noise Texture Overlay */
@@ -546,11 +567,27 @@
     /* Mesh Gradient Background */
     .mesh-gradient {
         background-color: var(--background);
-        background-image: 
-            radial-gradient(at 0% 0%, oklch(0.7 0.2 260 / 15%) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, oklch(0.6 0.2 300 / 15%) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, oklch(0.8 0.2 100 / 10%) 0px, transparent 50%),
-            radial-gradient(at 0% 100%, oklch(0.5 0.2 200 / 15%) 0px, transparent 50%);
+        background-image:
+            radial-gradient(
+                at 0% 0%,
+                oklch(0.7 0.2 260 / 15%) 0px,
+                transparent 50%
+            ),
+            radial-gradient(
+                at 100% 0%,
+                oklch(0.6 0.2 300 / 15%) 0px,
+                transparent 50%
+            ),
+            radial-gradient(
+                at 100% 100%,
+                oklch(0.8 0.2 100 / 10%) 0px,
+                transparent 50%
+            ),
+            radial-gradient(
+                at 0% 100%,
+                oklch(0.5 0.2 200 / 15%) 0px,
+                transparent 50%
+            );
         background-attachment: fixed;
     }
 
@@ -845,8 +882,13 @@
     }
 
     @keyframes typing-fade {
-        from { opacity: 0; transform: translateX(-4px); }
-        to { opacity: 1; transform: translateX(0); }
+        from {
+            opacity: 0;
+            transform: translateX(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
     }
 }
-

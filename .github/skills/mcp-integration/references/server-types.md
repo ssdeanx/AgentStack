@@ -11,27 +11,29 @@ Execute local MCP servers as child processes with communication via stdin/stdout
 ### Configuration
 
 **Basic:**
+
 ```json
 {
-  "my-server": {
-    "command": "npx",
-    "args": ["-y", "my-mcp-server"]
-  }
+    "my-server": {
+        "command": "npx",
+        "args": ["-y", "my-mcp-server"]
+    }
 }
 ```
 
 **With environment:**
+
 ```json
 {
-  "my-server": {
-    "command": "${CLAUDE_PLUGIN_ROOT}/servers/custom-server",
-    "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"],
-    "env": {
-      "API_KEY": "${MY_API_KEY}",
-      "LOG_LEVEL": "debug",
-      "DATABASE_URL": "${DB_URL}"
+    "my-server": {
+        "command": "${CLAUDE_PLUGIN_ROOT}/servers/custom-server",
+        "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"],
+        "env": {
+            "API_KEY": "${MY_API_KEY}",
+            "LOG_LEVEL": "debug",
+            "DATABASE_URL": "${DB_URL}"
+        }
     }
-  }
 }
 ```
 
@@ -45,35 +47,38 @@ Execute local MCP servers as child processes with communication via stdin/stdout
 ### Use Cases
 
 **NPM Packages:**
+
 ```json
 {
-  "filesystem": {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-  }
+    "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    }
 }
 ```
 
 **Custom Scripts:**
+
 ```json
 {
-  "custom": {
-    "command": "${CLAUDE_PLUGIN_ROOT}/servers/my-server.js",
-    "args": ["--verbose"]
-  }
+    "custom": {
+        "command": "${CLAUDE_PLUGIN_ROOT}/servers/my-server.js",
+        "args": ["--verbose"]
+    }
 }
 ```
 
 **Python Servers:**
+
 ```json
 {
-  "python-server": {
-    "command": "python",
-    "args": ["-m", "my_mcp_server"],
-    "env": {
-      "PYTHONUNBUFFERED": "1"
+    "python-server": {
+        "command": "python",
+        "args": ["-m", "my_mcp_server"],
+        "env": {
+            "PYTHONUNBUFFERED": "1"
+        }
     }
-  }
 }
 ```
 
@@ -88,12 +93,14 @@ Execute local MCP servers as child processes with communication via stdin/stdout
 ### Troubleshooting
 
 **Server won't start:**
+
 - Check command exists and is executable
 - Verify file paths are correct
 - Check permissions
 - Review `claude --debug` logs
 
 **Communication fails:**
+
 - Ensure server uses stdin/stdout correctly
 - Check for stray print/console.log statements
 - Verify JSON-RPC format
@@ -107,26 +114,28 @@ Connect to hosted MCP servers via HTTP with server-sent events for streaming. Be
 ### Configuration
 
 **Basic:**
+
 ```json
 {
-  "hosted-service": {
-    "type": "sse",
-    "url": "https://mcp.example.com/sse"
-  }
+    "hosted-service": {
+        "type": "sse",
+        "url": "https://mcp.example.com/sse"
+    }
 }
 ```
 
 **With headers:**
+
 ```json
 {
-  "service": {
-    "type": "sse",
-    "url": "https://mcp.example.com/sse",
-    "headers": {
-      "X-API-Version": "v1",
-      "X-Client-ID": "${CLIENT_ID}"
+    "service": {
+        "type": "sse",
+        "url": "https://mcp.example.com/sse",
+        "headers": {
+            "X-API-Version": "v1",
+            "X-Client-ID": "${CLIENT_ID}"
+        }
     }
-  }
 }
 ```
 
@@ -141,37 +150,41 @@ Connect to hosted MCP servers via HTTP with server-sent events for streaming. Be
 ### Authentication
 
 **OAuth (Automatic):**
+
 ```json
 {
-  "asana": {
-    "type": "sse",
-    "url": "https://mcp.asana.com/sse"
-  }
+    "asana": {
+        "type": "sse",
+        "url": "https://mcp.asana.com/sse"
+    }
 }
 ```
 
 Claude Code handles OAuth flow:
+
 1. User prompted to authenticate on first use
 2. Opens browser for OAuth flow
 3. Tokens stored securely
 4. Automatic token refresh
 
 **Custom Headers:**
+
 ```json
 {
-  "service": {
-    "type": "sse",
-    "url": "https://mcp.example.com/sse",
-    "headers": {
-      "Authorization": "Bearer ${API_TOKEN}"
+    "service": {
+        "type": "sse",
+        "url": "https://mcp.example.com/sse",
+        "headers": {
+            "Authorization": "Bearer ${API_TOKEN}"
+        }
     }
-  }
 }
 ```
 
 ### Use Cases
 
 **Official Services:**
+
 - Asana: `https://mcp.asana.com/sse`
 - GitHub: `https://mcp.github.com/sse`
 - Other hosted MCP servers
@@ -190,12 +203,14 @@ Deploy your own MCP server and expose via HTTPS + SSE.
 ### Troubleshooting
 
 **Connection refused:**
+
 - Check URL is correct and accessible
 - Verify HTTPS certificate is valid
 - Check network connectivity
 - Review firewall settings
 
 **OAuth fails:**
+
 - Clear cached tokens
 - Check OAuth scopes
 - Verify redirect URLs
@@ -210,27 +225,29 @@ Connect to RESTful MCP servers via standard HTTP requests. Best for token-based 
 ### Configuration
 
 **Basic:**
+
 ```json
 {
-  "api": {
-    "type": "http",
-    "url": "https://api.example.com/mcp"
-  }
+    "api": {
+        "type": "http",
+        "url": "https://api.example.com/mcp"
+    }
 }
 ```
 
 **With authentication:**
+
 ```json
 {
-  "api": {
-    "type": "http",
-    "url": "https://api.example.com/mcp",
-    "headers": {
-      "Authorization": "Bearer ${API_TOKEN}",
-      "Content-Type": "application/json",
-      "X-API-Version": "2024-01-01"
+    "api": {
+        "type": "http",
+        "url": "https://api.example.com/mcp",
+        "headers": {
+            "Authorization": "Bearer ${API_TOKEN}",
+            "Content-Type": "application/json",
+            "X-API-Version": "2024-01-01"
+        }
     }
-  }
 }
 ```
 
@@ -244,30 +261,33 @@ Connect to RESTful MCP servers via standard HTTP requests. Best for token-based 
 ### Authentication
 
 **Token-Based:**
+
 ```json
 {
-  "headers": {
-    "Authorization": "Bearer ${API_TOKEN}"
-  }
+    "headers": {
+        "Authorization": "Bearer ${API_TOKEN}"
+    }
 }
 ```
 
 **API Key:**
+
 ```json
 {
-  "headers": {
-    "X-API-Key": "${API_KEY}"
-  }
+    "headers": {
+        "X-API-Key": "${API_KEY}"
+    }
 }
 ```
 
 **Custom Auth:**
+
 ```json
 {
-  "headers": {
-    "X-Auth-Token": "${AUTH_TOKEN}",
-    "X-User-ID": "${USER_ID}"
-  }
+    "headers": {
+        "X-Auth-Token": "${AUTH_TOKEN}",
+        "X-User-ID": "${USER_ID}"
+    }
 }
 ```
 
@@ -289,12 +309,14 @@ Connect to RESTful MCP servers via standard HTTP requests. Best for token-based 
 ### Troubleshooting
 
 **HTTP errors:**
+
 - 401: Check authentication headers
 - 403: Verify permissions
 - 429: Implement rate limiting
 - 500: Check server logs
 
 **Timeout issues:**
+
 - Increase timeout if needed
 - Check server performance
 - Optimize tool implementations
@@ -308,26 +330,28 @@ Connect to MCP servers via WebSocket for real-time bidirectional communication. 
 ### Configuration
 
 **Basic:**
+
 ```json
 {
-  "realtime": {
-    "type": "ws",
-    "url": "wss://mcp.example.com/ws"
-  }
+    "realtime": {
+        "type": "ws",
+        "url": "wss://mcp.example.com/ws"
+    }
 }
 ```
 
 **With authentication:**
+
 ```json
 {
-  "realtime": {
-    "type": "ws",
-    "url": "wss://mcp.example.com/ws",
-    "headers": {
-      "Authorization": "Bearer ${TOKEN}",
-      "X-Client-ID": "${CLIENT_ID}"
+    "realtime": {
+        "type": "ws",
+        "url": "wss://mcp.example.com/ws",
+        "headers": {
+            "Authorization": "Bearer ${TOKEN}",
+            "X-Client-ID": "${CLIENT_ID}"
+        }
     }
-  }
 }
 ```
 
@@ -358,50 +382,56 @@ Connect to MCP servers via WebSocket for real-time bidirectional communication. 
 ### Troubleshooting
 
 **Connection drops:**
+
 - Implement reconnection logic
 - Check network stability
 - Verify server supports WebSocket
 - Review firewall settings
 
 **Message delivery:**
+
 - Implement message acknowledgment
 - Handle out-of-order messages
 - Buffer during disconnection
 
 ## Comparison Matrix
 
-| Feature | stdio | SSE | HTTP | WebSocket |
-|---------|-------|-----|------|-----------|
-| **Transport** | Process | HTTP/SSE | HTTP | WebSocket |
-| **Direction** | Bidirectional | Server→Client | Request/Response | Bidirectional |
-| **State** | Stateful | Stateful | Stateless | Stateful |
-| **Auth** | Env vars | OAuth/Headers | Headers | Headers |
-| **Use Case** | Local tools | Cloud services | REST APIs | Real-time |
-| **Latency** | Lowest | Medium | Medium | Low |
-| **Setup** | Easy | Medium | Easy | Medium |
-| **Reconnect** | Process respawn | Automatic | N/A | Automatic |
+| Feature       | stdio           | SSE            | HTTP             | WebSocket     |
+| ------------- | --------------- | -------------- | ---------------- | ------------- |
+| **Transport** | Process         | HTTP/SSE       | HTTP             | WebSocket     |
+| **Direction** | Bidirectional   | Server→Client  | Request/Response | Bidirectional |
+| **State**     | Stateful        | Stateful       | Stateless        | Stateful      |
+| **Auth**      | Env vars        | OAuth/Headers  | Headers          | Headers       |
+| **Use Case**  | Local tools     | Cloud services | REST APIs        | Real-time     |
+| **Latency**   | Lowest          | Medium         | Medium           | Low           |
+| **Setup**     | Easy            | Medium         | Easy             | Medium        |
+| **Reconnect** | Process respawn | Automatic      | N/A              | Automatic     |
 
 ## Choosing the Right Type
 
 **Use stdio when:**
+
 - Running local tools or custom servers
 - Need lowest latency
 - Working with file systems or local databases
 - Distributing server with plugin
 
 **Use SSE when:**
+
 - Connecting to hosted services
 - Need OAuth authentication
 - Using official MCP servers (Asana, GitHub)
 - Want automatic reconnection
 
 **Use HTTP when:**
+
 - Integrating with REST APIs
 - Need stateless interactions
 - Using token-based auth
 - Simple request/response pattern
 
 **Use WebSocket when:**
+
 - Need real-time updates
 - Building collaborative features
 - Low-latency critical
@@ -412,44 +442,48 @@ Connect to MCP servers via WebSocket for real-time bidirectional communication. 
 ### From stdio to SSE
 
 **Before (stdio):**
+
 ```json
 {
-  "local-server": {
-    "command": "node",
-    "args": ["server.js"]
-  }
+    "local-server": {
+        "command": "node",
+        "args": ["server.js"]
+    }
 }
 ```
 
 **After (SSE - deploy server):**
+
 ```json
 {
-  "hosted-server": {
-    "type": "sse",
-    "url": "https://mcp.example.com/sse"
-  }
+    "hosted-server": {
+        "type": "sse",
+        "url": "https://mcp.example.com/sse"
+    }
 }
 ```
 
 ### From HTTP to WebSocket
 
 **Before (HTTP):**
+
 ```json
 {
-  "api": {
-    "type": "http",
-    "url": "https://api.example.com/mcp"
-  }
+    "api": {
+        "type": "http",
+        "url": "https://api.example.com/mcp"
+    }
 }
 ```
 
 **After (WebSocket):**
+
 ```json
 {
-  "realtime": {
-    "type": "ws",
-    "url": "wss://api.example.com/ws"
-  }
+    "realtime": {
+        "type": "ws",
+        "url": "wss://api.example.com/ws"
+    }
 }
 ```
 
@@ -463,21 +497,21 @@ Combine different types:
 
 ```json
 {
-  "local-db": {
-    "command": "npx",
-    "args": ["-y", "mcp-server-sqlite", "./data.db"]
-  },
-  "cloud-api": {
-    "type": "sse",
-    "url": "https://mcp.example.com/sse"
-  },
-  "internal-service": {
-    "type": "http",
-    "url": "https://api.example.com/mcp",
-    "headers": {
-      "Authorization": "Bearer ${API_TOKEN}"
+    "local-db": {
+        "command": "npx",
+        "args": ["-y", "mcp-server-sqlite", "./data.db"]
+    },
+    "cloud-api": {
+        "type": "sse",
+        "url": "https://mcp.example.com/sse"
+    },
+    "internal-service": {
+        "type": "http",
+        "url": "https://api.example.com/mcp",
+        "headers": {
+            "Authorization": "Bearer ${API_TOKEN}"
+        }
     }
-  }
 }
 ```
 
@@ -487,17 +521,18 @@ Use environment variables to switch servers:
 
 ```json
 {
-  "api": {
-    "type": "http",
-    "url": "${API_URL}",
-    "headers": {
-      "Authorization": "Bearer ${API_TOKEN}"
+    "api": {
+        "type": "http",
+        "url": "${API_URL}",
+        "headers": {
+            "Authorization": "Bearer ${API_TOKEN}"
+        }
     }
-  }
 }
 ```
 
 Set different values for dev/prod:
+
 - Dev: `API_URL=http://localhost:8080/mcp`
 - Prod: `API_URL=https://api.production.com/mcp`
 
@@ -528,6 +563,7 @@ Set different values for dev/prod:
 ## Conclusion
 
 Choose the MCP server type based on your use case:
+
 - **stdio** for local, custom, or NPM-packaged servers
 - **SSE** for hosted services with OAuth
 - **HTTP** for REST APIs with token auth

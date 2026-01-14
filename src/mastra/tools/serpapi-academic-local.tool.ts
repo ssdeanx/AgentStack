@@ -6,7 +6,7 @@
  * @module serpapi-academic-local-tool
  */
 import type { RequestContext } from '@mastra/core/request-context'
-import { SpanType } from "@mastra/core/observability";
+import { SpanType } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
@@ -81,7 +81,9 @@ export const googleScholarTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const requestContext = context?.requestContext as
+            | SerpApiContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         // Check if operation was already cancelled
@@ -98,8 +100,8 @@ export const googleScholarTool = createTool({
                 query: input.query,
                 yearRange: `${input.yearStart}-${input.yearEnd}`,
                 operation: 'google-scholar',
-            }
-        });
+            },
+        })
         log.info('Executing Google Scholar search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -175,7 +177,7 @@ export const googleScholarTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.paperCount': papers.length,
-                }
+                },
             })
             scholarSpan?.end()
             log.info('Google Scholar search completed', {
@@ -306,7 +308,9 @@ export const googleFinanceTool = createTool({
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const requestContext = context?.requestContext as
+            | SerpApiContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         const financeSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -317,8 +321,8 @@ export const googleFinanceTool = createTool({
                 'tool.id': 'google-finance',
                 query: input.query,
                 operation: 'google-finance',
-            }
-        });
+            },
+        })
         log.info('Executing Google Finance search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -369,7 +373,7 @@ export const googleFinanceTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.symbol': result.symbol,
-                }
+                },
             })
             financeSpan?.end()
             log.info('Google Finance search completed', {
@@ -451,7 +455,9 @@ export const yelpSearchTool = createTool({
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
-        const requestContext = context?.requestContext as SerpApiContext | undefined
+        const requestContext = context?.requestContext as
+            | SerpApiContext
+            | undefined
         const tracingContext = context?.tracingContext
 
         const yelpSpan = tracingContext?.currentSpan?.createChildSpan({
@@ -463,8 +469,8 @@ export const yelpSearchTool = createTool({
                 query: input.query,
                 location: input.location,
                 operation: 'yelp-search',
-            }
-        });
+            },
+        })
         log.info('Executing Yelp search', {
             query: input.query,
             location: input.location,
@@ -529,7 +535,7 @@ export const yelpSearchTool = createTool({
                 output: result,
                 metadata: {
                     'tool.output.businessCount': businesses.length,
-                }
+                },
             })
             yelpSpan?.end()
             log.info('Yelp search completed', {

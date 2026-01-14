@@ -98,7 +98,9 @@ export function streamJSONEvent<T>(
  * ```
  */
 export async function handleTextStream(
-    streamResult: StreamTextResult<ToolSet, unknown> | { textStream: AsyncIterable<string> },
+    streamResult:
+        | StreamTextResult<ToolSet, unknown>
+        | { textStream: AsyncIterable<string> },
     streamController: ReadableStreamDefaultController<Uint8Array>
 ): Promise<string> {
     const encoder = new TextEncoder()

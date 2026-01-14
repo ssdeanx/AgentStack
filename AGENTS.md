@@ -359,12 +359,12 @@ Located in `.github/copilot-instructions.md`:
 - `app/tools/AGENTS.md`: Tool documentation and execution
 - `app/workflows/AGENTS.md`: Interactive workflow visualization with AI Elements (Canvas, Node, Edge, Panel)
 - `lib/`: Shared utilities
-  - `hooks/`: React hooks for data fetching and state management
-    - `use-dashboard-queries.ts`: TanStack Query hooks for agents, workflows, tools, traces, threads, messages
-    - `use-mastra.ts`: Generic fetch hook with loading/error states for MastraClient data
-  - `types/`: TypeScript type definitions
-    - `mastra-api.ts`: Zod schemas and types for Agent, Workflow, Tool, MemoryThread, Message, VectorQueryResult
-  - Core utilities: `a2a.ts` (agent coordination), `auth.ts` (authentication), `client-stream-to-ai-sdk.ts` (streaming), `mastra-client.ts` (client), `utils.ts`
+    - `hooks/`: React hooks for data fetching and state management
+        - `use-dashboard-queries.ts`: TanStack Query hooks for agents, workflows, tools, traces, threads, messages
+        - `use-mastra.ts`: Generic fetch hook with loading/error states for MastraClient data
+    - `types/`: TypeScript type definitions
+        - `mastra-api.ts`: Zod schemas and types for Agent, Workflow, Tool, MemoryThread, Message, VectorQueryResult
+    - Core utilities: `a2a.ts` (agent coordination), `auth.ts` (authentication), `client-stream-to-ai-sdk.ts` (streaming), `mastra-client.ts` (client), `utils.ts`
 - `ui/AGENTS.md`: shadcn/ui base components (34 components)
 - `src/components/ai-elements/AGENTS.md`: AI Elements library (30 components)
 - `src/mastra/AGENTS.md`: top-level code-agent focused docs (this file is mirrored to subfolders)
@@ -461,8 +461,8 @@ graph TB
 - `.eslintignore`: ESLint ignore patterns for node_modules, build artifacts, memory-bank, docs, and other non-source directories
 - `.markdownlint.json`: Markdown linting configuration with relaxed rules for line length, headings, and formatting
 - `src/cli/`: CLI tooling for Governed RAG
-  - `index.ts`: CLI commands for document indexing, querying RAG, and usage statistics
-  - `AGENTS.md`: CLI documentation and usage patterns
+    - `index.ts`: CLI commands for document indexing, querying RAG, and usage statistics
+    - `AGENTS.md`: CLI documentation and usage patterns
 
 If you need more details for a subdirectory, open the folder-specific `AGENTS.md` which contains persona, purpose, and actionable commands.
 

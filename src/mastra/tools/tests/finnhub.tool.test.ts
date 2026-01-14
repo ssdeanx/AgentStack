@@ -19,10 +19,10 @@ global.fetch = fetchMock
 import { finnhubQuotesTool, finnhubCompanyTool } from '../finnhub-tools'
 
 type MockRequestContext = {
-    get: ReturnType<typeof vi.fn>;
-    set: ReturnType<typeof vi.fn>;
-    has: ReturnType<typeof vi.fn>;
-} & Record<string, unknown>;
+    get: ReturnType<typeof vi.fn>
+    set: ReturnType<typeof vi.fn>
+    has: ReturnType<typeof vi.fn>
+} & Record<string, unknown>
 
 const createMockRequestContext = (
     overrides: Record<string, unknown> = {}
@@ -63,11 +63,16 @@ describe('finnhubQuotesTool', () => {
         const mockTracingContext = createMockTracingContext()
         const mockWriter = createMockWriter()
 
-        interface QuoteData { c: number; h: number; l: number; o: number }
+        interface QuoteData {
+            c: number
+            h: number
+            l: number
+            o: number
+        }
         interface ResultType {
-            data: QuoteData | null;
-            metadata: { symbol: string };
-            message?: string;
+            data: QuoteData | null
+            metadata: { symbol: string }
+            message?: string
         }
 
         const result: ResultType = await finnhubQuotesTool.execute(

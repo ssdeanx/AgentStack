@@ -25,14 +25,20 @@ export interface DataExportContext {
 log.info('Initializing Data Export Agent...')
 
 export const dataExportAgent = new Agent({
-  id: 'dataExportAgent',
+    id: 'dataExportAgent',
     name: 'Data Export Agent',
     description:
         'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',
-    instructions: ({ requestContext }: { requestContext: RequestContext<DataExportContext> }) => {
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<DataExportContext>
+    }) => {
         const userId = requestContext.get('userId') ?? 'default'
-        const outputDirectory = requestContext.get('outputDirectory') ?? './data'
-        const overwriteExisting = requestContext.get('overwriteExisting') ?? false
+        const outputDirectory =
+            requestContext.get('outputDirectory') ?? './data'
+        const overwriteExisting =
+            requestContext.get('overwriteExisting') ?? false
         const delimiter = requestContext.get('delimiter') ?? ','
 
         return `
@@ -61,12 +67,12 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
     },
     options: {
         tracingPolicy: {
-          internal: InternalSpans.ALL
-        }
-      },
+            internal: InternalSpans.ALL,
+        },
+    },
     outputProcessors: [new TokenLimiterProcessor(1048576)],
     defaultOptions: {
-      autoResumeSuspendedTools: true,
+        autoResumeSuspendedTools: true,
     },
 })
 

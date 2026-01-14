@@ -73,42 +73,50 @@ CHANGELOG:
 ### Documentation Comment Sections
 
 **PURPOSE**: Why the command exists
+
 - Problem it solves
 - Use cases
 - When to use vs when not to use
 
 **USAGE**: Basic syntax
+
 - Command invocation pattern
 - Required vs optional arguments
 - Default values
 
 **ARGUMENTS**: Detailed argument documentation
+
 - Each argument described
 - Type information
 - Valid values/ranges
 - Defaults
 
 **EXAMPLES**: Concrete usage examples
+
 - Common use cases
 - Edge cases
 - Expected outputs
 
 **REQUIREMENTS**: Prerequisites
+
 - Dependencies
 - Permissions
 - Environmental setup
 
 **RELATED COMMANDS**: Connections
+
 - Similar commands
 - Complementary commands
 - Alternative approaches
 
 **TROUBLESHOOTING**: Common issues
+
 - Known problems
 - Solutions
 - Workarounds
 
 **CHANGELOG**: Version history
+
 - What changed when
 - Breaking changes highlighted
 - Migration guidance
@@ -126,6 +134,7 @@ description: Complex multi-step command
 <!-- This section checks prerequisites before proceeding -->
 
 Checking prerequisites...
+
 - Git repository: !`git rev-parse --git-dir 2>/dev/null`
 - Branch exists: [validation logic]
 
@@ -156,15 +165,18 @@ description: Deployment command with inline docs
 ## Pre-flight Checks
 
 <!-- We check branch status to prevent deploying from wrong branch -->
+
 Current branch: !`git branch --show-current`
 
 <!-- Production deploys must come from main/master -->
+
 if [ "$1" = "production" ] && [ "$(git branch --show-current)" != "main" ]; then
-  ⚠️  WARNING: Not on main branch for production deploy
-  This is unusual. Confirm this is intentional.
+⚠️ WARNING: Not on main branch for production deploy
+This is unusual. Confirm this is intentional.
 fi
 
 <!-- Test status ensures we don't deploy broken code -->
+
 Running tests: !`npm test`
 
 ✓ All checks passed
@@ -173,10 +185,12 @@ Running tests: !`npm test`
 
 <!-- Actual deployment happens here -->
 <!-- Uses blue-green strategy for zero-downtime -->
+
 Deploying to $1 environment...
 [Deployment steps...]
 
 <!-- Post-deployment verification -->
+
 Verifying deployment health...
 [Health checks...]
 
@@ -185,6 +199,7 @@ Deployment complete!
 ## Next Steps
 
 <!-- Guide user on what to do after deployment -->
+
 1. Monitor logs: /logs $1
 2. Run smoke tests: /smoke-test $1
 3. Notify team: /notify-deployment $1
@@ -212,6 +227,7 @@ New version: $2
 Review the above configuration.
 
 **Continue with deployment?**
+
 - Reply "yes" to proceed
 - Reply "no" to cancel
 - Reply "edit" to modify configuration
@@ -239,28 +255,28 @@ argument-hint: [subcommand] [args]
 # Command Processor
 
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  **Command Help**
+**Command Help**
 
-  USAGE:
-    /command [subcommand] [args]
+USAGE:
+/command [subcommand] [args]
 
-  SUBCOMMANDS:
-    init [name]       Initialize new configuration
-    deploy [env]      Deploy to environment
-    status            Show current status
-    rollback          Rollback last deployment
-    help              Show this help
+SUBCOMMANDS:
+init [name] Initialize new configuration
+deploy [env] Deploy to environment
+status Show current status
+rollback Rollback last deployment
+help Show this help
 
-  EXAMPLES:
-    /command init my-project
-    /command deploy staging
-    /command status
-    /command rollback
+EXAMPLES:
+/command init my-project
+/command deploy staging
+/command status
+/command rollback
 
-  For detailed help on a subcommand:
-    /command [subcommand] --help
+For detailed help on a subcommand:
+/command [subcommand] --help
 
-  Exit.
+Exit.
 fi
 
 [Regular command processing...]
@@ -279,23 +295,24 @@ argument-hint: [operation] [target]
 # Context-Aware Operation
 
 if [ -z "$1" ]; then
-  **No operation specified**
+**No operation specified**
 
-  Available operations:
-  - analyze: Analyze target for issues
-  - fix: Apply automatic fixes
-  - report: Generate detailed report
+Available operations:
 
-  Usage: /command [operation] [target]
+- analyze: Analyze target for issues
+- fix: Apply automatic fixes
+- report: Generate detailed report
 
-  Examples:
-    /command analyze src/
-    /command fix src/app.js
-    /command report
+Usage: /command [operation] [target]
 
-  Run /command help for more details.
+Examples:
+/command analyze src/
+/command fix src/app.js
+/command report
 
-  Exit.
+Run /command help for more details.
+
+Exit.
 fi
 
 [Command continues if operation provided...]
@@ -313,37 +330,39 @@ description: Command with good error messages
 # Validation Command
 
 if [ -z "$1" ]; then
-  ❌ ERROR: Missing required argument
+❌ ERROR: Missing required argument
 
-  The 'file-path' argument is required.
+The 'file-path' argument is required.
 
-  USAGE:
-    /validate [file-path]
+USAGE:
+/validate [file-path]
 
-  EXAMPLE:
-    /validate src/app.js
+EXAMPLE:
+/validate src/app.js
 
-  Try again with a file path.
+Try again with a file path.
 
-  Exit.
+Exit.
 fi
 
 if [ ! -f "$1" ]; then
-  ❌ ERROR: File not found: $1
+❌ ERROR: File not found: $1
 
-  The specified file does not exist or is not accessible.
+The specified file does not exist or is not accessible.
 
-  COMMON CAUSES:
-  1. Typo in file path
-  2. File was deleted or moved
-  3. Insufficient permissions
+COMMON CAUSES:
 
-  SUGGESTIONS:
-  - Check spelling: $1
-  - Verify file exists: ls -la $(dirname "$1")
-  - Check permissions: ls -l "$1"
+1. Typo in file path
+2. File was deleted or moved
+3. Insufficient permissions
 
-  Exit.
+SUGGESTIONS:
+
+- Check spelling: $1
+- Verify file exists: ls -la $(dirname "$1")
+- Check permissions: ls -l "$1"
+
+Exit.
 fi
 
 [Command continues if validation passes...]
@@ -363,30 +382,33 @@ Running operation...
 !`risky-operation.sh`
 
 if [ $? -ne 0 ]; then
-  ❌ OPERATION FAILED
+❌ OPERATION FAILED
 
-  The operation encountered an error and could not complete.
+The operation encountered an error and could not complete.
 
-  WHAT HAPPENED:
-  The risky-operation.sh script returned a non-zero exit code.
+WHAT HAPPENED:
+The risky-operation.sh script returned a non-zero exit code.
 
-  WHAT THIS MEANS:
-  - Changes may be partially applied
-  - System may be in inconsistent state
-  - Manual intervention may be needed
+WHAT THIS MEANS:
 
-  RECOVERY STEPS:
-  1. Check operation logs: cat /tmp/operation.log
-  2. Verify system state: /check-state
-  3. If needed, rollback: /rollback-operation
-  4. Fix underlying issue
-  5. Retry operation: /retry-operation
+- Changes may be partially applied
+- System may be in inconsistent state
+- Manual intervention may be needed
 
-  NEED HELP?
-  - Check troubleshooting guide: /help troubleshooting
-  - Contact support with error code: ERR_OP_FAILED_001
+RECOVERY STEPS:
 
-  Exit.
+1. Check operation logs: cat /tmp/operation.log
+2. Verify system state: /check-state
+3. If needed, rollback: /rollback-operation
+4. Fix underlying issue
+5. Retry operation: /retry-operation
+
+NEED HELP?
+
+- Check troubleshooting guide: /help troubleshooting
+- Contact support with error code: ERR_OP_FAILED_001
+
+Exit.
 fi
 ```
 
@@ -418,6 +440,7 @@ Analyzes all files in src/ directory for feature usage.
 \`\`\`
 
 Provides detailed analysis including:
+
 - Feature breakdown by file
 - Usage patterns
 - Optimization suggestions
@@ -465,6 +488,7 @@ Transforms data from one format to another.
 ## Examples First
 
 ### Example 1: JSON to YAML
+
 **Input:** `data.json`
 \`\`\`json
 {"name": "test", "value": 42}
@@ -479,6 +503,7 @@ value: 42
 \`\`\`
 
 ### Example 2: CSV to JSON
+
 **Input:** `data.csv`
 \`\`\`csv
 name,value
@@ -493,6 +518,7 @@ test,42
 \`\`\`
 
 ### Example 3: With Options
+
 **Command:** `/transform data.json yaml --pretty --sort-keys`
 
 **Result:** Formatted YAML with sorted keys
@@ -631,6 +657,7 @@ Basic usage:
 ## Examples
 
 ### Example 1: Basic Usage
+
 \`\`\`
 /command-name value1 value2
 \`\`\`
@@ -638,6 +665,7 @@ Basic usage:
 Description of what happens.
 
 ### Example 2: Advanced Usage
+
 \`\`\`
 /command-name value1 --option
 \`\`\`
@@ -648,11 +676,13 @@ Description of advanced feature.
 
 Optional configuration file: `.claude/command-name.local.md`
 
-\`\`\`markdown
----
+## \`\`\`markdown
+
 default_arg: value
 enable_feature: true
+
 ---
+
 \`\`\`
 
 ## Requirements

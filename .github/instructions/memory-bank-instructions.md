@@ -5,6 +5,7 @@ argument-hint: Follow these instructions to effectively use the Memory Bank for 
 agent: agent
 applyTo: ['**.md', '**.prompt.md', '**/memory-bank/**']
 ---
+
 # Memory Bank & Context Engineering Instructions
 
 ## Purpose
@@ -26,23 +27,23 @@ This document instructs GitHub Copilot on how to:
 
 ```markdown
 1. ALWAYS READ:
-   - projectbrief.md    → What is this project?
-   - activeContext.md   → What are we working on NOW?
-   - copilot-rules.md   → What rules must I follow?
+    - projectbrief.md → What is this project?
+    - activeContext.md → What are we working on NOW?
+    - copilot-rules.md → What rules must I follow?
 
 2. THEN READ (based on task):
-   - Requirements work  → + productContext.md
-   - Architecture work  → + systemPatterns.md, techContext.md
-   - Implementation     → + /memory-bank/<feature>/*.md
-   - Status check       → + progress.md
+    - Requirements work → + productContext.md
+    - Architecture work → + systemPatterns.md, techContext.md
+    - Implementation → + /memory-bank/<feature>/\*.md
+    - Status check → + progress.md
 ```
 
 ### On Context Reset (New Session)
 
 ```markdown
-1. Read activeContext.md     → "Where did we leave off?"
-2. Read feature context.md   → "What decisions were made?"
-3. Read progress.md          → "What's done, what's pending?"
+1. Read activeContext.md → "Where did we leave off?"
+2. Read feature context.md → "What decisions were made?"
+3. Read progress.md → "What's done, what's pending?"
 4. Resume from last task
 ```
 
@@ -52,20 +53,20 @@ This document instructs GitHub Copilot on how to:
 
 ```markdown
 /memory-bank/
-├── `projectbrief.md`      ← ALWAYS LOAD: scope, goals
-├── `activeContext.md`     ← ALWAYS LOAD: current focus
-├── `copilot-rules.md`     ← ALWAYS LOAD: safety rules
+├── `projectbrief.md` ← ALWAYS LOAD: scope, goals
+├── `activeContext.md` ← ALWAYS LOAD: current focus
+├── `copilot-rules.md` ← ALWAYS LOAD: safety rules
 │
-├── `productContext.md`    ← ON DEMAND: user problems, UX goals
-├── `systemPatterns.md`    ← ON DEMAND: architecture patterns
-├── `techContext.md`       ← ON DEMAND: tech stack, constraints
-├── `progress.md`          ← ON DEMAND: completion status
+├── `productContext.md` ← ON DEMAND: user problems, UX goals
+├── `systemPatterns.md` ← ON DEMAND: architecture patterns
+├── `techContext.md` ← ON DEMAND: tech stack, constraints
+├── `progress.md` ← ON DEMAND: completion status
 │
-└── <feature>/           ← PER-FEATURE CONTEXT
-    ├── `prd.md`           # Requirements (user stories, acceptance criteria)
-    ├── `design.md`        # Architecture (diagrams, data models, APIs)
-    ├── `tasks.md`         # Task breakdown (TASK_ID, effort, dependencies)
-    └── `context.md`       # SCRATCHPAD: decisions, blockers, notes
+└── <feature>/ ← PER-FEATURE CONTEXT
+├── `prd.md` # Requirements (user stories, acceptance criteria)
+├── `design.md` # Architecture (diagrams, data models, APIs)
+├── `tasks.md` # Task breakdown (TASK_ID, effort, dependencies)
+└── `context.md` # SCRATCHPAD: decisions, blockers, notes
 ```
 
 ### File Dependency Hierarchy
@@ -82,7 +83,7 @@ flowchart TD
 
     AC --> P[progress.md]
     AC --> CR[copilot-rules.md<br/>ALWAYS LOAD]
-    
+
     AC --> FC[Feature Context]
     FC --> PRD[prd.md]
     FC --> DES[design.md]
@@ -110,21 +111,25 @@ flowchart TD
 ## Session: 2025-11-28
 
 ### Decisions Made
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Validation library | Zod | Better TypeScript inference than TypeBox |
-| Queue type | Database | Persistence required per NFR-3 |
-| Rate limit | 100/min/user | Balance UX with system load |
+
+| Decision           | Choice       | Rationale                                |
+| ------------------ | ------------ | ---------------------------------------- |
+| Validation library | Zod          | Better TypeScript inference than TypeBox |
+| Queue type         | Database     | Persistence required per NFR-3           |
+| Rate limit         | 100/min/user | Balance UX with system load              |
 
 ### Blockers
+
 - [ ] Waiting on email API credentials from DevOps
 
 ### Completed Tasks
+
 - [x] NOTIFY-1: Service scaffold
 - [x] NOTIFY-2: Email channel
 - [ ] NOTIFY-3: Push channel (in progress)
 
 ### Open Questions
+
 - Should we batch notifications? (ask user)
 - WebSocket vs SSE for real-time? (research needed)
 ```
@@ -134,13 +139,13 @@ flowchart TD
 **What:** Pull context relevant to current task type.
 **How:** Match task type to required files.
 
-| Task Type | Load These Files |
-|-----------|------------------|
-| **Requirements** | projectbrief + productContext |
-| **Architecture** | projectbrief + systemPatterns + techContext |
-| **Implementation** | projectbrief + activeContext + feature/*.md |
-| **Status Update** | activeContext + progress.md |
-| **Debugging** | activeContext + feature/context.md + related code |
+| Task Type          | Load These Files                                  |
+| ------------------ | ------------------------------------------------- |
+| **Requirements**   | projectbrief + productContext                     |
+| **Architecture**   | projectbrief + systemPatterns + techContext       |
+| **Implementation** | projectbrief + activeContext + feature/\*.md      |
+| **Status Update**  | activeContext + progress.md                       |
+| **Debugging**      | activeContext + feature/context.md + related code |
 
 **Example:** Implementing NOTIFY-3
 
@@ -156,7 +161,7 @@ Load:
 Skip:
 ❌ productContext.md (not doing requirements)
 ❌ progress.md (not updating status)
-❌ /memory-bank/other-feature/* (unrelated)
+❌ /memory-bank/other-feature/\* (unrelated)
 ```
 
 ### 3. COMPRESS: Reduce Token Usage
@@ -174,24 +179,29 @@ Skip:
 ## Compressed: Session 2025-11-28
 
 ### Summary
+
 Implemented NOTIFY-1 through NOTIFY-3 (email and push channels).
 
 ### Key Outcomes
+
 - Created: src/mastra/tools/notifications.ts
 - Created: src/mastra/tools/tests/notifications.test.ts
 - Integrated with existing event bus
 
 ### Decisions Locked
+
 - Database queue (not in-memory) — persistence required
 - Resend for email — already in project dependencies
 - Rate limit: 100/min/user
 
 ### Pending
+
 - NOTIFY-4: Event bus integration
 - NOTIFY-5: User preferences
 - NOTIFY-6: Admin config UI
 
 ### Open Questions (still unresolved)
+
 - Batch notifications? (user to decide)
 ```
 
@@ -252,12 +262,12 @@ flowchart LR
 When user wants explicit control:
 
 ```markdown
-/start feature <name>  → Create feature folder + templates
-/approve               → Confirm current phase, proceed
-/implement <TASK_ID>   → Implement one specific task
-/status                → Show phase, progress, blockers
-/pause                 → Stop automatic progression
-/context summary       → Compress current session
+/start feature <name> → Create feature folder + templates
+/approve → Confirm current phase, proceed
+/implement <TASK_ID> → Implement one specific task
+/status → Show phase, progress, blockers
+/pause → Stop automatic progression
+/context summary → Compress current session
 ```
 
 ---
@@ -287,10 +297,12 @@ npx tsc --noEmit
 → NOTIFY-3 complete. Proceeding to NOTIFY-4...
 
 # OR if failure:
+
 ❌ Tests: 10/12 passing (2 failed)
-   - notifications.test.ts:45 - Expected push to be called
-   - notifications.test.ts:67 - Timeout exceeded
-→ Fix required before proceeding.
+
+- notifications.test.ts:45 - Expected push to be called
+- notifications.test.ts:67 - Timeout exceeded
+  → Fix required before proceeding.
 ```
 
 ---
@@ -303,21 +315,28 @@ For architectural or security decisions:
 ## Decision: Notification Queue Storage
 
 ### Option A: In-Memory Queue
-+ Fast, simple implementation
-- Lost on restart (unacceptable for notifications)
-- Not horizontally scalable
+
+- Fast, simple implementation
+
+* Lost on restart (unacceptable for notifications)
+* Not horizontally scalable
 
 ### Option B: Database Queue ← SELECTED
-+ Persistent across restarts
-+ Scales horizontally with read replicas
-- Slightly more complex setup
+
+- Persistent across restarts
+- Scales horizontally with read replicas
+
+* Slightly more complex setup
 
 ### Option C: External Message Broker (RabbitMQ/Redis)
-+ Industry standard, battle-tested
-- Overkill for current scale (< 10k users)
-- Additional infrastructure to maintain
+
+- Industry standard, battle-tested
+
+* Overkill for current scale (< 10k users)
+* Additional infrastructure to maintain
 
 ### Decision
+
 **Option B: Database Queue**
 
 Rationale: NFR-3 requires notification persistence. Database approach balances simplicity with reliability. Can migrate to Option C if scale exceeds 100k users.
@@ -333,13 +352,16 @@ Rationale: NFR-3 requires notification persistence. Database approach balances s
 # Active Context
 
 ## Current Focus
+
 Implementing notification system (NOTIFY-3: Push channel)
 
 ## Recent Changes
+
 - 2025-11-28: Completed NOTIFY-1 (service scaffold)
 - 2025-11-28: Completed NOTIFY-2 (email channel with Resend)
 
 ## Next Steps
+
 1. Complete NOTIFY-3 push implementation
     - Web-push integration
     - Native notification handling
@@ -358,9 +380,8 @@ Implementing notification system (NOTIFY-3: Push channel)
     - Admin auth
     - Write mechanism
 
-
-
 ## Active Decisions
+
 - Batch vs immediate notifications: Waiting for user input
 ```
 
@@ -372,16 +393,19 @@ Implementing notification system (NOTIFY-3: Push channel)
 ## Phase: IMPLEMENTATION
 
 ## Decisions
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Email provider | Resend | Already in project deps |
-| Queue storage | PostgreSQL | Persistence required |
-| Rate limit | 100/min/user | Balance UX + load |
+
+| Decision       | Choice       | Rationale               |
+| -------------- | ------------ | ----------------------- |
+| Email provider | Resend       | Already in project deps |
+| Queue storage  | PostgreSQL   | Persistence required    |
+| Rate limit     | 100/min/user | Balance UX + load       |
 
 ## Blockers
+
 - [ ] Need email API key from DevOps
 
 ## Session: 2025-11-28
+
 - Implemented NOTIFY-1,2,3
 - Chose database queue over in-memory
 - Rate limiting added at service layer
@@ -391,14 +415,14 @@ Implementing notification system (NOTIFY-3: Push channel)
 
 ## Anti-Patterns to Avoid
 
-| ❌ Don't Do This | ✅ Do This Instead |
-|------------------|-------------------|
-| Load ALL memory bank files at start | Load only what current task needs |
-| Keep all conversation history | Compress after 50+ turns |
-| Mix multiple task implementations | Isolate: one task per focus |
-| Forget decisions after reset | Write to context.md immediately |
-| Skip validation hooks | Always run tests, lint, types |
-| Make assumptions | Ask targeted confirmation questions |
+| ❌ Don't Do This                    | ✅ Do This Instead                  |
+| ----------------------------------- | ----------------------------------- |
+| Load ALL memory bank files at start | Load only what current task needs   |
+| Keep all conversation history       | Compress after 50+ turns            |
+| Mix multiple task implementations   | Isolate: one task per focus         |
+| Forget decisions after reset        | Write to context.md immediately     |
+| Skip validation hooks               | Always run tests, lint, types       |
+| Make assumptions                    | Ask targeted confirmation questions |
 
 ---
 
@@ -406,20 +430,20 @@ Implementing notification system (NOTIFY-3: Push channel)
 
 ```markdown
 ┌─────────────────────────────────────────────────────────────┐
-│ ALWAYS LOAD: projectbrief + activeContext + copilot-rules   │
+│ ALWAYS LOAD: projectbrief + activeContext + copilot-rules │
 ├─────────────────────────────────────────────────────────────┤
-│ WRITE decisions → context.md (scratchpad)                   │
-│ SELECT context → based on task type                         │
-│ COMPRESS → after 50 turns or 80% window                     │
-│ ISOLATE → one TASK_ID at a time                             │
+│ WRITE decisions → context.md (scratchpad) │
+│ SELECT context → based on task type │
+│ COMPRESS → after 50 turns or 80% window │
+│ ISOLATE → one TASK_ID at a time │
 ├─────────────────────────────────────────────────────────────┤
-│ VALIDATE: eslint → tsc --noEmit                             │
+│ VALIDATE: eslint → tsc --noEmit │
 ├─────────────────────────────────────────────────────────────┤
-│ RECOVERY: activeContext → context.md → progress → resume    │
+│ RECOVERY: activeContext → context.md → progress → resume │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-*Last updated: 2025-11-28*
-*Version: 2.1.0*
+_Last updated: 2025-11-28_
+_Version: 2.1.0_

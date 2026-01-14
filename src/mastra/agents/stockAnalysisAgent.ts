@@ -7,16 +7,16 @@ import { pgMemory } from '../config/pg-storage'
 
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
-  finnhubAnalysisTool,
-  finnhubCompanyTool,
-  finnhubFinancialsTool,
-  finnhubQuotesTool,
-  finnhubTechnicalTool,
+    finnhubAnalysisTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubQuotesTool,
+    finnhubTechnicalTool,
 } from '../tools/finnhub-tools'
 import {
-  polygonStockAggregatesTool,
-  polygonStockFundamentalsTool,
-  polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
@@ -25,24 +25,28 @@ import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface StockRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Stock Analysis Agent...')
 
 export const stockAnalysisAgent = new Agent({
-  id: 'stockAnalysisAgent',
-  name: 'Stock Analysis Agent',
-  description:
-    'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
-  instructions: ({ requestContext }: { requestContext: RequestContext<StockRuntimeContext> }) => {
-    // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    return {
-      role: 'system',
-      content: `
+    id: 'stockAnalysisAgent',
+    name: 'Stock Analysis Agent',
+    description:
+        'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
+    instructions: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<StockRuntimeContext>
+    }) => {
+        // runtimeContext is read at invocation time
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        const language = requestContext.get('language') ?? 'en'
+        return {
+            role: 'system',
+            content: `
         <role>
         Tier: ${userTier}
 
@@ -80,49 +84,53 @@ export const stockAnalysisAgent = new Agent({
         - **Output:** Provide JSON with symbol, currentPrice, technicals, fundamentals, sentiment, recommendation, priceTarget, risks, and sources.
         </rules>
         `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          }
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<StockRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
-      return googleAIPro
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return googleAI
-    }
-    // cheaper/faster model for free tier
-    return googleAIFlashLite
-  },
-  tools: {
-    alphaVantageStockTool,
-    polygonStockQuotesTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-    finnhubQuotesTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
-    finnhubAnalysisTool,
-    finnhubTechnicalTool,
-    googleFinanceTool,
-  },
-  memory: pgMemory,
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
-  },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
-  maxRetries: 5,
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<StockRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        if (userTier === 'enterprise') {
+            // higher quality (chat style) for enterprise
+            return googleAIPro
+        } else if (userTier === 'pro') {
+            // Chat bison for pro as well
+            return googleAI
+        }
+        // cheaper/faster model for free tier
+        return googleAIFlashLite
+    },
+    tools: {
+        alphaVantageStockTool,
+        polygonStockQuotesTool,
+        polygonStockAggregatesTool,
+        polygonStockFundamentalsTool,
+        finnhubQuotesTool,
+        finnhubCompanyTool,
+        finnhubFinancialsTool,
+        finnhubAnalysisTool,
+        finnhubTechnicalTool,
+        googleFinanceTool,
+    },
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    maxRetries: 5,
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
 })

@@ -1,29 +1,29 @@
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google';
-import { pgMemory } from '../config/pg-storage';
-import { mdocumentChunker } from '../tools/document-chunking.tool';
-import { weatherTool } from '../tools/weather-tool';
-import { webScraperTool } from '../tools/web-scraper-tool';
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { TokenLimiterProcessor } from '@mastra/core/processors';
-import { InternalSpans } from '@mastra/core/observability';
+import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
+import { pgMemory } from '../config/pg-storage'
+import { mdocumentChunker } from '../tools/document-chunking.tool'
+import { weatherTool } from '../tools/weather-tool'
+import { webScraperTool } from '../tools/web-scraper-tool'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface WeatherRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+    'user-tier': UserTier
+    language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 export const weatherAgent = new Agent({
-  name: 'Weather Agent',
-  id: 'weatherAgent',
-  description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
-  instructions: ({ requestContext }) => {
-    const userId = requestContext.get('userId');
-    return {
-      role: 'system',
-      content: `
+    name: 'Weather Agent',
+    id: 'weatherAgent',
+    description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
+    instructions: ({ requestContext }) => {
+        const userId = requestContext.get('userId')
+        return {
+            role: 'system',
+            content: `
       You are a helpful weather assistant that provides accurate weather information and can help planning activities based on the weather.
       userId: ${userId}
       Your primary function is to help users get weather details for specific locations. When responding:
@@ -39,42 +39,44 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-      providerOptions: {
-        google: {
-          thinkingConfig: {
-            includeThoughts: true,
-            thinkingBudget: -1,
-          }
-        } satisfies GoogleGenerativeAIProviderOptions,
-      }
-    }
-  },
-  model: ({ requestContext }: { requestContext: RequestContext<WeatherRuntimeContext> }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
-      return googleAIPro
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return googleAI
-    }
-    // cheaper/faster model for free tier
-    return googleAIFlashLite
-  },
-  tools: { weatherTool, webScraperTool, mdocumentChunker },
-  scorers: {
+            providerOptions: {
+                google: {
+                    thinkingConfig: {
+                        includeThoughts: true,
+                        thinkingBudget: -1,
+                    },
+                } satisfies GoogleGenerativeAIProviderOptions,
+            },
+        }
+    },
+    model: ({
+        requestContext,
+    }: {
+        requestContext: RequestContext<WeatherRuntimeContext>
+    }) => {
+        const userTier = requestContext.get('user-tier') ?? 'free'
+        if (userTier === 'enterprise') {
+            // higher quality (chat style) for enterprise
+            return googleAIPro
+        } else if (userTier === 'pro') {
+            // Chat bison for pro as well
+            return googleAI
+        }
+        // cheaper/faster model for free tier
+        return googleAIFlashLite
+    },
+    tools: { weatherTool, webScraperTool, mdocumentChunker },
+    scorers: {},
+    outputProcessors: [new TokenLimiterProcessor(128000)],
+    memory: pgMemory,
+    options: {
+        tracingPolicy: {
+            internal: InternalSpans.ALL,
+        },
+    },
+    maxRetries: 5,
 
-  },
-  outputProcessors: [new TokenLimiterProcessor(128000)],
-  memory: pgMemory,
-  options: {
-      tracingPolicy: {
-        internal: InternalSpans.ALL
-      }
-  },
-  maxRetries: 5,
-
-  defaultOptions: {
-    autoResumeSuspendedTools: true,
-  },
-});
+    defaultOptions: {
+        autoResumeSuspendedTools: true,
+    },
+})

@@ -11,7 +11,7 @@ Commits changes, pushes to remote, and then creates a Pull Request.
 - Changed files exist
 - Remote `origin` is configured
 - GitHub CLI (`gh`) is installed (for fallback)
-- On a working branch (feature/*, fix/*, etc.)
+- On a working branch (feature/_, fix/_, etc.)
 
 ## Execution Steps (Non-Interactive)
 

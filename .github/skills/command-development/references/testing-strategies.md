@@ -11,6 +11,7 @@ Testing commands ensures they work correctly, handle edge cases, and provide goo
 ### Level 1: Syntax and Structure Validation
 
 **What to test:**
+
 - YAML frontmatter syntax
 - Markdown format
 - File location and naming
@@ -73,6 +74,7 @@ echo "✓ Command file structure valid"
 ### Level 2: Frontmatter Field Validation
 
 **What to test:**
+
 - Field types correct
 - Values in valid ranges
 - Required fields present (if any)
@@ -126,6 +128,7 @@ echo "✓ Frontmatter fields valid"
 ### Level 3: Manual Command Invocation
 
 **What to test:**
+
 - Command appears in `/help`
 - Command executes without errors
 - Output is as expected
@@ -156,6 +159,7 @@ tail -f ~/.claude/debug-logs/latest
 ### Level 4: Argument Testing
 
 **What to test:**
+
 - Positional arguments work ($1, $2, etc.)
 - $ARGUMENTS captures all arguments
 - Missing arguments handled gracefully
@@ -163,14 +167,14 @@ tail -f ~/.claude/debug-logs/latest
 
 **Test matrix:**
 
-| Test Case | Command | Expected Result |
-|-----------|---------|-----------------|
-| No args | `/cmd` | Graceful handling or useful message |
-| One arg | `/cmd arg1` | $1 substituted correctly |
-| Two args | `/cmd arg1 arg2` | $1 and $2 substituted |
-| Extra args | `/cmd a b c d` | All captured or extras ignored appropriately |
-| Special chars | `/cmd "arg with spaces"` | Quotes handled correctly |
-| Empty arg | `/cmd ""` | Empty string handled |
+| Test Case     | Command                  | Expected Result                              |
+| ------------- | ------------------------ | -------------------------------------------- |
+| No args       | `/cmd`                   | Graceful handling or useful message          |
+| One arg       | `/cmd arg1`              | $1 substituted correctly                     |
+| Two args      | `/cmd arg1 arg2`         | $1 and $2 substituted                        |
+| Extra args    | `/cmd a b c d`           | All captured or extras ignored appropriately |
+| Special chars | `/cmd "arg with spaces"` | Quotes handled correctly                     |
+| Empty arg     | `/cmd ""`                | Empty string handled                         |
 
 **Test script:**
 
@@ -210,6 +214,7 @@ echo "  Manual test required"
 ### Level 5: File Reference Testing
 
 **What to test:**
+
 - @ syntax loads file contents
 - Non-existent files handled
 - Large files handled appropriately
@@ -246,6 +251,7 @@ rm /tmp/test-file*.txt /tmp/large-file.bin
 ### Level 6: Bash Execution Testing
 
 **What to test:**
+
 - !` commands execute correctly
 - Command output included in prompt
 - Command failures handled
@@ -291,6 +297,7 @@ EOF
 ### Level 7: Integration Testing
 
 **What to test:**
+
 - Commands work with other plugin components
 - Commands interact correctly with each other
 - State management works across invocations
@@ -425,30 +432,30 @@ name: Test Commands
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
 
-      - name: Validate command structure
-        run: |
-          for cmd in .claude/commands/*.md; do
-            echo "Testing: $cmd"
-            ./scripts/validate-command.sh "$cmd"
-          done
+            - name: Validate command structure
+              run: |
+                  for cmd in .claude/commands/*.md; do
+                    echo "Testing: $cmd"
+                    ./scripts/validate-command.sh "$cmd"
+                  done
 
-      - name: Validate frontmatter
-        run: |
-          for cmd in .claude/commands/*.md; do
-            ./scripts/validate-frontmatter.sh "$cmd"
-          done
+            - name: Validate frontmatter
+              run: |
+                  for cmd in .claude/commands/*.md; do
+                    ./scripts/validate-frontmatter.sh "$cmd"
+                  done
 
-      - name: Check for TODOs
-        run: |
-          if grep -r "TODO" .claude/commands/; then
-            echo "ERROR: TODOs found in commands"
-            exit 1
-          fi
+            - name: Check for TODOs
+              run: |
+                  if grep -r "TODO" .claude/commands/; then
+                    echo "ERROR: TODOs found in commands"
+                    exit 1
+                  fi
 ```
 
 ## Edge Case Testing
@@ -456,12 +463,14 @@ jobs:
 ### Test Edge Cases
 
 **Empty arguments:**
+
 ```bash
 > /cmd ""
 > /cmd '' ''
 ```
 
 **Special characters:**
+
 ```bash
 > /cmd "arg with spaces"
 > /cmd arg-with-dashes
@@ -471,11 +480,13 @@ jobs:
 ```
 
 **Long arguments:**
+
 ```bash
 > /cmd $(python -c "print('a' * 10000)")
 ```
 
 **Unusual file paths:**
+
 ```bash
 > /cmd ./file
 > /cmd ../file
@@ -484,13 +495,16 @@ jobs:
 ```
 
 **Bash command edge cases:**
+
 ```markdown
 # Commands that might fail
+
 !`exit 1`
 !`false`
 !`command-that-does-not-exist`
 
 # Commands with special output
+
 !`echo ""`
 !`cat /dev/null`
 !`yes | head -n 1000000`
@@ -567,19 +581,19 @@ Recruit testers:
 ### Test Scenarios
 
 1. **Basic usage:**
-   - Run: `/my-new-command`
-   - Expected: [describe]
-   - Rate clarity: 1-5
+    - Run: `/my-new-command`
+    - Expected: [describe]
+    - Rate clarity: 1-5
 
 2. **With arguments:**
-   - Run: `/my-new-command arg1 arg2`
-   - Expected: [describe]
-   - Rate usefulness: 1-5
+    - Run: `/my-new-command arg1 arg2`
+    - Expected: [describe]
+    - Rate usefulness: 1-5
 
 3. **Error case:**
-   - Run: `/my-new-command invalid-input`
-   - Expected: Helpful error message
-   - Rate error message: 1-5
+    - Run: `/my-new-command invalid-input`
+    - Expected: Helpful error message
+    - Rate error message: 1-5
 
 ### Feedback Questions
 
@@ -594,12 +608,14 @@ Recruit testers:
 Before releasing a command:
 
 ### Structure
+
 - [ ] File in correct location
 - [ ] Correct .md extension
 - [ ] Valid YAML frontmatter (if present)
 - [ ] Markdown syntax correct
 
 ### Functionality
+
 - [ ] Command appears in `/help`
 - [ ] Description is clear
 - [ ] Command executes without errors
@@ -608,6 +624,7 @@ Before releasing a command:
 - [ ] Bash execution works (if used)
 
 ### Edge Cases
+
 - [ ] Missing arguments handled
 - [ ] Invalid arguments detected
 - [ ] Non-existent files handled
@@ -615,12 +632,14 @@ Before releasing a command:
 - [ ] Long inputs handled
 
 ### Integration
+
 - [ ] Works with other commands
 - [ ] Works with hooks (if applicable)
 - [ ] Works with MCP (if applicable)
 - [ ] State management works
 
 ### Quality
+
 - [ ] Performance acceptable
 - [ ] No security issues
 - [ ] Error messages helpful
@@ -628,6 +647,7 @@ Before releasing a command:
 - [ ] Documentation complete
 
 ### Distribution
+
 - [ ] Tested by others
 - [ ] Feedback incorporated
 - [ ] README updated

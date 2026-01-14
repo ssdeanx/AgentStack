@@ -29,7 +29,9 @@ export const extractLearningsTool = createTool({
         const mastra = context?.mastra
         const writer = context?.writer
         const tracingContext = context?.tracingContext
-        const requestContext = context?.requestContext as ExtractLearningsContext | undefined
+        const requestContext = context?.requestContext as
+            | ExtractLearningsContext
+            | undefined
 
         // Emit progress start event
         await writer?.custom({
@@ -95,7 +97,10 @@ export const extractLearningsTool = createTool({
                     id: 'extract-learnings',
                 })
                 extractSpan?.update({
-                    output: { learning: 'Mastra instance not provided', followUpQuestions: [] },
+                    output: {
+                        learning: 'Mastra instance not provided',
+                        followUpQuestions: [],
+                    },
                     metadata: {
                         'output.learningLength': 0,
                         'output.followUpQuestionsCount': 0,
@@ -120,7 +125,10 @@ export const extractLearningsTool = createTool({
                     id: 'extract-learnings',
                 })
                 extractSpan?.update({
-                    output: { learning: 'learningExtractionAgent not available', followUpQuestions: [] },
+                    output: {
+                        learning: 'learningExtractionAgent not available',
+                        followUpQuestions: [],
+                    },
                     metadata: {
                         'output.learningLength': 0,
                         'output.followUpQuestionsCount': 0,
@@ -194,7 +202,11 @@ export const extractLearningsTool = createTool({
                 )
 
                 extractSpan?.update({
-                    output: { learning: 'Invalid response format from learning extraction agent', followUpQuestions: [] },
+                    output: {
+                        learning:
+                            'Invalid response format from learning extraction agent',
+                        followUpQuestions: [],
+                    },
                     metadata: {
                         'output.learningLength': 0,
                         'output.followUpQuestionsCount': 0,

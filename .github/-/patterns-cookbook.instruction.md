@@ -11,12 +11,14 @@ This guide shows you how to use the Thoughtbox tool flexibly to solve complex pr
 **The tool is a thinking workspace, not a methodology.** Thought numbers are logical positions (like chapter numbers), not chronological order. You can jump, branch, revise, and synthesize freely.
 
 ### Basic Parameters
+
 - `thought`: Your reasoning step
 - `thoughtNumber`: Logical position (1 to N)
 - `totalThoughts`: Estimated total (adjustable)
 - `nextThoughtNeeded`: Continue thinking?
 
 ### Extension Parameters
+
 - `isRevision`: Updating a previous thought?
 - `revisesThought`: Which thought to revise
 - `branchFromThought`: Branch starting point
@@ -34,6 +36,7 @@ This guide shows you how to use the Thoughtbox tool flexibly to solve complex pr
 **How it works:** Progress sequentially from 1 → 2 → 3 → ... → N
 
 **Example:**
+
 ```
 Thought 1: Identify the problem - "Users complain checkout is slow"
 Thought 2: Gather data - "Average checkout: 45 seconds, target: 10 seconds"
@@ -54,6 +57,7 @@ Thought 6: Conclusion - "Implement Redis cache for product data"
 **How it works:** Start at thought N (desired end), work back to thought 1 (starting point)
 
 **Example:**
+
 ```
 Thought 10: Final state - "API handles 10k req/s with <100ms latency"
 Thought 9: Before that - "Load testing completed, autoscaling verified"
@@ -74,12 +78,14 @@ Thought 1: Starting point - "Current system: 1k req/s, 500ms latency"
 **How it works:** Create separate branches from a common thought
 
 **Parameters:**
+
 ```javascript
 branchFromThought: 5
-branchId: "approach-a"  // vs "approach-b"
+branchId: 'approach-a' // vs "approach-b"
 ```
 
 **Example:**
+
 ```
 Thought 5: "Need to choose database"
 
@@ -106,12 +112,14 @@ thought: "Synthesis: Use PostgreSQL for transactions, MongoDB for analytics"
 **How it works:** Mark a thought as revising a previous one
 
 **Parameters:**
+
 ```javascript
 isRevision: true
 revisesThought: 4
 ```
 
 **Example:**
+
 ```
 Thought 4: "Identified 3 stakeholders: developers, users, managers"
 ...
@@ -132,6 +140,7 @@ thought: "REVISION: Missed critical stakeholder - security team needs compliance
 **How it works:** Alternate between reasoning steps (inside Thoughtbox) and external tool actions. Each reasoning step carries state forward, updates based on tool results, and decides the next move. Continue looping until the task's defined "gates" or checkpoints are reached.
 
 **Example:**
+
 ```
 Thought 1: "TASK: Create plan to refactor app for Vercel AI SDK"
 Thought 2: "INVENTORY: List all tools via mcp__* → tooling-inventory.md"
@@ -154,6 +163,7 @@ Thought 8: "FINALIZE: Write final-answer.md, clear folder if requested"
 **Pattern:** Break down to fundamentals, rebuild from foundation
 
 **Example:**
+
 ```
 Thought 20: "What is authentication really about? Identity verification + access control"
 Thought 21: "Identity: Something you know, have, or are (password, token, biometric)"
@@ -168,6 +178,7 @@ Thought 23: "From first principles: Need verification system + permission system
 Most complex problems benefit from multiple patterns:
 
 **Example: Architecture Decision**
+
 1. Forward thinking (thoughts 1-10): Explore current system
 2. Branching (thoughts 11-20): Compare 3 architecture options
 3. Backward thinking (thoughts 21-25): Work back from requirements
@@ -204,21 +215,27 @@ Thought 16: totalThoughts: 40  // Adjusted upward
 ## Best Practices
 
 ### 1. Start with Problem Statement
+
 Your thought 1 should clearly define what you're trying to solve.
 
 ### 2. Use Backward Thinking for Goals
+
 If you know the destination, work backward to find the path.
 
 ### 3. Branch Early for Alternatives
+
 Don't commit to one approach before exploring alternatives.
 
 ### 4. Revise Without Shame
+
 Update earlier thoughts when you learn new information.
 
 ### 5. Synthesize Explicitly
+
 Don't just end - create synthesis thoughts that integrate your findings.
 
 ### 6. Meta-Reflect Periodically
+
 Every 20-30 thoughts, step back and assess your approach.
 
 ---
@@ -252,6 +269,7 @@ You can request this guide at any time:
 ```
 
 The guide is also automatically provided:
+
 - At thought 1 (start of reasoning)
 - At the final thought (for reflection)
 

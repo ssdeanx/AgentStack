@@ -112,7 +112,11 @@ const fetchFinancialDataStep = createStep({
             span?.end()
             return result
         } catch (error) {
-            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
             logError('fetch-financial-data', error, {
                 symbol: inputData.symbol,
             })
@@ -201,7 +205,11 @@ const performTechnicalAnalysisStep = createStep({
             span?.end()
             return output
         } catch (error) {
-            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
             logError('perform-technical-analysis', error, {
                 symbol: inputData.symbol,
             })
@@ -286,7 +294,11 @@ const generateFinancialReportStep = createStep({
             span?.end()
             return report
         } catch (error) {
-            span?.error({ error: error instanceof Error ? error : new Error(String(error)), endSpan: true })
+            span?.error({
+                error:
+                    error instanceof Error ? error : new Error(String(error)),
+                endSpan: true,
+            })
             logError('generate-financial-report', error, { symbol })
 
             await writer?.custom({

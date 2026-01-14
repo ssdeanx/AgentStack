@@ -47,20 +47,27 @@ A textual difference score between 0 and 1:
 Measure textual differences between expected and actual agent outputs (use local data/ground-truth in CI):
 
 ```typescript
-import { runEvals } from "@mastra/core/evals";
-import { createTextualDifferenceScorer } from "@mastra/evals/scorers/prebuilt";
+import { runEvals } from '@mastra/core/evals'
+import { createTextualDifferenceScorer } from '@mastra/evals/scorers/prebuilt'
 
-const scorer = createTextualDifferenceScorer();
+const scorer = createTextualDifferenceScorer()
 const result = await runEvals({
-  data: [
-    { input: "Summarize the concept of recursion", groundTruth: "Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems." },
-    { input: "What is the capital of France?", groundTruth: "The capital of France is Paris." },
-  ],
-  scorers: [scorer],
-  target: myAgent,
-});
+    data: [
+        {
+            input: 'Summarize the concept of recursion',
+            groundTruth:
+                'Recursion is when a function calls itself to solve a problem by breaking it into smaller subproblems.',
+        },
+        {
+            input: 'What is the capital of France?',
+            groundTruth: 'The capital of France is Paris.',
+        },
+    ],
+    scorers: [scorer],
+    target: myAgent,
+})
 
-console.log(result.scores);
+console.log(result.scores)
 ```
 
-*Source: Mastra docs — reference/v1/evals/textual-difference*
+_Source: Mastra docs — reference/v1/evals/textual-difference_

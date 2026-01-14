@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import Link from 'next/link'
 import type { Route } from 'next'
@@ -66,13 +66,17 @@ export function AdminSidebar() {
         <aside className="hidden w-80 shrink-0 border-r bg-card lg:block">
             <div className="sticky top-0 flex h-screen flex-col">
                 <div className="border-b p-6">
-                    <div className="text-sm text-muted-foreground">AgentStack</div>
+                    <div className="text-sm text-muted-foreground">
+                        AgentStack
+                    </div>
                     <div className="text-lg font-semibold">Admin</div>
                 </div>
 
                 <nav className="flex-1 space-y-1 p-3">
                     {navItems.map((item) => {
-                        const active = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                        const active =
+                            pathname === item.href ||
+                            pathname?.startsWith(`${item.href}/`)
                         const Icon = item.icon
 
                         return (
@@ -88,7 +92,9 @@ export function AdminSidebar() {
                             >
                                 <Icon className="mt-0.5 h-5 w-5" />
                                 <div className="min-w-0">
-                                    <div className="font-medium leading-none">{item.title}</div>
+                                    <div className="font-medium leading-none">
+                                        {item.title}
+                                    </div>
                                     <div className="mt-1 text-xs leading-snug text-muted-foreground">
                                         {item.description}
                                     </div>

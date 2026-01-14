@@ -1,10 +1,10 @@
 ---
-title: "Configuration"
-description: "Configuration and environment details for running AgentStack (Mastra) — database, vector store, model providers, environment variables, and observability."
-date: "2025-12-01"
-readTime: "8 min read"
-category: "Docs"
-slug: "configuration"
+title: 'Configuration'
+description: 'Configuration and environment details for running AgentStack (Mastra) — database, vector store, model providers, environment variables, and observability.'
+date: '2025-12-01'
+readTime: '8 min read'
+category: 'Docs'
+slug: 'configuration'
 ---
 
 # Configuration
@@ -53,6 +53,7 @@ NEXT_PUBLIC_MASTRA_API_URL=http://localhost:4111
 ```
 
 Notes:
+
 - Use different keys for ephemeral development and production.
 - Never commit production secrets.
 
@@ -72,30 +73,31 @@ import { Memory } from '@mastra/memory'
 import { google } from '@ai-sdk/google'
 
 export const pgStore = new PostgresStore({
-  connectionString: process.env.SUPABASE,
-  schemaName: process.env.DB_SCHEMA ?? 'mastra',
-  max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
+    connectionString: process.env.SUPABASE,
+    schemaName: process.env.DB_SCHEMA ?? 'mastra',
+    max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
 })
 
 export const pgVector = new PgVector({
-  connectionString: process.env.SUPABASE,
-  schemaName: process.env.DB_SCHEMA ?? 'mastra',
+    connectionString: process.env.SUPABASE,
+    schemaName: process.env.DB_SCHEMA ?? 'mastra',
 })
 
 export const pgMemory = new Memory({
-  storage: pgStore,
-  vector: pgVector,
-  embedder: google.textEmbedding(process.env.EMBEDDING_MODEL),
-  options: {
-    lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
-    semanticRecall: {
-      topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
+    storage: pgStore,
+    vector: pgVector,
+    embedder: google.textEmbedding(process.env.EMBEDDING_MODEL),
+    options: {
+        lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
+        semanticRecall: {
+            topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
+        },
     },
-  },
 })
 ```
 
 Best practice:
+
 - Use a dedicated Postgres schema for Mastra (`DB_SCHEMA`) to isolate system tables.
 - Tune `max`, `idle`, and connection timeouts for your deployment - e.g., `20`–`50` pooled connections for moderate traffic.
 - Choose a vector index type appropriate for your embedding size and query volume (HNSW vs flat vs IVFFlat).
@@ -107,21 +109,24 @@ Best practice:
 AgentStack supports multiple providers. The provider and model config often live in `src/mastra/config` or in provider-specific modules, and `src/mastra/index.ts` wires the final model selection.
 
 Common environment flags:
+
 - `OPENAI_API_KEY` (OpenAI)
 - `GOOGLE_API_KEY` (Google Vertex)
 - `ANTHROPIC_API_KEY` (Anthropic)
 - `OPENROUTER_API_KEY` (OpenRouter or other)
 
 Model selection:
+
 - In `index.ts` or a central config, register which model to use for agents, and define fallbacks or preferred models for different agents.
 
 Example snippet:
+
 ```ts
 import { googleAI3 } from '@ai-sdk/google'
 
 export const myAgent = new Agent({
-  id: 'example',
-  model: googleAI3, // or the provider you register
+    id: 'example',
+    model: googleAI3, // or the provider you register
 })
 ```
 
@@ -156,6 +161,7 @@ observability: {
 ```
 
 Best practices:
+
 - Never log secrets or PII. Use `SensitiveDataFilter` to remove/mask secrets in telemetry providers.
 - Use a dedicated secret store for production (e.g., AWS Secrets Manager, HashiCorp Vault).
 - Limit telemetry retention and PII capture.
@@ -169,12 +175,14 @@ Best practices:
 The `Memory` configuration in `pg-storage.ts` supports both short-term (working memory) and longer-term semantic recall.
 
 Key parameters:
+
 - `lastMessages`: number of recent messages to keep.
 - `semanticRecall.topK`: number of embeddings returned by vector queries (typical 3–10).
 - `scope`: 'resource' or 'thread' for semantic recall scoping.
 - Thread settings for `generateTitle`, thread isolation, etc.
 
 Example:
+
 ```ts
 options: {
   lastMessages: 500,
@@ -188,6 +196,7 @@ options: {
 ## Tools & External Integrations
 
 Tools may require their own API keys:
+
 - `SERPAPI_API_KEY`
 - `ALPHA_VANTAGE_API_KEY`
 - `FINNHUB_API_KEY`
@@ -198,16 +207,16 @@ Store these keys in environment variables and reference them inside your tool im
 
 ## Common env vars & reference table
 
-| Variable | Purpose |
-|---|---|
-| SUPABASE | Postgres connection string for storage & vector store |
-| DB_SCHEMA | Postgres schema name (default `mastra`) |
-| OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY | Model providers |
-| EMBEDDING_MODEL | Model id for embedding generation |
-| MEMORY_LAST_MESSAGES | Number of recent messages for working memory |
-| SEMANTIC_TOP_K | How many vector results to retrieve for semantic recall |
-| LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY | Observability exporter credentials |
-| NEXT_PUBLIC_MASTRA_API_URL | Client-side endpoint to contact Mastra server |
+| Variable                                            | Purpose                                                 |
+| --------------------------------------------------- | ------------------------------------------------------- |
+| SUPABASE                                            | Postgres connection string for storage & vector store   |
+| DB_SCHEMA                                           | Postgres schema name (default `mastra`)                 |
+| OPENAI_API_KEY / GOOGLE_API_KEY / ANTHROPIC_API_KEY | Model providers                                         |
+| EMBEDDING_MODEL                                     | Model id for embedding generation                       |
+| MEMORY_LAST_MESSAGES                                | Number of recent messages for working memory            |
+| SEMANTIC_TOP_K                                      | How many vector results to retrieve for semantic recall |
+| LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY           | Observability exporter credentials                      |
+| NEXT_PUBLIC_MASTRA_API_URL                          | Client-side endpoint to contact Mastra server           |
 
 ---
 
@@ -228,20 +237,20 @@ Store these keys in environment variables and reference them inside your tool im
 The `index.ts` file typically reads these env vars and wires the Mastra instance:
 
 ```ts
-import { Mastra } from '@mastra/core/mastra';
-import { PostgresStore } from '@mastra/pg';
-import { pgVector } from './config/pg-storage';
+import { Mastra } from '@mastra/core/mastra'
+import { PostgresStore } from '@mastra/pg'
+import { pgVector } from './config/pg-storage'
 
 const storage = new PostgresStore({
-  connectionString: process.env.SUPABASE,
-  schemaName: process.env.DB_SCHEMA ?? 'mastra',
-});
+    connectionString: process.env.SUPABASE,
+    schemaName: process.env.DB_SCHEMA ?? 'mastra',
+})
 
 export const mastra = new Mastra({
-  storage,
-  vectors: { pgVector },
-  // register agents, tools, workflows here...
-});
+    storage,
+    vectors: { pgVector },
+    // register agents, tools, workflows here...
+})
 ```
 
 ---
@@ -251,8 +260,8 @@ export const mastra = new Mastra({
 - For a hands-on, follow the Getting Started guide.
 - The `pg-storage.ts` file contains production-ready tunables: concurrency, vector index configs, and embedding setup — review it carefully before deploying.
 - If you want, I can:
-  - Create a consolidated environment variable index (MDX table) for the README or a `/docs/configuration/vars` page.
-  - Add CI/CD guidance for safe secrets injection (Azure Key Vault, AWS Secrets Manager, Vercel environment management).
-  - Add automated checks to prevent secrets from being committed.
+    - Create a consolidated environment variable index (MDX table) for the README or a `/docs/configuration/vars` page.
+    - Add CI/CD guidance for safe secrets injection (Azure Key Vault, AWS Secrets Manager, Vercel environment management).
+    - Add automated checks to prevent secrets from being committed.
 
 If you'd like, I’ll add a richer `configuration/vars` MDX page that lists all required env variables and a small script to validate them at runtime (e.g. `validateEnv()`).

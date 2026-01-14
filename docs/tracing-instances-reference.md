@@ -65,12 +65,15 @@ Start a new span of a specific SpanType. Creates the root span of a trace if no 
 **Example: start a root span and instrument a child TOOL_CALL span**
 
 ```typescript
-const root = observability.startSpan({ type: SpanType.GENERIC, name: 'process-request' })
+const root = observability.startSpan({
+    type: SpanType.GENERIC,
+    name: 'process-request',
+})
 const toolSpan = root.createChildSpan({
-  type: SpanType.TOOL_CALL,
-  name: 'chartjs-generator',
-  input: { dataCount: data.length },
-  metadata: { 'tool.id': 'chartjs-generator' },
+    type: SpanType.TOOL_CALL,
+    name: 'chartjs-generator',
+    input: { dataCount: data.length },
+    metadata: { 'tool.id': 'chartjs-generator' },
 })
 
 // ... run tool work ...
@@ -94,17 +97,17 @@ To create a custom ObservabilityInstance implementation, extend BaseObservabilit
 
 ```typescript
 class CustomObservabilityInstance extends BaseObservabilityInstance {
-  constructor(config: ObservabilityInstanceConfig) {
-    super(config);
-    // Custom initialization
-  }
+    constructor(config: ObservabilityInstanceConfig) {
+        super(config)
+        // Custom initialization
+    }
 
-  // Override methods as needed
-  startSpan<TType extends SpanType>(
-    options: StartSpanOptions<TType>,
-  ): Span<TType> {
-    // Custom span creation logic
-    return super.startSpan(options);
-  }
+    // Override methods as needed
+    startSpan<TType extends SpanType>(
+        options: StartSpanOptions<TType>
+    ): Span<TType> {
+        // Custom span creation logic
+        return super.startSpan(options)
+    }
 }
 ```

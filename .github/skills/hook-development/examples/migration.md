@@ -16,23 +16,25 @@ Prompt-based hooks offer several advantages:
 ### Before (Basic Command Hook)
 
 **Configuration:**
+
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash validate-bash.sh"
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash validate-bash.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Script (validate-bash.sh):**
+
 ```bash
 #!/bin/bash
 input=$(cat)
@@ -46,6 +48,7 @@ fi
 ```
 
 **Problems:**
+
 - Only checks for exact "rm -rf" pattern
 - Doesn't catch variations like `rm -fr` or `rm -r -f`
 - Misses other dangerous commands (`dd`, `mkfs`, etc.)
@@ -55,24 +58,26 @@ fi
 ### After (Advanced Prompt Hook)
 
 **Configuration:**
+
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Command: $TOOL_INPUT.command. Analyze for: 1) Destructive operations (rm -rf, dd, mkfs, etc) 2) Privilege escalation (sudo) 3) Network operations without user consent. Return 'approve' or 'deny' with explanation.",
-          "timeout": 15
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Command: $TOOL_INPUT.command. Analyze for: 1) Destructive operations (rm -rf, dd, mkfs, etc) 2) Privilege escalation (sudo) 3) Network operations without user consent. Return 'approve' or 'deny' with explanation.",
+                    "timeout": 15
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Benefits:**
+
 - Catches all variations and patterns
 - Understands intent, not just literal strings
 - No script file needed
@@ -85,23 +90,25 @@ fi
 ### Before (Basic Command Hook)
 
 **Configuration:**
+
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash validate-write.sh"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash validate-write.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Script (validate-write.sh):**
+
 ```bash
 #!/bin/bash
 input=$(cat)
@@ -121,6 +128,7 @@ fi
 ```
 
 **Problems:**
+
 - Hard-coded path patterns
 - Doesn't understand symlinks
 - Missing edge cases (e.g., `/etc` vs `/etc/`)
@@ -129,23 +137,25 @@ fi
 ### After (Advanced Prompt Hook)
 
 **Configuration:**
+
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "File path: $TOOL_INPUT.file_path. Content preview: $TOOL_INPUT.content (first 200 chars). Verify: 1) Not system directories (/etc, /sys, /usr) 2) Not credentials (.env, tokens, secrets) 3) No path traversal 4) Content doesn't expose secrets. Return 'approve' or 'deny'."
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "File path: $TOOL_INPUT.file_path. Content preview: $TOOL_INPUT.content (first 200 chars). Verify: 1) Not system directories (/etc, /sys, /usr) 2) Not credentials (.env, tokens, secrets) 3) No path traversal 4) Content doesn't expose secrets. Return 'approve' or 'deny'."
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
 **Benefits:**
+
 - Context-aware (considers content too)
 - Handles symlinks and edge cases
 - Natural understanding of "system directories"
@@ -208,23 +218,23 @@ Combine both for multi-stage validation:
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh",
-          "timeout": 5
-        },
-        {
-          "type": "prompt",
-          "prompt": "Deep analysis of bash command: $TOOL_INPUT",
-          "timeout": 15
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/quick-check.sh",
+                    "timeout": 5
+                },
+                {
+                    "type": "prompt",
+                    "prompt": "Deep analysis of bash command: $TOOL_INPUT",
+                    "timeout": 15
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -281,37 +291,37 @@ my-plugin/
 
 ```json
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Validate bash command safety: destructive ops, privilege escalation, network access"
-        }
-      ]
-    },
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate bash command safety: destructive ops, privilege escalation, network access"
+                }
+            ]
+        },
         {
-          "type": "prompt",
-          "prompt": "Validate file write safety: system paths, credentials, path traversal, content secrets"
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate file write safety: system paths, credentials, path traversal, content secrets"
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    ],
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Verify tests were run if code was modified"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Verify tests were run if code was modified"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
@@ -322,6 +332,7 @@ my-plugin/
 ### Pattern: String Contains → Natural Language
 
 **Before:**
+
 ```bash
 if [[ "$command" == *"sudo"* ]]; then
   echo "Privilege escalation" >&2
@@ -330,6 +341,7 @@ fi
 ```
 
 **After:**
+
 ```
 "Check for privilege escalation (sudo, su, etc)"
 ```
@@ -337,6 +349,7 @@ fi
 ### Pattern: Regex → Intent
 
 **Before:**
+
 ```bash
 if [[ "$file" =~ \.(env|secret|key|token)$ ]]; then
   echo "Credential file" >&2
@@ -345,6 +358,7 @@ fi
 ```
 
 **After:**
+
 ```
 "Verify not writing to credential files (.env, secrets, keys, tokens)"
 ```
@@ -352,6 +366,7 @@ fi
 ### Pattern: Multiple Conditions → Criteria List
 
 **Before:**
+
 ```bash
 if [ condition1 ] || [ condition2 ] || [ condition3 ]; then
   echo "Invalid" >&2
@@ -360,6 +375,7 @@ fi
 ```
 
 **After:**
+
 ```
 "Check: 1) condition1 2) condition2 3) condition3. Deny if any fail."
 ```

@@ -3,9 +3,11 @@
 ## Phase 1: Dependencies & Configuration
 
 ### TASK-001: Install @mastra/client-js
+
 **Description:** Add Mastra Client SDK to project dependencies.
 
 **Acceptance Criteria:**
+
 - [ ] `@mastra/client-js` installed via npm
 - [ ] Package appears in `package.json` dependencies
 - [ ] No version conflicts
@@ -15,6 +17,7 @@
 **Files:** `package.json`
 
 **Command:**
+
 ```bash
 npm install @mastra/client-js@latest
 ```
@@ -22,9 +25,11 @@ npm install @mastra/client-js@latest
 ---
 
 ### TASK-002: Create Mastra Client Instance
+
 **Description:** Create `lib/mastra-client.ts` with configured MastraClient.
 
 **Acceptance Criteria:**
+
 - [ ] File exports `mastraClient` instance
 - [ ] Uses `NEXT_PUBLIC_MASTRA_API_URL` env var with fallback to `:4111`
 - [ ] Configured with retry and backoff settings
@@ -34,23 +39,26 @@ npm install @mastra/client-js@latest
 **Files:** `lib/mastra-client.ts`
 
 **Code:**
+
 ```typescript
-import { MastraClient } from "@mastra/client-js";
+import { MastraClient } from '@mastra/client-js'
 
 export const mastraClient = new MastraClient({
-  baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || "http://localhost:4111",
-  retries: 3,
-  backoffMs: 300,
-  maxBackoffMs: 5000,
-});
+    baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
+    retries: 3,
+    backoffMs: 300,
+    maxBackoffMs: 5000,
+})
 ```
 
 ---
 
 ### TASK-003: Add Environment Variable
+
 **Description:** Add `NEXT_PUBLIC_MASTRA_API_URL` to `.env.example`.
 
 **Acceptance Criteria:**
+
 - [ ] Variable documented in `.env.example`
 - [ ] Default value is `http://localhost:4111`
 
@@ -63,9 +71,11 @@ export const mastraClient = new MastraClient({
 ## Phase 2: Core App Structure
 
 ### TASK-004: Fix Root Layout
+
 **Description:** Implement `app/layout.tsx` with HTML structure and providers.
 
 **Acceptance Criteria:**
+
 - [ ] Valid HTML structure (html, body)
 - [ ] ThemeProvider from next-themes
 - [ ] Inter font from next/font
@@ -77,47 +87,50 @@ export const mastraClient = new MastraClient({
 **Files:** `app/layout.tsx`
 
 **Code:**
-```tsx
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+```tsx
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import { ThemeProvider } from 'next-themes'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "AgentStack | Multi-Agent Framework",
-  description: "Production-grade multi-agent framework for AI applications",
-};
+    title: 'AgentStack | Multi-Agent Framework',
+    description: 'Production-grade multi-agent framework for AI applications',
+}
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode
 }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body className={inter.className}>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    {children}
+                </ThemeProvider>
+            </body>
+        </html>
+    )
 }
 ```
 
 ---
 
 ### TASK-005: Create Landing Page
+
 **Description:** Implement `app/page.tsx` with agent overview.
 
 **Acceptance Criteria:**
+
 - [ ] Displays project title and description
 - [ ] Links to `/test` (server action demo)
 - [ ] Links to `/chat` (client SDK demo)
@@ -132,9 +145,11 @@ export default function RootLayout({
 ## Phase 3: Client SDK Demo
 
 ### TASK-006: Create Chat Page
+
 **Description:** Create `app/chat/page.tsx` with client SDK integration.
 
 **Acceptance Criteria:**
+
 - [ ] Uses `mastraClient` from lib
 - [ ] Calls `agent.generate()` or `agent.stream()`
 - [ ] Displays agent response
@@ -147,9 +162,11 @@ export default function RootLayout({
 ---
 
 ### TASK-007: Add Streaming Support
+
 **Description:** Implement streaming responses using `processDataStream`.
 
 **Acceptance Criteria:**
+
 - [ ] Uses `agent.stream()` instead of `generate()`
 - [ ] Processes chunks with `onChunk` callback
 - [ ] Updates UI as chunks arrive
@@ -164,9 +181,11 @@ export default function RootLayout({
 ## Phase 4: Documentation & Scripts
 
 ### TASK-008: Add Mastra Dev Script
+
 **Description:** Ensure `package.json` has Mastra dev scripts.
 
 **Acceptance Criteria:**
+
 - [ ] `dev:mastra` script runs `mastra dev`
 - [ ] `build:mastra` script runs `mastra build`
 - [ ] Scripts documented in README
@@ -180,9 +199,11 @@ export default function RootLayout({
 ---
 
 ### TASK-009: Update README
+
 **Description:** Document the Next.js + Mastra integration setup.
 
 **Acceptance Criteria:**
+
 - [ ] Quick start instructions
 - [ ] Environment variable list
 - [ ] How to run both servers
@@ -197,9 +218,11 @@ export default function RootLayout({
 ## Phase 5: AI Elements Integration (Optional Enhancement)
 
 ### TASK-010: Create Chat with AI Elements
+
 **Description:** Build chat UI using AI Elements components.
 
 **Acceptance Criteria:**
+
 - [ ] Uses `<Message>` for agent responses
 - [ ] Uses `<PromptInput>` for user input
 - [ ] Uses `<Reasoning>` for chain-of-thought display
@@ -213,19 +236,19 @@ export default function RootLayout({
 
 ## Task Summary
 
-| ID | Title | Effort | Phase | Status |
-|----|-------|--------|-------|--------|
-| TASK-001 | Install @mastra/client-js | S | 1 | ✅ |
-| TASK-002 | Create Mastra Client Instance | S | 1 | ✅ |
-| TASK-003 | Add Environment Variable | S | 1 | ✅ |
-| TASK-004 | Fix Root Layout | M | 2 | ✅ |
-| TASK-005 | Create Landing Page | M | 2 | ✅ |
-| TASK-006 | Create Chat Page | M | 3 | ✅ |
-| TASK-007 | Add Streaming Support | M | 3 | ✅ |
-| TASK-008 | Add Mastra Dev Script | S | 4 | ✅ |
-| TASK-009 | Update README | S | 4 | ✅ |
-| TASK-010 | Create Chat with AI Elements | L | 5 | ✅ |
-| TASK-011 | Create Admin Dashboard | XL | 6 | 🔄 50% |
+| ID       | Title                         | Effort | Phase | Status |
+| -------- | ----------------------------- | ------ | ----- | ------ |
+| TASK-001 | Install @mastra/client-js     | S      | 1     | ✅     |
+| TASK-002 | Create Mastra Client Instance | S      | 1     | ✅     |
+| TASK-003 | Add Environment Variable      | S      | 1     | ✅     |
+| TASK-004 | Fix Root Layout               | M      | 2     | ✅     |
+| TASK-005 | Create Landing Page           | M      | 2     | ✅     |
+| TASK-006 | Create Chat Page              | M      | 3     | ✅     |
+| TASK-007 | Add Streaming Support         | M      | 3     | ✅     |
+| TASK-008 | Add Mastra Dev Script         | S      | 4     | ✅     |
+| TASK-009 | Update README                 | S      | 4     | ✅     |
+| TASK-010 | Create Chat with AI Elements  | L      | 5     | ✅     |
+| TASK-011 | Create Admin Dashboard        | XL     | 6     | 🔄 50% |
 
 **Legend:** S = Small (< 30 min), M = Medium (30-60 min), L = Large (> 1 hr), XL = Extra Large (> 4 hrs)
 
@@ -234,6 +257,7 @@ export default function RootLayout({
 ## Phase 6: Admin Dashboard (NEW - Dec 5, 2025)
 
 ### TASK-011: Create Admin Dashboard
+
 **Description:** Build comprehensive admin dashboard using MastraClient for observability, memory, logs, telemetry.
 
 **Completed (50%):**

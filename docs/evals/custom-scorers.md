@@ -12,26 +12,31 @@ Key points:
 Example (gluten checker):
 
 ```typescript
-import { createScorer } from '@mastra/core/evals';
-import { z } from 'zod';
+import { createScorer } from '@mastra/core/evals'
+import { z } from 'zod'
 
 export const glutenCheckerScorer = createScorer({
-  name: 'Gluten Checker',
-  description: 'Check if the output contains any gluten',
-  judge: {
-    model: 'gemini-2.5-flash-lite',
-    instructions: 'You are a Chef that identifies if recipes contain gluten.'
-  }
+    name: 'Gluten Checker',
+    description: 'Check if the output contains any gluten',
+    judge: {
+        model: 'gemini-2.5-flash-lite',
+        instructions:
+            'You are a Chef that identifies if recipes contain gluten.',
+    },
 })
-.analyze({ /* prompt object or function */ })
-.generateScore(({ results }) => {
-  return results.analyzeStepResult.isGlutenFree ? 1 : 0;
-})
-.generateReason({ /* optional */ });
+    .analyze({
+        /* prompt object or function */
+    })
+    .generateScore(({ results }) => {
+        return results.analyzeStepResult.isGlutenFree ? 1 : 0
+    })
+    .generateReason({
+        /* optional */
+    })
 ```
 
 For full detail, examples, and API options, see: reference/v1/evals/create-scorer and docs/v1/evals/custom-scorers.
 
 ---
 
-*Source: Mastra docs — evals/custom-scorers.mdx*
+_Source: Mastra docs — evals/custom-scorers.mdx_

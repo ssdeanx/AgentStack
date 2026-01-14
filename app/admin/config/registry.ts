@@ -8,7 +8,6 @@ export interface RegistryItem {
     description: string
 }
 
-
 export function listAgents(): RegistryItem[] {
     return Object.values(AGENT_CONFIGS)
         .map((a) => ({ id: a.id, name: a.name, description: a.description }))

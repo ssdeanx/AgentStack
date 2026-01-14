@@ -59,12 +59,12 @@ Key public hooks & components:
 
 Public props examples:
 
-| Component | Important props | Returns / Behavior |
-|---|---:|---|
-| DashboardProviders | children: ReactNode | Provides QueryClient for dashboard routes. |
-| StatCard | title, value, loading, icon, href, description | Presentational card with optional link and trend badge. |
-| DataTable | columns, data, pagination | Renders rows with column definitions; typed Column exported from index. |
-| DetailPanel | item, children | Right-hand detail panel (used by list/detail pages). |
+| Component          |                                Important props | Returns / Behavior                                                      |
+| ------------------ | ---------------------------------------------: | ----------------------------------------------------------------------- |
+| DashboardProviders |                            children: ReactNode | Provides QueryClient for dashboard routes.                              |
+| StatCard           | title, value, loading, icon, href, description | Presentational card with optional link and trend badge.                 |
+| DataTable          |                      columns, data, pagination | Renders rows with column definitions; typed Column exported from index. |
+| DetailPanel        |                                 item, children | Right-hand detail panel (used by list/detail pages).                    |
 
 ## 4. Implementation Details
 
@@ -92,19 +92,21 @@ Public props examples:
 // app/dashboard/layout.tsx
 import { DashboardProviders } from './providers'
 
-export default function DashboardLayout({children}){
-  return (
-    <DashboardProviders>
-      {children}
-    </DashboardProviders>
-  )
+export default function DashboardLayout({ children }) {
+    return <DashboardProviders>{children}</DashboardProviders>
 }
 ```
 
 ### Rendering a stat card
 
 ```tsx
-<StatCard title="Agents" value={agents.length} loading={agentsLoading} icon={Bot} href="/dashboard/agents" />
+<StatCard
+    title="Agents"
+    value={agents.length}
+    loading={agentsLoading}
+    icon={Bot}
+    href="/dashboard/agents"
+/>
 ```
 
 ## 6. Quality Attributes
@@ -117,9 +119,9 @@ export default function DashboardLayout({children}){
 ## 7. Testing & Observability
 
 - Unit tests (Vitest):
-  - `page.tsx` render behavior for loading / empty / populated states.
-  - `StatCard`, `DataTable`, `DetailPanel`, `Sidebar` component behaviors.
-  - `DashboardProviders` instantiation and default QueryClient options.
+    - `page.tsx` render behavior for loading / empty / populated states.
+    - `StatCard`, `DataTable`, `DetailPanel`, `Sidebar` component behaviors.
+    - `DashboardProviders` instantiation and default QueryClient options.
 
 - Integration tests: Mock `use-dashboard-queries` hooks and simulate network failure/success states to validate UI fallbacks.
 

@@ -4,15 +4,15 @@
 
 - **A2A / MCP coordinator**: `src/mastra/mcp/index.ts` exposes the `a2aCoordinatorAgent` as an MCP server so external clients can orchestrate multiple agents. Many of the resource URIs and metadata entries are placeholders today; the core orchestration logic still lives primarily inside individual agents and the 4 agent networks.
 - **Agent Networks**: 4 networks coordinate multi-agent workflows:
-  - `agentNetwork`: Primary routing and general orchestration
-  - `dataPipelineNetwork`: Data ingestion/export/transformation coordination
-  - `reportGenerationNetwork`: Research → transform → report workflows
-  - `researchPipelineNetwork`: arXiv → PDF parse → chunk → index flows
+    - `agentNetwork`: Primary routing and general orchestration
+    - `dataPipelineNetwork`: Data ingestion/export/transformation coordination
+    - `reportGenerationNetwork`: Research → transform → report workflows
+    - `researchPipelineNetwork`: arXiv → PDF parse → chunk → index flows
 - **Tool-first agents**: 22+ agents wire 30+ tools (`polygon-tools.ts`, `serpapi-search.tool.ts`, `csv-to-json.tool.ts`, `arxiv.tool.ts`, `pdf-data-conversion.tool.ts`, etc.) w/ Zod (`createTool`).
 - **RAG pipeline**: Document ingestion uses the document chunker tool (`document-chunking.tool.ts`), Gemini embeddings via `google.textEmbedding('gemini-embedding-001')`, and PgVector-backed indexes (index name `governed_rag`) exposed through `graphQueryTool` and `pgQueryTool` in `src/mastra/config/pg-storage.ts`.
 - **Frontend Layer**: Next.js 16 App Router (`app/`) with 49 UI components:
-  - **AI Elements** (`src/components/ai-elements/`): 30 components for chat/reasoning/canvas UIs
-  - **Base Primitives** (`ui/`): 19 shadcn/ui components (Radix UI + Tailwind CSS 4)
+    - **AI Elements** (`src/components/ai-elements/`): 30 components for chat/reasoning/canvas UIs
+    - **Base Primitives** (`ui/`): 19 shadcn/ui components (Radix UI + Tailwind CSS 4)
 
 ## Patterns & Practices
 

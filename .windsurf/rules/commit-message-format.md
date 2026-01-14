@@ -50,6 +50,7 @@ Prefix corresponds to `type` in Conventional Commits and uses lowercase English 
 - revert: Revert
 
 As with Conventional Commits, the format `<Prefix>(scope):` is also allowed as needed (e.g., `fix(translation): ...`).
+
 - For detailed specifications, also refer to the official [Conventional Commits](https://www.conventionalcommits.org/) documentation.
 
 ## Summary (First Line)
@@ -101,4 +102,3 @@ refactor: Consolidate duplicate validation logic into common function
 - Ambiguous summaries that don't convey meaning (e.g., abstract expressions like "update", "fix bug")
 - Body with only long text without bullet points that makes content hard to grasp
 - Commits that only disable or bypass static analysis or checks without substantial improvement (e.g., configuration changes that only relax check rules)
-

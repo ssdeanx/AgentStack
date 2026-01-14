@@ -13,15 +13,15 @@ The Mastra codebase has a powerful AI Elements UI library (30 components) that i
 
 ### Available AI Elements Components (30)
 
-| Category | Components | Current Usage |
-|----------|------------|---------------|
-| **Chat Core** | `message`, `conversation`, `prompt-input`, `suggestion` | Unused (basic HTML in chat page) |
-| **AI Reasoning** | `reasoning`, `chain-of-thought`, `plan`, `task` | Unused |
-| **Tool Display** | `tool`, `code-block`, `artifact`, `sources` | Unused |
-| **Canvas** | `canvas`, `node`, `edge`, `connection`, `controls` | Unused |
-| **Feedback** | `loader`, `shimmer`, `checkpoint`, `context` | Unused |
-| **Interactive** | `confirmation`, `model-selector`, `open-in-chat`, `web-preview`, `image`, `inline-citation` | Unused |
-| **Layout** | `panel`, `toolbar`, `queue` | Unused |
+| Category         | Components                                                                                  | Current Usage                    |
+| ---------------- | ------------------------------------------------------------------------------------------- | -------------------------------- |
+| **Chat Core**    | `message`, `conversation`, `prompt-input`, `suggestion`                                     | Unused (basic HTML in chat page) |
+| **AI Reasoning** | `reasoning`, `chain-of-thought`, `plan`, `task`                                             | Unused                           |
+| **Tool Display** | `tool`, `code-block`, `artifact`, `sources`                                                 | Unused                           |
+| **Canvas**       | `canvas`, `node`, `edge`, `connection`, `controls`                                          | Unused                           |
+| **Feedback**     | `loader`, `shimmer`, `checkpoint`, `context`                                                | Unused                           |
+| **Interactive**  | `confirmation`, `model-selector`, `open-in-chat`, `web-preview`, `image`, `inline-citation` | Unused                           |
+| **Layout**       | `panel`, `toolbar`, `queue`                                                                 | Unused                           |
 
 ### Available Base UI Components (19 in `ui/`)
 
@@ -29,15 +29,15 @@ The Mastra codebase has a powerful AI Elements UI library (30 components) that i
 
 ### Available Agents (26+)
 
-| Category | Agents | Count |
-|----------|--------|-------|
-| **Core** | weatherAgent, a2aCoordinatorAgent | 2 |
-| **Research** | researchAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent | 4 |
-| **Content** | copywriterAgent, editorAgent, contentStrategistAgent, scriptWriterAgent, reportAgent | 5 |
-| **Data** | dataExportAgent, dataIngestionAgent, dataTransformationAgent | 3 |
-| **Financial** | stockAnalysisAgent, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent | 5 |
-| **Diagram** | csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent | 3 |
-| **Utility** | evaluationAgent, learningExtractionAgent, dane, sqlAgent | 4 |
+| Category      | Agents                                                                                                        | Count |
+| ------------- | ------------------------------------------------------------------------------------------------------------- | ----- |
+| **Core**      | weatherAgent, a2aCoordinatorAgent                                                                             | 2     |
+| **Research**  | researchAgent, researchPaperAgent, documentProcessingAgent, knowledgeIndexingAgent                            | 4     |
+| **Content**   | copywriterAgent, editorAgent, contentStrategistAgent, scriptWriterAgent, reportAgent                          | 5     |
+| **Data**      | dataExportAgent, dataIngestionAgent, dataTransformationAgent                                                  | 3     |
+| **Financial** | stockAnalysisAgent, chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent | 5     |
+| **Diagram**   | csvToExcalidrawAgent, imageToCsvAgent, excalidrawValidatorAgent                                               | 3     |
+| **Utility**   | evaluationAgent, learningExtractionAgent, dane, sqlAgent                                                      | 4     |
 
 ### Current State
 
@@ -62,6 +62,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 ## User Stories
 
 ### US-1: Rich Chat Interface
+
 **As a** user  
 **I want to** chat with agents using a polished interface  
 **So that** I can have a professional AI interaction experience
@@ -75,6 +76,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] Input supports speech-to-text
 
 ### US-2: Agent/Model Selection
+
 **As a** user  
 **I want to** select which agent to chat with dynamically  
 **So that** I can switch contexts without leaving the page
@@ -87,6 +89,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] Current agent clearly indicated
 
 ### US-3: Reasoning Visualization
+
 **As a** user  
 **I want to** see the AI's reasoning process as it works  
 **So that** I understand how conclusions are reached
@@ -99,6 +102,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] Collapsible for clean UI
 
 ### US-4: Tool Execution Display
+
 **As a** user  
 **I want to** see when agents use tools and their results  
 **So that** I understand what actions are being taken
@@ -111,6 +115,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] Error states clearly shown
 
 ### US-5: Source Citations
+
 **As a** user  
 **I want to** see sources used by research agents  
 **So that** I can verify information and explore further
@@ -123,6 +128,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] InlineCitation works within message text
 
 ### US-6: Canvas Integration
+
 **As a** user  
 **I want to** view visual outputs from diagram agents  
 **So that** I can see generated diagrams and charts
@@ -135,6 +141,7 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 - [ ] Artifacts can be downloaded/exported
 
 ### US-7: Context Tracking
+
 **As a** user  
 **I want to** see token usage and cost information  
 **So that** I can monitor my AI usage
@@ -168,12 +175,12 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 
 ## Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Components Used | 20+ of 30 AI Elements |
-| Agents Accessible | All 26+ via UI |
-| Streaming Support | 100% of agents |
-| Test Coverage | E2E tests for core flows |
+| Metric            | Target                   |
+| ----------------- | ------------------------ |
+| Components Used   | 20+ of 30 AI Elements    |
+| Agents Accessible | All 26+ via UI           |
+| Streaming Support | 100% of agents           |
+| Test Coverage     | E2E tests for core flows |
 
 ## Dependencies
 
@@ -185,18 +192,18 @@ The `app/chat/page.tsx` uses **basic HTML elements** (`<input>`, `<button>`, `<p
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Component compatibility with AI SDK | Medium | Use existing patterns from components |
-| Streaming performance | Low | Leverage existing Streamdown integration |
-| Complex state management | Medium | Use React Context for shared state |
-| Agent-specific UI complexity | High | Start with common patterns, iterate |
+| Risk                                | Impact | Mitigation                               |
+| ----------------------------------- | ------ | ---------------------------------------- |
+| Component compatibility with AI SDK | Medium | Use existing patterns from components    |
+| Streaming performance               | Low    | Leverage existing Streamdown integration |
+| Complex state management            | Medium | Use React Context for shared state       |
+| Agent-specific UI complexity        | High   | Start with common patterns, iterate      |
 
 ## Approval
 
-- [ ] PRD Approved by: _______________
-- [ ] Design Approved by: _______________
-- [ ] Ready for Implementation: _______________
+- [ ] PRD Approved by: **\*\***\_\_\_**\*\***
+- [ ] Design Approved by: **\*\***\_\_\_**\*\***
+- [ ] Ready for Implementation: **\*\***\_\_\_**\*\***
 
 ---
 
