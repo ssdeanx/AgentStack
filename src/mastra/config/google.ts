@@ -20,25 +20,26 @@ export const voice = new GoogleVoice({
 // Chat/Text Models
 export const googleChatModels = {
     // Gemini 3 Pro model for higher-performance applications
-    gemini3Pro: google.languageModel('gemini-3-pro-preview'),
+    gemini3Pro: google.chat('gemini-3-pro-preview'),
     // Gemini 3 Flash model
-    gemini3Flash: google.languageModel('gemini-3-flash-preview'),
+    gemini3Flash: google.chat('gemini-3-flash-preview'),
     // Gemini 2.5 Pro model for higher-performance applications
-    gemini25Pro: google.languageModel('gemini-2.5-pro'),
+    gemini25Pro: google.chat('gemini-2.5-pro'),
     // Gemini 2.5 Flash model for general-purpose applications
-    gemini25Flash: google.languageModel('gemini-2.5-flash-preview-09-2025'),
+    gemini25Flash: google.chat('gemini-2.5-flash-preview-09-2025'),
     // Gemini 2.5 Flash Lite model for free-tier applications
-    gemini25FlashLite: google.languageModel('gemini-2.5-flash-lite-preview-09-2025'),
+    gemini25FlashLite: google.chat('gemini-2.5-flash-lite-preview-09-2025'),
     // Gemini Computer Use model for tasks requiring higher accuracy and reliability
-    gemini25ComputerUse: google.languageModel('gemini-2.5-computer-use-preview-10-2025'),
+    gemini25ComputerUse: google.chat('gemini-2.5-computer-use-preview-10-2025'),
     // Additional variants
-    gemini25FlashAlt: google.languageModel('gemini-2.5-flash-preview-09-2025'),
+    gemini25FlashAlt: google.chat('gemini-2.5-flash-preview-09-2025'),
+    //gemini: ('google/gemini-2.5-flash-preview-09-2025'),
 }
 
 // Image Generation Models
 export const googleImageModels = {
     // Gemini Flash Image model
-    gemini25FlashImage: google.languageModel('gemini-2.5-flash-image'),
+    gemini25FlashImage: google.chat('gemini-2.5-flash-image'),
    // gemini3ProImage: google('gemini-3-pro-image-preview'),
     // Imagen 4.0 models
     imagen4Generate: google.image('imagen-4.0-generate-001'),
