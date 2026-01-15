@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 interface AccordionContextValue {
     openItems: string[]
-    // eslint-disable-next-line no-unused-vars
+
     toggle: (value: string) => void
     type: 'single' | 'multiple'
 }
@@ -25,7 +25,7 @@ export interface AccordionProps extends React.HTMLAttributes<HTMLDivElement> {
     type?: 'single' | 'multiple'
     defaultValue?: string | string[]
     value?: string | string[]
-    // eslint-disable-next-line no-unused-vars
+
     onValueChange?: (value: string | string[]) => void
     collapsible?: boolean
 }

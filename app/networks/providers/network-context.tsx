@@ -78,16 +78,16 @@ export interface NetworkContextValue {
     error: string | null
     stopExecution: () => void
     clearHistory: () => void
-    // eslint-disable-next-line no-unused-vars
+
     selectNetwork: (networkId: NetworkId) => void
-    // eslint-disable-next-line no-unused-vars
+
     sendMessage: (text: string) => void
 }
 
 const NetworkContext = createContext<NetworkContextValue | null>(null)
 
 export function useNetworkContext(): NetworkContextValue {
-    // eslint-disable-line react-refresh/only-export-components
+
     const context = useContext(NetworkContext)
     if (!context) {
         throw new Error(

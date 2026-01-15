@@ -36,7 +36,7 @@ import {
     CheckIcon,
     PlayIcon,
     RotateCcwIcon,
-    // eslint-disable-next-line no-unused-vars
+
     Edit3Icon,
     EyeIcon,
     SplitIcon,
@@ -54,7 +54,7 @@ type PreviewStatus = 'idle' | 'running' | 'success' | 'error'
 interface AgentWebPreviewProps {
     preview: WebPreviewData
     onClose?: () => void
-    // eslint-disable-next-line no-unused-vars
+
     onCodeChange?: (code: string) => void
     defaultTab?: 'preview' | 'code'
     height?: string | number
@@ -444,7 +444,7 @@ export function AgentWebPreview({
                                         variant="ghost"
                                         size="sm"
                                         className="h-6 gap-1 px-2 text-xs"
-                                        onClick={handleCopy}
+                                        onClick={() => void handleCopy()}
                                     >
                                         {copied ? (
                                             <>
@@ -786,7 +786,7 @@ interface AgentCodeSandboxProps {
     title?: string
     dependencies?: Record<string, string>
     onClose?: () => void
-    // eslint-disable-next-line no-unused-vars
+
     onCodeChange?: (code: string) => void
     editable?: boolean
 }

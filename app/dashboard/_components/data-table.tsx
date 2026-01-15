@@ -22,7 +22,7 @@ export interface Column<T> {
 }
 
 interface DataTableProps<T> {
-    columns: Column<T>[]
+    columns: Array<Column<T>>
     data: T[]
     searchPlaceholder?: string
     searchKey?: keyof T
@@ -52,7 +52,7 @@ export function DataTable<T>({
     const [page, setPage] = useState(0)
 
     const filteredData = useMemo(() => {
-        if (!search || !searchKey) return data
+        if (!search || !searchKey) {return data}
         const searchLower = search.toLowerCase()
         return data.filter((row) => {
             const value = row[searchKey]
@@ -64,9 +64,9 @@ export function DataTable<T>({
     }, [data, search, searchKey])
 
     const sortedData = useMemo(() => {
-        if (!sortColumn) return filteredData
+        if (!sortColumn) {return filteredData}
         const column = columns.find((c) => c.id === sortColumn)
-        if (!column) return filteredData
+        if (!column) {return filteredData}
 
         return [...filteredData].sort((a, b) => {
             let aVal: unknown
@@ -82,9 +82,9 @@ export function DataTable<T>({
                 return 0
             }
 
-            if (aVal === bVal) return 0
-            if (aVal == null) return 1
-            if (bVal == null) return -1
+            if (aVal === bVal) {return 0}
+            if (aVal == null) {return 1}
+            if (bVal == null) {return -1}
 
             const comparison = aVal < bVal ? -1 : 1
             return sortDirection === 'asc' ? comparison : -comparison
@@ -113,7 +113,7 @@ export function DataTable<T>({
         }
         if (column.accessorKey) {
             const value = row[column.accessorKey]
-            if (value === null || value === undefined) return '-'
+            if (value === null || value === undefined) {return '-'}
             return String(value)
         }
         return '-'

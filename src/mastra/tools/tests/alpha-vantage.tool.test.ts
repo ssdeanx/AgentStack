@@ -630,7 +630,7 @@ describe('alphaVantageCryptoTool', () => {
             const hasInProgressCall = mockWriter.custom.mock.calls.some(
                 (c: any) => {
                     const data = c[0]?.data
-                    if (!data || typeof data.message !== 'string') return false
+                    if (!data || typeof data.message !== 'string') {return false}
                     const messageMatches =
                         /(📈\s*)?Fetching Alpha Vantage crypto data.*BTC.*USD|Querying Alpha Vantage API/i.test(
                             data.message

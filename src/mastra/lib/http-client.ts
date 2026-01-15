@@ -13,7 +13,7 @@ export interface HttpClientOptions {
     minTime?: number // Bottleneck minTime (ms)
     maxConcurrent?: number // Bottleneck max concurrent
     retries?: number
-    // eslint-disable-next-line no-unused-vars
+
     retryDelay?: (retryCount: number, error: any) => number
     timeout?: number
     headers?: Record<string, string>
@@ -45,7 +45,7 @@ export interface HttpFetchResponse {
 export interface ClientBundle {
     client: AxiosInstance
     limiter: Bottleneck
-    // eslint-disable-next-line no-unused-vars
+
     fetch: (url: string, init?: HttpFetchInit) => Promise<HttpFetchResponse>
 }
 

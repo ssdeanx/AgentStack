@@ -9,7 +9,6 @@ import { log } from './logger'
 
 import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from '@mastra/core/llm'
 import { SpanType } from '@mastra/core/observability'
-import { google } from '@ai-sdk/google'
 
 // Utility function to create a masked stream for sensitive data
 // This properly uses maskStreamTags to mask content between XML tags in streams

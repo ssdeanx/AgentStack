@@ -28,10 +28,10 @@ interface AgentConfirmationProps {
     state: ToolUIPart['state']
     severity?: ConfirmationSeverity
     className?: string
-    // eslint-disable-next-line no-unused-vars
-    onApprove(approvalId: string): void
-    // eslint-disable-next-line no-unused-vars
-    onReject(approvalId: string): void
+
+    onApprove: (approvalId: string) => void
+
+    onReject: (approvalId: string) => void
 }
 
 const severityConfig: Record<

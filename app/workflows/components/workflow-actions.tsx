@@ -10,7 +10,7 @@ import {
     LayoutPanelLeftIcon,
     LayoutPanelTopIcon,
     LayoutGridIcon,
-} from 'lucide-react' 
+} from 'lucide-react'
 import { useCallback } from 'react'
 import { useReactFlow } from '@xyflow/react'
 
@@ -61,7 +61,7 @@ export function WorkflowActions() {
                         title="Horizontal Layout"
                     >
                         <LayoutPanelLeftIcon className="size-3.5" />
-                    </Button> 
+                    </Button>
                     <Button
                         size="icon-sm"
                         variant="ghost"

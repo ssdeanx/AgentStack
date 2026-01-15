@@ -88,7 +88,7 @@ export interface WorkflowDataPart {
     }
 }
 
-/* eslint-disable no-unused-vars */
+
 export interface WorkflowContextValue {
     selectedWorkflow: WorkflowId
     workflowConfig: WorkflowConfig | undefined

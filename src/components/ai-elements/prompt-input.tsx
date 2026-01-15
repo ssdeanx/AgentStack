@@ -70,8 +70,8 @@ import {
 // Provider Context & Types
 // ============================================================================
 
-export type AttachmentsContext = {
-    files: (FileUIPart & { id: string })[]
+export interface AttachmentsContext {
+    files: Array<FileUIPart & { id: string }>
     add: (files: File[] | FileList) => void
     remove: (id: string) => void
     clear: () => void
@@ -79,13 +79,13 @@ export type AttachmentsContext = {
     fileInputRef: RefObject<HTMLInputElement | null>
 }
 
-export type TextInputContext = {
+export interface TextInputContext {
     value: string
     setInput: (v: string) => void
     clear: () => void
 }
 
-export type PromptInputControllerProps = {
+export interface PromptInputControllerProps {
     textInput: TextInputContext
     attachments: AttachmentsContext
     /** INTERNAL: Allows PromptInput to register its file textInput + "open" callback */
@@ -146,7 +146,7 @@ export function PromptInputProvider({
 
     // ----- attachments state (global when wrapped)
     const [attachmentFiles, setAttachmentFiles] = useState<
-        (FileUIPart & { id: string })[]
+        Array<FileUIPart & { id: string }>
     >([])
     const fileInputRef = useRef<HTMLInputElement | null>(null)
     const openRef = useRef<() => void>(() => {})
@@ -425,7 +425,7 @@ export const PromptInputActionAddAttachments = ({
     )
 }
 
-export type PromptInputMessage = {
+export interface PromptInputMessage {
     text: string
     files: FileUIPart[]
 }
@@ -475,7 +475,7 @@ export const PromptInput = ({
     const formRef = useRef<HTMLFormElement | null>(null)
 
     // ----- Local attachments (only used when no provider)
-    const [items, setItems] = useState<(FileUIPart & { id: string })[]>([])
+    const [items, setItems] = useState<Array<FileUIPart & { id: string }>>([])
     const files = usingProvider ? controller.attachments.files : items
 
     // Keep a ref to files for cleanup on unmount (avoids stale closure)
@@ -537,7 +537,7 @@ export const PromptInput = ({
                         message: 'Too many files. Some were not added.',
                     })
                 }
-                const next: (FileUIPart & { id: string })[] = []
+                const next: Array<FileUIPart & { id: string }> = []
                 for (const file of capped) {
                     next.push({
                         id: nanoid(),
@@ -587,7 +587,7 @@ export const PromptInput = ({
 
     // Let provider know about our hidden file input so external menus can call openFileDialog()
     useEffect(() => {
-        if (!usingProvider) return
+        if (!usingProvider) {return}
         controller.__registerFileInput(inputRef, () =>
             inputRef.current?.click()
         )
@@ -604,7 +604,7 @@ export const PromptInput = ({
     // Attach drop handlers on nearest form and document (opt-in)
     useEffect(() => {
         const form = formRef.current
-        if (!form) return
+        if (!form) {return}
 
         const onDragOver = (e: DragEvent) => {
             if (e.dataTransfer?.types?.includes('Files')) {
@@ -628,7 +628,7 @@ export const PromptInput = ({
     }, [add])
 
     useEffect(() => {
-        if (!globalDrop) return
+        if (!globalDrop) {return}
 
         const onDragOver = (e: DragEvent) => {
             if (e.dataTransfer?.types?.includes('Files')) {
@@ -655,11 +655,11 @@ export const PromptInput = ({
         () => () => {
             if (!usingProvider) {
                 for (const f of filesRef.current) {
-                    if (f.url) URL.revokeObjectURL(f.url)
+                    if (f.url) {URL.revokeObjectURL(f.url)}
                 }
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup only on unmount; filesRef always current
+
         [usingProvider]
     )
 
@@ -1069,20 +1069,20 @@ interface SpeechRecognitionEvent extends Event {
     resultIndex: number
 }
 
-type SpeechRecognitionResultList = {
+interface SpeechRecognitionResultList {
     readonly length: number
     item(index: number): SpeechRecognitionResult
     [index: number]: SpeechRecognitionResult
 }
 
-type SpeechRecognitionResult = {
+interface SpeechRecognitionResult {
     readonly length: number
     item(index: number): SpeechRecognitionAlternative
     [index: number]: SpeechRecognitionAlternative
     isFinal: boolean
 }
 
-type SpeechRecognitionAlternative = {
+interface SpeechRecognitionAlternative {
     transcript: string
     confidence: number
 }

@@ -13,7 +13,7 @@ import {
     Settings,
 } from 'lucide-react'
 
-type NavItem = {
+interface NavItem {
     title: string
     href: Route
     icon: React.ComponentType<{ className?: string }>

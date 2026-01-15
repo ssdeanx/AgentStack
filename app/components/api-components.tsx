@@ -1,6 +1,7 @@
 'use client'
 
-import { ReactNode, useState } from 'react'
+import type { ReactNode} from 'react';
+import { useState } from 'react'
 import { Button } from '@/ui/button'
 import { Badge } from '@/ui/badge'
 import { CopyIcon, CheckIcon } from 'lucide-react'

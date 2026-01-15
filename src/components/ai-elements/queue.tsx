@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { ChevronDownIcon, PaperclipIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
-export type QueueMessagePart = {
+export interface QueueMessagePart {
     type: string
     text?: string
     url?: string
@@ -19,12 +19,12 @@ export type QueueMessagePart = {
     mediaType?: string
 }
 
-export type QueueMessage = {
+export interface QueueMessage {
     id: string
     parts: QueueMessagePart[]
 }
 
-export type QueueTodo = {
+export interface QueueTodo {
     id: string
     title: string
     description?: string

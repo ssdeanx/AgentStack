@@ -54,7 +54,7 @@ export function useClickOutside<T extends HTMLElement>(
 }
 
 export function useToggle(
-    initialValue: boolean = false
+    initialValue = false
 ): [boolean, () => void, (value: boolean) => void] {
     const [value, setValue] = useState(initialValue)
     const toggle = useCallback(() => setValue((v) => !v), [])
@@ -69,7 +69,7 @@ export function useInterval(callback: () => void, delay: number | null) {
     }, [callback])
 
     useEffect(() => {
-        if (delay === null) return
+        if (delay === null) {return}
 
         const id = setInterval(() => savedCallback.current(), delay)
         return () => clearInterval(id)
@@ -84,7 +84,7 @@ export function useTimeout(callback: () => void, delay: number | null) {
     }, [callback])
 
     useEffect(() => {
-        if (delay === null) return
+        if (delay === null) {return}
 
         const id = setTimeout(() => savedCallback.current(), delay)
         return () => clearTimeout(id)

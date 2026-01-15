@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+
 /* eslint-disable no-console */
 'use client'
 
@@ -75,6 +75,7 @@ import type {
 } from '@mastra/ai-sdk'
 import { AgentTool } from '@/ui/agent-tool'
 import { cn } from '@/lib/utils'
+import type { LLMStepResult } from '@mastra/core/agent'
 
 type MastraDataPart =
     | AgentDataPart
@@ -189,14 +190,16 @@ function extractTasksFromText(content: string): AgentTaskData[] {
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false)
 
-    const handleCopy = useCallback(async () => {
-        try {
-            await navigator.clipboard.writeText(text)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-        } catch (err) {
-            console.error('Failed to copy:', err)
-        }
+    const handleCopy = useCallback(() => {
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+            })
+            .catch((err) => {
+                console.error('Failed to copy:', err)
+            })
     }, [text])
 
     return (
@@ -618,13 +621,16 @@ function MessageItem({
                                         partType === 'data-tool-workflow' ||
                                         partType === 'data-tool-network'
                                     ) {
-                                        const nestedPart = part as any
+                                        const nestedPart = part as MastraDataPart
+                                        // Use the actual nested data as the prop value. Cast to the expected type for TypeScript
+                                        // (LLMStepResult is a type-only import so it cannot be used as a runtime value).
+                                        const dataValue = (nestedPart as { data?: unknown }).data ?? {}
                                         return (
                                             <AgentTool
                                                 key={`${message.id}-${partType}-${index}`}
                                                 id={nestedPart.id ?? partType}
-                                                type={partType as any}
-                                                data={nestedPart.data}
+                                                type={partType as unknown as 'data-tool-agent'}
+                                                data={dataValue as LLMStepResult}
                                             />
                                         )
                                     }

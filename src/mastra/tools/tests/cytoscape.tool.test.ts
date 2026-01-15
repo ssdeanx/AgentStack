@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { cytoscapeTool, CytoscapeContext } from '../cytoscape.tool'
+import type { CytoscapeContext } from '../cytoscape.tool';
+import { cytoscapeTool } from '../cytoscape.tool'
 
 describe('cytoscapeTool', () => {
     beforeEach(() => {

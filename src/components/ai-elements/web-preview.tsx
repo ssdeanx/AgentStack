@@ -18,7 +18,7 @@ import { ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-export type WebPreviewContextValue = {
+export interface WebPreviewContextValue {
     url: string
     setUrl: (url: string) => void
     consoleOpen: boolean
