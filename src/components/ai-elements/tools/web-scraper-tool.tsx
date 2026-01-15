@@ -64,14 +64,18 @@ export function WebScraperTool({
         )
     }
 
+    const content = output.content || {}
     const {
         extractedData,
         rawContent,
         markdownContent,
+    } = content
+
+    const {
         metadata,
         images,
         structuredData,
-    } = output
+    } = output.analysis || {}
 
     return (
         <div className="space-y-4">

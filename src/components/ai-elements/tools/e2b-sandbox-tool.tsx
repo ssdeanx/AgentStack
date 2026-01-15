@@ -36,7 +36,7 @@ interface E2bSandboxToolProps {
     errorText?: string
 }
 
-export function E2bSandboxTool({
+export function E2bSandboxToolComponent({
     input,
     output,
     errorText,
@@ -80,7 +80,7 @@ export function E2bSandboxTool({
     }
 
     const { action, sandboxId } = input
-    const { result } = output
+    const result = output.result
 
     return (
         <div className="space-y-4">
