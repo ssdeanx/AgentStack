@@ -1,20 +1,20 @@
 import { Agent } from '@mastra/core/agent'
 import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
+import { InternalSpans } from '@mastra/core/observability'
 import { evaluationAgent } from './evaluationAgent'
 import { researchAgent } from './researchAgent'
-import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing Translation Agent...')
 
 export const translationAgent = new Agent({
-    id: 'translation-agent',
-    name: 'Translation Agent',
-    description:
-        'Provides professional translation services with cultural adaptation, localization, and quality assurance for multilingual content.',
-    instructions: `You are a Professional Translation and Localization Specialist. Your expertise covers accurate translation, cultural adaptation, and multilingual content optimization.
+  id: 'translation-agent',
+  name: 'Translation Agent',
+  description:
+    'Provides professional translation services with cultural adaptation, localization, and quality assurance for multilingual content.',
+  instructions: `You are a Professional Translation and Localization Specialist. Your expertise covers accurate translation, cultural adaptation, and multilingual content optimization.
 
 ## Translation Capabilities
 
@@ -116,20 +116,20 @@ export const translationAgent = new Agent({
 - Include notes about untranslatable elements or cultural references
 - Offer alternative translations when cultural nuances allow multiple interpretations
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        evaluationAgent,
-        researchAgent,
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    evaluationAgent,
+    researchAgent,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //   defaultOptions: {
+  //       autoResumeSuspendedTools: true,
+  //   },
 })
 
 log.info('Translation Agent initialized')

@@ -4,38 +4,37 @@ import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
+import { InternalSpans } from '@mastra/core/observability'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
 import {
-    arxivPaperDownloaderTool,
-    arxivPdfParserTool,
-    arxivTool,
+  arxivPaperDownloaderTool,
+  arxivPdfParserTool,
+  arxivTool,
 } from '../tools/arxiv.tool'
-import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchPaperAgentRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
 }
 
 log.info('Initializing Research Paper Agent...')
 
 export const researchPaperAgent = new Agent({
-    id: 'researchPaperAgent',
-    name: 'Research Paper Agent',
-    description:
-        'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
-    }) => {
-        const userTier = requestContext?.get('user-tier') ?? 'free'
-        const language = requestContext?.get('language') ?? 'en'
-        return `
+  id: 'researchPaperAgent',
+  name: 'Research Paper Agent',
+  description:
+    'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
+  }) => {
+    const userTier = requestContext?.get('user-tier') ?? 'free'
+    const language = requestContext?.get('language') ?? 'en'
+    return `
 # Research Paper Specialist
 User: ${userTier} | Lang: ${language}
 
@@ -53,45 +52,45 @@ User: ${userTier} | Lang: ${language}
 ## Rules
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 `
+  },
+  model: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return googleAIPro
+    } else if (userTier === 'pro') {
+      // Chat bison for pro as well
+      return googleAI3
+    }
+    // cheaper/faster model for free tier
+    return googleAIFlashLite
+  },
+  memory: pgMemory,
+  tools: {
+    arxivTool,
+    arxivPdfParserTool,
+    arxivPaperDownloaderTool,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
-            return googleAIPro
-        } else if (userTier === 'pro') {
-            // Chat bison for pro as well
-            return googleAI3
-        }
-        // cheaper/faster model for free tier
-        return googleAIFlashLite
-    },
-    memory: pgMemory,
-    tools: {
-        arxivTool,
-        arxivPdfParserTool,
-        arxivPaperDownloaderTool,
-    },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 5,
-            maxWaitTime: 75,
-            emitOnNonText: true,
-        }),
-    ],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //    new BatchPartsProcessor({
+    //        batchSize: 5,
+    //        maxWaitTime: 75,
+    //        emitOnNonText: true,
+    //    }),
+  ],
+  //  defaultOptions: {
+  //      autoResumeSuspendedTools: true,
+  //  },
 })
 
 log.info('Research Paper Agent initialized')

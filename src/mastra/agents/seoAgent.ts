@@ -1,21 +1,21 @@
 import { Agent } from '@mastra/core/agent'
 import { googleAI3 } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
-import { researchAgent } from './researchAgent'
+import { InternalSpans } from '@mastra/core/observability'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { evaluationAgent } from './evaluationAgent'
-import { InternalSpans } from '@mastra/core/observability'
+import { researchAgent } from './researchAgent'
 
 log.info('Initializing SEO Agent...')
 
 export const seoAgent = new Agent({
-    id: 'seo-agent',
-    name: 'SEO Agent',
-    description:
-        'Optimizes content for search engines through keyword research, on-page optimization, technical SEO analysis, and performance tracking.',
-    instructions: `You are an SEO Specialist and Content Optimizer. Your expertise covers all aspects of search engine optimization and content performance.
+  id: 'seo-agent',
+  name: 'SEO Agent',
+  description:
+    'Optimizes content for search engines through keyword research, on-page optimization, technical SEO analysis, and performance tracking.',
+  instructions: `You are an SEO Specialist and Content Optimizer. Your expertise covers all aspects of search engine optimization and content performance.
 
 ## Core SEO Capabilities
 
@@ -100,21 +100,21 @@ export const seoAgent = new Agent({
 - Include performance tracking suggestions
 - Consider both immediate wins and long-term strategy
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        researchAgent,
-        contentStrategistAgent,
-        evaluationAgent,
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    researchAgent,
+    contentStrategistAgent,
+    evaluationAgent,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //  defaultOptions: {
+  //     autoResumeSuspendedTools: true,
+  //  },
 })
 
 log.info('SEO Agent initialized')

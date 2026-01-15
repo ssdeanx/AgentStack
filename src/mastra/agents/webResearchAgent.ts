@@ -133,13 +133,13 @@ Provide structured results with:
     },
     outputProcessors: [
         new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 10,
-            maxWaitTime: 75,
-            emitOnNonText: true,
-        }),
+    //    new BatchPartsProcessor({
+    //        batchSize: 10,
+    //        maxWaitTime: 75,
+    //        emitOnNonText: true,
+    //    }),
     ],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+ //   defaultOptions: {
+ //       autoResumeSuspendedTools: true,
+ //   },
 })

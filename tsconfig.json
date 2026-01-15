@@ -59,6 +59,11 @@
         "hooks/**/*.tsx",
         "pages/**/*.ts",
         "pages/**/*.tsx",
+        "convex/**/*.ts",
+        "convex/**/*.tsx",
+        "convex/**/*.d.ts",
+        "convex/mastra/**/*.ts",
+        "convex/**/*.js",
         // Tests are excluded from the main typecheck run to avoid typechecking test-only imports
         // that may pull in declaration files with unsupported syntax from node_modules.
         "types/**/*.d.ts"

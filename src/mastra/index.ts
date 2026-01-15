@@ -139,15 +139,15 @@ import { specGenerationWorkflow } from './workflows/spec-generation-workflow'
 import { stockAnalysisWorkflow } from './workflows/stock-analysis-workflow'
 import { telephoneGameWorkflow } from './workflows/telephone-game'
 import { weatherWorkflow } from './workflows/weather-workflow'
-import { OtelBridge } from '@mastra/otel-bridge'
+//import { OtelBridge } from '@mastra/otel-bridge'
 import { DefaultExporter } from '@mastra/observability'
 import {
     createCompletenessScorer,
-    createTextualDifferenceScorer,
-    createToneScorer,
+  //  createTextualDifferenceScorer,
+  //  createToneScorer,
 } from './evals/scorers/prebuilt'
 import { keywordCoverageScorer } from './evals/scorers/keyword-coverage'
-import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt'
+//import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt'
 import {
     researchCompletenessScorer,
     sourceDiversityScorer,
@@ -330,39 +330,40 @@ export const mastra = new Mastra({
                 exporters: [
                     new DefaultExporter({
                         logger: log,
-                        logLevel: 'info',
+                        logLevel: 'debug',
                         strategy: 'auto',
-                        maxBatchSize: 1000,
-                        maxBufferSize: 10000,
-                        maxBatchWaitMs: 5000,
+                       // maxBatchSize: 1000,
+                       // maxBufferSize: 10000,
+                       // maxBatchWaitMs: 5000,
                         maxRetries: 5,
+
                     }), // Studio access0
                     new CloudExporter(),
                 ],
                 includeInternalSpans: true,
 
-                bridge: new OtelBridge({
-                    name: 'mastra-otel-bridge',
+          //      bridge: new OtelBridge({
+          //          name: 'mastra-otel-bridge',
                     //            otelTracer: {
                     //              startSpan: (name: string, options: SpanOptions | undefined) => {
                     //                const tracer = trace.getTracer("mastra-otel-bridge-tracer");
                     //                return tracer.startSpan(name, options);
                     //              },
                     //            },
-                    logger: log,
-                    logLevel: 'info',
+          //          logger: log,
+          //          logLevel: 'info',
                     //            batchsize: 500,
-                    timeout: 50000,
-                    serializationOptions: {
-                        maxStringLength: 1024, // Maximum length for string values (default: 1024)
-                        maxDepth: 6, // Maximum depth for nested objects (default: 6)
-                        maxArrayLength: 50, // Maximum number of items in arrays (default: 50)
-                        maxObjectKeys: 50, // Maximum number of keys in objects (default: 50)
-                    },
-                    resourceAttributes: {
-                        'deployment.environment': 'dev',
-                    },
-                }),
+           //         timeout: 50000,
+           //         serializationOptions: {
+           //             maxStringLength: 1024, // Maximum length for string values (default: 1024)
+           //             maxDepth: 6, // Maximum depth for nested objects (default: 6)
+           //             maxArrayLength: 50, // Maximum number of items in arrays (default: 50)
+           //             maxObjectKeys: 50, // Maximum number of keys in objects (default: 50)
+           //         },
+           //         resourceAttributes: {
+           //             'deployment.environment': 'dev',
+           //         },
+          //      }),
             },
             //      exporters: [
             //          new DefaultExporter(), // Studio access

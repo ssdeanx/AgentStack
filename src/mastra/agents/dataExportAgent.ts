@@ -1,47 +1,47 @@
 import { Agent } from '@mastra/core/agent'
 
 import { googleAI } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
+import { pgMemory } from '../config/pg-storage'
 
-import { jsonToCsvTool } from '../tools/json-to-csv.tool'
-import { dataValidatorToolJSON } from '../tools/data-validator.tool'
-import {
-    writeDataFileTool,
-    backupDataTool,
-    listDataDirTool,
-} from '../tools/data-file-manager'
-import type { RequestContext } from '@mastra/core/request-context'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import { TokenLimiterProcessor } from '@mastra/core/processors'
+import type { RequestContext } from '@mastra/core/request-context'
+import {
+  backupDataTool,
+  listDataDirTool,
+  writeDataFileTool,
+} from '../tools/data-file-manager'
+import { dataValidatorToolJSON } from '../tools/data-validator.tool'
+import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 
 export interface DataExportContext {
-    userId?: string
-    outputDirectory?: string
-    overwriteExisting?: boolean
-    delimiter?: string
+  userId?: string
+  outputDirectory?: string
+  overwriteExisting?: boolean
+  delimiter?: string
 }
 
 log.info('Initializing Data Export Agent...')
 
 export const dataExportAgent = new Agent({
-    id: 'dataExportAgent',
-    name: 'Data Export Agent',
-    description:
-        'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<DataExportContext>
-    }) => {
-        const userId = requestContext.get('userId') ?? 'default'
-        const outputDirectory =
-            requestContext.get('outputDirectory') ?? './data'
-        const overwriteExisting =
-            requestContext.get('overwriteExisting') ?? false
-        const delimiter = requestContext.get('delimiter') ?? ','
+  id: 'dataExportAgent',
+  name: 'Data Export Agent',
+  description:
+    'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<DataExportContext>
+  }) => {
+    const userId = requestContext.get('userId') ?? 'default'
+    const outputDirectory =
+      requestContext.get('outputDirectory') ?? './data'
+    const overwriteExisting =
+      requestContext.get('overwriteExisting') ?? false
+    const delimiter = requestContext.get('delimiter') ?? ','
 
-        return `
+    return `
 # Data Export Specialist
 User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
 
@@ -55,25 +55,25 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 - **Guidelines**: Escape special characters; report errors clearly.
 `
+  },
+  model: googleAI,
+  memory: pgMemory,
+  tools: {
+    jsonToCsvTool,
+    dataValidatorToolJSON,
+    writeDataFileTool,
+    backupDataTool,
+    listDataDirTool,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAI,
-    memory: pgMemory,
-    tools: {
-        jsonToCsvTool,
-        dataValidatorToolJSON,
-        writeDataFileTool,
-        backupDataTool,
-        listDataDirTool,
-    },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //   defaultOptions: {
+  //       autoResumeSuspendedTools: true,
+  //  },
 })
 
 log.info('Data Export Agent initialized')

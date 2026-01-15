@@ -1,9 +1,9 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
+import { InternalSpans } from '@mastra/core/observability'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
-    UnicodeNormalizer,
+  TokenLimiterProcessor,
+  UnicodeNormalizer
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
@@ -11,32 +11,31 @@ import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
-    chartDataProcessorTool,
-    chartGeneratorTool,
-    chartTypeAdvisorTool,
+  chartDataProcessorTool,
+  chartGeneratorTool,
+  chartTypeAdvisorTool,
 } from '../tools/financial-chart-tools'
 import {
-    finnhubAnalysisTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
-    finnhubQuotesTool,
-    finnhubTechnicalTool,
+  finnhubAnalysisTool,
+  finnhubCompanyTool,
+  finnhubFinancialsTool,
+  finnhubQuotesTool,
+  finnhubTechnicalTool,
 } from '../tools/finnhub-tools'
 import {
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-    polygonStockQuotesTool,
+  polygonStockAggregatesTool,
+  polygonStockFundamentalsTool,
+  polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
-import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ChartRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    chartStyle: 'detailed' | 'concise'
-    colorScheme: 'dark' | 'light'
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+  chartStyle: 'detailed' | 'concise'
+  colorScheme: 'dark' | 'light'
 }
 
 log.info('Initializing Financial Chart Agents...')
@@ -46,22 +45,22 @@ log.info('Initializing Financial Chart Agents...')
  * Recommends optimal chart types based on financial data characteristics
  */
 export const chartTypeAdvisorAgent = new Agent({
-    id: 'chartTypeAdvisorAgent',
-    name: 'Chart Type Advisor',
-    description:
-        'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ChartRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = requestContext.get('colorScheme') ?? 'dark'
-        return {
-            role: 'system',
-            content: `
+  id: 'chartTypeAdvisorAgent',
+  name: 'Chart Type Advisor',
+  description:
+    'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ChartRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userTier}
 Language: ${language}
@@ -90,25 +89,25 @@ You are a Financial Data Visualization Specialist focused on recommending optima
 - **Output**: Return recommendations as JSON with primaryChart, alternativeCharts, dataTransformation, and responsiveConfig.
 </rules>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: googleAIFlashLite,
+  memory: pgMemory,
+  maxRetries: 3,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAIFlashLite,
-    memory: pgMemory,
-    maxRetries: 3,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -116,22 +115,22 @@ You are a Financial Data Visualization Specialist focused on recommending optima
  * Transforms raw financial data into Recharts-compatible format
  */
 export const chartDataProcessorAgent = new Agent({
-    id: 'chartDataProcessorAgent',
-    name: 'Chart Data Processor',
-    description:
-        'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ChartRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = requestContext.get('colorScheme') ?? 'dark'
-        return {
-            role: 'system',
-            content: `
+  id: 'chartDataProcessorAgent',
+  name: 'Chart Data Processor',
+  description:
+    'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ChartRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userTier}
 Language: ${language}
@@ -152,32 +151,32 @@ You are a Financial Data Processing Specialist that transforms raw API data into
 - **Output**: Return processed data as JSON with chartData, dataKeys, domain, metadata, and calculations.
 </rules>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: googleAIFlashLite,
+  tools: {
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    finnhubQuotesTool,
+    finnhubTechnicalTool,
+    alphaVantageStockTool,
+  },
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAIFlashLite,
-    tools: {
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        finnhubQuotesTool,
-        finnhubTechnicalTool,
-        alphaVantageStockTool,
-    },
-    memory: pgMemory,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    maxRetries: 3,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+  },
+  maxRetries: 3,
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -185,23 +184,23 @@ You are a Financial Data Processing Specialist that transforms raw API data into
  * Generates complete Recharts React component code
  */
 export const chartGeneratorAgent = new Agent({
-    id: 'chartGeneratorAgent',
-    name: 'Chart Generator',
-    description:
-        'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ChartRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+  id: 'chartGeneratorAgent',
+  name: 'Chart Generator',
+  description:
+    'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ChartRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
 
-        return {
-            role: 'system',
-            content: `
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userTier}
 Language: ${language}
@@ -222,25 +221,25 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
 - **Output**: Return complete component code as JSON with componentName, code, props, dependencies, and usage.
 </rules>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: googleAI,
+  memory: pgMemory,
+  maxRetries: 3,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAI,
-    memory: pgMemory,
-    maxRetries: 3,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+  },
+  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -248,22 +247,22 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
  * Orchestrates the chart creation pipeline from data to component
  */
 export const chartSupervisorAgent = new Agent({
-    id: 'chartSupervisorAgent',
-    name: 'Chart Supervisor',
-    description:
-        'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ChartRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-        const colorScheme = requestContext.get('colorScheme') ?? 'dark'
-        return {
-            role: 'system',
-            content: `
+  id: 'chartSupervisorAgent',
+  name: 'Chart Supervisor',
+  description:
+    'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ChartRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
+    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+    return {
+      role: 'system',
+      content: `
 <role>
 User: ${userTier}
 Language: ${language}
@@ -292,56 +291,56 @@ You are the Financial Chart Supervisor, orchestrating the complete chart creatio
 ${PGVECTOR_PROMPT}
 </rules>
 `,
-            providerOptions: {
-                google: {
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingBudget: -1,
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: -1,
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: googleAI,
+  tools: {
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    finnhubQuotesTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubAnalysisTool,
+    finnhubTechnicalTool,
+    alphaVantageStockTool,
+    googleFinanceTool,
+    chartGeneratorTool,
+    chartDataProcessorTool,
+    chartTypeAdvisorTool,
+    pgQueryTool,
+    scrapingSchedulerTool,
+  },
+  memory: pgMemory,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: googleAI,
-    tools: {
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        polygonStockFundamentalsTool,
-        finnhubQuotesTool,
-        finnhubCompanyTool,
-        finnhubFinancialsTool,
-        finnhubAnalysisTool,
-        finnhubTechnicalTool,
-        alphaVantageStockTool,
-        googleFinanceTool,
-        chartGeneratorTool,
-        chartDataProcessorTool,
-        chartTypeAdvisorTool,
-        pgQueryTool,
-        scrapingSchedulerTool,
-    },
-    memory: pgMemory,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    scorers: {},
-    inputProcessors: [
-        new UnicodeNormalizer({
-            stripControlChars: false,
-            collapseWhitespace: true,
-            preserveEmojis: true,
-            trim: true,
-        }),
-    ],
-    maxRetries: 5,
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 25,
-            maxWaitTime: 100,
-            emitOnNonText: true,
-        }),
-    ],
+  },
+  scorers: {},
+  inputProcessors: [
+    new UnicodeNormalizer({
+      stripControlChars: false,
+      collapseWhitespace: true,
+      preserveEmojis: true,
+      trim: true,
+    }),
+  ],
+  maxRetries: 5,
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //    new BatchPartsProcessor({
+    //         batchSize: 25,
+    //         maxWaitTime: 100,
+    //        emitOnNonText: true,
+    //     }),
+  ],
 })

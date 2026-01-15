@@ -7,7 +7,7 @@ import { log } from './logger'
 //import type { CoreMessage } from '@mastra/core';
 // import { maskStreamTags } from '@mastra/core';
 
-import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
+import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from '@mastra/core/llm'
 import { SpanType } from '@mastra/core/observability'
 import { google } from '@ai-sdk/google'
 
@@ -107,7 +107,7 @@ export const pgMemory = new Memory({
         workingMemory: {
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
-            version: 'vnext',
+       //   version: 'vnext',
             template: `# User Context
 ## Profile
 - Name/Role:
@@ -197,17 +197,17 @@ export const pgQueryTool = createVectorQueryTool({
     // Advanced filtering
     enableFilter: true,
     includeSources: true,
-    // reranker: {
-    //  model: google.chat('gemini-3-flash-preview'),
-    //  options: {
-    //    weights: {
-    //      semantic: 0.5, // Semantic relevance weight
-    //      vector: 0.3, // Vector similarity weight
-    //      position: 0.2, // Original position weight
-    //    },
-    //    topK: 5,
-    //  },
-    // },
+     reranker: {
+      model: new ModelRouterLanguageModel('google/gemini-2.5-flash-lite-preview-09-2025'),
+      options: {
+        weights: {
+          semantic: 0.5, // Semantic relevance weight
+      vector: 0.3, // Vector similarity weight
+          position: 0.2, // Original position weight
+        },
+        topK: 5,
+      },
+     },
 })
 
 // Production-grade embedding generation with tracing

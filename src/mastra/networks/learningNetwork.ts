@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
 import { documentProcessingAgent } from '../agents/documentProcessingAgent'
 import { evaluationAgent } from '../agents/evaluationAgent'
@@ -13,16 +12,15 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
-import { confirmationTool } from '../tools/confirmation.tool'
 
 log.info('Initializing Learning Network...')
 
 export const learningNetwork = new Agent({
-    id: 'learning-network',
-    name: 'Learning Network',
-    description:
-        'A routing agent that coordinates learning and knowledge agents for educational content and knowledge management. Routes requests to learning extraction, knowledge indexing, and research agents.',
-    instructions: `You are a Learning Coordinator. Your role is to orchestrate knowledge acquisition and learning workflows by coordinating specialized educational agents.
+  id: 'learning-network',
+  name: 'Learning Network',
+  description:
+    'A routing agent that coordinates learning and knowledge agents for educational content and knowledge management. Routes requests to learning extraction, knowledge indexing, and research agents.',
+  instructions: `You are a Learning Coordinator. Your role is to orchestrate knowledge acquisition and learning workflows by coordinating specialized educational agents.
 
 ## Available Agents
 
@@ -118,29 +116,29 @@ export const learningNetwork = new Agent({
 - Include progress tracking and milestone achievements
 - Suggest additional resources for deeper learning
 `,
-    model: googleAI3,
-    memory: pgMemory,
-    agents: {
-        learningExtractionAgent,
-        knowledgeIndexingAgent,
-        researchAgent,
-        documentProcessingAgent,
-        evaluationAgent,
-    },
-    workflows: {
-        learningExtractionWorkflow,
-        researchSynthesisWorkflow,
-    },
-    tools: { confirmationTool },
-    options: {},
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 20,
-            maxWaitTime: 100,
-            emitOnNonText: true,
-        }),
-    ],
+  model: googleAI3,
+  memory: pgMemory,
+  agents: {
+    learningExtractionAgent,
+    knowledgeIndexingAgent,
+    researchAgent,
+    documentProcessingAgent,
+    evaluationAgent,
+  },
+  workflows: {
+    learningExtractionWorkflow,
+    researchSynthesisWorkflow,
+  },
+  // tools: { confirmationTool },
+  options: {},
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //   new BatchPartsProcessor({
+    //       batchSize: 20,
+    //       maxWaitTime: 100,
+    //       emitOnNonText: true,
+    //   }),
+  ],
 })
 
 log.info('Learning Network initialized')

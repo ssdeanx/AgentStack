@@ -94,9 +94,9 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
     workflows: {},
     maxRetries: 5,
     outputProcessors: [new TokenLimiterProcessor(1048576)],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+ //   defaultOptions: {
+  //      autoResumeSuspendedTools: true,
+ //   },
 })
 
 // Attempt to resolve provider metadata from available SDK objects

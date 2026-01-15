@@ -1,8 +1,7 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 
@@ -16,51 +15,46 @@ import { finnhubQuotesTool } from '../tools/finnhub-tools'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { polygonStockQuotesTool } from '../tools/polygon-tools'
 import {
-    googleFinanceTool,
-    googleScholarTool,
+  googleFinanceTool,
+  googleScholarTool,
 } from '../tools/serpapi-academic-local.tool'
 import {
-    googleNewsLiteTool,
-    googleTrendsTool,
+  googleNewsLiteTool,
+  googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
 import { htmlToMarkdownTool, webScraperTool } from '../tools/web-scraper-tool'
 
 // Scorers
-import {
-    createCompletenessScorer,
-    createTextualDifferenceScorer,
-    createToneScorer,
-} from '../evals/scorers/prebuilt'
 import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface ResearchRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    // Optional runtime fields the server middleware may populate
-    userId?: string
-    researchPhase?: 'initial' | 'followup' | 'validation' | string
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+  // Optional runtime fields the server middleware may populate
+  userId?: string
+  researchPhase?: 'initial' | 'followup' | 'validation' | string
 }
 log.info('Initializing Research Agent...')
 
 export const researchAgent = new Agent({
-    id: 'researchAgent',
-    name: 'Research Agent',
-    description:
-        'An expert research agent that conducts thorough research using web search and analysis tools.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ResearchRuntimeContext>
-    }) => {
-        // runtimeContext is read at invocation time
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+  id: 'researchAgent',
+  name: 'Research Agent',
+  description:
+    'An expert research agent that conducts thorough research using web search and analysis tools.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ResearchRuntimeContext>
+  }) => {
+    // runtimeContext is read at invocation time
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const researchPhase = requestContext.get('researchPhase') ?? 'initial'
 
-        return {
-            role: 'system',
-            content: `
+    return {
+      role: 'system',
+      content: `
 # Senior Research Analyst
 Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 
@@ -84,76 +78,76 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 - **Specificity**: Use focused queries; cite sources with confidence levels.
 - **Fallback**: If tools fail, use internal knowledge and state failure.
 `,
-            providerOptions: {
-                google: {
-                    responseModalities: ['TEXT'],
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingLevel: 'medium',
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
-    },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<ResearchRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
-            return google.chat('gemini-3-pro-preview')
-        } else if (userTier === 'pro') {
-            // cheaper/faster model for pro tier
-            return 'google/gemini-3-flash-preview'
-        }
-        // cheaper/faster model for free tier
-        return google.chat('gemini-3-flash-preview')
-    },
-    tools: {
-        // Core Research Tools
-        webScraperTool,
-        googleScholarTool,
-        googleNewsLiteTool,
-        googleTrendsTool,
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT'],
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingLevel: 'medium',
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<ResearchRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      // higher quality (chat style) for enterprise
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      // cheaper/faster model for pro tier
+      return 'google/gemini-3-flash-preview'
+    }
+    // cheaper/faster model for free tier
+    return google.chat('gemini-3-flash-preview')
+  },
+  tools: {
+    // Core Research Tools
+    webScraperTool,
+    googleScholarTool,
+    googleNewsLiteTool,
+    googleTrendsTool,
 
-        // Data Processing
-        mdocumentChunker,
-        extractLearningsTool,
-        evaluateResultTool,
+    // Data Processing
+    mdocumentChunker,
+    extractLearningsTool,
+    evaluateResultTool,
 
-        // Financial (limited to reduce tool confusion)
-        polygonStockQuotesTool,
-        finnhubQuotesTool,
-        googleFinanceTool,
+    // Financial (limited to reduce tool confusion)
+    polygonStockQuotesTool,
+    finnhubQuotesTool,
+    googleFinanceTool,
 
-        // Document Processing
-        pdfToMarkdownTool,
-        htmlToMarkdownTool,
+    // Document Processing
+    pdfToMarkdownTool,
+    htmlToMarkdownTool,
+  },
+  memory: pgMemory,
+  scorers: {
+    //  toneConsistency: { scorer: createToneScorer() },
+    //  textualDifference: { scorer: createTextualDifferenceScorer() },
+    //  completeness: { scorer: createCompletenessScorer() },
+  },
+  maxRetries: 5,
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    memory: pgMemory,
-    scorers: {
-        toneConsistency: { scorer: createToneScorer() },
-        textualDifference: { scorer: createTextualDifferenceScorer() },
-        completeness: { scorer: createCompletenessScorer() },
-    },
-    maxRetries: 5,
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    //voice: gvoice,
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 10,
-            maxWaitTime: 75,
-            emitOnNonText: true,
-        }),
-    ],
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  //voice: gvoice,
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //     new BatchPartsProcessor({
+    //         batchSize: 10,
+    //        maxWaitTime: 75,
+    //        emitOnNonText: true,
+    //     }),
+  ],
+  //  defaultOptions: {
+  //      autoResumeSuspendedTools: true,
+  //  },
 })

@@ -7,11 +7,11 @@ import { stockAnalysisAgent } from '../agents/stockAnalysisAgent'
 import { weatherAgent } from '../agents/weather-agent'
 
 // Orphaned agents now registered
-import { socialMediaAgent } from '../agents/socialMediaAgent'
-import { seoAgent } from '../agents/seoAgent'
-import { translationAgent } from '../agents/translationAgent'
 import { customerSupportAgent } from '../agents/customerSupportAgent'
 import { projectManagementAgent } from '../agents/projectManagementAgent'
+import { seoAgent } from '../agents/seoAgent'
+import { socialMediaAgent } from '../agents/socialMediaAgent'
+import { translationAgent } from '../agents/translationAgent'
 
 import { pgMemory } from '../config'
 import { googleAI } from '../config/google'
@@ -49,16 +49,14 @@ export { businessIntelligenceNetwork } from './businessIntelligenceNetwork'
 export { securityNetwork } from './securityNetwork'
 
 import {
-    BatchPartsProcessor,
-    TokenLimiterProcessor,
+  TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { confirmationTool } from '../tools/confirmation.tool'
 export const agentNetwork = new Agent({
-    id: 'agent-network',
-    name: 'Primary Agent Network',
-    description:
-        'A routing agent that coordinates specialized agents and workflows.',
-    instructions: `
+  id: 'agent-network',
+  name: 'Primary Agent Network',
+  description:
+    'A routing agent that coordinates specialized agents and workflows.',
+  instructions: `
      You are a Primary Network Coordinator. Your goal is to route user requests to most appropriate specialist agent or workflow.
 
      Available Capabilities:
@@ -88,31 +86,31 @@ export const agentNetwork = new Agent({
      - If user needs project management or task tracking, delegate to 'projectManagementAgent'.
      - If user request is simple, general, or conversational (like "hello", "what's up"), respond directly and naturally to user without explaining your routing logic.
    `,
-    model: googleAI,
-    memory: pgMemory, // Required for network capabilities
-    options: {},
-    agents: {
-        researchAgent,
-        stockAnalysisAgent,
-        weatherAgent,
-        copywriterAgent,
-        editorAgent,
-        reportAgent,
-        socialMediaAgent,
-        seoAgent,
-        translationAgent,
-        customerSupportAgent,
-        projectManagementAgent,
-    },
-    tools: { confirmationTool },
-    scorers: {},
-    workflows: { weatherWorkflow },
-    outputProcessors: [
-        new TokenLimiterProcessor(128000),
-        new BatchPartsProcessor({
-            batchSize: 20,
-            maxWaitTime: 100,
-            emitOnNonText: true,
-        }),
-    ],
+  model: googleAI,
+  memory: pgMemory, // Required for network capabilities
+  options: {},
+  agents: {
+    researchAgent,
+    stockAnalysisAgent,
+    weatherAgent,
+    copywriterAgent,
+    editorAgent,
+    reportAgent,
+    socialMediaAgent,
+    seoAgent,
+    translationAgent,
+    customerSupportAgent,
+    projectManagementAgent,
+  },
+  //  tools: { confirmationTool },
+  scorers: {},
+  workflows: { weatherWorkflow },
+  outputProcessors: [
+    new TokenLimiterProcessor(128000),
+    //  new BatchPartsProcessor({
+    //      batchSize: 20,
+    //      maxWaitTime: 100,
+    //      emitOnNonText: true,
+    //  }),
+  ],
 })

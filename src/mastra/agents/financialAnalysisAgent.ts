@@ -6,43 +6,43 @@ import { google } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
-import {
-    //   polygonTool,
-    //    finnhubTool,
-    alphaVantageTool,
-    //    financialChartTool,
-    technicalAnalysisTool,
-} from '../tools'
 import { InternalSpans } from '@mastra/core/observability'
+import {
+  //   polygonTool,
+  //    finnhubTool,
+  alphaVantageTool,
+  //    financialChartTool,
+  technicalAnalysisTool,
+} from '../tools'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 
 export interface FinancialAnalysisRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    userId?: string
-    analysisDepth?: 'basic' | 'detailed' | 'comprehensive'
+  'user-tier': UserTier
+  language: 'en' | 'es' | 'ja' | 'fr'
+  userId?: string
+  analysisDepth?: 'basic' | 'detailed' | 'comprehensive'
 }
 
 log.info('Initializing Financial Analysis Agent...')
 
 export const financialAnalysisAgent = new Agent({
-    id: 'financialAnalysisAgent',
-    name: 'Financial Analysis Agent',
-    description:
-        'Specialist in financial data analysis and market intelligence. Fetches real-time stock prices, financial indicators, and technical analysis.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<FinancialAnalysisRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const analysisDepth = requestContext.get('analysisDepth') ?? 'basic'
+  id: 'financialAnalysisAgent',
+  name: 'Financial Analysis Agent',
+  description:
+    'Specialist in financial data analysis and market intelligence. Fetches real-time stock prices, financial indicators, and technical analysis.',
+  instructions: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<FinancialAnalysisRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    const language = requestContext.get('language') ?? 'en'
+    const analysisDepth = requestContext.get('analysisDepth') ?? 'basic'
 
-        return {
-            role: 'system',
-            content: `
+    return {
+      role: 'system',
+      content: `
 # Financial Data Specialist
 Tier: ${userTier} | Lang: ${language} | Depth: ${analysisDepth}
 
@@ -81,69 +81,68 @@ Provide structured analysis with:
 - Risk factors and considerations
 - Clear buy/hold/sell recommendation with confidence level
 
-${
-    userTier === 'enterprise'
-        ? `
+${userTier === 'enterprise'
+          ? `
 ## Enterprise Features
 - Access to all API endpoints without rate limits
 - Advanced technical analysis with multiple indicators
 - Comprehensive sector and peer comparison
 - Real-time streaming data support
 `
-        : userTier === 'pro'
-          ? `
+          : userTier === 'pro'
+            ? `
 ## Pro Features
 - Increased rate limits for frequent queries
 - Multiple technical indicators
 - Historical data beyond 1 year
 `
-          : `
+            : `
 ## Free Tier
 - Limited number of queries per day
 - Basic technical analysis
 - Last 1 year of historical data
 `
-}
+        }
 `,
-            providerOptions: {
-                google: {
-                    responseModalities: ['TEXT'],
-                    thinkingConfig: {
-                        includeThoughts: true,
-                        thinkingLevel: 'medium',
-                    },
-                } satisfies GoogleGenerativeAIProviderOptions,
-            },
-        }
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT'],
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingLevel: 'medium',
+          },
+        } satisfies GoogleGenerativeAIProviderOptions,
+      },
+    }
+  },
+  model: ({
+    requestContext,
+  }: {
+    requestContext: RequestContext<FinancialAnalysisRuntimeContext>
+  }) => {
+    const userTier = requestContext.get('user-tier') ?? 'free'
+    if (userTier === 'enterprise') {
+      return google.chat('gemini-3-pro-preview')
+    } else if (userTier === 'pro') {
+      return 'google/gemini-3-flash-preview'
+    }
+    return google.chat('gemini-3-flash-preview')
+  },
+  tools: {
+    //        polygonTool,
+    //        finnhubTool,
+    alphaVantageTool,
+    //        financialChartTool,
+    technicalAnalysisTool,
+  },
+  options: {
+    tracingPolicy: {
+      internal: InternalSpans.ALL,
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<FinancialAnalysisRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            return google.chat('gemini-3-pro-preview')
-        } else if (userTier === 'pro') {
-            return 'google/gemini-3-flash-preview'
-        }
-        return google.chat('gemini-3-flash-preview')
-    },
-    tools: {
-        //        polygonTool,
-        //        finnhubTool,
-        alphaVantageTool,
-        //        financialChartTool,
-        technicalAnalysisTool,
-    },
-    options: {
-        tracingPolicy: {
-            internal: InternalSpans.ALL,
-        },
-    },
-    memory: pgMemory,
-    maxRetries: 3,
-    defaultOptions: {
-        autoResumeSuspendedTools: true,
-    },
+  },
+  memory: pgMemory,
+  maxRetries: 3,
+  //  defaultOptions: {
+  //     autoResumeSuspendedTools: true,
+  // },
 })
