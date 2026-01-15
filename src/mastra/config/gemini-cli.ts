@@ -1,6 +1,6 @@
 import { createGeminiProvider } from 'ai-sdk-provider-gemini-cli'
-import { logError } from './logger'
-import os from 'os'
+import { log } from './logger'
+
 
 const useApiKey =
     process.env.GOOGLE_GENERATIVE_AI_API_KEY !== undefined ||
@@ -20,23 +20,28 @@ export const geminiCliModels = {
         contextWindow: 1048576, // 1MB
         maxTokens: 65536,
         supportsStreaming: true,
-        thinkingBudget: -1,
-        showThoughts: true,
-        codeexecution: true,
-        structuredOutput: true,
-        functionCalling: true,
-        urlContext: true,
+        verbose: true, // Enable debug logging
+        logger: log, // Custom logger (or false to disable)
+        thinkingConfig: {
+            thinkingBudget: -1,
+            showThoughts: true,
+        },
     }),
     gemini3Pro: gemini('gemini-3-pro-preview', {
         contextWindow: 1048576, // 1MB
         maxTokens: 65536,
         supportsStreaming: true,
-        thinkingBudget: -1,
-        showThoughts: true,
+        thinkingConfig: {
+            thinkingLevel: 'medium', // 'low' | 'medium' | 'high' | 'minimal'
+            thinkingBudget: -1,
+            showThoughts: true,
+        },
         codeexecution: true,
         structuredOutput: true,
         functionCalling: true,
         urlContext: true,
+        verbose: true, // Enable debug logging
+        logger: log, // Custom logger (or false to disable)
     }),
 
     // Flash models for speed
@@ -44,9 +49,13 @@ export const geminiCliModels = {
         contextWindow: 1048576, // 1MB
         maxTokens: 65536,
         supportsStreaming: true,
-        thinkingBudget: -1,
+        thinkingConfig: {
+            thinkingBudget: -1,
+            showThoughts: true,
+        },
+        verbose: true, // Enable debug logging
+        logger: log, // Custom logger (or false to disable)
         codeexecution: true,
-        showThoughts: true,
         structuredOutput: true,
         grounding: true,
         functionCalling: true,
@@ -56,13 +65,12 @@ export const geminiCliModels = {
         contextWindow: 1048576, // 1MB
         maxTokens: 64000,
         supportsStreaming: true,
-        thinkingBudget: -1,
-        showThoughts: true,
-        //codeexecution: true,
-        structuredOutput: true,
-        grounding: true,
-        functionCalling: true,
-        urlContext: true,
+        thinkingConfig: {
+            thinkingBudget: -1,
+            showThoughts: false,
+        },
+        verbose: true, // Enable debug logging
+        logger: log, // Custom logger (or false to disable)
     }),
 
     // Image generation models

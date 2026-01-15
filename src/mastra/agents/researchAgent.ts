@@ -28,12 +28,13 @@ import { htmlToMarkdownTool, webScraperTool } from '../tools/web-scraper-tool'
 import { InternalSpans } from '@mastra/core/observability'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
+type ResearchPhase = 'initial' | 'followup' | 'validation'
 export interface ResearchRuntimeContext {
   'user-tier': UserTier
   language: 'en' | 'es' | 'ja' | 'fr'
   // Optional runtime fields the server middleware may populate
   userId?: string
-  researchPhase?: 'initial' | 'followup' | 'validation' | string
+  researchPhase?: ResearchPhase
 }
 log.info('Initializing Research Agent...')
 

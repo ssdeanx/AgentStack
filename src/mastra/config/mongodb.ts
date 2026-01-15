@@ -17,7 +17,7 @@ import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 const MONGODB_CONFIG = {
     uri: process.env.MONGODB_URI ?? 'mongodb://localhost:27017',
     dbName: process.env.MONGODB_DATABASE ?? 'AgentStack',
-    collectionName: process.env.MONGODB_COLLECTION ?? 'governed_rag',
+    collectionName: process.env.MONGODB_COLLECTION ?? 'mastra_vectors',
     // Google Gemini gemini-embedding-001 supports flexible dimensions: 128-3072
     // Recommended: 768, 1536, 3072
     embeddingDimension: parseInt(

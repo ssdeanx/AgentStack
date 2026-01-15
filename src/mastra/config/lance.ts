@@ -13,11 +13,11 @@ import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 // Configuration constants
 const LANCE_CONFIG = {
     dbPath: process.env.LANCE_DB_PATH ?? '/tmp/lance_db',
-    tableName: process.env.LANCE_TABLE_NAME ?? 'governed_rag',
+    tableName: process.env.LANCE_TABLE_NAME ?? 'mastra_vectors',
     // Google Gemini gemini-embedding-001 supports flexible dimensions: 128-3072
     // Recommended: 768, 1536, 3072
     embeddingDimension: parseInt(
-        process.env.LANCE_EMBEDDING_DIMENSION ?? '1536'
+        process.env.LANCE_EMBEDDING_DIMENSION ?? '3072'
     ),
     embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
 } as const
@@ -73,36 +73,15 @@ export const lanceMemory = new Memory({
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
             version: 'vnext', // Enable the improved/experimental tool
-            template: `# User Profile & Context
-      ## Personal Information
-      - **Name**: [To be learned]
-      - **Role/Title**: [To be learned]
-      - **Organization**: [To be learned]
-      - **Location**: [To be learned]
-      - **Time Zone**: [To be learned]
-
-      ## Communication Preferences
-      - **Preferred Communication Style**: [To be learned]
-      - **Response Length Preference**: [To be learned]
-      - **Technical Level**: [To be learned]
-
-      ## Current Context
-      - **Active Projects**: [To be learned]
-      - **Current Goals**: [To be learned]
-      - **Recent Activities**: [To be learned]
-      - **Pain Points**: [To be learned]
-
-      ## Long-term Memory
-      - **Key Achievements**: [To be learned]
-      - **Important Relationships**: [To be learned]
-      - **Recurring Patterns**: [To be learned]
-      - **Preferences & Habits**: [To be learned]
-
-      ## Session Notes
-      - **Today's Focus**: [To be learned]
-      - **Outstanding Questions**: [To be learned]
-      - **Action Items**: [To be learned]
-      - **Follow-ups Needed**: [To be learned]
+            template: `# Assistant Working Memory
+## Session Notes
+ - **Today's Focus**:
+ - **Outstanding Questions**:
+ - **Action Items**:
+ - **Follow-ups Needed**:
+## NotePad
+[Dynamic notes taken during the conversation will be summarized here. This is your personal scratchpad to jot down important points, ideas, or reminders.]
+ -
       `,
         },
     },

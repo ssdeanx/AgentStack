@@ -18,7 +18,7 @@ import { pgVector } from './config/pg-storage'
 // MCP
 import { a2aCoordinatorMcpServer, codingA2AMcpServer } from './mcp'
 import { notesMCP } from './mcp/server'
-
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 // A2A Coordinator
 import { a2aCoordinatorAgent } from './a2a/a2aCoordinatorAgent'
 
@@ -152,6 +152,7 @@ import {
     researchCompletenessScorer,
     sourceDiversityScorer,
 } from './evals/scorers/custom-scorers'
+import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai'
 export const mastra = new Mastra({
     workflows: {
         weatherWorkflow,
@@ -432,8 +433,12 @@ export const mastra = new Mastra({
                     },
                     maxSteps: 50,
                     includeRawChunks: true,
+                    providerOptions: {
+                        google: {} as GoogleGenerativeAIProviderOptions,
+                        openai: {} as OpenAIResponsesProviderOptions,
                     // Use an instance of RequestContext (not the class) so the route has a proper context per request
                  //   requestContext: new RequestContext()
+                    }
                 },
                 sendStart: true,
                 sendFinish: true,
