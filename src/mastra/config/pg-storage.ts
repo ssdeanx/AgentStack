@@ -24,23 +24,6 @@ import { SpanType } from '@mastra/core/observability'
 //    return maskedStream;
 //}
 
-// Utility function to mask sensitive data in message content for logging
-export function maskSensitiveMessageData(
-    content: string,
-    sensitiveFields: string[] = ['password', 'secret', 'token', 'key', 'apiKey']
-): string {
-    let maskedContent = content
-
-    // Mask sensitive fields in JSON-like structures
-    for (const field of sensitiveFields) {
-        // Match field:"value" or field: "value" or "field": "value" patterns
-        const regex = new RegExp(`("${field}"\\s*:\\s*)"[^"]*"`, 'gi')
-        maskedContent = maskedContent.replace(regex, `$1"[MASKED]"`)
-    }
-
-    return maskedContent
-}
-
 // PostgreSQL storage configuration with PgVector support
 log.info('Loading PG Storage config with PgVector support')
 // Production-grade PostgreSQL configuration with supported options
@@ -216,7 +199,6 @@ export async function generateEmbeddings(
         metadata?: Record<string, unknown>
         id?: string
     }>,
-    tracingContext?: { currentSpan?: { createChildSpan?: (opts: any) => any } }
 ) {
     if (!chunks.length) {
         log.warn('No chunks provided for embedding generation')
@@ -227,24 +209,6 @@ export async function generateEmbeddings(
 
     // Create a tool-level child span using the provided tracingContext (no direct OTEL usage)
     // tracingContext is expected to be passed by callers that want trace correlation.
-    const embeddingSpan = (tracingContext as any)?.currentSpan?.createChildSpan(
-        {
-            type: SpanType.TOOL_CALL,
-            name: 'generate-embeddings',
-            input: {
-                chunkCount: chunks.length,
-                totalTextLength: chunks.reduce(
-                    (sum, chunk) => sum + (chunk.text?.length ?? 0),
-                    0
-                ),
-            },
-            metadata: {
-                'tool.id': 'generate-embeddings',
-                component: 'pg-storage',
-                model: 'gemini-embedding-001',
-            },
-        }
-    )
 
     log.info('Starting embedding generation', {
         chunkCount: chunks.length,
@@ -327,46 +291,27 @@ export function formatStorageMessages(
     }
 
     // Determine message content based on status
-    const getMessageContent = (
-        msgStatus: string,
-        messageDetails: Record<string, unknown>
-    ): string => {
-        // Mask sensitive data in error details and messages
-        const maskedDetails = { ...messageDetails }
-        if (maskedDetails.error !== undefined && maskedDetails.error !== null) {
-            maskedDetails.error = maskSensitiveMessageData(
-                String(maskedDetails.error)
-            )
-        }
-        if (
-            maskedDetails.message !== undefined &&
-            maskedDetails.message !== null
-        ) {
-            maskedDetails.message = maskSensitiveMessageData(
-                String(maskedDetails.message)
-            )
-        }
 
-        switch (msgStatus) {
-            case 'success':
-                return `✅ Storage operation '${operation}' completed successfully`
-            case 'error':
-                return `❌ Storage operation '${operation}' failed: ${String(maskedDetails.error ?? 'Unknown error')}`
-            case 'info':
-                return `ℹ️ Storage operation '${operation}': ${String(maskedDetails.message ?? 'Processing...')}`
-            default:
-                return `Storage operation '${operation}' status: ${msgStatus}`
-        }
+    if (status === 'success') {
+        messageData.parts.push({
+            type: 'text',
+            text: `Storage operation "${operation}" completed successfully at ${timestamp}.`,
+        })
+    } else if (status === 'error') {
+        messageData.parts.push({
+            type: 'text',
+            text: `Storage operation "${operation}" failed at ${timestamp}. Details: ${JSON.stringify(
+                details
+            )}`,
+        })
+    } else {
+        messageData.parts.push({
+            type: 'text',
+            text: `Storage operation "${operation}" status at ${timestamp}: ${JSON.stringify(
+                details
+            )}`,
+        })
     }
-
-    const messageContent = getMessageContent(status, details)
-
-    // Add content to parts array (UIMessage structure)
-    messageData.parts.push({
-        type: 'text',
-        text: messageContent,
-    })
-
     // Return as UIMessage array (would need proper conversion in real implementation)
     return [messageData as UIMessage]
 }

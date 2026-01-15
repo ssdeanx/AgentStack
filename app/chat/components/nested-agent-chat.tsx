@@ -1,6 +1,6 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { AgentDataPart } from '@mastra/ai-sdk'
 
 export function NestedAgentChat() {
@@ -11,15 +11,25 @@ export function NestedAgentChat() {
         }),
     })
 
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        // Use a self-invoking async function to avoid returning a Promise from the event handler
+        void (async () => {
+            try {
+                await sendMessage({ text: input })
+            } catch (err) {
+                // Log the error and allow the UI to continue
+                // eslint-disable-next-line no-console
+                console.error('Failed to send message', err)
+            } finally {
+                setInput('')
+            }
+        })()
+    }
+
     return (
         <div>
-            <form
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    sendMessage({ text: input })
-                    setInput('')
-                }}
-            >
+            <form onSubmit={handleSubmit}>
                 <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}

@@ -753,11 +753,13 @@ export function WorkflowProvider({
             // Send message to trigger workflow via AI SDK
             const inputText =
                 inputData?.input?.toString() ?? `Run ${workflowConfig.name}`
-            sendMessage({
+            void sendMessage({
                 text: inputText,
                 // AI SDK v5 supports message metadata; we use it to pass runId through prepareSendMessagesRequest.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 metadata: { runId: run.id } as any,
+            }).catch((err) => {
+                console.error('Failed to send workflow message', err)
             })
         },
         [workflowConfig, selectedWorkflow, sendMessage]
@@ -765,7 +767,7 @@ export function WorkflowProvider({
 
     const pauseWorkflow = useCallback(() => {
         if (workflowStatus === 'running') {
-            stop()
+            void stop()
             setWorkflowStatus('paused')
             setCurrentRun((prev) =>
                 prev ? { ...prev, status: 'paused' } : null
@@ -785,7 +787,7 @@ export function WorkflowProvider({
                 const hasRunId =
                     typeof runId === 'string' && runId.trim().length > 0
 
-                sendMessage({
+                void sendMessage({
                     text: resumeData
                         ? `resume ${JSON.stringify(resumeData)}`
                         : 'resume',
@@ -811,7 +813,7 @@ export function WorkflowProvider({
     )
 
     const stopWorkflow = useCallback(() => {
-        stop()
+        void stop()
         setWorkflowStatus('idle')
         setCurrentRun(null)
         setActiveStepIndex(-1)

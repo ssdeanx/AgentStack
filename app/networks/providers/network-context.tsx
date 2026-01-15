@@ -503,7 +503,40 @@ export function NetworkProvider({
             raw: unknown,
             hasOutput = false
         ): RoutingStep['status'] => {
-            const rs = (raw ?? '').toString().toLowerCase()
+            const normalizedRaw = (() => {
+            if (raw === null || raw === undefined) {
+                return ''
+            }
+            if (typeof raw === 'string') {
+                return raw
+            }
+            if (typeof raw === 'object') {
+                try {
+                    return JSON.stringify(raw)
+                } catch {
+                    return '[object]'
+                }
+            }
+            if (typeof raw === 'number' || typeof raw === 'boolean' || typeof raw === 'bigint') {
+                return String(raw)
+            }
+            if (typeof raw === 'symbol') {
+                return raw.toString()
+            }
+            // Narrow to a callable function type so we can safely access .name and .toString()
+            const isFunction = (v: unknown): v is (...args: unknown[]) => unknown =>
+                typeof v === 'function'
+
+            if (isFunction(raw)) {
+                try {
+                    return (raw as { name?: string }).name ?? raw.toString()
+                } catch {
+                    return '[function]'
+                }
+            }
+            return ''
+        })()
+        const rs = normalizedRaw.toLowerCase()
             if (
                 rs.includes('stream') ||
                 rs.includes('running') ||
@@ -665,13 +698,18 @@ export function NetworkProvider({
             }
             setNetworkError(null)
             setRoutingSteps([])
-            aiSendMessage({ text: text.trim() })
+            void aiSendMessage({ text: text.trim() }).catch((e: unknown) => {
+                setNetworkError(e instanceof Error ? e.message : String(e))
+            })
         },
         [aiSendMessage]
     )
 
     const stopExecution = useCallback(() => {
-        stop()
+        // Ensure we don't leave a floating promise. Handle any rejection explicitly.
+        void stop().catch(() => {
+            /* ignore errors from stop */
+        })
     }, [stop])
 
     const clearHistory = useCallback(() => {

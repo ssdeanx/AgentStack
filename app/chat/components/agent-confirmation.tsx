@@ -28,9 +28,7 @@ interface AgentConfirmationProps {
     state: ToolUIPart['state']
     severity?: ConfirmationSeverity
     className?: string
-
     onApprove: (approvalId: string) => void
-
     onReject: (approvalId: string) => void
 }
 
