@@ -202,8 +202,9 @@ export const codeChunkerTool = createTool({
                         return { chunks }
                     }
                 } catch (e) {
+                    const errMsg: string = e instanceof Error ? e.message : String(e)
                     log.warn(
-                        `Python parsing failed for ${filePath}, falling back to text chunking: ${e}`
+                        `Python parsing failed for ${filePath}, falling back to text chunking: ${errMsg}`
                     )
                 }
             }

@@ -85,7 +85,7 @@ export const textAnalysisTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext: context?.tracingContext,
         })
 
         // Create child span for text analysis
@@ -324,7 +324,7 @@ export const textProcessingTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext: context?.tracingContext,
         })
 
         // Create child span for text processing
@@ -389,7 +389,7 @@ export const textProcessingTool = createTool({
                         extracted[operation] = [processedText.length.toString()]
                         break
                     default:
-                        throw new Error(`Unknown operation: ${operation}`)
+                        throw new Error(`Unknown operation: `)
                 }
             }
 

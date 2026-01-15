@@ -1,4 +1,5 @@
 import type { MDXComponents } from 'mdx/types'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 
 // Custom components that work with MDX plugins
@@ -47,7 +48,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         // Links with hover effects
         a: ({ href, children }) => (
             <Link
-                href={href ?? '#'}
+                href={typeof href === 'string' ? href : '#'}
                 className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
             >
                 {children}
@@ -75,8 +76,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         ),
 
         // Code blocks and inline code - these work with rehype-highlight
-        code: ({ children, className }) => {
-            const isInline = !className?.includes('language-')
+        code: ({ children, className }: { children?: ReactNode; className?: string }) => {
+            const isInline = typeof className !== 'string' || !className.includes('language-')
             return isInline ? (
                 <code className="relative rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground">
                     {children}
@@ -116,9 +117,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         ),
 
         // Images with responsive design
-        img: ({ src, alt, title }) => (
+        img: ({ src, alt, title }: { src?: string; alt?: string; title?: string }) => (
             <img
-                src={src}
+                src={src ?? undefined}
                 alt={alt ?? ''}
                 title={title}
                 className="my-4 rounded-lg border border-border"

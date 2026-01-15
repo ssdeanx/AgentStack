@@ -21,6 +21,7 @@ import type { RequestContext } from '@mastra/core/request-context'
  // createToneScorer,
 //} from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import { convexMemory } from '../config/convex'
 
 // Define runtime context for this agent
 export interface CopywriterAgentContext {

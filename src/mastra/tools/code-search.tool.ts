@@ -156,7 +156,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
                 'tool.input.pattern': input.pattern,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext: context?.tracingContext,
         })
 
         // Create child span for search operation

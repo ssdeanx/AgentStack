@@ -18,7 +18,7 @@ import type { TracingContext } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import * as cheerio from 'cheerio'
-import { CheerioCrawler, Request } from 'crawlee'
+import { CheerioCrawler, enqueueLinks, Request } from 'crawlee'
 import type { CheerioCrawlingContext, RequestOptions } from 'crawlee'
 import { JSDOM } from 'jsdom'
 
@@ -26,19 +26,29 @@ import { JSDOM } from 'jsdom'
 function createJSDOM(
     html: string,
     options?: { contentType?: string; includeNodeLocations?: boolean }
-) {
+): JSDOM {
     try {
-        const Ctor = JSDOM as unknown as new (html: string, opts?: any) => any
+        // Prefer constructor shape that returns a JSDOM instance
+        const Ctor = JSDOM as unknown as new (
+            html: string,
+            opts?: { contentType?: string; includeNodeLocations?: boolean }
+        ) => JSDOM
         return new Ctor(html, options)
     } catch (e) {
-        // Fallback to calling as factory
-        const Factory = JSDOM as unknown as (html: string, opts?: any) => any
-        return Factory(html, options)
+        // Fallback to factory shape that returns a JSDOM instance
+        // Be explicit about the return type to avoid unsafe `any` returns reported by the linter.
+        const Factory = JSDOM as unknown as (
+            html: string,
+            opts?: { contentType?: string; includeNodeLocations?: boolean }
+        ) => unknown
+        const instance = Factory(html, options) as JSDOM
+        return instance
     }
 }
 import { marked } from 'marked'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import { inspect } from 'node:util'
 import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -848,7 +858,7 @@ export const webScraperTool = createTool({
                 requestHandlerTimeoutSecs:
                     (inputData.request?.timeout ?? 30000) / 1000,
                 async requestHandler(ctx: CheerioCrawlingContext) {
-                    const { request, body, response, enqueueLinks } = ctx
+                    const { request, body, response } = ctx
                     try {
                         scrapedUrl = request.url
 
@@ -885,9 +895,12 @@ export const webScraperTool = createTool({
                         rawContent = HtmlProcessor.sanitizeHtml(rawContent)
 
                         if (followLinks) {
+                            const safeRequest = request as Request & {
+                                userData?: Record<string, unknown>
+                            }
                             const currentDepth =
-                                typeof request.userData?.depth === 'number'
-                                    ? request.userData.depth
+                                typeof safeRequest.userData?.depth === 'number'
+                                    ? safeRequest.userData.depth
                                     : 0
 
                             if (currentDepth < maxDepth) {
@@ -906,39 +919,100 @@ export const webScraperTool = createTool({
                                 })
                                 try {
                                     if (typeof enqueueLinks === 'function') {
-                                        await enqueueLinks({
-                                            selector: 'a[href]',
-                                            baseUrl: request.url,
-                                            strategy: 'same-hostname',
-                                            limit: Math.max(
-                                                1,
-                                                Math.min(maxPages, 100)
-                                            ),
+                                        // Define the expected type for enqueueLinks to avoid 'any'
+                                        interface EnqueueLinksOptions {
+                                            requestQueue: typeof ctx.requestQueue
+                                            urls: string[]
+                                            transformRequestFunction: (
+                                                original: unknown
+                                            ) => RequestOptions | null
+                                        }
+                                        type EnqueueLinksFn = (
+                                            options: EnqueueLinksOptions
+                                        ) => Promise<void>
+
+                                        // Collect links manually using cheerio
+                                        const $ = cheerio.load(rawContent)
+                                        const links = $('a[href]')
+                                            .toArray()
+                                            .map((el) => $(el).attr('href'))
+                                            .filter((href) => href) as string[]
+                                        const absoluteLinks = links
+                                            .map((href) => {
+                                                try {
+                                                    return new URL(
+                                                        href,
+                                                        request.url
+                                                    ).href
+                                                } catch {
+                                                    return null
+                                                }
+                                            })
+                                            .filter(
+                                                (href) =>
+                                                    href &&
+                                                    ValidationUtils.isUrlAllowed(
+                                                        href,
+                                                        allowedDomains
+                                                    )
+                                            ) as string[]
+                                        const limitedLinks =
+                                            absoluteLinks.slice(
+                                                0,
+                                                Math.max(
+                                                    1,
+                                                    Math.min(maxPages, 100)
+                                                )
+                                            )
+
+                                        const enqueueFn =
+                                            enqueueLinks as unknown as EnqueueLinksFn
+                                        await enqueueFn({
+                                            requestQueue: ctx.requestQueue,
+                                            urls: limitedLinks,
                                             transformRequestFunction: (
                                                 original: unknown
                                             ): RequestOptions | null => {
-                                                // Accept the original request shape from Crawlee and return a RequestOptions object.
-                                                // Returning a Request instance can conflict with some Crawlee versions due to private members.
                                                 const nextDepth =
                                                     currentDepth + 1
 
-                                                // Define a safe shape for the original request to avoid the use of `any`
-                                                interface TransformRequest {
-                                                    [k: string]: unknown
-                                                    url?: string
-                                                    userData?: Record<
-                                                        string,
-                                                        unknown
-                                                    >
-                                                    headers?: Record<
-                                                        string,
-                                                        string
-                                                    >
+                                                let nextUrl: string
+                                                let origHeaders: Record<
+                                                    string,
+                                                    string
+                                                > = {}
+                                                let origUserData: Record<
+                                                    string,
+                                                    unknown
+                                                > = {}
+
+                                                if (
+                                                    typeof original === 'string'
+                                                ) {
+                                                    nextUrl = original
+                                                } else {
+                                                    // Define a safe shape for the original request to avoid the use of `any`
+                                                    interface TransformRequest {
+                                                        [k: string]: unknown
+                                                        url?: string
+                                                        userData?: Record<
+                                                            string,
+                                                            unknown
+                                                        >
+                                                        headers?: Record<
+                                                            string,
+                                                            string
+                                                        >
+                                                    }
+                                                    const orig =
+                                                        original as TransformRequest
+                                                    nextUrl = orig?.url ?? ''
+                                                    origHeaders =
+                                                        orig.headers ?? {}
+                                                    origUserData =
+                                                        orig.userData ?? {}
                                                 }
 
-                                                const orig =
-                                                    original as TransformRequest
-                                                const nextUrl = orig?.url
                                                 if (
                                                     typeof nextUrl !==
                                                         'string' ||
@@ -955,13 +1029,11 @@ export const webScraperTool = createTool({
                                                     {
                                                         url: nextUrl,
                                                         headers: {
-                                                            ...(orig.headers ??
-                                                                {}),
+                                                            ...origHeaders,
                                                             ...headers,
                                                         },
                                                         userData: {
-                                                            ...(orig.userData ??
-                                                                {}),
+                                                            ...origUserData,
                                                             depth: nextDepth,
                                                         },
                                                     }
@@ -1117,7 +1189,7 @@ export const webScraperTool = createTool({
                                 )
                                 jsonLdScripts.forEach((script) => {
                                     try {
-                                        const data = JSON.parse(
+                                        const data: unknown = JSON.parse(
                                             script.textContent || ''
                                         )
                                         structuredData.push(data)
@@ -1791,7 +1863,7 @@ export const batchWebScraperTool = createTool({
                         const crawler = createCheerioCrawler({
                             maxRequestsPerCrawl: 1,
                             requestHandlerTimeoutSecs: 20,
-                            async requestHandler({
+                            requestHandler({
                                 body,
                             }: {
                                 body?: Buffer | string
@@ -1850,13 +1922,18 @@ export const batchWebScraperTool = createTool({
                             },
                             failedRequestHandler(ctx: CheerioCrawlingContext) {
                                 const { request, error } = ctx
+                                let errorMessage: string
+                                if (error instanceof Error) {
+                                    errorMessage = error.message
+                                } else if (typeof error === 'string') {
+                                    errorMessage = error
+                                } else {
+                                    errorMessage = 'Unknown error'
+                                }
                                 results.push({
                                     url: request?.url ?? url,
                                     success: false,
-                                    errorMessage:
-                                        error instanceof Error
-                                            ? error.message
-                                            : String(error ?? 'Unknown error'),
+                                    errorMessage,
                                 })
                             },
                         })
@@ -2480,7 +2557,7 @@ export const linkExtractorTool = createTool({
                 maxRequestsPerCrawl: 10,
                 maxConcurrency: 10,
                 requestHandlerTimeoutSecs: 20,
-                async requestHandler({
+                requestHandler({
                     request,
                     body,
                 }: {
@@ -3819,7 +3896,20 @@ export const dataExporterTool = createTool({
                     for (const item of inputData.data) {
                         xmlContent += '  <item>\n'
                         for (const [key, value] of Object.entries(item)) {
-                            xmlContent += `    <${key}>${String(value ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c)}</${key}>\n`
+                            let valueStr: string
+                            if (value === null || value === undefined) {
+                                valueStr = ''
+                            } else if (typeof value === 'string') {
+                                valueStr = value
+                            } else if (
+                                typeof value === 'number' ||
+                                typeof value === 'boolean'
+                            ) {
+                                valueStr = String(value)
+                            } else {
+                                valueStr = JSON.stringify(value)
+                            }
+                            xmlContent += `    <${key}>${valueStr.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] ?? c)}</${key}>\n`
                         }
                         xmlContent += '  </item>\n'
                     }
@@ -3838,11 +3928,26 @@ export const dataExporterTool = createTool({
                     message = `Database export to ${inputData.destination} not implemented (placeholder)`
                     break
 
-                default:
+                default: {
+                    const rawFormat = (inputData as { format?: unknown }).format
+                    let formatValue: string
+                    if (typeof rawFormat === 'string') {
+                        formatValue = rawFormat
+                    } else if (rawFormat === undefined) {
+                        formatValue = 'unknown'
+                    } else {
+                        try {
+                            formatValue = JSON.stringify(rawFormat)
+                        } catch {
+                            // Fallback to a safe string if JSON.stringify fails (e.g., circular structures)
+                            formatValue = 'invalid format value'
+                        }
+                    }
                     throw new ScrapingError(
-                        `Unsupported format: ${inputData.format}`,
+                        'Unsupported format: ' + formatValue,
                         'UNSUPPORTED_FORMAT'
                     )
+                }
             }
 
             exportSpan?.update({

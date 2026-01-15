@@ -125,8 +125,7 @@ export const weatherTool = createTool({
                 'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
-            // eslint-disable-next-line object-shorthand
-            tracingContext: tracingContext,
+            tracingContext: context?.tracingContext,
         })
 
         // Create child span for weather lookup operation

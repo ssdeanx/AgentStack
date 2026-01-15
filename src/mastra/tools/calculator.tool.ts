@@ -4,6 +4,7 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
+import { evaluate } from 'mathjs'
 import { log } from '../config/logger'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
@@ -139,28 +140,11 @@ function evaluateExpression(
     expression: string,
     variables: Record<string, number> = {}
 ): number {
-    // Remove whitespace
-    const cleanExpr = expression.replace(/\s+/g, '')
-
-    // Basic security checks
-    if (/[^0-9+\-*/().\s,a-zA-Z_]/.test(cleanExpr)) {
-        throw new Error('Invalid characters in expression')
-    }
-
-    if (
-        cleanExpr.includes('__proto__') ||
-        cleanExpr.includes('prototype') ||
-        cleanExpr.includes('constructor')
-    ) {
-        throw new Error('Potentially unsafe expression')
-    }
-
     // Create function with safe context and variables
     const context = { ...createSafeContext(), ...variables }
-    const func = new Function(...Object.keys(context), `return ${cleanExpr}`)
 
     try {
-        const result = func(...Object.values(context))
+        const result = evaluate(expression, context)
         if (typeof result !== 'number' || !isFinite(result)) {
             throw new Error('Expression did not evaluate to a valid number')
         }
@@ -219,7 +203,7 @@ function convertTemperature(
             celsius = value - 273.15
             break
         default:
-            throw new Error(`Unsupported temperature unit: ${from}`)
+            throw new Error(`Unsupported temperature unit: ${String(from)}`)
     }
 
     // Convert from Celsius to target
@@ -231,7 +215,7 @@ function convertTemperature(
         case 'kelvin':
             return celsius + 273.15
         default:
-            throw new Error(`Unsupported temperature unit: ${to}`)
+            throw new Error(`Unsupported temperature unit: ${String(to)}`)
     }
 }
 
@@ -255,9 +239,9 @@ const MATRIX_OPERATIONS = {
         if (a[0].length !== b.length) {
             throw new Error('Matrix dimensions incompatible for multiplication')
         }
-        const result = Array(a.length)
-            .fill(0)
-            .map(() => Array(b[0].length).fill(0))
+        const result: number[][] = Array.from({ length: a.length }, () =>
+            Array.from({ length: b[0].length }, () => 0)
+        )
         for (let i = 0; i < a.length; i++) {
             for (let j = 0; j < b[0].length; j++) {
                 for (let k = 0; k < b.length; k++) {
