@@ -20,7 +20,7 @@ import {
 import { Streamdown } from 'streamdown'
 import { Shimmer } from './shimmer'
 
-type ReasoningContextValue = {
+interface ReasoningContextValue {
     isStreaming: boolean
     isOpen: boolean
     setIsOpen: (open: boolean) => void

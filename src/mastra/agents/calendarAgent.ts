@@ -1,4 +1,4 @@
-import { type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'

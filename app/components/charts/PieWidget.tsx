@@ -2,7 +2,7 @@
 
 import { Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
-export type PieSlice = { name: string; value: number; fill?: string }
+export interface PieSlice { name: string; value: number; fill?: string }
 
 interface PieWidgetProps {
     data: PieSlice[]

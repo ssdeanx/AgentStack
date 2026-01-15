@@ -1,6 +1,5 @@
 import { MongoDBVector, MongoDBStore } from '@mastra/mongodb'
 import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag'
-import { google } from '@ai-sdk/google'
 import { embedMany } from 'ai'
 import type { UIMessage } from 'ai'
 import { log } from './logger'

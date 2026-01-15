@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+
 /* eslint-disable no-console */
 'use client'
 
@@ -51,6 +51,8 @@ import {
     MessageSquareIcon,
     BookmarkPlusIcon,
     ChevronDownIcon,
+    ActivityIcon,
+    NetworkIcon,
 } from 'lucide-react'
 import { useState, useCallback, useMemo, Fragment } from 'react'
 import type { UIMessage, FileUIPart } from 'ai'
@@ -81,6 +83,381 @@ type MastraDataPart =
     | WorkflowDataPart
     | NetworkDataPart
     | { type: `data-${string}`; id?: string; data: unknown }
+
+/**
+ * Type guard to check for type property
+ */
+function hasStringType(part: unknown): part is { type: string } {
+    return (
+        typeof part === 'object' &&
+        part !== null &&
+        'type' in part &&
+        typeof (part as { type: unknown }).type === 'string'
+    )
+}
+
+/**
+ * Type guard to check if a part is an AgentDataPart
+ */
+function isAgentDataPart(part: unknown): part is AgentDataPart {
+    return hasStringType(part) && part.type === 'data-tool-agent'
+}
+
+/**
+ * Type guard to check if a part is a WorkflowDataPart
+ */
+function isWorkflowDataPart(part: unknown): part is WorkflowDataPart {
+    return (
+        hasStringType(part) &&
+        (part.type === 'data-workflow' || part.type === 'data-tool-workflow')
+    )
+}
+
+/**
+ * Type guard to check if a part is a NetworkDataPart
+ */
+function isNetworkDataPart(part: unknown): part is NetworkDataPart {
+    return (
+        hasStringType(part) &&
+        (part.type === 'data-network' || part.type === 'data-tool-network')
+    )
+}
+
+/**
+ * Renders a nested agent execution result
+ */
+function AgentDataSection({ part }: { part: AgentDataPart }) {
+    const agentData = part.data
+    const hasText = Boolean(
+        typeof agentData.text === 'string' && agentData.text.trim().length > 0
+    )
+
+    return (
+        <Collapsible defaultOpen={false} className="border rounded-lg">
+            <CollapsibleTrigger className="group flex h-10 w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
+                <span className="flex items-center gap-2">
+                    <ActivityIcon className="size-4" />
+                    Agent Execution
+                </span>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                        Nested Agent
+                    </Badge>
+                    <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="closed:animate-out open:animate-in closed:fade-out-0 open:fade-in-0 px-4 pb-4 pt-2">
+                <div className="space-y-3">
+                    {hasText && (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <p className="text-sm text-foreground whitespace-pre-wrap">
+                                {agentData.text}
+                            </p>
+                        </div>
+                    )}
+                    <div className="bg-muted/50 rounded-md p-3">
+                        <div className="text-xs font-semibold text-muted-foreground mb-2">
+                            Agent Metadata
+                        </div>
+                        <CodeBlock
+                            code={JSON.stringify(
+                                {
+                                    id: part.id,
+                                    usage: agentData.usage,
+                                    ...(Array.isArray(agentData.toolResults) &&
+                                        agentData.toolResults.length > 0 && {
+                                            toolsUsed: agentData.toolResults.map((tr: unknown) =>
+                                                typeof tr === 'object' && tr !== null && typeof (tr as Record<string, unknown>).toolName === 'string'
+                                                    ? (tr as Record<string, unknown>).toolName
+                                                    : 'unknown'
+                                            ),
+                                        }),
+                                },
+                                null,
+                                2
+                            )}
+                            language="json"
+                        >
+                            <CodeBlockCopyButton />
+                        </CodeBlock>
+                    </div>
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+    )
+}
+
+/**
+ * Renders a nested workflow execution result
+ */
+function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
+    const workflowData = part.data
+    const stepEntries = Object.entries(workflowData.steps ?? {})
+
+    return (
+        <Collapsible defaultOpen={false} className="border rounded-lg">
+            <CollapsibleTrigger className="group flex h-10 w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
+                <span className="flex items-center gap-2">
+                    <NetworkIcon className="size-4" />
+                    {workflowData.name}
+                </span>
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={
+                            workflowData.status === 'success' || (workflowData.status as string) === 'completed'
+                                ? 'default'
+                                : workflowData.status === 'failed'
+                                  ? 'destructive'
+                                  : 'secondary'
+                        }
+                        className="text-xs"
+                    >
+                        {workflowData.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                        {stepEntries.length} steps
+                    </Badge>
+                    <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="closed:animate-out open:animate-in closed:fade-out-0 open:fade-in-0 px-4 pb-4 pt-2">
+                <div className="space-y-3">
+                    {/* Workflow Steps */}
+                    {stepEntries.length > 0 && (
+                        <div className="space-y-2">
+                            <div className="text-xs font-semibold text-muted-foreground">
+                                Workflow Steps
+                            </div>
+                            {stepEntries.map(([stepName, stepData]) => (
+                                <div
+                                    key={stepName}
+                                    className="bg-muted/30 rounded-md p-3 border"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-medium">
+                                            {stepName}
+                                        </span>
+                                        <Badge
+                                            variant={
+                                                stepData.status === 'success' || (stepData.status as string) === 'completed'
+                                                    ? 'default'
+                                                    : stepData.status ===
+                                                        'failed'
+                                                      ? 'destructive'
+                                                      : 'secondary'
+                                            }
+                                            className="text-xs"
+                                        >
+                                            {stepData.status}
+                                        </Badge>
+                                    </div>
+                                    <CodeBlock
+                                        code={JSON.stringify(
+                                            {
+                                                input: stepData.input,
+                                                output: stepData.output,
+                                                ...(stepData.suspendPayload && {
+                                                    suspended: true,
+                                                }),
+                                            },
+                                            null,
+                                            2
+                                        )}
+                                        language="json"
+                                    >
+                                        <CodeBlockCopyButton />
+                                    </CodeBlock>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Usage Statistics */}
+                    {workflowData.output?.usage && (
+                        <div className="bg-muted/50 rounded-md p-3">
+                            <div className="text-xs font-semibold text-muted-foreground mb-2">
+                                Token Usage
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                    <div className="text-muted-foreground">
+                                        Input
+                                    </div>
+                                    <div className="font-mono">
+                                        {workflowData.output.usage.inputTokens.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">
+                                        Output
+                                    </div>
+                                    <div className="font-mono">
+                                        {workflowData.output.usage.outputTokens.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">
+                                        Total
+                                    </div>
+                                    <div className="font-mono">
+                                        {workflowData.output.usage.totalTokens.toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+    )
+}
+
+/**
+ * Renders a nested network execution result
+ */
+function NetworkDataSection({ part }: { part: NetworkDataPart }) {
+    const networkData = part.data
+
+    return (
+        <Collapsible defaultOpen={false} className="border rounded-lg">
+            <CollapsibleTrigger className="group flex h-10 w-full items-center justify-between px-4 py-2 text-xs font-semibold uppercase text-muted-foreground hover:text-foreground">
+                <span className="flex items-center gap-2">
+                    <NetworkIcon className="size-4" />
+                    {networkData.name} Network
+                </span>
+                <div className="flex items-center gap-2">
+                    <Badge
+                        variant={
+                            networkData.status === 'finished' || (networkData.status as string) === 'success'
+                                ? 'default'
+                                : 'secondary'
+                        }
+                        className="text-xs"
+                    >
+                        {networkData.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                        {networkData.steps.length} steps
+                    </Badge>
+                    <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="closed:animate-out open:animate-in closed:fade-out-0 open:fade-in-0 px-4 pb-4 pt-2">
+                <div className="space-y-3">
+                    {/* Network Steps */}
+                    {networkData.steps.length > 0 && (
+                        <div className="space-y-2">
+                            <div className="text-xs font-semibold text-muted-foreground">
+                                Execution Steps
+                            </div>
+                            {networkData.steps.map((step, idx) => (
+                                <div
+                                    key={`${step.name}-${idx}`}
+                                    className="bg-muted/30 rounded-md p-3 border"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-medium">
+                                            {step.name}
+                                        </span>
+                                        <Badge
+                                            variant={
+                                                step.status === 'success' || (step.status as string) === 'completed'
+                                                    ? 'default'
+                                                    : step.status === 'failed'
+                                                      ? 'destructive'
+                                                      : 'secondary'
+                                            }
+                                            className="text-xs"
+                                        >
+                                            {step.status}
+                                        </Badge>
+                                    </div>
+                                    <CodeBlock
+                                        code={JSON.stringify(
+                                            {
+                                                input: step.input,
+                                                output: step.output,
+                                            },
+                                            null,
+                                            2
+                                        )}
+                                        language="json"
+                                    >
+                                        <CodeBlockCopyButton />
+                                    </CodeBlock>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Usage Statistics */}
+                    {networkData.usage && (
+                        <div className="bg-muted/50 rounded-md p-3">
+                            <div className="text-xs font-semibold text-muted-foreground mb-2">
+                                Token Usage
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                {networkData.usage.inputTokens !==
+                                    undefined && (
+                                    <div>
+                                        <div className="text-muted-foreground">
+                                            Input
+                                        </div>
+                                        <div className="font-mono">
+                                            {networkData.usage.inputTokens.toLocaleString()}
+                                        </div>
+                                    </div>
+                                )}
+                                {networkData.usage.outputTokens !==
+                                    undefined && (
+                                    <div>
+                                        <div className="text-muted-foreground">
+                                            Output
+                                        </div>
+                                        <div className="font-mono">
+                                            {networkData.usage.outputTokens.toLocaleString()}
+                                        </div>
+                                    </div>
+                                )}
+                                {networkData.usage.totalTokens !==
+                                    undefined && (
+                                    <div>
+                                        <div className="text-muted-foreground">
+                                            Total
+                                        </div>
+                                        <div className="font-mono">
+                                            {networkData.usage.totalTokens.toLocaleString()}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Output */}
+                    {networkData.output !== null &&
+                        networkData.output !== undefined && (
+                            <div className="bg-muted/50 rounded-md p-3">
+                                <div className="text-xs font-semibold text-muted-foreground mb-2">
+                                    Network Output
+                                </div>
+                                <CodeBlock
+                                    code={JSON.stringify(
+                                        networkData.output,
+                                        null,
+                                        2
+                                    )}
+                                    language="json"
+                                >
+                                    <CodeBlockCopyButton />
+                                </CodeBlock>
+                            </div>
+                        )}
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+    )
+}
 
 function extractThoughtSummaryFromParts(
     parts: UIMessage['parts'] | undefined
@@ -129,6 +506,29 @@ function resolveToolDisplayName(tool: ToolInvocationState): string {
     }
 
     return 'unknown'
+}
+
+/**
+ * Safely resolve a tool call id for use in React keys without using `any`.
+ * Falls back to the provided index if no string id is available.
+ */
+function getToolCallId(tool: unknown, fallbackIndex: number): string {
+    // Explicitly check for null and non-object values to satisfy strict boolean checks
+    if (tool === null || typeof tool !== 'object') {
+        return `idx-${fallbackIndex}`
+    }
+
+    const maybeTool = tool as { toolCallId?: unknown; id?: unknown }
+
+    if (typeof maybeTool.toolCallId === 'string' && maybeTool.toolCallId.trim().length > 0) {
+        return maybeTool.toolCallId
+    }
+
+    if (typeof maybeTool.id === 'string' && maybeTool.id.trim().length > 0) {
+        return maybeTool.id
+    }
+
+    return `idx-${fallbackIndex}`
 }
 
 // Extract extractTasksFromText to module level to fix scope issues
@@ -189,14 +589,16 @@ function extractTasksFromText(content: string): AgentTaskData[] {
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false)
 
-    const handleCopy = useCallback(async () => {
-        try {
-            await navigator.clipboard.writeText(text)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-        } catch (err) {
-            console.error('Failed to copy:', err)
-        }
+    const handleCopy = useCallback(() => {
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+            })
+            .catch((err) => {
+                console.error('Failed to copy:', err)
+            })
     }, [text])
 
     return (
@@ -332,10 +734,10 @@ function MessageItem({
         return tools.length > 0 ? tools : undefined
     }, [message.parts])
 
-    const dataParts = useMemo(() => {
+    const dataParts = useMemo((): MastraDataPart[] => {
         const parts = message.parts ?? []
         return parts.filter(
-            (p) =>
+            (p): p is MastraDataPart =>
                 typeof (p as { type?: unknown }).type === 'string' &&
                 (p as { type: string }).type.startsWith('data-')
         )
@@ -605,26 +1007,49 @@ function MessageItem({
                         {isAssistant && dataParts.length > 0 && (
                             <div className="my-3 space-y-2">
                                 {dataParts.map((part, index) => {
-                                    const partType = (part as { type: string })
-                                        .type
+                                    const partId = (part as { id?: string }).id
+                                    const partType = (part as { type: string }).type
 
                                     if (partType === 'data-tool-progress') {
                                         // Rendered separately below in the dedicated Tool progress panel.
                                         return null
                                     }
 
-                                    if (
-                                        partType === 'data-tool-agent' ||
-                                        partType === 'data-tool-workflow' ||
-                                        partType === 'data-tool-network'
-                                    ) {
-                                        const nestedPart = part as any
+                                    const key = `${message.id}-${partType}-${partId ?? index}`
+
+                                    if (isAgentDataPart(part)) {
+                                        return (
+                                            <AgentDataSection
+                                                key={key}
+                                                part={part}
+                                            />
+                                        )
+                                    }
+
+                                    if (isWorkflowDataPart(part)) {
+                                        return (
+                                            <WorkflowDataSection
+                                                key={key}
+                                                part={part}
+                                            />
+                                        )
+                                    }
+
+                                    if (isNetworkDataPart(part)) {
+                                        return (
+                                            <NetworkDataSection
+                                                key={key}
+                                                part={part}
+                                            />
+                                        )
+                                    }
+
+                                    // Render tool-specific data parts using the AgentTool UI when available so custom tool events are displayed nicely.
+                                    if (typeof partType === 'string' && partType.startsWith('data-tool-')) {
                                         return (
                                             <AgentTool
-                                                key={`${message.id}-${partType}-${index}`}
-                                                id={nestedPart.id ?? partType}
-                                                type={partType as any}
-                                                data={nestedPart.data}
+                                                key={key}
+                                                {...(part as AgentDataPart)}
                                             />
                                         )
                                     }
@@ -633,7 +1058,7 @@ function MessageItem({
                                     const { data } = part as { data?: unknown }
                                     return (
                                         <Collapsible
-                                            key={`${message.id}-${partType}-${index}`}
+                                            key={key}
                                             className="rounded-lg border bg-muted/20"
                                             defaultOpen={false}
                                         >
@@ -825,13 +1250,14 @@ function MessageItem({
                                         .map((tool, idx) => {
                                             const resolvedName =
                                                 resolveToolDisplayName(tool)
+                                            const callId = getToolCallId(tool, idx)
                                             return (
                                                 <AgentConfirmation
-                                                    key={`${tool.toolCallId}-${idx}`}
+                                                    key={`${callId}-${idx}`}
                                                     toolName={resolvedName}
                                                     description={`Execute ${resolvedName} with provided parameters`}
                                                     approval={{
-                                                        id: tool.toolCallId,
+                                                        id: callId,
                                                     }}
                                                     state={tool.state}
                                                     onApprove={(id) =>
@@ -855,7 +1281,9 @@ function MessageItem({
                             showTools &&
                             messageTools &&
                             messageTools.length > 0 && (
-                                <AgentTools tools={messageTools} />
+                                <div className="my-3">
+                                    <AgentTools tools={messageTools} />
+                                </div>
                             )}
 
                         {/* Sources */}

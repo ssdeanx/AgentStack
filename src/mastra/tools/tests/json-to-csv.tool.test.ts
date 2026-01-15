@@ -39,7 +39,7 @@ describe('jsonToCsvTool', () => {
     })
 
     it('handles empty array', async () => {
-        const data: Record<string, any>[] = []
+        const data: Array<Record<string, any>> = []
 
         const result = await jsonToCsvTool.execute({ data })
         expect(result).toBeDefined()

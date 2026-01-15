@@ -70,7 +70,7 @@ function ProgressEventItem({ event }: { event: ProgressEvent }) {
                     >
                         {event.stage}
                     </span>
-                    {event.agentId && (
+                    {(Boolean(event.agentId)) && (
                         <Badge variant="outline" className="text-xs px-1 py-0">
                             {event.agentId}
                         </Badge>
@@ -193,11 +193,11 @@ export function NetworkRoutingPanel() {
                             <p className="mb-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
                                 Available Agents
                             </p>
-                            <div className="bento-grid !grid-cols-2 !gap-2">
+                            <div className="bento-grid grid-cols-2! gap-2!">
                                 {networkConfig.agents.map((agent) => (
                                     <div
                                         key={agent.id}
-                                        className="bento-item !p-2 flex items-center gap-2"
+                                        className="bento-item p-2! flex items-center gap-2"
                                     >
                                         <BotIcon className="size-3 text-primary" />
                                         <span className="text-[10px] font-medium truncate">

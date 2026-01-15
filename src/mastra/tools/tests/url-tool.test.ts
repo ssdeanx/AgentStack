@@ -145,7 +145,7 @@ describe('urlValidationTool', () => {
 
             const successResult = result as any
             expect(successResult.success).toBe(true)
-            const parsed = successResult.results.parse as any
+            const parsed = successResult.results.parse
             expect(parsed.protocol).toBe('https:')
             expect(parsed.hostname).toBe('example.com')
             expect(parsed.port).toBe('8080')

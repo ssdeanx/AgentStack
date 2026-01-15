@@ -103,7 +103,7 @@ export const MessageAction = ({
     return button
 }
 
-type MessageBranchContextType = {
+interface MessageBranchContextType {
     currentBranch: number
     totalBranches: number
     goToPrevious: () => void

@@ -219,7 +219,7 @@ function AllNetworksOverview() {
         <div className="space-y-2">
             {(['routing', 'pipeline', 'research'] as NetworkCategory[]).map(
                 (category) => {
-                    const networks = networksByCategory[category]
+                    const networks = networksByCategory[category] as Array<{ id: string; name: string; description?: string }>
                     if (networks.length === 0) {
                         return null
                     }
@@ -256,9 +256,7 @@ function AllNetworksOverview() {
                                     <button
                                         key={network.id}
                                         type="button"
-                                        onClick={() =>
-                                            selectNetwork(network.id as any)
-                                        }
+                                        onClick={() => selectNetwork(network.id)}
                                         className={cn(
                                             'flex w-full items-start gap-2 rounded-md p-2 text-left transition-colors hover:bg-muted',
                                             selectedNetwork === network.id &&

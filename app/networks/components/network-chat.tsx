@@ -266,7 +266,15 @@ function ArtifactDisplay({
                     <ArtifactAction
                         tooltip="Copy"
                         icon={CopyIcon}
-                        onClick={() => navigator.clipboard.writeText(content)}
+                        onClick={() => {
+                            void (async () => {
+                                try {
+                                    await navigator.clipboard.writeText(content)
+                                } catch (error) {
+                                    console.error(error)
+                                }
+                            })()
+                        }}
                     />
                     {onClose && <ArtifactClose onClick={onClose} />}
                 </ArtifactActions>
@@ -287,7 +295,7 @@ function WebPreviewDisplay({ url, title }: { url: string; title?: string }) {
     }
 
     return (
-        <div className="my-4 h-[400px] w-full">
+        <div className="my-4 h-100 w-full">
             {title && <div className="text-sm font-medium mb-2">{title}</div>}
             <WebPreview defaultUrl={url}>
                 <WebPreviewNavigation>
@@ -493,23 +501,47 @@ function NetworkMessageParts({
             (p.type.startsWith('data-tool') || p.type === 'data-network')
         ) {
             // Convert Mastra parts to dynamic-tool format
-            const payload = (p as any).data ?? p
-            const inner = payload?.data ?? payload
+            interface MastraData {
+                toolCallId?: string
+                id?: string
+                toolName?: string
+                name?: string
+                agentName?: string
+                input?: unknown
+                args?: unknown
+                output?: unknown
+                result?: unknown
+                errorText?: string
+                error?: unknown
+                data?: MastraData
+            }
+
+            interface MastraPart {
+                type: string
+                data?: MastraData
+            }
+
+            const mastraPart = p as unknown as MastraPart
+            const payload = mastraPart.data ?? (p as unknown as MastraData)
+            const inner = payload.data ?? payload
+
             toolParts.push({
                 type: 'dynamic-tool',
                 toolCallId:
-                    inner?.toolCallId ??
-                    inner?.id ??
+                    inner.toolCallId ??
+                    inner.id ??
                     `tool-${message.id}-${partIndex}`,
                 toolName:
-                    inner?.toolName ??
-                    inner?.name ??
-                    inner?.agentName ??
+                    inner.toolName ??
+                    inner.name ??
+                    inner.agentName ??
                     'network-step',
-                input: inner?.input ?? inner?.args,
-                output: inner?.output ?? inner?.result,
-                errorText: inner?.errorText ?? inner?.error,
-                state: inner?.output ? 'output-available' : 'input-available',
+                input: inner.input ?? inner.args,
+                output: inner.output ?? inner.result,
+                errorText:
+                    inner.errorText ??
+                    (typeof inner.error === 'string' ? inner.error : undefined),
+                state: inner.output ? 'output-available' : 'input-available',
             } as ToolInvocationState)
         }
     }
@@ -682,7 +714,8 @@ function NetworkMessageParts({
                         // Already handled above
                         return null
 
-                    case 'file': { // Handle file/image parts with AIImage
+                    case 'file': {
+                        // Handle file/image parts with AIImage
                         const filePart: FileUIPart = part
                         const fileData = filePart as {
                             mediaType?: string
@@ -777,11 +810,30 @@ function NetworkMessageParts({
                             (part.type.startsWith('data-tool') ||
                                 part.type === 'data-network')
                         ) {
-                            const payload =
-                                (part as Record<string, unknown>).data ?? part
+                            interface MastraData {
+                                toolCallId?: string
+                                id?: string
+                                toolName?: string
+                                name?: string
+                                agentName?: string
+                                input?: unknown
+                                args?: unknown
+                                output?: unknown
+                                result?: unknown
+                                errorText?: string
+                                error?: unknown
+                                data?: MastraData
+                            }
+
+                            interface MastraPart {
+                                type: string
+                                data?: MastraData
+                            }
+
+                            const mastraPart = part as MastraPart
+                            const payload = mastraPart.data ?? mastraPart
                             const inner =
-                                (payload as Record<string, unknown>).data ??
-                                payload
+                                (payload as MastraData).data ?? payload
                             const toolName =
                                 ((inner as Record<string, unknown>)
                                     ?.toolName as string) ??
@@ -913,7 +965,9 @@ function NetworkMessage({
                     <MessageActions>
                         <MessageAction
                             onClick={() =>
-                                navigator.clipboard.writeText(textPart.text)
+                                void navigator.clipboard.writeText(
+                                    textPart.text
+                                )
                             }
                             label="Copy"
                             tooltip="Copy to clipboard"
@@ -1429,7 +1483,7 @@ export function NetworkChat() {
                                 value={selectedNetwork}
                                 onValueChange={(value) => selectNetwork(value)}
                             >
-                                <PromptInputSelectTrigger className="w-[200px]">
+                                <PromptInputSelectTrigger className="w-50">
                                     <NetworkIcon className="mr-2 size-4" />
                                     <PromptInputSelectValue />
                                 </PromptInputSelectTrigger>
@@ -1448,7 +1502,13 @@ export function NetworkChat() {
                         <PromptInputSubmit
                             status={status}
                             disabled={!input.trim() && !isStreaming}
-                            onClick={isStreaming ? stopExecution : undefined}
+                            onClick={
+                                isStreaming
+                                    ? () => {
+                                          stopExecution()
+                                      }
+                                    : undefined
+                            }
                         />
                     </PromptInputFooter>
                 </PromptInput>

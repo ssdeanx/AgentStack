@@ -10,7 +10,7 @@ import {
     LayoutPanelLeftIcon,
     LayoutPanelTopIcon,
     LayoutGridIcon,
-} from 'lucide-react' 
+} from 'lucide-react'
 import { useCallback } from 'react'
 import { useReactFlow } from '@xyflow/react'
 
@@ -45,9 +45,17 @@ export function WorkflowActions() {
         window.open(`vscode://file${workflowPath}`, '_blank')
     }, [workflowConfig])
 
-    const handleFitView = useCallback(() => {
-        reactFlowInstance?.fitView({ padding: 0.3, duration: 300 })
+    const handleFitViewAsync = useCallback(async () => {
+        try {
+            await reactFlowInstance?.fitView({ padding: 0.3, duration: 300 })
+        } catch {
+            // Ignore errors from fitView
+        }
     }, [reactFlowInstance])
+
+    const handleFitView = useCallback(() => {
+        void handleFitViewAsync()
+    }, [handleFitViewAsync])
 
     return (
         <Panel position="top-right" className="p-2">
@@ -61,7 +69,7 @@ export function WorkflowActions() {
                         title="Horizontal Layout"
                     >
                         <LayoutPanelLeftIcon className="size-3.5" />
-                    </Button> 
+                    </Button>
                     <Button
                         size="icon-sm"
                         variant="ghost"

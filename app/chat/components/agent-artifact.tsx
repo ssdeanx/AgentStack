@@ -30,7 +30,7 @@ import type { ArtifactData } from './chat.types'
 interface AgentArtifactProps {
     artifact: ArtifactData
     onClose?: () => void
-    // eslint-disable-next-line no-unused-vars
+
     onCodeUpdate?: (artifactId: string, newCode: string) => void
 }
 
@@ -59,14 +59,17 @@ export function AgentArtifact({
         artifact.type === 'code' &&
         PREVIEWABLE_LANGUAGES.includes(normalizeLanguage(artifact.language))
 
-    const handleCopy = useCallback(async () => {
-        try {
-            await navigator.clipboard.writeText(editedCode)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-        } catch (err) {
-            void err
+    const handleCopy = useCallback(() => {
+        const doCopy = async () => {
+            try {
+                await navigator.clipboard.writeText(editedCode)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+            } catch (err) {
+                void err
+            }
         }
+        void doCopy()
     }, [editedCode])
 
     const handleDownload = useCallback(() => {
@@ -233,7 +236,7 @@ export function AgentArtifactCompact({
 // Floating action button for quick access to editor
 interface ArtifactEditorFABProps {
     artifact: ArtifactData
-    // eslint-disable-next-line no-unused-vars
+
     onCodeChange?: (newCode: string) => void
 }
 

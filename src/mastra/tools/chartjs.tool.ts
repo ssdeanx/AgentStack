@@ -1,4 +1,5 @@
-import { SpanType, TracingContext } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability';
+import { SpanType } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { BollingerBands, EMA, MACD, RSI, SMA } from 'technicalindicators'

@@ -54,7 +54,7 @@ export const weatherTool = createTool({
 
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Weather tool input streaming started', {
-            toolCallId: toolCallId.includes('get-weather'),
+            toolCallId,
             messageCount: messages.length,
             hook: 'onInputStart',
             abortSignal: abortSignal?.aborted,
@@ -62,7 +62,7 @@ export const weatherTool = createTool({
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input chunk', {
-            toolCallId: toolCallId.includes('get-weather'),
+            toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
             messageCount: messages.length,
@@ -71,7 +71,7 @@ export const weatherTool = createTool({
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input', {
-            toolCallId: toolCallId.includes('get-weather'), 
+            toolCallId,
             messageCount: messages.length,
             inputData: { location: input.location },
             abortSignal: abortSignal?.aborted,
@@ -125,7 +125,8 @@ export const weatherTool = createTool({
                 'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
-            tracingContext,
+            // eslint-disable-next-line object-shorthand
+            tracingContext: tracingContext,
         })
 
         // Create child span for weather lookup operation
@@ -271,7 +272,7 @@ export const weatherTool = createTool({
 
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Weather tool completed', {
-            toolCallId: toolCallId.includes('get-weather'),
+            toolCallId,
             toolName,
             outputData: {
                 location: output.location,

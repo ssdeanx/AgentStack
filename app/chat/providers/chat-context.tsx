@@ -345,9 +345,10 @@ export function ChatProvider({
                 return
             }
             setChatError(null)
-            aiSendMessage({
+            // Fire-and-forget to avoid returning a Promise where a void is expected.
+            void aiSendMessage({
                 text: text.trim(),
-                // @ts-ignore - attachments support in AI SDK v5
+                // @ts-expect-error - attachments support in AI SDK v5
                 attachments: files,
             })
         },
@@ -355,7 +356,7 @@ export function ChatProvider({
     )
 
     const stopGeneration = useCallback(() => {
-        stop()
+        void stop()
     }, [stop])
 
     const clearMessages = useCallback(() => {

@@ -7,7 +7,7 @@ export interface SwitchProps extends Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
     'type'
 > {
-    // eslint-disable-next-line no-unused-vars
+
     onCheckedChange?: (checked: boolean) => void
 }
 

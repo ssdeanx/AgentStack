@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 interface RadioGroupContextValue {
     value: string
-    // eslint-disable-next-line no-unused-vars
+
     onChange: (value: string) => void
     name: string
 }
@@ -25,7 +25,7 @@ function useRadioGroupContext() {
 export interface RadioGroupProps extends React.HTMLAttributes<HTMLDivElement> {
     value?: string
     defaultValue?: string
-    // eslint-disable-next-line no-unused-vars
+
     onValueChange?: (value: string) => void
     name?: string
 }
