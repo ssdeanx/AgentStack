@@ -4,6 +4,7 @@ import { google } from '@ai-sdk/google'
 import { embedMany } from 'ai'
 import { log } from './logger'
 import { Memory } from '@mastra/memory'
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
 /**
  * LanceDB Vector configuration for the Governed RAG system
@@ -19,7 +20,7 @@ const LANCE_CONFIG = {
     embeddingDimension: parseInt(
         process.env.LANCE_EMBEDDING_DIMENSION ?? '1536'
     ),
-    embeddingModel: google.textEmbedding('gemini-embedding-001'),
+    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
 } as const
 
 // LanceDB Storage configuration constants
@@ -50,7 +51,7 @@ const vectorStore = await LanceVectorStore.create('/path/to/db')
 export const lanceMemory = new Memory({
     storage: lanceStorage,
     vector: vectorStore,
-    embedder: google.textEmbedding('gemini-embedding-001'),
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
     options: {
         generateTitle: process.env.LANCE_THREAD_GENERATE_TITLE !== 'false',
         // Message management

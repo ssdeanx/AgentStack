@@ -282,8 +282,8 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         <CompanyProfileCard
                             key={`${id}-${toolName}-${toolState}-${groupIdx}`}
                             toolCallId={id}
-                            input={latest.input as any}
-                            output={latest.output as any}
+                            input={latest.input as PolygonStockQuotesUITool['input']}
+                            output={latest.output as PolygonStockQuotesUITool['output']}
                             errorText={errorText}
                         />
                     )
@@ -294,8 +294,8 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         <CommitHistoryList
                             key={`${id}-${toolName}-${toolState}-${groupIdx}`}
                             toolCallId={id}
-                            input={latest.input as any}
-                            output={latest.output as any}
+                            input={latest.input as ListCommitsUITool['input']}
+                            output={latest.output as ListCommitsUITool['output']}
                             errorText={errorText}
                         />
                     )
@@ -309,13 +309,13 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         >
                             <WeatherCard
                                 toolCallId={id}
-                                input={latest.input as { location: string }}
+                                input={latest.input as WeatherUITool['input']}
                                 output={latest.output as any}
                                 errorText={errorText}
                             />
                             <ForecastView
                                 toolCallId={id}
-                                input={latest.input as { location: string }}
+                                input={latest.input as WeatherUITool['input']}
                                 output={latest.output as any}
                                 errorText={errorText}
                             />
@@ -323,45 +323,45 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                     )
                 }
 
-                if (
-                    (toolName === 'serpapi-news-trends' ||
-                        toolName === 'finnhub-company-news') &&
-                    hasOutput
-                ) {
-                    return (
-                        <NewsCarousel
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={latest.input as any}
-                            output={latest.output as any}
-                            errorText={errorText}
-                        />
-                    )
-                }
+              //  if (
+               //     (toolName === 'serpapi-news-trends' ||
+              //          toolName === 'finnhub-company-news') &&
+              //      hasOutput
+             //   ) {
+              //      return (
+              //          <NewsCarousel
+              //              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+              //              toolCallId={id}
+              //              input={latest.input as any}
+              //              output={latest.output as any}
+              //              errorText={errorText}
+              //          />
+              //      )
+              //  }
 
                 if (toolName === 'arxiv-search' && hasOutput) {
                     return (
                         <ArxivPaperCard
                             key={`${id}-${toolName}-${toolState}-${groupIdx}`}
                             toolCallId={id}
-                            input={latest.input as any}
-                            output={latest.output as any}
+                            input={latest.input as ArxivUITool['input']}
+                            output={latest.output as ArxivUITool['output']}
                             errorText={errorText}
                         />
                     )
                 }
 
-                if (toolName === 'serpapi-search' && hasOutput) {
-                    return (
-                        <SearchResultList
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={latest.input as any}
-                            output={latest.output as any}
-                            errorText={errorText}
-                        />
-                    )
-                }
+               // if (toolName === 'serpapi-search' && hasOutput) {
+                //    return (
+                //        <SearchResultList
+                //            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                 //           toolCallId={id}
+                 //           input={latest.input as any}
+                 //           output={latest.output as any}
+                //            errorText={errorText}
+                //        />
+                //    )
+             //   }
 
                 // Default rendering for other tools
                 return (

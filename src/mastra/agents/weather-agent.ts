@@ -45,6 +45,7 @@ export const weatherAgent = new Agent({
                         includeThoughts: true,
                         thinkingBudget: -1,
                     },
+                    cachedContent: "Location data cached for weather queries",
                 } satisfies GoogleGenerativeAIProviderOptions,
             },
         }

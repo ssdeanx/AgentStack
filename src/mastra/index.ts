@@ -292,7 +292,7 @@ export const mastra = new Mastra({
 
                 sampling: {
                     type: SamplingStrategyType.RATIO,
-                    probability: 0.5,
+                    probability: 0.75,
                 }, // 50% sampling
                 requestContextKeys: [
                     'userId',
@@ -432,6 +432,8 @@ export const mastra = new Mastra({
                     },
                     maxSteps: 50,
                     includeRawChunks: true,
+                    // Use an instance of RequestContext (not the class) so the route has a proper context per request
+                 //   requestContext: new RequestContext()
                 },
                 sendStart: true,
                 sendFinish: true,
