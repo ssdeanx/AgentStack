@@ -72,6 +72,7 @@ export function ChatInput() {
         messages,
         usage,
         createCheckpoint,
+
     } = useChatContext()
 
     const [input, setInput] = useState('')
@@ -124,6 +125,7 @@ export function ChatInput() {
                         <span className="flex items-center gap-1.5">
                             <BotIcon className="size-3" />
                             {agentConfig?.name ?? selectedAgent}
+
                         </span>
                         <span className="flex items-center gap-1.5">
                             <CpuIcon className="size-3" />

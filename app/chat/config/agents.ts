@@ -61,7 +61,7 @@ const defaultFeatures: AgentFeatures = {
 
 export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     // Core Agents
-    weatherAgent: {
+    "weatherAgent": {
         id: 'weatherAgent',
         name: 'Weather Agent',
         description:
@@ -79,7 +79,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             reasoning: true,
         },
     },
-    agentNetwork: {
+    "agentNetwork": {
         id: 'agentNetwork',
         name: 'Agent Network',
         description:
@@ -89,7 +89,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Research Agents
-    researchAgent: {
+    "researchAgent": {
         id: 'researchAgent',
         name: 'Research Agent',
         description: 'Conducts web research with source citations and analysis',
@@ -104,7 +104,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             task: true,
         },
     },
-    researchPaperAgent: {
+    "researchPaperAgent": {
         id: 'researchPaperAgent',
         name: 'Research Paper Agent',
         description:
@@ -121,7 +121,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    documentProcessingAgent: {
+    "documentProcessingAgent": {
         id: 'documentProcessingAgent',
         name: 'Document Processing Agent',
         description: 'Convert PDFs to markdown and chunk documents for RAG',
@@ -137,7 +137,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    knowledgeIndexingAgent: {
+    "knowledgeIndexingAgent": {
         id: 'knowledgeIndexingAgent',
         name: 'Knowledge Indexing Agent',
         description: 'Index documents into PgVector for semantic search',
@@ -154,7 +154,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Content Agents
-    copywriterAgent: {
+    "copywriterAgent": {
         id: 'copywriterAgent',
         name: 'Copywriter Agent',
         description: 'Professional content writing and copy generation',
@@ -167,7 +167,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    editorAgent: {
+    "editorAgent": {
         id: 'editorAgent',
         name: 'Editor Agent',
         description: 'Reviews and improves written content with suggestions',
@@ -180,7 +180,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    contentStrategistAgent: {
+    "contentStrategistAgent": {
         id: 'contentStrategistAgent',
         name: 'Content Strategist Agent',
         description: 'Develops content strategies and editorial plans',
@@ -193,7 +193,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    scriptWriterAgent: {
+    "scriptWriterAgent": {
         id: 'scriptWriterAgent',
         name: 'Script Writer Agent',
         description: 'Writes scripts for video, audio, and presentations',
@@ -206,7 +206,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    reportAgent: {
+    "reportAgent": {
         id: 'reportAgent',
         name: 'Report Agent',
         description: 'Generates formatted reports from processed data',
@@ -223,7 +223,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Data Pipeline Agents
-    dataExportAgent: {
+    "dataExportAgent": {
         id: 'dataExportAgent',
         name: 'Data Export Agent',
         description:
@@ -238,7 +238,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    dataIngestionAgent: {
+    "dataIngestionAgent": {
         id: 'dataIngestionAgent',
         name: 'Data Ingestion Agent',
         description: 'CSV parsing, file reading, and structure validation',
@@ -252,7 +252,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    dataTransformationAgent: {
+    "dataTransformationAgent": {
         id: 'dataTransformationAgent',
         name: 'Data Transformation Agent',
         description: 'CSV↔JSON↔XML transformations and data restructuring',
@@ -267,7 +267,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Financial Agents
-    stockAnalysisAgent: {
+    "stockAnalysisAgent": {
         id: 'stockAnalysisAgent',
         name: 'Stock Analysis Agent',
         description: 'Analyze stocks with technical and fundamental analysis',
@@ -283,7 +283,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    chartTypeAdvisorAgent: {
+    "chartTypeAdvisorAgent": {
         id: 'chartTypeAdvisorAgent',
         name: 'Chart Type Advisor',
         description: 'Recommends optimal chart types for financial data',
@@ -296,7 +296,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             webPreview: true,
         },
     },
-    chartDataProcessorAgent: {
+    "chartDataProcessorAgent": {
         id: 'chartDataProcessorAgent',
         name: 'Chart Data Processor',
         description: 'Transforms financial API data into Recharts format',
@@ -310,7 +310,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             webPreview: true,
         },
     },
-    chartGeneratorAgent: {
+    "chartGeneratorAgent": {
         id: 'chartGeneratorAgent',
         name: 'Chart Generator',
         description: 'Generates Recharts React component code',
@@ -324,7 +324,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             webPreview: true,
         },
     },
-    chartSupervisorAgent: {
+    "chartSupervisorAgent": {
         id: 'chartSupervisorAgent',
         name: 'Chart Supervisor',
         description: 'Orchestrates the chart creation pipeline',
@@ -341,8 +341,157 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
         },
     },
 
+    // Graphing & Analysis Agents
+    "graphSupervisorAgent": {
+        id: 'graphSupervisorAgent',
+        name: 'Graph Supervisor',
+        description: 'Coordinates graph-based analysis and chart workflows',
+        category: 'financial',
+        features: {
+            ...defaultFeatures,
+            reasoning: true,
+            chainOfThought: true,
+            tools: true,
+            artifacts: true,
+            plan: true,
+        },
+    },
+    "technicalAnalysisAgent": {
+        id: 'technicalAnalysisAgent',
+        name: 'Technical Analysis Agent',
+        description: 'Performs technical indicators and signal detection for market data',
+        category: 'financial',
+        features: {
+            ...defaultFeatures,
+            reasoning: true,
+            chainOfThought: true,
+            tools: true,
+            sources: true,
+            task: true,
+            plan: true,
+        },
+    },
+    "chartJsAgent": {
+        id: 'chartJsAgent',
+        name: 'Chart.js Agent',
+        description: 'Generates interactive Chart.js component code for visualizations',
+        category: 'financial',
+        features: {
+            ...defaultFeatures,
+            tools: true,
+            artifacts: true,
+            webPreview: true,
+            task: true,
+            plan: true,
+        },
+    },
+    "mappingAgent": {
+        id: 'mappingAgent',
+        name: 'Mapping Agent',
+        description: 'Creates geospatial and mapping visualizations',
+        category: 'diagram',
+        features: {
+            ...defaultFeatures,
+            tools: true,
+            canvas: true,
+            artifacts: true,
+            webPreview: true,
+            task: true,
+        },
+    },
+    "fetchAgent": {
+        id: 'fetchAgent',
+        name: 'Fetch Agent',
+        description: 'Lightweight data fetcher for external APIs and datasets',
+        category: 'utility',
+        features: { ...defaultFeatures, tools: true },
+    },
+    "finnhubAgent": {
+        id: 'finnhubAgent',
+        name: 'Finnhub Agent',
+        description: 'Retrieves market and financial data from Finnhub APIs',
+        category: 'financial',
+        features: { ...defaultFeatures, tools: true, sources: true },
+    },
+    "codeGraphAgent": {
+        id: 'codeGraphAgent',
+        name: 'Code Graph Agent',
+        description: 'Analyzes repository structure and generates dependency graphs',
+        category: 'coding',
+        features: {
+            ...defaultFeatures,
+            tools: true,
+            artifacts: true,
+            chainOfThought: true,
+            task: true,
+        },
+    },
+    "codeMetricsAgent": {
+        id: 'codeMetricsAgent',
+        name: 'Code Metrics Agent',
+        description: 'Computes project-level code health metrics and reports',
+        category: 'coding',
+        features: {
+            ...defaultFeatures,
+            tools: true,
+            artifacts: true,
+            task: true,
+            plan: true,
+        },
+    },
+
+    // Marketing & Support Agents
+    "socialMediaAgent": {
+        id: 'socialMediaAgent',
+        name: 'Social Media Agent',
+        description: 'Creates and schedules social media content and strategies',
+        category: 'content',
+        features: {
+            ...defaultFeatures,
+            reasoning: true,
+            tools: true,
+            artifacts: true,
+            task: true,
+            plan: true,
+        },
+    },
+    "seoAgent": {
+        id: 'seoAgent',
+        name: 'SEO Agent',
+        description: 'Provides SEO analysis and content optimization suggestions',
+        category: 'content',
+        features: {
+            ...defaultFeatures,
+            reasoning: true,
+            tools: true,
+            sources: true,
+            task: true,
+        },
+    },
+    "translationAgent": {
+        id: 'translationAgent',
+        name: 'Translation Agent',
+        description: 'Translates content and adapts tone for target audiences',
+        category: 'content',
+        features: { ...defaultFeatures, tools: true, artifacts: true },
+    },
+    "customerSupportAgent": {
+        id: 'customerSupportAgent',
+        name: 'Customer Support Agent',
+        description: 'Handles customer queries and support ticket drafting',
+        category: 'utility',
+        features: { ...defaultFeatures, tools: true, task: true },
+    },
+    "projectManagementAgent": {
+        id: 'projectManagementAgent',
+        name: 'Project Management Agent',
+        description: 'Assists with task breakdowns, timelines, and status reports',
+        category: 'utility',
+        features: { ...defaultFeatures, tools: true, task: true, plan: true },
+    },
+
     // Diagram Agents
-    csvToExcalidrawAgent: {
+    "csvToExcalidrawAgent": {
         id: 'csvToExcalidrawAgent',
         name: 'CSV to Excalidraw Agent',
         description: 'Converts CSV data to Excalidraw diagrams',
@@ -359,7 +508,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             webPreview: true,
         },
     },
-    imageToCsvAgent: {
+    "imageToCsvAgent": {
         id: 'imageToCsvAgent',
         name: 'Image to CSV Agent',
         description: 'Extracts tabular data from images using OCR',
@@ -374,7 +523,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    excalidrawValidatorAgent: {
+    "excalidrawValidatorAgent": {
         id: 'excalidrawValidatorAgent',
         name: 'Excalidraw Validator',
         description: 'Validates and fixes Excalidraw diagram schemas',
@@ -389,7 +538,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Utility Agents
-    evaluationAgent: {
+    "evaluationAgent": {
         id: 'evaluationAgent',
         name: 'Evaluation Agent',
         description:
@@ -405,7 +554,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    learningExtractionAgent: {
+    "learningExtractionAgent": {
         id: 'learningExtractionAgent',
         name: 'Learning Extraction Agent',
         description: 'Extracts learnings and insights from content',
@@ -418,7 +567,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    daneNewContributor: {
+    "daneNewContributor": {
         id: 'daneNewContributor',
         name: 'Dane New Contributor',
         description: 'Helps new contributors get started with the project',
@@ -427,7 +576,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Business & Legal Agents
-    legalResearchAgent: {
+    "legalResearchAgent": {
         id: 'legalResearchAgent',
         name: 'Legal Research Agent',
         description:
@@ -442,7 +591,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    contractAnalysisAgent: {
+    "contractAnalysisAgent": {
         id: 'contractAnalysisAgent',
         name: 'Contract Analysis Agent',
         description:
@@ -457,7 +606,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    complianceMonitoringAgent: {
+    "complianceMonitoringAgent": {
         id: 'complianceMonitoringAgent',
         name: 'Compliance Monitoring Agent',
         description: 'Monitors regulatory compliance and identifies risks',
@@ -470,7 +619,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    businessStrategyAgent: {
+    "businessStrategyAgent": {
         id: 'businessStrategyAgent',
         name: 'Business Strategy Agent',
         description: 'Coordinates legal compliance with business objectives',
@@ -485,7 +634,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Coding Team Agents
-    codeArchitectAgent: {
+    "codeArchitectAgent": {
         id: 'codeArchitectAgent',
         name: 'Code Architect Agent',
         description:
@@ -500,7 +649,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    codeReviewerAgent: {
+    "codeReviewerAgent": {
         id: 'codeReviewerAgent',
         name: 'Code Reviewer Agent',
         description:
@@ -514,7 +663,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    testEngineerAgent: {
+    "testEngineerAgent": {
         id: 'testEngineerAgent',
         name: 'Test Engineer Agent',
         description:
@@ -528,7 +677,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    refactoringAgent: {
+    "refactoringAgent": {
         id: 'refactoringAgent',
         name: 'Refactoring Agent',
         description:
@@ -542,7 +691,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
             plan: true,
         },
     },
-    codingTeamNetwork: {
+    "codingTeamNetwork": {
         id: 'codingTeamNetwork',
         name: 'Coding Team Network',
         description: 'Network of coding agents for collaborative development',
@@ -551,7 +700,7 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
     },
 
     // Additional Utility Agents
-    acpAgent: {
+    "acpAgent": {
         id: 'acpAgent',
         name: 'ACP Agent',
         description:
@@ -559,42 +708,42 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
         category: 'utility',
         features: { ...defaultFeatures, tools: true, task: true, plan: true },
     },
-    daneCommitMessage: {
+    "daneCommitMessage": {
         id: 'daneCommitMessage',
         name: 'Dane Commit Message',
         description: 'Generate commit messages for engineers',
         category: 'utility',
         features: { ...defaultFeatures, tools: false },
     },
-    daneIssueLabeler: {
+    "daneIssueLabeler": {
         id: 'daneIssueLabeler',
         name: 'Dane Issue Labeler',
         description: 'Label issues based on their content',
         category: 'utility',
         features: { ...defaultFeatures, tools: false },
     },
-    daneLinkChecker: {
+    "daneLinkChecker": {
         id: 'daneLinkChecker',
         name: 'Dane Link Checker',
         description: 'Check links for broken links',
         category: 'utility',
         features: { ...defaultFeatures, tools: false },
     },
-    daneChangeLog: {
+    "daneChangeLog": {
         id: 'daneChangeLog',
         name: 'Dane Package Publisher',
         description: 'Publish packages to npm',
         category: 'utility',
         features: { ...defaultFeatures, tools: false },
     },
-    dane: {
+    "dane": {
         id: 'dane',
         name: 'Dane',
         description: 'Personal assistant and best friend',
         category: 'utility',
         features: { ...defaultFeatures, tools: true },
     },
-    calendarAgent: {
+    "calendarAgent": {
         id: 'calendarAgent',
         name: 'Calendar Agent',
         description:
@@ -602,27 +751,141 @@ export const AGENT_CONFIGS: Record<string, AgentConfig> = {
         category: 'utility',
         features: { ...defaultFeatures, tools: true },
     },
-    sqlAgent: {
-        id: 'sqlAgent',
-        name: 'SQL Agent',
-        description:
-            'An expert SQL agent that can write and execute SQL queries',
-        category: 'utility',
-        features: { ...defaultFeatures, tools: true },
-    },
-    danePackagePublisher: {
+    "danePackagePublisher": {
         id: 'danePackagePublisher',
         name: 'Dane Package Publisher',
         description: 'Specialized agent for managing pnpm package publications',
         category: 'utility',
         features: { ...defaultFeatures, tools: true },
     },
-    imageAgent: {
+    "imageAgent": {
         id: 'imageAgent',
         name: 'Image Generator',
         description: 'Expert in generating images based on user requirements',
         category: 'diagram',
         features: { ...defaultFeatures, tools: false, images: true },
+    },
+
+    // Misc Utility Agents
+    "bgColorAgent": {
+        id: 'bgColorAgent',
+        name: 'Background Color Agent',
+        description: 'Suggests accessible color palettes and background suggestions',
+        category: 'utility',
+        features: { ...defaultFeatures, tools: true, artifacts: true, images: true },
+    },
+    "noteTakerAgent": {
+        id: 'noteTakerAgent',
+        name: 'Note Taker',
+        description: 'Creates meeting notes and concise summaries, and stores them into memory',
+        category: 'utility',
+        features: {
+            ...defaultFeatures,
+            tools: true,
+            artifacts: true,
+            task: true,
+            plan: true,
+        },
+    },
+
+    // A2A / Coordinator Agents
+    "a2aCoordinatorAgent": {
+        id: 'a2aCoordinatorAgent',
+        name: 'A2A Coordinator',
+        description: 'Coordinates agent-to-agent orchestration and task routing',
+        category: 'utility',
+        features: {
+            ...defaultFeatures,
+            chainOfThought: true,
+            tools: true,
+            task: true,
+            plan: true,
+        },
+    },
+    "codingA2ACoordinator": {
+        id: 'codingA2ACoordinator',
+        name: 'Coding A2A Coordinator',
+        description: 'Coordinates coding agents and code review workflows',
+        category: 'coding',
+        features: {
+            ...defaultFeatures,
+            chainOfThought: true,
+            tools: true,
+            task: true,
+            plan: true,
+        },
+    },
+
+    // Network entries referenced by Mastra setup
+    "dataPipelineNetwork": {
+        id: 'dataPipelineNetwork',
+        name: 'Data Pipeline Network',
+        description: 'Orchestrates data pipeline agents for ingestion and export',
+        category: 'data',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    },
+    "reportGenerationNetwork": {
+        id: 'reportGenerationNetwork',
+        name: 'Report Generation Network',
+        description: 'Orchestrates agents that create and format reports',
+        category: 'content',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    },
+    "researchPipelineNetwork": {
+        id: 'researchPipelineNetwork',
+        name: 'Research Pipeline Network',
+        description: 'Routes research requests through specialized research agents',
+        category: 'research',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true, sources: true },
+    },
+    "contentCreationNetwork": {
+        id: 'contentCreationNetwork',
+        name: 'Content Creation Network',
+        description: 'Coordinates content production agents and workflows',
+        category: 'content',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true, artifacts: true },
+    },
+    "financialIntelligenceNetwork": {
+        id: 'financialIntelligenceNetwork',
+        name: 'Financial Intelligence Network',
+        description: 'Routes financial analysis tasks to the correct agents',
+        category: 'financial',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true, sources: true },
+    },
+    "learningNetwork": {
+        id: 'learningNetwork',
+        name: 'Learning Network',
+        description: 'Coordinates learning-extraction and study agents',
+        category: 'utility',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true, artifacts: true },
+    },
+    "marketingAutomationNetwork": {
+        id: 'marketingAutomationNetwork',
+        name: 'Marketing Automation Network',
+        description: 'Orchestrates marketing and automation agents',
+        category: 'content',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    },
+    "devopsNetwork": {
+        id: 'devopsNetwork',
+        name: 'DevOps Network',
+        description: 'Orchestrates DevOps-related agents and automation',
+        category: 'utility',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    },
+    "businessIntelligenceNetwork": {
+        id: 'businessIntelligenceNetwork',
+        name: 'Business Intelligence Network',
+        description: 'Coordinates business intelligence and analytics agents',
+        category: 'business',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
+    },
+    "securityNetwork": {
+        id: 'securityNetwork',
+        name: 'Security Network',
+        description: 'Routes security-related tasks to monitoring and analysis agents',
+        category: 'utility',
+        features: { ...defaultFeatures, chainOfThought: true, tools: true },
     },
 }
 

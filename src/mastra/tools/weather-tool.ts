@@ -54,7 +54,7 @@ export const weatherTool = createTool({
 
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Weather tool input streaming started', {
-            toolCallId,
+            toolCallId: toolCallId.includes('get-weather'),
             messageCount: messages.length,
             hook: 'onInputStart',
             abortSignal: abortSignal?.aborted,
@@ -62,7 +62,7 @@ export const weatherTool = createTool({
     },
     onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input chunk', {
-            toolCallId,
+            toolCallId: toolCallId.includes('get-weather'),
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
             messageCount: messages.length,
@@ -71,7 +71,7 @@ export const weatherTool = createTool({
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Weather tool received input', {
-            toolCallId,
+            toolCallId: toolCallId.includes('get-weather'), 
             messageCount: messages.length,
             inputData: { location: input.location },
             abortSignal: abortSignal?.aborted,
@@ -271,7 +271,7 @@ export const weatherTool = createTool({
 
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Weather tool completed', {
-            toolCallId,
+            toolCallId: toolCallId.includes('get-weather'),
             toolName,
             outputData: {
                 location: output.location,

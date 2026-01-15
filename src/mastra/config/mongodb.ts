@@ -7,6 +7,7 @@ import { log } from './logger'
 import z from 'zod'
 import { Memory } from '@mastra/memory'
 import { trace, SpanStatusCode } from '@opentelemetry/api'
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
 /**
  * MongoDB Vector configuration for the Governed RAG system
@@ -23,7 +24,7 @@ const MONGODB_CONFIG = {
     embeddingDimension: parseInt(
         process.env.MONGODB_EMBEDDING_DIMENSION ?? '1536'
     ),
-    embeddingModel: google.textEmbedding('gemini-embedding-001'),
+    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
 } as const
 
 /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
@@ -67,7 +68,7 @@ await mongoVector.createIndex({
 export const mongoMemory = new Memory({
     storage: mongoStore,
     vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
-    embedder: google.textEmbedding('gemini-embedding-001'),
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
     options: {
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),

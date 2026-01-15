@@ -3,6 +3,7 @@ import { createVectorQueryTool, createGraphRAGTool } from '@mastra/rag'
 import { google } from '@ai-sdk/google'
 import { embedMany } from 'ai'
 import { log } from './logger'
+import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 
 /**
  * Qdrant-compatible filter format for vector queries
@@ -137,7 +138,7 @@ export async function processDocument(
         // Generate embeddings for all chunks
         const { embeddings } = await embedMany({
             values: chunks.map((chunk) => chunk.text),
-            model: QDRANT_CONFIG.embeddingModel,
+            model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
         })
 
         log.info('Document processed successfully', {
@@ -259,7 +260,7 @@ export async function querySimilarDocuments(
             embeddings: [queryEmbedding],
         } = await embedMany({
             values: [queryText],
-            model: QDRANT_CONFIG.embeddingModel,
+            model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
         })
 
         // Query similar vectors

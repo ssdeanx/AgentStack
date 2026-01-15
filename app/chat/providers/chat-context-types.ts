@@ -100,6 +100,7 @@ export interface ChatContextValue {
 
     // Focus Mode
     isFocusMode: boolean
+    // Temporarily indicates an agent switch is in progress and sends are blocked
 
     // Actions
     // eslint-disable-next-line no-unused-vars
