@@ -1,6 +1,4 @@
 import js from '@eslint/js'
-import tseslint from '@typescript-eslint/eslint-plugin'
-import tsparser from '@typescript-eslint/parser'
 import prettierConfig from 'eslint-config-prettier'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
@@ -8,54 +6,55 @@ import { globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import typescriptEslint from 'typescript-eslint'
 
-const ignores = [
-  'eslint.config.js',
-  'eslint.config.cjs',
-  'node_modules/**',
-  'dist/**',
-  '.next/**',
-  'public/**',
-  'coverage/**',
-  'build/**',
-  'out/**',
-  'logs/**',
-  '.vscode/**',
-  '.mastra/**',
-  '.kilocode/**',
-  '.github/**',
-  '*.log',
-  'memory-bank/**',
-  'memories/**',
-  'docs/**',
-  'components/ui/**',
-  'node_modules/@crawlee/http/internals/http-crawler.d.ts',
-  'node_modules/@mdx-js/loader/index.d.cts',
-  'docker/**',
-  '.spec/**',
-  '.specstory/**',
-  '.kiro/**',
-  '.codacy/**',
-  'LICENSE',
-  'CHANGELOG.md',
-  'README.md',
-  'CONTRIBUTING.md',
-  'vitest.config.ts',
-  'globalSetup.ts',
-  'testSetup.ts',
-  'vite.config.ts',
-  'scripts/**',
-  '.gemini/**',
-  '.github/prompts/**/*.md',
-  '.github/chatmodes/*.md',
-]
-
 const tsTypeCheckedRecommended = typescriptEslint.plugin.configs['flat/recommended-type-checked'].map((cfg) =>
   cfg.files ? cfg : { ...cfg, files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'] }
 )
 
 export default [
-  { ignores },
-  globalIgnores(['dist', 'node_modules']),
+  globalIgnores([
+    'dist/**',
+    '**/node_modules/',
+    '**/tests/**',
+    '**/types/**',
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/*.spec.ts',
+    '**/*.spec.tsx',
+    '.next/**',
+    'public/**',
+    'coverage/**',
+    'build/**',
+    'out/**',
+    'logs/**',
+    '.vscode/**',
+    '.mastra/**',
+    '.kilocode/**',
+    '.github/**',
+    '*.log',
+    'memory-bank/**',
+    'memories/**',
+    'docs/**',
+    'components/ui/**',
+    'node_modules/@crawlee/http/internals/http-crawler.d.ts',
+    'node_modules/@mdx-js/loader/index.d.cts',
+    'docker/**',
+    '.spec/**',
+    '.specstory/**',
+    '.kiro/**',
+    '.codacy/**',
+    'LICENSE',
+    'CHANGELOG.md',
+    'README.md',
+    'CONTRIBUTING.md',
+    'vitest.config.ts',
+    'globalSetup.ts',
+    'testSetup.ts',
+    'vite.config.ts',
+    'scripts/**',
+    '.gemini/**',
+    '.github/prompts/**/*.md',
+    '.github/chatmodes/*.md',
+  ]),
   js.configs.recommended,
   reactHooks.configs.flat.recommended,
   reactRefresh.configs.next,
@@ -65,10 +64,10 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx'],
     plugins: {
-      '@typescript-eslint': tseslint,
+      '@typescript-eslint': typescriptEslint.plugin,
     },
     languageOptions: {
-      parser: tsparser,
+      parser: typescriptEslint.parser,
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
         ecmaVersion: 2022,

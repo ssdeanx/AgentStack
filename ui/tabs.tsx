@@ -57,7 +57,7 @@ export function Tabs({
     )
 }
 
-export interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type TabsListProps = React.HTMLAttributes<HTMLDivElement>
 
 export function TabsList({ className, children, ...props }: TabsListProps) {
     return (

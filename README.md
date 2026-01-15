@@ -143,105 +143,222 @@ graph TB
     style UI stroke:#58a6ff
 ```
 
-## 🔍 **Workflow Architecture**
+## 🔍 **Chat UI-Backend Architecture**
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
 sequenceDiagram
-    participant User
-    participant Workflow
-    participant Writer
-    participant Agent/Tool
-    participant Logger
+    participant UI as ChatUI
+    participant Msg as MessageItem
+    participant TG as TypeGuards
+    participant ADS as AgentDataSection
+    participant WDS as WorkflowDataSection
+    participant NDS as NetworkDataSection
+    participant AT as AgentTool
 
-    User->>Workflow: Execute workflow step
-    Workflow->>Logger: logStepStart()
+    UI->>Msg: render(message)
+    Msg->>Msg: compute dataParts via useMemo
 
-    Workflow->>Writer: custom({ type: "data-tool-progress" })
-    Note over Writer: status: "in-progress"<br/>message: "Starting..."<br/>stage: "step-id"
-    Writer-->>User: Stream progress update
-
-    Workflow->>Agent/Tool: Execute operation
-    Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
-    Note over Writer: Tool emits progress<br/>with same format
-    Writer-->>User: Stream tool progress
-
-    Agent/Tool-->>Workflow: Return result
-
-    Workflow->>Writer: custom({ type: "data-tool-progress" })
-    Note over Writer: status: "done"<br/>message: "Completed..."<br/>stage: "step-id"
-    Writer-->>User: Stream completion
-
-    Workflow->>Logger: logStepEnd()
-    Workflow-->>User: Return final output
-
-    alt Error occurs
-        Agent/Tool->>Writer: custom({ type: "data-tool-progress" })
-        Note over Writer: status: "error"<br/>message: error details
-        Writer-->>User: Stream error
-        Workflow->>Logger: logError()
+    loop for each part in dataParts
+        Msg->>TG: isAgentDataPart(part)
+        alt part is AgentDataPart
+            Msg->>ADS: render part
+            ADS-->>Msg: Agent execution collapsible
+        else not AgentDataPart
+            Msg->>TG: isWorkflowDataPart(part)
+            alt part is WorkflowDataPart
+                Msg->>WDS: render part
+                WDS-->>Msg: Workflow execution collapsible
+            else not WorkflowDataPart
+                Msg->>TG: isNetworkDataPart(part)
+                alt part is NetworkDataPart
+                    Msg->>NDS: render part
+                    NDS-->>Msg: Network execution collapsible
+                else other data-tool-* part
+                    alt part.type startsWith data-tool-
+                        Msg->>AT: render custom tool UI
+                        AT-->>Msg: Tool-specific panel
+                    else generic data-* part
+                        Msg-->>Msg: render generic Collapsible with JSON
+                    end
+                end
+            end
+        end
     end
+
+    Msg-->>UI: message body with nested sections
 ```
 
 ## 📊 **System Flowchart**
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
-flowchart TD
-    A[app/chat] -->|components| B[chat-header.tsx]
-    A -->|components| C[chat-messages.tsx]
-    A -->|components| D[chat-input.tsx]
-    A -->|config| E[agents.ts]
-    A -->|providers| F[chat-context.tsx]
+classDiagram
+    direction LR
 
-    G[app/networks] -->|components| H[network-header.tsx]
-    G -->|components| I[network-messages.tsx]
-    G -->|config| J[networks.ts]
-    G -->|providers| K[network-context.tsx]
+    class UIMessage {
+      +string id
+      +parts MastraDataPart[]
+    }
 
-    L[app/workflows] -->|components| M[workflow-canvas.tsx]
-    L -->|components| N[workflow-header.tsx]
-    L -->|config| O[workflows.ts]
-    L -->|providers| P[workflow-context.tsx]
+    class MastraDataPart {
+      +string type
+      +string id
+      +unknown data
+    }
 
-    Q[app/dashboard] -->|components| R[dashboard.tsx]
-    Q -->|components| S[agent-list.tsx]
-    Q -->|providers| T[dashboard-context.tsx]
+    class AgentDataPart {
+      +string type
+      +string id
+      +AgentExecutionData data
+    }
 
-    U[lib] -->|hooks| V[use-mastra.ts]
-    U -->|hooks| W[use-dashboard-queries.ts]
-    U -->|utils| X[utils.ts]
-    U -->|client| Y[mastra-client.ts]
+    class WorkflowDataPart {
+      +string type
+      +string id
+      +WorkflowExecutionData data
+    }
 
-    Z[src/types] -->|api| AA[mastra-api.ts]
+    class NetworkDataPart {
+      +string type
+      +string id
+      +NetworkExecutionData data
+    }
 
-    AB[src/mastra/index.ts] -->|imports| AC[agents/*]
-    AB -->|imports| AD[tools/*]
-    AB -->|imports| AE[workflows/*]
-    AB -->|imports| AF[networks/*]
-    AB -->|imports| AG[config/*]
+    class AgentExecutionData {
+      +string text
+      +unknown usage
+      +toolResults unknown[]
+    }
 
-    style A stroke:#64b5f6
-    style B stroke:#64b5f6
-    style C stroke:#64b5f6
-    style D stroke:#64b5f6
-    style E stroke:#64b5f6
-    style F stroke:#64b5f6
-    style G stroke:#64b5f6
-    style H stroke:#64b5f6
-    style I stroke:#64b5f6
-    style J stroke:#64b5f6
-    style K stroke:#64b5f6
-    style L stroke:#64b5f6
-    style M stroke:#64b5f6
-    style N stroke:#64b5f6
-    style O stroke:#64b5f6
-    style P stroke:#64b5f6
-    style L stroke:#64b5f6
-    style Q stroke:#64b5f6
-    style U stroke:#64b5f6
-    style Z stroke:#64b5f6
-    style AB stroke:#64b5f6
+    class WorkflowExecutionData {
+      +string name
+      +string status
+      +WorkflowStepMap steps
+      +WorkflowOutput output
+    }
+
+    class NetworkExecutionData {
+      +string name
+      +string status
+      +NetworkStep[] steps
+      +NetworkUsage usage
+      +unknown output
+    }
+
+    class WorkflowStepMap {
+      <<map>>
+      +string key
+      +WorkflowStep value
+    }
+
+    class WorkflowStep {
+      +string status
+      +unknown input
+      +unknown output
+      +unknown suspendPayload
+    }
+
+    class NetworkStep {
+      +string name
+      +string status
+      +unknown input
+      +unknown output
+    }
+
+    class NetworkUsage {
+      +number inputTokens
+      +number outputTokens
+      +number totalTokens
+    }
+
+    class MessageItem {
+      +UIMessage message
+      -MastraDataPart[] dataParts
+      +render()
+    }
+
+    class AgentDataSection {
+      +AgentDataPart part
+      +render()
+    }
+
+    class WorkflowDataSection {
+      +WorkflowDataPart part
+      +render()
+    }
+
+    class NetworkDataSection {
+      +NetworkDataPart part
+      +render()
+    }
+
+    class AgentTool {
+      +string id
+      +string type
+      +unknown data
+      +render()
+    }
+
+    class TypeGuards {
+      +bool hasStringType(unknown part)
+      +bool isAgentDataPart(unknown part)
+      +bool isWorkflowDataPart(unknown part)
+      +bool isNetworkDataPart(unknown part)
+    }
+
+    class KeyHelpers {
+      +string getToolCallId(unknown tool, number fallbackIndex)
+    }
+
+    UIMessage "1" o-- "*" MastraDataPart
+    MastraDataPart <|-- AgentDataPart
+    MastraDataPart <|-- WorkflowDataPart
+    MastraDataPart <|-- NetworkDataPart
+
+    MessageItem ..> MastraDataPart : filters dataParts
+    MessageItem ..> AgentDataPart : uses when isAgentDataPart
+    MessageItem ..> WorkflowDataPart : uses when isWorkflowDataPart
+    MessageItem ..> NetworkDataPart : uses when isNetworkDataPart
+
+    MessageItem --> AgentDataSection : renders nested agent
+    MessageItem --> WorkflowDataSection : renders nested workflow
+    MessageItem --> NetworkDataSection : renders nested network
+    MessageItem --> AgentTool : renders other data-tool-* parts
+
+    MessageItem ..> TypeGuards
+    MessageItem ..> KeyHelpers
+
+    AgentDataSection --> AgentExecutionData
+    WorkflowDataSection --> WorkflowExecutionData
+    NetworkDataSection --> NetworkExecutionData
+
+    WorkflowExecutionData o-- WorkflowStepMap
+    WorkflowStepMap o-- WorkflowStep
+    NetworkExecutionData o-- NetworkStep
+    NetworkExecutionData o-- NetworkUsage
+
+
+    style UIMessage stroke:#64b5f6
+    style MastraDataPart  stroke:#64b5f6
+    style AgentDataPart stroke:#64b5f6
+    style WorkflowDataPart stroke:#64b5f6
+    style NetworkDataPart stroke:#64b5f6
+    style AgentExecutionData stroke:#64b5f6
+    style WorkflowExecutionData stroke:#64b5f6
+    style NetworkExecutionData stroke:#64b5f6
+    style MessageItem stroke:#64b5f6
+    style TypeGuards stroke:#64b5f6
+    style KeyHelpers stroke:#64b5f6
+    style AgentDataSection stroke:#64b5f6
+    style WorkflowDataSection stroke:#64b5f6
+    style NetworkDataSection stroke:#64b5f6
+    style AgentTool stroke:#64b5f6
+    style NetworkUsage stroke:#64b5f6
+    style NetworkStep stroke:#64b5f6
+    style WorkflowStep stroke:#64b5f6
+    style WorkflowStepMap stroke:#64b5f6
+    style uses when stroke:#64b5f6
 ```
 
 ## 🔄 **RAG Pipeline (Production-Grade)**

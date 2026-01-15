@@ -130,7 +130,7 @@ export function AccordionItem({
     )
 }
 
-export interface AccordionTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+export type AccordionTriggerProps = React.ButtonHTMLAttributes<HTMLButtonElement>
 
 export function AccordionTrigger({
     className,
@@ -162,7 +162,7 @@ export function AccordionTrigger({
     )
 }
 
-export interface AccordionContentProps extends React.HTMLAttributes<HTMLDivElement> {}
+export type AccordionContentProps = React.HTMLAttributes<HTMLDivElement>
 
 export function AccordionContent({
     className,
