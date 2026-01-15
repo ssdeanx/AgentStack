@@ -19,6 +19,16 @@ export interface ArxivRequestContext extends RequestContext {
 // toolCallCounters.set('tool-id', (toolCallCounters.get('tool-id') ?? 0) + 1)
 const toolCallCounters = new Map<string, number>()
 
+// Helper to safely detect cancellation errors without using `any`
+function isErrCanceled(err: unknown): boolean {
+    if (err instanceof Error && err.name === 'AbortError') {return true}
+    if (typeof err === 'object' && err !== null && 'code' in err) {
+        const code = (err as { code?: unknown }).code
+        return code === 'ERR_CANCELED'
+    }
+    return false
+}
+
 /**
  * ArXiv Tool
  *
@@ -394,13 +404,7 @@ export const arxivTool = createTool({
                 })
                 // resp already has status/statusText/data from httpFetch
             } catch (err: unknown) {
-                if (
-                    (err &&
-                        typeof err === 'object' &&
-                        'code' in err &&
-                        err.code === 'ERR_CANCELED') ||
-                    (err instanceof Error && err.name === 'AbortError')
-                ) {
+                if (isErrCanceled(err)) {
                     throw new Error('ArXiv search cancelled during API call')
                 }
                 throw err
@@ -588,7 +592,6 @@ export const arxivPdfParserTool = createTool({
             name: 'arxiv-pdf-parser',
             input: inputData,
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
             metadata: {
                 'tool.id': 'arxiv-pdf-parser',
                 'tool.input.arxivId': inputData.arxivId,
@@ -652,7 +655,7 @@ export const arxivPdfParserTool = createTool({
                 id: 'arxiv-pdf-parser',
             })
 
-            let pdfResp: any
+            let pdfResp: HttpFetchResponse
             try {
                 pdfResp = await httpFetch(pdfUrl, {
                     method: 'GET',
@@ -660,11 +663,8 @@ export const arxivPdfParserTool = createTool({
                     responseType: 'arraybuffer',
                     signal: abortSignal,
                 })
-            } catch (err: any) {
-                if (
-                    err?.code === 'ERR_CANCELED' ||
-                    (err instanceof Error && err.name === 'AbortError')
-                ) {
+            } catch (err: unknown) {
+                if (isErrCanceled(err)) {
                     const cancelMessage = `ArXiv PDF parsing cancelled for ${inputData.arxivId}`
                     await writer?.custom({
                         type: 'data-tool-progress',
@@ -703,7 +703,26 @@ export const arxivPdfParserTool = createTool({
                 )
             }
 
-            const pdfBuffer = Buffer.from(pdfResp.data)
+            let pdfBuffer: Buffer
+            const pdfData = pdfResp.data
+
+            if (Buffer.isBuffer(pdfData)) {
+                pdfBuffer = pdfData
+            } else if (pdfData instanceof ArrayBuffer) {
+                pdfBuffer = Buffer.from(new Uint8Array(pdfData))
+            } else if (ArrayBuffer.isView(pdfData)) {
+                // e.g., Uint8Array or other typed array / DataView
+                // Buffer.from does not accept the generic ArrayBufferView type in some TS configs,
+                // so explicitly create a Uint8Array view over the underlying ArrayBuffer slice.
+                const view = pdfData as ArrayBufferView & { byteOffset?: number; byteLength?: number }
+                const offset = view.byteOffset ?? 0
+                const length = view.byteLength ?? view.buffer.byteLength - offset
+                pdfBuffer = Buffer.from(view.buffer.slice(offset, offset + length))
+            } else if (typeof pdfData === 'string') {
+                pdfBuffer = Buffer.from(pdfData, 'utf-8')
+            } else {
+                throw new Error('Unsupported PDF response data type')
+            }
 
             // Extract text from PDF
             const pdfContent = await extractPdfText(
@@ -718,7 +737,7 @@ export const arxivPdfParserTool = createTool({
             if (inputData.includeMetadata) {
                 try {
                     const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`
-                    let apiResp: any
+                    let apiResp: HttpFetchResponse | undefined
                     try {
                         apiResp = await httpFetch(apiUrl, {
                             method: 'GET',
@@ -727,14 +746,7 @@ export const arxivPdfParserTool = createTool({
                             timeout: 30000,
                         })
                     } catch (err: unknown) {
-                        if (
-                            err &&
-                            typeof err === 'object' &&
-                            (('code' in err &&
-                                (err as any).code === 'ERR_CANCELED') ||
-                                (err instanceof Error &&
-                                    err.name === 'AbortError'))
-                        ) {
+                        if (isErrCanceled(err)) {
                             // metadata fetch aborted - continue without it
                             apiResp = undefined
                         } else {
@@ -780,7 +792,7 @@ export const arxivPdfParserTool = createTool({
                             }
                         }
                     }
-                } catch {
+                } catch (err) {
                     // Metadata fetch failed, continue without it
                 }
             }
@@ -1030,7 +1042,7 @@ export const arxivPaperDownloaderTool = createTool({
             name: 'arxiv-paper-downloader',
             input: inputData,
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+
             metadata: {
                 'tool.id': 'arxiv-paper-downloader',
                 'tool.input.arxivId': inputData.arxivId,
@@ -1080,11 +1092,14 @@ export const arxivPaperDownloaderTool = createTool({
                     signal: abortSignal,
                     timeout: 30000,
                 })
-            } catch (err: any) {
-                if (
-                    err?.code === 'ERR_CANCELED' ||
+            } catch (err: unknown) {
+                const isCanceled =
+                    (err &&
+                        typeof err === 'object' &&
+                        'code' in err &&
+                        (err as any).code === 'ERR_CANCELED') ??
                     (err instanceof Error && err.name === 'AbortError')
-                ) {
+                if (isCanceled) {
                     throw new Error(
                         `ArXiv metadata fetch cancelled for ${inputData.arxivId}`
                     )

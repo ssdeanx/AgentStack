@@ -452,7 +452,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
                     : inputData.target,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext: context?.tracingContext,
         })
 
         // Create child span for code analysis operation

@@ -163,15 +163,6 @@ export const listEvents = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Calendar list events completed', {
-            toolCallId,
-            toolName,
-            eventsFound: output.count ?? 0,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (inputData, context) => {
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
@@ -186,7 +177,7 @@ export const listEvents = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext: context?.tracingContext,
         })
 
         log.debug('Executing calendar list events for user', {
@@ -248,6 +239,15 @@ export const listEvents = createTool({
             return { content: `Error: ${errorMsg}` }
         }
     },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Calendar list events completed', {
+            toolCallId,
+            toolName,
+            eventsFound: output.count ?? 0,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
 })
 
 export const getTodayEvents = createTool({
@@ -279,7 +279,6 @@ export const getTodayEvents = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing get today events for user', {
@@ -398,6 +397,7 @@ export const getUpcomingEvents = createTool({
         ),
         count: z.number(),
     }),
+    
     execute: async (inputData, context) => {
         const requestCtx = context?.requestContext as
             | CalendarRequestContext
@@ -413,7 +413,6 @@ export const getUpcomingEvents = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing get upcoming events for user', {
@@ -481,33 +480,6 @@ export const getUpcomingEvents = createTool({
             return { events: [], count: 0 }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Upcoming events tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Upcoming events tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Upcoming events tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            days: input.days,
-            limit: input.limit,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Upcoming events tool completed', {
             toolCallId,
@@ -570,7 +542,6 @@ export const findFreeSlots = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         log.debug('Executing find free slots for user', {

@@ -159,24 +159,22 @@ export const chartJsTool = createTool({
         try {
             // Calculate indicators
             for (const ind of indicators) {
-                let indicatorData: number[] = []
+                let indicatorData: Array<number | null> = []
                 let label = ''
                 const color = ind.color ?? '#ff0000'
 
                 try {
                     switch (ind.type) {
-                        case 'SMA':
-                            indicatorData = SMA.calculate({
+                        case 'SMA': {
+                            const sma = (SMA.calculate({
                                 period: ind.period,
                                 values: closePrices,
-                            })
+                            })) ?? []
                             label = `SMA (${ind.period})`
                             // Pad beginning with nulls to match length
-                            indicatorData = Array(
-                                closePrices.length - indicatorData.length
-                            )
-                                .fill(null)
-                                .concat(indicatorData)
+                            indicatorData = (Array(
+                                closePrices.length - sma.length
+                            ).fill(null) as Array<number | null>).concat(sma)
                             datasets.push({
                                 label,
                                 data: indicatorData,
@@ -187,17 +185,14 @@ export const chartJsTool = createTool({
                                 yAxisID: 'y',
                             })
                             break
-                        case 'EMA':
-                            indicatorData = EMA.calculate({
+                        }
+                        case 'EMA': {
+                            const ema = EMA.calculate({
                                 period: ind.period,
                                 values: closePrices,
-                            })
+                            }) ?? []
                             label = `EMA (${ind.period})`
-                            indicatorData = Array(
-                                closePrices.length - indicatorData.length
-                            )
-                                .fill(null)
-                                .concat(indicatorData)
+                            indicatorData = (Array(closePrices.length - ema.length).fill(null) as Array<number | null>).concat(ema)
                             datasets.push({
                                 label,
                                 data: indicatorData,
@@ -208,17 +203,18 @@ export const chartJsTool = createTool({
                                 yAxisID: 'y',
                             })
                             break
-                        case 'RSI':
-                            indicatorData = RSI.calculate({
+                        }
+                        case 'RSI': {
+                            const rsiValues = (RSI.calculate({
                                 period: ind.period,
                                 values: closePrices,
-                            })
+                            }) ?? [])
                             label = `RSI (${ind.period})`
                             indicatorData = Array(
-                                closePrices.length - indicatorData.length
+                                closePrices.length - rsiValues.length
                             )
                                 .fill(null)
-                                .concat(indicatorData)
+                                .concat(rsiValues) as Array<number | null>
                             datasets.push({
                                 label,
                                 data: indicatorData,
@@ -230,21 +226,31 @@ export const chartJsTool = createTool({
                                 type: 'line',
                             })
                             break
+                        }
                         case 'MACD': {
-                            const macdResult = MACD.calculate({
+                            const macdResult = (MACD.calculate({
                                 fastPeriod: ind.fastPeriod ?? 12,
                                 slowPeriod: ind.slowPeriod ?? 26,
                                 signalPeriod: ind.signalPeriod ?? 9,
                                 values: closePrices,
                                 SimpleMAOscillator: false,
                                 SimpleMASignal: false,
-                            })
-                            const macd = macdResult.map((m) => m.MACD)
-                            const signal = macdResult.map((m) => m.signal)
-                            const histogram = macdResult.map((m) => m.histogram)
+                            }) ?? []) as Array<Record<string, unknown>>
+
+                            // Ensure the mapped series are typed as numbers to avoid `any[]` assignments
+                            const macd = macdResult.map((m: Record<string, unknown>) =>
+                                Number((m.MACD) as number)
+                            )
+                            const signal = macdResult.map((m: Record<string, unknown>) =>
+                                Number((m.signal) as number)
+                            )
+                            const histogram = macdResult.map((m: Record<string, unknown>) =>
+                                Number((m.histogram) as number)
+                            )
+
                             const padding = Array(
                                 closePrices.length - macd.length
-                            ).fill(null)
+                            ).fill(null) as Array<number | null>
 
                             datasets.push({
                                 label: 'MACD',
@@ -275,15 +281,20 @@ export const chartJsTool = createTool({
                         }
                         case 'BollingerBands':
                             {
-                                const bb = BollingerBands.calculate({
+                                const bb = (BollingerBands.calculate({
                                     period: ind.period,
                                     stdDev: ind.stdDev ?? 2,
                                     values: closePrices,
-                                })
-                                const upper = bb.map((b) => b.upper)
-                                const middle = bb.map((b) => b.middle)
-                                const lower = bb.map((b) => b.lower)
-                                const padding = Array(
+                                }) ?? []) as Array<{
+                                    upper: number
+                                    middle: number
+                                    lower: number
+                                }>
+
+                                const upper: number[] = bb.map((b) => Number(b.upper))
+                                const middle: number[] = bb.map((b) => Number(b.middle))
+                                const lower: number[] = bb.map((b) => Number(b.lower))
+                                const padding: Array<number | null> = new Array<number | null>(
                                     closePrices.length - bb.length
                                 ).fill(null)
 

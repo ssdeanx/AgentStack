@@ -535,7 +535,14 @@ export const pivotPointsTool = createTool({
         try {
             const { high, low, close } = inputData
             const pp = (high + low + close) / 3
-            const results: any = { success: true }
+            const results: {
+                success: true
+                standard?: StandardPivot
+                woodie?: WoodiePivot
+                camarilla?: CamarillaPivot
+                fibonacci?: FibonacciPivot
+                message?: string
+            } = { success: true }
 
             results.standard = {
                 pp,
@@ -1556,7 +1563,7 @@ export const heikinAshiTool = createTool({
         try {
             const candlesRaw = heikinashi(inputData)
             const candles = Array.isArray(candlesRaw)
-                ? candlesRaw.map((c: any) => ({
+                ? (candlesRaw as HeikinAshiOutput[]).map((c) => ({
                       open: Number(c.open),
                       high: Number(c.high),
                       low: Number(c.low),
