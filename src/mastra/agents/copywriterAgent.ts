@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { google3 } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import {
@@ -16,12 +15,13 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-import {
-  createCompletenessScorer,
-  createTextualDifferenceScorer,
-  createToneScorer,
-} from '../evals/scorers/prebuilt'
+//import {
+ // createCompletenessScorer,
+ // createTextualDifferenceScorer,
+ // createToneScorer,
+//} from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+
 // Define runtime context for this agent
 export interface CopywriterAgentContext {
   userId?: string
@@ -72,7 +72,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
       },
     }
   },
-  model: google3,
+  model: 'google/gemini-2.5-flash-lite-preview-09-2025',
   memory: pgMemory,
   tools: {
     webScraperTool,
@@ -85,9 +85,9 @@ Create compelling content (blog, marketing, social, technical, business, creativ
     chartSupervisorTool,
   },
   scorers: {
-    toneConsistency: { scorer: createToneScorer() },
-    textualDifference: { scorer: createTextualDifferenceScorer() },
-    completeness: { scorer: createCompletenessScorer() },
+   // toneConsistency: { scorer: createToneScorer() },
+   // textualDifference: { scorer: createTextualDifferenceScorer() },
+   // completeness: { scorer: createCompletenessScorer() },
   },
   options: {
     tracingPolicy: {
@@ -96,7 +96,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
   },
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  outputProcessors: [new TokenLimiterProcessor(128576)],
   //  defaultOptions: {
   //     autoResumeSuspendedTools: true,
   // },
