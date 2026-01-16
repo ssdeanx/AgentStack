@@ -71,12 +71,11 @@ export const legalResearchAgent = new Agent({
   instructions: ({
     requestContext,
   }: {
-    requestContext: RequestContext<BusinessRuntimeContext>
+    requestContext: RequestContext<unknown>
   }) => {
     // runtimeContext is read at invocation time
     const userTier = requestContext.get('user-tier') ?? 'free'
     const language = requestContext.get('language') ?? 'en'
-    const responseFormat = requestContext.get('responseFormat') ?? 'json'
     const research = requestContext.get('research') ?? {
       depth: 'extensive',
       scope: 'full',
@@ -88,37 +87,37 @@ export const legalResearchAgent = new Agent({
     return {
       role: 'system',
       content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
-      Your working with:
-      - User: ${userTier}
-      - Language: ${language}
-      - Research: Depth ${research.depth}, Scope ${research.scope}
-      - Analysis: Depth ${analysis.depth}, Scope ${analysis.scope}
+                              Your working with:
+                              - User: ${userTier}
+                              - Language: ${language}
+                              - Research: Depth ${(research as any).depth ?? 'extensive'}, Scope ${(research as any).scope ?? 'full'}
+                              - Analysis: Depth ${(analysis as any).depth ?? 'extensive'}, Scope ${(analysis as any).scope ?? 'full'}
 
-**Key Guidelines:**
-- Focus on primary sources: statutes, case law, regulations
-- Evaluate authority and jurisdiction
-- Provide confidence assessments for findings
-- Cite sources properly
+                        **Key Guidelines:**
+                        - Focus on primary sources: statutes, case law, regulations
+                        - Evaluate authority and jurisdiction
+                        - Provide confidence assessments for findings
+                        - Cite sources properly
 
-**Rules:**
-- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+                        **Rules:**
+                        - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
 
-**Process:**
-1. Break down legal issues into specific queries
-2. Search authoritative databases
-3. Evaluate relevance and authority
-4. Extract key insights and follow-up questions
-5. Synthesize findings with confidence levels
+                        **Process:**
+                        1. Break down legal issues into specific queries
+                        2. Search authoritative databases
+                        3. Evaluate relevance and authority
+                        4. Extract key insights and follow-up questions
+                        5. Synthesize findings with confidence levels
 
-**Examples:**
-- Query: "Breach of contract remedies in California"
-  → Research California Civil Code, relevant case law, provide summary with citations
-- Query: "Data privacy regulations for EU businesses"
-  → Analyze GDPR requirements, enforcement cases, compliance implications
+                        **Examples:**
+                        - Query: "Breach of contract remedies in California"
+                          → Research California Civil Code, relevant case law, provide summary with citations
+                        - Query: "Data privacy regulations for EU businesses"
+                          → Analyze GDPR requirements, enforcement cases, compliance implications
 
-**Output:** Return findings in JSON format with queries, results, summary, sources, and confidence level.
-${PGVECTOR_PROMPT}
-      `,
+                        **Output:** Return findings in JSON format with queries, results, summary, sources, and confidence level.
+                        ${PGVECTOR_PROMPT}
+                              `,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -134,7 +133,7 @@ ${PGVECTOR_PROMPT}
   model: ({
     requestContext,
   }: {
-    requestContext: RequestContext<BusinessRuntimeContext>
+    requestContext: RequestContext<unknown>
   }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
@@ -154,7 +153,7 @@ ${PGVECTOR_PROMPT}
     linkExtractorTool,
     htmlToMarkdownTool,
     contentCleanerTool,
-    pgQueryTool,
+    //  pgQueryTool,
     batchWebScraperTool,
     mdocumentChunker,
     evaluateResultTool,
@@ -241,13 +240,12 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
       `,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             includeThoughts: true,
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
-        },
+        } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
@@ -337,13 +335,13 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
       `,
       providerOptions: {
         google: {
-          structuredOutput: true,
+
           thinkingConfig: {
             includeThoughts: true,
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
-        },
+        } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
@@ -434,13 +432,12 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
       `,
       providerOptions: {
         google: {
-          structuredOutput: true,
           thinkingConfig: {
             includeThoughts: true,
             thinkingBudget: -1,
           },
           responseModalities: ['TEXT'],
-        },
+        } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
