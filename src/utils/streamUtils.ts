@@ -99,7 +99,7 @@ export function streamJSONEvent<T>(
  */
 export async function handleTextStream(
     streamResult:
-        | StreamTextResult<ToolSet, unknown>
+        | StreamTextResult<ToolSet, any>
         | { textStream: AsyncIterable<string> },
     streamController: ReadableStreamDefaultController<Uint8Array>
 ): Promise<string> {

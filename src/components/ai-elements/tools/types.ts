@@ -1,148 +1,151 @@
-import type { InferUITool } from '@mastra/core/tools'
 import type {
-    activeDistTag,
-    addIssueComment,
-    alphaVantageCryptoTool,
-    alphaVantageStockTool,
-    alphaVantageTool,
-    amazonSearchTool,
-    apiDataFetcherTool,
-    archiveDataTool,
-    arxivPaperDownloaderTool,
-    arxivPdfParserTool,
-    arxivTool,
-    backupDataTool,
-    batchWebScraperTool,
-    browserTool,
-    chartDataProcessorTool,
-    chartGeneratorTool,
-    chartSupervisorTool,
-    chartTypeAdvisorTool,
-    checkFileExists,
-    clickAndExtractTool,
-    codeAnalysisTool,
-    codeChunkerTool,
-    codeSearchTool,
-    colorChangeTool,
-    contentCleanerTool,
-    copyDataFileTool,
-    copywriterTool,
-    createDataDirTool,
-    createDirectory,
-    createIssue,
-    createPullRequest,
-    createRelease,
-    createSandbox,
-    csvToExcalidrawTool,
-    csvToJsonTool,
-    dataExporterTool,
-    dataValidatorToolJSON,
-    deleteDataFileTool,
-    deleteFile,
-    diffReviewTool,
-    documentRerankerTool,
-    ebaySearchTool,
-    editorTool,
-    evaluateResultTool,
-    excalidrawToSVGTool,
-    execaTool,
-    extractLearningsTool,
-    extractTablesTool,
-    fillFormTool,
-    findFreeSlots,
-    findReferencesTool,
-    findSymbolTool,
-    finnhubAnalysisTool,
-    finnhubCompanyTool,
-    finnhubEconomicTool,
-    finnhubFinancialsTool,
-    finnhubQuotesTool,
-    finnhubTechnicalTool,
-    fsTool,
-    getDataFileInfoTool,
-    getFileContent,
-    getFileInfo,
-    getFileSize,
-    getIssue,
-    getPullRequest,
-    getRepoFileTree,
-    getRepositoryInfo,
-    getTodayEvents,
-    getUpcomingEvents,
-    googleAiOverviewTool,
-    googleAutocompleteTool,
-    googleFinanceTool,
-    googleNewsLiteTool,
-    googleNewsTool,
-    googleScholarTool,
-    googleSearch,
-    googleSearchTool,
-    googleTrendsTool,
-    homeDepotSearchTool,
-    htmlToMarkdownTool,
-    imageToCSVTool,
-    jsonToCsvTool,
-    jwtAuthTool,
-    linkExtractorTool,
-    listCommits,
-    listDataDirTool,
-    listEvents,
-    listFiles,
-    listIssues,
-    listPullRequests,
-    listRepositories,
-    listScrapedContentTool,
-    mastraChunker,
-    mdocumentChunker,
-    mergePullRequest,
-    monitorPageTool,
-    moveDataFileTool,
-    multiStringEditTool,
-    pdfGeneratorTool,
-    pdfToMarkdownTool,
-    pnpmBuild,
-    pnpmChangesetPublish,
-    pnpmChangesetStatus,
-    pnpmRun,
-    polygonCryptoAggregatesTool,
-    polygonCryptoQuotesTool,
-    polygonCryptoSnapshotsTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-    polygonStockQuotesTool,
-    processSVGTool,
-    processXMLTool,
-    readCSVDataTool,
-    readDataFileTool,
-    readFile,
-    readPDF,
-    removeDataDirTool,
-    runCode,
-    runCommand,
-    scrapingSchedulerTool,
-    screenshotTool,
-    searchCode,
-    searchDataFilesTool,
-    siteMapExtractorTool,
-    svgToExcalidrawTool,
-    testGeneratorTool,
-    validateDataTool,
-    validateExcalidrawTool,
-    walmartSearchTool,
-    watchDirectory,
-    weatherTool,
-    webScraperTool,
-    writeDataFileTool,
-    writeFile,
-    writeFiles,
-    writeNoteTool,
-    yelpSearchTool,
+  activeDistTag,
+  addIssueComment,
+  alphaVantageCryptoTool,
+  alphaVantageStockTool,
+  alphaVantageTool,
+  amazonSearchTool,
+  apiDataFetcherTool,
+  archiveDataTool,
+  arxivPaperDownloaderTool,
+  arxivPdfParserTool,
+  arxivTool,
+  backupDataTool,
+  batchWebScraperTool,
+  browserTool,
+  calculatorTool,
+  chartDataProcessorTool,
+  chartGeneratorTool,
+  chartSupervisorTool,
+  chartTypeAdvisorTool,
+  checkFileExists,
+  clickAndExtractTool,
+  codeAnalysisTool,
+  codeChunkerTool,
+  codeSearchTool,
+  colorChangeTool,
+  contentCleanerTool,
+  copyDataFileTool,
+  copywriterTool,
+  createDataDirTool,
+  createDirectory,
+  createIssue,
+  createPullRequest,
+  createRelease,
+  createSandbox,
+  csvToExcalidrawTool,
+  csvToJsonTool,
+  dataExporterTool,
+  dataValidatorToolJSON,
+  deleteDataFileTool,
+  deleteFile,
+  diffReviewTool,
+  documentRerankerTool,
+  ebaySearchTool,
+  editorTool,
+  evaluateResultTool,
+  excalidrawToSVGTool,
+  execaTool,
+  extractLearningsTool,
+  extractTablesTool,
+  fillFormTool,
+  findFreeSlots,
+  findReferencesTool,
+  findSymbolTool,
+  finnhubAnalysisTool,
+  finnhubCompanyTool,
+  finnhubEconomicTool,
+  finnhubFinancialsTool,
+  finnhubQuotesTool,
+  finnhubTechnicalTool,
+  fsTool,
+  getDataFileInfoTool,
+  getFileContent,
+  getFileInfo,
+  getFileSize,
+  getIssue,
+  getPullRequest,
+  getRepoFileTree,
+  getRepositoryInfo,
+  getTodayEvents,
+  getUpcomingEvents,
+  googleAiOverviewTool,
+  googleAutocompleteTool,
+  googleFinanceTool,
+  googleNewsLiteTool,
+  googleNewsTool,
+  googleScholarTool,
+  googleSearch,
+  googleSearchTool,
+  googleTrendsTool,
+  homeDepotSearchTool,
+  htmlToMarkdownTool,
+  imageToCSVTool,
+  jsonToCsvTool,
+  jwtAuthTool,
+  linkExtractorTool,
+  listCommits,
+  listDataDirTool,
+  listEvents,
+  listFiles,
+  listIssues,
+  listPullRequests,
+  listRepositories,
+  listScrapedContentTool,
+  mastraChunker,
+  matrixCalculatorTool,
+  mdocumentChunker,
+  mergePullRequest,
+  monitorPageTool,
+  moveDataFileTool,
+  multiStringEditTool,
+  pdfGeneratorTool,
+  pdfToMarkdownTool,
+  pnpmBuild,
+  pnpmChangesetPublish,
+  pnpmChangesetStatus,
+  pnpmRun,
+  polygonCryptoAggregatesTool,
+  polygonCryptoQuotesTool,
+  polygonCryptoSnapshotsTool,
+  polygonStockAggregatesTool,
+  polygonStockFundamentalsTool,
+  polygonStockQuotesTool,
+  processSVGTool,
+  processXMLTool,
+  readCSVDataTool,
+  readDataFileTool,
+  readFile,
+  readPDF,
+  removeDataDirTool,
+  runCode,
+  runCommand,
+  scrapingSchedulerTool,
+  screenshotTool,
+  searchCode,
+  searchDataFilesTool,
+  siteMapExtractorTool,
+  svgToExcalidrawTool,
+  testGeneratorTool,
+  unitConverterTool,
+  validateDataTool,
+  validateExcalidrawTool,
+  walmartSearchTool,
+  watchDirectory,
+  weatherTool,
+  webScraperTool,
+  writeDataFileTool,
+  writeFile,
+  writeFiles,
+  writeNoteTool,
+  yelpSearchTool,
 } from '@/src/mastra/tools'
+import type { InferUITool } from '@mastra/core/tools'
 
 export type ActiveDistTagUITool = InferUITool<typeof activeDistTag>
 export type AddIssueCommentUITool = InferUITool<typeof addIssueComment>
 export type AlphaVantageCryptoUITool = InferUITool<
-    typeof alphaVantageCryptoTool
+  typeof alphaVantageCryptoTool
 >
 export type AlphaVantageStockUITool = InferUITool<typeof alphaVantageStockTool>
 export type AlphaVantageUITool = InferUITool<typeof alphaVantageTool>
@@ -150,7 +153,7 @@ export type AmazonSearchUITool = InferUITool<typeof amazonSearchTool>
 export type ApiDataFetcherUITool = InferUITool<typeof apiDataFetcherTool>
 export type ArchiveDataUITool = InferUITool<typeof archiveDataTool>
 export type ArxivPaperDownloaderUITool = InferUITool<
-    typeof arxivPaperDownloaderTool
+  typeof arxivPaperDownloaderTool
 >
 export type ArxivPdfParserUITool = InferUITool<typeof arxivPdfParserTool>
 export type ArxivUITool = InferUITool<typeof arxivTool>
@@ -158,7 +161,7 @@ export type BackupDataUITool = InferUITool<typeof backupDataTool>
 export type BatchWebScraperUITool = InferUITool<typeof batchWebScraperTool>
 export type BrowserUITool = InferUITool<typeof browserTool>
 export type ChartDataProcessorUITool = InferUITool<
-    typeof chartDataProcessorTool
+  typeof chartDataProcessorTool
 >
 export type ChartGeneratorUITool = InferUITool<typeof chartGeneratorTool>
 export type ChartSupervisorUITool = InferUITool<typeof chartSupervisorTool>
@@ -183,7 +186,7 @@ export type CsvToExcalidrawUITool = InferUITool<typeof csvToExcalidrawTool>
 export type CsvToJsonUITool = InferUITool<typeof csvToJsonTool>
 export type DataExporterUITool = InferUITool<typeof dataExporterTool>
 export type DataValidatorToolJSONUITool = InferUITool<
-    typeof dataValidatorToolJSON
+  typeof dataValidatorToolJSON
 >
 export type DeleteDataFileUITool = InferUITool<typeof deleteDataFileTool>
 export type DeleteFileUITool = InferUITool<typeof deleteFile>
@@ -219,7 +222,7 @@ export type GetTodayEventsUITool = InferUITool<typeof getTodayEvents>
 export type GetUpcomingEventsUITool = InferUITool<typeof getUpcomingEvents>
 export type GoogleAiOverviewUITool = InferUITool<typeof googleAiOverviewTool>
 export type GoogleAutocompleteUITool = InferUITool<
-    typeof googleAutocompleteTool
+  typeof googleAutocompleteTool
 >
 export type GoogleFinanceUITool = InferUITool<typeof googleFinanceTool>
 export type GoogleNewsLiteUITool = InferUITool<typeof googleNewsLiteTool>
@@ -242,7 +245,7 @@ export type ListIssuesUITool = InferUITool<typeof listIssues>
 export type ListPullRequestsUITool = InferUITool<typeof listPullRequests>
 export type ListRepositoriesUITool = InferUITool<typeof listRepositories>
 export type ListScrapedContentUITool = InferUITool<
-    typeof listScrapedContentTool
+  typeof listScrapedContentTool
 >
 export type MastraChunkerUITool = InferUITool<typeof mastraChunker>
 export type MdocumentChunkerUITool = InferUITool<typeof mdocumentChunker>
@@ -254,27 +257,27 @@ export type PdfGeneratorUITool = InferUITool<typeof pdfGeneratorTool>
 export type PdfToMarkdownUITool = InferUITool<typeof pdfToMarkdownTool>
 export type PnpmBuildUITool = InferUITool<typeof pnpmBuild>
 export type PnpmChangesetPublishUITool = InferUITool<
-    typeof pnpmChangesetPublish
+  typeof pnpmChangesetPublish
 >
 export type PnpmChangesetStatusUITool = InferUITool<typeof pnpmChangesetStatus>
 export type PnpmRunUITool = InferUITool<typeof pnpmRun>
 export type PolygonCryptoAggregatesUITool = InferUITool<
-    typeof polygonCryptoAggregatesTool
+  typeof polygonCryptoAggregatesTool
 >
 export type PolygonCryptoQuotesUITool = InferUITool<
-    typeof polygonCryptoQuotesTool
+  typeof polygonCryptoQuotesTool
 >
 export type PolygonCryptoSnapshotsUITool = InferUITool<
-    typeof polygonCryptoSnapshotsTool
+  typeof polygonCryptoSnapshotsTool
 >
 export type PolygonStockAggregatesUITool = InferUITool<
-    typeof polygonStockAggregatesTool
+  typeof polygonStockAggregatesTool
 >
 export type PolygonStockFundamentalsUITool = InferUITool<
-    typeof polygonStockFundamentalsTool
+  typeof polygonStockFundamentalsTool
 >
 export type PolygonStockQuotesUITool = InferUITool<
-    typeof polygonStockQuotesTool
+  typeof polygonStockQuotesTool
 >
 export type ProcessSVGUITool = InferUITool<typeof processSVGTool>
 export type ProcessXMLUITool = InferUITool<typeof processXMLTool>
@@ -284,6 +287,9 @@ export type ReadFileUITool = InferUITool<typeof readFile>
 export type ReadPDFUITool = InferUITool<typeof readPDF>
 export type RemoveDataDirUITool = InferUITool<typeof removeDataDirTool>
 export type RunCodeUITool = InferUITool<typeof runCode>
+export type CalculatorUITool = InferUITool<typeof calculatorTool>
+export type UnitConverterUITool = InferUITool<typeof unitConverterTool>
+export type MatrixCalculatorUITool = InferUITool<typeof matrixCalculatorTool>
 export type RunCommandUITool = InferUITool<typeof runCommand>
 export type ScrapingSchedulerUITool = InferUITool<typeof scrapingSchedulerTool>
 export type ScreenshotUITool = InferUITool<typeof screenshotTool>
@@ -294,7 +300,7 @@ export type SvgToExcalidrawUITool = InferUITool<typeof svgToExcalidrawTool>
 export type TestGeneratorUITool = InferUITool<typeof testGeneratorTool>
 export type ValidateDataUITool = InferUITool<typeof validateDataTool>
 export type ValidateExcalidrawUITool = InferUITool<
-    typeof validateExcalidrawTool
+  typeof validateExcalidrawTool
 >
 export type WalmartSearchUITool = InferUITool<typeof walmartSearchTool>
 export type WatchDirectoryUITool = InferUITool<typeof watchDirectory>

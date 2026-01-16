@@ -131,7 +131,7 @@ function mapTypeForOrg(
         case 'forks':
         case 'sources':
         case 'member':
-            return type as any
+            return type
         default:
             return undefined
     }
@@ -409,6 +409,16 @@ interface GitHubIssue {
     pull_request?: Record<string, unknown> | null
 }
 
+interface GitHubCommit {
+    sha: string
+    commit?: {
+        message?: string
+        // commit.author may include an email and can be null per GitHub API
+        author?: { name?: string; email?: string; date?: string } | null
+    } | null
+    html_url?: string
+}
+
 export const listPullRequests = createTool({
     id: 'github:listPullRequests',
     description: 'List pull requests for a repository',
@@ -604,10 +614,10 @@ export const listCommits = createTool({
                 per_page: inputData.perPage,
             })
 
-            const commits = (res.data ?? []).map((c: any) => ({
-                sha: c.sha as string,
+            const commits = (res.data ?? []).map((c: GitHubCommit) => ({
+                sha: c.sha,
                 message: c.commit?.message ?? '',
-                author: (c.commit?.author?.name as string) ?? null,
+                author: c.commit?.author?.name ?? null,
                 date: c.commit?.author?.date ?? '',
                 url: c.html_url ?? '',
             }))
