@@ -8,6 +8,7 @@ import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import {
   codeArchitectAgent,
@@ -197,7 +198,7 @@ When a user's request requires prolonged, structured work across multiple subtas
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-        },
+        } satisfies GoogleGenerativeAIProviderOptions,
       },
     }
   },
