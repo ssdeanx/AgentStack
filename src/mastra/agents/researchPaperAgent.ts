@@ -53,11 +53,7 @@ User: ${userTier} | Lang: ${language}
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 `
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise

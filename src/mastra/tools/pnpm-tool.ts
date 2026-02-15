@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
@@ -67,7 +67,7 @@ export const pnpmBuild = createTool({
         const { verbose } = pnpmContextSchema.parse(pnpmContext ?? {})
 
         // Create child span for pnpm build using Mastra tracing context
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'pnpm-build',
             input: { name: inputData.name, packagePath: inputData.packagePath },

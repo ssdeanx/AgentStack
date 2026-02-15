@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import chalk from 'chalk'
 import { existsSync, readFileSync } from 'node:fs'
 import * as path from 'node:path'
@@ -61,7 +61,7 @@ export const readPDF = createTool({
             | undefined
 
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'read-pdf',
             input: { pdfPath: inputData.pdfPath },

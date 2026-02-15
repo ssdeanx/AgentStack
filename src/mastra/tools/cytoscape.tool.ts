@@ -89,7 +89,7 @@ export const cytoscapeTool = createTool({
                 'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext,
         })
 
         // Create child span for graph generation

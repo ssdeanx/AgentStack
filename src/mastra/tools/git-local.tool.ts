@@ -1,7 +1,7 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { ExecaError as ExecaErrorType } from 'execa'
 import execa from 'execa'
 import { z } from 'zod'
@@ -24,6 +24,56 @@ const gitToolContextSchema = z.object({
     maxCommits: z.number().optional(),
     timeout: z.number().optional(),
 })
+
+interface GitBranchOperationResult {
+    branches?: Array<{
+        name: string
+        current: boolean
+        remote: boolean
+        lastCommit?: string
+        tracking?: string
+    }>
+    currentBranch?: string
+    affectedCommits?: number
+    conflicts?: string[]
+    message?: string
+}
+
+interface GitStashOperationResult {
+    stashes?: Array<{
+        index: number
+        message: string
+        date: string
+        author: string
+        branch?: string
+        files?: number
+    }>
+    appliedFiles?: number
+    stashHash?: string
+    diff?: string
+    message?: string
+}
+
+interface GitConfigOperationResult {
+    config?: Record<string, string>
+    value?: string
+    message?: string
+}
+
+function formatGitError(e: unknown): {
+    message: string
+    exitCode: number | undefined
+    stderr: string | undefined
+} {
+    const execaErr = e as ExecaErrorType
+    const message =
+        execaErr.message ?? (e instanceof Error ? e.message : String(e))
+    const exitCode =
+        typeof execaErr.exitCode === 'number' ? execaErr.exitCode : undefined
+    const stderr =
+        typeof execaErr.stderr === 'string' ? execaErr.stderr : undefined
+    return { message, exitCode, stderr }
+}
 
 // Enhanced Git Status Tool with more detailed information
 export const gitStatusTool = createTool({
@@ -83,8 +133,8 @@ export const gitStatusTool = createTool({
             throw new Error('Git status cancelled')
         }
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-status',
             input: {
@@ -95,6 +145,8 @@ export const gitStatusTool = createTool({
                 'tool.id': 'git:status',
                 'tool.input.repoPath': inputData.repoPath,
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
 
         await writer?.custom({
@@ -202,7 +254,7 @@ export const gitStatusTool = createTool({
                         }
                     }
                 } catch (branchError) {
-                    // Ignore branch info errors
+                    log.warn('Failed to get branch info', { error: branchError instanceof Error ? branchError.message : String(branchError) })
                 }
             }
 
@@ -385,8 +437,8 @@ export const gitDiffTool = createTool({
             id: 'git:diff',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-diff',
             input: { target: inputData.target, context: inputData.context },
@@ -395,13 +447,15 @@ export const gitDiffTool = createTool({
                 'tool.input.target': inputData.target,
                 'tool.input.context': inputData.context,
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
 
         try {
             const cwd = inputData.repoPath ?? process.cwd()
             const args = ['diff']
 
-            if (inputData.target) {
+            if (inputData.target !== undefined && inputData.target !== '') {
                 args.push(inputData.target)
             }
 
@@ -438,7 +492,7 @@ export const gitDiffTool = createTool({
             if (inputData.stat) {
                 try {
                     const statArgs = ['diff', '--stat']
-                    if (inputData.target) {
+                    if (inputData.target !== undefined && inputData.target !== '') {
                         statArgs.push(inputData.target)
                     }
                     if (inputData.paths && inputData.paths.length > 0) {
@@ -471,7 +525,9 @@ export const gitDiffTool = createTool({
                         }
                     }
                 } catch (statError) {
-                    // Ignore stat parsing errors
+                    log.warn('Git diff stat parsing failed', {
+                        error: formatGitError(statError),
+                    })
                 }
             }
 
@@ -480,7 +536,7 @@ export const gitDiffTool = createTool({
             if (inputData.patch) {
                 try {
                     const patchArgs = ['diff', '--no-color', '--patch']
-                    if (inputData.target) {
+                    if (inputData.target !== undefined && inputData.target !== '') {
                         patchArgs.push(inputData.target)
                     }
                     if (inputData.paths && inputData.paths.length > 0) {
@@ -494,7 +550,7 @@ export const gitDiffTool = createTool({
                     })
                     patch = patchResult.stdout || ''
                 } catch (patchError) {
-                    // Ignore patch generation errors
+                    log.warn('Git diff patch generation failed', { error: patchError instanceof Error ? patchError.message : String(patchError) })
                 }
             }
 
@@ -584,8 +640,9 @@ export const gitCommitTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
+        log.info('Git commit request context loaded', { hasContext: requestContext !== undefined })
 
-        const requestCtx = context?.requestContext as GitToolContext | undefined
+        const requestCtx = requestContext as GitToolContext | undefined
         const allowAmend = requestCtx?.allowAmend ?? false
         const timeout = requestCtx?.timeout ?? 30000
         const abortSignal = context?.abortSignal
@@ -605,8 +662,8 @@ export const gitCommitTool = createTool({
             id: 'git:commit',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-commit',
             input: { message: inputData.message, amend: inputData.amend },
@@ -614,6 +671,8 @@ export const gitCommitTool = createTool({
                 'tool.id': 'git:commit',
                 'tool.input.amend': inputData.amend,
             },
+            requestContext,
+            tracingContext,
         })
 
         try {
@@ -660,15 +719,15 @@ export const gitCommitTool = createTool({
                 args.push('--no-verify')
             }
 
-            if (inputData.author) {
+            if (inputData.author !== undefined && inputData.author !== '') {
                 args.push('--author', inputData.author)
             }
 
-            if (inputData.date) {
+            if (inputData.date !== undefined && inputData.date !== '') {
                 args.push('--date', inputData.date)
             }
 
-            const result = await execa('git', args, {
+            await execa('git', args, {
                 cwd,
                 stdio: 'pipe',
                 timeout,
@@ -693,7 +752,7 @@ export const gitCommitTool = createTool({
                 })
                 previousHash = prevResult.stdout.trim()
             } catch (prevError) {
-                // No previous commit (first commit)
+                log.debug('No previous commit found', { error: prevError instanceof Error ? prevError.message : String(prevError) })
             }
 
             await writer?.custom({
@@ -845,8 +904,8 @@ export const gitLogTool = createTool({
             id: 'git:log',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-log',
             input: { count: inputData.count, oneline: inputData.oneline },
@@ -855,6 +914,8 @@ export const gitLogTool = createTool({
                 'tool.input.count': inputData.count,
                 'tool.input.oneline': inputData.oneline,
             },
+            requestContext,
+            tracingContext,
         })
 
         try {
@@ -878,19 +939,19 @@ export const gitLogTool = createTool({
             // Limits and filters
             args.push(`--max-count=${actualCount}`)
 
-            if (inputData.author) {
+            if (inputData.author !== undefined && inputData.author !== '') {
                 args.push(`--author=${inputData.author}`)
             }
 
-            if (inputData.since) {
+            if (inputData.since !== undefined && inputData.since !== '') {
                 args.push(`--since=${inputData.since}`)
             }
 
-            if (inputData.until) {
+            if (inputData.until !== undefined && inputData.until !== '') {
                 args.push(`--until=${inputData.until}`)
             }
 
-            if (inputData.grep) {
+            if (inputData.grep !== undefined && inputData.grep !== '') {
                 args.push(`--grep=${inputData.grep}`)
             }
 
@@ -902,11 +963,11 @@ export const gitLogTool = createTool({
                 args.push('--no-merges')
             }
 
-            if (inputData.branch) {
+            if (inputData.branch !== undefined && inputData.branch !== '') {
                 args.push(inputData.branch)
             }
 
-            if (inputData.path) {
+            if (inputData.path !== undefined && inputData.path !== '') {
                 args.push('--', inputData.path)
             }
 
@@ -1003,10 +1064,10 @@ export const gitLogTool = createTool({
                 authors[commit.author]++
 
                 // Track date range
-                if (!earliestDate || commit.date < earliestDate) {
+                if (earliestDate === undefined || commit.date < earliestDate) {
                     earliestDate = commit.date
                 }
-                if (!latestDate || commit.date > latestDate) {
+                if (latestDate === undefined || commit.date > latestDate) {
                     latestDate = commit.date
                 }
 
@@ -1020,7 +1081,7 @@ export const gitLogTool = createTool({
             const summary = {
                 authors,
                 dateRange:
-                    earliestDate && latestDate
+                    earliestDate !== undefined && latestDate !== undefined
                         ? { earliest: earliestDate, latest: latestDate }
                         : undefined,
                 totalInsertions,
@@ -1170,8 +1231,8 @@ export const gitBranchTool = createTool({
             id: 'git:branch',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-branch',
             input: {
@@ -1182,11 +1243,13 @@ export const gitBranchTool = createTool({
                 'tool.id': 'git:branch',
                 'tool.input.operation': inputData.operation,
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
 
         try {
             const cwd = inputData.repoPath ?? process.cwd()
-            let result: any = {}
+            let result: GitBranchOperationResult = {}
 
             switch (inputData.operation) {
                 case 'list': {
@@ -1250,14 +1313,14 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'create': {
-                    if (!inputData.branchName) {
+                    if (inputData.branchName === undefined || inputData.branchName === '') {
                         throw new Error(
                             'Branch name required for create operation'
                         )
                     }
 
                     const args = ['checkout', '-b', inputData.branchName]
-                    if (inputData.baseBranch) {
+                    if (inputData.baseBranch !== undefined && inputData.baseBranch !== '') {
                         args.push(inputData.baseBranch)
                     }
 
@@ -1269,7 +1332,7 @@ export const gitBranchTool = createTool({
 
                     if (
                         inputData.track &&
-                        inputData.baseBranch?.includes('origin/')
+                        inputData.baseBranch?.includes('origin/') === true
                     ) {
                         await execa(
                             'git',
@@ -1294,7 +1357,7 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'switch': {
-                    if (!inputData.branchName) {
+                    if (inputData.branchName === undefined || inputData.branchName === '') {
                         throw new Error(
                             'Branch name required for switch operation'
                         )
@@ -1318,7 +1381,7 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'delete': {
-                    if (!inputData.branchName) {
+                    if (inputData.branchName === undefined || inputData.branchName === '') {
                         throw new Error(
                             'Branch name required for delete operation'
                         )
@@ -1345,7 +1408,7 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'rename': {
-                    if (!inputData.branchName || !inputData.newBranchName) {
+                    if ((inputData.branchName === undefined || inputData.branchName === '') || (inputData.newBranchName === undefined || inputData.newBranchName === '')) {
                         throw new Error(
                             'Both current and new branch names required for rename operation'
                         )
@@ -1373,7 +1436,7 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'merge': {
-                    if (!inputData.targetBranch) {
+                    if (inputData.targetBranch === undefined || inputData.targetBranch === '') {
                         throw new Error(
                             'Target branch required for merge operation'
                         )
@@ -1384,11 +1447,12 @@ export const gitBranchTool = createTool({
                         args.push('--no-ff')
                     }
 
-                    const mergeResult = await execa('git', args, {
+                    const mergeOutput = await execa('git', args, {
                         cwd,
                         stdio: 'pipe',
                         timeout: (timeout ?? 30000) * 2, // Merges can take longer
                     })
+                    log.info('Git merge output', { stdout: mergeOutput.stdout })
 
                     // Check for conflicts
                     const statusResult = await execa(
@@ -1417,7 +1481,7 @@ export const gitBranchTool = createTool({
                 }
 
                 case 'rebase': {
-                    if (!inputData.targetBranch) {
+                    if (inputData.targetBranch === undefined || inputData.targetBranch === '') {
                         throw new Error(
                             'Target branch required for rebase operation'
                         )
@@ -1436,7 +1500,7 @@ export const gitBranchTool = createTool({
                 }
 
                 default:
-                    throw new Error(`Unknown operation: ${inputData.operation}`)
+                    throw new Error(`Unknown operation: ${String(inputData.operation)}`)
             }
 
             await writer?.custom({
@@ -1460,11 +1524,15 @@ export const gitBranchTool = createTool({
 
             return {
                 success: true,
-                ...result,
+                branches: result.branches,
+                currentBranch: result.currentBranch,
+                affectedCommits: result.affectedCommits,
+                conflicts: result.conflicts,
+                message: result.message,
             }
         } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Git branch failed: ${errorMsg}`)
+            const { message: errorMsg, exitCode, stderr } = formatGitError(e)
+            log.error(`Git branch failed: ${errorMsg}`, { exitCode, stderr })
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
@@ -1562,8 +1630,8 @@ export const gitStashTool = createTool({
             id: 'git:stash',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-stash',
             input: {
@@ -1574,11 +1642,13 @@ export const gitStashTool = createTool({
                 'tool.id': 'git:stash',
                 'tool.input.operation': inputData.operation,
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
 
         try {
-            const cwd = inputData.repoPath || process.cwd()
-            let result: any = {}
+            const cwd = inputData.repoPath ?? process.cwd()
+            let result: GitStashOperationResult = {}
 
             switch (inputData.operation) {
                 case 'list': {
@@ -1630,7 +1700,7 @@ export const gitStashTool = createTool({
                     if (inputData.includeIgnored) {
                         args.push('--include-untracked')
                     }
-                    if (inputData.message) {
+                    if (inputData.message !== undefined && inputData.message !== '') {
                         args.push('save', inputData.message)
                     } else {
                         args.push('save')
@@ -1703,7 +1773,7 @@ export const gitStashTool = createTool({
                         args.push(`stash@{${inputData.stashIndex}}`)
                     }
 
-                    const showResult = await execa('git', args, {
+                    await execa('git', args, {
                         cwd,
                         stdio: 'pipe',
                         timeout,
@@ -1746,7 +1816,7 @@ export const gitStashTool = createTool({
                 case 'create': {
                     const createResult = await execa(
                         'git',
-                        ['stash', 'create', inputData.message || ''],
+                        ['stash', 'create', inputData.message ?? ''],
                         {
                             cwd,
                             stdio: 'pipe',
@@ -1761,7 +1831,7 @@ export const gitStashTool = createTool({
                 }
 
                 default:
-                    throw new Error(`Unknown operation: ${inputData.operation}`)
+                    throw new Error(`Unknown operation: ${String(inputData.operation)}`)
             }
 
             await writer?.custom({
@@ -1788,8 +1858,8 @@ export const gitStashTool = createTool({
                 ...result,
             }
         } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Git stash failed: ${errorMsg}`)
+            const { message: errorMsg, exitCode, stderr } = formatGitError(e)
+            log.error(`Git stash failed: ${errorMsg}`, { exitCode, stderr })
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),
@@ -1874,8 +1944,8 @@ export const gitConfigTool = createTool({
             id: 'git:config',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'git-config',
             input: {
@@ -1886,15 +1956,17 @@ export const gitConfigTool = createTool({
                 'tool.id': 'git:config',
                 'tool.input.operation': inputData.operation,
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
 
         try {
             const cwd = inputData.repoPath ?? process.cwd()
-            let result: any = {}
+            let result: GitConfigOperationResult = {}
 
             switch (inputData.operation) {
                 case 'get': {
-                    if (!inputData.key) {
+                    if (inputData.key === undefined || inputData.key === '') {
                         throw new Error('Key required for get operation')
                     }
 
@@ -1922,7 +1994,7 @@ export const gitConfigTool = createTool({
                 }
 
                 case 'set': {
-                    if (!inputData.key || inputData.value === undefined) {
+                    if ((inputData.key === undefined || inputData.key === '') || inputData.value === undefined) {
                         throw new Error(
                             'Key and value required for set operation'
                         )
@@ -1988,7 +2060,7 @@ export const gitConfigTool = createTool({
                 }
 
                 case 'unset': {
-                    if (!inputData.key) {
+                    if (inputData.key === null || inputData.key === undefined || inputData.key === '') {
                         throw new Error('Key required for unset operation')
                     }
 
@@ -2013,7 +2085,7 @@ export const gitConfigTool = createTool({
                 }
 
                 default:
-                    throw new Error(`Unknown operation: ${inputData.operation}`)
+                    throw new Error(`Unknown operation: ${String(inputData.operation)}`)
             }
 
             await writer?.custom({
@@ -2040,8 +2112,8 @@ export const gitConfigTool = createTool({
                 ...result,
             }
         } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e)
-            log.error(`Git config failed: ${errorMsg}`)
+            const { message: errorMsg, exitCode, stderr } = formatGitError(e)
+            log.error(`Git config failed: ${errorMsg}`, { exitCode, stderr })
 
             span?.error({
                 error: e instanceof Error ? e : new Error(errorMsg),

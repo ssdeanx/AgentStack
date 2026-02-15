@@ -7,7 +7,8 @@
  * @module serpapi-search-tool
  */
 import type { RequestContext } from '@mastra/core/request-context'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
 import { z } from 'zod'
@@ -96,7 +97,45 @@ export const googleSearchTool = createTool({
         'Search Google to find current information, websites, and answers to factual questions. Returns organic search results, knowledge graph data, and related searches. Best for general web search queries.',
     inputSchema: googleSearchInputSchema,
     outputSchema: googleSearchOutputSchema,
-
+    onInputStart: ({ toolCallId, abortSignal }) => {
+        log.info('Google search tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+        log.info('Google search received complete input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            query: input.query,
+            numResults: input.numResults,
+            location: input.location,
+            language: input.language,
+            device: input.device,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            organicResults: output.organicResults.length,
+            hasKnowledgeGraph: !!output.knowledgeGraph,
+            relatedSearches: output.relatedSearches?.length ?? 0,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         // Validate API key
         validateSerpApiKey()
@@ -105,7 +144,8 @@ export const googleSearchTool = createTool({
         const requestContext = context?.requestContext as
             | SerpApiSearchContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -121,8 +161,8 @@ export const googleSearchTool = createTool({
             id: 'serpapi-search',
         })
 
-        // Create child span for Google search
-        const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create span for Google search
+        const searchSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-search',
             input,
@@ -134,6 +174,8 @@ export const googleSearchTool = createTool({
                 'tool.input.language': input.language,
                 'tool.input.device': input.device,
             },
+            requestContext,
+            tracingContext,
         })
 
         log.info('Executing Google search', {
@@ -163,7 +205,7 @@ export const googleSearchTool = createTool({
                 params.device = input.device
             }
             // Check for cancellation before API call
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 searchSpan?.error({
                     error: new Error('Operation cancelled during API call'),
                     endSpan: true,
@@ -180,24 +222,35 @@ export const googleSearchTool = createTool({
                 },
                 id: 'serpapi-search',
             })
-            const response = await getJson(params)
+            const rawResponse: unknown = await getJson(params)
+            const response = rawResponse as {
+                organic_results?: Array<{
+                    position: number
+                    title: string
+                    link: string
+                    snippet?: string
+                    displayed_link?: string
+                }>
+                knowledge_graph?: {
+                    title?: string
+                    description?: string
+                    source?: { name?: string }
+                } | null
+                related_searches?: Array<{ query: string }>
+                search_information?: {
+                    total_results?: string
+                    time_taken_displayed?: number
+                } | null
+            }
             // Extract organic results
             const organicResults =
-                response.organic_results?.map(
-                    (result: {
-                        position: number
-                        title: string
-                        link: string
-                        snippet?: string
-                        displayed_link?: string
-                    }) => ({
-                        position: result.position,
-                        title: result.title,
-                        link: result.link,
-                        snippet: result.snippet ?? '',
-                        displayedLink: result.displayed_link,
-                    })
-                ) ?? []
+                response.organic_results?.map((result) => ({
+                    position: result.position,
+                    title: result.title,
+                    link: result.link,
+                    snippet: result.snippet ?? '',
+                    displayedLink: result.displayed_link,
+                })) ?? []
             // Extract knowledge graph
             const knowledgeGraph =
                 typeof response.knowledge_graph === 'object' &&
@@ -301,45 +354,6 @@ export const googleSearchTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, abortSignal }) => {
-        log.info('Google search tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Google search tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
-        log.info('Google search received complete input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            query: input.query,
-            numResults: input.numResults,
-            location: input.location,
-            language: input.language,
-            device: input.device,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            organicResults: output.organicResults.length,
-            hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length ?? 0,
-            hook: 'onOutput',
-        })
-    },
 })
 
 /**
@@ -393,9 +407,52 @@ export const googleAiOverviewTool = createTool({
         'Get AI-generated overviews from Google that synthesize information from multiple sources. Best for queries that need comprehensive answers combining multiple perspectives. Returns overview text and source citations.',
     inputSchema: googleAiOverviewInputSchema,
     outputSchema: googleAiOverviewOutputSchema,
+    onInputStart: ({ toolCallId, abortSignal }) => {
+        log.info('AI overview tool input streaming started', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('AI overview tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, abortSignal }) => {
+        log.info('AI overview received complete input', {
+            toolCallId,
+            abortSignal: abortSignal?.aborted,
+            query: input.query,
+            location: input.location,
+            includeScrapedContent: input.includeScrapedContent,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('AI overview completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            available: output.available,
+            sourcesCount: output.sources.length,
+            hasAiOverview:
+                    output.aiOverview !== undefined &&
+                    output.aiOverview !== '',
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
-        const tracingContext = context?.tracingContext
+        const requestContext = context?.requestContext as
+            | SerpApiSearchContext
+            | undefined
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -409,8 +466,8 @@ export const googleAiOverviewTool = createTool({
         // Validate API key
         validateSerpApiKey()
 
-        // Create child span for AI overview
-        const overviewSpan = tracingContext?.currentSpan?.createChildSpan({
+        // Create span for AI overview
+        const overviewSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-ai-overview',
             input,
@@ -420,6 +477,8 @@ export const googleAiOverviewTool = createTool({
                 'tool.input.location': input.location,
                 'tool.input.includeScrapedContent': input.includeScrapedContent,
             },
+            requestContext,
+            tracingContext,
         })
 
         await writer?.custom({
@@ -446,7 +505,18 @@ export const googleAiOverviewTool = createTool({
             ) {
                 params.location = input.location
             }
-            const response = await getJson(params)
+            const rawOverviewResponse: unknown = await getJson(params)
+            const response = rawOverviewResponse as {
+                ai_overview?: {
+                    text?: string
+                    sources?: Array<{
+                        title: string
+                        link: string
+                        snippet?: string
+                    }>
+                    scraped_content?: string
+                }
+            }
             // Check if AI overview is available
             const aiOverviewData = response.ai_overview
             const available = Boolean(aiOverviewData)

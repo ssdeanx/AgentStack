@@ -125,11 +125,7 @@ Always consider maintainability, scalability, and testability in your recommenda
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : google3
   },
@@ -253,11 +249,7 @@ Be constructive and educational in feedback.`,
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
@@ -394,11 +386,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },
@@ -543,11 +531,7 @@ For each refactoring:
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     return userTier === 'enterprise' ? googleAI3 : googleAI
   },

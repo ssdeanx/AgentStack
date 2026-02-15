@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import fg from 'fast-glob'
 import { readFile } from 'node:fs/promises'
@@ -84,7 +84,47 @@ export const findSymbolTool = createTool({
         'Find symbol definitions (functions, classes, variables) across the codebase using semantic analysis.',
     inputSchema: findSymbolInputSchema,
     outputSchema: findSymbolOutputSchema,
-
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Find symbol received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            symbolName: input.symbolName,
+            projectPath: input.projectPath,
+            symbolType: input.symbolType,
+            includeDependencies: input.includeDependencies,
+            hook: 'onInputAvailable',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Find symbol search completed', {
+            toolCallId,
+            toolName,
+            symbolsFound: output.symbols.length,
+            totalFiles: output.stats.totalFiles,
+            searchTime: output.stats.searchTime,
+            cacheHits: output.stats.cacheHits,
+            hook: 'onOutput',
+            abortSignal: abortSignal?.aborted,
+        })
+    },
     execute: async (inputData, context) => {
         const { symbolName, projectPath, symbolType, includeDependencies } =
             inputData
@@ -118,8 +158,8 @@ export const findSymbolTool = createTool({
             id: 'semantic:find-symbol',
         })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'find_symbol',
             input: {
@@ -134,11 +174,12 @@ export const findSymbolTool = createTool({
                 'tool.input.symbolType': symbolType,
                 'tool.input.maxResults': maxResults,
             },
+            tracingContext,
         })
 
         try {
             // Check for cancellation before symbol search
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 span?.update({
                     metadata: {
                         status: 'cancelled',
@@ -188,7 +229,7 @@ export const findSymbolTool = createTool({
 
                 try {
                     const moduleName = getModuleName(filePath, projectPath)
-                    const fileSymbols = await analyzeTypeScriptFile(
+                    const fileSymbols = analyzeTypeScriptFile(
                         sourceFile,
                         searchTerm,
                         symbolType,
@@ -367,47 +408,6 @@ export const findSymbolTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Find symbol received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            symbolName: input.symbolName,
-            projectPath: input.projectPath,
-            symbolType: input.symbolType,
-            includeDependencies: input.includeDependencies,
-            hook: 'onInputAvailable',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Find symbol search completed', {
-            toolCallId,
-            toolName,
-            symbolsFound: output.symbols.length,
-            totalFiles: output.stats.totalFiles,
-            searchTime: output.stats.searchTime,
-            cacheHits: output.stats.cacheHits,
-            hook: 'onOutput',
-            abortSignal: abortSignal?.aborted,
-        })
-    },
 })
 
 function extractSymbolInfo(
@@ -424,8 +424,8 @@ function extractSymbolInfo(
         ) {
             const name = node.getName()
             if (
-                name &&
                 name !== undefined &&
+                name.length > 0 &&
                 matchesSearch(name, searchTerm, caseSensitive)
             ) {
                 return { name, kind: 'function' }
@@ -453,8 +453,8 @@ function extractSymbolInfo(
     ) {
         const name = node.getName()
         if (
-            name &&
             name !== undefined &&
+            name.length > 0 &&
             matchesSearch(name, searchTerm, caseSensitive)
         ) {
             return { name, kind: 'class' }
@@ -569,12 +569,12 @@ function getModuleName(filePath: string, projectPath: string): string {
     return parsed.dir ? `${parsed.dir}/${parsed.name}` : parsed.name
 }
 
-async function analyzeTypeScriptFile(
+function analyzeTypeScriptFile(
     sourceFile: SourceFile,
     searchTerm: string,
     symbolType: string,
     caseSensitive: boolean
-): Promise<
+):
     Array<{
         name: string
         kind: string
@@ -582,7 +582,7 @@ async function analyzeTypeScriptFile(
         column: number
         preview: string
     }>
-> {
+ {
     const symbols: Array<{
         name: string
         kind: string

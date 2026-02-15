@@ -5,8 +5,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import type { TracingContext } from '@mastra/core/observability'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import * as fs from 'node:fs/promises'
@@ -57,10 +56,6 @@ export const ocrTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
-        const requestCtx = context?.requestContext as
-            | ImageToolContext
-            | undefined
 
         if (abortSignal?.aborted ?? false) {
             throw new Error('OCR operation cancelled')
@@ -76,10 +71,12 @@ export const ocrTool = createTool({
             id: 'ocr',
         })
 
-        const ocrSpan = tracingContext?.currentSpan?.createChildSpan({
+        const ocrSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'ocr-extraction',
             input: { imagePath: input.imagePath, language: input.language },
+            requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'ocr',
                 'tool.input.imagePath': input.imagePath,
@@ -104,7 +101,7 @@ export const ocrTool = createTool({
             const worker = await createWorker(input.language, undefined, {
                 logger: (m) => {
                     if (m.status === 'recognizing text') {
-                        writer?.custom({
+                        void writer?.custom({
                             type: 'data-tool-progress',
                             data: {
                                 status: 'in-progress',
@@ -199,7 +196,7 @@ export const ocrTool = createTool({
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
         log.info('OCR tool received input chunk', {
             toolCallId,
             inputTextDelta,
@@ -296,7 +293,6 @@ export const imageProcessorTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
 
         if (abortSignal?.aborted ?? false) {
             throw new Error('Image processing cancelled')
@@ -312,10 +308,12 @@ export const imageProcessorTool = createTool({
             id: 'image-processor',
         })
 
-        const processSpan = tracingContext?.currentSpan?.createChildSpan({
+        const processSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'image-processing',
             input,
+            requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'image-processor',
                 'tool.input.inputPath': input.inputPath,
@@ -324,7 +322,6 @@ export const imageProcessorTool = createTool({
 
         try {
             await fs.access(input.inputPath)
-            const metadata = await sharp(input.inputPath).metadata()
 
             let pipeline = sharp(input.inputPath)
             const ops = input.operations
@@ -360,7 +357,7 @@ export const imageProcessorTool = createTool({
             if (ops.grayscale) {
                 pipeline = pipeline.grayscale()
             }
-            if (ops.blur !== null) {
+            if (ops.blur !== undefined) {
                 pipeline = pipeline.blur(ops.blur)
             }
             if (ops.sharpen) {
@@ -371,7 +368,7 @@ export const imageProcessorTool = createTool({
                 pipeline = pipeline.toFormat(ops.format, {
                     quality: ops.quality,
                 })
-            } else if (ops.quality) {
+            } else if (ops.quality !== undefined) {
                 pipeline = pipeline
                     .jpeg({ quality: ops.quality })
                     .png({ compressionLevel: 9 })
@@ -437,7 +434,7 @@ export const imageProcessorTool = createTool({
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
         log.info('Image processor tool received input chunk', {
             toolCallId,
             inputTextDelta,
@@ -514,7 +511,6 @@ export const imageToMarkdownTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
 
         if (abortSignal?.aborted ?? false) {
             throw new Error('Image to markdown conversion cancelled')
@@ -530,7 +526,7 @@ export const imageToMarkdownTool = createTool({
             id: 'image-to-markdown',
         })
 
-        const convertSpan = tracingContext?.currentSpan?.createChildSpan({
+        const convertSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'image-to-markdown',
             input: {
@@ -538,6 +534,8 @@ export const imageToMarkdownTool = createTool({
                 extractTables: input.extractTables,
                 extractLists: input.extractLists,
             },
+            requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'image-to-markdown',
                 'tool.input.imagePath': input.imagePath,
@@ -546,7 +544,12 @@ export const imageToMarkdownTool = createTool({
 
         try {
             // First run OCR
-            const ocrResult = await ocrTool.execute(
+            const executeOcr = ocrTool.execute
+            if (typeof executeOcr !== 'function') {
+                throw new Error('OCR tool is not executable')
+            }
+
+            const ocrResult = await executeOcr(
                 {
                     imagePath: input.imagePath,
                     language: 'eng',
@@ -739,7 +742,7 @@ export const imageToMarkdownTool = createTool({
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
         log.info('Image to markdown tool received input chunk', {
             toolCallId,
             inputTextDelta,

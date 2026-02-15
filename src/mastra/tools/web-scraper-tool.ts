@@ -41,8 +41,7 @@ function createJSDOM(
             html: string,
             opts?: { contentType?: string; includeNodeLocations?: boolean }
         ) => unknown
-        const instance = Factory(html, options) as JSDOM
-        return instance
+        return Factory(html, options) as JSDOM
     }
 }
 import { marked } from 'marked'

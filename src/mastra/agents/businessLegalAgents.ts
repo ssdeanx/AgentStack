@@ -61,6 +61,15 @@ export interface BusinessRuntimeContext {
   }
 }
 
+const isResearchConfig = (value: unknown): value is BusinessRuntimeContext['research'] => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const maybe = value as { depth?: unknown; scope?: unknown }
+  return typeof maybe.depth === 'string' && typeof maybe.scope === 'string'
+}
+
 log.info('Initializing Business Legal Team Agents...')
 
 export const legalResearchAgent = new Agent({
@@ -71,16 +80,20 @@ export const legalResearchAgent = new Agent({
   instructions: ({
     requestContext,
   }: {
-    requestContext: RequestContext<unknown>
+    requestContext: RequestContext<BusinessRuntimeContext>
   }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const research = requestContext.get('research') ?? {
+    const userTierValue = requestContext.get('user-tier')
+    const userTier = typeof userTierValue === 'string' ? userTierValue : 'free'
+    const languageValue = requestContext.get('language')
+    const language = typeof languageValue === 'string' ? languageValue : 'en'
+    const researchValue = requestContext.get('research')
+    const research = isResearchConfig(researchValue) ? researchValue : {
       depth: 'extensive',
       scope: 'full',
     }
-    const analysis = requestContext.get('analysis') ?? {
+    const analysisValue = requestContext.get('analysis')
+    const analysis = isResearchConfig(analysisValue) ? analysisValue : {
       depth: 'extensive',
       scope: 'full',
     }
@@ -90,8 +103,8 @@ export const legalResearchAgent = new Agent({
                               Your working with:
                               - User: ${userTier}
                               - Language: ${language}
-                              - Research: Depth ${(research as any).depth ?? 'extensive'}, Scope ${(research as any).scope ?? 'full'}
-                              - Analysis: Depth ${(analysis as any).depth ?? 'extensive'}, Scope ${(analysis as any).scope ?? 'full'}
+                              - Research: Depth ${research.depth}, Scope ${research.scope}
+                              - Analysis: Depth ${analysis.depth}, Scope ${analysis.scope}
 
                         **Key Guidelines:**
                         - Focus on primary sources: statutes, case law, regulations
@@ -130,11 +143,7 @@ export const legalResearchAgent = new Agent({
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<unknown>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise

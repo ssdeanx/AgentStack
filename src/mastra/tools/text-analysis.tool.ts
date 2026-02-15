@@ -153,7 +153,7 @@ export const textAnalysisTool = createTool({
                         results[operation] = generateSummary(inputData.text)
                         break
                     default:
-                        throw new Error(`Unknown operation: ${operation}`)
+                       throw new Error(`Unknown operation: ${String(operation)}`)
                 }
             }
 
@@ -389,7 +389,7 @@ export const textProcessingTool = createTool({
                         extracted[operation] = [processedText.length.toString()]
                         break
                     default:
-                        throw new Error(`Unknown operation: `)
+                        assertNever(operation)
                 }
             }
 
@@ -717,6 +717,11 @@ function extractUrls(text: string): string[] {
     const urlRegex = /https?:\/\/[^\s]+/g
     const matches = text.match(urlRegex)
     return matches ?? []
+}
+
+function assertNever(value: never): never {
+    // Used for exhaustive switch checks — should be unreachable.
+    throw new Error(`Unexpected value in assertNever: ${String(value)}`)
 }
 
 export type TextAnalysisUITool = InferUITool<typeof textAnalysisTool>

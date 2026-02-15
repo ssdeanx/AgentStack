@@ -200,7 +200,7 @@ export const dataValidatorToolJSON = createTool({
                 'user.id': requestContext?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+  
         })
 
         // Create child span for validation operation

@@ -20,7 +20,11 @@ export const weatherAgent = new Agent({
     id: 'weatherAgent',
     description: `A weather agent showcasing an API-based tool chain: fetch weather, validate results, and format a response.`,
     instructions: ({ requestContext }) => {
-        const userId = requestContext.get('userId')
+        const userIdValue = requestContext.get('userId')
+        const userId =
+            typeof userIdValue === 'string' && userIdValue.length > 0
+                ? userIdValue
+                : 'unknown'
         return {
             role: 'system',
             content: `
@@ -50,11 +54,7 @@ export const weatherAgent = new Agent({
             },
         }
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<WeatherRuntimeContext>
-    }) => {
+    model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
             // higher quality (chat style) for enterprise

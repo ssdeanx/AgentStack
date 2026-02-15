@@ -425,7 +425,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
             id: 'coding:codeAnalysis',
         })
 
-        if (requestCtx?.userId) {
+        if (requestCtx?.userId !== null && requestCtx?.userId !== undefined && requestCtx.userId !== '') {
             log.debug('Executing code analysis for user', {
                 userId: requestCtx.userId,
             })
@@ -452,7 +452,7 @@ Use for code review preparation, quality assessment, and refactoring planning.`,
                     : inputData.target,
             },
             requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            tracingContext,
         })
 
         // Create child span for code analysis operation

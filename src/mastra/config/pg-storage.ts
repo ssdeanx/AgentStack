@@ -1,6 +1,7 @@
 import { Memory } from '@mastra/memory'
 import { PgVector, PostgresStore } from '@mastra/pg'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
+import type { RequestContext } from '@mastra/core/request-context'
 import type { UIMessage } from 'ai'
 import { embedMany } from 'ai'
 import { log } from './logger'
@@ -8,7 +9,8 @@ import { log } from './logger'
 // import { maskStreamTags } from '@mastra/core';
 
 import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from '@mastra/core/llm'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 
 // Utility function to create a masked stream for sensitive data
 // This properly uses maskStreamTags to mask content between XML tags in streams
@@ -193,12 +195,18 @@ export const pgQueryTool = createVectorQueryTool({
 })
 
 // Production-grade embedding generation with tracing
+interface GenerateEmbeddingsOptions {
+    tracingContext?: TracingContext
+    requestContext?: RequestContext<Record<string, unknown>>
+}
+
 export async function generateEmbeddings(
     chunks: Array<{
         text: string
         metadata?: Record<string, unknown>
         id?: string
     }>,
+    options?: GenerateEmbeddingsOptions
 ) {
     if (!chunks.length) {
         log.warn('No chunks provided for embedding generation')
@@ -206,9 +214,22 @@ export async function generateEmbeddings(
     }
 
     const startTime = Date.now()
-
-    // Create a tool-level child span using the provided tracingContext (no direct OTEL usage)
-    // tracingContext is expected to be passed by callers that want trace correlation.
+    const embedSpan = getOrCreateSpan({
+        type: SpanType.TOOL_CALL,
+        name: 'generateEmbeddings',
+        input: {
+            chunkCount: chunks.length,
+            totalTextLength: chunks.reduce(
+                (sum, chunk) => sum + (chunk.text?.length ?? 0),
+                0
+            ),
+        },
+        tracingContext: options?.tracingContext,
+        metadata: {
+            'tool.id': 'generateEmbeddings',
+            'tool.model': 'gemini-embedding-001',
+        },
+    })
 
     log.info('Starting embedding generation', {
         chunkCount: chunks.length,
@@ -240,6 +261,18 @@ export async function generateEmbeddings(
         })
 
         const processingTime = Date.now() - startTime
+        embedSpan?.update({
+            metadata: {
+                'operation.status': 'success',
+                'embedding.count': embeddings.length,
+                'embedding.dimension': embeddings[0]?.length ?? 0,
+                'tool.duration_ms': processingTime,
+            },
+            output: {
+                embeddingCount: embeddings.length,
+            },
+        })
+        embedSpan?.end()
         log.info('Embeddings generated successfully', {
             embeddingCount: embeddings.length,
             embeddingDimension: embeddings[0]?.length || 0,
@@ -255,14 +288,17 @@ export async function generateEmbeddings(
         const errorMessage =
             error instanceof Error ? error.message : 'Unknown error'
 
+        embedSpan?.error({
+            error: error instanceof Error ? error : new Error(errorMessage),
+            endSpan: true,
+        })
+
         log.error('Embedding generation failed', {
             error: errorMessage,
             chunkCount: chunks.length,
             processingTimeMs: processingTime,
             model: 'gemini-embedding-001',
         })
-
-        // No tracing performed here; callers can create spans if desired.
 
         throw error
     }

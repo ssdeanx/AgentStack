@@ -2,12 +2,12 @@ import { FilesystemEventType, FileType, Sandbox } from '@e2b/code-interpreter'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 
 import type { RequestContext } from '@mastra/core/request-context'
-import type { InferUITool, InferUITools } from '@mastra/core/tools'
+import type { InferUITool } from '@mastra/core/tools'
 import z from 'zod'
-import { log, logError } from '../config/logger'
+import { log, logError, logToolExecution } from '../config/logger'
 
 export interface E2BRequestContext extends RequestContext {
     userId?: string
@@ -21,81 +21,77 @@ export interface E2BRequestContext extends RequestContext {
 
 /* tracing: use runtime tracingContext inside tools; tracer removed */
 
-const logToolStart = (toolName: string, input: any, toolContext?: any) => {
-    const runtimeSpan = toolContext?.tracingContext?.currentSpan
-    if (runtimeSpan) {
-        const raw = runtimeSpan.raw
-        if (raw && typeof raw.addEvent === 'function') {
-            raw.addEvent('tool.start', {
-                'tool.name': toolName,
-                'tool.input_size': JSON.stringify(input).length,
-                'user.id': toolContext?.requestContext?.userId,
-            })
-        } else if (typeof runtimeSpan.update === 'function') {
-            runtimeSpan.update({
-                metadata: {
-                    'tool.name': toolName,
-                    'tool.input_size': JSON.stringify(input).length,
-                },
-            })
-        }
-    }
+interface ToolExecutionContext {
+    tracingContext?: TracingContext
+    requestContext?: E2BRequestContext
+}
+
+const logToolStart = (
+    toolName: string,
+    input: Record<string, unknown>,
+    toolContext?: ToolExecutionContext
+) => {
+    logToolExecution(toolName, {
+        phase: 'start',
+        input,
+        userId: toolContext?.requestContext?.userId,
+    })
+
+    toolContext?.tracingContext?.currentSpan?.update({
+        metadata: {
+            'tool.name': toolName,
+            'tool.phase': 'start',
+            'tool.input_size': JSON.stringify(input).length,
+            'user.id': toolContext?.requestContext?.userId,
+        },
+    })
 }
 const logToolComplete = (
     toolName: string,
-    output: any,
+    output: Record<string, unknown>,
     duration: number,
-    toolContext?: any
+    toolContext?: ToolExecutionContext
 ) => {
-    const runtimeSpan = toolContext?.tracingContext?.currentSpan
-    if (runtimeSpan) {
-        const raw = runtimeSpan.raw
-        if (raw && typeof raw.addEvent === 'function') {
-            raw.addEvent('tool.complete', {
-                'tool.name': toolName,
-                'tool.duration_ms': duration,
-                'tool.output_size': JSON.stringify(output).length,
-                'user.id': toolContext?.requestContext?.userId,
-            })
-        } else if (typeof runtimeSpan.update === 'function') {
-            runtimeSpan.update({
-                metadata: {
-                    'tool.duration_ms': duration,
-                    'tool.output_size': JSON.stringify(output).length,
-                },
-            })
-        }
-    }
+    logToolExecution(toolName, {
+        phase: 'complete',
+        durationMs: duration,
+        output,
+        userId: toolContext?.requestContext?.userId,
+    })
+
+    toolContext?.tracingContext?.currentSpan?.update({
+        metadata: {
+            'tool.name': toolName,
+            'tool.phase': 'complete',
+            'tool.duration_ms': duration,
+            'tool.output_size': JSON.stringify(output).length,
+            'user.id': toolContext?.requestContext?.userId,
+        },
+    })
 }
 
-const logToolError = (toolName: string, error: any, context?: any) => {
-    const runtimeSpan = context?.tracingContext?.currentSpan
-    if (runtimeSpan) {
-        const raw = runtimeSpan.raw
-        if (raw && typeof raw.addEvent === 'function') {
-            raw.addEvent('tool.error', {
-                'tool.name': toolName,
-                'error.message':
-                    error instanceof Error ? error.message : String(error),
-                'error.stack': error instanceof Error ? error.stack : undefined,
-                'user.id': context?.requestContext?.userId,
-            })
-        } else if (typeof runtimeSpan.update === 'function') {
-            runtimeSpan.update({
-                metadata: {
-                    'error.message':
-                        error instanceof Error ? error.message : String(error),
-                },
-            })
-        }
+const logToolError = (
+    toolName: string,
+    error: unknown,
+    context?: ToolExecutionContext
+) => {
+    const safeError = error instanceof Error ? error : new Error(String(error))
 
-        runtimeSpan?.error({
-            error: error instanceof Error ? error : new Error(String(error)),
-            endSpan: false,
-        })
-    }
+    context?.tracingContext?.currentSpan?.update({
+        metadata: {
+            'tool.name': toolName,
+            'tool.phase': 'error',
+            'error.message': safeError.message,
+            'error.stack': safeError.stack,
+            'user.id': context?.requestContext?.userId,
+        },
+    })
+    context?.tracingContext?.currentSpan?.error({
+        error: safeError,
+        endSpan: false,
+    })
 
-    logError(toolName, error, {
+    logError(toolName, safeError, {
         toolName,
         userId: context?.requestContext?.userId,
     })
@@ -126,16 +122,18 @@ export const createSandbox = createTool({
     execute: async (inputData, context) => {
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'createSandbox',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: { 'tool.id': 'createSandbox' },
         })
         const startTime = Date.now()
         const requestContext = context?.requestContext as E2BRequestContext
         const userId = requestContext?.userId
-        if (userId && userId.length > 0) {
+        if (userId !== undefined && userId.length > 0) {
             span?.update({ metadata: { 'user.id': userId } })
         }
 
@@ -266,10 +264,12 @@ export const writeFile = createTool({
     execute: async (inputData, context) => {
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'writeFile',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'writeFile',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -387,10 +387,12 @@ export const writeFiles = createTool({
     execute: async (inputData, context) => {
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'writeFiles',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'writeFiles',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -527,10 +529,12 @@ export const listFiles = createTool({
     execute: async (inputData, context) => {
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'listFiles',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'listFiles',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -644,10 +648,12 @@ export const deleteFile = createTool({
     execute: async (inputData, context) => {
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'deleteFile',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'deleteFile',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -753,10 +759,12 @@ export const createDirectory = createTool({
     }),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'createDirectory',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'createDirectory',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -881,10 +889,12 @@ export const getFileInfo = createTool({
     }),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'getFileInfo',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'getFileInfo',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -1014,10 +1024,12 @@ export const checkFileExists = createTool({
         ),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'checkFileExists',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'checkFileExists',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -1170,10 +1182,12 @@ export const getFileSize = createTool({
         ),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'getFileSize',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'getFileSize',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -1349,10 +1363,12 @@ export const watchDirectory = createTool({
         ),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'watchDirectory',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'watchDirectory',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -1376,7 +1392,7 @@ export const watchDirectory = createTool({
             // Start watching the directory
             const handle = await sandbox.files.watchDir(
                 inputData.path,
-                async (event) => {
+                (event) => {
                     events.push({
                         type: event.type,
                         name: event.name,
@@ -1514,10 +1530,12 @@ export const runCommand = createTool({
     }),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'runCommand',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: { 'tool.id': 'runCommand' },
         })
         const startTime = Date.now()
@@ -1646,10 +1664,12 @@ export const runCode = createTool({
     }),
     execute: async (inputData, context) => {
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'runCode',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'runCode',
                 'tool.input.sandboxId': inputData.sandboxId,
@@ -1677,7 +1697,7 @@ export const runCode = createTool({
                 // For TypeScript, we need to compile and run
                 command = `npx tsx -e "${inputData.code.replace(/"/g, '\\"')}"`
             } else {
-                throw new Error(`Unsupported language: ${language}`)
+                throw new Error('Unsupported language provided')
             }
 
             const result = await sandbox.commands.run(command)
@@ -1797,6 +1817,7 @@ export type E2BUITools =
 
 // Tool set for all E2B tools
 export const e2bToolSet = {
+    createSandbox,
     writeFile,
     writeFiles,
     listFiles,
@@ -1808,7 +1829,5 @@ export const e2bToolSet = {
     watchDirectory,
     runCommand,
     runCode,
-} as const
+}
 
-// Type inference for the entire E2B tool set using InferUITools
-export type E2BUIToolSet = InferUITools<typeof e2bToolSet>

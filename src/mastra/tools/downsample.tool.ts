@@ -37,7 +37,6 @@ export const downsampleTool = createTool({
                 'tool.input.algorithm': input.algorithm,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         // Create child span for downsampling operation
@@ -158,12 +157,10 @@ export const downsampleTool = createTool({
                     if (algorithm === 'min-max') {
                         if (minIdx === maxIdx) {
                             indices.push(minIdx)
+                        } else if (minIdx < maxIdx) {
+                            indices.push(minIdx, maxIdx)
                         } else {
-                            if (minIdx < maxIdx) {
-                                indices.push(minIdx, maxIdx)
-                            } else {
-                                indices.push(maxIdx, minIdx)
-                            }
+                            indices.push(maxIdx, minIdx)
                         }
                     } else if (algorithm === 'm4') {
                         indices.push(firstIdx, minIdx, maxIdx, lastIdx)

@@ -671,7 +671,6 @@ export const fillFormTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
         })
 
         await context?.writer?.custom({
@@ -706,7 +705,7 @@ export const fillFormTool = createTool({
                 })
                 if (inputData.waitForNavigation) {
                     await Promise.all([
-                        page.waitForNavigation(),
+                        page.waitForURL(inputData.url),
                         page.click(inputData.submitSelector),
                     ])
                 } else {

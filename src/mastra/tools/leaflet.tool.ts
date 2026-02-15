@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
@@ -73,7 +73,7 @@ export const leafletTool = createTool({
             throw new Error('Tool call cancelled')
         }
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'leaflet-generator',
             input,

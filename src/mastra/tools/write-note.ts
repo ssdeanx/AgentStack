@@ -1,7 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -57,7 +57,7 @@ export const writeNoteTool = createTool({
         })
 
         // Create child span for note writing operation
-        const noteSpan = tracingContext?.currentSpan?.createChildSpan({
+        const noteSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'write-note',
             input: {

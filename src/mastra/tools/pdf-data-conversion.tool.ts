@@ -15,7 +15,7 @@
 
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { marked } from 'marked'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
@@ -508,7 +508,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
 
         // Create root tracing span
         const tracingContext = context?.tracingContext
-        const rootSpan = tracingContext?.currentSpan?.createChildSpan({
+        const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'pdf-to-markdown-tool',
             input: { pdfPath: inputData.pdfPath, maxPages: inputData.maxPages },

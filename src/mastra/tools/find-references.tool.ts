@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { ProjectCache, PythonParser } from './semantic-utils'
 
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 
 const referenceContextSchema = z.object({
     maxReferences: z.number().default(500),
@@ -77,7 +77,50 @@ export const findReferencesTool = createTool({
         'Find all references to a symbol (function, class, variable) across the codebase using semantic analysis.',
     inputSchema: findReferencesInputSchema,
     outputSchema: findReferencesOutputSchema,
-
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('findReferencesTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                symbolName: input.symbolName,
+                projectPath: input.projectPath,
+                filePath: input.filePath,
+                line: input.line,
+                includeDependencies: input.includeDependencies,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('findReferencesTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                references: output.references,
+                summary: output.summary,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         await writer?.custom({
@@ -99,7 +142,7 @@ export const findReferencesTool = createTool({
         const allReferences: ReferenceInfo[] = []
 
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'find_references',
             input: { symbolName, projectPath, filePath, line, maxReferences },
@@ -111,6 +154,7 @@ export const findReferencesTool = createTool({
                 line,
                 maxReferences,
             },
+            tracingContext,
         })
 
         try {
@@ -238,7 +282,7 @@ export const findReferencesTool = createTool({
 
                     try {
                         const fileReferences =
-                            await analyzeTypeScriptReferences(
+                            analyzeTypeScriptReferences(
                                 sourceFile,
                                 searchTerm,
                                 caseSensitive,
@@ -395,50 +439,6 @@ export const findReferencesTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('findReferencesTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                symbolName: input.symbolName,
-                projectPath: input.projectPath,
-                filePath: input.filePath,
-                line: input.line,
-                includeDependencies: input.includeDependencies,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('findReferencesTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                references: output.references,
-                summary: output.summary,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
 })
 
 function isSymbolDefinition(node: Node): boolean {
@@ -459,12 +459,12 @@ function isSymbolDefinition(node: Node): boolean {
     )
 }
 
-async function analyzeTypeScriptReferences(
+function analyzeTypeScriptReferences(
     sourceFile: SourceFile,
     searchTerm: string,
     caseSensitive: boolean,
     maxResults: number
-): Promise<
+):
     Array<{
         line: number
         column: number
@@ -473,7 +473,7 @@ async function analyzeTypeScriptReferences(
         context: string
         kind: string
     }>
-> {
+ {
     const references: Array<{
         line: number
         column: number

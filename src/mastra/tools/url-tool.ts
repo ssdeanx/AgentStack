@@ -1,7 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -80,10 +80,12 @@ export const urlValidationTool = createTool({
         const timeout = requestCtx?.timeout ?? 5000
 
         // Create child span for URL validation
-        const urlValidationSpan = tracingContext?.currentSpan?.createChildSpan({
+        const urlValidationSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'url-validation',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'url-validation',
                 'tool.input.url': inputData.url,
@@ -316,18 +318,19 @@ export const urlManipulationTool = createTool({
         const requestCtx = context?.requestContext as UrlToolContext | undefined
 
         // Create child span for URL manipulation
-        const urlManipulationSpan =
-            tracingContext?.currentSpan?.createChildSpan({
-                type: SpanType.TOOL_CALL,
-                name: 'url-manipulation',
-                input: inputData,
-                metadata: {
-                    'tool.id': 'url-manipulation',
-                    'tool.input.baseUrl': inputData.baseUrl,
-                    'tool.input.operationsCount': inputData.operations.length,
-                    'user.id': requestCtx?.userId,
-                },
-            })
+        const urlManipulationSpan = getOrCreateSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'url-manipulation',
+            input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext,
+            metadata: {
+                'tool.id': 'url-manipulation',
+                'tool.input.baseUrl': inputData.baseUrl,
+                'tool.input.operationsCount': inputData.operations.length,
+                'user.id': requestCtx?.userId,
+            },
+        })
 
         await writer?.custom({
             type: 'data-tool-progress',

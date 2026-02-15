@@ -6,7 +6,8 @@
  * @module serpapi-academic-local-tool
  */
 import type { RequestContext } from '@mastra/core/request-context'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { getJson } from 'serpapi'
@@ -16,6 +17,88 @@ import { validateSerpApiKey } from './serpapi-config'
 
 export interface SerpApiContext extends RequestContext {
     userId?: string
+}
+
+// SerpAPI response type interfaces for type-safe API response handling
+
+interface ScholarPublicationInfo {
+    authors?: string
+    summary?: string
+}
+
+interface ScholarCitedBy {
+    total?: number
+    link?: string
+}
+
+interface ScholarInlineLinks {
+    cited_by?: ScholarCitedBy
+    related_pages_link?: string
+}
+
+interface ScholarResource {
+    link?: string
+    file_format?: string
+}
+
+interface ScholarOrganicResult {
+    title: string
+    link: string
+    publication_info?: ScholarPublicationInfo
+    inline_links?: ScholarInlineLinks
+    snippet?: string
+    resources?: ScholarResource[]
+}
+
+interface ScholarApiResponse {
+    organic_results?: ScholarOrganicResult[]
+}
+
+interface FinancePriceInfo {
+    value?: number
+    change?: number
+    change_percentage?: number
+}
+
+interface FinanceSummaryData {
+    stock?: string
+    price?: FinancePriceInfo
+    market_cap?: string
+    volume?: string
+    high?: number
+    low?: number
+    open?: number
+    previous_close?: number
+}
+
+interface FinanceNewsArticle {
+    title: string
+    link: string
+    source: string
+    date: string
+}
+
+interface FinanceApiResponse {
+    summary?: FinanceSummaryData
+    news?: FinanceNewsArticle[]
+}
+
+interface YelpBusiness {
+    title: string
+    rating?: number
+    reviews?: number
+    price?: string
+    categories?: string[]
+    address?: string
+    phone?: string
+    link?: string
+    hours?: string
+    thumbnail?: string
+    photos?: string[]
+}
+
+interface YelpApiResponse {
+    organic_results?: YelpBusiness[]
 }
 
 // Google Scholar Tool
@@ -76,32 +159,72 @@ export const googleScholarTool = createTool({
         'Search Google Scholar for academic papers and citations. Filter by year range, include/exclude patents, and sort by relevance or date. Returns paper title, authors, publication, year, citation count, and PDF links when available. Useful for research and finding academic sources.',
     inputSchema: googleScholarInputSchema,
     outputSchema: googleScholarOutputSchema,
-
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google Scholar received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                query: input.query,
+                yearStart: input.yearStart,
+                yearEnd: input.yearEnd,
+                sortBy: input.sortBy,
+                numResults: input.numResults,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Scholar search completed', {
+            toolCallId,
+            toolName,
+            outputData: { paperCount: output.papers.length },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as
-            | SerpApiContext
-            | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
-        // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
             throw new Error('Google Scholar search cancelled')
         }
 
-        const scholarSpan = tracingContext?.currentSpan?.createChildSpan({
+        const scholarSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-scholar-tool',
             input,
             metadata: {
                 'tool.id': 'googlescholar',
                 query: input.query,
-                yearRange: `${input.yearStart}-${input.yearEnd}`,
+                yearRange: `${String(input.yearStart ?? 'any')}-${String(input.yearEnd ?? 'any')}`,
                 operation: 'google-scholar',
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
+
         log.info('Executing Google Scholar search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -125,37 +248,13 @@ export const googleScholarTool = createTool({
             if (input.sortBy === 'date') {
                 params.scisbd = '1'
             }
-            // Check for cancellation before API call
-            if (abortSignal?.aborted) {
-                scholarSpan?.end()
-                throw new Error(
-                    'Google Scholar search cancelled during API call'
-                )
-            }
-
             if (!input.includePatents) {
                 params.as_sdt = '0,5'
             }
-            const response = await getJson(params)
+            const response = (await getJson(params)) as ScholarApiResponse
             const papers =
                 response.organic_results?.map(
-                    (paper: {
-                        title: string
-                        link: string
-                        publication_info?: {
-                            authors?: string
-                            summary?: string
-                        }
-                        inline_links?: {
-                            cited_by?: { total?: number; link?: string }
-                            related_pages_link?: string
-                        }
-                        snippet?: string
-                        resources?: Array<{
-                            link?: string
-                            file_format?: string
-                        }>
-                    }) => ({
+                    (paper: ScholarOrganicResult) => ({
                         title: paper.title,
                         link: paper.link,
                         authors: paper.publication_info?.authors,
@@ -167,8 +266,7 @@ export const googleScholarTool = createTool({
                         relatedArticles: paper.inline_links?.related_pages_link,
                         snippet: paper.snippet,
                         pdfLink: paper.resources?.find(
-                            (r: { file_format?: string }) =>
-                                r.file_format === 'PDF'
+                            (r: ScholarResource) => r.file_format === 'PDF'
                         )?.link,
                     })
                 ) ?? []
@@ -186,7 +284,6 @@ export const googleScholarTool = createTool({
             })
             return result
         } catch (error) {
-            // Handle AbortError specifically
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `Google Scholar search cancelled for "${input.query}"`
                 scholarSpan?.error({
@@ -220,45 +317,6 @@ export const googleScholarTool = createTool({
             })
             throw new Error(`Google Scholar search failed: ${errorMessage}`)
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar tool input streaming started', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Google Scholar received input', {
-            toolCallId,
-            abortSignal: abortSignal?.aborted,
-            inputData: {
-                query: input.query,
-                yearStart: input.yearStart,
-                yearEnd: input.yearEnd,
-                sortBy: input.sortBy,
-                numResults: input.numResults,
-            },
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google Scholar search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            papersFound: output.papers.length,
-            hook: 'onOutput',
-        })
     },
 })
 
@@ -305,15 +363,51 @@ export const googleFinanceTool = createTool({
         'Get stock quotes and financial data from Google Finance. Returns current price, change, market cap, volume, high/low, and recent financial news. Use for real-time stock information and market data.',
     inputSchema: googleFinanceInputSchema,
     outputSchema: googleFinanceOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Google Finance tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Google Finance tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google Finance received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                query: input.query,
+                exchange: input.exchange,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Finance search completed', {
+            toolCallId,
+            toolName,
+            outputData: { symbol: output.symbol },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
-        const requestContext = context?.requestContext as
-            | SerpApiContext
-            | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
-        const financeSpan = tracingContext?.currentSpan?.createChildSpan({
+        const financeSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-finance-tool',
             input,
@@ -322,7 +416,10 @@ export const googleFinanceTool = createTool({
                 query: input.query,
                 operation: 'google-finance',
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
+
         log.info('Executing Google Finance search', { query: input.query })
         await writer?.custom({
             type: 'data-tool-progress',
@@ -341,21 +438,20 @@ export const googleFinanceTool = createTool({
             ) {
                 params.exchange = input.exchange
             }
-            const response = await getJson(params)
-            const { summary } = response
-            const news = response.news?.map(
-                (article: {
-                    title: string
-                    link: string
-                    source: string
-                    date: string
-                }) => ({
+            const response = (await getJson(params)) as FinanceApiResponse
+            const summary: FinanceSummaryData | undefined = response.summary
+            const news: Array<{
+                title: string
+                link: string
+                source: string
+                date: string
+            }> =
+                response.news?.map((article: FinanceNewsArticle) => ({
                     title: article.title,
                     link: article.link,
                     source: article.source,
                     date: article.date,
-                })
-            )
+                })) ?? []
             const result = {
                 symbol: summary?.stock ?? input.query,
                 price: summary?.price?.value,
@@ -452,15 +548,56 @@ export const yelpSearchTool = createTool({
     description:
         'Search Yelp for local businesses and reviews. Requires location parameter. Filter by price range, open now status, and sort by recommended, rating, or review count. Returns business name, rating, reviews, address, phone, hours, and photos. Best for finding local services and restaurants.',
     inputSchema: yelpSearchInputSchema,
+    outputSchema: yelpSearchOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Yelp Search tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Yelp Search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Yelp Search received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                query: input.query,
+                location: input.location,
+                sortBy: input.sortBy,
+                priceRange: input.priceRange,
+                openNow: input.openNow,
+                numResults: input.numResults,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Yelp Search completed', {
+            toolCallId,
+            toolName,
+            outputData: { businessCount: output.businesses.length },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
-        const requestContext = context?.requestContext as
-            | SerpApiContext
-            | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
-        const yelpSpan = tracingContext?.currentSpan?.createChildSpan({
+        const yelpSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'yelp-search-tool',
             input,
@@ -470,7 +607,10 @@ export const yelpSearchTool = createTool({
                 location: input.location,
                 operation: 'yelp-search',
             },
+            requestContext: context?.requestContext,
+            tracingContext,
         })
+
         log.info('Executing Yelp search', {
             query: input.query,
             location: input.location,
@@ -497,22 +637,10 @@ export const yelpSearchTool = createTool({
             if (input.openNow) {
                 params.open_now = 'true'
             }
-            const response = await getJson(params)
+            const response = (await getJson(params)) as YelpApiResponse
             const businesses =
                 response.organic_results?.map(
-                    (business: {
-                        title: string
-                        rating?: number
-                        reviews?: number
-                        price?: string
-                        categories?: string[]
-                        address?: string
-                        phone?: string
-                        link?: string
-                        hours?: string
-                        thumbnail?: string
-                        photos?: string[]
-                    }) => ({
+                    (business: YelpBusiness) => ({
                         name: business.title,
                         rating: business.rating,
                         reviewCount: business.reviews,

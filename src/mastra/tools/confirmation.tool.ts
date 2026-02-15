@@ -36,7 +36,7 @@ const confirmationTool = createTool({
                 'tool.input.action': action,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext,
         })
 
         await writer?.custom({
@@ -130,7 +130,7 @@ const confirmationTool = createTool({
         log.info('Confirmation tool completed', {
             toolCallId,
             toolName,
-            outputData: { confirmed: output.confirmed },
+            outputData: output && 'confirmed' in output ? { confirmed: output.confirmed } : {},
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

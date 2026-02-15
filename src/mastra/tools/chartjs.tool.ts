@@ -1,5 +1,4 @@
-import type { TracingContext } from '@mastra/core/observability';
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { BollingerBands, EMA, MACD, RSI, SMA } from 'technicalindicators'
@@ -88,15 +87,13 @@ export const chartJsTool = createTool({
         })
 
         // Tracing: create a TOOL_CALL span for this tool execution
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
         const abortSignal = context?.abortSignal
 
         if (abortSignal?.aborted === true) {
             throw new Error('Tool call cancelled')
         }
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'chartjs-generator',
             input: {
@@ -105,6 +102,7 @@ export const chartJsTool = createTool({
                 chartType,
             },
             requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'chartjs-generator',
                 'tool.input.dataCount': data.length,
@@ -355,11 +353,14 @@ export const chartJsTool = createTool({
                     )
 
                     // Use downsample tool (server-side) to decimate according to algorithm
-                    const dec = (await downsampleTool.execute({
-                        values: valuesForDownsample,
-                        target: DECIMATED_POINTS,
-                        algorithm: 'lttb',
-                    })) as {
+                    const dec = (await downsampleTool?.execute?.(
+                        {
+                            values: valuesForDownsample,
+                            target: DECIMATED_POINTS,
+                            algorithm: 'lttb',
+                        },
+                        context
+                    )) as {
                         indices: number[]
                         values: number[]
                         originalLength: number

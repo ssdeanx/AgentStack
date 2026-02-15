@@ -13,7 +13,7 @@
 // approvedBy: sam
 // approvalDate: 9/22
 //import type { RequestContext } from '@mastra/core/request-context';
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
@@ -80,7 +80,7 @@ export const readDataFileTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await ensureDataDir()
         await writer?.custom({
             type: 'data-tool-progress',
@@ -91,7 +91,8 @@ export const readDataFileTool = createTool({
             },
             id: 'read:file',
         })
-        const readSpan = tracingContext?.currentSpan?.createChildSpan({
+        const readSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'read:file',
             input,
@@ -154,6 +155,7 @@ export const readDataFileTool = createTool({
         log.info('Read file received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -200,7 +202,7 @@ export const writeDataFileTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -210,7 +212,8 @@ export const writeDataFileTool = createTool({
             },
             id: 'write:file',
         })
-        const writeSpan = tracingContext?.currentSpan?.createChildSpan({
+        const writeSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'write:file',
             input,
@@ -273,6 +276,7 @@ export const writeDataFileTool = createTool({
         log.info('Write file tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -280,6 +284,7 @@ export const writeDataFileTool = createTool({
         log.info('Write file received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -290,6 +295,7 @@ export const writeDataFileTool = createTool({
             messageCount: messages.length,
             fileName: input.fileName,
             contentLength: input.content.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -298,6 +304,7 @@ export const writeDataFileTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -323,7 +330,7 @@ export const deleteDataFileTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -333,7 +340,8 @@ export const deleteDataFileTool = createTool({
             },
             id: 'delete:file',
         })
-        const deleteSpan = tracingContext?.currentSpan?.createChildSpan({
+        const deleteSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'delete:file',
             input,
@@ -387,6 +395,7 @@ export const deleteDataFileTool = createTool({
         log.info('Delete file tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -394,6 +403,7 @@ export const deleteDataFileTool = createTool({
         log.info('Delete file received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -403,6 +413,7 @@ export const deleteDataFileTool = createTool({
             toolCallId,
             messageCount: messages.length,
             fileName: input.fileName,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -411,6 +422,7 @@ export const deleteDataFileTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -438,7 +450,7 @@ export const listDataDirTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -449,7 +461,8 @@ export const listDataDirTool = createTool({
             },
             id: 'list:directory',
         })
-        const listSpan = tracingContext?.currentSpan?.createChildSpan({
+        const listSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'list:directory',
             input,
@@ -502,6 +515,7 @@ export const listDataDirTool = createTool({
         log.info('List directory tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -509,6 +523,7 @@ export const listDataDirTool = createTool({
         log.info('List directory received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -518,6 +533,7 @@ export const listDataDirTool = createTool({
             toolCallId,
             messageCount: messages.length,
             dirPath: input.dirPath,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -526,6 +542,7 @@ export const listDataDirTool = createTool({
             toolCallId,
             toolName,
             itemCount: output.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -556,7 +573,7 @@ export const copyDataFileTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -566,7 +583,8 @@ export const copyDataFileTool = createTool({
             },
             id: 'copy:file',
         })
-        const copySpan = tracingContext?.currentSpan?.createChildSpan({
+        const copySpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'copy:file',
             input,
@@ -627,6 +645,7 @@ export const copyDataFileTool = createTool({
         log.info('Copy file tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -634,6 +653,7 @@ export const copyDataFileTool = createTool({
         log.info('Copy file received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -644,6 +664,7 @@ export const copyDataFileTool = createTool({
             messageCount: messages.length,
             sourceFile: input.sourceFile,
             destFile: input.destFile,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -652,6 +673,7 @@ export const copyDataFileTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -682,7 +704,7 @@ export const moveDataFileTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -692,7 +714,8 @@ export const moveDataFileTool = createTool({
             },
             id: 'move:file',
         })
-        const moveSpan = tracingContext?.currentSpan?.createChildSpan({
+        const moveSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'move:file',
             input,
@@ -753,6 +776,7 @@ export const moveDataFileTool = createTool({
         log.info('Move file tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -760,6 +784,7 @@ export const moveDataFileTool = createTool({
         log.info('Move file received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -770,6 +795,7 @@ export const moveDataFileTool = createTool({
             messageCount: messages.length,
             sourceFile: input.sourceFile,
             destFile: input.destFile,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -778,6 +804,7 @@ export const moveDataFileTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -814,7 +841,7 @@ export const searchDataFilesTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -824,7 +851,8 @@ export const searchDataFilesTool = createTool({
             },
             id: 'search:files',
         })
-        const searchSpan = tracingContext?.currentSpan?.createChildSpan({
+        const searchSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'search:files',
             input,
@@ -932,6 +960,7 @@ export const searchDataFilesTool = createTool({
         log.info('Search files received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -985,7 +1014,7 @@ export const getDataFileInfoTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -995,7 +1024,8 @@ export const getDataFileInfoTool = createTool({
             },
             id: 'get:fileinfo',
         })
-        const infoSpan = tracingContext?.currentSpan?.createChildSpan({
+        const infoSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'get:fileinfo',
             input,
@@ -1058,6 +1088,7 @@ export const getDataFileInfoTool = createTool({
         log.info('Get file info tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -1065,6 +1096,7 @@ export const getDataFileInfoTool = createTool({
         log.info('Get file info received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -1074,6 +1106,7 @@ export const getDataFileInfoTool = createTool({
             toolCallId,
             messageCount: messages.length,
             fileName: input.fileName,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1083,6 +1116,7 @@ export const getDataFileInfoTool = createTool({
             toolName,
             fileSize: output.size,
             isFile: output.isFile,
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1107,7 +1141,7 @@ export const createDataDirTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -1117,7 +1151,8 @@ export const createDataDirTool = createTool({
             },
             id: 'create:directory',
         })
-        const createDirSpan = tracingContext?.currentSpan?.createChildSpan({
+        const createDirSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'create:directory',
             input,
@@ -1170,6 +1205,7 @@ export const createDataDirTool = createTool({
         log.info('Create directory tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
@@ -1177,6 +1213,7 @@ export const createDataDirTool = createTool({
         log.info('Create directory received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -1186,6 +1223,7 @@ export const createDataDirTool = createTool({
             toolCallId,
             messageCount: messages.length,
             dirPath: input.dirPath,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1194,6 +1232,7 @@ export const createDataDirTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1219,7 +1258,7 @@ export const removeDataDirTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -1229,7 +1268,8 @@ export const removeDataDirTool = createTool({
             },
             id: 'remove:directory',
         })
-        const removeDirSpan = tracingContext?.currentSpan?.createChildSpan({
+        const removeDirSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'remove:directory',
             input,
@@ -1286,7 +1326,17 @@ export const removeDataDirTool = createTool({
         log.info('Remove directory tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Remove directory received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
@@ -1294,6 +1344,7 @@ export const removeDataDirTool = createTool({
             toolCallId,
             messageCount: messages.length,
             dirPath: input.dirPath,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1302,6 +1353,7 @@ export const removeDataDirTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1333,7 +1385,7 @@ export const archiveDataTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -1343,7 +1395,8 @@ export const archiveDataTool = createTool({
             },
             id: 'archive:data',
         })
-        const archiveSpan = tracingContext?.currentSpan?.createChildSpan({
+        const archiveSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'archive:data',
             input,
@@ -1409,7 +1462,17 @@ export const archiveDataTool = createTool({
         log.info('Archive data tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Archive data received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
@@ -1418,6 +1481,7 @@ export const archiveDataTool = createTool({
             messageCount: messages.length,
             sourcePath: input.sourcePath,
             archiveName: input.archiveName,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1426,6 +1490,7 @@ export const archiveDataTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('successfully'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -1458,7 +1523,7 @@ export const backupDataTool = createTool({
         const requestCtx = context?.requestContext as
             | DataFileManagerContext
             | undefined
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -1468,7 +1533,8 @@ export const backupDataTool = createTool({
             },
             id: 'backup:data',
         })
-        const backupSpan = tracingContext?.currentSpan?.createChildSpan({
+        const backupSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'backup:data',
             input,
@@ -1535,7 +1601,17 @@ export const backupDataTool = createTool({
         log.info('Backup data tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Backup data received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
@@ -1544,6 +1620,7 @@ export const backupDataTool = createTool({
             messageCount: messages.length,
             sourcePath: input.sourcePath,
             backupDir: input.backupDir,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
@@ -1552,6 +1629,7 @@ export const backupDataTool = createTool({
             toolCallId,
             toolName,
             success: output.includes('Backup created'),
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },

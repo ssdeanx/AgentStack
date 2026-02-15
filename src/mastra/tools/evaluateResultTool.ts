@@ -1,15 +1,15 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { log } from '../config/logger'
-import type { RequestContext } from '@mastra/core/request-context'
 
-export interface EvaluateResultContext extends RequestContext {
-    userId?: string
-}
+const evaluateResultOutputSchema = z.object({
+    isRelevant: z.boolean(),
+    reason: z.string(),
+})
 
 export const evaluateResultTool = createTool({
     id: 'evaluate-result',
@@ -29,20 +29,21 @@ export const evaluateResultTool = createTool({
             .describe('URLs that have already been processed')
             .optional(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    outputSchema: evaluateResultOutputSchema,
+    onInputStart: ({ toolCallId }) => {
         log.info('Evaluate result tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId }) => {
         log.info('Evaluate result received input chunk', {
             toolCallId,
             inputTextDelta,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('Evaluate result received complete input', {
             toolCallId,
             query: input.query,
@@ -51,19 +52,14 @@ export const evaluateResultTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ toolCallId, toolName }) => {
         log.info('Evaluate result completed', {
             toolCallId,
             toolName,
-            isRelevant: output.isRelevant,
-            reason: output.reason,
             hook: 'onOutput',
         })
     },
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as
-            | EvaluateResultContext
-            | undefined
         await context?.writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -76,11 +72,12 @@ export const evaluateResultTool = createTool({
             id: 'evaluate-result',
         })
 
-        const tracingContext = context?.tracingContext
-        const evalSpan = tracingContext?.currentSpan?.createChildSpan({
+        const evalSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'evaluate_result',
             input: inputData,
+            requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'evaluate-result',
                 query: inputData.query,
@@ -209,19 +206,17 @@ export const evaluateResultTool = createTool({
                     response.object ??
                     (() => {
                         try {
-                            return JSON.parse(response.text)
+                            const parsedJson: unknown = JSON.parse(
+                                response.text
+                            )
+                            return parsedJson
                         } catch {
                             return {}
                         }
                     })()
             }
 
-            const outputSchema = z.object({
-                isRelevant: z.boolean(),
-                reason: z.string(),
-            })
-
-            const parsed = outputSchema.safeParse(responseObject)
+            const parsed = evaluateResultOutputSchema.safeParse(responseObject)
 
             if (!parsed.success) {
                 log.warn('Evaluation agent returned unexpected shape', {

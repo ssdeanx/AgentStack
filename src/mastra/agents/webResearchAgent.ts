@@ -30,7 +30,7 @@ export interface WebResearchRuntimeContext {
     language: 'en' | 'es' | 'ja' | 'fr'
     // Optional runtime fields server middleware may populate
     userId?: string
-    researchPhase?: 'initial' | 'followup' | 'validation' | string
+    researchPhase?: string
 }
 
 log.info('Initializing Web Research Agent...')
@@ -101,11 +101,7 @@ Provide structured results with:
             },
         }
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<WebResearchRuntimeContext>
-    }) => {
+    model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
             return google.chat('gemini-3-pro-preview')

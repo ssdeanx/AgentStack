@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
@@ -50,11 +50,12 @@ export const colorChangeTool = createTool({
             id: 'changeColor',
         })
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'change-color',
             input: { color },
             requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'changeColor',
                 'tool.input.color': color,

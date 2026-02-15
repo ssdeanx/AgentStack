@@ -12,6 +12,64 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import { validateSerpApiKey } from './serpapi-config'
 
+// Typed interfaces for SerpAPI shopping responses
+interface AmazonSearchResultItem {
+    title: string
+    asin: string
+    link: string
+    price?: { value: number }
+    rating?: number
+    reviews_count?: number
+    thumbnail?: string
+    is_prime?: boolean
+}
+
+interface AmazonSearchApiResponse {
+    search_results?: AmazonSearchResultItem[]
+}
+
+interface WalmartSearchResultItem {
+    title: string
+    product_id: string
+    link: string
+    primary_offer?: { offer_price?: number }
+    rating?: number
+    thumbnail?: string
+}
+
+interface WalmartSearchApiResponse {
+    organic_results?: WalmartSearchResultItem[]
+}
+
+interface EbaySearchResultItem {
+    title: string
+    item_id: string
+    link: string
+    price?: { value: number }
+    condition?: string
+    bids?: number
+    time_left?: string
+    thumbnail?: string
+}
+
+interface EbaySearchApiResponse {
+    organic_results?: EbaySearchResultItem[]
+}
+
+interface HomeDepotSearchResultItem {
+    title: string
+    product_id: string
+    link: string
+    price?: number
+    rating?: number
+    availability?: string
+    thumbnail?: string
+}
+
+interface HomeDepotSearchApiResponse {
+    products?: HomeDepotSearchResultItem[]
+}
+
 // Amazon Search Tool
 const amazonSearchInputSchema = z.object({
     query: z.string().min(1).describe('Product search query'),
@@ -58,12 +116,16 @@ export const amazonSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool tool input streaming started', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('amazonSearchTool received input', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 query: input.query,
                 sortBy: input.sortBy,
@@ -82,6 +144,7 @@ export const amazonSearchTool = createTool({
             outputData: {
                 products: output.products,
             },
+            abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
     },
@@ -154,19 +217,11 @@ export const amazonSearchTool = createTool({
             }
 
             const response = await getJson(params)
+            const amazonResponse = response as AmazonSearchApiResponse
 
             const products =
-                response.search_results?.map(
-                    (product: {
-                        title: string
-                        asin: string
-                        link: string
-                        price?: { value: number }
-                        rating?: number
-                        reviews_count?: number
-                        thumbnail?: string
-                        is_prime?: boolean
-                    }) => ({
+                amazonResponse.search_results?.map(
+                    (product: AmazonSearchResultItem) => ({
                         title: product.title,
                         asin: product.asin,
                         link: product.link,
@@ -261,12 +316,16 @@ export const walmartSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool tool input streaming started', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('walmartSearchTool received input', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 query: input.query,
                 sortBy: input.sortBy,
@@ -281,6 +340,7 @@ export const walmartSearchTool = createTool({
         log.info('walmartSearchTool completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             outputData: {
                 products: output.products,
             },
@@ -344,17 +404,11 @@ export const walmartSearchTool = createTool({
             }
 
             const response = await getJson(params)
+            const walmartResponse = response as WalmartSearchApiResponse
 
             const products =
-                response.organic_results?.map(
-                    (product: {
-                        title: string
-                        product_id: string
-                        link: string
-                        primary_offer?: { offer_price?: number }
-                        rating?: number
-                        thumbnail?: string
-                    }) => ({
+                walmartResponse.organic_results?.map(
+                    (product: WalmartSearchResultItem) => ({
                         title: product.title,
                         productId: product.product_id,
                         link: product.link,
@@ -455,12 +509,16 @@ export const ebaySearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool tool input streaming started', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('ebaySearchTool received input', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 query: input.query,
                 condition: input.condition,
@@ -475,6 +533,7 @@ export const ebaySearchTool = createTool({
         log.info('ebaySearchTool completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             outputData: {
                 products: output.products,
             },
@@ -550,18 +609,10 @@ export const ebaySearchTool = createTool({
             }
 
             const response = await getJson(params)
+            const ebayResponse = response as EbaySearchApiResponse
             const products =
-                response.organic_results?.map(
-                    (product: {
-                        title: string
-                        item_id: string
-                        link: string
-                        price?: { value: number }
-                        condition?: string
-                        bids?: number
-                        time_left?: string
-                        thumbnail?: string
-                    }) => ({
+                ebayResponse.organic_results?.map(
+                    (product: EbaySearchResultItem) => ({
                         title: product.title,
                         itemId: product.item_id,
                         link: product.link,
@@ -656,12 +707,16 @@ export const homeDepotSearchTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool tool input streaming started', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('homeDepotSearchTool received input', {
             toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
             inputData: {
                 query: input.query,
                 sortBy: input.sortBy,
@@ -675,6 +730,7 @@ export const homeDepotSearchTool = createTool({
         log.info('homeDepotSearchTool completed', {
             toolCallId,
             toolName,
+            abortSignal: abortSignal?.aborted,
             outputData: {
                 products: output.products,
             },
@@ -735,17 +791,10 @@ export const homeDepotSearchTool = createTool({
                 params.in_stock = 'true'
             }
             const response = await getJson(params)
+            const homeDepotResponse = response as HomeDepotSearchApiResponse
             const products =
-                response.products?.map(
-                    (product: {
-                        title: string
-                        product_id: string
-                        link: string
-                        price?: number
-                        rating?: number
-                        availability?: string
-                        thumbnail?: string
-                    }) => ({
+                homeDepotResponse.products?.map(
+                    (product: HomeDepotSearchResultItem) => ({
                         title: product.title,
                         productId: product.product_id,
                         link: product.link,

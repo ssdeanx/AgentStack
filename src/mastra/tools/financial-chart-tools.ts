@@ -1,7 +1,7 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -133,7 +133,7 @@ export const chartSupervisorTool = createTool({
         })
 
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'chart-supervisor-tool',
             input: {

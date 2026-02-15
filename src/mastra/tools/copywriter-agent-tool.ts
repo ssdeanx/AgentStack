@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
@@ -106,7 +106,7 @@ export const copywriterTool = createTool({
             id: 'copywriter-agent',
         })
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'copywriter-generate',
             input: {
@@ -117,6 +117,7 @@ export const copywriterTool = createTool({
                 length,
             },
             requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'copywriter-agent',
                 'user.id': requestCtx?.userId,

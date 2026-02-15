@@ -94,11 +94,7 @@ export const stockAnalysisAgent = new Agent({
             },
         }
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<StockRuntimeContext>
-    }) => {
+    model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
             // higher quality (chat style) for enterprise
