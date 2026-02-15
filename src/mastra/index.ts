@@ -11,6 +11,7 @@ import { PostgresStore } from '@mastra/pg'
 // Config
 import { log } from './config/logger'
 import { pgVector } from './config/pg-storage'
+import { mainWorkspace } from "./workspaces"
 
 // Scorers
 // Scorers are attached to agents where appropriate (see src/mastra/evals/AGENTS.md for mapping)
@@ -154,6 +155,7 @@ import {
 } from './evals/scorers/custom-scorers'
 import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai'
 export const mastra = new Mastra({
+    workspace: mainWorkspace,
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,
