@@ -1,7 +1,7 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { RequestContext } from '@mastra/core/request-context'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import {
@@ -12,6 +12,11 @@ import {
     logToolExecution,
 } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
+
+interface FinnhubApiResponse {
+    [key: string]: unknown
+    error?: string
+}
 
 export interface FinnhubRequestContext extends RequestContext {
     userId?: string
@@ -64,8 +69,9 @@ export const finnhubQuotesTool = createTool({
 
         logToolExecution('finnhubQuotesTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-quotes',
             input: { symbol: input.symbol },
@@ -99,7 +105,8 @@ export const finnhubQuotesTool = createTool({
             const url = `https://finnhub.io/api/v1/quote?${params.toString()}`
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
                 input: { symbol: input.symbol },
@@ -116,8 +123,8 @@ export const finnhubQuotesTool = createTool({
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -135,15 +142,15 @@ export const finnhubQuotesTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubQuotesTool', new Error(message), {
                         symbol: input.symbol,
                         apiError: message,
@@ -228,7 +235,7 @@ export const finnhubQuotesTool = createTool({
         log.info('Finnhub quotes completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -294,14 +301,15 @@ export const finnhubCompanyTool = createTool({
 
         logToolExecution('finnhubCompanyTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-company',
-            input: { function: input.function, symbol: input.symbol },
+            input: { function: String(input.function), symbol: input.symbol },
             metadata: {
                 'tool.id': 'finnhub-company',
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 operation: 'finnhub-company',
                 'user.id': requestCtx?.userId,
@@ -313,7 +321,7 @@ export const finnhubCompanyTool = createTool({
         if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
             const message = 'FINNHUB_API_KEY environment variable is required'
             logError('finnhubCompanyTool', new Error(message), {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
             })
             span?.error({ error: new Error(message), endSpan: true })
@@ -353,9 +361,9 @@ export const finnhubCompanyTool = createTool({
                     break
                 }
                 default: {
-                    const message = `Unsupported function: ${input.function}`
+                    const message = `Unsupported function: ${String(input.function)}`
                     logError('finnhubCompanyTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                     })
                     span?.error({ error: new Error(message), endSpan: true })
@@ -367,10 +375,11 @@ export const finnhubCompanyTool = createTool({
             }
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
-                input: { function: input.function, symbol: input.symbol },
+                input: { function: String(input.function), symbol: input.symbol },
                 metadata: {
                     'tool.id': 'finnhub-api',
                     'http.url': url.replace(apiKey, '[REDACTED]'),
@@ -379,14 +388,14 @@ export const finnhubCompanyTool = createTool({
             })
 
             logStepStart('finnhub-api-call', {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 url: url.replace(apiKey, '[REDACTED]'),
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -404,17 +413,17 @@ export const finnhubCompanyTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubCompanyTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                         apiError: message,
                     })
@@ -429,7 +438,7 @@ export const finnhubCompanyTool = createTool({
             const result = {
                 data,
                 metadata: {
-                    function: input.function,
+                    function: String(input.function),
                     symbol: input.symbol,
                     from: input.from,
                     to: input.to,
@@ -447,7 +456,7 @@ export const finnhubCompanyTool = createTool({
             span?.end()
 
             logToolExecution('finnhubCompanyTool', {
-                output: { function: input.function, symbol: input.symbol },
+                output: { function: String(input.function), symbol: input.symbol },
             })
 
             return result
@@ -459,7 +468,7 @@ export const finnhubCompanyTool = createTool({
             logError(
                 'finnhubCompanyTool',
                 error instanceof Error ? error : new Error(errorMessage),
-                { function: input.function, symbol: input.symbol }
+                { function: String(input.function), symbol: input.symbol }
             )
             span?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
@@ -492,7 +501,7 @@ export const finnhubCompanyTool = createTool({
         log.info('Finnhub company received complete input', {
             toolCallId,
             messageCount: messages.length,
-            function: input.function,
+            function: String(input.function),
             symbol: input.symbol,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -502,7 +511,7 @@ export const finnhubCompanyTool = createTool({
         log.info('Finnhub company completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -569,14 +578,15 @@ export const finnhubFinancialsTool = createTool({
 
         logToolExecution('finnhubFinancialsTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-financials',
-            input: { function: input.function, symbol: input.symbol },
+            input: { function: String(input.function), symbol: input.symbol },
             metadata: {
                 'tool.id': 'finnhub-financials',
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 operation: 'finnhub-financials',
                 'user.id': requestCtx?.userId,
@@ -588,7 +598,7 @@ export const finnhubFinancialsTool = createTool({
         if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
             const message = 'FINNHUB_API_KEY environment variable is required'
             logError('finnhubFinancialsTool', new Error(message), {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
             })
             span?.error({ error: new Error(message), endSpan: true })
@@ -622,9 +632,9 @@ export const finnhubFinancialsTool = createTool({
                     break
                 }
                 default: {
-                    const message = `Unsupported function: ${input.function}`
+                    const message = `Unsupported function: ${String(input.function)}`
                     logError('finnhubFinancialsTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                     })
                     span?.error({ error: new Error(message), endSpan: true })
@@ -636,10 +646,11 @@ export const finnhubFinancialsTool = createTool({
             }
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
-                input: { function: input.function, symbol: input.symbol },
+                input: { function: String(input.function), symbol: input.symbol },
                 metadata: {
                     'tool.id': 'finnhub-api',
                     'http.url': url.replace(apiKey, '[REDACTED]'),
@@ -648,14 +659,14 @@ export const finnhubFinancialsTool = createTool({
             })
 
             logStepStart('finnhub-api-call', {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 url: url.replace(apiKey, '[REDACTED]'),
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -673,17 +684,17 @@ export const finnhubFinancialsTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubFinancialsTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                         apiError: message,
                     })
@@ -698,7 +709,7 @@ export const finnhubFinancialsTool = createTool({
             const result = {
                 data,
                 metadata: {
-                    function: input.function,
+                    function: String(input.function),
                     symbol: input.symbol,
                 },
                 message: undefined,
@@ -714,7 +725,7 @@ export const finnhubFinancialsTool = createTool({
             span?.end()
 
             logToolExecution('finnhubFinancialsTool', {
-                output: { function: input.function, symbol: input.symbol },
+                output: { function: String(input.function), symbol: input.symbol },
             })
 
             return result
@@ -726,7 +737,7 @@ export const finnhubFinancialsTool = createTool({
             logError(
                 'finnhubFinancialsTool',
                 error instanceof Error ? error : new Error(errorMessage),
-                { function: input.function, symbol: input.symbol }
+                { function: String(input.function), symbol: input.symbol }
             )
             span?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
@@ -759,7 +770,7 @@ export const finnhubFinancialsTool = createTool({
         log.info('Finnhub financials received complete input', {
             toolCallId,
             messageCount: messages.length,
-            function: input.function,
+            function: String(input.function),
             symbol: input.symbol,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -769,7 +780,7 @@ export const finnhubFinancialsTool = createTool({
         log.info('Finnhub financials completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -829,14 +840,15 @@ export const finnhubAnalysisTool = createTool({
 
         logToolExecution('finnhubAnalysisTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-analysis',
-            input: { function: input.function, symbol: input.symbol },
+            input: { function: String(input.function), symbol: input.symbol },
             metadata: {
                 'tool.id': 'finnhub-analysis',
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 operation: 'finnhub-analysis',
                 'user.id': requestCtx?.userId,
@@ -848,7 +860,7 @@ export const finnhubAnalysisTool = createTool({
         if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
             const message = 'FINNHUB_API_KEY environment variable is required'
             logError('finnhubAnalysisTool', new Error(message), {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
             })
             span?.error({ error: new Error(message), endSpan: true })
@@ -874,9 +886,9 @@ export const finnhubAnalysisTool = createTool({
                     break
                 }
                 default: {
-                    const message = `Unsupported function: ${input.function}`
+                    const message = `Unsupported function: ${String(input.function)}`
                     logError('finnhubAnalysisTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                     })
                     span?.error({ error: new Error(message), endSpan: true })
@@ -888,10 +900,11 @@ export const finnhubAnalysisTool = createTool({
             }
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
-                input: { function: input.function, symbol: input.symbol },
+                input: { function: String(input.function), symbol: input.symbol },
                 metadata: {
                     'tool.id': 'finnhub-api',
                     'http.url': url.replace(apiKey, '[REDACTED]'),
@@ -900,14 +913,14 @@ export const finnhubAnalysisTool = createTool({
             })
 
             logStepStart('finnhub-api-call', {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 url: url.replace(apiKey, '[REDACTED]'),
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -925,17 +938,17 @@ export const finnhubAnalysisTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubAnalysisTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                         apiError: message,
                     })
@@ -950,7 +963,7 @@ export const finnhubAnalysisTool = createTool({
             const result = {
                 data,
                 metadata: {
-                    function: input.function,
+                    function: String(input.function),
                     symbol: input.symbol,
                 },
                 message: undefined,
@@ -966,7 +979,7 @@ export const finnhubAnalysisTool = createTool({
             span?.end()
 
             logToolExecution('finnhubAnalysisTool', {
-                output: { function: input.function, symbol: input.symbol },
+                output: { function: String(input.function), symbol: input.symbol },
             })
 
             return result
@@ -978,7 +991,7 @@ export const finnhubAnalysisTool = createTool({
             logError(
                 'finnhubAnalysisTool',
                 error instanceof Error ? error : new Error(errorMessage),
-                { function: input.function, symbol: input.symbol }
+                { function: String(input.function), symbol: input.symbol }
             )
             span?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
@@ -1011,7 +1024,7 @@ export const finnhubAnalysisTool = createTool({
         log.info('Finnhub analysis received complete input', {
             toolCallId,
             messageCount: messages.length,
-            function: input.function,
+            function: String(input.function),
             symbol: input.symbol,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
@@ -1021,7 +1034,7 @@ export const finnhubAnalysisTool = createTool({
         log.info('Finnhub analysis completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -1113,18 +1126,19 @@ export const finnhubTechnicalTool = createTool({
 
         logToolExecution('finnhubTechnicalTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-technical',
             input: {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 resolution: input.resolution,
             },
             metadata: {
                 'tool.id': 'finnhub-technical',
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 resolution: input.resolution,
                 operation: 'finnhub-technical',
@@ -1137,7 +1151,7 @@ export const finnhubTechnicalTool = createTool({
         if (apiKey === undefined || apiKey === null || apiKey.trim() === '') {
             const message = 'FINNHUB_API_KEY environment variable is required'
             logError('finnhubTechnicalTool', new Error(message), {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
             })
             span?.error({ error: new Error(message), endSpan: true })
@@ -1169,7 +1183,7 @@ export const finnhubTechnicalTool = createTool({
                         const message =
                             'TECHNICAL_INDICATOR function requires indicator, timeperiod, and series_type parameters'
                         logError('finnhubTechnicalTool', new Error(message), {
-                            function: input.function,
+                            function: String(input.function),
                             symbol: input.symbol,
                         })
                         span?.error({
@@ -1200,9 +1214,9 @@ export const finnhubTechnicalTool = createTool({
                     break
                 }
                 default: {
-                    const message = `Unsupported function: ${input.function}`
+                    const message = `Unsupported function: ${String(input.function)}`
                     logError('finnhubTechnicalTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                     })
                     span?.error({ error: new Error(message), endSpan: true })
@@ -1214,10 +1228,11 @@ export const finnhubTechnicalTool = createTool({
             }
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
-                input: { function: input.function, symbol: input.symbol },
+                input: { function: String(input.function), symbol: input.symbol },
                 metadata: {
                     'tool.id': 'finnhub-api',
                     'http.url': url.replace(apiKey, '[REDACTED]'),
@@ -1226,14 +1241,14 @@ export const finnhubTechnicalTool = createTool({
             })
 
             logStepStart('finnhub-api-call', {
-                function: input.function,
+                function: String(input.function),
                 symbol: input.symbol,
                 url: url.replace(apiKey, '[REDACTED]'),
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -1251,17 +1266,17 @@ export const finnhubTechnicalTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubTechnicalTool', new Error(message), {
-                        function: input.function,
+                        function: String(input.function),
                         symbol: input.symbol,
                         apiError: message,
                     })
@@ -1276,7 +1291,7 @@ export const finnhubTechnicalTool = createTool({
             const result = {
                 data,
                 metadata: {
-                    function: input.function,
+                    function: String(input.function),
                     symbol: input.symbol,
                     resolution: input.resolution,
                     indicator: input.indicator,
@@ -1296,7 +1311,7 @@ export const finnhubTechnicalTool = createTool({
             span?.end()
 
             logToolExecution('finnhubTechnicalTool', {
-                output: { function: input.function, symbol: input.symbol },
+                output: { function: String(input.function), symbol: input.symbol },
             })
 
             return result
@@ -1308,7 +1323,7 @@ export const finnhubTechnicalTool = createTool({
             logError(
                 'finnhubTechnicalTool',
                 error instanceof Error ? error : new Error(errorMessage),
-                { function: input.function, symbol: input.symbol }
+                { function: String(input.function), symbol: input.symbol }
             )
             span?.error({
                 error: error instanceof Error ? error : new Error(errorMessage),
@@ -1341,7 +1356,7 @@ export const finnhubTechnicalTool = createTool({
         log.info('Finnhub technical received complete input', {
             toolCallId,
             messageCount: messages.length,
-            function: input.function,
+            function: String(input.function),
             symbol: input.symbol,
             resolution: input.resolution,
             abortSignal: abortSignal?.aborted,
@@ -1352,7 +1367,7 @@ export const finnhubTechnicalTool = createTool({
         log.info('Finnhub technical completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -1408,8 +1423,9 @@ export const finnhubEconomicTool = createTool({
 
         logToolExecution('finnhubEconomicTool', { input })
 
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'finnhub-economic',
             input: { economic_code: input.economic_code },
@@ -1443,7 +1459,8 @@ export const finnhubEconomicTool = createTool({
             const url = `https://finnhub.io/api/v1/economic?${params.toString()}`
 
             // Create child span for API call
-            const apiSpan = tracingContext?.currentSpan?.createChildSpan({
+            const apiSpan = getOrCreateSpan({
+            tracingContext,
                 type: SpanType.TOOL_CALL,
                 name: 'finnhub-api-call',
                 input: { economic_code: input.economic_code },
@@ -1460,8 +1477,8 @@ export const finnhubEconomicTool = createTool({
             })
 
             const apiStartTime = Date.now()
-            const response = await fetch(url)
-            const data = await response.json()
+            const response = await httpFetch(url)
+            const data: FinnhubApiResponse = await response.json()
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.end()
@@ -1479,15 +1496,15 @@ export const finnhubEconomicTool = createTool({
             if (
                 data !== null &&
                 typeof data === 'object' &&
-                'error' in (data as Record<string, unknown>)
+                'error' in data
             ) {
-                const errorValue = (data as Record<string, unknown>)['error']
+                const errorValue = data['error']
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const message = String(errorValue)
+                    const message = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('finnhubEconomicTool', new Error(message), {
                         economic_code: input.economic_code,
                         apiError: message,
@@ -1572,7 +1589,7 @@ export const finnhubEconomicTool = createTool({
         log.info('Finnhub economic completed', {
             toolCallId,
             toolName,
-            hasData: !!output.data,
+            hasData: output.data !== null && output.data !== undefined,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })

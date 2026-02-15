@@ -1,6 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import chalk from 'chalk'
 import type { ExecaError as ExecaErrorType } from 'execa'
 import execa from 'execa'
@@ -47,7 +47,7 @@ export const execaTool = createTool({
             | undefined
         const tracingContext = context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'execa-tool',
             input: inputData,

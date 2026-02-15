@@ -30,6 +30,30 @@ export interface AlphaVantageRequestContext extends RequestContext {
 // Add this line at the beginning of each tool's execute function to track usage:
 // toolCallCounters.set('tool-id', (toolCallCounters.get('tool-id') ?? 0) + 1)
 const toolCallCounters = new Map<string, number>()
+
+/**
+ * Normalize API-provided messages into a safe string for error messages.
+ * - Returns '' for null/undefined
+ * - Returns string values unchanged
+ * - Serializes objects using JSON.stringify (fallback to Object.prototype.toString)
+ */
+const normalizeApiMessage = (value: unknown): string => {
+    if (value === null || value === undefined) {return ''}
+    if (typeof value === 'string') {return value}
+    if (
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint' ||
+        typeof value === 'symbol'
+    ) {
+        return String(value)
+    }
+    try {
+        return JSON.stringify(value)
+    } catch {
+        return Object.prototype.toString.call(value)
+    }
+}
 /**
  * Alpha Vantage Crypto Tool
  *
@@ -242,7 +266,7 @@ export const alphaVantageCryptoTool = createTool({
                 )
             }
 
-            const data = resp.data
+            const {data} = resp
 
             const dataObj = data
 
@@ -256,12 +280,9 @@ export const alphaVantageCryptoTool = createTool({
                 const errorMessage = (dataObj as Record<string, unknown>)[
                     'Error Message'
                 ]
-                if (
-                    errorMessage !== null &&
-                    errorMessage !== undefined &&
-                    String(errorMessage).trim() !== ''
-                ) {
-                    throw new Error(String(errorMessage))
+                const errorText = normalizeApiMessage(errorMessage).trim()
+                if (errorText !== '') {
+                    throw new Error(errorText)
                 }
             }
 
@@ -272,12 +293,9 @@ export const alphaVantageCryptoTool = createTool({
                 'Note' in (dataObj as Record<string, unknown>)
             ) {
                 const note = (dataObj as Record<string, unknown>)['Note']
-                if (
-                    note !== null &&
-                    note !== undefined &&
-                    String(note).trim() !== ''
-                ) {
-                    throw new Error(String(note)) // API limit reached
+                const noteText = normalizeApiMessage(note).trim()
+                if (noteText !== '') {
+                    throw new Error(noteText) // API limit reached
                 }
             }
 
@@ -309,7 +327,7 @@ export const alphaVantageCryptoTool = createTool({
                     if (key in metaRecord) {
                         const value = metaRecord[key]
                         return value !== null && value !== undefined
-                            ? String(value)
+                            ? normalizeApiMessage(value)
                             : null
                     }
                 }
@@ -633,7 +651,7 @@ export const alphaVantageStockTool = createTool({
                 )
             }
 
-            const data = resp.data
+            const { data } = resp
 
             const dataObj = data
 
@@ -644,15 +662,10 @@ export const alphaVantageStockTool = createTool({
                 dataObj !== null &&
                 'Error Message' in (dataObj as Record<string, unknown>)
             ) {
-                const errorMessage = (dataObj as Record<string, unknown>)[
-                    'Error Message'
-                ]
-                if (
-                    errorMessage !== null &&
-                    errorMessage !== undefined &&
-                    String(errorMessage).trim() !== ''
-                ) {
-                    throw new Error(String(errorMessage))
+                const errorMessage = (dataObj as Record<string, unknown>)['Error Message']
+                const errorText = normalizeApiMessage(errorMessage).trim()
+                if (errorText !== '') {
+                    throw new Error(errorText)
                 }
             }
 
@@ -663,12 +676,9 @@ export const alphaVantageStockTool = createTool({
                 'Note' in (dataObj as Record<string, unknown>)
             ) {
                 const note = (dataObj as Record<string, unknown>)['Note']
-                if (
-                    note !== null &&
-                    note !== undefined &&
-                    String(note).trim() !== ''
-                ) {
-                    throw new Error(String(note)) // API limit reached
+                const noteText = normalizeApiMessage(note).trim()
+                if (noteText !== '') {
+                    throw new Error(noteText) // API limit reached
                 }
             }
 
@@ -1112,7 +1122,7 @@ export const alphaVantageTool = createTool({
                 )
             }
 
-            const data = resp.data
+            const { data } = resp
 
             const dataObj = data
 
@@ -1121,26 +1131,26 @@ export const alphaVantageTool = createTool({
                 Boolean(dataObj) &&
                 typeof dataObj === 'object' &&
                 dataObj !== null &&
-                'Error Message' in (dataObj as Record<string, unknown>) &&
-                Boolean((dataObj as Record<string, unknown>)['Error Message'])
+                'Error Message' in (dataObj as Record<string, unknown>)
             ) {
-                throw new Error(
-                    String(
-                        (dataObj as Record<string, unknown>)['Error Message']
-                    )
-                )
+                const apiError = (dataObj as Record<string, unknown>)['Error Message']
+                const apiErrorText = normalizeApiMessage(apiError).trim()
+                if (apiErrorText !== '') {
+                    throw new Error(apiErrorText)
+                }
             }
 
             if (
                 Boolean(dataObj) &&
                 typeof dataObj === 'object' &&
                 dataObj !== null &&
-                'Note' in (dataObj as Record<string, unknown>) &&
-                Boolean((dataObj as Record<string, unknown>)['Note'])
+                'Note' in (dataObj as Record<string, unknown>)
             ) {
-                throw new Error(
-                    String((dataObj as Record<string, unknown>)['Note'])
-                ) // API limit reached
+                const apiNote = (dataObj as Record<string, unknown>)['Note']
+                const apiNoteText = normalizeApiMessage(apiNote).trim()
+                if (apiNoteText !== '') {
+                    throw new Error(apiNoteText) // API limit reached
+                }
             }
 
             // Extract metadata if available

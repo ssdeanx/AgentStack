@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createPatch } from 'diff'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
@@ -270,6 +270,8 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('multiStringEditTool tool input streaming started', {
             toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputStart',
         })
     },
@@ -277,6 +279,8 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
         log.info('multiStringEditTool received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputDelta',
         })
     },
@@ -290,6 +294,8 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
                 projectRoot: input.projectRoot,
                 maxFileSize: input.maxFileSize,
             },
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputAvailable',
         })
     },
@@ -302,6 +308,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
                 results: output.results,
                 summary: output.summary,
             },
+            aborted: abortSignal?.aborted === true,
             hook: 'onOutput',
         })
     },
@@ -332,7 +339,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
         })
 
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'multi_string_edit',
             input: {
@@ -346,6 +353,7 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
                 editsCount: edits.length,
                 dryRun,
             },
+            tracingContext,
         })
 
         const results: Array<z.infer<typeof editResultSchema>> = []
@@ -383,7 +391,9 @@ Use for batch refactoring, multi-file updates, and coordinated code changes.`,
                 try {
                     await fs.copyFile(backupPath, filePath)
                 } catch (error) {
-                    // Best effort rollback
+                    log.warn('Rollback failed for backup', {
+                        error: error instanceof Error ? error.message : String(error),
+                    })
                 }
             }
         }

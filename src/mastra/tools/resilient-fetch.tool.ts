@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -53,7 +53,7 @@ export const resilientFetchTool = createTool({
             context?.tracingContext
 
         // Create child span for resilient fetch
-        const fetchSpan = tracingContext?.currentSpan?.createChildSpan({
+        const fetchSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'resilient-fetch',
             input,

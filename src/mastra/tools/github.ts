@@ -7,7 +7,7 @@ const OctokitWithRetry = Octokit.plugin(retry)
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -207,8 +207,9 @@ export const listRepositories = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-list-repos',
             input: {
@@ -216,6 +217,7 @@ export const listRepositories = createTool({
                 type: inputData.type,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:listRepositories',
                 'tool.input.org': inputData.org,
                 'tool.input.type': inputData.type,
@@ -241,8 +243,9 @@ export const listRepositories = createTool({
         })
 
         try {
-            // Check for cancellation before API call
-            if (abortSignal?.aborted) {
+            // AbortSignal may change after async work — re-check with fresh read
+            const isCancelledDuringCall: boolean = abortSignal?.aborted ?? false
+            if (isCancelledDuringCall) {
                 span?.update({
                     metadata: {
                         status: 'cancelled',
@@ -351,7 +354,7 @@ export const listRepositories = createTool({
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const scope = input.org ? `org:${input.org}` : 'user'
+        const scope = input.org !== undefined && input.org !== '' ? `org:${input.org}` : 'user'
         log.info('GitHub list repositories received complete input', {
             toolCallId,
             messageCount: messages.length,
@@ -456,8 +459,9 @@ export const listPullRequests = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-list-prs',
             input: {
@@ -465,6 +469,7 @@ export const listPullRequests = createTool({
                 repo: inputData.repo,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:listPullRequests',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -576,8 +581,9 @@ export const listCommits = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-list-commits',
             input: {
@@ -585,6 +591,7 @@ export const listCommits = createTool({
                 repo: inputData.repo,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:listCommits',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -693,8 +700,9 @@ export const listIssues = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-list-issues',
             input: {
@@ -702,6 +710,7 @@ export const listIssues = createTool({
                 repo: inputData.repo,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:listIssues',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -818,8 +827,9 @@ export const createIssue = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-create-issue',
             input: {
@@ -828,6 +838,7 @@ export const createIssue = createTool({
                 title: inputData.title,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:createIssue',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -927,8 +938,9 @@ export const createRelease = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-create-release',
             input: {
@@ -936,6 +948,7 @@ export const createRelease = createTool({
                 repo: inputData.repo,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:createRelease',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1047,8 +1060,9 @@ export const getRepositoryInfo = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-get-repo-info',
             input: {
@@ -1056,6 +1070,7 @@ export const getRepositoryInfo = createTool({
                 repo: inputData.repo,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:getRepositoryInfo',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1168,14 +1183,16 @@ export const searchCode = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-search-code',
             input: {
                 query: inputData.query,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:searchCode',
                 'tool.input.query': inputData.query,
             },
@@ -1287,8 +1304,9 @@ export const getFileContent = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-get-file',
             input: {
@@ -1297,6 +1315,7 @@ export const getFileContent = createTool({
                 path: inputData.path,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:getFileContent',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1408,8 +1427,9 @@ export const getRepoFileTree = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-get-tree',
             input: {
@@ -1418,6 +1438,7 @@ export const getRepoFileTree = createTool({
                 branch: inputData.branch,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:getRepoFileTree',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1547,8 +1568,9 @@ export const createPullRequest = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-create-pr',
             input: {
@@ -1557,6 +1579,7 @@ export const createPullRequest = createTool({
                 title: inputData.title,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:createPullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1654,8 +1677,9 @@ export const mergePullRequest = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-merge-pr',
             input: {
@@ -1664,6 +1688,7 @@ export const mergePullRequest = createTool({
                 pullNumber: inputData.pullNumber,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:mergePullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1752,8 +1777,9 @@ export const addIssueComment = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-add-comment',
             input: {
@@ -1762,6 +1788,7 @@ export const addIssueComment = createTool({
                 issueNumber: inputData.issueNumber,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:addIssueComment',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1860,8 +1887,9 @@ export const getPullRequest = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-get-pr',
             input: {
@@ -1870,6 +1898,7 @@ export const getPullRequest = createTool({
                 pullNumber: inputData.pullNumber,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:getPullRequest',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,
@@ -1977,8 +2006,9 @@ export const getIssue = createTool({
         const requestContext = context?.requestContext as
             | GithubToolContext
             | undefined
-        const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const tracingContext: TracingContext | undefined = context?.tracingContext
+        const span = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'github-get-issue',
             input: {
@@ -1987,6 +2017,7 @@ export const getIssue = createTool({
                 issueNumber: inputData.issueNumber,
             },
             metadata: {
+                'user.id': requestContext?.userId,
                 'tool.id': 'github:getIssue',
                 'tool.input.owner': inputData.owner,
                 'tool.input.repo': inputData.repo,

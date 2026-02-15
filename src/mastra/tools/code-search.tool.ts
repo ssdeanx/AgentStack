@@ -114,6 +114,49 @@ Supports string and regex patterns with context lines.
 Use for finding usages, identifying patterns, and code exploration.`,
     inputSchema: codeSearchInputSchema,
     outputSchema: codeSearchOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Code search tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Code search tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        const targetDesc = Array.isArray(input.target)
+            ? `${input.target.length} targets`
+            : input.target
+        log.info('Code search received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            pattern: input.pattern,
+            target: targetDesc,
+            isRegex: input.options?.isRegex ?? false,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Code search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            totalMatches: output.stats.totalMatches,
+            filesWithMatches: output.stats.filesWithMatches,
+            filesSearched: output.stats.filesSearched,
+            truncated: output.truncated,
+            hook: 'onOutput',
+        })
+    },
     execute: async (
         input: z.infer<typeof codeSearchInputSchema>,
         context
@@ -156,7 +199,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
                 'tool.input.pattern': input.pattern,
             },
             requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            tracingContext,
         })
 
         // Create child span for search operation
@@ -207,7 +250,7 @@ Use for finding usages, identifying patterns, and code exploration.`,
             filePaths = [...new Set(filePaths)]
 
             // Check for cancellation before file processing
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 const cancelMessage =
                     'Code search cancelled during file processing'
                 searchSpan?.error({
@@ -403,48 +446,5 @@ Use for finding usages, identifying patterns, and code exploration.`,
             rootSpan?.error({ error: new Error(errorMessage), endSpan: true })
             throw error
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Code search tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Code search tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const targetDesc = Array.isArray(input.target)
-            ? `${input.target.length} targets`
-            : input.target
-        log.info('Code search received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            pattern: input.pattern,
-            target: targetDesc,
-            isRegex: input.options?.isRegex ?? false,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Code search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            totalMatches: output.stats.totalMatches,
-            filesWithMatches: output.stats.filesWithMatches,
-            filesSearched: output.stats.filesSearched,
-            truncated: output.truncated,
-            hook: 'onOutput',
-        })
     },
 })

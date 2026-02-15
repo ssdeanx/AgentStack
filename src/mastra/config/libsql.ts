@@ -14,7 +14,7 @@ const libsqlstorage = new LibSQLStore({
 // Create a new vector store instance
 const libsqlvector = new LibSQLVector({
     id: 'libsql-vector',
-    connectionUrl: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
+    url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
     // Optional: for Turso cloud databases
     authToken: process.env.TURSO_AUTH_TOKEN,
 })
@@ -54,7 +54,7 @@ const results = await libsqlvector.query({
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: google.textEmbedding('gemini-embedding-001'),
+    embedder: google.embedding('gemini-embedding-001'),
     options: {
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),

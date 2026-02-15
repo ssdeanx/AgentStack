@@ -114,11 +114,7 @@ ${
             },
         }
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<AcademicResearchRuntimeContext>
-    }) => {
+    model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
             return google.chat('gemini-3-pro-preview')

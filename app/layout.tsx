@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Navbar } from '@/app/components/navbar'
 import { cn } from '@/lib/utils'
+import { TooltipProvider } from "@/ui/tooltip"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -109,6 +110,7 @@ export default function RootLayout({
                 />
             </head>
             <body className={cn(inter.className, 'mesh-gradient')}>
+                <TooltipProvider>{children}</TooltipProvider>
                 <ThemeProvider
                     attribute="class"
                     defaultTheme="system"

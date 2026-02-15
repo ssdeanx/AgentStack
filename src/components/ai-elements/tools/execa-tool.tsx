@@ -77,15 +77,10 @@ function downloadFile(filename: string, content: string, mime = 'text/plain') {
 }
 
 export function ExecaToolCard({ input, output, errorText }: ExecaToolCardProps) {
-  const [displayText, setDisplayText] = useState<string>((output as { message?: string })?.message ?? '')
+  const [displayText, setDisplayText] = useState<string>((output as unknown as { message?: string })?.message ?? '')
   const [query, setQuery] = useState<string>('')
   const [showLineNumbers, setShowLineNumbers] = useState<boolean>(false)
   const contentBottomRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    // Update display text when output changes
-    setDisplayText((output as { message?: string })?.message ?? '')
-  }, [(output as { message?: string })?.message])
 
   // Auto-scroll when display text updates
   useEffect(() => {
@@ -93,6 +88,11 @@ export function ExecaToolCard({ input, output, errorText }: ExecaToolCardProps) 
       contentBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
     }
   }, [displayText])
+
+  // Update display text when output changes
+  useEffect(() => {
+    setDisplayText((output as unknown as { message?: string })?.message ?? '')
+  }, [(output as unknown as { message?: string })?.message])
 
   const filteredText = query
     ? displayText

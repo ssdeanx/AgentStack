@@ -1,7 +1,7 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import excalidrawToSvg from 'excalidraw-to-svg'
 import { XMLBuilder, XMLParser } from 'fast-xml-parser'
@@ -170,7 +170,7 @@ export const readCSVDataTool = createTool({
 
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'read_csv_data',
             input: inputData,

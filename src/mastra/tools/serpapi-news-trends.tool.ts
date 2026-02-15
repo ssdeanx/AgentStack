@@ -18,6 +18,39 @@ export interface SerpApiNewsContext extends RequestContext {
     userId?: string
 }
 
+interface SerpApiNewsArticle {
+    title: string
+    link: string
+    source: { name: string }
+    date: string
+    snippet?: string
+    thumbnail?: string
+}
+
+interface SerpApiNewsResponse {
+    news_results?: SerpApiNewsArticle[]
+    search_information?: { total_results?: number }
+}
+
+interface SerpApiTrendsResponse {
+    interest_over_time?: {
+        timeline_data?: Array<{
+            timestamp: string
+            values?: Array<{ value?: number }>
+        }>
+    }
+    related_queries?: {
+        rising?: Array<{ query: string }>
+    }
+    related_topics?: {
+        rising?: Array<{ topic: string }>
+    }
+}
+
+interface SerpApiSuggestResponse {
+    suggestions?: Array<{ value: string }>
+}
+
 /**
  * Input schema for Google News
  */
@@ -91,6 +124,8 @@ export const googleNewsTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google News tool input streaming started', {
             toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputStart',
         })
     },
@@ -98,6 +133,8 @@ export const googleNewsTool = createTool({
         log.info('Google News received input chunk', {
             toolCallId,
             inputTextDelta,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputDelta',
         })
     },
@@ -111,6 +148,8 @@ export const googleNewsTool = createTool({
                 topic: input.topic,
                 numResults: input.numResults,
             },
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
             hook: 'onInputAvailable',
         })
     },
@@ -120,6 +159,7 @@ export const googleNewsTool = createTool({
             toolName,
             articlesFound: output.newsArticles.length,
             totalResults: output.totalResults,
+            aborted: abortSignal?.aborted === true,
             hook: 'onOutput',
         })
     },
@@ -128,6 +168,10 @@ export const googleNewsTool = createTool({
         const requestContext = context?.requestContext as
             | SerpApiNewsContext
             | undefined
+        log.info('Google News request context loaded', {
+            hasContext: requestContext !== undefined,
+            userId: requestContext?.userId,
+        })
         const tracingContext = context?.tracingContext
         await writer?.custom({
             type: 'data-tool-progress',
@@ -184,8 +228,9 @@ export const googleNewsTool = createTool({
                 params.sort = 'date'
             }
             const response = await getJson(params)
+            const newsResponse = response as SerpApiNewsResponse
             const newsArticles =
-                response.news_results?.map(
+                newsResponse.news_results?.map(
                     (article: {
                         title: string
                         link: string
@@ -204,7 +249,7 @@ export const googleNewsTool = createTool({
                 ) ?? []
             const result = {
                 newsArticles,
-                totalResults: response.search_information?.total_results,
+                totalResults: newsResponse.search_information?.total_results,
             }
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -316,18 +361,27 @@ export const googleNewsLiteTool = createTool({
                 num: input.numResults,
             }
             const response = await getJson(params)
+
+            const newsResultsSchema = z.array(
+                z.object({
+                    title: z.string(),
+                    link: z.string(),
+                    source: z.object({ name: z.string() }).optional(),
+                })
+            )
+
+            const parsed = z
+                .object({ news_results: newsResultsSchema.optional() })
+                .safeParse(response)
+
             const newsArticles =
-                response.news_results?.map(
-                    (article: {
-                        title: string
-                        link: string
-                        source: { name: string }
-                    }) => ({
-                        title: article.title,
-                        link: article.link,
-                        source: article.source?.name ?? 'Unknown',
-                    })
-                ) ?? []
+                parsed.success && parsed.data.news_results
+                    ? parsed.data.news_results.map((article) => ({
+                          title: article.title,
+                          link: article.link,
+                          source: article.source?.name ?? 'Unknown',
+                      }))
+                    : []
             const result = { newsArticles }
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -488,22 +542,39 @@ export const googleTrendsTool = createTool({
 
             const response = await getJson(params)
 
-            const interestOverTime =
-                response.interest_over_time?.timeline_data?.map(
-                    (point: {
-                        timestamp: string
-                        values: Array<{ value: number }>
-                    }) => ({
-                        timestamp: point.timestamp,
-                        value: point.values?.[0]?.value ?? 0,
-                    })
-                ) ?? []
+            const timelinePointSchema = z.object({
+                timestamp: z.string(),
+                values: z
+                    .array(z.object({ value: z.number() }))
+                    .optional(),
+            })
 
-            const relatedQueries = response.related_queries?.rising?.map(
+            const parsed = z
+                .object({
+                    interest_over_time: z
+                        .object({
+                            timeline_data: z.array(timelinePointSchema).optional(),
+                        })
+                        .optional(),
+                })
+                .safeParse(response)
+
+            const interestOverTime =
+                parsed.success && parsed.data.interest_over_time?.timeline_data
+                    ? parsed.data.interest_over_time.timeline_data.map(
+                          (point) => ({
+                              timestamp: point.timestamp,
+                              value: point.values?.[0]?.value ?? 0,
+                          })
+                      )
+                    : []
+
+            const trendsResponse = response as SerpApiTrendsResponse
+            const relatedQueries = trendsResponse.related_queries?.rising?.map(
                 (q: { query: string }) => q.query
             )
 
-            const relatedTopics = response.related_topics?.rising?.map(
+            const relatedTopics = trendsResponse.related_topics?.rising?.map(
                 (t: { topic: string }) => t.topic
             )
 
@@ -650,9 +721,11 @@ export const googleAutocompleteTool = createTool({
 
             const response = await getJson(params)
 
+            const suggestResponse = response as SerpApiSuggestResponse
             const suggestions =
-                response.suggestions?.map((s: { value: string }) => s.value) ??
-                []
+                suggestResponse.suggestions?.map(
+                    (s: { value: string }) => s.value
+                ) ?? []
 
             const result = { suggestions }
 

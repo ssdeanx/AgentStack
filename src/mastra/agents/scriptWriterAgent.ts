@@ -56,11 +56,7 @@ User: ${userTier} | Lang: ${language}
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ScriptWriterRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise

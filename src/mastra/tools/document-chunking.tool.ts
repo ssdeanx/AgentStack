@@ -199,37 +199,43 @@ Use this tool when you need advanced document processing with metadata extractio
     outputSchema: MastraDocumentChunkingOutputSchema,
     onInputStart: ({
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('Mastra chunker tool input streaming started', {
             toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputStart',
         })
     },
     onInputDelta: ({
         inputTextDelta,
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('Mastra chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            chunkingStrategy: 'recursive', // Default or unknown at this point
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
+            chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({
         input,
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('Mastra chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputAvailable',
         })
     },
@@ -469,12 +475,13 @@ Use this tool when you need advanced document processing with metadata extractio
             span?.end()
         }
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal: _abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('Mastra chunker completed', {
             toolCallId,
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onOutput',
         })
     },
@@ -522,38 +529,44 @@ content indexing, or semantic search capabilities.
     outputSchema: CustomDocumentChunkingOutputSchema,
     onInputStart: ({
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('MDocument chunker tool input streaming started', {
             toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputStart',
         })
     },
     onInputDelta: ({
         inputTextDelta,
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('MDocument chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            chunkingStrategy: 'recursive', // Default or unknown
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
+            chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
     onInputAvailable: ({
         input,
         toolCallId,
-        messages: _messages,
-        abortSignal: _abortSignal,
+        messages,
+        abortSignal,
     }) => {
         log.info('MDocument chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputAvailable',
         })
     },
@@ -726,7 +739,7 @@ content indexing, or semantic search capabilities.
                     chunkSize: inputData.chunkSize,
                     chunkOverlap: inputData.chunkOverlap,
                 },
-                id: chunk.metadata?.id ?? `chunk_${Date.now()}_${randomUUID()}`,
+                id: String(chunk.metadata?.id ?? `chunk_${Date.now()}_${randomUUID()}`),
             }))
 
             let embeddingGenerated = false
@@ -824,7 +837,7 @@ content indexing, or semantic search capabilities.
                 // Ensure chunk ids are stable and unique
                 // Ensure ids are present and sanitize metadata
                 const allIds = chunksForProcessing.map(
-                    (chunk) => chunk.id ?? `chunk_${Date.now()}_${randomUUID()}`
+                    (chunk) => String(chunk.id ?? `chunk_${Date.now()}_${randomUUID()}`)
                 )
                 const sanitizedMetadata = chunksForProcessing.map((chunk) => ({
                     ...sanitizeMetadata(chunk.metadata),
@@ -882,7 +895,7 @@ content indexing, or semantic search capabilities.
                 chunkCount: chunks.length,
                 totalTextLength: inputData.documentContent.length,
                 chunks: chunksForProcessing.map((chunk) => ({
-                    id: chunk.id,
+                    id: String(chunk.id),
                     text: chunk.text,
                     metadata: chunk.metadata,
                     embeddingGenerated,
@@ -931,6 +944,7 @@ content indexing, or semantic search capabilities.
             toolName,
             chunkCount: output.chunkCount,
             processingTimeMs: output.processingTimeMs,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onOutput',
         })
     },
@@ -995,6 +1009,8 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Document reranker tool input streaming started', {
             toolCallId,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputStart',
         })
     },
@@ -1004,6 +1020,8 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             userQuery: input.userQuery,
             indexName: input.indexName,
             topK: input.topK,
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onInputAvailable',
         })
     },
@@ -1013,6 +1031,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             toolName,
             documentCount: output.rerankedDocuments.length,
             processingTimeMs: output.processingTimeMs,
+            aborted: abortSignal?.aborted ?? false,
             hook: 'onOutput',
         })
     },
@@ -1103,7 +1122,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 id: 'document:reranker',
             })
             const searchStartTime = Date.now()
-            // @ts-ignore - PGVector query accepts Mongo/Sift-style filter at runtime
+            // NOTE: PGVector query accepts Mongo/Sift-style filter at runtime
             const initialResults = await pgVector.query({
                 indexName: inputData.indexName,
                 queryVector: queryEmbedding,

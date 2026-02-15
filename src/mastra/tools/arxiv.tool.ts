@@ -23,10 +23,19 @@ const toolCallCounters = new Map<string, number>()
 function isErrCanceled(err: unknown): boolean {
     if (err instanceof Error && err.name === 'AbortError') {return true}
     if (typeof err === 'object' && err !== null && 'code' in err) {
-        const code = (err as { code?: unknown }).code
+        const { code } = err as { code?: unknown }
         return code === 'ERR_CANCELED'
     }
     return false
+}
+
+/** Typed span interface to avoid unsafe `any` casts on tracing spans */
+interface SpanLike {
+    attributes?: Record<string, string | number | boolean>
+    setAttribute?(key: string, value: string | number | boolean): void
+    setStatus?(status: { code: number; message: string }): void
+    recordException?(error: Error): void
+    end?(): void
 }
 
 /**
@@ -793,7 +802,7 @@ export const arxivPdfParserTool = createTool({
                         }
                     }
                 } catch (err) {
-                    // Metadata fetch failed, continue without it
+                    log.debug('Metadata fetch failed, continuing without it', { err: err instanceof Error ? err.message : String(err) })
                 }
             }
 
@@ -859,7 +868,7 @@ export const arxivPdfParserTool = createTool({
 
             if (span) {
                 // Prefer using setAttribute if available; otherwise safely populate the attributes bag
-                const spanAny = span as any
+                const spanAny = span as SpanLike
                 if (typeof spanAny.setAttribute === 'function') {
                     spanAny.setAttribute('tool.output.success', true)
                     spanAny.setAttribute(
@@ -882,15 +891,9 @@ export const arxivPdfParserTool = createTool({
             if (error instanceof Error && error.name === 'AbortError') {
                 const cancelMessage = `ArXiv PDF parsing cancelled for ${inputData.arxivId}`
                 if (span) {
-                    if (typeof (span as any).setStatus === 'function') {
-                        ;(span as any).setStatus({
-                            code: 2,
-                            message: cancelMessage,
-                        })
-                    }
-                    if (typeof (span as any).end === 'function') {
-                        ;(span as any).end()
-                    }
+                    const spanRef = span as SpanLike
+                    spanRef.setStatus?.({ code: 2, message: cancelMessage })
+                    spanRef.end?.()
                 }
 
                 await writer?.custom({
@@ -912,18 +915,12 @@ export const arxivPdfParserTool = createTool({
                     ? error.message
                     : 'Unknown error occurred'
             if (span) {
-                if (
-                    error instanceof Error &&
-                    typeof (span as any).recordException === 'function'
-                ) {
-                    ;(span as any).recordException(error)
+                const spanRef = span as SpanLike
+                if (error instanceof Error) {
+                    spanRef.recordException?.(error)
                 }
-                if (typeof (span as any).setStatus === 'function') {
-                    ;(span as any).setStatus({ code: 2, message: errorMessage })
-                }
-                if (typeof (span as any).end === 'function') {
-                    ;(span as any).end()
-                }
+                spanRef.setStatus?.({ code: 2, message: errorMessage })
+                spanRef.end?.()
             }
 
             throw error instanceof Error ? error : new Error(errorMessage)
@@ -1093,13 +1090,7 @@ export const arxivPaperDownloaderTool = createTool({
                     timeout: 30000,
                 })
             } catch (err: unknown) {
-                const isCanceled =
-                    (err &&
-                        typeof err === 'object' &&
-                        'code' in err &&
-                        (err as any).code === 'ERR_CANCELED') ??
-                    (err instanceof Error && err.name === 'AbortError')
-                if (isCanceled) {
+                if (isErrCanceled(err)) {
                     throw new Error(
                         `ArXiv metadata fetch cancelled for ${inputData.arxivId}`
                     )
@@ -1234,22 +1225,20 @@ export const arxivPaperDownloaderTool = createTool({
             }
 
             if (span) {
-                const spanAny = span as any
-                if (typeof spanAny.setAttribute === 'function') {
-                    spanAny.setAttribute('tool.output.success', true)
-                    spanAny.setAttribute(
+                const spanRef = span as SpanLike
+                if (typeof spanRef.setAttribute === 'function') {
+                    spanRef.setAttribute('tool.output.success', true)
+                    spanRef.setAttribute(
                         'tool.output.hasPdfContent',
                         !!pdfContent
                     )
                 } else {
-                    spanAny.attributes = spanAny.attributes ?? {}
-                    spanAny.attributes['tool.output.success'] = true
-                    spanAny.attributes['tool.output.hasPdfContent'] =
+                    spanRef.attributes = spanRef.attributes ?? {}
+                    spanRef.attributes['tool.output.success'] = true
+                    spanRef.attributes['tool.output.hasPdfContent'] =
                         !!pdfContent
                 }
-                if (typeof spanAny.end === 'function') {
-                    spanAny.end()
-                }
+                spanRef.end?.()
             }
             return result
         } catch (error) {
@@ -1258,28 +1247,25 @@ export const arxivPaperDownloaderTool = createTool({
                     ? error.message
                     : 'Unknown error occurred'
             if (span) {
-                const spanAny = span as any
-                if (
-                    error instanceof Error &&
-                    typeof spanAny.recordException === 'function'
-                ) {
-                    spanAny.recordException(error)
-                } else if (error instanceof Error) {
-                    spanAny.attributes = spanAny.attributes ?? {}
-                    spanAny.attributes['error.exception'] = error.message
+                const spanRef = span as SpanLike
+                if (error instanceof Error) {
+                    if (typeof spanRef.recordException === 'function') {
+                        spanRef.recordException(error)
+                    } else {
+                        spanRef.attributes = spanRef.attributes ?? {}
+                        spanRef.attributes['error.exception'] = error.message
+                    }
                 }
 
-                if (typeof spanAny.setStatus === 'function') {
-                    spanAny.setStatus({ code: 2, message: errorMessage })
+                if (typeof spanRef.setStatus === 'function') {
+                    spanRef.setStatus({ code: 2, message: errorMessage })
                 } else {
-                    spanAny.attributes = spanAny.attributes ?? {}
-                    spanAny.attributes['error.code'] = 2
-                    spanAny.attributes['error.message'] = errorMessage
+                    spanRef.attributes = spanRef.attributes ?? {}
+                    spanRef.attributes['error.code'] = 2
+                    spanRef.attributes['error.message'] = errorMessage
                 }
 
-                if (typeof spanAny.end === 'function') {
-                    spanAny.end()
-                }
+                spanRef.end?.()
             }
             throw error instanceof Error ? error : new Error(errorMessage)
         }

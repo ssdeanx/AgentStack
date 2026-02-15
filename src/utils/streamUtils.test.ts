@@ -195,7 +195,7 @@ describe('streamUtils', () => {
 
             const mockStreamResult = {
                 textStream: mockTextStream,
-            } as unknown as StreamTextResult<ToolSet, unknown>
+            } as unknown as StreamTextResult<ToolSet, any>
 
             const mockController = {
                 enqueue: vi.fn(),

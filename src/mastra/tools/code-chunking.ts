@@ -4,7 +4,7 @@ import type { TracingContext } from '@mastra/core/observability'
 import { Project, SyntaxKind } from 'ts-morph'
 import { z } from 'zod'
 
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { MDocument } from '@mastra/rag'
 import { log } from '../config/logger'
 import { PythonParser } from './semantic-utils'
@@ -79,11 +79,12 @@ export const codeChunkerTool = createTool({
         })
 
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'code-chunker',
             input: { filePath, ext },
             requestContext: context?.requestContext,
+            tracingContext,
             metadata: {
                 'tool.id': 'code-chunker',
                 operation: 'code-chunking',

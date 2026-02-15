@@ -43,6 +43,14 @@ interface PolygonRuntimeContext extends RequestContext {
     source?: string
 }
 
+interface PolygonApiResponse {
+    [key: string]: unknown
+    status?: string
+    request_id?: string
+    count?: number
+    error?: string
+}
+
 /**
  * Polygon.io Stock Quotes Tool
  *
@@ -190,7 +198,7 @@ export const polygonStockQuotesTool = createTool({
                     url = `https://api.polygon.io/v2/aggs/ticker/${inputData.symbol}/prev`
                     break
                 default: {
-                    const error = `Unsupported function: ${inputData.function}`
+                    const error = `Unsupported function: ${String(inputData.function)}`
                     logError('polygon-stock-quotes', new Error(error), {
                         input: inputData,
                     })
@@ -244,7 +252,7 @@ export const polygonStockQuotesTool = createTool({
                 responseType: 'json',
                 signal: abortSignal,
             })
-            const data = resp.data
+            const { data } = resp
             const apiDuration = Date.now() - apiStartTime
 
             apiSpan?.update({
@@ -275,9 +283,9 @@ export const polygonStockQuotesTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-stock-quotes', new Error(error), {
                         input: inputData,
                         responseStatus: resp.status,
@@ -292,7 +300,7 @@ export const polygonStockQuotesTool = createTool({
                 }
             }
 
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
             const result = {
                 data,
                 metadata: {
@@ -364,6 +372,7 @@ export const polygonStockQuotesTool = createTool({
         log.info('Polygon stock quotes tool input streaming started', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
             hook: 'onInputStart',
         })
     },
@@ -380,6 +389,7 @@ export const polygonStockQuotesTool = createTool({
         log.info('Polygon stock quotes received input', {
             toolCallId,
             abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
             inputData: {
                 symbol: input.symbol,
                 function: input.function,
@@ -390,7 +400,7 @@ export const polygonStockQuotesTool = createTool({
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const hasError = !!output.error
+        const hasError = output.error !== undefined && output.error !== null && output.error.length > 0
         const dataPoints = output.metadata?.count ?? 0
         log[hasError ? 'warn' : 'info']('Polygon stock quotes completed', {
             toolCallId,
@@ -476,6 +486,10 @@ export const polygonStockAggregatesTool = createTool({
         const requestContext = context?.requestContext
         const abortSignal = context?.abortSignal
         const tracingContext = context?.tracingContext
+
+        log.info('Polygon aggregates abort signal status', {
+            aborted: abortSignal?.aborted ?? false,
+        })
 
         logToolExecution('polygon-stock-aggregates', { input: inputData })
 
@@ -611,7 +625,7 @@ export const polygonStockAggregatesTool = createTool({
             const apiDuration = Date.now() - apiStartTime
 
             // Normalize data typing for safer property access
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
 
             apiSpan?.update({
                 metadata: {
@@ -640,9 +654,9 @@ export const polygonStockAggregatesTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-stock-aggregates', new Error(error), {
                         input: inputData,
                         responseStatus: response.status,
@@ -919,7 +933,7 @@ export const polygonStockFundamentalsTool = createTool({
                     url = `https://api.polygon.io/v3/reference/financials`
                     break
                 default: {
-                    const error = `Unsupported function: ${inputData.function}`
+                    const error = `Unsupported function: ${String(inputData.function)}`
                     logError('polygon-stock-fundamentals', new Error(error), {
                         input: inputData,
                     })
@@ -968,7 +982,7 @@ export const polygonStockFundamentalsTool = createTool({
             })
 
             // Check for cancellation before API call
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 rootSpan?.error({
                     error: new Error('Operation cancelled during API call'),
                     endSpan: true,
@@ -985,7 +999,7 @@ export const polygonStockFundamentalsTool = createTool({
             const apiDuration = Date.now() - apiStartTime
 
             // Normalize data typing for safer property access
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
 
             apiSpan?.update({
                 metadata: {
@@ -1014,9 +1028,9 @@ export const polygonStockFundamentalsTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-stock-fundamentals', new Error(error), {
                         input: inputData,
                         responseStatus: response?.status,
@@ -1239,7 +1253,7 @@ export const polygonCryptoQuotesTool = createTool({
                     url = `https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/${inputData.symbol}`
                     break
                 default: {
-                    const error = `Unsupported function: ${inputData.function}`
+                    const error = `Unsupported function: ${String(inputData.function)}`
                     logError('polygon-crypto-quotes', new Error(error), {
                         input: inputData,
                     })
@@ -1289,7 +1303,7 @@ export const polygonCryptoQuotesTool = createTool({
             const apiDuration = Date.now() - apiStartTime
 
             // Normalize data typing for safer property access
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
 
             apiSpan?.update({
                 metadata: {
@@ -1318,9 +1332,9 @@ export const polygonCryptoQuotesTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-crypto-quotes', new Error(error), {
                         input: inputData,
                         responseStatus: response.status,
@@ -1614,7 +1628,7 @@ export const polygonCryptoAggregatesTool = createTool({
             const apiDuration = Date.now() - apiStartTime
 
             // Normalize data typing for safer property access
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
 
             apiSpan?.update({
                 metadata: {
@@ -1643,9 +1657,9 @@ export const polygonCryptoAggregatesTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-crypto-aggregates', new Error(error), {
                         input: inputData,
                         responseStatus: response.status,
@@ -1907,9 +1921,9 @@ export const polygonCryptoSnapshotsTool = createTool({
                 if (
                     errorValue !== null &&
                     errorValue !== undefined &&
-                    String(errorValue).trim() !== ''
+                    (typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)).trim() !== ''
                 ) {
-                    const error = String(errorValue)
+                    const error = typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue)
                     logError('polygon-crypto-snapshots', new Error(error), {
                         input: inputData,
                         responseStatus: response.status,
@@ -1924,7 +1938,7 @@ export const polygonCryptoSnapshotsTool = createTool({
                 }
             }
 
-            const dataObj = data as Record<string, any>
+            const dataObj = data as PolygonApiResponse
             const result = {
                 data,
                 metadata: {

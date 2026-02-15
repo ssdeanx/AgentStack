@@ -67,11 +67,7 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
             },
         }
     },
-    model: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<EditorRuntimeContext>
-    }) => {
+    model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
             // higher quality (chat style) for enterprise

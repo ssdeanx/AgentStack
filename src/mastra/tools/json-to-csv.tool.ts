@@ -42,7 +42,7 @@ export const jsonToCsvTool = createTool({
             | JsonToCsvRequestContext
             | undefined
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -69,7 +69,7 @@ export const jsonToCsvTool = createTool({
                 'tool.input.recordCount': input.data.length,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext,
         })
 
         // Create child span for JSON to CSV conversion
@@ -113,7 +113,10 @@ export const jsonToCsvTool = createTool({
                 if (typeof value === 'object') {
                     stringValue = JSON.stringify(value)
                 } else {
-                    stringValue = String(value)
+                    stringValue =
+                        typeof value === 'string'
+                            ? value
+                            : String(value as number | boolean | bigint)
                 }
 
                 // If value contains delimiter, quote, or newline, escape it

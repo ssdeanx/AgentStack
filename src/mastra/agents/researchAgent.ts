@@ -90,11 +90,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ResearchRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise

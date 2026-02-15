@@ -1,6 +1,6 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -23,6 +23,32 @@ export const jwtAuthTool = createTool({
         exp: z.number().optional(),
         iat: z.number().optional(),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            messageCount: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ toolCallId, messages, abortSignal }) => {
+        log.info('JWT auth received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            note: 'no parameters required',
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (inputData, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext
@@ -48,11 +74,13 @@ export const jwtAuthTool = createTool({
 
         // Create a span for tracing
         const tracingContext = context?.tracingContext
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'jwt-auth-tool',
             input: { hasJwt: !!jwt },
             metadata: { 'tool.id': 'jwt-auth', 'tool.input.hasJwt': !!jwt },
+            requestContext,
+            tracingContext,
         })
 
         if (!jwt) {
@@ -63,7 +91,7 @@ export const jwtAuthTool = createTool({
 
         try {
             // Check for cancellation before JWT verification
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 span?.update({
                     metadata: {
                         status: 'cancelled',
@@ -80,7 +108,7 @@ export const jwtAuthTool = createTool({
             span?.update({ metadata: { success: true } })
             span?.end()
             // Mock return for now as the service call is commented out
-            return {
+            const result = {
                 sub: 'mock-user',
                 roles: ['user'],
                 tenant: 'mock-tenant',
@@ -88,6 +116,18 @@ export const jwtAuthTool = createTool({
                 exp: Date.now() + 3600,
                 iat: Date.now(),
             }
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: '✅ JWT authentication verified successfully',
+                    stage: 'jwt-auth',
+                },
+                id: 'jwt-auth',
+            })
+
+            return result
             //            return result
         } catch (error) {
             // Handle AbortError specifically
@@ -118,32 +158,6 @@ export const jwtAuthTool = createTool({
             })
             throw new Error('JWT verification failed: Unknown error')
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            messageCount: messages.length,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('JWT auth received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            note: 'no parameters required',
-            hook: 'onInputAvailable',
-        })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('JWT auth completed', {

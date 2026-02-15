@@ -54,10 +54,11 @@ export const csvToJsonTool = createTool({
             | CsvToJsonRequestContext
             | undefined
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context?.tracingContext
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted) {
+        if (abortSignal?.aborted ?? false) {
             throw new Error('CSV to JSON conversion cancelled')
         }
 
@@ -78,11 +79,11 @@ export const csvToJsonTool = createTool({
             input,
             metadata: {
                 'tool.id': 'csv-to-json',
-                'tool.input.hasFilePath': !!input.filePath,
-                'tool.input.hasCsvData': !!input.csvData,
+                'tool.input.hasFilePath': (input.filePath ?? '') !== '',
+                'tool.input.hasCsvData': (input.csvData ?? '') !== '',
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext,
         })
 
         // Create child span for CSV conversion
@@ -101,7 +102,7 @@ export const csvToJsonTool = createTool({
             const maxRows = config?.maxRows
 
             // Check for cancellation before file operations
-            if (abortSignal?.aborted) {
+            if (abortSignal?.aborted ?? false) {
                 csvSpan?.error({
                     error: new Error(
                         'Operation cancelled during file operations'
@@ -245,7 +246,7 @@ export const csvToJsonTool = createTool({
         })
     },
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        const source = input.filePath
+        const source = (input.filePath ?? '') !== ''
             ? `file:${input.filePath}`
             : 'raw CSV data'
         const options = input.options ?? {}

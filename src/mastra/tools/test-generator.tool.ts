@@ -1,4 +1,4 @@
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createTool } from '@mastra/core/tools'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
@@ -286,7 +286,7 @@ Use for increasing test coverage and establishing testing patterns.`,
         const requestCtx = context?.requestContext as any | undefined
         const userId = requestCtx?.userId
         const workspaceId = requestCtx?.workspaceId
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'test_generator',
             input: { sourceFile, testStyle, operation: 'generate-tests' },

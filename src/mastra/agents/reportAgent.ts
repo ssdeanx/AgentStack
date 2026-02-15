@@ -64,11 +64,7 @@ export const reportAgent = new Agent({
       },
     }
   },
-  model: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ReportRuntimeContext>
-  }) => {
+  model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise

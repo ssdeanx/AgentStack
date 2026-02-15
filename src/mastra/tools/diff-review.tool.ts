@@ -1,5 +1,5 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { createPatch, structuredPatch } from 'diff'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -106,7 +106,7 @@ Use for code review, comparing versions, and analyzing modifications.`,
             | undefined
         const tracingContext = context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'diff-review',
             input: inputData,

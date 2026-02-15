@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -165,7 +166,7 @@ export const ichimokuCloudTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -187,7 +188,8 @@ export const ichimokuCloudTool = createTool({
             id: 'ichimoku-cloud',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'ichimoku-cloud',
             input: inputData,
@@ -312,7 +314,7 @@ export const fibonacciTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -334,7 +336,8 @@ export const fibonacciTool = createTool({
             id: 'fibonacci-levels',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'fibonacci-levels',
             input: inputData,
@@ -499,7 +502,7 @@ export const pivotPointsTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -521,7 +524,8 @@ export const pivotPointsTool = createTool({
             id: 'pivot-points',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'pivot-points',
             input: inputData,
@@ -701,7 +705,7 @@ export const trendAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -720,7 +724,8 @@ export const trendAnalysisTool = createTool({
             id: 'trend-analysis',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'trend-analysis',
             input: inputData,
@@ -885,7 +890,7 @@ export const momentumAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -904,7 +909,8 @@ export const momentumAnalysisTool = createTool({
             id: 'momentum-analysis',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'momentum-analysis',
             input: inputData,
@@ -1057,7 +1063,7 @@ export const volatilityAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1076,7 +1082,8 @@ export const volatilityAnalysisTool = createTool({
             id: 'volatility-analysis',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'volatility-analysis',
             input: inputData,
@@ -1200,7 +1207,7 @@ export const volumeAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1219,7 +1226,8 @@ export const volumeAnalysisTool = createTool({
             id: 'volume-analysis',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'volume-analysis',
             input: inputData,
@@ -1355,7 +1363,7 @@ export const statisticalAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1374,7 +1382,8 @@ export const statisticalAnalysisTool = createTool({
             id: 'statistical-analysis',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'statistical-analysis',
             input: inputData,
@@ -1531,7 +1540,7 @@ export const heikinAshiTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1550,7 +1559,8 @@ export const heikinAshiTool = createTool({
             id: 'heikin-ashi',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'heikin-ashi',
             input: inputData,
@@ -1673,7 +1683,7 @@ export const marketSummaryTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1692,7 +1702,8 @@ export const marketSummaryTool = createTool({
             id: 'market-summary',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'market-summary',
             input: inputData,
@@ -1890,7 +1901,7 @@ export const candlestickPatternTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -1909,7 +1920,8 @@ export const candlestickPatternTool = createTool({
             id: 'candlestick-patterns',
         })
 
-        const toolSpan = tracingContext?.currentSpan?.createChildSpan({
+        const toolSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'candlestick-patterns',
             input: inputData,
@@ -2112,7 +2124,7 @@ export const technicalAnalysisTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
+        const tracingContext: TracingContext | undefined = context?.tracingContext
         const requestCtx = context?.requestContext as
             | TechnicalAnalysisContext
             | undefined
@@ -2135,7 +2147,8 @@ export const technicalAnalysisTool = createTool({
             id: 'technical-analysis',
         })
 
-        const technicalSpan = tracingContext?.currentSpan?.createChildSpan({
+        const technicalSpan = getOrCreateSpan({
+            tracingContext,
             type: SpanType.TOOL_CALL,
             name: 'technical-analysis',
             input: {

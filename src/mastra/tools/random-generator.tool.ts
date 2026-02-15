@@ -94,7 +94,7 @@ export const randomGeneratorTool = createTool({
                 'tool.input.count': inputData.count,
             },
             requestContext: context?.requestContext,
-            mastra: (globalThis as any).mastra,
+            tracingContext,
         })
 
         // Create child span for generation operation

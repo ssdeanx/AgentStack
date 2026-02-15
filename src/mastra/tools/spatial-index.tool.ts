@@ -2,7 +2,7 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import RBush from 'rbush'
 import { log } from '../config/logger'
-import { SpanType } from '@mastra/core/observability'
+import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 
 // Each indexed item will be stored with a bbox: {minX,minY,maxX,maxY, id, data}
@@ -63,7 +63,7 @@ export const spatialIndexTool = createTool({
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
 
-        const span = tracingContext?.currentSpan?.createChildSpan({
+        const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'spatial-index',
             input,
