@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"Next.js App Directory","version":"1.0.0","applies_to":"app/","last_updated":"2025-11-27T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"Next.js App Directory","version":"1.0.1","applies_to":"app/","last_updated":"2026-02-15T00:00:00Z","status":"stable"} -->
 
 # Next.js App Directory
 
@@ -56,6 +56,15 @@ From `components.json`:
 - `src/mastra/`: Backend agents and tools
 - `next.config.ts`: Next.js configuration
 
+## Recent Updates
+
+- 2026-02-15: Added reusable GSAP-powered custom SVG brand animation component at `app/components/gsap/animated-orbital-logo.tsx`.
+- 2026-02-15: Integrated animated SVG branding into shared public UI components:
+    - `app/components/navbar.tsx`
+    - `app/components/landing-hero.tsx`
+    - `app/components/footer.tsx`
+- Accessibility/perf: each animation path respects `prefers-reduced-motion` behavior.
+
 ---
 
-Last updated: 2025-11-27
+Last updated: 2026-02-15

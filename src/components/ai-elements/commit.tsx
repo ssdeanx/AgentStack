@@ -157,10 +157,29 @@ export const CommitTimestamp = ({
   children,
   ...props
 }: CommitTimestampProps) => {
-  const formatted = relativeTimeFormat.format(
-    Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-    "day"
-  );
+  const [relative, setRelative] = useState<string>("");
+
+  // avoid calling Date.now() during render — compute relative time in an effect
+  const hasChildren = children !== undefined && children !== null;
+
+  useEffect(() => {
+    if (hasChildren) {return;}
+
+    const update = () => {
+      const days = Math.round(
+        (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      setRelative(relativeTimeFormat.format(days, "day"));
+    };
+
+    update();
+
+    // refresh periodically so the relative label stays up-to-date
+    const id = window.setInterval(update, 60 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [date, hasChildren]);
+
+  const display = children ?? (relative || date.toISOString());
 
   return (
     <time
@@ -168,7 +187,7 @@ export const CommitTimestamp = ({
       dateTime={date.toISOString()}
       {...props}
     >
-      {children ?? formatted}
+      {display}
     </time>
   );
 };

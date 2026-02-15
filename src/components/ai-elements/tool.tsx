@@ -156,7 +156,7 @@ export const ToolOutput = ({
   return (
     <div className={cn("space-y-2", className)} {...props}>
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "Error" : "Result"}
+        {(errorText) ? "Error" : "Result"}
       </h4>
       <div
         className={cn(
@@ -166,7 +166,7 @@ export const ToolOutput = ({
             : "bg-muted/50 text-foreground"
         )}
       >
-        {errorText && <div>{errorText}</div>}
+        {(Boolean(errorText)) && <div>{errorText}</div>}
         {Output}
       </div>
     </div>

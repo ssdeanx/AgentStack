@@ -2,6 +2,8 @@
 
 ## Current Focus (Jan 2026)
 
+- **[NEW 2026-02-15]** Public frontend GSAP SVG polish: added reusable animated orbital SVG logo and integrated it into shared `navbar`, `landing-hero`, and `footer` components with reduced-motion safeguards.
+
 - **[NEW]** Enhanced Task Manager and Spec Generator skills with persona-driven logic and automation scripts.
 - **[Synced Dec 8, 2025]** Chat Components Production Grade - 11 components improved with enhanced UX.
 - **[Synced Dec 8, 2025]** Workflow System Audit complete - 12 workflows verified, 2 added to frontend config.
@@ -358,13 +360,13 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 **Agent Capabilities:**
 
 - **ResearchPaperAgent**: Search arXiv, download papers, parse PDFs to markdown
-    - Tools: `arxivTool`, `arxivPdfParserTool`, `arxivPaperDownloaderTool`
+  - Tools: `arxivTool`, `arxivPdfParserTool`, `arxivPaperDownloaderTool`
 - **DocumentProcessingAgent**: Convert PDFs to markdown, chunk for RAG
-    - Tools: `pdfToMarkdownTool`, `mastraChunker`, file management tools
+  - Tools: `pdfToMarkdownTool`, `mastraChunker`, file management tools
 - **KnowledgeIndexingAgent**: Index documents into PgVector, semantic search
-    - Tools: `mdocumentChunker`, `documentRerankerTool`
+  - Tools: `mdocumentChunker`, `documentRerankerTool`
 - **ResearchPipelineNetwork**: Coordinates full research workflow
-    - Agents: ResearchPaperAgent, DocumentProcessingAgent, KnowledgeIndexingAgent, ResearchAgent
+  - Agents: ResearchPaperAgent, DocumentProcessingAgent, KnowledgeIndexingAgent, ResearchAgent
 
 **API Routes Updated:**
 
@@ -435,7 +437,7 @@ Added Vercel-style navigation and footer to `app/page.tsx`:
 
 **Architecture:**
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────────┐
 │                     Your Application                        │
 ├──────────────────────────┬──────────────────────────────────┤

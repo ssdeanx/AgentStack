@@ -79,7 +79,7 @@ export const getMediaCategory = (
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === "source-document") {
-    return data.title || data.filename || "Source";
+    return data.title ?? data.filename ?? "Source";
   }
 
   const category = getMediaCategory(data);
@@ -101,7 +101,7 @@ const renderAttachmentImage = (
     />
   ) : (
     <img
-      alt={filename || "Image"}
+      alt={filename ?? "Image"}
       className="size-full rounded object-cover"
       height={20}
       src={url}

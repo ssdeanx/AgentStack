@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
     StarIcon,
     ChevronLeftIcon,
@@ -10,6 +10,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/ui/button'
 import { Badge } from '@/ui/badge'
+import {
+    SectionLayout,
+    useSectionReveal,
+    SECTION_HEADING,
+    SECTION_BODY,
+    SECTION_LAYOUT,
+} from '@/app/components/primitives'
 
 const TESTIMONIALS = [
     {
@@ -89,6 +96,11 @@ export function LandingTestimonials() {
     const [activeIndex, setActiveIndex] = useState(0)
     const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
+    const revealRef = useSectionReveal<HTMLDivElement>({
+        selector: '.test-header, .test-carousel, .test-grid, .test-logos, .test-stats',
+        stagger: 0.1,
+    })
+
     const nextTestimonial = useCallback(() => {
         setActiveIndex((prev) => (prev + 1) % TESTIMONIALS.length)
     }, [])
@@ -99,7 +111,6 @@ export function LandingTestimonials() {
         )
     }, [])
 
-    // Auto-play functionality
     useEffect(() => {
         if (!isAutoPlaying) {
             return
@@ -110,33 +121,21 @@ export function LandingTestimonials() {
     }, [isAutoPlaying, nextTestimonial])
 
     return (
-        <section className="relative overflow-hidden bg-muted/30 py-24 lg:py-32">
-            {/* Background decoration */}
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10">
-                {/* Removed colored blobs */}
-            </div>
-
-            <div className="container mx-auto px-4">
+        <SectionLayout spacing="base" background="muted">
+            <div ref={revealRef}>
                 {/* Section header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
-                    className="mb-16 text-center"
-                >
+                <div className={`test-header ${SECTION_LAYOUT.headerCenter}`}>
                     <Badge variant="outline" className="mb-4">
                         Testimonials
                     </Badge>
-                    <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+                    <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Trusted by Developers Worldwide
                     </h2>
-                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                    <p className={SECTION_BODY.subtitleCentered}>
                         See what developers and teams are saying about building
                         with AgentStack.
                     </p>
-                </motion.div>
+                </div>
 
                 {/* Featured testimonial carousel */}
                 <div
@@ -162,11 +161,13 @@ export function LandingTestimonials() {
                                 {/* Rating */}
                                 <div className="mb-6 flex items-center gap-4">
                                     <div className="flex">
-                                        {[
-                                            ...Array(
-                                                TESTIMONIALS[activeIndex].rating
-                                            ),
-                                        ].map((_, i) => (
+                                        {Array.from(
+                                            {
+                                                length: TESTIMONIALS[
+                                                    activeIndex
+                                                ].rating,
+                                            }
+                                        ).map((_, i) => (
                                             <StarIcon
                                                 key={i}
                                                 className="size-5 fill-foreground text-foreground"
@@ -288,7 +289,7 @@ export function LandingTestimonials() {
                             {/* Rating */}
                             <div className="mb-4 flex items-center justify-between">
                                 <div className="flex">
-                                    {[...Array(testimonial.rating)].map(
+                                    {Array.from({ length: testimonial.rating }).map(
                                         (_, i) => (
                                             <StarIcon
                                                 key={i}
@@ -391,6 +392,6 @@ export function LandingTestimonials() {
                     </div>
                 </motion.div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

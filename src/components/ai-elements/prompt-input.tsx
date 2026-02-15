@@ -601,7 +601,7 @@ export const PromptInput = ({
   // Note: File input cannot be programmatically set for security reasons
   // The syncHiddenInput prop is no longer functional
   useEffect(() => {
-    if (syncHiddenInput && inputRef.current && files.length === 0) {
+    if ((syncHiddenInput ?? false) && inputRef.current && files.length === 0) {
       inputRef.current.value = "";
     }
   }, [files, syncHiddenInput]);
@@ -720,7 +720,7 @@ export const PromptInput = ({
   );
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    async (event) => {
+    (event) => {
       event.preventDefault();
 
       const form = event.currentTarget;
@@ -737,45 +737,49 @@ export const PromptInput = ({
         form.reset();
       }
 
-      try {
-        // Convert blob URLs to data URLs asynchronously
-        const convertedFiles: FileUIPart[] = await Promise.all(
-          files.map(async ({ id: _id, ...item }) => {
-            if (item.url?.startsWith("blob:")) {
-              const dataUrl = await convertBlobUrlToDataUrl(item.url);
-              // If conversion failed, keep the original blob URL
-              return {
-                ...item,
-                url: dataUrl ?? item.url,
-              };
+      // Snapshot files synchronously to avoid stale/changed state inside async work
+      const filesSnapshot = files.map((f) => ({ ...f }));
+
+      void (async () => {
+        try {
+          // Convert blob URLs to data URLs asynchronously
+          const convertedFiles: FileUIPart[] = await Promise.all(
+            filesSnapshot.map(async (file) => {
+              const { filename, mediaType, type, url } = file;
+              const item: FileUIPart = { filename, mediaType, type, url };
+              if (item.url?.startsWith("blob:")) {
+                const dataUrl = await convertBlobUrlToDataUrl(item.url);
+                // If conversion failed, keep the original blob URL
+                return { ...item, url: dataUrl ?? item.url };
+              }
+              return item;
+            })
+          );
+
+          const result = onSubmit({ files: convertedFiles, text }, event);
+
+          // Handle both sync and async onSubmit
+          if (result instanceof Promise) {
+            try {
+              await result;
+              clear();
+              if (usingProvider) {
+                controller.textInput.clear();
+              }
+            } catch {
+              // Don't clear on error - user may want to retry
             }
-            return item;
-          })
-        );
-
-        const result = onSubmit({ files: convertedFiles, text }, event);
-
-        // Handle both sync and async onSubmit
-        if (result instanceof Promise) {
-          try {
-            await result;
+          } else {
+            // Sync function completed without throwing, clear inputs
             clear();
             if (usingProvider) {
               controller.textInput.clear();
             }
-          } catch {
-            // Don't clear on error - user may want to retry
           }
-        } else {
-          // Sync function completed without throwing, clear inputs
-          clear();
-          if (usingProvider) {
-            controller.textInput.clear();
-          }
+        } catch {
+          // Don't clear on error - user may want to retry
         }
-      } catch {
-        // Don't clear on error - user may want to retry
-      }
+      })();
     },
     [usingProvider, controller, files, onSubmit, clear]
   );
@@ -1036,7 +1040,7 @@ export const PromptInputButton = ({
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent side={side}>
         {tooltipContent}
-        {shortcut && (
+        {(Boolean(shortcut)) && (
           <span className="ml-2 text-muted-foreground">{shortcut}</span>
         )}
       </TooltipContent>

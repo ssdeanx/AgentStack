@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import {
     BotIcon,
     WrenchIcon,
@@ -12,6 +12,11 @@ import {
     DownloadIcon,
     BuildingIcon,
 } from 'lucide-react'
+import {
+    SectionLayout,
+    useSectionReveal,
+    SECTION_BODY,
+} from '@/app/components/primitives'
 
 interface StatItem {
     label: string
@@ -94,7 +99,6 @@ function AnimatedCounter({
                 1
             )
 
-            // Easing function for smooth animation
             const easeOutQuart = 1 - Math.pow(1 - progress, 4)
             setCount(Math.floor(easeOutQuart * value * 10) / 10)
 
@@ -118,40 +122,28 @@ function AnimatedCounter({
 }
 
 export function LandingStats() {
-    return (
-        <section className="relative overflow-hidden border-b border-border bg-background">
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]" />
-            </div>
+    const revealRef = useSectionReveal<HTMLDivElement>({
+        selector: '.stat-card, .stat-bar, .stat-footer',
+        stagger: 0.06,
+    })
 
-            <div className="container mx-auto px-4 py-16 lg:py-24">
+    return (
+        <SectionLayout spacing="base" background="grid" borderBottom>
+            <div ref={revealRef}>
                 {/* Primary stats */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
-                    className="@container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4"
-                >
-                    {STATS.map((stat, index) => (
-                        <motion.div
+                <div className="stat-card @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4">
+                    {STATS.map((stat) => (
+                        <div
                             key={stat.label}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                            className="group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
                         >
-                            {/* Icon with monochrome transition */}
-                            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-background border border-border shadow-sm text-foreground transition-all duration-300 group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
+                            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl border border-border bg-background shadow-sm text-foreground transition-all duration-300 group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
                                 <stat.icon
                                     className="size-6"
                                     strokeWidth={1.5}
                                 />
                             </div>
 
-                            {/* Value */}
                             <div className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
                                 <AnimatedCounter
                                     value={stat.value}
@@ -159,41 +151,26 @@ export function LandingStats() {
                                 />
                             </div>
 
-                            {/* Label */}
                             <div className="mb-1 text-sm font-semibold uppercase tracking-wider text-foreground">
                                 {stat.label}
                             </div>
 
-                            {/* Description */}
                             <div className="text-xs text-muted-foreground">
                                 {stat.description}
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
-                </motion.div>
+                </div>
 
                 {/* Secondary stats bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    viewport={{ once: true }}
-                    className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm transition-discrete"
-                >
+                <div className="stat-bar rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm">
                     <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                        {SECONDARY_STATS.map((stat, index) => (
-                            <motion.div
+                        {SECONDARY_STATS.map((stat) => (
+                            <div
                                 key={stat.label}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                transition={{
-                                    duration: 0.4,
-                                    delay: 0.4 + index * 0.05,
-                                }}
-                                viewport={{ once: true }}
-                                className="flex items-center justify-center gap-4 text-center md:justify-start transition-all duration-200 ease-smooth hover:scale-105"
+                                className="flex items-center justify-center gap-4 text-center transition-all duration-200 ease-smooth hover:scale-105 md:justify-start"
                             >
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-200 group-hover:bg-foreground/10 group-hover:text-foreground">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-200 hover:bg-foreground/10 hover:text-foreground">
                                     <stat.icon className="size-5" />
                                 </div>
                                 <div className="text-left">
@@ -208,23 +185,16 @@ export function LandingStats() {
                                         {stat.label}
                                     </div>
                                 </div>
-                            </motion.div>
+                            </div>
                         ))}
                     </div>
-                </motion.div>
+                </div>
 
-                {/* Bottom text */}
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    viewport={{ once: true }}
-                    className="mt-8 text-center text-sm text-muted-foreground"
-                >
+                <p className={`stat-footer mt-8 text-center ${SECTION_BODY.body}`}>
                     Join thousands of developers building the future of AI
                     applications
-                </motion.p>
+                </p>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

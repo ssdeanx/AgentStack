@@ -70,7 +70,7 @@ const TokenSpan = ({ token }: { token: ThemedToken }) => (
       {
         backgroundColor: token.bgColor,
         color: token.color,
-        fontStyle: isItalic(token.fontStyle) ? "italic" : undefined,
+        fontStyle: (isItalic(token.fontStyle)) ? "italic" : undefined,
         fontWeight: isBold(token.fontStyle) ? "bold" : undefined,
         textDecoration: isUnderline(token.fontStyle) ? "underline" : undefined,
         ...token.htmlStyle,
@@ -494,7 +494,7 @@ export const CodeBlockCopyButton = ({
   return (
     <Button
       className={cn("shrink-0", className)}
-      onClick={copyToClipboard}
+      onClick={() => void copyToClipboard()}
       size="icon"
       variant="ghost"
       {...props}

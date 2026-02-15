@@ -2,49 +2,69 @@
 
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useRef } from 'react'
+import { ensureGsapRegistered } from '@/app/components/gsap/registry'
+import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
 import { NetworkBackground } from './network-background'
 
-gsap.registerPlugin(ScrollTrigger)
-
 export function LandingHero() {
-    const heroRef = useRef<HTMLDivElement>(null)
+    const sectionRef = useRef<HTMLElement>(null)
+    const contentRef = useRef<HTMLDivElement>(null)
 
-    useGSAP(() => {
-        const tl = gsap.timeline()
+    useGSAP(
+        () => {
+            ensureGsapRegistered()
 
-        // Stagger entrance animation for child elements
-        tl.fromTo(
-            '.hero-element',
-            { opacity: 0, y: 20 },
-            {
-                opacity: 1,
-                y: 0,
-                duration: 0.6,
-                ease: 'power2.out',
-                stagger: 0.1,
+            if (!sectionRef.current || !contentRef.current) {
+                return
             }
-        )
 
-        // Add ScrollTrigger for parallax effect
-        ScrollTrigger.create({
-            trigger: heroRef.current,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 1,
-            onUpdate: (self) => {
-                const progress = self.progress
-                gsap.set(heroRef.current, {
-                    y: -progress * 50, // Parallax effect
-                    scale: 1 + progress * 0.05, // Slight zoom
-                })
-            },
-        })
-    })
+            const prefersReducedMotion = window.matchMedia(
+                '(prefers-reduced-motion: reduce)'
+            ).matches
+
+            if (prefersReducedMotion) {
+                gsap.set('.hero-element', { opacity: 1, y: 0 })
+                gsap.set(contentRef.current, { y: 0, scale: 1 })
+                return
+            }
+
+            const tl = gsap.timeline()
+
+            tl.fromTo(
+                '.hero-element',
+                { opacity: 0, y: 20 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.6,
+                    ease: 'power2.out',
+                    stagger: 0.1,
+                }
+            )
+
+            gsap.to(contentRef.current, {
+                y: -50,
+                scale: 1.05,
+                ease: 'none',
+                scrollTrigger: {
+                    trigger: sectionRef.current,
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: 1,
+                },
+            })
+        },
+        {
+            scope: sectionRef,
+        }
+    )
 
     return (
-        <section className="relative h-[800px] w-full overflow-hidden border-b border-border bg-background">
+        <section
+            ref={sectionRef}
+            className="relative h-200 w-full overflow-hidden border-b border-border bg-background"
+        >
             {/* Interactive System Visualization */}
             <NetworkBackground />
 
@@ -53,7 +73,16 @@ export function LandingHero() {
 
             <div className="container relative z-10 mx-auto flex h-full flex-col items-center justify-center px-4 text-center">
                 {/* Main Content */}
-                <div ref={heroRef} className="mx-auto max-w-4xl">
+                <div ref={contentRef} className="mx-auto max-w-4xl">
+                    <div className="hero-element mb-6 flex justify-center">
+                        <div className="rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-md shadow-lg shadow-black/25">
+                            <AnimatedOrbitalLogo
+                                size={64}
+                                className="text-white"
+                            />
+                        </div>
+                    </div>
+
                     <div className="mb-6 inline-flex items-center rounded-full border border-white/10 bg-black/50 px-3 py-1 text-sm backdrop-blur-md shadow-lg shadow-black/20 hero-element">
                         <span className="flex size-2 me-2 rounded-full bg-green-500 animate-pulse"></span>
                         <span className="text-white/80 font-mono text-xs tracking-wider">

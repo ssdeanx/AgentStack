@@ -1,9 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useRef } from 'react'
 import Link from 'next/link'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
+import { ensureGsapRegistered } from '@/app/components/gsap/registry'
+import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
 import { ArrowRightIcon, CheckIcon, LoaderIcon } from 'lucide-react'
 
 const FOOTER_LINKS = {
@@ -64,6 +69,7 @@ const SOCIAL_LINKS = [
 ]
 
 export function Footer() {
+    const footerRef = useRef<HTMLElement>(null)
     const [email, setEmail] = useState('')
     const [status, setStatus] = useState<
         'idle' | 'loading' | 'success' | 'error'
@@ -83,16 +89,52 @@ export function Footer() {
         setTimeout(() => setStatus('idle'), 3000)
     }
 
-    const [year, setYear] = useState<number | null>(null)
+    const year = new Date().getFullYear()
 
-    useEffect(() => {
-        setYear(new Date().getFullYear())
-    }, [])
+    useGSAP(
+        () => {
+            ensureGsapRegistered()
+
+            const targets = gsap.utils.toArray<HTMLElement>(
+                '[data-footer-reveal]'
+            )
+
+            if (targets.length === 0) {
+                return
+            }
+
+            const prefersReducedMotion = window.matchMedia(
+                '(prefers-reduced-motion: reduce)'
+            ).matches
+
+            if (prefersReducedMotion) {
+                gsap.set(targets, { autoAlpha: 1, y: 0 })
+                return
+            }
+
+            gsap.set(targets, { autoAlpha: 0, y: 18 })
+            targets.forEach((target, index) => {
+                gsap.to(target, {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.45,
+                    ease: 'power2.out',
+                    delay: index * 0.04,
+                    scrollTrigger: {
+                        trigger: target,
+                        start: 'top 92%',
+                        once: true,
+                    },
+                })
+            })
+        },
+        { scope: footerRef }
+    )
 
     return (
-        <footer className="border-t border-border bg-background">
+        <footer ref={footerRef} className="border-t border-border bg-background">
             {/* Newsletter section */}
-            <div className="border-b border-border">
+            <div className="border-b border-border" data-footer-reveal>
                 <div className="container mx-auto px-4 py-12">
                     <div className="mx-auto max-w-2xl text-center">
                         <h3 className="mb-2 text-2xl font-bold text-foreground">
@@ -103,7 +145,9 @@ export function Footer() {
                             practices, and AI agent development tips.
                         </p>
                         <form
-                            onSubmit={handleSubscribe}
+                            onSubmit={(event) => {
+                                void handleSubscribe(event)
+                            }}
                             className="flex flex-col gap-3 sm:flex-row sm:gap-2"
                         >
                             <div className="relative flex-1">
@@ -122,7 +166,7 @@ export function Footer() {
                             <Button
                                 type="submit"
                                 size="lg"
-                                className="h-12 min-w-[140px] transition-all duration-200 ease-spring hover:-translate-y-px"
+                                className="h-12 min-w-35 transition-all duration-200 ease-spring hover:-translate-y-px"
                                 disabled={
                                     status === 'loading' || status === 'success'
                                 }
@@ -154,7 +198,7 @@ export function Footer() {
             </div>
 
             {/* Main footer content */}
-            <div className="container mx-auto px-4 py-12 lg:py-16">
+            <div className="container mx-auto px-4 py-12 lg:py-16" data-footer-reveal>
                 <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-6">
                     {/* Brand column */}
                     <div className="col-span-2 md:col-span-3 lg:col-span-2">
@@ -162,10 +206,11 @@ export function Footer() {
                             href="/"
                             className="group flex items-center gap-2 transition-opacity duration-200 hover:opacity-80"
                         >
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/80 shadow-lg transition-all duration-200 ease-spring group-hover:scale-105 group-hover:shadow-xl">
-                                <span className="font-bold text-primary-foreground text-lg">
-                                    A
-                                </span>
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-linear-to-br from-primary/15 to-primary/5 shadow-lg transition-all duration-200 ease-spring group-hover:scale-105 group-hover:shadow-xl">
+                                <AnimatedOrbitalLogo
+                                    size={26}
+                                    className="text-primary"
+                                />
                             </div>
                             <span className="text-xl font-bold text-foreground">
                                 AgentStack
@@ -271,10 +316,10 @@ export function Footer() {
             </div>
 
             {/* Bottom bar */}
-            <div className="border-t border-border">
+            <div className="border-t border-border" data-footer-reveal>
                 <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 md:flex-row">
                     <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground md:flex-row md:gap-4">
-                        <p>© {year ?? ''} AgentStack. All rights reserved.</p>
+                        <p>© {year} AgentStack. All rights reserved.</p>
                         <span className="hidden md:inline">•</span>
                         <p>Built with ❤️ for developers</p>
                     </div>

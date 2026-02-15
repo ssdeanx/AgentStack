@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Navbar } from '@/app/components/navbar'
+import { PublicPageReveal } from '@/app/components/public-page-reveal'
 import { cn } from '@/lib/utils'
 import { TooltipProvider } from "@/ui/tooltip"
 
@@ -122,7 +123,7 @@ export default function RootLayout({
                             <Navbar />
                         </div>
                         <div className="flex-1 view-transition-fade">
-                            {children}
+                            <PublicPageReveal>{children}</PublicPageReveal>
                         </div>
                     </div>
                 </ThemeProvider>

@@ -143,7 +143,7 @@ export const PackageInfoVersion = ({
 }: PackageInfoVersionProps) => {
   const { currentVersion, newVersion } = useContext(PackageInfoContext);
 
-  if (!(currentVersion || newVersion)) {
+  if (!((Boolean(currentVersion)) || (Boolean(newVersion)))) {
     return null;
   }
 
@@ -157,11 +157,11 @@ export const PackageInfoVersion = ({
     >
       {children ?? (
         <>
-          {currentVersion && <span>{currentVersion}</span>}
-          {currentVersion && newVersion && (
+          {(Boolean(currentVersion)) && <span>{currentVersion}</span>}
+          {(Boolean(currentVersion)) && (Boolean(newVersion)) && (
             <ArrowRightIcon className="size-3" />
           )}
-          {newVersion && (
+          {(Boolean(newVersion)) && (
             <span className="font-medium text-foreground">{newVersion}</span>
           )}
         </>
@@ -228,7 +228,7 @@ export const PackageInfoDependency = ({
     {children ?? (
       <>
         <span className="font-mono text-muted-foreground">{name}</span>
-        {version && <span className="font-mono text-xs">{version}</span>}
+        {(Boolean(version)) && <span className="font-mono text-xs">{version}</span>}
       </>
     )}
   </div>
