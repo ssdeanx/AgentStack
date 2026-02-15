@@ -2,10 +2,16 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Input } from '@/ui/input'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
+import {
+    SectionLayout,
+    useSectionReveal,
+    SECTION_HEADING,
+    SECTION_BODY,
+} from '@/app/components/primitives'
 import {
     SearchIcon,
     ArrowRightIcon,
@@ -230,6 +236,12 @@ export function LandingAgents() {
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [showAll, setShowAll] = useState(false)
 
+    const revealRef = useSectionReveal<HTMLDivElement>({
+        selector: '.agents-header, .agents-filters, .agents-cta',
+        stagger: 0.12,
+        yOffset: 24,
+    })
+
     const filteredAgents = AGENTS.filter((agent) => {
         const matchesSearch =
             agent.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -245,192 +257,165 @@ export function LandingAgents() {
         : filteredAgents.slice(0, 12)
 
     return (
-        <section className="container mx-auto px-4 py-24">
-            <div className="mb-12 flex flex-col items-center justify-between gap-6 lg:flex-row">
-                <div className="text-center lg:text-left">
-                    <motion.h2
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        viewport={{ once: true }}
-                        className="mb-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
-                    >
-                        Available Agents
-                    </motion.h2>
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        viewport={{ once: true }}
-                        className="max-w-xl text-lg text-muted-foreground"
-                    >
-                        {AGENTS.length}+ specialized AI agents ready to handle
-                        your workflows. Each agent is optimized for specific
-                        tasks and can work together.
-                    </motion.p>
-                </div>
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    viewport={{ once: true }}
-                    className="relative w-full max-w-sm"
-                >
-                    <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Search agents..."
-                        className="h-11 pl-10"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </motion.div>
-            </div>
-
-            {/* Category filters */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                viewport={{ once: true }}
-                className="mb-8 flex flex-wrap justify-center gap-2"
-            >
-                {CATEGORIES.map((category) => (
-                    <Badge
-                        key={category}
-                        variant={
-                            selectedCategory === category
-                                ? 'default'
-                                : 'outline'
-                        }
-                        className="cursor-pointer px-4 py-1.5 text-sm transition-all hover:scale-105"
-                        onClick={() => setSelectedCategory(category)}
-                    >
-                        {category}
-                    </Badge>
-                ))}
-            </motion.div>
-
-            <div className="@container grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-3 @xl:grid-cols-4">
-                <AnimatePresence mode="popLayout">
-                    {displayedAgents.map((agent, index) => (
-                        <motion.div
-                            key={agent.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3, delay: index * 0.03 }}
+        <SectionLayout spacing="base">
+            <div ref={revealRef}>
+                <div className="agents-header mb-12 flex flex-col items-center justify-between gap-6 lg:flex-row">
+                    <div className="text-center lg:text-left">
+                        <h2
+                            className={`mb-3 ${SECTION_HEADING.h2}`}
                         >
-                            <Link
-                                href={`/chat?agent=${agent.id}`}
-                                className="perspective group flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 ease-spring hover:border-primary/20 hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
-                            >
-                                <div className="mb-4 flex items-start justify-between">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary">
-                                        <agent.icon
-                                            className="size-5"
-                                            strokeWidth={1.5}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {agent.popular && (
-                                            <Badge
-                                                variant="secondary"
-                                                className="bg-foreground/10 text-foreground text-xs hover:bg-foreground/20"
-                                            >
-                                                Popular
-                                            </Badge>
-                                        )}
-                                        <Badge
-                                            variant="outline"
-                                            className="text-xs font-normal"
-                                        >
-                                            {agent.category}
-                                        </Badge>
-                                    </div>
-                                </div>
-
-                                <h3 className="mb-1.5 font-semibold text-foreground">
-                                    {agent.name}
-                                </h3>
-                                <p className="mb-3 flex-1 text-sm text-muted-foreground line-clamp-2">
-                                    {agent.description}
-                                </p>
-
-                                <div className="flex items-center justify-between border-t border-border pt-3">
-                                    <code className="text-xs text-muted-foreground/70">
-                                        {agent.id}
-                                    </code>
-                                    <span className="flex items-center text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-                                        Try Agent
-                                        <ArrowRightIcon className="ml-1 size-3 transition-transform group-hover:translate-x-1" />
-                                    </span>
-                                </div>
-                            </Link>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-
-            {/* Empty state */}
-            {filteredAgents.length === 0 && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="py-16 text-center"
-                >
-                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
-                        <BotIcon className="size-8 text-muted-foreground" />
+                            Available Agents
+                        </h2>
+                        <p
+                            className={`max-w-xl ${SECTION_BODY.subtitle}`}
+                        >
+                            {AGENTS.length}+ specialized AI agents ready to
+                            handle your workflows. Each agent is optimized for
+                            specific tasks and can work together.
+                        </p>
                     </div>
-                    <h3 className="mb-2 text-xl font-semibold text-foreground">
-                        No agents found
-                    </h3>
-                    <p className="text-muted-foreground">
-                        Try adjusting your search or filter criteria.
-                    </p>
-                </motion.div>
-            )}
-
-            {/* Show more button */}
-            {filteredAgents.length > 12 && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
-                    className="mt-8 text-center"
-                >
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => setShowAll(!showAll)}
-                    >
-                        {showAll
-                            ? 'Show Less'
-                            : `Show All ${filteredAgents.length} Agents`}
-                        <ArrowRightIcon
-                            className={`ml-2 size-4 transition-transform ${showAll ? 'rotate-90' : ''}`}
+                    <div className="relative w-full max-w-sm">
+                        <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search agents..."
+                            className="h-11 pl-10"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
                         />
-                    </Button>
-                </motion.div>
-            )}
+                    </div>
+                </div>
 
-            {/* CTA */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-                className="mt-12 text-center"
-            >
-                <Link
-                    href="/chat"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                >
-                    View all agents and start chatting{' '}
-                    <ArrowRightIcon className="size-4" />
-                </Link>
-            </motion.div>
-        </section>
+                {/* Category filters */}
+                <div className="agents-filters mb-8 flex flex-wrap justify-center gap-2">
+                    {CATEGORIES.map((category) => (
+                        <Badge
+                            key={category}
+                            variant={
+                                selectedCategory === category
+                                    ? 'default'
+                                    : 'outline'
+                            }
+                            className="cursor-pointer px-4 py-1.5 text-sm transition-all hover:scale-105"
+                            onClick={() => setSelectedCategory(category)}
+                        >
+                            {category}
+                        </Badge>
+                    ))}
+                </div>
+
+                <div className="@container grid grid-cols-1 gap-4 @sm:grid-cols-2 @lg:grid-cols-3 @xl:grid-cols-4">
+                    <AnimatePresence mode="popLayout">
+                        {displayedAgents.map((agent, index) => (
+                            <motion.div
+                                key={agent.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{
+                                    duration: 0.3,
+                                    delay: index * 0.03,
+                                }}
+                            >
+                                <Link
+                                    href={`/chat?agent=${agent.id}`}
+                                    className="perspective group flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 ease-spring hover:border-primary/20 hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                                >
+                                    <div className="mb-4 flex items-start justify-between">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary">
+                                            <agent.icon
+                                                className="size-5"
+                                                strokeWidth={1.5}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {agent.popular && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="bg-foreground/10 text-foreground text-xs hover:bg-foreground/20"
+                                                >
+                                                    Popular
+                                                </Badge>
+                                            )}
+                                            <Badge
+                                                variant="outline"
+                                                className="text-xs font-normal"
+                                            >
+                                                {agent.category}
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    <h3 className="mb-1.5 font-semibold text-foreground">
+                                        {agent.name}
+                                    </h3>
+                                    <p className="mb-3 flex-1 text-sm text-muted-foreground line-clamp-2">
+                                        {agent.description}
+                                    </p>
+
+                                    <div className="flex items-center justify-between border-t border-border pt-3">
+                                        <code className="text-xs text-muted-foreground/70">
+                                            {agent.id}
+                                        </code>
+                                        <span className="flex items-center text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                                            Try Agent
+                                            <ArrowRightIcon className="ml-1 size-3 transition-transform group-hover:translate-x-1" />
+                                        </span>
+                                    </div>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+
+                {/* Empty state */}
+                {filteredAgents.length === 0 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="py-16 text-center"
+                    >
+                        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+                            <BotIcon className="size-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="mb-2 text-xl font-semibold text-foreground">
+                            No agents found
+                        </h3>
+                        <p className="text-muted-foreground">
+                            Try adjusting your search or filter criteria.
+                        </p>
+                    </motion.div>
+                )}
+
+                {/* Show more button */}
+                {filteredAgents.length > 12 && (
+                    <div className="mt-8 text-center">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            onClick={() => setShowAll(!showAll)}
+                        >
+                            {showAll
+                                ? 'Show Less'
+                                : `Show All ${filteredAgents.length} Agents`}
+                            <ArrowRightIcon
+                                className={`ml-2 size-4 transition-transform ${showAll ? 'rotate-90' : ''}`}
+                            />
+                        </Button>
+                    </div>
+                )}
+
+                {/* CTA */}
+                <div className="agents-cta mt-12 text-center">
+                    <Link
+                        href="/chat"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                    >
+                        View all agents and start chatting{' '}
+                        <ArrowRightIcon className="size-4" />
+                    </Link>
+                </div>
+            </div>
+        </SectionLayout>
     )
 }

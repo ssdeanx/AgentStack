@@ -42,7 +42,7 @@ export const AgentHeader = memo(
       <div className="flex items-center gap-2">
         <BotIcon className="size-4 text-muted-foreground" />
         <span className="font-medium text-sm">{name}</span>
-        {model && (
+        {(Boolean(model)) && (
           <Badge className="font-mono text-xs" variant="secondary">
             {model}
           </Badge>
@@ -93,7 +93,7 @@ export type AgentToolProps = ComponentProps<typeof AccordionItem> & {
 export const AgentTool = memo(
   ({ className, tool, value, ...props }: AgentToolProps) => {
     const schema =
-      "jsonSchema" in tool && tool.jsonSchema
+      "jsonSchema" in tool && (Boolean(tool.jsonSchema))
         ? tool.jsonSchema
         : tool.inputSchema;
 

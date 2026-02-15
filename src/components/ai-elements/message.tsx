@@ -203,7 +203,7 @@ export const MessageBranchContent = ({
 }: MessageBranchContentProps) => {
   const { currentBranch, setBranches, branches } = useMessageBranch();
   const childrenArray = useMemo(
-    () => (Array.isArray(children) ? children : [children]),
+    () => (Array.isArray(children) ? (children as ReactElement[]) : ([children] as ReactElement[])),
     [children]
   );
 

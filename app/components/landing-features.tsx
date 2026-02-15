@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import {
     BotIcon,
     DatabaseIcon,
@@ -13,6 +12,13 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/ui/badge'
 import { BentoGrid, BentoGridItem } from '@/ui/effects/bento-grid'
+import {
+    SectionLayout,
+    useSectionReveal,
+    SECTION_HEADING,
+    SECTION_BODY,
+    SECTION_LAYOUT,
+} from '@/app/components/primitives'
 
 const FeatureHeader = () => (
     <div className="flex flex-1 w-full h-full min-h-24 rounded-xl bg-linear-to-br from-neutral-200 dark:from-neutral-900 dark:to-neutral-800 to-neutral-100 opacity-50" />
@@ -80,53 +86,30 @@ const ADDITIONAL_FEATURES = [
     },
 ]
 
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.1,
-        },
-    },
-}
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.5 },
-    },
-}
-
 export function LandingFeatures() {
-    return (
-        <section className="relative overflow-hidden py-24 lg:py-32">
-            {/* Background decoration - heavily reduced opacity for subtle feel */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent opacity-30" />
+    const revealRef = useSectionReveal<HTMLDivElement>({
+        selector: '.feat-header, .feat-bento, .feat-grid, .feat-stats',
+        stagger: 0.1,
+    })
 
-            <div className="container mx-auto px-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
-                    className="mb-16 text-center"
-                >
+    return (
+        <SectionLayout spacing="base" background="gradient-top">
+            <div ref={revealRef}>
+                <div className={`feat-header ${SECTION_LAYOUT.headerCenter}`}>
                     <Badge variant="outline" className="mb-4">
                         Features
                     </Badge>
-                    <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+                    <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Everything You Need
                     </h2>
-                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground lg:text-xl">
+                    <p className={SECTION_BODY.subtitleCentered}>
                         A complete framework for building, deploying, and
                         monitoring AI agent applications at scale.
                     </p>
-                </motion.div>
+                </div>
 
                 {/* Main feature grid (Bento) */}
-                <BentoGrid className="mb-24">
+                <BentoGrid className="feat-bento mb-24">
                     {FEATURES.map((feature, i) => (
                         <BentoGridItem
                             key={i}
@@ -140,20 +123,13 @@ export function LandingFeatures() {
                 </BentoGrid>
 
                 {/* Additional features */}
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    className="@container grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-                >
+                <div className="feat-grid @container grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     {ADDITIONAL_FEATURES.map((feature) => (
-                        <motion.div
+                        <div
                             key={feature.title}
-                            variants={itemVariants}
                             className="group rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
                         >
-                            <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg bg-background border border-border shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
+                            <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-border bg-background shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
                                 <feature.icon
                                     className="size-5"
                                     strokeWidth={1.5}
@@ -162,57 +138,34 @@ export function LandingFeatures() {
                             <h3 className="mb-2 font-semibold text-foreground">
                                 {feature.title}
                             </h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
+                            <p className={SECTION_BODY.body}>
                                 {feature.description}
                             </p>
-                        </motion.div>
+                        </div>
                     ))}
-                </motion.div>
+                </div>
 
                 {/* Stats bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    viewport={{ once: true }}
-                    className="mt-24 rounded-2xl border border-border/50 bg-muted/20 p-8 backdrop-blur-sm"
-                >
+                <div className="feat-stats mt-24 rounded-2xl border border-border/50 bg-muted/20 p-8 backdrop-blur-sm">
                     <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-                        <div className="text-center group">
-                            <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
-                                22+
+                        {[
+                            { value: '22+', label: 'Specialized Agents' },
+                            { value: '30+', label: 'Enterprise Tools' },
+                            { value: '10', label: 'Workflow Templates' },
+                            { value: '99.9%', label: 'Uptime SLA' },
+                        ].map((item) => (
+                            <div key={item.label} className="text-center group">
+                                <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
+                                    {item.value}
+                                </div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                    {item.label}
+                                </div>
                             </div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                                Specialized Agents
-                            </div>
-                        </div>
-                        <div className="text-center group">
-                            <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
-                                30+
-                            </div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                                Enterprise Tools
-                            </div>
-                        </div>
-                        <div className="text-center group">
-                            <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
-                                10
-                            </div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                                Workflow Templates
-                            </div>
-                        </div>
-                        <div className="text-center group">
-                            <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
-                                99.9%
-                            </div>
-                            <div className="mt-1 text-sm text-muted-foreground">
-                                Uptime SLA
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                </motion.div>
+                </div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

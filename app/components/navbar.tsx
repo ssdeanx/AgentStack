@@ -4,9 +4,13 @@ import Link from 'next/link'
 import type { Route } from 'next'
 import { useState, useEffect, useRef, startTransition } from 'react'
 import { usePathname } from 'next/navigation'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import { Button } from '@/ui/button'
 import { ThemeToggle } from '@/ui/theme-toggle'
 import { cn } from '@/lib/utils'
+import { ensureGsapRegistered } from '@/app/components/gsap/registry'
+import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
 import {
     NavigationMenu,
     NavigationMenuList,
@@ -23,6 +27,46 @@ export function Navbar() {
     const [scrolled, setScrolled] = useState(false)
     const pathname = usePathname()
     const prevPathnameRef = useRef(pathname)
+    const headerRef = useRef<HTMLElement>(null)
+
+    useGSAP(
+        () => {
+            ensureGsapRegistered()
+
+            if (!headerRef.current) {
+                return
+            }
+
+            const prefersReducedMotion = window.matchMedia(
+                '(prefers-reduced-motion: reduce)'
+            ).matches
+
+            if (prefersReducedMotion) {
+                gsap.set(headerRef.current, { autoAlpha: 1, y: 0 })
+                gsap.set('.nav-animate', { autoAlpha: 1, y: 0 })
+                return
+            }
+
+            const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
+            tl.fromTo(
+                headerRef.current,
+                { autoAlpha: 0, y: -10 },
+                { autoAlpha: 1, y: 0, duration: 0.35 }
+            )
+            tl.fromTo(
+                '.nav-animate',
+                { autoAlpha: 0, y: -6 },
+                {
+                    autoAlpha: 1,
+                    y: 0,
+                    duration: 0.28,
+                    stagger: 0.05,
+                },
+                '-=0.18'
+            )
+        },
+        { scope: headerRef }
+    )
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -85,6 +129,7 @@ export function Navbar() {
 
     return (
         <header
+            ref={headerRef}
             className={cn(
                 'fixed top-0 z-50 w-full transition-all duration-300 border-b',
                 scrolled
@@ -94,9 +139,15 @@ export function Navbar() {
         >
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 {/* Brand */}
-                <Link href="/" className="flex items-center gap-2 group mr-8">
-                    <div className="relative flex size-9 items-center justify-center rounded-xl bg-foreground text-background shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/20">
-                        <span className="font-bold text-lg">A</span>
+                <Link
+                    href="/"
+                    className="nav-animate flex items-center gap-2 group mr-8"
+                >
+                    <div className="relative flex size-9 items-center justify-center rounded-xl bg-foreground/5 text-foreground shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/20">
+                        <AnimatedOrbitalLogo
+                            size={26}
+                            className="text-foreground"
+                        />
                     </div>
                     <span className="font-bold text-xl tracking-tight">
                         AgentStack
@@ -104,7 +155,7 @@ export function Navbar() {
                 </Link>
 
                 {/* Desktop Nav - Action Oriented */}
-                <nav className="hidden md:flex items-center gap-2">
+                <nav className="nav-animate hidden md:flex items-center gap-2">
                     <NavigationMenu>
                         <NavigationMenuList>
                             <NavigationMenuItem>
@@ -349,7 +400,7 @@ export function Navbar() {
                 <div className="hidden md:flex flex-1" />
 
                 {/* Actions */}
-                <div className="hidden md:flex items-center gap-3">
+                <div className="nav-animate hidden md:flex items-center gap-3">
                     <Link
                         href="/docs"
                         className={cn(

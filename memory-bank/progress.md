@@ -1,5 +1,15 @@
 # Progress
 
+## GSAP Public SVG Upgrade **[Synced 2026-02-15]**
+
+- Added reusable animated SVG brand component: `app/components/gsap/animated-orbital-logo.tsx`.
+- Integrated the animated SVG into shared public components:
+    - `app/components/navbar.tsx` brand mark
+    - `app/components/landing-hero.tsx` hero identity block
+    - `app/components/footer.tsx` brand mark
+- Enforced reduced-motion safe behavior with `prefers-reduced-motion` fallback states.
+- Verified with problems check (`get_errors`) on all touched files: no remaining errors.
+
 ## What's Done **[Synced Dec 8 from session work]**
 
 | Category                    | Status     | Key Files/Details                                                                                                                                                                                                                                                                                                                                                                                                                                                            |

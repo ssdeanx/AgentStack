@@ -355,7 +355,7 @@ export const StackTraceCopyButton = memo(
     return (
       <Button
         className={cn("size-7", className)}
-        onClick={copyToClipboard}
+        onClick={() => void copyToClipboard()}
         size="icon"
         variant="ghost"
         {...props}
@@ -491,12 +491,12 @@ export const StackTraceFrames = memo(
             key={`${frame.raw}-${index}`}
           >
             <span className="text-muted-foreground">at </span>
-            {frame.functionName && (
+            {(Boolean(frame.functionName)) && (
               <span className={frame.isInternal ? "" : "text-foreground"}>
                 {frame.functionName}{" "}
               </span>
             )}
-            {frame.filePath && (
+            {(Boolean(frame.filePath)) && (
               <>
                 <span className="text-muted-foreground">(</span>
                 <FilePathButton
@@ -506,7 +506,7 @@ export const StackTraceFrames = memo(
                 <span className="text-muted-foreground">)</span>
               </>
             )}
-            {!(frame.filePath ?? frame.functionName) && (
+            {(!(frame.filePath ?? frame.functionName)) && (
               <span>{frame.raw.replace(AT_PREFIX_REGEX, "")}</span>
             )}
           </div>
