@@ -2,9 +2,64 @@
 
 # Tools Directory (`/src/components/ai-elements/tools`)
 
+## Overview
+
+This directory provides **custom UI components** that render tool execution results from Mastra backend tools (`src/mastra/tools`). Instead of generic JSON output, each tool gets a rich, interactive visualization.
+
+## Backend Connection
+
+Each UI component connects to a specific Mastra backend tool through **tool name matching**:
+
+```mermaid
+flowchart LR
+    subgraph Backend["Mastra Backend (src/mastra/tools)"]
+        WT[weather-tool.ts]
+        PST[polygon-tools.ts]
+        WST[web-scraper-tool.ts]
+    end
+
+    subgraph Frontend["Frontend (this directory)"]
+        WC[weather-tool.tsx]
+        PSC[polygon-tools.tsx]
+        WSC[web-scraper-tool.tsx]
+    end
+
+    WT -->|"toolName: 'weatherTool'"| WC
+    PST -->|"toolName: 'polygonStockQuotes'"| PSC
+    WST -->|"toolName: 'web:scraper'"| WSC
+```
+
+### Tool Name Mapping
+
+| Backend Tool (src/mastra/tools) | Tool Name                      | UI Component                  |
+| ------------------------------- | ------------------------------ | ----------------------------- |
+| `weather-tool.ts`               | `weatherTool`                  | `WeatherCard`                 |
+| `polygon-tools.ts`              | `polygonStockQuotes`           | `PolygonStockQuotesCard`      |
+| `web-scraper-tool.ts`           | `web:scraper`                  | `WebScraperTool`              |
+| `browser-tool.ts`               | `browser`, `screenshot`, `pdf` | `BrowserToolCard` variants    |
+| `github.ts`                     | `getRepo`, `listIssues`        | `RepositoryCard`, `IssueCard` |
+
+### Type Inference
+
+Types are automatically inferred from Mastra tools using `InferUITool`:
+
+```typescript
+// types.ts - imports from @/src/mastra/tools
+import type { weatherTool, polygonStockQuotesTool } from '@/src/mastra/tools'
+import type { InferUITool } from '@mastra/core/tools'
+
+// Generates: WeatherUITool, PolygonStockQuotesUITool
+export type WeatherUITool = InferUITool<typeof weatherTool>
+export type PolygonStockQuotesUITool = InferUITool<
+    typeof polygonStockQuotesTool
+>
+```
+
+This ensures **type safety** between backend tool schemas and frontend UI components.
+
 ## Persona
 
-**Name:** `{tools_persona_name}` = "Tools UI Engineer"  
+**Name:** `{tools_persona_name}` = "Tools UI Engineer"
 **Role:** "I provide diverse, tool-specific UI components for agent tool execution—rendering unique interfaces for each tool type while maintaining cohesive interaction patterns across the ecosystem."  
 **Primary Goals:**
 
@@ -35,23 +90,23 @@ Provides React components that render agent tool execution results in chat inter
 
 ## Tool Surface (Current)
 
-| Component File | Tool Types | Description | UI Patterns |
-| -------------- | ---------- | ----------- | ----------- |
-| `browser-tool.tsx` | Browser, Screenshot, PDF, ClickExtract, FillForm, GoogleSearch, MonitorPage | Web automation and content extraction | Interactive buttons, scrollable content, image previews, download actions |
-| `web-scraper-tool.tsx` | WebScraper | Single-page content scraping | Code blocks, structured data display, content highlighting |
-| `batch-web-scraper-tool.tsx` | BatchWebScraper | Multi-URL bulk scraping | Progress tracking, result aggregation, batch status indicators |
-| `site-map-extractor-tool.tsx` | SiteMapExtractor | Website structure analysis | Hierarchical tree views, link categorization, expandable sections |
-| `link-extractor-tool.tsx` | LinkExtractor | Link discovery and categorization | Link filtering, categorization badges, external link indicators |
-| `weather-tool.tsx` | Weather | Weather data and forecasts | Weather icons, temperature displays, forecast grids, location info |
-| `financial-tools.tsx` | Financial (Company, Chart, Quote) | Market data and analysis | Data tables, financial charts, metric displays, time series |
-| `polygon-tools.tsx` | Polygon (Crypto, Stock) | Real-time market data | Live data streams, price charts, market indicators |
-| `research-tools.tsx` | Research (Arxiv, News) | Academic and news content | Paper metadata cards, news carousels, search result lists |
-| `calculator-tool.tsx` | Calculator, Matrix, UnitConverter | Mathematical computations | Formula display, matrix grids, conversion interfaces |
-| `e2b-sandbox-tool.tsx` | E2B Sandbox (FileOps, CodeExec, RunCommand) | Secure code execution | File explorers, code editors, terminal interfaces, execution logs |
-| `execa-tool.tsx` | Execa | Shell command execution | Command history, streaming output, error highlighting, process status |
-| `github-tools.tsx` | GitHub (Issues, PRs, Commits, Repo) | Repository management | Issue boards, PR timelines, commit graphs, repository stats |
-| `types.ts` | Type Definitions | All tool type interfaces | TypeScript inference from Mastra schemas |
-| `index.ts` | Component Exports | Central export registry | All tool components available for import |
+| Component File                | Tool Types                                                                  | Description                           | UI Patterns                                                               |
+| ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| `browser-tool.tsx`            | Browser, Screenshot, PDF, ClickExtract, FillForm, GoogleSearch, MonitorPage | Web automation and content extraction | Interactive buttons, scrollable content, image previews, download actions |
+| `web-scraper-tool.tsx`        | WebScraper                                                                  | Single-page content scraping          | Code blocks, structured data display, content highlighting                |
+| `batch-web-scraper-tool.tsx`  | BatchWebScraper                                                             | Multi-URL bulk scraping               | Progress tracking, result aggregation, batch status indicators            |
+| `site-map-extractor-tool.tsx` | SiteMapExtractor                                                            | Website structure analysis            | Hierarchical tree views, link categorization, expandable sections         |
+| `link-extractor-tool.tsx`     | LinkExtractor                                                               | Link discovery and categorization     | Link filtering, categorization badges, external link indicators           |
+| `weather-tool.tsx`            | Weather                                                                     | Weather data and forecasts            | Weather icons, temperature displays, forecast grids, location info        |
+| `financial-tools.tsx`         | Financial (Company, Chart, Quote)                                           | Market data and analysis              | Data tables, financial charts, metric displays, time series               |
+| `polygon-tools.tsx`           | Polygon (Crypto, Stock)                                                     | Real-time market data                 | Live data streams, price charts, market indicators                        |
+| `research-tools.tsx`          | Research (Arxiv, News)                                                      | Academic and news content             | Paper metadata cards, news carousels, search result lists                 |
+| `calculator-tool.tsx`         | Calculator, Matrix, UnitConverter                                           | Mathematical computations             | Formula display, matrix grids, conversion interfaces                      |
+| `e2b-sandbox-tool.tsx`        | E2B Sandbox (FileOps, CodeExec, RunCommand)                                 | Secure code execution                 | File explorers, code editors, terminal interfaces, execution logs         |
+| `execa-tool.tsx`              | Execa                                                                       | Shell command execution               | Command history, streaming output, error highlighting, process status     |
+| `github-tools.tsx`            | GitHub (Issues, PRs, Commits, Repo)                                         | Repository management                 | Issue boards, PR timelines, commit graphs, repository stats               |
+| `types.ts`                    | Type Definitions                                                            | All tool type interfaces              | TypeScript inference from Mastra schemas                                  |
+| `index.ts`                    | Component Exports                                                           | Central export registry               | All tool components available for import                                  |
 
 ## System Flow
 
@@ -104,6 +159,7 @@ return <Tool><ToolHeader/><ToolContent><ToolOutput/></ToolContent></Tool>
 ```
 
 All components receive:
+
 - `toolCallId: string`
 - `input: ToolInputType`
 - `output?: ToolOutputType`
@@ -111,6 +167,6 @@ All components receive:
 
 ## Change Log
 
-| Version | Date (UTC) | Change |
-| ------- | ---------- | ------ |
+| Version | Date (UTC) | Change                                      |
+| ------- | ---------- | ------------------------------------------- |
 | 1.0.0   | 2025-01-09 | Initial documentation following CLI pattern |

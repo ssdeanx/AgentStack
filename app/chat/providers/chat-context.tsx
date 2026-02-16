@@ -18,13 +18,15 @@ import type {
     TextUIPart,
     ReasoningUIPart,
     ToolUIPart,
+    UIDataTypes,
+    UIDataPartSchemas,
+    UIMessageChunk,
+    UIMessagePart,
+    TelemetrySettings,
     TextStreamPart,
     TextPart,
     ToolResultPart,
     ReasoningOutput,
-    UIDataPartSchemas,
-    UIMessageChunk,
-    UIMessagePart,
     DataContent,
     FinishReason,
     FileUIPart,
@@ -80,7 +82,12 @@ import type {
     ChatContextValue,
 } from './chat-context-types'
 import { ChatContext } from './chat-context-hooks'
-import UIDataTypes from 'ai';
+
+interface InputTokenDetails {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  noCacheTokens: number;
+}
 
 export interface ChatProviderProps {
     children: ReactNode

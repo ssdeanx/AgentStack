@@ -44,7 +44,7 @@ describe('csvToJsonTool', () => {
     )
 
     // Assert
-    expect(result.data).toEqual([
+    expect((result as any).data).toEqual([
       { name: 'John', age: '30', city: 'NYC' },
       { name: 'Jane', age: '25', city: 'LA' },
     ])
@@ -93,52 +93,52 @@ describe('csvToJsonTool', () => {
   })
 
   it('should emit progress events', async () => {
-        // Arrange
-        const csvData = 'name,value\nTest,100'
-        const mockWriter: any = {
-          custom: vi.fn(),
-          write: vi.fn(),
-        }
-        const mockSpan: any = {
-          update: vi.fn(),
-          end: vi.fn(),
-          error: vi.fn(),
-        }
-        const mockTracingContext: any = {
-          currentSpan: {
-            createChildSpan: vi.fn().mockReturnValue(mockSpan),
-          },
-        }
+    // Arrange
+    const csvData = 'name,value\nTest,100'
+    const mockWriter: any = {
+      custom: vi.fn(),
+      write: vi.fn(),
+    }
+    const mockSpan: any = {
+      update: vi.fn(),
+      end: vi.fn(),
+      error: vi.fn(),
+    }
+    const mockTracingContext: any = {
+      currentSpan: {
+        createChildSpan: vi.fn().mockReturnValue(mockSpan),
+      },
+    }
 
-        // Act
-        await csvToJsonTool.execute!(
-          {
-            csvData,
-            options: {
-              delimiter: ',',
-              columns: true,
-              trim: true,
-              skip_empty_lines: true,
-            },
-          },
-          {
-            writer: mockWriter,
-            tracingContext: mockTracingContext,
-            abortSignal: new AbortController().signal,
-          }
-        )
+    // Act
+    await csvToJsonTool.execute!(
+      {
+        csvData,
+        options: {
+          delimiter: ',',
+          columns: true,
+          trim: true,
+          skip_empty_lines: true,
+        },
+      },
+      {
+        writer: mockWriter,
+        tracingContext: mockTracingContext,
+        abortSignal: new AbortController().signal,
+      }
+    )
 
-        // Assert
-        expect(mockWriter.custom).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'data-tool-progress',
-            data: expect.objectContaining({
-              status: 'in-progress',
-            }),
-            id: 'csv-to-json',
-          })
-        )
+    // Assert
+    expect(mockWriter.custom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'data-tool-progress',
+        data: expect.objectContaining({
+          status: 'in-progress',
+        }),
+        id: 'csv-to-json',
       })
+    )
+  })
 
   it('should throw error when no CSV data or file path provided', async () => {
     // Arrange
