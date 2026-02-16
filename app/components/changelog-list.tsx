@@ -1,8 +1,11 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { Badge } from '@/ui/badge'
 import { SparklesIcon, BugIcon, WrenchIcon, ZapIcon } from 'lucide-react'
+import { SectionLayout } from '@/app/components/primitives/section-layout'
+import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedDataStream } from '@/app/components/gsap/svg-suite'
 
 const CHANGELOG_ENTRIES = [
     {
@@ -80,84 +83,94 @@ const CHANGE_COLORS = {
 }
 
 export function ChangelogList() {
+    const sectionRef = useSectionReveal<HTMLDivElement>({
+        selector: '[data-reveal]',
+    })
+
     return (
-        <section className="container mx-auto px-4 py-24">
-            <div className="mb-16 text-center">
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                    Changelog
-                </h1>
-                <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                    Track the latest changes and improvements to AgentStack.
-                </p>
-            </div>
+        <SectionLayout spacing="base" container="default" background="grid">
+            <div ref={sectionRef}>
+                <div data-reveal>
+                    <PublicPageHero
+                        title="Changelog"
+                        description="Track the latest changes and improvements to AgentStack."
+                        badge="Releases"
+                        accent={AnimatedDataStream}
+                    />
+                </div>
 
-            <div className="mx-auto max-w-3xl">
-                <div className="relative border-l-2 border-border pl-8">
-                    {CHANGELOG_ENTRIES.map((entry, index) => (
-                        <motion.div
+                <div data-reveal className="mx-auto max-w-3xl">
+                    <div className="relative border-l-2 border-border pl-8">
+                        {CHANGELOG_ENTRIES.length > 0 ? (
+                            CHANGELOG_ENTRIES.map((entry) => (
+                            <article
                             key={entry.version}
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: index * 0.1 }}
-                            viewport={{ once: true }}
                             className="relative mb-12 last:mb-0"
-                        >
-                            <div className="absolute -left-[41px] flex size-5 items-center justify-center rounded-full border-2 border-primary bg-background">
-                                <div className="size-2 rounded-full bg-primary" />
-                            </div>
+                            >
+                                <div className="absolute -left-10.25 flex size-5 items-center justify-center rounded-full border-2 border-primary bg-background">
+                                    <div className="size-2 rounded-full bg-primary" />
+                                </div>
 
-                            <div className="mb-4 flex flex-wrap items-center gap-3">
-                                <Badge
-                                    variant="default"
-                                    className="text-sm font-semibold"
-                                >
-                                    v{entry.version}
-                                </Badge>
-                                <span className="text-sm text-muted-foreground">
-                                    {new Date(entry.date).toLocaleDateString(
-                                        'en-US',
-                                        {
-                                            month: 'long',
-                                            day: 'numeric',
-                                            year: 'numeric',
-                                        }
-                                    )}
-                                </span>
-                            </div>
+                                <div className="mb-4 flex flex-wrap items-center gap-3">
+                                    <Badge
+                                        variant="default"
+                                        className="text-sm font-semibold"
+                                    >
+                                        v{entry.version}
+                                    </Badge>
+                                    <span className="text-sm text-muted-foreground">
+                                        {new Date(entry.date).toLocaleDateString(
+                                            'en-US',
+                                            {
+                                                month: 'long',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                            }
+                                        )}
+                                    </span>
+                                </div>
 
-                            <div className="rounded-xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-md">
-                                <ul className="space-y-4">
-                                    {entry.changes.map(
-                                        (change, changeIndex) => {
-                                            const Icon =
-                                                CHANGE_ICONS[
-                                                    change.type as keyof typeof CHANGE_ICONS
-                                                ] || SparklesIcon
-                                            const colorClass =
-                                                CHANGE_COLORS[
-                                                    change.type as keyof typeof CHANGE_COLORS
-                                                ] || 'text-primary'
-                                            return (
-                                                <li
-                                                    key={changeIndex}
-                                                    className="group flex items-start gap-3 transition-colors duration-200 hover:text-foreground"
-                                                >
-                                                    <Icon
-                                                        className={`mt-0.5 size-5 shrink-0 ${colorClass} transition-transform duration-200 group-hover:scale-110`}
-                                                    />
-                                                    <span className="text-muted-foreground">
-                                                        {change.text}
-                                                    </span>
-                                                </li>
-                                            )
-                                        }
-                                    )}
-                                </ul>
+                                <div className="rounded-xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/30 hover:shadow-md">
+                                    <ul className="space-y-4">
+                                        {entry.changes.map(
+                                            (change, changeIndex) => {
+                                                const Icon =
+                                                    CHANGE_ICONS[
+                                                        change.type as keyof typeof CHANGE_ICONS
+                                                    ] ?? SparklesIcon
+                                                const colorClass =
+                                                    CHANGE_COLORS[
+                                                        change.type as keyof typeof CHANGE_COLORS
+                                                    ] ?? 'text-primary'
+                                                return (
+                                                    <li
+                                                        key={changeIndex}
+                                                        className="group flex items-start gap-3 transition-colors duration-200 hover:text-foreground"
+                                                    >
+                                                        <Icon
+                                                            className={`mt-0.5 size-5 shrink-0 ${colorClass} transition-transform duration-200 group-hover:scale-110`}
+                                                        />
+                                                        <span className="text-muted-foreground">
+                                                            {change.text}
+                                                        </span>
+                                                    </li>
+                                                )
+                                            }
+                                        )}
+                                    </ul>
+                                </div>
+                            </article>
+                            ))
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-border bg-card/60 p-8 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    No releases found yet.
+                                </p>
                             </div>
-                        </motion.div>
-                    ))}
+                        )}
+                    </div>
                 </div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

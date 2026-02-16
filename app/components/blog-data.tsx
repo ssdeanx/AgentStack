@@ -1,5 +1,14 @@
 export const BLOG_POSTS = [
     {
+        title: 'AgentStack Product Update — February 16, 2026',
+        excerpt:
+            'A practical update on what shipped across chat/networks/workflows and public pages, plus the next roadmap phases for Dashboard v2 and observability UX.',
+        date: '2026-02-16',
+        readTime: '12 min read',
+        category: 'Product Update',
+        slug: 'agentstack-product-update-2026-02-16',
+    },
+    {
         title: 'Hello World with AgentStack (Mastra)',
         excerpt:
             'A 10-minute guide to get started with AgentStack, covering agents, tools, storage, MCP, and workflows.',

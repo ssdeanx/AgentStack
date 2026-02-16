@@ -25,7 +25,10 @@ import {
     ClockIcon,
     GlobeIcon,
 } from 'lucide-react'
-import { Badge } from '@/ui/badge'
+import { SectionLayout } from '@/app/components/primitives/section-layout'
+import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedLiquidBlob } from '@/app/components/gsap/svg-suite'
 
 const INQUIRY_TYPES = [
     { value: 'general', label: 'General Inquiry' },
@@ -81,6 +84,10 @@ interface FormErrors {
     message?: string
 }
 
+interface ContactApiResponse {
+    error?: string
+}
+
 export function ContactForm() {
     const [formData, setFormData] = useState<FormData>({
         firstName: '',
@@ -95,6 +102,11 @@ export function ContactForm() {
     const [status, setStatus] = useState<
         'idle' | 'loading' | 'success' | 'error'
     >('idle')
+    const sectionRef = useSectionReveal<HTMLDivElement>({
+        selector: '[data-reveal]',
+    })
+    const hasError = (value?: string): boolean =>
+        typeof value === 'string' && value.length > 0
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {}
@@ -133,7 +145,7 @@ export function ContactForm() {
         const { id, value } = e.target
         setFormData((prev) => ({ ...prev, [id]: value }))
         // Clear error when user starts typing
-        if (errors[id as keyof FormErrors]) {
+        if (hasError(errors[id as keyof FormErrors])) {
             setErrors((prev) => ({ ...prev, [id]: undefined }))
         }
     }
@@ -154,7 +166,7 @@ export function ContactForm() {
                 body: JSON.stringify(formData),
             })
 
-            const result = await response.json()
+            const result = (await response.json()) as ContactApiResponse
 
             if (!response.ok) {
                 throw new Error(result.error ?? 'Failed to send message')
@@ -179,32 +191,21 @@ export function ContactForm() {
     }
 
     return (
-        <section className="container mx-auto px-4 py-24">
-            <div className="mx-auto max-w-6xl">
+        <SectionLayout spacing="base" container="default" background="grid">
+            <div ref={sectionRef} className="mx-auto max-w-6xl">
                 {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-16 text-center"
-                >
-                    <Badge variant="outline" className="mb-4">
-                        Get in Touch
-                    </Badge>
-                    <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                        Contact Us
-                    </h1>
-                    <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                        Have questions? We'd love to hear from you. Send us a
-                        message and we'll respond as soon as possible.
-                    </p>
-                </motion.div>
+                <div data-reveal>
+                    <PublicPageHero
+                        title="Contact Us"
+                        description="Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
+                        badge="Get in Touch"
+                        accent={AnimatedLiquidBlob}
+                    />
+                </div>
 
                 {/* Quick stats */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
+                <div
+                    data-reveal
                     className="mb-12 grid grid-cols-3 gap-4 rounded-2xl border border-border bg-muted/30 p-6"
                 >
                     {QUICK_STATS.map((stat) => (
@@ -223,16 +224,11 @@ export function ContactForm() {
                             </div>
                         </div>
                     ))}
-                </motion.div>
+                </div>
 
-                <div className="grid gap-12 lg:grid-cols-3">
+                <div data-reveal className="grid gap-12 lg:grid-cols-3">
                     {/* Contact info sidebar */}
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="space-y-8 lg:col-span-1"
-                    >
+                    <div className="space-y-8 lg:col-span-1">
                         <div>
                             <h3 className="mb-4 text-lg font-semibold text-foreground">
                                 Get in touch
@@ -305,15 +301,10 @@ export function ContactForm() {
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Contact form */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                        className="lg:col-span-2"
-                    >
+                    <div className="lg:col-span-2">
                         <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
                             {status === 'success' ? (
                                 <motion.div
@@ -367,7 +358,9 @@ export function ContactForm() {
                                 </motion.div>
                             ) : (
                                 <form
-                                    onSubmit={handleSubmit}
+                                    onSubmit={(event) => {
+                                        void handleSubmit(event)
+                                    }}
                                     className="space-y-6"
                                 >
                                     {/* Name fields */}
@@ -385,7 +378,7 @@ export function ContactForm() {
                                                 value={formData.firstName}
                                                 onChange={handleChange}
                                                 className={
-                                                    errors.firstName
+                                                    hasError(errors.firstName)
                                                         ? 'border-destructive'
                                                         : ''
                                                 }
@@ -410,7 +403,7 @@ export function ContactForm() {
                                                 value={formData.lastName}
                                                 onChange={handleChange}
                                                 className={
-                                                    errors.lastName
+                                                    hasError(errors.lastName)
                                                         ? 'border-destructive'
                                                         : ''
                                                 }
@@ -440,7 +433,7 @@ export function ContactForm() {
                                                 value={formData.email}
                                                 onChange={handleChange}
                                                 className={
-                                                    errors.email
+                                                    hasError(errors.email)
                                                         ? 'border-destructive'
                                                         : ''
                                                 }
@@ -509,7 +502,7 @@ export function ContactForm() {
                                             value={formData.subject}
                                             onChange={handleChange}
                                             className={
-                                                errors.subject
+                                                hasError(errors.subject)
                                                     ? 'border-destructive'
                                                     : ''
                                             }
@@ -533,7 +526,7 @@ export function ContactForm() {
                                         <Textarea
                                             id="message"
                                             placeholder="Tell us more about your project or question..."
-                                            className={`min-h-[150px] resize-none ${errors.message ? 'border-destructive' : ''}`}
+                                            className={`min-h-37.5 resize-none ${hasError(errors.message) ? 'border-destructive' : ''}`}
                                             value={formData.message}
                                             onChange={handleChange}
                                             disabled={status === 'loading'}
@@ -574,14 +567,14 @@ export function ContactForm() {
                                         our{' '}
                                         <a
                                             href="/privacy"
-                                            className="underline hover:text-foreground"
+                                            className="underline hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                                         >
                                             Privacy Policy
                                         </a>{' '}
                                         and{' '}
                                         <a
                                             href="/terms"
-                                            className="underline hover:text-foreground"
+                                            className="underline hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                                         >
                                             Terms of Service
                                         </a>
@@ -590,9 +583,9 @@ export function ContactForm() {
                                 </form>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

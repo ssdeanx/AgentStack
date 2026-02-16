@@ -1,6 +1,13 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { SectionLayout } from '@/app/components/primitives/section-layout'
+import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import {
+    SECTION_BODY,
+    SECTION_HEADING,
+} from '@/app/components/primitives/typography'
+import { AnimatedPrismOrbit } from '@/app/components/gsap/svg-suite'
 
 const VALUES = [
     {
@@ -24,31 +31,28 @@ const VALUES = [
 ]
 
 export function AboutContent() {
-    return (
-        <section className="container mx-auto px-4 py-24">
-            <div className="mx-auto max-w-4xl">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-16 text-center"
-                >
-                    <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                        About AgentStack
-                    </h1>
-                    <p className="mx-auto max-w-2xl text-xl leading-relaxed text-muted-foreground">
-                        AgentStack is a production-grade multi-agent framework
-                        designed to help developers build, deploy, and manage AI
-                        applications at scale.
-                    </p>
-                </motion.div>
+    const sectionRef = useSectionReveal<HTMLDivElement>({
+        selector: '[data-reveal]',
+    })
 
-                <div className="mb-24 grid gap-12 md:grid-cols-2">
-                    <div>
-                        <h2 className="mb-4 text-2xl font-bold text-foreground">
+    return (
+        <SectionLayout spacing="base" container="default" background="grid">
+            <div ref={sectionRef} className="mx-auto max-w-4xl">
+                <div data-reveal>
+                    <PublicPageHero
+                        title="About AgentStack"
+                        description="AgentStack is a production-grade multi-agent framework designed to help developers build, deploy, and manage AI applications at scale."
+                        badge="Our Story"
+                        accent={AnimatedPrismOrbit}
+                    />
+                </div>
+
+                <div data-reveal className="mb-24 grid gap-12 md:grid-cols-2">
+                    <div className="rounded-xl border border-border/50 bg-card/50 p-6">
+                        <h2 className={`mb-4 ${SECTION_HEADING.h2Compact}`}>
                             Our Mission
                         </h2>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
+                        <p className={SECTION_BODY.subtitle}>
                             To democratize access to advanced AI agent
                             technologies and empower developers to create
                             intelligent systems that solve real-world problems.
@@ -57,11 +61,11 @@ export function AboutContent() {
                             future a reality.
                         </p>
                     </div>
-                    <div>
-                        <h2 className="mb-4 text-2xl font-bold text-foreground">
+                    <div className="rounded-xl border border-border/50 bg-card/50 p-6">
+                        <h2 className={`mb-4 ${SECTION_HEADING.h2Compact}`}>
                             The Team
                         </h2>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
+                        <p className={SECTION_BODY.subtitle}>
                             We are a team of passionate engineers, researchers,
                             and designers dedicated to pushing the boundaries of
                             what's possible with AI. With backgrounds in
@@ -72,21 +76,14 @@ export function AboutContent() {
                     </div>
                 </div>
 
-                <div>
-                    <h2 className="mb-12 text-center text-3xl font-bold text-foreground">
+                <div data-reveal>
+                    <h2 className={`mb-12 text-center ${SECTION_HEADING.h2}`}>
                         Our Values
                     </h2>
                     <div className="grid gap-8 sm:grid-cols-2">
-                        {VALUES.map((value, index) => (
-                            <motion.div
+                        {VALUES.map((value) => (
+                            <article
                                 key={value.title}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{
-                                    duration: 0.4,
-                                    delay: index * 0.1,
-                                }}
-                                viewport={{ once: true }}
                                 className="rounded-xl border border-border bg-card p-6"
                             >
                                 <h3 className="mb-2 text-xl font-semibold text-foreground">
@@ -95,11 +92,11 @@ export function AboutContent() {
                                 <p className="text-muted-foreground">
                                     {value.description}
                                 </p>
-                            </motion.div>
+                            </article>
                         ))}
                     </div>
                 </div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

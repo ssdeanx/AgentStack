@@ -1,12 +1,90 @@
 # Progress
 
+## Skill Upgrade: Generative UI Architect **[Synced 2026-02-16]**
+
+- Expanded `.claude/skills/generative-ui-architect/SKILL.md` to cover both:
+  - chat/tool-driven GenUI architecture, and
+  - public-facing design architecture for landing/subpages.
+- Split references to enforce progressive disclosure and clearer ownership:
+  - `references/generative-ui-chat-networks-workflows.md` (primary backend-interactive contract)
+  - `references/public-page-architecture.md` (public design system + SEO/a11y/perf)
+  - `references/blog-roadmap-playbook.md` (10-15 minute product update format)
+- Added project-specific guidance for public primitives and motion system usage:
+  - `SectionLayout`, `PublicPageHero`, typography tokens, `useSectionReveal`
+  - GSAP SVG suite integration and reduced-motion expectations.
+- Added a dedicated **Blog Section (10-15 Minute Read)** with:
+  - current-state narrative guidance,
+  - phased product roadmap structure,
+  - reusable roadmap template for consistent updates.
+- Updated description triggers so the skill is auto-discovered for both chat and public-surface tasks.
+
+## Public Subpage Premium Polish **[Synced 2026-02-16]**
+
+- Completed premium visual harmonization for public subpages by migrating key sections to shared `PublicPageHero` + GSAP SVG accents:
+  - `app/components/blog-list.tsx`
+  - `app/components/changelog-list.tsx`
+  - `app/components/examples-list.tsx`
+  - `app/components/api-reference-content.tsx`
+  - `app/components/pricing-tiers.tsx`
+  - `app/components/contact-form.tsx`
+- Added UX/accessibility polish:
+  - keyboard-visible focus rings on card/link targets,
+  - robust empty-state fallbacks for list/search pages.
+- Normalized route wrappers to remove duplicate `Navbar` rendering and rely on root layout composition:
+  - `app/about/page.tsx`, `app/careers/page.tsx`, `app/pricing/page.tsx`, `app/contact/page.tsx`
+  - `app/changelog/page.tsx`, `app/blog/page.tsx`, `app/examples/page.tsx`, `app/api-reference/page.tsx`
+- Validation:
+  - ✅ Targeted ESLint across all touched components/pages passes clean.
+
+## Public Subpage Component Modernization **[Synced 2026-02-16]**
+
+- Completed component-only upgrades for all primary public subpage content components:
+  - `app/components/about-content.tsx`
+  - `app/components/careers-content.tsx`
+  - `app/components/changelog-list.tsx`
+  - `app/components/blog-list.tsx`
+  - `app/components/examples-list.tsx`
+  - `app/components/api-reference-content.tsx`
+  - `app/components/pricing-tiers.tsx`
+  - `app/components/contact-form.tsx`
+- Standardized all above components on shared public primitives:
+  - `SectionLayout` for consistent shell and spacing
+  - shared typography tokens (`SECTION_HEADING`, `SECTION_BODY`, `SECTION_LAYOUT`)
+  - `useSectionReveal` GSAP pattern for consistent entrance animations
+- Removed scattered per-card `whileInView` usage in favor of section-level reveal orchestration where applicable.
+- Fixed strict lint issues introduced/exposed during migration:
+  - floating clipboard promise (`void navigator.clipboard.writeText(...)`)
+  - strict boolean checks in form validation rendering
+  - typed contact API response parsing
+  - fallback map resolution with nullish coalescing in changelog item icon/color selection
+- Validation:
+  - ✅ Targeted ESLint on all upgraded components passes.
+  - ⚠️ `npx tsc --noEmit --skipLibCheck` still fails due external dependency declarations in `node_modules` (`@crawlee/http`, `@mdx-js/loader`), not from migrated subpage components.
+
+## GSAP SVG Suite & Review Fixes **[Synced 2026-02-16]**
+
+- Addressed code review comments:
+  - `app/components/gsap/registry.ts`: changed registration to `gsap.registerPlugin(ScrollTrigger)` only.
+  - `app/components/primitives/use-section-reveal.ts`: dependencies now include all runtime options (`selector`, `stagger`, `yOffset`, `duration`, `once`, `delay`, `disabled`).
+- Fixed root layout provider composition in `app/layout.tsx`:
+  - Removed duplicate `{children}` render path.
+  - Moved `TooltipProvider` inside `ThemeProvider` to ensure tooltip theming follows current theme.
+- Added **10 new GSAP animated SVG components** in `app/components/gsap/svg-suite/`:
+  - `AnimatedSignalPulse`, `AnimatedLiquidBlob`, `AnimatedGradientRings`, `AnimatedDataStream`, `AnimatedNeuralMesh`
+  - `AnimatedPrismOrbit`, `AnimatedMorphWaves`, `AnimatedRadarScan`, `AnimatedCircuitGrid`, `AnimatedHelixDna`
+- Added new public showcase section: `app/components/landing-svg-lab.tsx` and wired it into `app/page.tsx`.
+- Added global GSAP motion options/utilities in `app/globals.css`:
+  - Tokens: `--gsap-duration-*`, `--gsap-ease-*`, `--gsap-y-offset`
+  - Utilities: `.gsap-will-change`, `.gsap-composite`, `.gsap-svg-icon`, `.gsap-svg-crisp`, `.gsap-motion-safe`, `.gsap-enter-ready`, `.gsap-enter-done`
+  - Reduced-motion override block for GSAP helper classes.
+
 ## GSAP Public SVG Upgrade **[Synced 2026-02-15]**
 
 - Added reusable animated SVG brand component: `app/components/gsap/animated-orbital-logo.tsx`.
 - Integrated the animated SVG into shared public components:
-    - `app/components/navbar.tsx` brand mark
-    - `app/components/landing-hero.tsx` hero identity block
-    - `app/components/footer.tsx` brand mark
+  - `app/components/navbar.tsx` brand mark
+  - `app/components/landing-hero.tsx` hero identity block
+  - `app/components/footer.tsx` brand mark
 - Enforced reduced-motion safe behavior with `prefers-reduced-motion` fallback states.
 - Verified with problems check (`get_errors`) on all touched files: no remaining errors.
 
@@ -39,42 +117,42 @@
 ## Tooling Hardening **[Synced Dec 12]**
 
 - **Semantic tools runtime fixes**
-    - `src/mastra/tools/semantic-utils.ts`: removed CommonJS `require('fs')` usage (repo is ESM) and added `unref()` on the cache cleanup interval to avoid keeping Node alive.
+  - `src/mastra/tools/semantic-utils.ts`: removed CommonJS `require('fs')` usage (repo is ESM) and added `unref()` on the cache cleanup interval to avoid keeping Node alive.
 
 - **Web scraping governance + crawl behavior**
-    - `src/mastra/tools/web-scraper-tool.ts`: added allowlist enforcement via `WEB_SCRAPER_ALLOWED_DOMAINS` (comma-separated domains). Requests outside the allowlist now fail with `DOMAIN_NOT_ALLOWED`.
-    - `web:scraper`: `followLinks` now actually crawls internal links using Crawlee `enqueueLinks` with depth tracking.
-    - Request tuning: retries/delay and headers/user-agent are applied consistently.
+  - `src/mastra/tools/web-scraper-tool.ts`: added allowlist enforcement via `WEB_SCRAPER_ALLOWED_DOMAINS` (comma-separated domains). Requests outside the allowlist now fail with `DOMAIN_NOT_ALLOWED`.
+  - `web:scraper`: `followLinks` now actually crawls internal links using Crawlee `enqueueLinks` with depth tracking.
+  - Request tuning: retries/delay and headers/user-agent are applied consistently.
 
 - **Code tools robustness**
-    - `src/mastra/tools/code-search.tool.ts`: default ignore patterns (`node_modules`, `.git`, `dist`, `build`), safe regex compilation, and max file-size guard.
-    - `src/mastra/tools/code-analysis.tool.ts`: supports directory targets; adds default ignore patterns; refactors file loop for readability/robustness.
-    - `src/mastra/tools/multi-string-edit.tool.ts`: adds max file-size guard; invalid regex now returns a structured failed result instead of throwing.
+  - `src/mastra/tools/code-search.tool.ts`: default ignore patterns (`node_modules`, `.git`, `dist`, `build`), safe regex compilation, and max file-size guard.
+  - `src/mastra/tools/code-analysis.tool.ts`: supports directory targets; adds default ignore patterns; refactors file loop for readability/robustness.
+  - `src/mastra/tools/multi-string-edit.tool.ts`: adds max file-size guard; invalid regex now returns a structured failed result instead of throwing.
 
 ## Dependency Audit Notes **[Dec 12]**
 
 - **Keep (good, maintained choices)**
-    - `ts-morph` (semantic TS/JS analysis)
-    - `fast-glob` (file discovery)
-    - `diff` (patch generation)
-    - `crawlee` + `cheerio` (scraping/crawling)
-    - `zod` (schemas)
-    - `@opentelemetry/api` (tracing)
+  - `ts-morph` (semantic TS/JS analysis)
+  - `fast-glob` (file discovery)
+  - `diff` (patch generation)
+  - `crawlee` + `cheerio` (scraping/crawling)
+  - `zod` (schemas)
+  - `@opentelemetry/api` (tracing)
 
 - **Consider tightening / de-duplicating**
-    - **Motion libs**: you have both `framer-motion` and `motion` pinned to the same version. If only one is used, remove the other to reduce bundle risk.
-    - **Monaco**: `@monaco-editor/react` is an `-rc` version; for production, prefer a stable tag unless you depend on the RC fixes.
-    - **Multiple AI provider packages**: you have many `ai-sdk-provider-*` providers plus `@ai-sdk/*` packages. If some are unused, drop them to reduce supply-chain surface.
+  - **Motion libs**: you have both `framer-motion` and `motion` pinned to the same version. If only one is used, remove the other to reduce bundle risk.
+  - **Monaco**: `@monaco-editor/react` is an `-rc` version; for production, prefer a stable tag unless you depend on the RC fixes.
+  - **Multiple AI provider packages**: you have many `ai-sdk-provider-*` providers plus `@ai-sdk/*` packages. If some are unused, drop them to reduce supply-chain surface.
 
 - **High-impact / caution**
-    - `isolated-vm`: native dependency; can complicate Windows installs and serverless deploys. Keep only if you truly need strong sandboxing.
-    - `playwright`: large + postinstall; keep if browser automation is needed; otherwise it materially increases install/CI time.
+  - `isolated-vm`: native dependency; can complicate Windows installs and serverless deploys. Keep only if you truly need strong sandboxing.
+  - `playwright`: large + postinstall; keep if browser automation is needed; otherwise it materially increases install/CI time.
 
 ## Regex Hardening **[Dec 12]**
 
 - Installed `re2` and wired it into tools that accept user-supplied regex:
-    - `src/mastra/tools/code-search.tool.ts`: when `options.isRegex === true`, patterns compile using `re2` (RE2 engine).
-    - `src/mastra/tools/multi-string-edit.tool.ts`: when `useRegex === true`, patterns compile using `re2`.
+  - `src/mastra/tools/code-search.tool.ts`: when `options.isRegex === true`, patterns compile using `re2` (RE2 engine).
+  - `src/mastra/tools/multi-string-edit.tool.ts`: when `useRegex === true`, patterns compile using `re2`.
 
 ## npm Install Notes **[Dec 12]**
 
@@ -84,21 +162,21 @@
 ## Monaco Editor **[Dec 12]**
 
 - **Production worker/assets**
-    - `app/components/monaco/theme-loader.ts`: configured Monaco loader to use `'/monaco/vs'`.
-    - Manual asset copy: `node_modules/monaco-editor/min/vs` → `public/monaco/vs` (run once after install).
-    - Postinstall script removed from package.json - assets now managed manually or via webpack plugin.
+  - `app/components/monaco/theme-loader.ts`: configured Monaco loader to use `'/monaco/vs'`.
+  - Manual asset copy: `node_modules/monaco-editor/min/vs` → `public/monaco/vs` (run once after install).
+  - Postinstall script removed from package.json - assets now managed manually or via webpack plugin.
 
 - **Webpack plugin (production builds)**
-    - `next.config.ts`: added `monaco-editor-webpack-plugin` to client webpack config (languages: TypeScript, JavaScript, JSON, CSS, Markdown).
-    - Note: Next 16 dev uses Turbopack (`next dev --turbopack`), so the webpack plugin primarily affects `next build`.
+  - `next.config.ts`: added `monaco-editor-webpack-plugin` to client webpack config (languages: TypeScript, JavaScript, JSON, CSS, Markdown).
+  - Note: Next 16 dev uses Turbopack (`next dev --turbopack`), so the webpack plugin primarily affects `next build`.
 
 - **VS Code-style Workbench UI**
-    - `app/components/monaco/MonacoWorkbench.tsx`: Complete VS Code-like layout with Explorer, Tabs, Editor, BottomPanel, and RightPanel.
-    - `app/components/monaco/MonacoExplorer.tsx`: File explorer panel with file selection and new file creation.
-    - `app/components/monaco/MonacoBottomPanel.tsx`: Bottom panel with terminal and problems tabs.
-    - `app/components/monaco/MonacoRightPanel.tsx`: Right sidebar panel for workspace details.
-    - State persistence: Files, active tab, theme, and view state (cursor/scroll) preserved across sessions via localStorage.
-    - Tab management: Proper tab switching without editor remounts, view state preservation per tab.
+  - `app/components/monaco/MonacoWorkbench.tsx`: Complete VS Code-like layout with Explorer, Tabs, Editor, BottomPanel, and RightPanel.
+  - `app/components/monaco/MonacoExplorer.tsx`: File explorer panel with file selection and new file creation.
+  - `app/components/monaco/MonacoBottomPanel.tsx`: Bottom panel with terminal and problems tabs.
+  - `app/components/monaco/MonacoRightPanel.tsx`: Right sidebar panel for workspace details.
+  - State persistence: Files, active tab, theme, and view state (cursor/scroll) preserved across sessions via localStorage.
+  - Tab management: Proper tab switching without editor remounts, view state preservation per tab.
 
 ## What's Next
 
@@ -107,55 +185,55 @@
 - Next: run codemods, update types (MastraMessageV2→MastraDBMessage), move Memory processors to Agent-level, add tests
 
 - **Mastra Admin Dashboard** (🔄 70% Complete - Priority):
-    - ✅ TanStack Query v5 installed and configured
-    - ✅ Created `lib/types/mastra-api.ts` with Zod v4 schemas
-    - ✅ Created `app/dashboard/providers.tsx` with QueryClientProvider
-    - ✅ Created `lib/hooks/use-dashboard-queries.ts` with React Query hooks
-    - ✅ Created 7 shared components (`_components/`: sidebar, stat-card, data-table, etc.)
-    - ✅ Updated dashboard layout to use providers
-    - ✅ Added loading.tsx and error.tsx for all routes
-    - ✅ Refactored dashboard home page with StatCard, EmptyState
-    - ✅ Extracted agents page into modular components
-    - ✅ Fixed Next.js 16 typed routes (`href as never` pattern)
-    - ✅ Fixed Zod v4 syntax (`z.record(z.string(), z.unknown())`)
-    - ⬜ Fix remaining type errors in memory/observability/vectors/telemetry pages
-    - ⬜ Create feature components for workflows, tools pages
-    - ⬜ Add auth preparation middleware structure
-    - ⬜ Add unit tests for hooks
+  - ✅ TanStack Query v5 installed and configured
+  - ✅ Created `lib/types/mastra-api.ts` with Zod v4 schemas
+  - ✅ Created `app/dashboard/providers.tsx` with QueryClientProvider
+  - ✅ Created `lib/hooks/use-dashboard-queries.ts` with React Query hooks
+  - ✅ Created 7 shared components (`_components/`: sidebar, stat-card, data-table, etc.)
+  - ✅ Updated dashboard layout to use providers
+  - ✅ Added loading.tsx and error.tsx for all routes
+  - ✅ Refactored dashboard home page with StatCard, EmptyState
+  - ✅ Extracted agents page into modular components
+  - ✅ Fixed Next.js 16 typed routes (`href as never` pattern)
+  - ✅ Fixed Zod v4 syntax (`z.record(z.string(), z.unknown())`)
+  - ⬜ Fix remaining type errors in memory/observability/vectors/telemetry pages
+  - ⬜ Create feature components for workflows, tools pages
+  - ⬜ Add auth preparation middleware structure
+  - ⬜ Add unit tests for hooks
 - **AI Elements Integration** (✅ 92% Complete):
-    - ✅ AIEL-001-012: All core features complete
-    - ⬜ AIEL-013: E2E tests with Vitest (optional)
+  - ✅ AIEL-001-012: All core features complete
+  - ⬜ AIEL-013: E2E tests with Vitest (optional)
 
 - **Mastra Client SDK Integration** (✅ Complete Nov 28):
-    - ✅ lib/mastra-client.ts: MastraClient instance
-    - ✅ app/layout.tsx: Root layout with ThemeProvider
-    - ✅ app/page.tsx: Landing page with agent overview
-    - ✅ app/chat/page.tsx: Full chat with AI Elements
+  - ✅ lib/mastra-client.ts: MastraClient instance
+  - ✅ app/layout.tsx: Root layout with ThemeProvider
+  - ✅ app/page.tsx: Landing page with agent overview
+  - ✅ app/chat/page.tsx: Full chat with AI Elements
 
 - **UI/Frontend Development** (✅ Chat Complete):
-    - ✅ Chat interface built with AI Elements components
-    - ✅ Model selector and conversation views implemented
-    - ✅ Wired to Mastra agents via API routes
+  - ✅ Chat interface built with AI Elements components
+  - ✅ Model selector and conversation views implemented
+  - ✅ Wired to Mastra agents via API routes
 
 - **Research & Document Processing Feature** (✅ Complete):
-    - ✅ ResearchPaperAgent: Search arXiv, download papers, parse PDFs
-    - ✅ DocumentProcessingAgent: PDF→markdown, document chunking
-    - ✅ KnowledgeIndexingAgent: PgVector indexing, semantic search with reranking
-    - ✅ ResearchPipelineNetwork: Coordinates full research workflow
+  - ✅ ResearchPaperAgent: Search arXiv, download papers, parse PDFs
+  - ✅ DocumentProcessingAgent: PDF→markdown, document chunking
+  - ✅ KnowledgeIndexingAgent: PgVector indexing, semantic search with reranking
+  - ✅ ResearchPipelineNetwork: Coordinates full research workflow
 
 - **Workflows Integration** (✅ Complete Nov 26):
-    - ✅ All 10 workflows registered in index.ts
-    - ✅ Workflows integrated into networks
-    - ✅ API routes updated
+  - ✅ All 10 workflows registered in index.ts
+  - ✅ Workflows integrated into networks
+  - ✅ API routes updated
 
 - **Documentation Sync** (✅ Complete Nov 27):
-    - ✅ All AGENTS.md files synced with current state
-    - ✅ README.md updated to v3.2.0
-    - ✅ Memory bank files updated with UI components
+  - ✅ All AGENTS.md files synced with current state
+  - ✅ README.md updated to v3.2.0
+  - ✅ Memory bank files updated with UI components
 
 - **CSV Agents Feature** (✅ Complete):
-    - ✅ DataExportAgent, DataIngestionAgent, DataTransformationAgent
-    - ✅ DataPipelineNetwork, ReportGenerationNetwork
+  - ✅ DataExportAgent, DataIngestionAgent, DataTransformationAgent
+  - ✅ DataPipelineNetwork, ReportGenerationNetwork
 - Add or update tests to cover new tools/agents and improve Vitest coverage (see `src/mastra` and `src/mastra/config/tests`), using `tests/test-results/test-results.json` as a baseline for tracking.
 - Tighten alignment between AGENTS docs and actual code (ensure every documented agent/tool exists and vice versa).
 - Expand evaluation and observability dashboards (Arize/Phoenix) using the existing exporters and scorer outputs.
