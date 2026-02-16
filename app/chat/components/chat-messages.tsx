@@ -15,8 +15,6 @@ import {
     MessageToolbar,
     MessageActions,
     MessageAction,
-    MessageAttachment,
-    MessageAttachments,
 } from '@/src/components/ai-elements/message'
 import { Loader } from '@/src/components/ai-elements/loader'
 import {
@@ -54,13 +52,57 @@ import {
     ActivityIcon,
     NetworkIcon,
 } from 'lucide-react'
-import { useState, useCallback, useMemo, Fragment } from 'react'
-import type { UIMessage, FileUIPart } from 'ai'
+import { useState, useCallback, useMemo, Fragment, memo  } from 'react'
+import type {
+    UIMessage,
+    DynamicToolUIPart,
+    TextUIPart,
+    ReasoningUIPart,
+    ToolUIPart,
+    TextStreamPart,
+    TextPart,
+    ToolResultPart,
+    ReasoningOutput,
+    UIDataPartSchemas,
+    UIMessageChunk,
+    UIMessagePart,
+    DataContent,
+    FinishReason,
+    FileUIPart,
+    Tool,
+    DataUIPart,
+    SourceDocumentUIPart,
+    SourceUrlUIPart,
+    StepResult,
+    PrepareStepResult,
+    StepStartUIPart,
+    InferSchema,
+    InferUIDataParts,
+    InferAgentUIMessage,
+    InferToolInput,
+    InferUIMessageChunk,
+    InferToolOutput,
+    InferUITool,
+    InferUITools,
+    InferGenerateOutput,
+    InferStreamOutput,
+} from 'ai'
 import {
-    isTextUIPart,
-    isReasoningUIPart,
-    isToolOrDynamicToolUIPart,
+    safeValidateUIMessages,
+    getToolName,
+    getStaticToolName,
+    getTextFromDataUrl,
+    isDataUIPart,
     isFileUIPart,
+    isReasoningUIPart,
+    isTextUIPart,
+    isToolUIPart,
+    isStaticToolUIPart,
+    isDeepEqualData,
+    InvalidResponseDataError,
+    InvalidMessageRoleError,
+    InvalidArgumentError,
+    generateId
 } from 'ai'
 import type { BundledLanguage } from 'shiki'
 import { Button } from '@/ui/button'
@@ -83,6 +125,58 @@ type MastraDataPart =
     | WorkflowDataPart
     | NetworkDataPart
     | { type: `data-${string}`; id?: string; data: unknown }
+
+interface ChatMessagesProps {
+    messages: UIMessage[]
+    status: string
+    error: Error | undefined
+    onSuggestionClick: (suggestion: string) => void
+    onCopyMessage?: (messageId: string, content: string) => void
+    onRegenerate?: (messageId: string) => void
+}
+
+interface SourceDocument {
+    title?: string
+    url?: string
+    description?: string
+    sourceDocument?: string
+}
+
+
+function isSourceUrlPart(part: UIMessage['parts'][number]): part is SourceUrlUIPart {
+    return part.type === 'source-url'
+}
+
+function isSourceDocumentPart(
+    part: UIMessage['parts'][number]
+): part is SourceDocumentUIPart {
+    return part.type === 'source-document'
+}
+
+
+    // Extract sources from message parts
+const getSourcesFromParts = (parts: UIMessage['parts']): SourceDocument[] => {
+    const sources: SourceDocument[] = []
+    for (const part of parts) {
+        if (isSourceUrlPart(part)) {
+            sources.push({
+                title: part.title,
+                url: part.url,
+                description: part.url,
+            })
+            continue
+        }
+
+        if (isSourceDocumentPart(part)) {
+            sources.push({
+                title: part.title,
+                description: part.filename ?? part.mediaType,
+            })
+        }
+    }
+    return sources
+}
+
 
 /**
  * Type guard to check for type property
@@ -207,8 +301,8 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
                             workflowData.status === 'success' || (workflowData.status as string) === 'completed'
                                 ? 'default'
                                 : workflowData.status === 'failed'
-                                  ? 'destructive'
-                                  : 'secondary'
+                                    ? 'destructive'
+                                    : 'secondary'
                         }
                         className="text-xs"
                     >
@@ -243,8 +337,8 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
                                                     ? 'default'
                                                     : stepData.status ===
                                                         'failed'
-                                                      ? 'destructive'
-                                                      : 'secondary'
+                                                        ? 'destructive'
+                                                        : 'secondary'
                                             }
                                             className="text-xs"
                                         >
@@ -364,8 +458,8 @@ function NetworkDataSection({ part }: { part: NetworkDataPart }) {
                                                 step.status === 'success' || (step.status as string) === 'completed'
                                                     ? 'default'
                                                     : step.status === 'failed'
-                                                      ? 'destructive'
-                                                      : 'secondary'
+                                                        ? 'destructive'
+                                                        : 'secondary'
                                             }
                                             className="text-xs"
                                         >
@@ -726,7 +820,7 @@ function MessageItem({
         const tools: ToolInvocationState[] = []
 
         for (const p of parts) {
-            if (isToolOrDynamicToolUIPart(p)) {
+            if (isToolUIPart(p)) {
                 tools.push(p as ToolInvocationState)
             }
         }
@@ -778,8 +872,8 @@ function MessageItem({
                     statusText === 'in-progress'
                         ? 'in-progress'
                         : statusText.trim().length > 0
-                          ? 'done'
-                          : ''
+                            ? 'done'
+                            : ''
                 return {
                     message: messageText,
                     status: normalizedStatus,
@@ -904,14 +998,20 @@ function MessageItem({
                     <MessageContent>
                         {/* User file attachments */}
                         {isUser && fileParts && fileParts.length > 0 && (
-                            <MessageAttachments>
+                            <div className="my-2 flex flex-wrap gap-2">
                                 {fileParts.map((file, idx) => (
-                                    <MessageAttachment
+                                    <div
                                         key={`file-${idx}`}
-                                        data={file}
-                                    />
+                                        className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-1.5 text-xs font-medium"
+                                    >
+                                        <span className="truncate max-w-50">
+                                            {file.filename ??
+                                                file.mediaType ??
+                                                `File ${idx + 1}`}
+                                        </span>
+                                    </div>
                                 ))}
-                            </MessageAttachments>
+                            </div>
                         )}
 
                         {/* Non-image files with inline preview controls */}

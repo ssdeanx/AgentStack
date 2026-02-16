@@ -18,6 +18,50 @@ import type {
     TextUIPart,
     ReasoningUIPart,
     ToolUIPart,
+    TextStreamPart,
+    TextPart,
+    ToolResultPart,
+    ReasoningOutput,
+    UIDataPartSchemas,
+    UIMessageChunk,
+    UIMessagePart,
+    DataContent,
+    FinishReason,
+    FileUIPart,
+    Tool,
+    DataUIPart,
+    SourceDocumentUIPart,
+    SourceUrlUIPart,
+    StepResult,
+    PrepareStepResult,
+    StepStartUIPart,
+    InferSchema,
+    InferUIDataParts,
+    InferAgentUIMessage,
+    InferToolInput,
+    InferUIMessageChunk,
+    InferToolOutput,
+    InferUITool,
+    InferUITools,
+    InferGenerateOutput,
+    InferStreamOutput,
+} from 'ai'
+import {
+    getToolName,
+    isDataUIPart,
+    isFileUIPart,
+    isReasoningUIPart,
+    isTextUIPart,
+    isToolUIPart,
+    isStaticToolUIPart,
+    isDeepEqualData,
+    InvalidResponseDataError,
+    InvalidMessageRoleError,
+    InvalidArgumentError,
+    getStaticToolName,
+    getTextFromDataUrl,
+    safeValidateUIMessages,
+    generateId
 } from 'ai'
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
@@ -36,6 +80,7 @@ import type {
     ChatContextValue,
 } from './chat-context-types'
 import { ChatContext } from './chat-context-hooks'
+import UIDataTypes from 'ai';
 
 export interface ChatProviderProps {
     children: ReactNode
@@ -583,7 +628,20 @@ export function ChatProvider({
                         partAny.type === 'finish'
                     ) {
                         const usageData = partAny.usage as
-                            | Record<string, number>
+                            | {
+                                promptTokens?: number
+                                inputTokens?: number
+                                completionTokens?: number
+                                outputTokens?: number
+                                totalTokens?: number
+                                inputTokenDetails?: {
+                                    cacheCreation?: number
+                                    cacheRead?: number
+                                }
+                                outputTokenDetails?: {
+                                    reasoning?: number
+                                }
+                            }
                             | undefined
                         if (usageData) {
                             return {
@@ -596,6 +654,19 @@ export function ChatProvider({
                                     usageData.outputTokens ??
                                     0,
                                 totalTokens: usageData.totalTokens ?? 0,
+                                inputTokenDetails: {
+                                    cacheCreation:
+                                        usageData.inputTokenDetails
+                                            ?.cacheCreation ?? 0,
+                                    cacheRead:
+                                        usageData.inputTokenDetails
+                                            ?.cacheRead ?? 0,
+                                },
+                                outputTokenDetails: {
+                                    reasoning:
+                                        usageData.outputTokenDetails
+                                            ?.reasoning ?? 0,
+                                },
                             }
                         }
                     }

@@ -7,15 +7,13 @@ import {
     PromptInputTools,
     PromptInputButton,
     PromptInputSubmit,
-    PromptInputAttachments,
-    PromptInputAttachment,
     PromptInputHeader,
     PromptInputBody,
     PromptInputActionMenu,
     PromptInputActionMenuTrigger,
     PromptInputActionMenuContent,
     PromptInputActionAddAttachments,
-    PromptInputSpeechButton,
+    usePromptInputAttachments,
 } from '@/src/components/ai-elements/prompt-input'
 import {
     ModelSelector,
@@ -48,6 +46,7 @@ import {
     MicIcon,
     SparklesIcon,
     ListTodoIcon,
+    XIcon,
 } from 'lucide-react'
 import { useMemo, useState, useRef } from 'react'
 import { MODEL_CONFIGS } from '../config/models'
@@ -57,6 +56,35 @@ import {
     CATEGORY_LABELS,
 } from '../config/agents'
 import { cn } from '@/lib/utils'
+
+function SelectedAttachments() {
+    const { attachments, removeAttachment } = usePromptInputAttachments()
+
+    if (attachments.length === 0) {return null}
+
+    return (
+        <div className="flex flex-wrap gap-2 p-2 border-b border-border/50">
+            {attachments.map((file, index) => (
+                <Badge
+                    key={`${file.name}-${index}`}
+                    variant="secondary"
+                    className="h-6 gap-1 pr-1"
+                >
+                    <span className="max-w-30 truncate text-[10px]">
+                        {file.name}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="rounded-full hover:bg-foreground/10 transition-colors"
+                    >
+                        <XIcon className="size-3" />
+                    </button>
+                </Badge>
+            ))}
+        </div>
+    )
+}
 
 export function ChatInput() {
     const {
@@ -90,16 +118,9 @@ export function ChatInput() {
 
     const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
 
-    /* Agent Selector - compact dropdown in input toolbar */
-
-    // Model Selector
-
-    const handleSubmit = async (message: {
-        text: string
-        files: unknown[]
-    }) => {
+    const handleSubmit = (message: { text: string; files: File[] }) => {
         if (message.text.trim()) {
-            sendMessage(message.text, message.files as File[])
+            sendMessage(message.text, message.files)
             setInput('')
         }
     }
@@ -125,7 +146,6 @@ export function ChatInput() {
                         <span className="flex items-center gap-1.5">
                             <BotIcon className="size-3" />
                             {agentConfig?.name ?? selectedAgent}
-
                         </span>
                         <span className="flex items-center gap-1.5">
                             <CpuIcon className="size-3" />
@@ -154,16 +174,7 @@ export function ChatInput() {
                     globalDrop
                 >
                     <PromptInputHeader>
-                        {supportsFiles && (
-                            <PromptInputAttachments>
-                                {(file) => (
-                                    <PromptInputAttachment
-                                        key={file.id}
-                                        data={file}
-                                    />
-                                )}
-                            </PromptInputAttachments>
-                        )}
+                        {supportsFiles && <SelectedAttachments />}
                     </PromptInputHeader>
 
                     <PromptInputBody>
@@ -187,18 +198,17 @@ export function ChatInput() {
                                 </PromptInputActionMenuContent>
                             </PromptInputActionMenu>
 
-                            <PromptInputSpeechButton
-                                onTranscriptionChange={setInput}
-                                textareaRef={textareaRef}
+                            <PromptInputButton
                                 className={cn(
                                     'magnetic transition-all duration-300',
                                     isSpeaking &&
                                         'text-primary glow-primary animate-ambient-pulse scale-110'
                                 )}
                                 onClick={() => setIsSpeaking(!isSpeaking)}
+                                title="Speech to text"
                             >
                                 <MicIcon className="size-4" />
-                            </PromptInputSpeechButton>
+                            </PromptInputButton>
 
                             <PromptInputButton
                                 onClick={() => {

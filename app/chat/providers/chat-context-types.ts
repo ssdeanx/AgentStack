@@ -29,6 +29,7 @@ export interface Source {
 }
 
 export interface TokenUsage {
+    inputTokenDetails: any
     inputTokens: number
     outputTokens: number
     totalTokens: number
