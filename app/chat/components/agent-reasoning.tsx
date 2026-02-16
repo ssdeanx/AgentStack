@@ -22,7 +22,6 @@ export function AgentReasoning({
         <Reasoning
             isStreaming={isStreaming}
             duration={duration}
-            autoClose={false}
             className={className}
         >
             <ReasoningTrigger />
