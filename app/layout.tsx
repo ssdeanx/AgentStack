@@ -5,7 +5,7 @@ import './globals.css'
 import { Navbar } from '@/app/components/navbar'
 import { PublicPageReveal } from '@/app/components/public-page-reveal'
 import { cn } from '@/lib/utils'
-import { TooltipProvider } from "@/ui/tooltip"
+import { TooltipProvider } from '@/ui/tooltip'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -111,21 +111,22 @@ export default function RootLayout({
                 />
             </head>
             <body className={cn(inter.className, 'mesh-gradient')}>
-                <TooltipProvider>{children}</TooltipProvider>
                 <ThemeProvider
                     attribute="class"
                     defaultTheme="system"
                     enableSystem
                     disableTransitionOnChange
                 >
-                    <div className="relative flex min-h-screen flex-col">
-                        <div className="hide-on-focus">
-                            <Navbar />
+                    <TooltipProvider>
+                        <div className="relative flex min-h-screen flex-col">
+                            <div className="hide-on-focus">
+                                <Navbar />
+                            </div>
+                            <div className="flex-1 view-transition-fade">
+                                <PublicPageReveal>{children}</PublicPageReveal>
+                            </div>
                         </div>
-                        <div className="flex-1 view-transition-fade">
-                            <PublicPageReveal>{children}</PublicPageReveal>
-                        </div>
-                    </div>
+                    </TooltipProvider>
                 </ThemeProvider>
             </body>
         </html>

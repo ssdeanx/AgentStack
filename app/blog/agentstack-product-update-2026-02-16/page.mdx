@@ -1,0 +1,189 @@
+---
+title: 'AgentStack Product Update — February 16, 2026'
+description: 'A practical update on what shipped across chat/networks/workflows and public pages, plus the next roadmap phases for Dashboard v2, observability UX, and multi-agent orchestration.'
+date: '2026-02-16'
+readTime: '12 min read'
+category: 'Product Update'
+slug: 'agentstack-product-update-2026-02-16'
+---
+
+import { BlogLayout } from '@/app/components/blog-layout'
+
+<BlogLayout
+  title="AgentStack Product Update — February 16, 2026"
+  date="2026-02-16"
+  readTime="12 min read"
+  category="Product Update"
+  author="AgentStack Team"
+  slug="agentstack-product-update-2026-02-16"
+>
+
+Today’s update is focused on one goal: make AgentStack feel consistent and reliable across both sides of the product:
+
+- **Backend-interactive experiences** (`/chat`, `/networks`, `/workflows`) where users directly interact with tools, streams, and agent outputs.
+- **Public experiences** (`/`, `/about`, `/pricing`, `/blog`, `/examples`, `/api-reference`, etc.) where users evaluate trust, quality, and product maturity.
+
+We shipped meaningful design-system and documentation improvements that reduce drift, improve maintainability, and make future iteration safer.
+
+---
+
+## What shipped in this cycle
+
+### 1) Public page consistency upgrades
+
+We standardized major public subpage components around shared patterns:
+
+- `SectionLayout` as the section shell
+- `PublicPageHero` as the route-level hero pattern
+- shared typography tokens
+- unified reveal/motion behavior with reduced-motion safety
+
+This reduces one-off section styling and makes visual quality more predictable from route to route.
+
+### 2) UX hardening on list/search-heavy pages
+
+We improved resilience in content-heavy surfaces by adding or refining:
+
+- explicit empty states
+- keyboard-visible focus styles for interactive cards/links
+- cleaner card interaction consistency
+
+The goal here is practical quality: fewer dead-end states, clearer behavior, stronger accessibility.
+
+### 3) Route wrapper normalization
+
+Public wrappers were normalized so composition is cleaner and less duplicated at the route level. This helps prevent layout drift and accidental double-rendering of shared chrome.
+
+### 4) Skill architecture upgrade for future velocity
+
+We restructured the `generative-ui-architect` skill to better support long-term work:
+
+- core skill orchestration remains in `SKILL.md`
+- reference files are split by responsibility
+- chat/networks/workflows backend-interactive contract is explicitly prioritized
+
+This improves progressive loading and makes guidance easier to apply without context bloat.
+
+---
+
+## Why this matters
+
+There are two expensive failure modes in AI products:
+
+1. backend output and frontend rendering drift apart,
+2. public product quality drifts between pages and teams.
+
+This cycle directly targets both.
+
+The result is not just “nicer pages.” It is a more durable product system where:
+
+- interactive AI surfaces stay trustworthy under change,
+- public surfaces communicate product maturity consistently,
+- design and engineering can move faster with less rework.
+
+---
+
+## Current state snapshot (February 16, 2026)
+
+### Backend-interactive surfaces
+
+- Chat/tool rendering patterns are mature and repeatable.
+- Networks/workflows UX direction is established and improving toward clearer state visibility.
+- Progressive disclosure and fallback behavior are now documented as hard expectations.
+
+### Public surfaces
+
+- Core subpages now align to a shared visual/section system.
+- Accessibility and interaction-state quality improved in key routes.
+- Public architecture and QA scorecards are now documented for repeatable quality gates.
+
+### Product-system maturity
+
+- Skill docs have moved from generic guidance toward operational playbooks.
+- Roadmap communication now has a structured blog framework with outcome-based phases.
+
+---
+
+## Product roadmap (Current State → Next)
+
+### Now (In Progress)
+
+- Finish consistency pass across remaining public surfaces and edge states.
+- Continue quality hardening in chat/network/workflow render paths.
+- Keep docs and skill references synchronized with implementation reality.
+
+### Next (Upcoming)
+
+- **Dashboard v2**: modular architecture, clearer query/state UX, improved observability workflows.
+- Public SEO/content depth improvements across docs, examples, and blog narrative quality.
+- More explicit validation loops for interaction-state and visual regressions.
+
+### Later (Strategic)
+
+- Richer multi-agent orchestration UX for complex workflows and operator control.
+- Enterprise-grade governance surfaces and stronger visibility into eval/quality signals.
+- Deeper convergence between backend orchestration intelligence and frontend explainability.
+
+---
+
+## Risks and tradeoffs
+
+No serious roadmap is complete without explicit tradeoffs.
+
+### Tradeoff 1: polish vs velocity
+
+Polish work can feel slower than feature output, but it compounds by preventing future regressions.
+
+### Tradeoff 2: flexibility vs consistency
+
+A shared primitive system limits random page-level creativity in exchange for stronger system quality.
+
+### Tradeoff 3: detail vs readability
+
+For both product UI and technical writing, progressive disclosure remains essential to avoid overwhelming users.
+
+---
+
+## Technical focus areas we’re holding as non-negotiable
+
+- explicit interaction states (loading/empty/error/success)
+- keyboard-visible focus behavior
+- reduced-motion-safe animation
+- route-level metadata quality for public pages
+- resilient fallback rendering in backend-interactive surfaces
+
+These are not “nice to have.” They are baseline requirements.
+
+---
+
+## How to contribute in this phase
+
+If you want to contribute effectively right now, focus on these high-leverage areas:
+
+1. **Public route quality audits**
+   - check consistency, edge states, and focus behavior
+2. **Chat/network/workflow render resilience**
+   - test unknown/partial tool payload handling
+3. **Docs and skill alignment**
+   - ensure guidance stays tightly coupled to shipped reality
+
+---
+
+## Closing
+
+This cycle is less about flashy announcements and more about building a stronger product foundation:
+
+- stable backend-interactive UI contracts,
+- consistent public experience architecture,
+- roadmap communication grounded in implementation reality.
+
+That foundation is what lets us scale toward Dashboard v2 and more advanced multi-agent experiences without accumulating hidden UX debt.
+
+If you’re building with AgentStack now, this is the best time to pressure-test both paths:
+
+- interactive product workflows (`/chat`, `/networks`, `/workflows`), and
+- public trust/education flows (`/pricing`, `/examples`, `/api-reference`, `/blog`).
+
+Thanks for shipping with us.
+
+</BlogLayout>

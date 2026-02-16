@@ -1,13 +1,13 @@
 {
   "name": "agentstack",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "description": "Multi-agent frameworks and tools for building AI applications with Mastra.",
   "main": "index.js",
   "scripts": {
     "dev": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\" \"npm run dev:next\" \"npm run dev:mastra\"",
     "build": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\"  \"npm run build:next\" \"npm run build:mastra\"",
     "start": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\" \"npm run start:next\" \"npm run start:mastra\"",
-    "dev:mastra": "cross-env NODE_OPTIONS='--max-old-space-size=8192' mastra dev",
+    "dev:mastra": "cross-env mastra dev",
     "dev:next": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",
     "build:next": "next build",
     "build:mastra": "mastra build",

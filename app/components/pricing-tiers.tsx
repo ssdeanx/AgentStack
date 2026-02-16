@@ -5,7 +5,14 @@ import { Button } from '@/ui/button'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { Switch } from '@/ui/switch'
 import { Label } from '@/ui/label'
-import { motion } from 'framer-motion'
+import { SectionLayout } from '@/app/components/primitives/section-layout'
+import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import {
+    SECTION_BODY,
+    SECTION_HEADING,
+} from '@/app/components/primitives/typography'
+import { AnimatedGradientRings } from '@/app/components/gsap/svg-suite'
 
 const TIERS = [
     {
@@ -100,50 +107,49 @@ const COMPARISON_FEATURES = [
 
 export function PricingTiers() {
     const [isYearly, setIsYearly] = useState(false)
+    const sectionRef = useSectionReveal<HTMLDivElement>({
+        selector: '[data-reveal]',
+    })
 
     return (
-        <section className="container mx-auto px-4 py-24">
-            <div className="mb-16 text-center">
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                    Simple, Transparent Pricing
-                </h1>
-                <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                    Choose the plan that's right for you and start building AI
-                    agents today.
-                </p>
-
-                <div className="mt-8 flex items-center justify-center gap-4">
-                    <Label
-                        htmlFor="billing-toggle"
-                        className={`text-sm font-medium ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
-                    >
-                        Monthly
-                    </Label>
-                    <Switch
-                        id="billing-toggle"
-                        checked={isYearly}
-                        onCheckedChange={setIsYearly}
+        <SectionLayout spacing="base" container="default" background="grid">
+            <div ref={sectionRef}>
+                <div data-reveal>
+                    <PublicPageHero
+                        title="Simple, Transparent Pricing"
+                        description="Choose the plan that's right for you and start building AI agents today."
+                        badge="Plans"
+                        accent={AnimatedGradientRings}
                     />
-                    <Label
-                        htmlFor="billing-toggle"
-                        className={`text-sm font-medium ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
-                    >
-                        Yearly{' '}
-                        <span className="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                            Save 20%
-                        </span>
-                    </Label>
-                </div>
-            </div>
 
-            <div className="@container grid gap-8 @md:grid-cols-3">
-                {TIERS.map((tier, index) => (
-                    <motion.div
+                    <div className="mt-8 flex items-center justify-center gap-4">
+                        <Label
+                            htmlFor="billing-toggle"
+                            className={`text-sm font-medium ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
+                        >
+                            Monthly
+                        </Label>
+                        <Switch
+                            id="billing-toggle"
+                            checked={isYearly}
+                            onCheckedChange={setIsYearly}
+                        />
+                        <Label
+                            htmlFor="billing-toggle"
+                            className={`text-sm font-medium ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}
+                        >
+                            Yearly{' '}
+                            <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                                Save 20%
+                            </span>
+                        </Label>
+                    </div>
+                </div>
+
+                <div data-reveal className="@container grid gap-8 @md:grid-cols-3">
+                    {TIERS.map((tier) => (
+                        <article
                         key={tier.name}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        viewport={{ once: true }}
                         className={`card-3d relative flex flex-col rounded-2xl border bg-card p-8 shadow-sm transition-all duration-300 ease-spring hover:shadow-lg hover:-translate-y-1 ${
                             tier.popular
                                 ? 'border-primary ring-1 ring-primary'
@@ -192,16 +198,17 @@ export function PricingTiers() {
                         >
                             {tier.button}
                         </Button>
-                    </motion.div>
-                ))}
+                        </article>
+                    ))}
+                </div>
             </div>
 
-            <div className="mt-24">
+            <div data-reveal className="mt-24">
                 <div className="mb-12 text-center">
-                    <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
+                    <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Compare Plans
                     </h2>
-                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                    <p className={SECTION_BODY.subtitleCentered}>
                         Detailed feature comparison to help you choose the right
                         plan.
                     </p>
@@ -274,6 +281,6 @@ export function PricingTiers() {
                     </table>
                 </div>
             </div>
-        </section>
+        </SectionLayout>
     )
 }

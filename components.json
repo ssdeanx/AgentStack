@@ -12,11 +12,13 @@
     },
     "iconLibrary": "lucide",
     "aliases": {
-        "components": "@/app/components",
+        "components": "@/src/components",
         "utils": "@/lib/utils",
         "ui": "@/ui",
         "lib": "@/lib",
-        "hooks": "@/hooks"
+        "hooks": "@/hooks",
+        "app": "@/app",
+        "mastra": "@/src/mastra"
     },
     "registries": {
     "@ai-elements": "https://registry.ai-sdk.dev/{name}.json"

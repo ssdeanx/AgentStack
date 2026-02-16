@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+
+/* Streamdown CSS Reset */
 @source "../node_modules/streamdown/dist/index.js";
+
 /* Tailwind CSS v4 Custom Variants */
 @custom-variant dark (&:is(.dark *));
 @custom-variant starting (&:is(:popover-open, :modal, [data-state="open"]):starting-style);
@@ -157,6 +160,14 @@
     /* Bento Grid Tokens */
     --bento-gap: 1rem;
     --bento-radius: 1.5rem;
+
+    /* GSAP Motion Tokens */
+    --gsap-duration-fast: 0.3s;
+    --gsap-duration-base: 0.55s;
+    --gsap-duration-slow: 0.9s;
+    --gsap-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --gsap-ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
+    --gsap-y-offset: 24px;
 }
 
 .dark {
@@ -867,6 +878,53 @@
         oklch(var(--foreground) / 5%) var(--gradient-position),
         transparent 100%
     );
+}
+
+@layer utilities {
+    .gsap-will-change {
+        will-change: transform, opacity;
+    }
+
+    .gsap-composite {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+    }
+
+    .gsap-svg-icon {
+        width: clamp(6rem, 9vw, 8rem);
+        height: clamp(6rem, 9vw, 8rem);
+    }
+
+    .gsap-svg-crisp {
+        shape-rendering: geometricPrecision;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .gsap-motion-safe {
+        transition-duration: var(--gsap-duration-base);
+        transition-timing-function: var(--gsap-ease-standard);
+    }
+
+    .gsap-enter-ready {
+        opacity: 0;
+        transform: translateY(var(--gsap-y-offset));
+    }
+
+    .gsap-enter-done {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gsap-motion-safe,
+    .gsap-will-change,
+    .gsap-enter-ready,
+    .gsap-enter-done {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
 }
 
 /* Amber Glow for Agent Thinking States */

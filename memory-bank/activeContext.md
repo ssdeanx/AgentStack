@@ -2,6 +2,38 @@
 
 ## Current Focus (Jan 2026)
 
+- **[NEW 2026-02-16]** Skill system update: `generative-ui-architect` now covers both chat GenUI and public design architecture.
+  - Includes public primitives/motion guidance (`SectionLayout`, `PublicPageHero`, `useSectionReveal`, GSAP SVG suite).
+  - Includes a new 10-15 minute blog framework for "current state + product roadmap" updates.
+  - References are now split by responsibility with chat/networks/workflows backend interaction marked as the primary contract path.
+
+- **[NEW 2026-02-16]** Public subpage premium polish completed (components + wrappers):
+  - Upgraded the remaining public content components (`blog-list`, `changelog-list`, `examples-list`, `api-reference-content`, `pricing-tiers`, `contact-form`) to use shared `PublicPageHero` with animated GSAP SVG accents for consistent premium visuals.
+  - Added accessibility/UX polish: explicit keyboard focus-visible rings on interactive cards/links and robust empty states for examples/blog/changelog/API reference lists.
+  - Normalized public route wrappers (`app/about`, `app/careers`, `app/pricing`, `app/contact`, `app/changelog`, `app/blog`, `app/examples`, `app/api-reference`) by removing duplicate `Navbar` rendering and relying on root layout composition.
+  - Re-ran targeted ESLint on all touched public subpage components + wrappers with a clean result (no errors).
+
+- **[NEW 2026-02-16]** Public subpage component modernization completed (component-only scope, no route-wrapper changes):
+  - Upgraded all core public subpage components to shared primitives (`SectionLayout`, typography tokens, `useSectionReveal`) for consistency:
+    - `about-content.tsx`
+    - `careers-content.tsx`
+    - `changelog-list.tsx`
+    - `blog-list.tsx`
+    - `examples-list.tsx`
+    - `api-reference-content.tsx`
+    - `pricing-tiers.tsx`
+    - `contact-form.tsx`
+  - Replaced scattered per-block `whileInView` entrance patterns with unified GSAP section-level reveals.
+  - Per-component lint pass executed and fixed (strict boolean checks, clipboard floating promise, fallback map typing).
+  - Project-wide TypeScript check remains blocked by external dependency declaration errors under `node_modules` (`@crawlee/http`, `@mdx-js/loader`) unrelated to these component edits.
+
+- **[NEW 2026-02-16]** GSAP public phase extension completed:
+  - Resolved review issues (`gsap/registry.ts` plugin registration + `useSectionReveal` dynamic dependencies)
+  - Fixed root layout composition bug (`children` duplicated) and moved `TooltipProvider` under `ThemeProvider`
+  - Added a 10-component GSAP SVG suite (`app/components/gsap/svg-suite/*`)
+  - Added new public showcase section `app/components/landing-svg-lab.tsx` and wired it into `app/page.tsx`
+  - Added GSAP global CSS tokens/utilities in `app/globals.css`
+
 - **[NEW 2026-02-15]** Public frontend GSAP SVG polish: added reusable animated orbital SVG logo and integrated it into shared `navbar`, `landing-hero`, and `footer` components with reduced-motion safeguards.
 
 - **[NEW]** Enhanced Task Manager and Spec Generator skills with persona-driven logic and automation scripts.

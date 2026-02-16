@@ -92,7 +92,15 @@ export function useSectionReveal<T extends HTMLElement = HTMLDivElement>(
         },
         {
             scope: scopeRef,
-            dependencies: [merged.disabled],
+            dependencies: [
+                merged.disabled,
+                merged.selector,
+                merged.stagger,
+                merged.yOffset,
+                merged.duration,
+                merged.once,
+                merged.delay,
+            ],
             revertOnUpdate: true,
         }
     )
