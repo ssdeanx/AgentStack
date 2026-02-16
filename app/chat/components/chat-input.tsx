@@ -1,5 +1,7 @@
 'use client'
 
+import type {
+    PromptInputMessage} from '@/src/components/ai-elements/prompt-input';
 import {
     PromptInput,
     PromptInputTextarea,
@@ -34,6 +36,7 @@ import {
     ContextInputUsage,
     ContextOutputUsage,
 } from '@/src/components/ai-elements/context'
+import { SpeechInput } from '@/src/components/ai-elements/speech-input'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
 import { AgentSuggestions } from './agent-suggestions'
 import { getSuggestionsForAgent } from './chat.utils'
@@ -43,11 +46,11 @@ import {
     SquareIcon,
     BotIcon,
     CpuIcon,
-    MicIcon,
     SparklesIcon,
     ListTodoIcon,
     XIcon,
 } from 'lucide-react'
+import type { JSX } from 'react';
 import { useMemo, useState, useRef } from 'react'
 import { MODEL_CONFIGS } from '../config/models'
 import {
@@ -57,31 +60,59 @@ import {
 } from '../config/agents'
 import { cn } from '@/lib/utils'
 
-function SelectedAttachments() {
-    const { attachments, removeAttachment } = usePromptInputAttachments()
+function SelectedAttachments(): JSX.Element | null {
+    type AttachmentLike =
+        | File
+        | { file?: File }
+        | { blob?: Blob; name?: string }
+        | null
+        | undefined
 
-    if (attachments.length === 0) {return null}
+    const { attachments, removeAttachment } =
+        usePromptInputAttachments() as unknown as {
+            attachments: AttachmentLike[]
+            removeAttachment: (index: number) => void
+        }
+
+    if (!attachments || attachments.length === 0) {
+        return null
+    }
+
+    const getName = (a: AttachmentLike) => {
+        if (!a) {return 'attachment'}
+        if (a instanceof File) {return a.name}
+        if (typeof a === 'object' && 'file' in a && a.file instanceof File)
+            {return a.file.name}
+        if (typeof a === 'object' && 'name' in a && typeof a.name === 'string')
+            {return a.name}
+        return 'attachment'
+    }
 
     return (
         <div className="flex flex-wrap gap-2 p-2 border-b border-border/50">
-            {attachments.map((file, index) => (
-                <Badge
-                    key={`${file.name}-${index}`}
-                    variant="secondary"
-                    className="h-6 gap-1 pr-1"
-                >
-                    <span className="max-w-30 truncate text-[10px]">
-                        {file.name}
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => removeAttachment(index)}
-                        className="rounded-full hover:bg-foreground/10 transition-colors"
+            {attachments.map((att, index) => {
+                const name = getName(att)
+                return (
+                    <Badge
+                        key={`${name}-${index}`}
+                        variant="secondary"
+                        className="h-6 gap-1 pr-1"
                     >
-                        <XIcon className="size-3" />
-                    </button>
-                </Badge>
-            ))}
+                        <span className="max-w-30 truncate text-[10px]">
+                            {name}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="rounded-full hover:bg-foreground/10 transition-colors"
+                            aria-label={`Remove ${name}`}
+                            title={`Remove ${name}`}
+                        >
+                            <XIcon className="size-3" />
+                        </button>
+                    </Badge>
+                )
+            })}
         </div>
     )
 }
@@ -100,7 +131,6 @@ export function ChatInput() {
         messages,
         usage,
         createCheckpoint,
-
     } = useChatContext()
 
     const [input, setInput] = useState('')
@@ -118,16 +148,41 @@ export function ChatInput() {
 
     const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
 
-    const handleSubmit = (message: { text: string; files: File[] }) => {
-        if (message.text.trim()) {
-            sendMessage(message.text, message.files)
-            setInput('')
+    const handleSubmit = (message: PromptInputMessage) => {
+        const text = message.text?.trim()
+        if (!text) {return}
+
+        // Normalize possible file wrapper types to native File[]
+        const rawParts = message.files ?? []
+        const fileParts: unknown[] = Array.isArray(rawParts)
+            ? rawParts
+            : Array.from(rawParts as Iterable<unknown>)
+
+        const normalize = (p: unknown): File | null => {
+            if (!p) {return null}
+            if (p instanceof File) {return p}
+            if (typeof p === 'object' && p !== null) {
+                const obj = p as { file?: unknown; blob?: unknown; name?: unknown }
+                if (obj.file instanceof File) {return obj.file}
+                if (obj.blob instanceof Blob) {
+                    const name = typeof obj.name === 'string' ? obj.name : 'attachment'
+                    return new File([obj.blob], name, { type: obj.blob.type })
+                }
+            }
+            return null
         }
+
+        const files = fileParts.map(normalize).filter((f): f is File => f !== null)
+
+        sendMessage(text, files.length ? files : undefined)
+        setInput('')
     }
 
     const handleSuggestionClick = (suggestion: string) => {
         sendMessage(suggestion)
     }
+
+    // ... rest of component unchanged
 
     return (
         <footer className="border-t border-border p-4 bg-background">
@@ -198,17 +253,21 @@ export function ChatInput() {
                                 </PromptInputActionMenuContent>
                             </PromptInputActionMenu>
 
-                            <PromptInputButton
+                            <SpeechInput
                                 className={cn(
                                     'magnetic transition-all duration-300',
                                     isSpeaking &&
                                         'text-primary glow-primary animate-ambient-pulse scale-110'
                                 )}
-                                onClick={() => setIsSpeaking(!isSpeaking)}
+                                onTranscriptionChange={(text) => {
+                                    setInput(
+                                        (prev) =>
+                                            prev + (prev ? ' ' : '') + text
+                                    )
+                                }}
+                                lang="en-US"
                                 title="Speech to text"
-                            >
-                                <MicIcon className="size-4" />
-                            </PromptInputButton>
+                            />
 
                             <PromptInputButton
                                 onClick={() => {

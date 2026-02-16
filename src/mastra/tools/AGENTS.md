@@ -54,8 +54,8 @@ export const tool = createTool({
 - **`resumeSchema?`**: `Zod schema` - A Zod schema defining the expected structure of `resumeData` when the tool is resumed. Used by the agent to extract data from user messages when `autoResumeSuspendedTools` is enabled.
 - **`requireApproval?`**: `boolean` - When true, the tool requires explicit approval before execution. The agent will emit a `tool-call-approval` chunk and pause until approved or declined.
 - **`execute`**: `function` - The function that contains the tool's logic. It receives two parameters: the validated input data (first parameter) and an optional execution context object (second parameter) containing `requestContext`, `tracingContext`, `abortSignal`, and other execution metadata.
-    - **`input`**: `z.infer<TInput>` - The validated input data based on inputSchema
-    - **`context?`**: `ToolExecutionContext` - Optional execution context containing metadata
+  - **`input`**: `z.infer<TInput>` - The validated input data based on inputSchema
+  - **`context?`**: `ToolExecutionContext` - Optional execution context containing metadata
 - **`onInputStart?`**: `function` - Optional callback invoked when the tool call input streaming begins. Receives `toolCallId`, `messages`, and `abortSignal`.
 - **`onInputDelta?`**: `function` - Optional callback invoked for each incremental chunk of input text as it streams in. Receives `inputTextDelta`, `toolCallId`, `messages`, and `abortSignal`.
 - **`onInputAvailable?`**: `function` - Optional callback invoked when the complete tool input is available and parsed. Receives the validated `input` object, `toolCallId`, `messages`, and `abortSignal`.
@@ -230,12 +230,12 @@ execute: async (inputData, context) => {
 To ensure high-quality, consistent observability across all tools, the following tracing rules are required for every tool in `/src/mastra/tools`:
 
 - Import the tracing type where needed:
-    - `import type { TracingContext } from '@mastra/core/observability'`
+  - `import type { TracingContext } from '@mastra/core/observability'`
 - Use typed tracingContext in the execute function:
-    - `const tracingContext: TracingContext | undefined = context?.tracingContext`
+  - `const tracingContext: TracingContext | undefined = context?.tracingContext`
 - Always create a TOOL_CALL child span for the primary operation and pass requestContext for automatic metadata extraction:
-    - `requestContext: context?.requestContext`
-    - `type: SpanType.TOOL_CALL`
+  - `requestContext: context?.requestContext`
+  - `type: SpanType.TOOL_CALL`
 - Use `tool.id` and `user.id` / `workspace.id` in span metadata where applicable.
 - Emit `data-tool-progress` events at start and completion (stage must match the tool id).
 - Respect `abortSignal` early (fail fast) and record cancellations in spans.

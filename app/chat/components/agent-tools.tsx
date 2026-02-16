@@ -282,8 +282,12 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         <CompanyProfileCard
                             key={`${id}-${toolName}-${toolState}-${groupIdx}`}
                             toolCallId={id}
-                            input={latest.input as PolygonStockQuotesUITool['input']}
-                            output={latest.output as PolygonStockQuotesUITool['output']}
+                            input={
+                                latest.input as PolygonStockQuotesUITool['input']
+                            }
+                            output={
+                                latest.output as PolygonStockQuotesUITool['output']
+                            }
                             errorText={errorText}
                         />
                     )
@@ -295,7 +299,9 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                             key={`${id}-${toolName}-${toolState}-${groupIdx}`}
                             toolCallId={id}
                             input={latest.input as ListCommitsUITool['input']}
-                            output={latest.output as ListCommitsUITool['output']}
+                            output={
+                                latest.output as ListCommitsUITool['output']
+                            }
                             errorText={errorText}
                         />
                     )
@@ -323,21 +329,21 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                     )
                 }
 
-              //  if (
-               //     (toolName === 'serpapi-news-trends' ||
-              //          toolName === 'finnhub-company-news') &&
-              //      hasOutput
-             //   ) {
-              //      return (
-              //          <NewsCarousel
-              //              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-              //              toolCallId={id}
-              //              input={latest.input as any}
-              //              output={latest.output as any}
-              //              errorText={errorText}
-              //          />
-              //      )
-              //  }
+                //  if (
+                //     (toolName === 'serpapi-news-trends' ||
+                //          toolName === 'finnhub-company-news') &&
+                //      hasOutput
+                //   ) {
+                //      return (
+                //          <NewsCarousel
+                //              key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                //              toolCallId={id}
+                //              input={latest.input as any}
+                //              output={latest.output as any}
+                //              errorText={errorText}
+                //          />
+                //      )
+                //  }
 
                 if (toolName === 'arxiv-search' && hasOutput) {
                     return (
@@ -351,17 +357,17 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                     )
                 }
 
-               // if (toolName === 'serpapi-search' && hasOutput) {
+                // if (toolName === 'serpapi-search' && hasOutput) {
                 //    return (
                 //        <SearchResultList
                 //            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                 //           toolCallId={id}
-                 //           input={latest.input as any}
-                 //           output={latest.output as any}
+                //           toolCallId={id}
+                //           input={latest.input as any}
+                //           output={latest.output as any}
                 //            errorText={errorText}
                 //        />
                 //    )
-             //   }
+                //   }
 
                 // Default rendering for other tools
                 return (

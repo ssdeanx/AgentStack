@@ -1,4 +1,3 @@
-
 /* eslint-disable no-console */
 'use client'
 
@@ -22,6 +21,27 @@ import {
     CodeBlockCopyButton,
 } from '@/src/components/ai-elements/code-block'
 import { Image as AIImage } from '@/src/components/ai-elements/image'
+import {
+    Attachments,
+    Attachment,
+    AttachmentPreview,
+    AttachmentInfo,
+} from '@/src/components/ai-elements/attachments'
+import {
+    AudioPlayer,
+    AudioPlayerElement,
+    AudioPlayerControlBar,
+    AudioPlayerPlayButton,
+    AudioPlayerTimeDisplay,
+    AudioPlayerTimeRange,
+    AudioPlayerDurationDisplay,
+    AudioPlayerMuteButton,
+    AudioPlayerVolumeRange,
+} from '@/src/components/ai-elements/audio-player'
+import {
+    Transcription,
+    TranscriptionSegment,
+} from '@/src/components/ai-elements/transcription'
 import { AgentWebPreview, AgentCodeSandbox } from './agent-web-preview'
 import type { WebPreviewData } from './chat.types'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
@@ -52,9 +72,15 @@ import {
     ActivityIcon,
     NetworkIcon,
 } from 'lucide-react'
-import { useState, useCallback, useMemo, Fragment, memo  } from 'react'
+import { useState, useCallback, useMemo, Fragment, memo } from 'react'
 import type {
     UIMessage,
+    UIDataTypes,
+    UIMessageStreamOnStepFinishCallback,
+    UIMessageStreamError,
+    UIMessageStreamOnFinishCallback,
+    UIMessageStreamWriter,
+    UIMessageStreamOptions,
     DynamicToolUIPart,
     TextUIPart,
     ReasoningUIPart,
@@ -102,7 +128,7 @@ import {
     InvalidResponseDataError,
     InvalidMessageRoleError,
     InvalidArgumentError,
-    generateId
+    generateId,
 } from 'ai'
 import type { BundledLanguage } from 'shiki'
 import { Button } from '@/ui/button'
@@ -142,8 +168,9 @@ interface SourceDocument {
     sourceDocument?: string
 }
 
-
-function isSourceUrlPart(part: UIMessage['parts'][number]): part is SourceUrlUIPart {
+function isSourceUrlPart(
+    part: UIMessage['parts'][number]
+): part is SourceUrlUIPart {
     return part.type === 'source-url'
 }
 
@@ -153,8 +180,7 @@ function isSourceDocumentPart(
     return part.type === 'source-document'
 }
 
-
-    // Extract sources from message parts
+// Extract sources from message parts
 const getSourcesFromParts = (parts: UIMessage['parts']): SourceDocument[] => {
     const sources: SourceDocument[] = []
     for (const part of parts) {
@@ -176,7 +202,6 @@ const getSourcesFromParts = (parts: UIMessage['parts']): SourceDocument[] => {
     }
     return sources
 }
-
 
 /**
  * Type guard to check for type property
@@ -260,11 +285,26 @@ function AgentDataSection({ part }: { part: AgentDataPart }) {
                                     usage: agentData.usage,
                                     ...(Array.isArray(agentData.toolResults) &&
                                         agentData.toolResults.length > 0 && {
-                                            toolsUsed: agentData.toolResults.map((tr: unknown) =>
-                                                typeof tr === 'object' && tr !== null && typeof (tr as Record<string, unknown>).toolName === 'string'
-                                                    ? (tr as Record<string, unknown>).toolName
-                                                    : 'unknown'
-                                            ),
+                                            toolsUsed:
+                                                agentData.toolResults.map(
+                                                    (tr: unknown) =>
+                                                        typeof tr ===
+                                                            'object' &&
+                                                        tr !== null &&
+                                                        typeof (
+                                                            tr as Record<
+                                                                string,
+                                                                unknown
+                                                            >
+                                                        ).toolName === 'string'
+                                                            ? (
+                                                                  tr as Record<
+                                                                      string,
+                                                                      unknown
+                                                                  >
+                                                              ).toolName
+                                                            : 'unknown'
+                                                ),
                                         }),
                                 },
                                 null,
@@ -298,11 +338,12 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
                 <div className="flex items-center gap-2">
                     <Badge
                         variant={
-                            workflowData.status === 'success' || (workflowData.status as string) === 'completed'
+                            workflowData.status === 'success' ||
+                            (workflowData.status as string) === 'completed'
                                 ? 'default'
                                 : workflowData.status === 'failed'
-                                    ? 'destructive'
-                                    : 'secondary'
+                                  ? 'destructive'
+                                  : 'secondary'
                         }
                         className="text-xs"
                     >
@@ -333,12 +374,14 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
                                         </span>
                                         <Badge
                                             variant={
-                                                stepData.status === 'success' || (stepData.status as string) === 'completed'
+                                                stepData.status === 'success' ||
+                                                (stepData.status as string) ===
+                                                    'completed'
                                                     ? 'default'
                                                     : stepData.status ===
                                                         'failed'
-                                                        ? 'destructive'
-                                                        : 'secondary'
+                                                      ? 'destructive'
+                                                      : 'secondary'
                                             }
                                             className="text-xs"
                                         >
@@ -422,7 +465,8 @@ function NetworkDataSection({ part }: { part: NetworkDataPart }) {
                 <div className="flex items-center gap-2">
                     <Badge
                         variant={
-                            networkData.status === 'finished' || (networkData.status as string) === 'success'
+                            networkData.status === 'finished' ||
+                            (networkData.status as string) === 'success'
                                 ? 'default'
                                 : 'secondary'
                         }
@@ -455,11 +499,13 @@ function NetworkDataSection({ part }: { part: NetworkDataPart }) {
                                         </span>
                                         <Badge
                                             variant={
-                                                step.status === 'success' || (step.status as string) === 'completed'
+                                                step.status === 'success' ||
+                                                (step.status as string) ===
+                                                    'completed'
                                                     ? 'default'
                                                     : step.status === 'failed'
-                                                        ? 'destructive'
-                                                        : 'secondary'
+                                                      ? 'destructive'
+                                                      : 'secondary'
                                             }
                                             className="text-xs"
                                         >
@@ -614,7 +660,10 @@ function getToolCallId(tool: unknown, fallbackIndex: number): string {
 
     const maybeTool = tool as { toolCallId?: unknown; id?: unknown }
 
-    if (typeof maybeTool.toolCallId === 'string' && maybeTool.toolCallId.trim().length > 0) {
+    if (
+        typeof maybeTool.toolCallId === 'string' &&
+        maybeTool.toolCallId.trim().length > 0
+    ) {
         return maybeTool.toolCallId
     }
 
@@ -872,8 +921,8 @@ function MessageItem({
                     statusText === 'in-progress'
                         ? 'in-progress'
                         : statusText.trim().length > 0
-                            ? 'done'
-                            : ''
+                          ? 'done'
+                          : ''
                 return {
                     message: messageText,
                     status: normalizedStatus,
@@ -894,6 +943,9 @@ function MessageItem({
     )
     const otherFileParts = fileParts?.filter(
         (f) => !f.mediaType?.startsWith('image/')
+    )
+    const audioParts = fileParts?.filter((f) =>
+        f.mediaType?.startsWith('audio/')
     )
 
     const reasoningSteps = useMemo(() => {
@@ -1108,7 +1160,8 @@ function MessageItem({
                             <div className="my-3 space-y-2">
                                 {dataParts.map((part, index) => {
                                     const partId = (part as { id?: string }).id
-                                    const partType = (part as { type: string }).type
+                                    const partType = (part as { type: string })
+                                        .type
 
                                     if (partType === 'data-tool-progress') {
                                         // Rendered separately below in the dedicated Tool progress panel.
@@ -1145,7 +1198,10 @@ function MessageItem({
                                     }
 
                                     // Render tool-specific data parts using the AgentTool UI when available so custom tool events are displayed nicely.
-                                    if (typeof partType === 'string' && partType.startsWith('data-tool-')) {
+                                    if (
+                                        typeof partType === 'string' &&
+                                        partType.startsWith('data-tool-')
+                                    ) {
                                         return (
                                             <AgentTool
                                                 key={key}
@@ -1261,6 +1317,31 @@ function MessageItem({
                             </div>
                         )}
 
+                        {/* Audio files with AudioPlayer */}
+                        {audioParts && audioParts.length > 0 && (
+                            <div className="my-3 space-y-3">
+                                {audioParts.map((audio, idx) => (
+                                    <AudioPlayer
+                                        key={`audio-${idx}`}
+                                        className="w-full"
+                                    >
+                                        <AudioPlayerElement
+                                            src={audio.url || ''}
+                                            preload="metadata"
+                                        />
+                                        <AudioPlayerControlBar className="rounded-lg bg-muted/50 p-2">
+                                            <AudioPlayerPlayButton className="h-8 w-8" />
+                                            <AudioPlayerTimeDisplay className="text-sm tabular-nums" />
+                                            <AudioPlayerTimeRange className="flex-1" />
+                                            <AudioPlayerDurationDisplay className="text-sm tabular-nums text-muted-foreground" />
+                                            <AudioPlayerMuteButton className="h-8 w-8" />
+                                            <AudioPlayerVolumeRange className="w-20" />
+                                        </AudioPlayerControlBar>
+                                    </AudioPlayer>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Message content with inline code blocks */}
                         {hasCitations && citationNodes ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -1350,7 +1431,10 @@ function MessageItem({
                                         .map((tool, idx) => {
                                             const resolvedName =
                                                 resolveToolDisplayName(tool)
-                                            const callId = getToolCallId(tool, idx)
+                                            const callId = getToolCallId(
+                                                tool,
+                                                idx
+                                            )
                                             return (
                                                 <AgentConfirmation
                                                     key={`${callId}-${idx}`}
