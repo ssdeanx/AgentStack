@@ -12,7 +12,7 @@
     },
     "iconLibrary": "lucide",
     "aliases": {
-        "components": "@/src/components",
+        "components": "@/app/components",
         "utils": "@/lib/utils",
         "ui": "@/ui",
         "lib": "@/lib",
@@ -21,6 +21,5 @@
         "mastra": "@/src/mastra"
     },
     "registries": {
-    "@ai-elements": "https://registry.ai-sdk.dev/{name}.json"
-  }
+    "@ai-elements": "https://registry.ai-sdk.dev/{name}.json"}
 }

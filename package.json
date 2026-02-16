@@ -231,7 +231,7 @@
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@tailwindcss/postcss": "^4.1.18",
-    "@tanstack/eslint-config": "^0.3.4",
+    "@tanstack/eslint-config": "^0.4.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/fs-extra": "^11.0.4",
