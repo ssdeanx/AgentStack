@@ -136,12 +136,12 @@ All agent-\* components wrap AI Elements and are used in `chat-messages.tsx` to 
 #### From agent-artifact.tsx
 
 | AI Element                 | Props                     | Purpose             |
-| -------------------------- | ------------------------- | ------------------- | --- |
-| `Artifact`                 | `type`, `title`, `status` | Artifact container  |
-| `ArtifactHeader`           | `title`, `actions`        | Artifact header     |
-| `ArtifactContent`          | `children`                | Artifact content    |
-| `ArtifactActions`          | `children`                | Action buttonsCode` | `   |
-| `Artifactcode`, `language` | Code display              |
+| -------------------------- | ------------------ | ------------------ |
+| `Artifact`                 | `type`, `title`, `status` | Artifact container |
+| `ArtifactHeader`           | `title`, `actions` | Artifact header    |
+| `ArtifactContent`          | `children`         | Artifact content   |
+| `ArtifactActions`          | `children`         | Action buttons     |
+| `ArtifactCode`             | `code`, `language` | Code display       |
 
 #### From agent-sandbox.tsx (Full Sandbox)
 
