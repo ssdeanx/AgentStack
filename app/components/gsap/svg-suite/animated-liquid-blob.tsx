@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedLiquidBlob({
     className,
-    size = 160,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -22,10 +22,7 @@ export function AnimatedLiquidBlob({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 return
             }
 
@@ -50,6 +47,15 @@ export function AnimatedLiquidBlob({
                 repeat: -1,
                 transformOrigin: '50% 50%',
             })
+
+            gsap.to('[data-highlight]', {
+                x: 5,
+                y: -3,
+                duration: 1.7,
+                ease: 'sine.inOut',
+                yoyo: true,
+                repeat: -1,
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -57,7 +63,7 @@ export function AnimatedLiquidBlob({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-cyan-500 dark:text-cyan-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -72,6 +78,14 @@ export function AnimatedLiquidBlob({
                 </linearGradient>
             </defs>
             <g>
+                <ellipse
+                    cx="60"
+                    cy="62"
+                    rx="44"
+                    ry="36"
+                    fill="currentColor"
+                    opacity="0.08"
+                />
                 <ellipse
                     data-blob-a
                     cx="52"
@@ -88,6 +102,15 @@ export function AnimatedLiquidBlob({
                     ry="21"
                     fill="currentColor"
                     opacity="0.45"
+                />
+                <ellipse
+                    data-highlight
+                    cx="66"
+                    cy="50"
+                    rx="10"
+                    ry="6"
+                    fill="currentColor"
+                    opacity="0.22"
                 />
             </g>
         </svg>

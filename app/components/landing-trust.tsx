@@ -18,6 +18,7 @@ import {
     SECTION_BODY,
     SECTION_LAYOUT,
 } from '@/app/components/primitives'
+import { AnimatedAegisCore } from '@/app/components/gsap/svg-suite'
 
 const TRUST_SIGNALS = [
     {
@@ -74,6 +75,15 @@ export function LandingTrust() {
                     <Badge variant="outline" className="mb-4">
                         Security & Compliance
                     </Badge>
+                    <div className="mb-5 flex justify-center">
+                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2">
+                            <AnimatedAegisCore
+                                className="gsap-svg-icon gsap-svg-crisp"
+                                size={144}
+                                animate
+                            />
+                        </div>
+                    </div>
                     <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Built for Enterprise Trust
                     </h2>

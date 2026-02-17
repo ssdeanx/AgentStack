@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedRadarScan({
     className,
-    size = 170,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -19,14 +19,19 @@ export function AnimatedRadarScan({
         () => {
             ensureGsapRegistered()
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 return
             }
 
             gsap.to('[data-scan-arm]', {
+                rotation: 360,
+                transformOrigin: '50% 50%',
+                duration: 3.2,
+                ease: 'none',
+                repeat: -1,
+            })
+
+            gsap.to('[data-scan-cone]', {
                 rotation: 360,
                 transformOrigin: '50% 50%',
                 duration: 3.2,
@@ -50,7 +55,7 @@ export function AnimatedRadarScan({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-amber-500 dark:text-amber-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -67,6 +72,13 @@ export function AnimatedRadarScan({
             <circle cx="60" cy="60" r="50" fill={`url(#${gradientId})`} />
             <circle cx="60" cy="60" r="40" stroke="currentColor" strokeOpacity="0.24" />
             <circle cx="60" cy="60" r="24" stroke="currentColor" strokeOpacity="0.2" />
+            <g data-scan-cone>
+                <path
+                    d="M60 60 L60 12 A48 48 0 0 1 95 28 Z"
+                    fill="currentColor"
+                    opacity="0.16"
+                />
+            </g>
             <g data-scan-arm>
                 <path d="M60 60 L60 10" stroke="currentColor" strokeOpacity="0.75" strokeWidth="2" />
             </g>

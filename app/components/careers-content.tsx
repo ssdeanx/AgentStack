@@ -75,6 +75,7 @@ export function CareersContent(): ReactElement {
                         description="Help us build the future of AI agent development. We're looking for passionate people to join our mission."
                         badge="Careers"
                         accent={AnimatedSignalPulse}
+                        accentCaption="Team heartbeat and hiring velocity"
                     />
                 </div>
 

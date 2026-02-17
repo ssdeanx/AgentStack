@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useWorkflows, useWorkflow } from '@/lib/hooks/use-mastra'
+import {
+    useWorkflowsQuery,
+    useWorkflowQuery,
+} from '@/lib/hooks/use-dashboard-queries'
 import { mastraClient } from '@/lib/mastra-client'
 import {
     Card,
@@ -40,16 +43,27 @@ import {
 import Link from 'next/link'
 import type { Route } from 'next'
 
+type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | { [key: string]: JsonValue }
+    | JsonValue[]
+
 export default function WorkflowsPage() {
-    const { data: workflows, loading, error, refetch } = useWorkflows()
+    const {
+        data: workflows,
+        isLoading,
+        error,
+        refetch,
+    } = useWorkflowsQuery()
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
         null
     )
 
-    const workflowList = workflows
-        ? Object.entries(workflows).map(([id, wf]) => ({ id, ...(wf as any) }))
-        : []
+    const workflowList = workflows ?? []
 
     const filteredWorkflows = workflowList.filter((wf) =>
         Boolean(wf.id.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -82,7 +96,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 <ScrollArea className="flex-1">
-                    {loading ? (
+                    {isLoading ? (
                         <div className="space-y-2 p-4">
                             {[...Array(5)].map((_, i) => (
                                 <Skeleton key={i} className="h-16 w-full" />
@@ -108,7 +122,7 @@ export default function WorkflowsPage() {
                                         <Workflow className="h-5 w-5 text-muted-foreground" />
                                         <div className="flex-1 truncate">
                                             <div className="font-medium">
-                                                {wf.id}
+                                                {wf.name ?? wf.id}
                                             </div>
                                             <div className="text-xs text-muted-foreground truncate">
                                                 {wf.description ??
@@ -146,12 +160,25 @@ export default function WorkflowsPage() {
 }
 
 function WorkflowDetails({ workflowId }: { workflowId: string }) {
-    const { data: workflow, loading, error, refetch } = useWorkflow(workflowId)
+    const {
+        data: workflow,
+        isLoading,
+        error,
+        refetch,
+    } = useWorkflowQuery(workflowId)
     const [runDialogOpen, setRunDialogOpen] = useState(false)
     const [inputData, setInputData] = useState('{}')
     const [running, setRunning] = useState(false)
-    const [runResult, setRunResult] = useState<any>(null)
+    const [runResult, setRunResult] = useState<
+        Record<string, JsonValue> | null
+    >(
+        null
+    )
     const [runError, setRunError] = useState<string | null>(null)
+
+    const workflowSteps = Array.isArray(workflow?.steps)
+        ? workflow.steps
+        : Object.values(workflow?.steps ?? {})
 
     const handleRunWorkflow = async () => {
         setRunning(true)
@@ -163,7 +190,11 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
             const wf = mastraClient.getWorkflow(workflowId)
             const run = await wf.createRun()
             const result = await run.startAsync({ inputData: parsedInput })
-            setRunResult(result)
+            if (result !== null && typeof result === 'object') {
+                setRunResult(result as Record<string, JsonValue>)
+            } else {
+                setRunResult({ result: result as JsonValue })
+            }
         } catch (err) {
             setRunError(err instanceof Error ? err.message : String(err))
         } finally {
@@ -171,7 +202,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
         }
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="p-6 space-y-4">
                 <Skeleton className="h-8 w-48" />
@@ -194,13 +225,20 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold">{workflowId}</h1>
+                    <h1 className="text-2xl font-bold">
+                        {workflow?.name ?? workflowId}
+                    </h1>
                     <p className="text-muted-foreground mt-1">
-                        {(workflow as any)?.description ??
-                            'No description available'}
+                        {workflow?.description ?? 'No description available'}
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={`/chat?agent=${workflowId}` as Route}>
+                            <Workflow className="h-4 w-4 mr-2" />
+                            Chat with workflow
+                        </Link>
+                    </Button>
                     <Link
                         href={
                             `/dashboard/workflows?workflow=${workflowId}` as Route
@@ -291,7 +329,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {(workflow as any)?.steps?.length ?? 'N/A'}
+                            {workflowSteps.length}
                         </div>
                     </CardContent>
                 </Card>
@@ -313,7 +351,7 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {(workflow as any)?.type ?? 'Standard'}
+                            {'Standard'}
                         </div>
                     </CardContent>
                 </Card>
@@ -352,12 +390,11 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {(workflow as any)?.steps?.length > 0 ? (
+                            {workflowSteps.length > 0 ? (
                                 <div className="space-y-3">
-                                    {(workflow as any).steps.map(
-                                        (step: any, index: number) => (
+                                    {workflowSteps.map((step, index) => (
                                             <div
-                                                key={index}
+                                                key={step.id ?? String(index)}
                                                 className="flex items-center gap-4 p-4 bg-muted rounded-md"
                                             >
                                                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
@@ -376,11 +413,10 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                                                     )}
                                                 </div>
                                                 <Badge variant="secondary">
-                                                    {step.type || 'Action'}
+                                                    {'Action'}
                                                 </Badge>
                                             </div>
-                                        )
-                                    )}
+                                        ))}
                                 </div>
                             ) : (
                                 <p className="text-muted-foreground">
@@ -401,10 +437,10 @@ function WorkflowDetails({ workflowId }: { workflowId: string }) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {(workflow as any)?.inputSchema ? (
+                            {workflow?.inputSchema ? (
                                 <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md overflow-auto max-h-64">
                                     {JSON.stringify(
-                                        (workflow as any).inputSchema,
+                                        workflow.inputSchema,
                                         null,
                                         2
                                     )}

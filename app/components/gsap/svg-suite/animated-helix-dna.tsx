@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedHelixDna({
     className,
-    size = 180,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -21,10 +21,7 @@ export function AnimatedHelixDna({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 return
             }
 
@@ -51,6 +48,20 @@ export function AnimatedHelixDna({
                 repeat: -1,
                 stagger: 0.06,
             })
+
+            gsap.to('[data-marker-a]', {
+                y: 92,
+                duration: 2.6,
+                ease: 'none',
+                repeat: -1,
+            })
+
+            gsap.to('[data-marker-b]', {
+                y: -92,
+                duration: 2.6,
+                ease: 'none',
+                repeat: -1,
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -58,7 +69,7 @@ export function AnimatedHelixDna({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-rose-500 dark:text-rose-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -93,6 +104,8 @@ export function AnimatedHelixDna({
                     strokeWidth="1.8"
                 />
             ))}
+            <circle data-marker-a cx="36" cy="16" r="2.4" fill="currentColor" opacity="0.9" />
+            <circle data-marker-b cx="84" cy="104" r="2.4" fill="currentColor" opacity="0.8" />
         </svg>
     )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useId, useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
@@ -9,10 +9,11 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedSignalPulse({
     className,
-    size = 160,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
+    const gradientId = useId().replace(/:/g, '')
 
     useGSAP(
         () => {
@@ -21,11 +22,7 @@ export function AnimatedSignalPulse({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-
-            if (reduced || !animate) {
+            if (!animate) {
                 gsap.set('[data-ring], [data-core]', { opacity: 1, scale: 1 })
                 return
             }
@@ -48,6 +45,14 @@ export function AnimatedSignalPulse({
                 repeat: -1,
                 transformOrigin: '50% 50%',
             })
+
+            gsap.to('[data-sweep]', {
+                rotation: 360,
+                duration: 3.2,
+                ease: 'none',
+                repeat: -1,
+                transformOrigin: '50% 50%',
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -55,7 +60,7 @@ export function AnimatedSignalPulse({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-emerald-500 dark:text-emerald-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 100 100"
@@ -63,6 +68,20 @@ export function AnimatedSignalPulse({
             role="img"
             aria-label="Animated signal pulse"
         >
+            <defs>
+                <radialGradient
+                    id={gradientId}
+                    cx="0"
+                    cy="0"
+                    r="1"
+                    gradientTransform="translate(50 50) rotate(90) scale(48)"
+                >
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.22" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                </radialGradient>
+            </defs>
+            <circle cx="50" cy="50" r="45" fill={`url(#${gradientId})`} />
+            <circle cx="50" cy="50" r="38" stroke="currentColor" strokeOpacity="0.12" />
             <circle data-ring cx="50" cy="50" r="17" stroke="currentColor" />
             <circle
                 data-ring
@@ -80,6 +99,9 @@ export function AnimatedSignalPulse({
                 stroke="currentColor"
                 opacity="0.5"
             />
+            <g data-sweep>
+                <path d="M50 50 L50 8" stroke="currentColor" strokeOpacity="0.65" strokeWidth="2" />
+            </g>
             <circle data-core cx="50" cy="50" r="6" fill="currentColor" />
         </svg>
     )

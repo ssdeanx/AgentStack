@@ -13,7 +13,10 @@ export function AgentToolsTab({ agent }: AgentToolsTabProps) {
     const tools = Array.isArray(agent.tools)
         ? agent.tools
         : agent.tools
-          ? [agent.tools]
+          ? Object.entries(agent.tools).map(([id, tool]) => ({
+                id,
+                name: tool.name,
+            }))
           : []
 
     if (tools.length === 0) {
@@ -29,12 +32,9 @@ export function AgentToolsTab({ agent }: AgentToolsTabProps) {
     return (
         <div className="space-y-3">
             {tools.map((tool, index) => {
-                const toolId =
-                    typeof tool === 'string' ? tool : (tool as any).id
+                const toolId = typeof tool === 'string' ? tool : tool.id
                 const toolName =
-                    typeof tool === 'string'
-                        ? tool
-                        : tool.name || (tool as any).id
+                    typeof tool === 'string' ? tool : (tool.name ?? tool.id)
                 return (
                     <div
                         key={`${toolName}-${toolId}-${index}`}
@@ -44,13 +44,7 @@ export function AgentToolsTab({ agent }: AgentToolsTabProps) {
                         <div className="flex items-center gap-3">
                             <Wrench className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">
-                                {typeof tool === 'string'
-                                    ? tool
-                                    : String(
-                                          tool.name ??
-                                              (tool as any).id ??
-                                              JSON.stringify(tool)
-                                      )}
+                                {toolName}
                             </span>
                         </div>
                         <Badge variant="secondary">Tool</Badge>

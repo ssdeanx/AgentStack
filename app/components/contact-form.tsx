@@ -200,6 +200,7 @@ export function ContactForm() {
                         description="Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
                         badge="Get in Touch"
                         accent={AnimatedLiquidBlob}
+                        accentCaption="Adaptive support and inquiry flow"
                     />
                 </div>
 

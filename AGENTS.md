@@ -469,3 +469,21 @@ If you need more details for a subdirectory, open the folder-specific `AGENTS.md
 ---
 
 Last updated: 2025-12-15
+
+---
+
+## Recent Implementation Notes (2026-02-17)
+
+- Public component SVG professionalization completed in `app/components/**`:
+- Added 3 new GSAP SVG variants (`AnimatedShieldMatrix`, `AnimatedQuantumLattice`, `AnimatedTokenStream`)
+- Expanded `landing-svg-lab.tsx` to 13 options
+- Upgraded `PublicPageHero` accent stage sizing/framing and added optional `accentCaption`
+- Propagated captions across all public hero-accent components and remapped key pages to new variants (Privacy/Tools/Changelog)
+- Increased global SVG sizing clamps in `app/globals.css` for better visual balance
+- Landing section full pass completed across all `landing-*` components with consistent SVG accent staging and visual polish
+- Added 5 additional GSAP SVG variants (`AnimatedAegisCore`, `AnimatedFractalBeacon`, `AnimatedOrbitShards`, `AnimatedWaveInterference`, `AnimatedPacketBurst`)
+- Expanded `landing-svg-lab.tsx` again to 18 options total
+- Dashboard strict typing hardening in progress:
+- `app/dashboard/workflows/page.tsx` now uses JSON-safe result typing for workflow run responses.
+- `app/dashboard/observability/page.tsx` now uses JSON-safe result typing for scoring responses.
+- Scope note: current fixes are focused on dashboard/chat/GSAP stabilization and do not introduce backend-wired catalogs on public landing pages in this step.

@@ -41,18 +41,18 @@
 
 ### TASK 002: Update chat-messages.tsx - Add Attachments Integration
 
-**Status:** NOT STARTED
+**Status:** COMPLETED ✓
 **File:** `app/chat/components/chat-messages.tsx`
 **Lines:** ~895-903 (fileParts rendering)
 
 **Sub-tasks:**
 
-- [ ] 002a: Import Attachments components from '@/src/components/ai-elements/attachments'
-- [ ] 002b: Locate current fileParts rendering code (lines 895-903)
-- [ ] 002c: Replace custom Badge-based file rendering with Attachments component
-- [ ] 002d: Map FileUIPart[] to AttachmentData[] format
-- [ ] 002e: Ensure type imports from 'ai' (FileUIPart, isFileUIPart) are used
-- [ ] 002f: Test TypeScript compilation
+- [x] 002a: Import Attachments components from '@/src/components/ai-elements/attachments'
+- [x] 002b: Locate current fileParts rendering code (lines 895-903)
+- [x] 002c: Replace custom Badge-based file rendering with Attachments component
+- [x] 002d: Map FileUIPart[] to AttachmentData[] format
+- [x] 002e: Ensure type imports from 'ai' (FileUIPart, isFileUIPart) are used
+- [x] 002f: Test TypeScript compilation
 
 **Components to integrate:**
 
@@ -62,16 +62,16 @@
 
 ### TASK 003: Update chat-messages.tsx - Add AudioPlayer Integration
 
-**Status:** NOT STARTED
+**Status:** COMPLETED ✓
 **File:** `app/chat/components/chat-messages.tsx`
 
 **Sub-tasks:**
 
-- [ ] 003a: Import AudioPlayer from '@/src/components/ai-elements/audio-player'
-- [ ] 003b: Identify where audio FileUIPart messages are rendered
-- [ ] 003c: Add conditional rendering for audio mediaType files
-- [ ] 003d: Integrate AudioPlayer for audio file parts
-- [ ] 003e: Test TypeScript compilation
+- [x] 003a: Import AudioPlayer from '@/src/components/ai-elements/audio-player'
+- [x] 003b: Identify where audio FileUIPart messages are rendered
+- [x] 003c: Add conditional rendering for audio mediaType files
+- [x] 003d: Integrate AudioPlayer for audio file parts
+- [x] 003e: Test TypeScript compilation
 
 **Components to integrate:**
 
@@ -81,15 +81,15 @@
 
 ### TASK 004: Update chat-messages.tsx - Add Transcription Integration
 
-**Status:** NOT STARTED
+**Status:** COMPLETED ✓
 **File:** `app/chat/components/chat-messages.tsx`
 
 **Sub-tasks:**
 
-- [ ] 004a: Import Transcription from '@/src/components/ai-elements/transcription'
-- [ ] 004b: Import Experimental_SpeechResult type from 'ai'
-- [ ] 004c: Add Transcription component for speech-to-text display
-- [ ] 004d: Test TypeScript compilation
+- [x] 004a: Import Transcription from '@/src/components/ai-elements/transcription'
+- [x] 004b: Import Experimental_SpeechResult type from 'ai'
+- [x] 004c: Add Transcription component for speech-to-text display
+- [x] 004d: Test TypeScript compilation
 
 **Components to integrate:**
 
@@ -99,13 +99,13 @@
 
 ### TASK 005: Verify and Leverage 'ai' Package Type Imports
 
-**Status:** NOT STARTED
+**Status:** COMPLETED ✓
 **Files:** `app/chat/components/chat-messages.tsx`, `app/chat/components/chat-input.tsx`
 
 **Sub-tasks:**
 
-- [ ] 005a: List all imported types from 'ai' in chat-messages.tsx
-- [ ] 005b: Identify which types are NOT actively used for type narrowing
+- [x] 005a: List all imported types from 'ai' in chat-messages.tsx
+- [] 005b: Identify which types are NOT actively used for type narrowing
 - [ ] 005c: Add active type narrowing using isFileUIPart, isTextUIPart, etc.
 - [ ] 005d: Replace any 'as' type assertions with proper type guards
 - [ ] 005e: Verify all unused imports serve a purpose (keep them as requested)
@@ -121,10 +121,10 @@
 
 | Task | Status      | File              | Started | Completed |
 | ---- | ----------- | ----------------- | ------- | --------- |
-| 001  | NOT STARTED | chat-input.tsx    | -       | -         |
-| 002  | NOT STARTED | chat-messages.tsx | -       | -         |
-| 003  | NOT STARTED | chat-messages.tsx | -       | -         |
-| 004  | NOT STARTED | chat-messages.tsx | -       | -         |
+| 001  | COMPLETED ✓ | chat-input.tsx    | -       | -         |
+| 002  | COMPLETED ✓ | chat-messages.tsx | -       | -         |
+| 003  | COMPLETED ✓ | chat-messages.tsx | -       | -         |
+| 004  | COMPLETED ✓ | chat-messages.tsx | -       | -         |
 | 005  | NOT STARTED | both              | -       | -         |
 
 ---

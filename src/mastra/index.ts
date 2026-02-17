@@ -155,7 +155,7 @@ import {
 } from './evals/scorers/custom-scorers'
 import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai'
 export const mastra = new Mastra({
-    workspace: mainWorkspace,
+  //  workspace: mainWorkspace,
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,

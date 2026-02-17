@@ -127,6 +127,19 @@ export function Navbar() {
         { href: '/docs/ui', label: 'UI', desc: 'Design & UI' },
     ]
 
+    const publicLinks = [
+        { href: '/about', label: 'About' },
+        { href: '/product', label: 'Product' },
+        { href: '/examples', label: 'Examples' },
+        { href: '/blog', label: 'Blog' },
+        { href: '/changelog', label: 'Changelog' },
+        { href: '/careers', label: 'Careers' },
+        { href: '/contact', label: 'Contact' },
+        { href: '/api-reference', label: 'API Reference' },
+        { href: '/privacy', label: 'Privacy' },
+        { href: '/terms', label: 'Terms' },
+    ]
+
     return (
         <header
             ref={headerRef}
@@ -389,6 +402,26 @@ export function Navbar() {
                                                     </div>
                                                 </Link>
                                             </NavigationMenuLink>
+
+                                            <div className="h-px bg-border my-2" />
+                                            <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">
+                                                Public Pages
+                                            </div>
+                                            {publicLinks.map((link) => (
+                                                <NavigationMenuLink
+                                                    asChild
+                                                    key={link.href}
+                                                >
+                                                    <Link
+                                                        href={link.href}
+                                                        className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === link.href ? 'bg-muted/10 shadow-sm' : 'hover:bg-muted/5'}`}
+                                                    >
+                                                        <div className="font-medium">
+                                                            {link.label}
+                                                        </div>
+                                                    </Link>
+                                                </NavigationMenuLink>
+                                            ))}
                                         </div>
                                     </div>
                                 </NavigationMenuContent>
@@ -404,7 +437,7 @@ export function Navbar() {
                     <Link
                         href="/docs"
                         className={cn(
-                            'text-sm font-medium hover:text-foreground transition-colors mr-2',
+                            'text-sm font-medium hover:text-foreground transition-colors',
                             pathname?.startsWith('/docs')
                                 ? 'text-foreground'
                                 : 'text-muted-foreground'
@@ -415,7 +448,7 @@ export function Navbar() {
                     <Link
                         href="/pricing"
                         className={cn(
-                            'text-sm font-medium hover:text-foreground transition-colors mr-2',
+                            'text-sm font-medium hover:text-foreground transition-colors',
                             pathname === '/pricing'
                                 ? 'text-foreground'
                                 : 'text-muted-foreground'
@@ -423,6 +456,23 @@ export function Navbar() {
                     >
                         Pricing
                     </Link>
+
+                    <div className="hidden xl:flex items-center gap-3">
+                        {publicLinks.slice(0, 6).map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    'text-sm font-medium hover:text-foreground transition-colors',
+                                    pathname === link.href
+                                        ? 'text-foreground'
+                                        : 'text-muted-foreground'
+                                )}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                    </div>
 
                     <ThemeToggle />
                     <div className="h-6 w-px bg-border/50 mx-2" />
@@ -629,6 +679,26 @@ export function Navbar() {
                         >
                             Pricing
                         </Link>
+
+                        <div className="h-px bg-border my-2" />
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                            Public Pages
+                        </div>
+                        {publicLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    'text-lg font-medium p-2',
+                                    pathname === link.href
+                                        ? 'text-foreground'
+                                        : 'text-muted-foreground'
+                                )}
+                                onClick={() => setMobileOpen(false)}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
 
                         <div className="mt-auto flex flex-col gap-3">
                             <Button

@@ -17,6 +17,7 @@ import {
     SECTION_BODY,
     SECTION_LAYOUT,
 } from '@/app/components/primitives'
+import { AnimatedFractalBeacon } from '@/app/components/gsap/svg-suite'
 
 const TESTIMONIALS = [
     {
@@ -128,6 +129,15 @@ export function LandingTestimonials() {
                     <Badge variant="outline" className="mb-4">
                         Testimonials
                     </Badge>
+                    <div className="mb-5 flex justify-center">
+                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2">
+                            <AnimatedFractalBeacon
+                                className="gsap-svg-icon gsap-svg-crisp"
+                                size={142}
+                                animate
+                            />
+                        </div>
+                    </div>
                     <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Trusted by Developers Worldwide
                     </h2>

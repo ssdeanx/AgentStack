@@ -36,6 +36,7 @@ import {
     UsersIcon,
     SettingsIcon,
 } from 'lucide-react'
+import { AnimatedWaveInterference } from '@/app/components/gsap/svg-suite'
 
 const CATEGORIES = [
     'All',
@@ -261,19 +262,24 @@ export function LandingAgents() {
             <div ref={revealRef}>
                 <div className="agents-header mb-12 flex flex-col items-center justify-between gap-6 lg:flex-row">
                     <div className="text-center lg:text-left">
-                        <h2
-                            className={`mb-3 ${SECTION_HEADING.h2}`}
-                        >
+                        <h2 className={`mb-3 ${SECTION_HEADING.h2}`}>
                             Available Agents
                         </h2>
-                        <p
-                            className={`max-w-xl ${SECTION_BODY.subtitle}`}
-                        >
+                        <p className={`max-w-xl ${SECTION_BODY.subtitle}`}>
                             {AGENTS.length}+ specialized AI agents ready to
                             handle your workflows. Each agent is optimized for
                             specific tasks and can work together.
                         </p>
                     </div>
+
+                    <div className="hidden lg:flex gsap-svg-stage relative items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-3">
+                        <AnimatedWaveInterference
+                            className="gsap-svg-icon gsap-svg-crisp"
+                            size={152}
+                            animate
+                        />
+                    </div>
+
                     <div className="relative w-full max-w-sm">
                         <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input

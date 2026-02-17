@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedDataStream({
     className,
-    size = 180,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -21,10 +21,7 @@ export function AnimatedDataStream({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 gsap.set('[data-packet]', { x: 0, opacity: 1 })
                 return
             }
@@ -45,6 +42,15 @@ export function AnimatedDataStream({
                 repeat: -1,
                 stagger: 0.1,
             })
+
+            gsap.to('[data-packet-core]', {
+                scale: 1.12,
+                duration: 0.7,
+                yoyo: true,
+                repeat: -1,
+                stagger: 0.16,
+                transformOrigin: '50% 50%',
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -52,7 +58,7 @@ export function AnimatedDataStream({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-sky-500 dark:text-sky-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -73,17 +79,36 @@ export function AnimatedDataStream({
                     strokeWidth="2"
                 />
             ))}
+            <rect
+                x="14"
+                y="22"
+                width="92"
+                height="76"
+                rx="10"
+                stroke="currentColor"
+                strokeOpacity="0.12"
+            />
             {[26, 48, 70, 92].map((y) => (
-                <rect
-                    key={`pkt-${y}`}
-                    data-packet
-                    x="16"
-                    y={y}
-                    width="12"
-                    height="4"
-                    rx="2"
-                    fill="currentColor"
-                />
+                <g key={`pkt-${y}`} data-packet>
+                    <rect
+                        x="16"
+                        y={y}
+                        width="12"
+                        height="4"
+                        rx="2"
+                        fill="currentColor"
+                    />
+                    <rect
+                        data-packet-core
+                        x="19"
+                        y={y + 1}
+                        width="4"
+                        height="2"
+                        rx="1"
+                        fill="white"
+                        opacity="0.6"
+                    />
+                </g>
             ))}
         </svg>
     )

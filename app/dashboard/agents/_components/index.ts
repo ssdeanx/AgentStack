@@ -1,4 +1,4 @@
-export { AgentList } from './agent-list'
+export { AgentList, AgentGrid } from './agent-list'
 export { AgentListItem } from './agent-list-item'
 export { AgentDetails } from './agent-details'
 export { AgentToolsTab } from './agent-tools-tab'

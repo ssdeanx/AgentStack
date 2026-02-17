@@ -112,7 +112,13 @@ export default function DashboardPage() {
                                 Refresh
                             </Button>
                             <Button asChild size="sm">
-                                <Link href={'/chat' as Route}>
+                                <Link
+                                    href={
+                                        agents !== undefined && agents.length > 0
+                                            ? (`/chat?agent=${agents[0].id}` as Route)
+                                            : ('/chat' as Route)
+                                    }
+                                >
                                     <Bot className="h-4 w-4 mr-2" />
                                     Chat with Agent
                                 </Link>
@@ -330,7 +336,7 @@ export default function DashboardPage() {
                                                         {agent.name ?? agent.id}
                                                     </span>
                                                     {agent.description && (
-                                                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                                        <p className="text-xs text-muted-foreground truncate max-w-50">
                                                             {agent.description}
                                                         </p>
                                                     )}
@@ -411,7 +417,7 @@ export default function DashboardPage() {
                                                         {wf.name ?? wf.id}
                                                     </span>
                                                     {wf.description && (
-                                                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                                        <p className="text-xs text-muted-foreground truncate max-w-50">
                                                             {wf.description}
                                                         </p>
                                                     )}
@@ -490,62 +496,29 @@ export default function DashboardPage() {
                                                     {span.name ?? span.traceId}
                                                 </span>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {(
-                                                        span as unknown as Record<
-                                                            string,
-                                                            unknown
-                                                        >
-                                                    ).startTime
+                                                    {span.startTime
                                                         ? new Date(
-                                                              (
-                                                                  span as unknown as Record<
-                                                                      string,
-                                                                      unknown
-                                                                  >
-                                                              )
-                                                                  .startTime as string
+                                                              span.startTime
                                                           ).toLocaleString()
                                                         : 'No timestamp'}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {typeof (
-                                                span as unknown as Record<
-                                                    string,
-                                                    unknown
-                                                >
-                                            ).duration === 'number' && (
+                                            {typeof span.duration === 'number' && (
                                                 <Badge
                                                     variant="outline"
                                                     className="text-xs font-mono"
                                                 >
                                                     <Clock className="h-3 w-3 mr-1" />
-                                                    {String(
-                                                        (
-                                                            span as unknown as Record<
-                                                                string,
-                                                                unknown
-                                                            >
-                                                        ).duration
-                                                    )}
+                                                    {String(span.duration)}
                                                     ms
                                                 </Badge>
                                             )}
                                             <Badge
                                                 variant={
-                                                    (
-                                                        span as unknown as Record<
-                                                            string,
-                                                            unknown
-                                                        >
-                                                    ).status === 'ok' ||
-                                                    (
-                                                        span as unknown as Record<
-                                                            string,
-                                                            unknown
-                                                        >
-                                                    ).status === 'success'
+                                                    span.status === 'ok' ||
+                                                    span.status === 'success'
                                                         ? 'default'
                                                         : 'secondary'
                                                 }

@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from '@/ui/input'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedQuantumLattice } from '@/app/components/gsap/svg-suite'
+import { useTools } from '@/lib/hooks/use-mastra'
+import type { Tool } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
     WrenchIcon,
@@ -29,352 +33,122 @@ import {
     ClockIcon,
     ArrowRightIcon,
     StarIcon,
-    ZapIcon,
-    CheckCircleIcon,
+    AlertCircleIcon,
 } from 'lucide-react'
 
-const CATEGORIES = [
-    'All',
-    'Financial',
-    'Research',
-    'Data',
-    'RAG',
-    'Content',
-    'Utility',
-    'Integration',
-    'System',
-]
+type ToolCard = {
+    id: string
+    name: string
+    description: string
+    category: string
+    icon: typeof WrenchIcon
+}
 
-const TOOLS = [
-    {
-        name: 'Stock Ticker',
-        id: 'stockTicker',
-        category: 'Financial',
-        description:
-            'Real-time stock prices, quotes, and market data from major exchanges.',
-        icon: TrendingUpIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Company Profile',
-        id: 'companyProfile',
-        category: 'Financial',
-        description:
-            'Detailed company information including financials, executives, and key metrics.',
-        icon: BarChartIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Currency Exchange',
-        id: 'currencyExchange',
-        category: 'Financial',
-        description:
-            'Real-time currency conversion rates for 150+ currencies worldwide.',
-        icon: CreditCardIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Crypto Prices',
-        id: 'cryptoPrices',
-        category: 'Financial',
-        description:
-            'Cryptocurrency prices, market caps, and 24h trading volumes.',
-        icon: TrendingUpIcon,
-        popular: false,
-        new: true,
-    },
-    {
-        name: 'Web Search',
-        id: 'webSearch',
-        category: 'Research',
-        description:
-            'Search the web for information using multiple search engines.',
-        icon: GlobeIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Academic Search',
-        id: 'academicSearch',
-        category: 'Research',
-        description:
-            'Search academic papers, journals, and research publications.',
-        icon: FileTextIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'News Search',
-        id: 'newsSearch',
-        category: 'Research',
-        description:
-            'Search and aggregate news from thousands of sources worldwide.',
-        icon: GlobeIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Wikipedia',
-        id: 'wikipedia',
-        category: 'Research',
-        description:
-            'Query Wikipedia for encyclopedic information and summaries.',
-        icon: BrainIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'PDF Parser',
-        id: 'pdfParser',
-        category: 'Data',
-        description: 'Extract text, tables, and metadata from PDF documents.',
-        icon: FileTextIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'CSV Processor',
-        id: 'csvProcessor',
-        category: 'Data',
-        description:
-            'Parse, transform, and analyze CSV data with advanced filtering.',
-        icon: DatabaseIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'JSON Transformer',
-        id: 'jsonTransformer',
-        category: 'Data',
-        description:
-            'Transform, validate, and restructure JSON data efficiently.',
-        icon: CodeIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Web Scraper',
-        id: 'webScraper',
-        category: 'Data',
-        description: 'Extract structured data from websites and web pages.',
-        icon: LinkIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Vector Store',
-        id: 'vectorStore',
-        category: 'RAG',
-        description:
-            'Store and retrieve vector embeddings with semantic search.',
-        icon: DatabaseIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Document Chunker',
-        id: 'documentChunker',
-        category: 'RAG',
-        description: 'Split documents into optimal chunks for embedding.',
-        icon: FileTextIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Embedding Generator',
-        id: 'embeddingGenerator',
-        category: 'RAG',
-        description:
-            'Generate vector embeddings from text using multiple models.',
-        icon: BrainIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Semantic Search',
-        id: 'semanticSearch',
-        category: 'RAG',
-        description: 'Search documents by meaning rather than keywords.',
-        icon: SearchIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Text Summarizer',
-        id: 'textSummarizer',
-        category: 'Content',
-        description: 'Summarize long text content into concise summaries.',
-        icon: FileTextIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Translation',
-        id: 'translation',
-        category: 'Content',
-        description: 'Translate text between 100+ languages accurately.',
-        icon: GlobeIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Grammar Check',
-        id: 'grammarCheck',
-        category: 'Content',
-        description: 'Check and correct grammar, spelling, and style issues.',
-        icon: CheckCircleIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Sentiment Analysis',
-        id: 'sentimentAnalysis',
-        category: 'Content',
-        description: 'Analyze text sentiment and emotional tone.',
-        icon: MessageSquareIcon,
-        popular: false,
-        new: true,
-    },
-    {
-        name: 'Weather API',
-        id: 'weatherApi',
-        category: 'Utility',
-        description:
-            'Current weather and forecasts for any location worldwide.',
-        icon: CloudIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Calculator',
-        id: 'calculator',
-        category: 'Utility',
-        description:
-            'Perform complex mathematical calculations and conversions.',
-        icon: CalculatorIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Date/Time',
-        id: 'dateTime',
-        category: 'Utility',
-        description: 'Date calculations, timezone conversions, and formatting.',
-        icon: CalendarIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Geocoding',
-        id: 'geocoding',
-        category: 'Utility',
-        description: 'Convert addresses to coordinates and vice versa.',
-        icon: MapPinIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'QR Code Generator',
-        id: 'qrGenerator',
-        category: 'Utility',
-        description: 'Generate QR codes from text, URLs, or data.',
-        icon: ImageIcon,
-        popular: false,
-        new: true,
-    },
-    {
-        name: 'Email Sender',
-        id: 'emailSender',
-        category: 'Integration',
-        description: 'Send emails through SMTP or email service providers.',
-        icon: MailIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Slack Integration',
-        id: 'slackIntegration',
-        category: 'Integration',
-        description: 'Send messages and interact with Slack workspaces.',
-        icon: MessageSquareIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Webhook Trigger',
-        id: 'webhookTrigger',
-        category: 'Integration',
-        description: 'Trigger webhooks and receive webhook callbacks.',
-        icon: ZapIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'GitHub API',
-        id: 'githubApi',
-        category: 'Integration',
-        description:
-            'Interact with GitHub repositories, issues, and pull requests.',
-        icon: CodeIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Database Query',
-        id: 'databaseQuery',
-        category: 'System',
-        description: 'Execute queries against PostgreSQL, MySQL, and SQLite.',
-        icon: DatabaseIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'File System',
-        id: 'fileSystem',
-        category: 'System',
-        description: 'Read, write, and manage files in the file system.',
-        icon: FileTextIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'HTTP Client',
-        id: 'httpClient',
-        category: 'System',
-        description: 'Make HTTP requests to external APIs and services.',
-        icon: GlobeIcon,
-        popular: true,
-        new: false,
-    },
-    {
-        name: 'Cron Scheduler',
-        id: 'cronScheduler',
-        category: 'System',
-        description: 'Schedule tasks to run at specific times or intervals.',
-        icon: ClockIcon,
-        popular: false,
-        new: false,
-    },
-    {
-        name: 'Security Scanner',
-        id: 'securityScanner',
-        category: 'System',
-        description: 'Scan for security vulnerabilities and compliance issues.',
-        icon: ShieldIcon,
-        popular: false,
-        new: true,
-    },
-]
+function classifyToolCategory(id: string): string {
+    const normalized = id.toLowerCase()
+    if (/(stock|finance|currency|crypto|market)/.test(normalized)) {
+        return 'Financial'
+    }
+    if (/(search|research|wikipedia|news)/.test(normalized)) {
+        return 'Research'
+    }
+    if (/(vector|embed|rag|chunk)/.test(normalized)) {
+        return 'RAG'
+    }
+    if (/(pdf|csv|json|scrap|data)/.test(normalized)) {
+        return 'Data'
+    }
+    if (/(mail|slack|github|webhook|api)/.test(normalized)) {
+        return 'Integration'
+    }
+    if (/(weather|date|time|geo|calc|utility)/.test(normalized)) {
+        return 'Utility'
+    }
+    if (/(file|http|cron|security|system)/.test(normalized)) {
+        return 'System'
+    }
+    return 'General'
+}
+
+function chooseToolIcon(id: string): typeof WrenchIcon {
+    const normalized = id.toLowerCase()
+    if (/(stock|market|trend)/.test(normalized)) {
+        return TrendingUpIcon
+    }
+    if (/(search|web|news|globe)/.test(normalized)) {
+        return GlobeIcon
+    }
+    if (/(pdf|file|text|doc)/.test(normalized)) {
+        return FileTextIcon
+    }
+    if (/(vector|db|database|csv|json)/.test(normalized)) {
+        return DatabaseIcon
+    }
+    if (/(mail|message|chat)/.test(normalized)) {
+        return MailIcon
+    }
+    if (/(code|github|dev)/.test(normalized)) {
+        return CodeIcon
+    }
+    if (/(image|vision|qr)/.test(normalized)) {
+        return ImageIcon
+    }
+    if (/(weather|cloud)/.test(normalized)) {
+        return CloudIcon
+    }
+    if (/(security|shield)/.test(normalized)) {
+        return ShieldIcon
+    }
+    if (/(calc|math)/.test(normalized)) {
+        return CalculatorIcon
+    }
+    if (/(date|time|clock)/.test(normalized)) {
+        return CalendarIcon
+    }
+    if (/(geo|map|location)/.test(normalized)) {
+        return MapPinIcon
+    }
+    if (/(link|url|http)/.test(normalized)) {
+        return LinkIcon
+    }
+    if (/(embedding|semantic|ai|brain)/.test(normalized)) {
+        return BrainIcon
+    }
+    if (/(sentiment|grammar|content|translate)/.test(normalized)) {
+        return MessageSquareIcon
+    }
+    if (/(company|profile|report|bar)/.test(normalized)) {
+        return BarChartIcon
+    }
+    if (/(currency|card|payment)/.test(normalized)) {
+        return CreditCardIcon
+    }
+    if (/(cron|schedule)/.test(normalized)) {
+        return ClockIcon
+    }
+    return WrenchIcon
+}
 
 export function ToolsList() {
+    const { data, loading, error } = useTools()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [showAll, setShowAll] = useState(false)
 
-    const filteredTools = TOOLS.filter((tool) => {
+    const tools: ToolCard[] = (data ?? []).map((tool: Tool) => ({
+        id: tool.id,
+        name: tool.name ?? tool.id,
+        description: tool.description ?? 'Tool available from backend catalog.',
+        category: classifyToolCategory(tool.id),
+        icon: chooseToolIcon(tool.id),
+    }))
+
+    const categories = [
+        'All',
+        ...Array.from(new Set(tools.map((tool) => tool.category))).sort(),
+    ]
+
+    const filteredTools = tools.filter((tool) => {
         const matchesSearch =
             tool.name.toLowerCase().includes(search.toLowerCase()) ||
             tool.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -385,7 +159,7 @@ export function ToolsList() {
     })
 
     const displayedTools = showAll ? filteredTools : filteredTools.slice(0, 18)
-    const popularTools = TOOLS.filter((tool) => tool.popular)
+    const popularTools = tools.slice(0, 4)
 
     return (
         <section className="container mx-auto px-4 py-24">
@@ -396,16 +170,13 @@ export function ToolsList() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <Badge variant="outline" className="mb-4">
-                        {TOOLS.length}+ Tools Available
-                    </Badge>
-                    <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                        Tools Library
-                    </h1>
-                    <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                        Production-ready tools for your AI agents. Connect to
-                        APIs, process data, and automate workflows.
-                    </p>
+                    <PublicPageHero
+                        badge={`${tools.length}+ Tools Available`}
+                        title="Tools Library"
+                        description="Production-ready tools for your AI agents. Connect to APIs, process data, and automate workflows."
+                        accent={AnimatedQuantumLattice}
+                        accentCaption="Parallel tool orchestration lattice"
+                    />
                 </motion.div>
             </div>
 
@@ -421,7 +192,7 @@ export function ToolsList() {
                     Popular Tools
                 </h2>
                 <div className="@container grid gap-4 @sm:grid-cols-2 @lg:grid-cols-4">
-                    {popularTools.slice(0, 4).map((tool, index) => (
+                    {popularTools.map((tool, index) => (
                         <motion.div
                             key={tool.id}
                             initial={{ opacity: 0, scale: 0.95 }}
@@ -437,7 +208,7 @@ export function ToolsList() {
                                         <tool.icon className="size-5" />
                                     </div>
                                     <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-                                        Popular
+                                        Featured
                                     </Badge>
                                 </div>
                                 <h3 className="mb-1 font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -470,7 +241,7 @@ export function ToolsList() {
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2">
-                    {CATEGORIES.map((category) => (
+                    {categories.map((category) => (
                         <Badge
                             key={category}
                             variant={
@@ -489,7 +260,7 @@ export function ToolsList() {
                                 <span className="ml-1.5 text-xs opacity-60">
                                     (
                                     {
-                                        TOOLS.filter(
+                                        tools.filter(
                                             (t) => t.category === category
                                         ).length
                                     }
@@ -522,11 +293,6 @@ export function ToolsList() {
                                         <tool.icon className="size-5" />
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        {tool.new && (
-                                            <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 text-xs">
-                                                New
-                                            </Badge>
-                                        )}
                                         <Badge
                                             variant="secondary"
                                             className="text-xs font-normal"
@@ -559,7 +325,7 @@ export function ToolsList() {
             </div>
 
             {/* Empty state */}
-            {filteredTools.length === 0 && (
+            {Boolean(!loading && !error && filteredTools.length === 0) && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -584,6 +350,15 @@ export function ToolsList() {
                         Clear Filters
                     </Button>
                 </motion.div>
+            )}
+
+            {Boolean(error) && (
+                <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    <div className="flex items-center gap-2">
+                        <AlertCircleIcon className="size-4" />
+                        Failed to load tools from backend: {error?.message}
+                    </div>
+                </div>
             )}
 
             {/* Show more button */}

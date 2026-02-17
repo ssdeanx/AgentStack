@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useTools, useTool, useExecuteTool } from '@/lib/hooks/use-mastra'
+import {
+    useToolsQuery,
+    useToolQuery,
+    useExecuteToolMutation,
+} from '@/lib/hooks/use-dashboard-queries'
 import {
     Card,
     CardContent,
@@ -9,7 +13,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/ui/card'
-import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
@@ -36,16 +39,15 @@ import {
 } from 'lucide-react'
 
 export default function ToolsPage() {
-    const { data: tools, loading, error, refetch } = useTools()
+    const { data: tools, isLoading, error, refetch } = useToolsQuery()
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedToolId, setSelectedToolId] = useState<string | null>(null)
 
     const filteredTools = tools?.filter(
         (tool) =>
             tool.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (tool as any).name
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase())
+            (tool.name?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+                false)
     )
 
     return (
@@ -75,7 +77,7 @@ export default function ToolsPage() {
                 </div>
 
                 <ScrollArea className="flex-1">
-                    {loading ? (
+                    {isLoading ? (
                         <div className="space-y-2 p-4">
                             {[...Array(5)].map((_, i) => (
                                 <Skeleton key={i} className="h-16 w-full" />
@@ -101,10 +103,10 @@ export default function ToolsPage() {
                                         <Wrench className="h-5 w-5 text-muted-foreground" />
                                         <div className="flex-1 truncate">
                                             <div className="font-medium">
-                                                {tool.id}
+                                                {tool.name ?? tool.id}
                                             </div>
                                             <div className="text-xs text-muted-foreground truncate">
-                                                {(tool as any).description ||
+                                                {tool.description ??
                                                     'No description'}
                                             </div>
                                         </div>
@@ -139,26 +141,21 @@ export default function ToolsPage() {
 }
 
 function ToolDetails({ toolId }: { toolId: string }) {
-    const { data: tool, loading, error } = useTool(toolId)
-    const {
-        execute,
-        loading: executing,
-        error: execError,
-        result,
-    } = useExecuteTool()
+    const { data: tool, isLoading, error } = useToolQuery(toolId)
+    const executeTool = useExecuteToolMutation()
     const [execDialogOpen, setExecDialogOpen] = useState(false)
     const [argsInput, setArgsInput] = useState('{}')
 
     const handleExecute = async () => {
         try {
             const parsedArgs = JSON.parse(argsInput)
-            await execute(toolId, parsedArgs)
+            await executeTool.mutateAsync({ toolId, data: parsedArgs })
         } catch (err) {
             // JSON parse error handled by the hook
         }
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="p-6 space-y-4">
                 <Skeleton className="h-8 w-48" />
@@ -183,8 +180,7 @@ function ToolDetails({ toolId }: { toolId: string }) {
                 <div>
                     <h1 className="text-2xl font-bold">{toolId}</h1>
                     <p className="text-muted-foreground mt-1">
-                        {(tool as any)?.description ||
-                            'No description available'}
+                        {tool?.description ?? 'No description available'}
                     </p>
                 </div>
                 <Dialog open={execDialogOpen} onOpenChange={setExecDialogOpen}>
@@ -215,18 +211,22 @@ function ToolDetails({ toolId }: { toolId: string }) {
                                     className="mt-1 font-mono text-sm h-32"
                                 />
                             </div>
-                            {execError && (
+                            {executeTool.error && (
                                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                                    {execError.message}
+                                    {executeTool.error.message}
                                 </div>
                             )}
-                            {result != null && (
+                            {executeTool.data != null && (
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">
                                         Result
                                     </label>
                                     <pre className="text-sm bg-muted p-3 rounded-md overflow-auto max-h-48">
-                                        {JSON.stringify(result, null, 2)}
+                                        {JSON.stringify(
+                                            executeTool.data,
+                                            null,
+                                            2
+                                        )}
                                     </pre>
                                 </div>
                             )}
@@ -240,12 +240,14 @@ function ToolDetails({ toolId }: { toolId: string }) {
                             </Button>
                             <Button
                                 onClick={handleExecute}
-                                disabled={executing}
+                                disabled={executeTool.isPending}
                             >
-                                {executing && (
+                                {executeTool.isPending && (
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 )}
-                                {executing ? 'Executing...' : 'Execute'}
+                                {executeTool.isPending
+                                    ? 'Executing...'
+                                    : 'Execute'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -290,19 +292,10 @@ function ToolDetails({ toolId }: { toolId: string }) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {(tool as any)?.inputSchema ? (
-                                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md overflow-auto max-h-64">
-                                    {JSON.stringify(
-                                        (tool as any).inputSchema,
-                                        null,
-                                        2
-                                    )}
-                                </pre>
-                            ) : (
-                                <p className="text-muted-foreground">
-                                    No input schema defined
-                                </p>
-                            )}
+                            <p className="text-muted-foreground">
+                                Input schema details are unavailable from this
+                                endpoint for now.
+                            </p>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -319,19 +312,10 @@ function ToolDetails({ toolId }: { toolId: string }) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {(tool as any)?.outputSchema ? (
-                                <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md overflow-auto max-h-64">
-                                    {JSON.stringify(
-                                        (tool as any).outputSchema,
-                                        null,
-                                        2
-                                    )}
-                                </pre>
-                            ) : (
-                                <p className="text-muted-foreground">
-                                    No output schema defined
-                                </p>
-                            )}
+                            <p className="text-muted-foreground">
+                                Output schema details are unavailable from this
+                                endpoint for now.
+                            </p>
                         </CardContent>
                     </Card>
                 </TabsContent>

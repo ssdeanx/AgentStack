@@ -1,6 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedNeuralMesh } from '@/app/components/gsap/svg-suite'
 
 const TERMS_SECTIONS = [
     {
@@ -54,10 +56,14 @@ export function TermsContent() {
                     transition={{ duration: 0.5 }}
                     className="mb-12"
                 >
-                    <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground">
-                        Terms of Service
-                    </h1>
-                    <p className="text-muted-foreground">
+                    <PublicPageHero
+                        badge="Legal"
+                        title="Terms of Service"
+                        description="Rules and responsibilities for using the AgentStack platform."
+                        accent={AnimatedNeuralMesh}
+                        accentCaption="Governance mesh and compliance rules"
+                    />
+                    <p className="mt-4 text-muted-foreground">
                         Last updated: November 30, 2025
                     </p>
                 </motion.div>

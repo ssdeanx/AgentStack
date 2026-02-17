@@ -2,16 +2,13 @@
 
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import {
-    getAgentConfig,
-    AGENT_CONFIGS,
-    DEFAULT_AGENT_ID,
-} from '../config/agents'
+import { getAgentConfig, DEFAULT_AGENT_ID } from '../config/agents'
 import {
     getDefaultModel,
     getModelConfig,
     type ModelConfig,
 } from '../config/models'
+// AI SDK v6 types imported from local types file
 import type {
     UIMessage,
     DynamicToolUIPart,
@@ -22,7 +19,6 @@ import type {
     UIDataPartSchemas,
     UIMessageChunk,
     UIMessagePart,
-    TelemetrySettings,
     TextStreamPart,
     TextPart,
     ToolResultPart,
@@ -47,7 +43,7 @@ import type {
     InferUITools,
     InferGenerateOutput,
     InferStreamOutput,
-} from 'ai'
+} from './chat-context-types'
 import {
     getToolName,
     isDataUIPart,
@@ -63,7 +59,7 @@ import {
     getStaticToolName,
     getTextFromDataUrl,
     safeValidateUIMessages,
-    generateId
+    generateId,
 } from 'ai'
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
@@ -82,11 +78,16 @@ import type {
     ChatContextValue,
 } from './chat-context-types'
 import { ChatContext } from './chat-context-hooks'
+import {
+    RequestContext,
+    MASTRA_RESOURCE_ID_KEY,
+    MASTRA_THREAD_ID_KEY,
+} from '@mastra/core/request-context'
 
 interface InputTokenDetails {
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
-  noCacheTokens: number;
+    cacheReadTokens: number
+    cacheWriteTokens: number
+    noCacheTokens: number
 }
 
 export interface ChatProviderProps {
@@ -187,21 +188,21 @@ export function ChatProvider({
     const transport = useMemo(
         () =>
             new DefaultChatTransport({
-                api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
-                // Match the network provider's request shape so the server can pick the
-                // correct agent by reading body.data.agentId. Avoid sending extra
-                // top-level fields which can confuse the MAStra chatRoute router.
+                // Use stable endpoint - agentId passed in body, not URL path
+                api: `${MASTRA_API_URL}/chat`,
                 prepareSendMessagesRequest({ messages: outgoingMessages }) {
                     const last = outgoingMessages[outgoingMessages.length - 1]
                     const textPart = last?.parts?.find(
                         (p): p is TextUIPart => p.type === 'text'
                     )
 
+                    // Create RequestContext for multi-tenancy isolation
+                    const requestContext = new RequestContext()
+                    requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
+                    requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
+
                     return {
-                        api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
                         body: {
-                            // id at top-level is used by chatRoute to select the agent when
-                            // multiple chatRoute handlers are registered at the same path.
                             id: selectedAgent,
                             messages: outgoingMessages,
                             memory: {
@@ -212,13 +213,13 @@ export function ChatProvider({
                                 agentId: selectedAgent,
                                 resourceId,
                             },
-                            // set resourceId so server can use it for tracing/memory if needed
                             resourceId,
                             data: {
                                 agentId: selectedAgent,
                                 threadId,
                                 input: textPart?.text ?? '',
                             },
+                            requestContext,
                         },
                     }
                 },
@@ -424,28 +425,31 @@ export function ChatProvider({
 
     const selectAgent = useCallback(
         (agentId: string) => {
-            if (Object.prototype.hasOwnProperty.call(AGENT_CONFIGS, agentId)) {
-                setSelectedAgent(agentId)
-
-                // Keep per-agent thread IDs stable by default (but never hard-coded).
-                if (
-                    !(
-                        defaultThreadId !== undefined &&
-                        defaultThreadId.trim().length > 0
-                    )
-                ) {
-                    setThreadIdState(
-                        getOrCreateLocalStorageId(
-                            threadStorageKey(agentId),
-                            `thread:${identity.userId}:${agentId}`
-                        )
-                    )
-                }
-
-                setSourcesState([])
-                setChatError(null)
-                setWebPreviewState(null)
+            const normalizedAgentId = agentId.trim()
+            if (normalizedAgentId.length === 0) {
+                return
             }
+
+            setSelectedAgent(normalizedAgentId)
+
+            // Keep per-agent thread IDs stable by default (but never hard-coded).
+            if (
+                !(
+                    defaultThreadId !== undefined &&
+                    defaultThreadId.trim().length > 0
+                )
+            ) {
+                setThreadIdState(
+                    getOrCreateLocalStorageId(
+                        threadStorageKey(normalizedAgentId),
+                        `thread:${identity.userId}:${normalizedAgentId}`
+                    )
+                )
+            }
+
+            setSourcesState([])
+            setChatError(null)
+            setWebPreviewState(null)
         },
         [defaultThreadId, identity.userId, threadStorageKey]
     )
@@ -636,19 +640,19 @@ export function ChatProvider({
                     ) {
                         const usageData = partAny.usage as
                             | {
-                                promptTokens?: number
-                                inputTokens?: number
-                                completionTokens?: number
-                                outputTokens?: number
-                                totalTokens?: number
-                                inputTokenDetails?: {
-                                    cacheCreation?: number
-                                    cacheRead?: number
-                                }
-                                outputTokenDetails?: {
-                                    reasoning?: number
-                                }
-                            }
+                                  promptTokens?: number
+                                  inputTokens?: number
+                                  completionTokens?: number
+                                  outputTokens?: number
+                                  totalTokens?: number
+                                  inputTokenDetails?: {
+                                      cacheCreation?: number
+                                      cacheRead?: number
+                                  }
+                                  outputTokenDetails?: {
+                                      reasoning?: number
+                                  }
+                              }
                             | undefined
                         if (usageData) {
                             return {
@@ -662,15 +666,29 @@ export function ChatProvider({
                                     0,
                                 totalTokens: usageData.totalTokens ?? 0,
                                 inputTokenDetails: {
-                                    cacheCreation:
-                                        usageData.inputTokenDetails
-                                            ?.cacheCreation ?? 0,
-                                    cacheRead:
+                                    cacheReadTokens:
                                         usageData.inputTokenDetails
                                             ?.cacheRead ?? 0,
+                                    cacheWriteTokens:
+                                        usageData.inputTokenDetails
+                                            ?.cacheCreation ?? 0,
+                                    noCacheTokens: Math.max(
+                                        0,
+                                        (usageData.promptTokens ??
+                                            usageData.inputTokens ??
+                                            0) -
+                                            ((usageData.inputTokenDetails
+                                                ?.cacheCreation ?? 0) +
+                                                (usageData.inputTokenDetails
+                                                    ?.cacheRead ?? 0))
+                                    ),
                                 },
                                 outputTokenDetails: {
-                                    reasoning:
+                                    textTokens:
+                                        usageData.completionTokens ??
+                                        usageData.outputTokens ??
+                                        0,
+                                    reasoningTokens:
                                         usageData.outputTokenDetails
                                             ?.reasoning ?? 0,
                                 },

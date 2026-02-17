@@ -29,6 +29,8 @@ export const queryKeys = {
     agents: ['agents'] as const,
     agent: (id: string) => ['agents', id] as const,
     agentEvals: (id: string) => ['agents', id, 'evals'] as const,
+    networks: ['networks'] as const,
+    network: (id: string) => ['networks', id] as const,
     workflows: ['workflows'] as const,
     workflow: (id: string) => ['workflows', id] as const,
     tools: ['tools'] as const,
@@ -160,6 +162,87 @@ export function useAgentQuery(agentId: string | null) {
             } as Agent
         },
         enabled: agentId !== null && agentId !== undefined,
+    })
+}
+
+// Networks Queries (derived from agent catalog for now)
+export function useNetworksQuery() {
+    return useQuery({
+        queryKey: queryKeys.networks,
+        queryFn: async (): Promise<Agent[]> => {
+            const data = await listAgentsTyped()
+            const records =
+                (data as { agents?: Record<string, Agent> }).agents ??
+                (data as Record<string, Agent>)
+
+            return Object.entries(records)
+                .filter(([id]) => id.toLowerCase().includes('network'))
+                .map(([id, agent]) => {
+                    const rec = agent as unknown as Record<string, unknown>
+                    let modelStr: string | undefined = undefined
+                    if (typeof rec.modelId === 'string') {
+                        modelStr = rec.modelId
+                    } else if (typeof rec.model === 'string') {
+                        modelStr = rec.model
+                    } else if (
+                        typeof rec.model === 'object' &&
+                        rec.model !== null &&
+                        typeof (rec.model as Record<string, unknown>).name ===
+                            'string'
+                    ) {
+                        modelStr = (rec.model as Record<string, unknown>)
+                            .name as string
+                    }
+
+                    return {
+                        id,
+                        name: rec.name as string | undefined,
+                        description: rec.description as string | undefined,
+                        model: modelStr,
+                        instructions: rec.instructions as string | undefined,
+                    }
+                })
+        },
+    })
+}
+
+export function useNetworkQuery(networkId: string | null) {
+    return useQuery({
+        queryKey: queryKeys.network(networkId ?? ''),
+        queryFn: async (): Promise<Agent | null> => {
+            if (networkId === null || networkId === undefined) {
+                return null
+            }
+
+            const agent = mastraClient.getAgent(networkId)
+            const details = await agent.details()
+            const det = details as unknown as Record<string, unknown>
+
+            let modelStr: string | undefined = undefined
+            if (typeof det.modelId === 'string') {
+                modelStr = det.modelId
+            } else if (typeof det.model === 'string') {
+                modelStr = det.model
+            } else if (
+                typeof det.model === 'object' &&
+                det.model !== null &&
+                typeof (det.model as Record<string, unknown>).name === 'string'
+            ) {
+                modelStr = (det.model as Record<string, unknown>).name as string
+            }
+
+            return {
+                id: networkId,
+                name: details.name,
+                description: details.description,
+                model: modelStr,
+                instructions:
+                    typeof details.instructions === 'string'
+                        ? details.instructions
+                        : JSON.stringify(details.instructions),
+            }
+        },
+        enabled: networkId !== null && networkId !== undefined,
     })
 }
 

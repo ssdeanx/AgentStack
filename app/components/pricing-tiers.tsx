@@ -120,6 +120,7 @@ export function PricingTiers() {
                         description="Choose the plan that's right for you and start building AI agents today."
                         badge="Plans"
                         accent={AnimatedGradientRings}
+                        accentCaption="Tiered adoption and growth cycles"
                     />
 
                     <div className="mt-8 flex items-center justify-center gap-4">

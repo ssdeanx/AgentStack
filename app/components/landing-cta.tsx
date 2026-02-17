@@ -16,6 +16,7 @@ import {
     SECTION_HEADING,
     SECTION_BODY,
 } from '@/app/components/primitives'
+import { AnimatedTokenStream } from '@/app/components/gsap/svg-suite'
 
 const CTA_FEATURES = [
     'Free to start',
@@ -48,7 +49,7 @@ const QUICK_LINKS = [
 export function LandingCTA() {
     const revealRef = useSectionReveal<HTMLDivElement>({
         selector:
-            '.cta-badge, .cta-heading, .cta-desc, .cta-buttons, .cta-features, .cta-links, .cta-terminal',
+            '.cta-badge, .cta-heading, .cta-desc, .cta-visual, .cta-buttons, .cta-features, .cta-links, .cta-terminal',
         stagger: 0.1,
         yOffset: 20,
     })
@@ -85,6 +86,16 @@ export function LandingCTA() {
                         source, enterprise-ready, and backed by an amazing
                         community.
                     </p>
+
+                    <div className="cta-visual mb-10 flex justify-center">
+                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-3xl border border-border/60 bg-linear-to-br from-card via-card to-primary/5 p-3">
+                            <AnimatedTokenStream
+                                className="gsap-svg-icon gsap-svg-crisp"
+                                size={160}
+                                animate
+                            />
+                        </div>
+                    </div>
 
                     {/* CTA Buttons */}
                     <div className="cta-buttons flex flex-col items-center justify-center gap-4 sm:flex-row">

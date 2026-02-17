@@ -3,7 +3,10 @@
 import { useAgentQuery } from '@/lib/hooks/use-dashboard-queries'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
 import { Badge } from '@/ui/badge'
+import { Button } from '@/ui/button'
 import { Bot, Info, Wrench, Activity } from 'lucide-react'
+import Link from 'next/link'
+import type { Route } from 'next'
 import { LoadingSkeleton, EmptyState } from '../../_components'
 import { AgentToolsTab } from './agent-tools-tab'
 import { AgentTab } from './agent-tab'
@@ -46,6 +49,12 @@ export function AgentDetails({ agentId }: AgentDetailsProps) {
                 )}
                 <div className="flex gap-2">
                     <Badge variant="outline">{agent.id}</Badge>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={`/chat?agent=${agent.id}` as Route}>
+                            <Bot className="h-4 w-4 mr-2" />
+                            Chat with this agent
+                        </Link>
+                    </Button>
                     {agent.model && (
                         <Badge variant="secondary">
                             {typeof agent.model === 'string'

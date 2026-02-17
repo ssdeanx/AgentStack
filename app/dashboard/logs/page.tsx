@@ -1,18 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLogs, useRunLogs, useLogTransports } from '@/lib/hooks/use-mastra'
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
 import { ScrollArea } from '@/ui/scroll-area'
 import { Skeleton } from '@/ui/skeleton'
 import { Label } from '@/ui/label'
@@ -36,17 +29,58 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+type LogLevel = 'error' | 'warn' | 'info' | 'debug'
+
+interface LogRecord {
+    id?: string
+    level?: string
+    message?: string
+    timestamp?: string
+    source?: string
+    runId?: string
+    metadata?: Record<string, string | number | boolean | null>
+}
+
+function isLogRecord(value: unknown): value is LogRecord {
+    return typeof value === 'object' && value !== null
+}
+
+function normalizeLogs(value: unknown): LogRecord[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+
+    return value.filter(isLogRecord)
+}
+
+function normalizeTransports(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return []
+    }
+
+    return value.filter((item): item is string => typeof item === 'string')
+}
+
+function normalizeLevel(level: string | undefined): LogLevel {
+    if (level === 'error' || level === 'warn' || level === 'debug') {
+        return level
+    }
+    return 'info'
+}
+
 export default function LogsPage() {
-    const { data: transports, loading: transportsLoading } = useLogTransports()
+    const { data: transportData, loading: transportsLoading } = useLogTransports()
     const [selectedTransport, setSelectedTransport] = useState<string>('all')
     const [runIdFilter, setRunIdFilter] = useState('')
+
     const {
-        data: logs,
+        data: logData,
         loading,
         error,
         refetch,
     } = useLogs(selectedTransport === 'all' ? undefined : selectedTransport)
-    const { data: runLogs, loading: runLogsLoading } = useRunLogs(
+
+    const { data: runLogData, loading: runLogsLoading } = useRunLogs(
         runIdFilter || null,
         selectedTransport === 'all' ? undefined : selectedTransport
     )
@@ -54,46 +88,39 @@ export default function LogsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [levelFilter, setLevelFilter] = useState<string>('all')
 
-    const logsArray = Array.isArray(logs)
-        ? logs
-        : ((logs as unknown as { logs?: unknown[] })?.logs ?? [])
-    const filteredLogs = logsArray.filter((log: Record<string, unknown>) => {
-        const matchesSearch =
-            !searchQuery ||
-            (log.message as string)
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase()) ||
-            JSON.stringify(log)
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase())
+    const transports = normalizeTransports(transportData)
+    const logs = normalizeLogs(logData)
+    const runLogs = normalizeLogs(runLogData)
 
-        const matchesLevel = levelFilter === 'all' || log.level === levelFilter
+    const filteredLogs = useMemo(() => {
+        return logs.filter((log) => {
+            const message = log.message ?? ''
+            const matchesSearch =
+                searchQuery.length === 0 ||
+                message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                JSON.stringify(log).toLowerCase().includes(searchQuery.toLowerCase())
 
-        return matchesSearch && matchesLevel
-    })
+            const matchesLevel =
+                levelFilter === 'all' || normalizeLevel(log.level) === levelFilter
+
+            return matchesSearch && matchesLevel
+        })
+    }, [logs, searchQuery, levelFilter])
 
     return (
         <div className="flex h-full flex-col">
-            {/* Header */}
             <div className="border-b p-4 space-y-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">System Logs</h1>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetch()}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => void refetch()}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
                 </div>
 
-                {/* Filters */}
                 <div className="flex flex-wrap gap-4">
                     <div className="w-64">
-                        <Label className="text-xs text-muted-foreground">
-                            Transport
-                        </Label>
+                        <Label className="text-xs text-muted-foreground">Transport</Label>
                         <Select
                             value={selectedTransport}
                             onValueChange={setSelectedTransport}
@@ -103,18 +130,10 @@ export default function LogsPage() {
                                 <SelectValue placeholder="Select transport" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">
-                                    All Transports
-                                </SelectItem>
-                                {(
-                                    (
-                                        transports as unknown as {
-                                            transports?: string[]
-                                        }
-                                    )?.transports ?? []
-                                ).map((t) => (
-                                    <SelectItem key={t} value={t}>
-                                        {t}
+                                <SelectItem value="all">All Transports</SelectItem>
+                                {transports.map((transport) => (
+                                    <SelectItem key={transport} value={transport}>
+                                        {transport}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -122,13 +141,8 @@ export default function LogsPage() {
                     </div>
 
                     <div className="w-64">
-                        <Label className="text-xs text-muted-foreground">
-                            Log Level
-                        </Label>
-                        <Select
-                            value={levelFilter}
-                            onValueChange={setLevelFilter}
-                        >
+                        <Label className="text-xs text-muted-foreground">Log Level</Label>
+                        <Select value={levelFilter} onValueChange={setLevelFilter}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="All Levels" />
                             </SelectTrigger>
@@ -143,15 +157,13 @@ export default function LogsPage() {
                     </div>
 
                     <div className="flex-1 min-w-64">
-                        <Label className="text-xs text-muted-foreground">
-                            Search
-                        </Label>
+                        <Label className="text-xs text-muted-foreground">Search</Label>
                         <div className="relative mt-1">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search logs..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(event) => setSearchQuery(event.target.value)}
                                 className="pl-9"
                             />
                         </div>
@@ -159,111 +171,81 @@ export default function LogsPage() {
                 </div>
             </div>
 
-            {/* Content */}
-            <Tabs defaultValue="all" className="flex-1 flex flex-col">
-                <div className="border-b px-4">
-                    <TabsList className="h-10">
-                        <TabsTrigger value="all">All Logs</TabsTrigger>
-                        <TabsTrigger value="run">Run Logs</TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="all" className="flex-1 m-0 overflow-hidden">
-                    <ScrollArea className="h-full">
+            <div className="grid flex-1 gap-4 p-4 lg:grid-cols-2">
+                <Card className="overflow-hidden">
+                    <CardHeader className="border-b bg-muted/30">
+                        <CardTitle>All Logs</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         {loading ? (
                             <div className="space-y-2 p-4">
-                                {[...Array(10)].map((_, i) => (
-                                    <Skeleton key={i} className="h-16 w-full" />
+                                {Array.from({ length: 10 }).map((_, index) => (
+                                    <Skeleton key={index} className="h-16 w-full" />
                                 ))}
                             </div>
                         ) : error ? (
-                            <div className="p-4 text-sm text-destructive">
-                                Error: {error.message}
-                            </div>
-                        ) : filteredLogs && filteredLogs.length > 0 ? (
-                            <div className="p-4 space-y-2">
-                                {filteredLogs.map((log: any, index: number) => (
-                                    <LogEntry key={log.id ?? index} log={log} />
-                                ))}
+                            <div className="p-4 text-sm text-destructive">{error.message}</div>
+                        ) : filteredLogs.length === 0 ? (
+                            <div className="p-8 text-center text-sm text-muted-foreground">
+                                No logs found.
                             </div>
                         ) : (
-                            <div className="flex h-full items-center justify-center text-muted-foreground">
-                                <div className="text-center">
-                                    <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                                    <p>No logs found</p>
+                            <ScrollArea className="h-160">
+                                <div className="space-y-2 p-4">
+                                    {filteredLogs.map((log, index) => (
+                                        <LogEntry key={log.id ?? String(index)} log={log} />
+                                    ))}
                                 </div>
-                            </div>
+                            </ScrollArea>
                         )}
-                    </ScrollArea>
-                </TabsContent>
+                    </CardContent>
+                </Card>
 
-                <TabsContent
-                    value="run"
-                    className="flex-1 m-0 overflow-hidden flex flex-col"
-                >
-                    <div className="border-b p-4">
-                        <div className="max-w-md">
-                            <Label className="text-xs text-muted-foreground">
-                                Run ID
-                            </Label>
-                            <Input
-                                value={runIdFilter}
-                                onChange={(e) => setRunIdFilter(e.target.value)}
-                                placeholder="Enter run ID to fetch logs"
-                                className="mt-1"
-                            />
-                        </div>
-                    </div>
-
-                    <ScrollArea className="flex-1">
+                <Card className="overflow-hidden">
+                    <CardHeader className="border-b bg-muted/30 space-y-3">
+                        <CardTitle>Run Logs</CardTitle>
+                        <Input
+                            value={runIdFilter}
+                            onChange={(event) => setRunIdFilter(event.target.value)}
+                            placeholder="Enter run ID to fetch logs"
+                        />
+                    </CardHeader>
+                    <CardContent className="p-0">
                         {!runIdFilter ? (
-                            <div className="flex h-full items-center justify-center text-muted-foreground">
-                                <div className="text-center">
-                                    <Search className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                                    <p>Enter a Run ID to view logs</p>
-                                </div>
+                            <div className="p-8 text-center text-sm text-muted-foreground">
+                                Enter a run ID to view logs.
                             </div>
                         ) : runLogsLoading ? (
                             <div className="space-y-2 p-4">
-                                {[...Array(5)].map((_, i) => (
-                                    <Skeleton key={i} className="h-16 w-full" />
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <Skeleton key={index} className="h-16 w-full" />
                                 ))}
                             </div>
-                        ) : runLogs ? (
-                            <div className="p-4 space-y-2">
-                                {Array.isArray(runLogs) ? (
-                                    runLogs.map((log: any, index: number) => (
-                                        <LogEntry
-                                            key={log.id ?? index}
-                                            log={log}
-                                        />
-                                    ))
-                                ) : (
-                                    <LogEntry log={runLogs} />
-                                )}
+                        ) : runLogs.length === 0 ? (
+                            <div className="p-8 text-center text-sm text-muted-foreground">
+                                No logs found for this run.
                             </div>
                         ) : (
-                            <div className="flex h-full items-center justify-center text-muted-foreground">
-                                <div className="text-center">
-                                    <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                                    <p>No logs found for this run</p>
+                            <ScrollArea className="h-160">
+                                <div className="space-y-2 p-4">
+                                    {runLogs.map((log, index) => (
+                                        <LogEntry key={log.id ?? String(index)} log={log} />
+                                    ))}
                                 </div>
-                            </div>
+                            </ScrollArea>
                         )}
-                    </ScrollArea>
-                </TabsContent>
-            </Tabs>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }
 
-function LogEntry({ log }: { log: any }) {
+function LogEntry({ log }: { log: LogRecord }) {
     const [expanded, setExpanded] = useState(false)
 
-    const levelConfig: Record<
-        string,
-        { icon: typeof Info; color: string; bg: string }
-    > = {
+    const level = normalizeLevel(log.level)
+    const levelConfig: Record<LogLevel, { icon: typeof Info; color: string; bg: string }> = {
         error: {
             icon: AlertCircle,
             color: 'text-destructive',
@@ -279,42 +261,38 @@ function LogEntry({ log }: { log: any }) {
             color: 'text-primary dark:text-primary-foreground',
             bg: 'bg-primary/10 dark:bg-primary/30',
         },
-        debug: { icon: Bug, color: 'text-muted-foreground', bg: 'bg-muted' },
+        debug: {
+            icon: Bug,
+            color: 'text-muted-foreground',
+            bg: 'bg-muted',
+        },
     }
 
-    const level = log.level?.toLowerCase() ?? 'info'
-    const config = levelConfig[level] || levelConfig.info
+    const config = levelConfig[level]
     const Icon = config.icon
 
     return (
         <div className={cn('rounded-md border', config.bg)}>
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="w-full p-3 text-left"
-            >
+            <button onClick={() => setExpanded(!expanded)} className="w-full p-3 text-left">
                 <div className="flex items-start gap-3">
-                    <Icon
-                        className={cn('h-5 w-5 mt-0.5 shrink-0', config.color)}
-                    />
+                    <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', config.color)} />
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="text-xs">
                                 {level.toUpperCase()}
                             </Badge>
-                            {log.timestamp && (
+                            {log.timestamp ? (
                                 <span className="text-xs text-muted-foreground">
                                     {new Date(log.timestamp).toLocaleString()}
                                 </span>
-                            )}
-                            {log.source && (
+                            ) : null}
+                            {(log.source) ? (
                                 <Badge variant="secondary" className="text-xs">
                                     {log.source}
                                 </Badge>
-                            )}
+                            ) : null}
                         </div>
-                        <p className="mt-1 text-sm truncate">
-                            {log.message ?? JSON.stringify(log)}
-                        </p>
+                        <p className="mt-1 text-sm truncate">{log.message ?? 'No message'}</p>
                     </div>
                     {expanded ? (
                         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -324,13 +302,13 @@ function LogEntry({ log }: { log: any }) {
                 </div>
             </button>
 
-            {expanded && (
+            {expanded ? (
                 <div className="border-t px-3 pb-3">
-                    <pre className="mt-3 text-xs bg-background p-3 rounded-md overflow-auto max-h-64">
+                    <pre className="mt-3 max-h-64 overflow-auto rounded-md bg-background p-3 text-xs">
                         {JSON.stringify(log, null, 2)}
                     </pre>
                 </div>
-            )}
+            ) : null}
         </div>
     )
 }

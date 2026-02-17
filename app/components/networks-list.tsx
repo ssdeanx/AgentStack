@@ -5,57 +5,69 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Badge } from '@/ui/badge'
 import { Input } from '@/ui/input'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedRadarScan } from '@/app/components/gsap/svg-suite'
+import { useAgents } from '@/lib/hooks/use-mastra'
+import type { Agent } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
     NetworkIcon,
     UsersIcon,
     ZapIcon,
     ArrowRightIcon,
+    AlertCircleIcon,
 } from 'lucide-react'
 
-const NETWORKS = [
-    {
-        name: 'Agent Network',
-        id: 'agentNetwork',
-        description:
-            'Core network for routing tasks to specialized agents based on intent classification.',
-        agents: 8,
-        category: 'Core',
-        icon: NetworkIcon,
-    },
-    {
-        name: 'Data Pipeline Network',
-        id: 'dataPipelineNetwork',
-        description:
-            'Orchestrates data ingestion, transformation, and export workflows.',
-        agents: 4,
-        category: 'Data',
-        icon: ZapIcon,
-    },
-    {
-        name: 'Report Generation Network',
-        id: 'reportGenerationNetwork',
-        description:
-            'Coordinates research, writing, and editing agents for comprehensive reports.',
-        agents: 5,
-        category: 'Content',
-        icon: UsersIcon,
-    },
-    {
-        name: 'Research Pipeline Network',
-        id: 'researchPipelineNetwork',
-        description:
-            'Manages multi-source research synthesis and knowledge aggregation.',
-        agents: 6,
-        category: 'Research',
-        icon: NetworkIcon,
-    },
-]
+type NetworkCard = {
+    id: string
+    name: string
+    description: string
+    category: string
+    icon: typeof NetworkIcon
+}
+
+function classifyNetworkCategory(id: string): string {
+    const normalized = id.toLowerCase()
+    if (normalized.includes('data')) {
+        return 'Data'
+    }
+    if (normalized.includes('report') || normalized.includes('content')) {
+        return 'Content'
+    }
+    if (normalized.includes('research')) {
+        return 'Research'
+    }
+    return 'Core'
+}
+
+function selectNetworkIcon(id: string): typeof NetworkIcon {
+    const normalized = id.toLowerCase()
+    if (normalized.includes('data')) {
+        return ZapIcon
+    }
+    if (normalized.includes('report') || normalized.includes('content')) {
+        return UsersIcon
+    }
+    return NetworkIcon
+}
 
 export function NetworksList() {
+    const { data, loading, error } = useAgents()
     const [search, setSearch] = useState('')
 
-    const filteredNetworks = NETWORKS.filter(
+    const networks: NetworkCard[] = (data ?? [])
+        .filter((agent: Agent) => agent.id.toLowerCase().includes('network'))
+        .map((network: Agent) => ({
+            id: network.id,
+            name: network.name ?? network.id,
+            description:
+                network.description ??
+                'Network orchestrator available from backend.',
+            category: classifyNetworkCategory(network.id),
+            icon: selectNetworkIcon(network.id),
+        }))
+
+    const filteredNetworks = networks.filter(
         (network) =>
             network.name.toLowerCase().includes(search.toLowerCase()) ||
             network.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -64,14 +76,14 @@ export function NetworksList() {
 
     return (
         <section className="container mx-auto px-4 py-24">
-            <div className="mb-16 text-center">
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                    Agent Networks
-                </h1>
-                <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                    Pre-configured networks for orchestrating multiple agents in
-                    complex workflows.
-                </p>
+            <div className="mb-16">
+                <PublicPageHero
+                    badge={`${networks.length} Network Configurations`}
+                    title="Agent Networks"
+                    description="Pre-configured networks for orchestrating multiple agents in complex workflows."
+                    accent={AnimatedRadarScan}
+                    accentCaption="Discovery sweeps across agent topology"
+                />
             </div>
 
             <div className="mx-auto mb-12 max-w-xl">
@@ -117,7 +129,7 @@ export function NetworksList() {
 
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">
-                                    {network.agents} agents
+                                    backend managed
                                 </span>
                                 <span className="inline-flex items-center text-sm font-medium text-primary">
                                     Explore{' '}
@@ -128,6 +140,21 @@ export function NetworksList() {
                     </motion.div>
                 ))}
             </div>
+
+            {Boolean(!loading && !error && filteredNetworks.length === 0) && (
+                <div className="mt-8 text-center text-sm text-muted-foreground">
+                    No networks found.
+                </div>
+            )}
+
+            {Boolean(error) && (
+                <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    <div className="flex items-center gap-2">
+                        <AlertCircleIcon className="size-4" />
+                        Failed to load networks from backend: {error?.message}
+                    </div>
+                </div>
+            )}
         </section>
     )
 }

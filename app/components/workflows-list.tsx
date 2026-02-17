@@ -6,183 +6,84 @@ import { motion } from 'framer-motion'
 import { Input } from '@/ui/input'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedHelixDna } from '@/app/components/gsap/svg-suite'
+import { useWorkflows } from '@/lib/hooks/use-mastra'
+import type { Workflow as WorkflowType } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
     PlayIcon,
     ArrowRightIcon,
     GitBranchIcon,
     ClockIcon,
-    LayersIcon,
-    ZapIcon,
-    FileTextIcon,
-    DatabaseIcon,
-    MailIcon,
     TrendingUpIcon,
     UsersIcon,
-    ShieldIcon,
+    AlertCircleIcon,
 } from 'lucide-react'
 
-const CATEGORIES = [
-    'All',
-    'Content',
-    'Data',
-    'Research',
-    'Financial',
-    'Operations',
-    'Integration',
-]
+type WorkflowCard = {
+    id: string
+    name: string
+    description: string
+    category: string
+    steps: number
+}
 
-const WORKFLOWS = [
-    {
-        id: 'contentStudioWorkflow',
-        name: 'Content Studio',
-        description:
-            'End-to-end content creation pipeline with research, writing, editing, and publishing stages.',
-        category: 'Content',
-        icon: FileTextIcon,
-        steps: 6,
-        estimatedTime: '5-10 min',
-        agents: ['researchAgent', 'copywriterAgent', 'editorAgent'],
-        tags: ['Automated', 'Multi-Agent'],
-        status: 'production',
-    },
-    {
-        id: 'dataPipelineWorkflow',
-        name: 'Data Pipeline',
-        description:
-            'Automated data ingestion, transformation, validation, and export with error handling.',
-        category: 'Data',
-        icon: DatabaseIcon,
-        steps: 8,
-        estimatedTime: 'Variable',
-        agents: ['dataIngestionAgent', 'dataTransformAgent', 'dataExportAgent'],
-        tags: ['ETL', 'Scheduled'],
-        status: 'production',
-    },
-    {
-        id: 'researchSynthesisWorkflow',
-        name: 'Research Synthesis',
-        description:
-            'Multi-source research aggregation with citation tracking and summary generation.',
-        category: 'Research',
-        icon: LayersIcon,
-        steps: 5,
-        estimatedTime: '10-15 min',
-        agents: ['researchAgent', 'researchPaperAgent', 'reportAgent'],
-        tags: ['Academic', 'Citations'],
-        status: 'production',
-    },
-    {
-        id: 'financialAnalysisWorkflow',
-        name: 'Financial Analysis',
-        description:
-            'Comprehensive financial data collection, analysis, and report generation.',
-        category: 'Financial',
-        icon: TrendingUpIcon,
-        steps: 7,
-        estimatedTime: '3-5 min',
-        agents: ['stockAnalysisAgent', 'researchAgent', 'reportAgent'],
-        tags: ['Real-time', 'Market Data'],
-        status: 'production',
-    },
-    {
-        id: 'customerOnboardingWorkflow',
-        name: 'Customer Onboarding',
-        description:
-            'Automated customer welcome flow with personalized content and setup assistance.',
-        category: 'Operations',
-        icon: UsersIcon,
-        steps: 5,
-        estimatedTime: '2-3 min',
-        agents: ['copywriterAgent', 'editorAgent'],
-        tags: ['Personalized', 'Email'],
-        status: 'beta',
-    },
-    {
-        id: 'emailCampaignWorkflow',
-        name: 'Email Campaign',
-        description:
-            'Create, test, and schedule email marketing campaigns with A/B testing support.',
-        category: 'Content',
-        icon: MailIcon,
-        steps: 6,
-        estimatedTime: '5-8 min',
-        agents: ['copywriterAgent', 'editorAgent', 'dataExportAgent'],
-        tags: ['Marketing', 'A/B Testing'],
-        status: 'production',
-    },
-    {
-        id: 'securityAuditWorkflow',
-        name: 'Security Audit',
-        description:
-            'Automated security scanning, vulnerability assessment, and compliance reporting.',
-        category: 'Operations',
-        icon: ShieldIcon,
-        steps: 8,
-        estimatedTime: '15-20 min',
-        agents: ['systemAgent', 'reportAgent'],
-        tags: ['Compliance', 'Automated'],
-        status: 'beta',
-    },
-    {
-        id: 'apiIntegrationWorkflow',
-        name: 'API Integration',
-        description:
-            'Connect and sync data between multiple APIs with transformation and validation.',
-        category: 'Integration',
-        icon: ZapIcon,
-        steps: 4,
-        estimatedTime: 'Variable',
-        agents: ['dataIngestionAgent', 'dataTransformAgent'],
-        tags: ['REST', 'Webhooks'],
-        status: 'production',
-    },
-    {
-        id: 'documentProcessingWorkflow',
-        name: 'Document Processing',
-        description:
-            'Extract, analyze, and structure data from various document formats including PDFs.',
-        category: 'Data',
-        icon: FileTextIcon,
-        steps: 5,
-        estimatedTime: '1-5 min',
-        agents: ['documentProcessingAgent', 'dataTransformAgent'],
-        tags: ['OCR', 'Extraction'],
-        status: 'production',
-    },
-    {
-        id: 'competitorAnalysisWorkflow',
-        name: 'Competitor Analysis',
-        description:
-            'Gather and analyze competitor data, pricing, and market positioning.',
-        category: 'Research',
-        icon: TrendingUpIcon,
-        steps: 6,
-        estimatedTime: '10-15 min',
-        agents: ['researchAgent', 'stockAnalysisAgent', 'reportAgent'],
-        tags: ['Market Intel', 'Automated'],
-        status: 'beta',
-    },
-]
+function classifyWorkflowCategory(id: string): string {
+    const normalized = id.toLowerCase()
+    if (/(content|copy|blog|email)/.test(normalized)) {
+        return 'Content'
+    }
+    if (/(data|etl|pipeline|document)/.test(normalized)) {
+        return 'Data'
+    }
+    if (/(research|analysis|report)/.test(normalized)) {
+        return 'Research'
+    }
+    if (/(finance|stock|market)/.test(normalized)) {
+        return 'Financial'
+    }
+    if (/(api|integration|sync)/.test(normalized)) {
+        return 'Integration'
+    }
+    return 'General'
+}
 
-const STATUS_STYLES = {
-    production:
-        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    beta: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    alpha: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+function workflowStepsCount(workflow: WorkflowType): number {
+    if (Array.isArray(workflow.steps)) {
+        return workflow.steps.length
+    }
+    if (workflow.steps) {
+        return Object.keys(workflow.steps).length
+    }
+    return 0
 }
 
 export function WorkflowsList() {
+    const { data, loading, error } = useWorkflows()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
 
-    const filteredWorkflows = WORKFLOWS.filter((workflow) => {
+    const workflows: WorkflowCard[] = (data ?? []).map(
+        (workflow: WorkflowType) => ({
+            id: workflow.id,
+            name: workflow.name ?? workflow.id,
+            description:
+                workflow.description ?? 'Workflow available from backend.',
+            category: classifyWorkflowCategory(workflow.id),
+            steps: workflowStepsCount(workflow),
+        })
+    )
+
+    const categories = [
+        'All',
+        ...Array.from(new Set(workflows.map((workflow) => workflow.category))).sort(),
+    ]
+
+    const filteredWorkflows = workflows.filter((workflow) => {
         const matchesSearch =
             workflow.name.toLowerCase().includes(search.toLowerCase()) ||
-            workflow.description.toLowerCase().includes(search.toLowerCase()) ||
-            workflow.tags.some((tag) =>
-                tag.toLowerCase().includes(search.toLowerCase())
-            )
+            workflow.description.toLowerCase().includes(search.toLowerCase())
         const matchesCategory =
             selectedCategory === 'All' || workflow.category === selectedCategory
         return matchesSearch && matchesCategory
@@ -190,14 +91,14 @@ export function WorkflowsList() {
 
     return (
         <section className="container mx-auto px-4 py-24">
-            <div className="mb-16 text-center">
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                    Workflows
-                </h1>
-                <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                    Pre-built workflow templates for common AI automation tasks.
-                    Customize and deploy in minutes.
-                </p>
+            <div className="mb-16">
+                <PublicPageHero
+                    badge={`${workflows.length} Workflow Templates`}
+                    title="Workflows"
+                    description="Pre-built workflow templates for common AI automation tasks. Customize and deploy in minutes."
+                    accent={AnimatedHelixDna}
+                    accentCaption="Composable execution and evolution chains"
+                />
             </div>
 
             <div className="mx-auto mb-12 max-w-4xl space-y-6">
@@ -212,7 +113,7 @@ export function WorkflowsList() {
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2">
-                    {CATEGORIES.map((category) => (
+                    {categories.map((category) => (
                         <Badge
                             key={category}
                             variant={
@@ -241,7 +142,7 @@ export function WorkflowsList() {
                         <div className="card-3d group flex h-full flex-col rounded-2xl border border-border bg-card p-6 transition-all duration-300 ease-spring hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
                             <div className="mb-4 flex items-start justify-between">
                                 <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-200 ease-spring group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
-                                    <workflow.icon className="size-6" />
+                                    <TrendingUpIcon className="size-6" />
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Badge
@@ -250,10 +151,8 @@ export function WorkflowsList() {
                                     >
                                         {workflow.category}
                                     </Badge>
-                                    <span
-                                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[workflow.status as keyof typeof STATUS_STYLES]}`}
-                                    >
-                                        {workflow.status}
+                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        active
                                     </span>
                                 </div>
                             </div>
@@ -266,15 +165,12 @@ export function WorkflowsList() {
                             </p>
 
                             <div className="mb-4 flex flex-wrap gap-2">
-                                {workflow.tags.map((tag) => (
-                                    <Badge
-                                        key={tag}
-                                        variant="outline"
-                                        className="text-xs"
-                                    >
-                                        {tag}
-                                    </Badge>
-                                ))}
+                                <Badge variant="outline" className="text-xs">
+                                    backend
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                    typed
+                                </Badge>
                             </div>
 
                             <div className="mb-6 grid grid-cols-3 gap-4 border-t border-border pt-4">
@@ -294,7 +190,7 @@ export function WorkflowsList() {
                                         <ClockIcon className="size-4" />
                                     </div>
                                     <div className="mt-1 text-sm font-semibold text-foreground">
-                                        {workflow.estimatedTime}
+                                        {'n/a'}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                         Duration
@@ -305,7 +201,7 @@ export function WorkflowsList() {
                                         <UsersIcon className="size-4" />
                                     </div>
                                     <div className="mt-1 text-sm font-semibold text-foreground">
-                                        {workflow.agents.length}
+                                        {'n/a'}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                         Agents
@@ -346,7 +242,7 @@ export function WorkflowsList() {
                 ))}
             </div>
 
-            {filteredWorkflows.length === 0 && (
+            {Boolean(!loading && !error && filteredWorkflows.length === 0) && (
                 <div className="py-24 text-center">
                     <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
                         <SearchIcon className="size-8 text-muted-foreground" />
@@ -357,6 +253,15 @@ export function WorkflowsList() {
                     <p className="text-muted-foreground">
                         Try adjusting your search or filter criteria.
                     </p>
+                </div>
+            )}
+
+            {Boolean(error) && (
+                <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    <div className="flex items-center gap-2">
+                        <AlertCircleIcon className="size-4" />
+                        Failed to load workflows from backend: {error?.message}
+                    </div>
                 </div>
             )}
 

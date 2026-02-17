@@ -1,7 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useAITraces, useAITrace, useScoreTraces } from '@/lib/hooks/use-mastra'
+import { useScoreTraces } from '@/lib/hooks/use-mastra'
+import {
+    useTracesQuery,
+    useTraceQuery,
+} from '@/lib/hooks/use-dashboard-queries'
+import type { Span, Trace } from '@/lib/types/mastra-api'
 import {
     Card,
     CardContent,
@@ -44,6 +49,33 @@ import {
     BarChart3,
 } from 'lucide-react'
 
+type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | { [key: string]: JsonValue }
+    | JsonValue[]
+
+const DEPTH_INDENT_CLASS = [
+    'ml-0',
+    'ml-5',
+    'ml-10',
+    'ml-15',
+    'ml-20',
+    'ml-25',
+    'ml-30',
+] as const
+
+function getDepthIndentClass(depth: number | undefined): string {
+    if (depth === undefined || depth < 1) {
+        return DEPTH_INDENT_CLASS[0]
+    }
+
+    const boundedDepth = Math.min(depth, DEPTH_INDENT_CLASS.length - 1)
+    return DEPTH_INDENT_CLASS[boundedDepth]
+}
+
 export default function ObservabilityPage() {
     const [page, setPage] = useState(1)
     const [perPage, setPerPage] = useState(20)
@@ -53,18 +85,17 @@ export default function ObservabilityPage() {
 
     const {
         data: traces,
-        loading,
+        isLoading,
         error,
         refetch,
-    } = useAITraces({
+    } = useTracesQuery({
         page,
         perPage,
         filters: {
             name: nameFilter || undefined,
             spanType: spanTypeFilter === 'all' ? undefined : spanTypeFilter,
-            entityType: (entityTypeFilter === 'all'
-                ? undefined
-                : entityTypeFilter) as 'agent' | 'workflow' | undefined,
+            entityType:
+                entityTypeFilter === 'all' ? undefined : entityTypeFilter,
         },
     })
 
@@ -73,7 +104,7 @@ export default function ObservabilityPage() {
     return (
         <div className="flex h-full">
             {/* Trace List */}
-            <div className="flex w-[450px] flex-col border-r">
+            <div className="flex w-112.5 flex-col border-r">
                 <div className="border-b p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold">AI Traces</h2>
@@ -142,7 +173,7 @@ export default function ObservabilityPage() {
                 </div>
 
                 <ScrollArea className="flex-1">
-                    {loading ? (
+                    {isLoading ? (
                         <div className="space-y-2 p-4">
                             {[...Array(5)].map((_, i) => (
                                 <Skeleton key={i} className="h-20 w-full" />
@@ -154,7 +185,7 @@ export default function ObservabilityPage() {
                         </div>
                     ) : (
                         <div className="space-y-1 p-2">
-                            {(traces as any)?.spans?.map((span: any) => (
+                            {(traces?.spans ?? []).map((span) => (
                                 <button
                                     key={span.traceId}
                                     onClick={() =>
@@ -177,7 +208,7 @@ export default function ObservabilityPage() {
                                                     variant="secondary"
                                                     className="text-xs"
                                                 >
-                                                    {span.spanType ?? 'unknown'}
+                                                    {span.spanType ?? 'n/a'}
                                                 </Badge>
                                                 {Boolean(span.duration) && (
                                                     <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -198,7 +229,7 @@ export default function ObservabilityPage() {
                                     </div>
                                 </button>
                             ))}
-                            {(!traces || !(traces as any)?.spans?.length) && (
+                            {(traces?.spans?.length ?? 0) === 0 && (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
                                     No traces found
                                 </div>
@@ -212,7 +243,7 @@ export default function ObservabilityPage() {
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
                             Page {page} of{' '}
-                            {(traces as any)?.pagination?.totalPages ?? 1}
+                            {traces?.pagination?.totalPages ?? 1}
                         </span>
                         <div className="flex gap-2">
                             <Button
@@ -231,8 +262,7 @@ export default function ObservabilityPage() {
                                 onClick={() => setPage((p) => p + 1)}
                                 disabled={
                                     page >=
-                                    ((traces as any)?.pagination?.totalPages ??
-                                        1)
+                                    (traces?.pagination?.totalPages ?? 1)
                                 }
                             >
                                 Next
@@ -244,7 +274,7 @@ export default function ObservabilityPage() {
 
             {/* Trace Details */}
             <div className="flex-1 overflow-auto">
-                {selectedTraceId ? (
+                {selectedTraceId !== null ? (
                     <TraceDetails traceId={selectedTraceId} />
                 ) : (
                     <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -260,11 +290,13 @@ export default function ObservabilityPage() {
 }
 
 function TraceDetails({ traceId }: { traceId: string }) {
-    const { data: trace, loading, error } = useAITrace(traceId)
+    const { data: trace, isLoading, error } = useTraceQuery(traceId)
     const { score, loading: scoring } = useScoreTraces()
     const [scoreDialogOpen, setScoreDialogOpen] = useState(false)
     const [scorerName, setScorerName] = useState('answer-relevancy')
-    const [scoreResult, setScoreResult] = useState<any>(null)
+    const [scoreResult, setScoreResult] = useState<
+        Record<string, JsonValue> | null
+    >(null)
 
     const handleScore = async () => {
         try {
@@ -272,13 +304,17 @@ function TraceDetails({ traceId }: { traceId: string }) {
                 scorerName,
                 targets: [{ traceId }],
             })
-            setScoreResult(result)
+            if (result !== null && typeof result === 'object') {
+                setScoreResult(result as Record<string, JsonValue>)
+            } else {
+                setScoreResult({ result: result as JsonValue })
+            }
         } catch (err) {
             console.error('Scoring failed:', err)
         }
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="p-6 space-y-4">
                 <Skeleton className="h-8 w-48" />
@@ -296,7 +332,8 @@ function TraceDetails({ traceId }: { traceId: string }) {
         )
     }
 
-    const traceData = trace as any
+    const traceData = trace as Trace | null
+    const traceSpans: Span[] = traceData?.spans ?? []
 
     return (
         <div className="p-6 space-y-6">
@@ -395,7 +432,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {traceData?.spans?.length ?? 0}
+                            {traceSpans.length}
                         </div>
                     </CardContent>
                 </Card>
@@ -408,7 +445,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
                     </CardHeader>
                     <CardContent>
                         <Badge variant="secondary">
-                            {traceData?.spanType ?? 'Unknown'}
+                            {traceData?.spanType ?? 'n/a'}
                         </Badge>
                     </CardContent>
                 </Card>
@@ -428,7 +465,7 @@ function TraceDetails({ traceId }: { traceId: string }) {
                                     : 'destructive'
                             }
                         >
-                            {traceData?.status ?? 'Unknown'}
+                            {traceData?.status ?? 'n/a'}
                         </Badge>
                     </CardContent>
                 </Card>
@@ -451,17 +488,14 @@ function TraceDetails({ traceId }: { traceId: string }) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="h-[400px]">
-                                {traceData?.spans?.length > 0 ? (
+                            <ScrollArea className="h-100">
+                                {traceSpans.length > 0 ? (
                                     <div className="space-y-2">
-                                        {traceData.spans.map(
-                                            (span: any, index: number) => (
+                                        {traceSpans.map(
+                                            (span, index) => (
                                                 <div
                                                     key={span.spanId ?? index}
-                                                    className="p-4 bg-muted rounded-md"
-                                                    style={{
-                                                        marginLeft: `${(span.depth ?? 0) * 20}px`,
-                                                    }}
+                                                    className={`rounded-md bg-muted p-4 ${getDepthIndentClass(span.depth)}`}
                                                 >
                                                     <div className="flex items-start justify-between">
                                                         <div>
@@ -489,15 +523,13 @@ function TraceDetails({ traceId }: { traceId: string }) {
                                                                 className="text-xs"
                                                             >
                                                                 {span.spanType ??
-                                                                    span.kind ??
-                                                                    'unknown'}
+                                                                    'n/a'}
                                                             </Badge>
                                                         </div>
                                                     </div>
-                                                    {Boolean(span.attributes) &&
-                                                        Object.keys(
-                                                            span.attributes
-                                                        ).length > 0 && (
+                                                     {span.attributes !== undefined &&
+                                                         Object.keys(span.attributes)
+                                                             .length > 0 && (
                                                             <details className="mt-2">
                                                                 <summary className="text-xs text-muted-foreground cursor-pointer">
                                                                     Attributes
