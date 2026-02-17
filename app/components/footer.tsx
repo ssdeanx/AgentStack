@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRef } from 'react'
 import Link from 'next/link'
 import { useGSAP } from '@gsap/react'
+import { useMounted } from '@/hooks/use-mounted'
 import { gsap } from 'gsap'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
@@ -89,7 +90,8 @@ export function Footer() {
         setTimeout(() => setStatus('idle'), 3000)
     }
 
-    const year = new Date().getFullYear()
+    const mounted = useMounted()
+    const year = mounted ? new Date().getFullYear() : 2026
 
     useGSAP(
         () => {

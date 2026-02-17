@@ -5,7 +5,7 @@ import { SparklesIcon, BugIcon, WrenchIcon, ZapIcon } from 'lucide-react'
 import { SectionLayout } from '@/app/components/primitives/section-layout'
 import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
-import { AnimatedDataStream } from '@/app/components/gsap/svg-suite'
+import { AnimatedTokenStream } from '@/app/components/gsap/svg-suite'
 
 const CHANGELOG_ENTRIES = [
     {
@@ -95,7 +95,8 @@ export function ChangelogList() {
                         title="Changelog"
                         description="Track the latest changes and improvements to AgentStack."
                         badge="Releases"
-                        accent={AnimatedDataStream}
+                        accent={AnimatedTokenStream}
+                        accentCaption="Versioned event and token pipeline"
                     />
                 </div>
 

@@ -5,6 +5,7 @@ import { gsap } from 'gsap'
 import { useRef } from 'react'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
+import { AnimatedQuantumLattice } from '@/app/components/gsap/svg-suite'
 import { NetworkBackground } from './network-background'
 
 export function LandingHero() {
@@ -71,19 +72,24 @@ export function LandingHero() {
             {/* Vignette to focus attention */}
             <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,var(--background)_100%)]" />
 
+            <div className="pointer-events-none absolute right-6 top-24 z-10 hidden xl:block hero-element">
+                <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-white/15 bg-black/40 p-2 backdrop-blur-xl">
+                    <AnimatedQuantumLattice
+                        className="gsap-svg-icon gsap-svg-crisp text-cyan-300"
+                        size={150}
+                        animate
+                    />
+                </div>
+            </div>
+
             <div className="container relative z-10 mx-auto flex h-full flex-col items-center justify-center px-4 text-center">
                 {/* Main Content */}
                 <div ref={contentRef} className="mx-auto max-w-4xl">
-                    <div className="hero-element mb-6 flex justify-center">
-                        <div className="rounded-2xl border border-white/10 bg-black/35 p-3 backdrop-blur-md shadow-lg shadow-black/25">
-                            <AnimatedOrbitalLogo
-                                size={64}
-                                className="text-white"
-                            />
-                        </div>
-                    </div>
-
                     <div className="mb-6 inline-flex items-center rounded-full border border-white/10 bg-black/50 px-3 py-1 text-sm backdrop-blur-md shadow-lg shadow-black/20 hero-element">
+                        <AnimatedOrbitalLogo
+                            size={34}
+                            className="me-2 text-cyan-300"
+                        />
                         <span className="flex size-2 me-2 rounded-full bg-green-500 animate-pulse"></span>
                         <span className="text-white/80 font-mono text-xs tracking-wider">
                             SYSTEM OPERATIONAL

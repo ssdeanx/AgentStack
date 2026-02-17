@@ -133,7 +133,7 @@ const nextConfig: NextConfig = {
         preloadEntriesOnStart: true,
         isrFlushToDisk: true,
         workerThreads: true,
-        disableOptimizedLoading: true,
+        disableOptimizedLoading: false,
         hideLogsAfterAbort: true,
         //    optimizeCss: true,
         esmExternals: true,

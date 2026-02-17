@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedGradientRings({
     className,
-    size = 160,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -22,10 +22,7 @@ export function AnimatedGradientRings({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 return
             }
 
@@ -43,6 +40,14 @@ export function AnimatedGradientRings({
                 ease: 'none',
                 repeat: -1,
             })
+
+            gsap.to('[data-ring-track-secondary]', {
+                rotation: -360,
+                duration: 11,
+                ease: 'none',
+                repeat: -1,
+                transformOrigin: '50% 50%',
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -50,7 +55,7 @@ export function AnimatedGradientRings({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+            className={cn('text-violet-500 dark:text-violet-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -82,6 +87,17 @@ export function AnimatedGradientRings({
                     strokeWidth="3"
                     strokeLinecap="round"
                     strokeDasharray="72 180"
+                />
+            </g>
+            <g data-ring-track-secondary>
+                <circle
+                    cx="60"
+                    cy="60"
+                    r="30"
+                    stroke="currentColor"
+                    strokeOpacity="0.14"
+                    strokeWidth="2"
+                    strokeDasharray="8 10"
                 />
             </g>
         </svg>

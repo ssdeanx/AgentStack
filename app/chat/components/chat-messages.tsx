@@ -96,7 +96,6 @@ import type {
     FinishReason,
     FileUIPart,
     Tool,
-    DataUIPart,
     SourceDocumentUIPart,
     SourceUrlUIPart,
     StepResult,
@@ -112,6 +111,8 @@ import type {
     InferUITools,
     InferGenerateOutput,
     InferStreamOutput,
+    ReasoningUIPart as AIReasoningUIPart,
+    DataUIPart,
 } from 'ai'
 import {
     safeValidateUIMessages,
@@ -838,6 +839,9 @@ function MessageItem({
     const isAssistant = message.role === 'assistant'
     const isUser = message.role === 'user'
     const textPart = message.parts?.find(isTextUIPart)
+    const reasoningPart = message.parts?.find(isReasoningUIPart)
+    const dataPart = message.parts?.find(isDataUIPart)
+
     const rawContent = textPart?.text ?? ''
     const [inlinePreview, setInlinePreview] = useState<WebPreviewData | null>(
         null
@@ -1154,6 +1158,40 @@ function MessageItem({
                                     isStreaming={false}
                                 />
                             ))}
+
+                        {/* Render reasoning part if present */}
+                        {isAssistant && reasoningPart && (
+                            <AgentReasoning
+                                reasoning={(() => {
+                                    const p = reasoningPart as Record<string, unknown> | undefined
+                                    if (!p) {return ''}
+                                    if (typeof p.reasoning === 'string' && p.reasoning.trim().length > 0) {
+                                        return p.reasoning
+                                    }
+                                    if (typeof p.text === 'string') {
+                                        return p.text
+                                    }
+                                    return ''
+                                })()}
+                                isStreaming={false}
+                            />
+                        )}
+
+                        {/* Render data part if present */}
+                        {isAssistant && dataPart && (
+                            <div className="my-3">
+                                <AgentDataSection
+                                    part={{
+                                        type: 'data-tool-agent',
+                                        id: message.id,
+                                        // dataPart.data comes from the generic UI part and is
+                                        // typed as `unknown` — assert to the AgentDataPart
+                                        // data shape expected by AgentDataSection.
+                                        data: dataPart.data as AgentDataPart['data'],
+                                    }}
+                                />
+                            </div>
+                        )}
 
                         {/* Custom UI: Mastra data parts (data-tool-agent/workflow/network, data-workflow, data-network, data-{custom}) */}
                         {isAssistant && dataParts.length > 0 && (

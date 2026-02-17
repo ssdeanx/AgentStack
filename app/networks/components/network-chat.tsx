@@ -53,13 +53,10 @@ import {
     PromptInputTools,
     PromptInputBody,
     PromptInputHeader,
-    PromptInputAttachments,
-    PromptInputAttachment,
     PromptInputActionMenu,
     PromptInputActionMenuTrigger,
     PromptInputActionMenuContent,
     PromptInputActionAddAttachments,
-    PromptInputSpeechButton,
     PromptInputButton,
     PromptInputSelect,
     PromptInputSelectTrigger,
@@ -239,9 +236,12 @@ function CodeOutputDisplay({ output }: { output?: CodeOutput }) {
             code.includes('export '))
     ) {
         return (
-            <CodeBlock code={code} language={language as BundledLanguage}>
-                <CodeBlockCopyButton />
-            </CodeBlock>
+            <div className="relative">
+                <CodeBlock code={code} language={language as BundledLanguage} />
+                <div className="absolute right-2 top-2">
+                    <CodeBlockCopyButton />
+                </div>
+            </div>
         )
     }
 
@@ -270,8 +270,8 @@ function ArtifactDisplay({
                             void (async () => {
                                 try {
                                     await navigator.clipboard.writeText(content)
-                                } catch (error) {
-                                    console.error(error)
+                                } catch {
+                                    /* ignore clipboard errors */
                                 }
                             })()
                         }}
@@ -296,7 +296,7 @@ function WebPreviewDisplay({ url, title }: { url: string; title?: string }) {
 
     return (
         <div className="my-4 h-100 w-full">
-            {title && <div className="text-sm font-medium mb-2">{title}</div>}
+            {title ? <div className="text-sm font-medium mb-2">{title}</div> : null}
             <WebPreview defaultUrl={url}>
                 <WebPreviewNavigation>
                     <WebPreviewUrl />
@@ -390,15 +390,18 @@ function NetworkToolDisplay({
 }: {
     tools: ToolInvocationState[]
     setPendingToolConfirmation: React.Dispatch<
-        React.SetStateAction<{
-            toolName: string
-            input: any
-            onAccept: () => void
-            onReject: () => void
-        } | null>
+        React.SetStateAction<
+            | {
+                  toolName: string
+                  input?: unknown
+                  onAccept: () => void
+                  onReject: () => void
+              }
+            | null
+        >
     >
 }) {
-    if (!tools.length) {
+    if (tools.length === 0) {
         return null
     }
 
@@ -541,7 +544,7 @@ function NetworkMessageParts({
                 errorText:
                     inner.errorText ??
                     (typeof inner.error === 'string' ? inner.error : undefined),
-                state: inner.output ? 'output-available' : 'input-available',
+                state: (inner.output) ? 'output-available' : 'input-available',
             } as ToolInvocationState)
         }
     }
@@ -843,10 +846,12 @@ function NetworkMessageParts({
                                     ?.agentName as string) ??
                                 'network-step'
                             const toolState =
-                                (inner as Record<string, unknown>)?.output !==
-                                null
+                                (inner as Record<string, unknown>)?.output !== null
                                     ? ('output-available' as const)
                                     : ('input-available' as const)
+
+                            const innerOutput =
+                                (inner as Record<string, unknown>)?.output
 
                             return (
                                 <Tool key={key} defaultOpen={false}>
@@ -872,20 +877,10 @@ function NetworkMessageParts({
                                                 )?.args
                                             }
                                         />
-                                        {Boolean(
-                                            (inner as Record<string, unknown>)
-                                                ?.output
-                                        ) && (
+                                        {innerOutput !== null && (
                                             <>
                                                 <ToolOutput
-                                                    output={
-                                                        (
-                                                            inner as Record<
-                                                                string,
-                                                                unknown
-                                                            >
-                                                        ).output
-                                                    }
+                                                    output={innerOutput}
                                                     errorText={
                                                         (
                                                             inner as Record<
@@ -898,14 +893,7 @@ function NetworkMessageParts({
                                                     }
                                                 />
                                                 <CodeOutputDisplay
-                                                    output={
-                                                        (
-                                                            inner as Record<
-                                                                string,
-                                                                unknown
-                                                            >
-                                                        ).output as CodeOutput
-                                                    }
+                                                    output={innerOutput as CodeOutput}
                                                 />
                                             </>
                                         )}
@@ -1020,12 +1008,15 @@ export function NetworkChat() {
     const [checkpoints, setCheckpoints] = useState<number[]>([])
     const [showWebPreview, setShowWebPreview] = useState<string | null>(null)
     const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash')
-    const [pendingToolConfirmation, setPendingToolConfirmation] = useState<{
-        toolName: string
-        input: Record<string, unknown>
-        onAccept: () => void
-        onReject: () => void
-    } | null>(null)
+    const [pendingToolConfirmation, setPendingToolConfirmation] = useState<
+        | {
+              toolName: string
+              input?: unknown
+              onAccept: () => void
+              onReject: () => void
+          }
+        | null
+    >(null)
     const [tokenUsage, setTokenUsage] = useState({ input: 0, output: 0 })
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -1125,7 +1116,7 @@ export function NetworkChat() {
                             description={`Send a message to ${networkConfig?.name ?? 'the network'} to route through specialized agents`}
                         >
                             {/* Network agents info */}
-                            {networkConfig && (
+                            {networkConfig ? (
                                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                                     {networkConfig.agents
                                         .slice(0, 5)
@@ -1146,7 +1137,7 @@ export function NetworkChat() {
                                         </Badge>
                                     )}
                                 </div>
-                            )}
+                            ) : null}
 
                             {/* Suggestions for empty state */}
                             {suggestions.length > 0 && (
@@ -1196,19 +1187,21 @@ export function NetworkChat() {
                             ))}
 
                             {/* Show tool invocations from context */}
-                            {toolInvocations?.length > 0 && (
+                            {toolInvocations?.length ? (
                                 <NetworkToolDisplay
                                     tools={toolInvocations}
                                     setPendingToolConfirmation={
                                         setPendingToolConfirmation
                                     }
                                 />
-                            )}
+                            ) : null}
 
                             {isStreaming &&
                                 messages.length > 0 &&
-                                !messages[messages.length - 1]?.parts?.some(
-                                    (p) => p.type === 'text'
+                                !(
+                                    messages[messages.length - 1]?.parts?.some(
+                                        (p) => p.type === 'text'
+                                    ) ?? false
                                 ) && (
                                     <div className="space-y-3">
                                         <ChainOfThought defaultOpen>
@@ -1262,11 +1255,11 @@ export function NetworkChat() {
                         </>
                     )}
 
-                    {Boolean(error) && (
+                    {error ? (
                         <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
                             {error}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Show sources from network context in a QueueSection */}
                     {sources.length > 0 && (
@@ -1303,12 +1296,10 @@ export function NetworkChat() {
                     )}
 
                     {/* Show WebPreview when enabled */}
-                    {Boolean(showWebPreview) && (
-                        <WebPreviewDisplay url={showWebPreview!} />
-                    )}
+                    {showWebPreview ? <WebPreviewDisplay url={showWebPreview} /> : null}
 
                     {/* Pending tool confirmation dialog */}
-                    {pendingToolConfirmation && (
+                    {pendingToolConfirmation !== null && (
                         <Confirmation
                             state="output-available"
                             approval={{ id: 'pending', approved: true }}
@@ -1367,13 +1358,9 @@ export function NetworkChat() {
                     multiple
                     globalDrop
                 >
-                    <PromptInputHeader>
-                        <PromptInputAttachments>
-                            {(attachment) => (
-                                <PromptInputAttachment data={attachment} />
-                            )}
-                        </PromptInputAttachments>
-                    </PromptInputHeader>
+                    {/* Header left intentionally empty (attachment previews are provided by optional attachment module) */}
+                    <PromptInputHeader />
+
                     <PromptInputBody>
                         <PromptInputTextarea
                             onChange={(e) => setInput(e.target.value)}
@@ -1393,12 +1380,12 @@ export function NetworkChat() {
                                     <PromptInputActionAddAttachments />
                                 </PromptInputActionMenuContent>
                             </PromptInputActionMenu>
-                            <PromptInputSpeechButton
-                                onTranscriptionChange={setInput}
-                                textareaRef={textareaRef}
-                            >
+
+                            {/* No built-in speech button in the core module — render generic button */}
+                            <PromptInputButton>
                                 <MicIcon className="size-4" />
-                            </PromptInputSpeechButton>
+                            </PromptInputButton>
+
                             <PromptInputButton
                                 onClick={() =>
                                     setShowWebPreview(
@@ -1409,7 +1396,7 @@ export function NetworkChat() {
                                     )
                                 }
                                 className={cn(
-                                    Boolean(showWebPreview) && 'bg-accent'
+                                    showWebPreview ? 'bg-accent' : undefined
                                 )}
                             >
                                 <ExternalLinkIcon className="size-4" />
@@ -1501,7 +1488,7 @@ export function NetworkChat() {
                         </PromptInputTools>
                         <PromptInputSubmit
                             status={status}
-                            disabled={!input.trim() && !isStreaming}
+                            disabled={input.trim().length === 0 && !isStreaming}
                             onClick={
                                 isStreaming
                                     ? () => {

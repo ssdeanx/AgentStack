@@ -29,17 +29,6 @@ export function AnimatedOrbitalLogo({
                 return
             }
 
-            const prefersReducedMotion = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-
-            if (prefersReducedMotion) {
-                gsap.set('[data-orbit-group]', { rotation: 0 })
-                gsap.set('[data-node]', { scale: 1, opacity: 1 })
-                gsap.set('[data-core]', { scale: 1, opacity: 1 })
-                return
-            }
-
             gsap.fromTo(
                 '[data-core]',
                 { scale: 0.85, autoAlpha: 0.75 },
@@ -84,6 +73,20 @@ export function AnimatedOrbitalLogo({
                     },
                 })
             }
+
+            gsap.to('[data-link-pulse]', {
+                strokeDashoffset: -42,
+                duration: 1.1,
+                ease: 'none',
+                repeat: -1,
+            })
+
+            gsap.to('[data-link-pulse]', {
+                strokeDashoffset: -42,
+                duration: 1.1,
+                ease: 'none',
+                repeat: -1,
+            })
         },
         { scope: svgRef }
     )
@@ -91,7 +94,7 @@ export function AnimatedOrbitalLogo({
     return (
         <svg
             ref={svgRef}
-            className={cn('text-primary', className)}
+            className={cn('text-blue-500 dark:text-blue-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 100 100"
@@ -139,6 +142,26 @@ export function AnimatedOrbitalLogo({
                     fillOpacity="0.85"
                 />
             </g>
+
+            <path
+                data-link-pulse
+                d="M28 64 Q50 50 72 36"
+                stroke="currentColor"
+                strokeOpacity="0.5"
+                strokeWidth="1.8"
+                strokeDasharray="6 8"
+                fill="none"
+            />
+
+            <path
+                data-link-pulse
+                d="M28 64 Q50 50 72 36"
+                stroke="currentColor"
+                strokeOpacity="0.5"
+                strokeWidth="1.8"
+                strokeDasharray="6 8"
+                fill="none"
+            />
 
             <circle
                 data-core

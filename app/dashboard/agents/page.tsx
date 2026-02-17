@@ -6,10 +6,10 @@ import type { Route } from 'next'
 import { useAgentsQuery } from '@/lib/hooks/use-dashboard-queries'
 import { Button } from '@/ui/button'
 import { Bot, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/hooks/use-dashboard-queries'
-import { AgentList, AgentDetails } from './_components'
-import { EmptyState } from '../_components'
+import { AgentList, AgentDetails, AgentGrid } from './_components'
 
 export default function AgentsPage() {
     const router = useRouter()
@@ -18,19 +18,21 @@ export default function AgentsPage() {
     const { data: agents } = useAgentsQuery()
 
     const selectedAgentId = searchParams.get('agent')
+    const selectedAgentIdValue = selectedAgentId?.trim() ?? ''
+    const hasSelectedAgent = selectedAgentIdValue.length > 0
 
     const handleSelectAgent = (agentId: string) => {
         router.push(`/dashboard/agents?agent=${agentId}` as Route)
     }
 
     const handleRefresh = () => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.agents })
-        if (selectedAgentId) {
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.agent(selectedAgentId),
+        void queryClient.invalidateQueries({ queryKey: queryKeys.agents })
+        if (hasSelectedAgent) {
+            void queryClient.invalidateQueries({
+                queryKey: queryKeys.agent(selectedAgentIdValue),
             })
-            queryClient.invalidateQueries({
-                queryKey: queryKeys.agentEvals(selectedAgentId),
+            void queryClient.invalidateQueries({
+                queryKey: queryKeys.agentEvals(selectedAgentIdValue),
             })
         }
     }
@@ -42,13 +44,27 @@ export default function AgentsPage() {
                 <div className="border-b p-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold">Agents</h2>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleRefresh}
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {hasSelectedAgent ? (
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link
+                                        href={
+                                            `/chat?agent=${selectedAgentIdValue}` as Route
+                                        }
+                                    >
+                                        <Bot className="h-4 w-4 mr-2" />
+                                        Chat
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleRefresh}
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
                 <AgentList
@@ -62,14 +78,10 @@ export default function AgentsPage() {
 
             {/* Agent Details Panel */}
             <div className="flex-1 overflow-auto p-6">
-                {selectedAgentId ? (
-                    <AgentDetails agentId={selectedAgentId} />
+                {hasSelectedAgent ? (
+                    <AgentDetails agentId={selectedAgentIdValue} />
                 ) : (
-                    <EmptyState
-                        icon={Bot}
-                        title="Select an agent"
-                        description="Choose an agent from the list to view its details"
-                    />
+                    <AgentGrid onSelectAgent={handleSelectAgent} />
                 )}
             </div>
         </div>

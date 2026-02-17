@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ChatProvider } from './providers/chat-context'
 import { useChatContext } from './providers/chat-context-hooks'
 import { ChatHeader } from './components/chat-header'
@@ -36,9 +37,22 @@ function ChatLayout() {
 export default function ChatPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <ChatProvider>
-                <ChatLayout />
-            </ChatProvider>
+            <ChatPageContent />
         </Suspense>
+    )
+}
+
+function ChatPageContent() {
+    const searchParams = useSearchParams()
+    const agentParam = searchParams.get('agent')
+    const initialAgent =
+        agentParam !== null && agentParam.trim().length > 0
+            ? agentParam.trim()
+            : undefined
+
+    return (
+        <ChatProvider defaultAgent={initialAgent}>
+            <ChatLayout />
+        </ChatProvider>
     )
 }

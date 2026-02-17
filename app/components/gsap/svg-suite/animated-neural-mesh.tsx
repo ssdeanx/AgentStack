@@ -9,7 +9,7 @@ import type { GsapSvgProps } from './types'
 
 export function AnimatedNeuralMesh({
     className,
-    size = 170,
+    size = 220,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -21,10 +21,7 @@ export function AnimatedNeuralMesh({
                 return
             }
 
-            const reduced = window.matchMedia(
-                '(prefers-reduced-motion: reduce)'
-            ).matches
-            if (reduced || !animate) {
+            if (!animate) {
                 return
             }
 
@@ -44,6 +41,13 @@ export function AnimatedNeuralMesh({
                 transformOrigin: '50% 50%',
                 stagger: 0.1,
             })
+
+            gsap.to('[data-link-flow]', {
+                strokeDashoffset: -36,
+                duration: 1.6,
+                ease: 'none',
+                repeat: -1,
+            })
         },
         { scope: ref, dependencies: [animate] }
     )
@@ -51,7 +55,7 @@ export function AnimatedNeuralMesh({
     return (
         <svg
             ref={ref}
-            className={cn('text-primary', className)}
+                className={cn('text-indigo-500 dark:text-indigo-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
@@ -68,6 +72,14 @@ export function AnimatedNeuralMesh({
                 <line data-edge x1="74" y1="62" x2="90" y2="92" />
                 <line data-edge x1="35" y1="74" x2="90" y2="92" />
             </g>
+            <path
+                data-link-flow
+                d="M20 30 L60 20 L98 36 L74 62 L35 74 L90 92"
+                stroke="currentColor"
+                strokeOpacity="0.45"
+                strokeDasharray="6 10"
+                fill="none"
+            />
             {[
                 [20, 30],
                 [60, 20],

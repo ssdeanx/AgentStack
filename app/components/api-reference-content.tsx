@@ -131,6 +131,7 @@ export function ApiReferenceContent() {
                         description="Complete API documentation for integrating AgentStack into your applications."
                         badge="Developer Docs"
                         accent={AnimatedNeuralMesh}
+                        accentCaption="Graph-aware endpoint topology"
                     />
                 </div>
 

@@ -9,9 +9,11 @@ import { useSectionReveal } from '@/app/components/primitives/use-section-reveal
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedMorphWaves } from '@/app/components/gsap/svg-suite'
 
+import { useMounted } from '@/hooks/use-mounted'
 import { BLOG_POSTS } from '@/app/components/blog-data'
 
 export function BlogList() {
+    const mounted = useMounted()
     const sectionRef = useSectionReveal<HTMLDivElement>({
         selector: '[data-reveal]',
     })
@@ -25,6 +27,7 @@ export function BlogList() {
                         description="Latest updates, tutorials, and insights from the AgentStack team."
                         badge="Insights"
                         accent={AnimatedMorphWaves}
+                        accentCaption="State transitions and trend drift"
                     />
                 </div>
 
@@ -43,14 +46,14 @@ export function BlogList() {
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <CalendarIcon className="size-4" />
-                                        {new Date(post.date).toLocaleDateString(
+                                        {mounted ? new Date(post.date).toLocaleDateString(
                                             'en-US',
                                             {
                                                 month: 'short',
                                                 day: 'numeric',
                                                 year: 'numeric',
                                             }
-                                        )}
+                                        ) : null}
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <ClockIcon className="size-4" />

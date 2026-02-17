@@ -80,6 +80,7 @@ export function ExamplesList() {
                         description="Explore code samples and starter projects to accelerate your development."
                         badge="Starter Kits"
                         accent={AnimatedCircuitGrid}
+                        accentCaption="Deterministic blueprint patterns"
                     />
                 </div>
 

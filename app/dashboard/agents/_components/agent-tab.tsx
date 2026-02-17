@@ -12,6 +12,13 @@ interface AgentTabProps {
 export function AgentTab({ agentId }: AgentTabProps) {
     const { data: agent, isLoading, error } = useAgentQuery(agentId)
 
+    const modelLabel =
+        typeof agent?.model === 'string'
+            ? agent.model
+            : agent?.model
+              ? `${agent.model.provider}/${agent.model.name}`
+              : 'Not configured'
+
     if (isLoading) {
         return <LoadingSkeleton variant="list" count={4} />
     }
@@ -48,10 +55,7 @@ export function AgentTab({ agentId }: AgentTabProps) {
             <div className="grid gap-4 md:grid-cols-2">
                 <div>
                     <h4 className="text-sm font-medium mb-2">Model</h4>
-                    <Badge variant="outline">
-                        {(agent.model as any).provider}/
-                        {(agent.model as any).name}
-                    </Badge>
+                    <Badge variant="outline">{modelLabel}</Badge>
                 </div>
 
                 <div>

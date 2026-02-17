@@ -3,7 +3,7 @@
   "retiredSessionsCount": 0,
   "sessions": [
     {
-      "id": "session_Vd6WYBKBuy",
+      "id": "session_Vs5dS4lhWU",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -13,38 +13,62 @@
         "prefixSecurity": "silent",
         "cookies": [
           {
-            "key": "NID",
-            "value": "528=eUndOebnUtdKY1YBnRPZtf2GZemQAxUq3ZuOEgMpoJuxCzepsFXT8pLWEN4xLKdlxzonERH_aAId8rgseN9sv5V_89LE2evXiX4hkwCrtuivkpVLNqmw4hCWx_2y4-38m_tJr4zA3JYtsolEm8cCRczLocJJOkMwPZifG2cW-q5Nmizzl9wcUXavtbcbX2S7d4imhXnNUBaN3-etuPUh7D8",
-            "expires": "2026-07-17T01:14:04.000Z",
+            "key": "__Secure-STRP",
+            "value": "AD6DogvfOOwrZED3f6Qb45rGtcAN6eUEo17l1Uv98za5o9aIxFhITEnZBBHwtK_jCxGQ_wW84sW84s3j2rnb174DGKkpap5ZC63G",
+            "expires": "2026-02-17T06:35:58.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "hostOnly": false,
+            "creation": "2026-02-17T06:30:56.641Z",
+            "lastAccessed": "2026-02-17T06:30:56.641Z",
+            "sameSite": "strict"
+          },
+          {
+            "key": "AEC",
+            "value": "AaJma5sEO2QzFCB3vaH0rRKJygpG-ZEYYqDUyrkwm0ahbCqEEuzJVUvgdg",
+            "expires": "2026-08-16T06:30:58.000Z",
             "domain": "google.com",
             "path": "/",
             "secure": true,
             "httpOnly": true,
             "hostOnly": false,
-            "creation": "2026-01-15T01:14:02.345Z",
-            "lastAccessed": "2026-01-15T01:14:02.345Z",
-            "sameSite": "none"
+            "creation": "2026-02-17T06:30:56.644Z",
+            "lastAccessed": "2026-02-17T06:30:56.644Z",
+            "sameSite": "lax"
           },
           {
-            "key": "GSP",
-            "value": "LM=1768439644:S=9kj9s8FyK32OFvGz",
-            "expires": "2028-01-15T01:14:04.000Z",
-            "domain": "scholar.google.com",
+            "key": "NID",
+            "value": "529=SEkZndCKM84pTCXglLR0aUvpXnlLoqqj6evkovzlmr2XuSst7DvlWkgU3mNVaOpTp2zArY_DiL5s8Cw_q-c0L5Zf7HfBPQEeGJuRsD-_xbEAzvrTy5WCtkL5_-doz8xLSrRMMyO_T0nUAF1N5hh4YH34-ppn5O7CXNHBLXRtkZ4TgGSs6HOCB6vQDJStht1gcB_KmvcOq8L6uukd8e2GZ7DxYrt_ZUvwBpxbvX8NNw",
+            "expires": "2026-08-19T06:30:58.000Z",
+            "domain": "google.com",
             "path": "/",
             "secure": true,
             "httpOnly": true,
             "hostOnly": false,
-            "creation": "2026-01-15T01:14:02.348Z",
-            "lastAccessed": "2026-01-15T01:14:02.348Z",
+            "creation": "2026-02-17T06:30:56.645Z",
+            "lastAccessed": "2026-02-17T06:30:56.645Z",
             "sameSite": "none"
+          },
+          {
+            "key": "__Secure-BUCKET",
+            "value": "CLkE",
+            "expires": "2026-08-16T06:30:58.000Z",
+            "domain": "google.com",
+            "path": "/",
+            "secure": true,
+            "httpOnly": true,
+            "hostOnly": false,
+            "creation": "2026-02-17T06:30:56.645Z",
+            "lastAccessed": "2026-02-17T06:30:56.645Z"
           }
         ]
       },
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-01-15T02:03:59.946Z",
-      "createdAt": "2026-01-15T01:13:59.946Z",
+      "expiresAt": "2026-02-17T07:20:54.507Z",
+      "createdAt": "2026-02-17T06:30:54.507Z",
       "usageCount": 1,
       "maxUsageCount": 50,
       "errorScore": 0

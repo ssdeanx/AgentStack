@@ -82,7 +82,7 @@ export const pgMemory = new Memory({
             indexConfig: {
                 type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
-                ivf: { lists: 3200 }, // IVFFlat configuration
+                ivf: { lists: 3400 }, // IVFFlat configuration
             },
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: 'memory_messages_3072', // Index name for semantic recall

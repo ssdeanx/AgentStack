@@ -47,8 +47,28 @@ import {
     Loader2,
     Trash2,
 } from 'lucide-react'
+import type { VectorQueryResult } from '@/lib/types/mastra-api'
 
 const DEFAULT_VECTOR_STORE = 'pgVector'
+
+function normalizeIndexList(indexes: unknown): string[] {
+    if (Array.isArray(indexes)) {
+        return indexes.filter((item): item is string => typeof item === 'string')
+    }
+
+    if (
+        indexes &&
+        typeof indexes === 'object' &&
+        'indexes' in indexes &&
+        Array.isArray(indexes.indexes)
+    ) {
+        return indexes.indexes.filter(
+            (item): item is string => typeof item === 'string'
+        )
+    }
+
+    return []
+}
 
 export default function VectorsPage() {
     const [vectorStore, setVectorStore] = useState(DEFAULT_VECTOR_STORE)
@@ -66,6 +86,7 @@ export default function VectorsPage() {
         'cosine' | 'euclidean' | 'dotproduct'
     >('cosine')
     const [creating, setCreating] = useState(false)
+    const indexList = normalizeIndexList(indexes)
 
     const handleCreateIndex = async () => {
         setCreating(true)
@@ -180,7 +201,7 @@ export default function VectorsPage() {
                                             Cancel
                                         </Button>
                                         <Button
-                                            onClick={handleCreateIndex}
+                                            onClick={() => void handleCreateIndex()}
                                             disabled={creating || !newIndexName}
                                         >
                                             {creating && (
@@ -194,7 +215,7 @@ export default function VectorsPage() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => refetch()}
+                                onClick={() => void refetch()}
                             >
                                 <RefreshCw className="h-4 w-4" />
                             </Button>
@@ -226,9 +247,7 @@ export default function VectorsPage() {
                         </div>
                     ) : (
                         <div className="space-y-1 p-2">
-                            {(
-                                indexes as unknown as { indexes: string[] }
-                            )?.indexes?.map((index) => (
+                            {indexList.map((index) => (
                                 <button
                                     key={index}
                                     onClick={() => setSelectedIndex(index)}
@@ -249,9 +268,7 @@ export default function VectorsPage() {
                                     </div>
                                 </button>
                             ))}
-                            {(!indexes ||
-                                (indexes as unknown as { indexes: string[] })
-                                    .indexes?.length === 0) && (
+                            {indexList.length === 0 && (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
                                     No indexes found
                                 </div>
@@ -261,9 +278,7 @@ export default function VectorsPage() {
                 </ScrollArea>
 
                 <div className="border-t p-4 text-sm text-muted-foreground">
-                    {(indexes as unknown as { indexes: string[] })?.indexes
-                        ?.length ?? 0}{' '}
-                    indexes
+                    {indexList.length} indexes
                 </div>
             </div>
 
@@ -470,33 +485,25 @@ function IndexDetails({
                             <Label>Results ({results.length})</Label>
                             <ScrollArea className="h-64 border rounded-md">
                                 <div className="p-4 space-y-2">
-                                    {results.map(
-                                        (result: any, index: number) => (
+                                    {(results as VectorQueryResult[]).map(
+                                        (result: VectorQueryResult, index: number) => (
                                             <div
-                                                key={index}
+                                                key={result.id ?? `result-${index}`}
                                                 className="p-3 bg-muted rounded-md"
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <span className="font-mono text-sm">
-                                                        {result.id ||
-                                                            `Result ${index + 1}`}
+                                                        {result.id ?? `Result ${index + 1}`}
                                                     </span>
-                                                    {result.score && (
+                                                    {result.score !== null && (
                                                         <Badge variant="secondary">
-                                                            Score:{' '}
-                                                            {result.score.toFixed(
-                                                                4
-                                                            )}
+                                                            Score: {result.score.toFixed(4)}
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                {result.metadata && (
+                                                {result.metadata !== null && (
                                                     <pre className="mt-2 text-xs text-muted-foreground">
-                                                        {JSON.stringify(
-                                                            result.metadata,
-                                                            null,
-                                                            2
-                                                        )}
+                                                        {JSON.stringify(result.metadata, null, 2)}
                                                     </pre>
                                                 )}
                                             </div>

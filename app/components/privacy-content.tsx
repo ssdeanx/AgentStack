@@ -1,6 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
+import { AnimatedShieldMatrix } from '@/app/components/gsap/svg-suite'
 
 const PRIVACY_SECTIONS = [
     {
@@ -43,10 +45,14 @@ export function PrivacyContent() {
                     transition={{ duration: 0.5 }}
                     className="mb-12"
                 >
-                    <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground">
-                        Privacy Policy
-                    </h1>
-                    <p className="text-muted-foreground">
+                    <PublicPageHero
+                        badge="Legal"
+                        title="Privacy Policy"
+                        description="How AgentStack collects, uses, and protects your data."
+                        accent={AnimatedShieldMatrix}
+                        accentCaption="Policy controls and protected boundaries"
+                    />
+                    <p className="mt-4 text-muted-foreground">
                         Last updated: November 30, 2025
                     </p>
                 </motion.div>

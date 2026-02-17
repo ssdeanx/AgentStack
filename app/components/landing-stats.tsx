@@ -15,8 +15,12 @@ import {
 import {
     SectionLayout,
     useSectionReveal,
+    SECTION_HEADING,
+    SECTION_LAYOUT,
     SECTION_BODY,
 } from '@/app/components/primitives'
+import { Badge } from '@/ui/badge'
+import { AnimatedPacketBurst } from '@/app/components/gsap/svg-suite'
 
 interface StatItem {
     label: string
@@ -123,13 +127,35 @@ function AnimatedCounter({
 
 export function LandingStats() {
     const revealRef = useSectionReveal<HTMLDivElement>({
-        selector: '.stat-card, .stat-bar, .stat-footer',
+        selector: '.stat-header, .stat-card, .stat-bar, .stat-footer',
         stagger: 0.06,
     })
 
     return (
         <SectionLayout spacing="base" background="grid" borderBottom>
             <div ref={revealRef}>
+                <div className={`stat-header ${SECTION_LAYOUT.headerCenter}`}>
+                    <Badge variant="outline" className="mb-4">
+                        Platform Metrics
+                    </Badge>
+                    <div className="mb-5 flex justify-center">
+                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2">
+                            <AnimatedPacketBurst
+                                className="gsap-svg-icon gsap-svg-crisp"
+                                size={142}
+                                animate
+                            />
+                        </div>
+                    </div>
+                    <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
+                        Measurable Performance at Scale
+                    </h2>
+                    <p className={SECTION_BODY.subtitleCentered}>
+                        Real adoption, production usage, and enterprise trust
+                        metrics from the AgentStack ecosystem.
+                    </p>
+                </div>
+
                 {/* Primary stats */}
                 <div className="stat-card @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4">
                     {STATS.map((stat) => (

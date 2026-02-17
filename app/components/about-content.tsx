@@ -44,6 +44,7 @@ export function AboutContent() {
                         description="AgentStack is a production-grade multi-agent framework designed to help developers build, deploy, and manage AI applications at scale."
                         badge="Our Story"
                         accent={AnimatedPrismOrbit}
+                        accentCaption="Multi-vector reasoning architecture"
                     />
                 </div>
 

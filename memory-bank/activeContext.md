@@ -1,4 +1,45 @@
+## Active Context Update (2026-02-17 - Landing Components Complete)
+
+- All homepage landing sections (`landing-*`) received visual polish and GSAP SVG accent integration.
+- New SVG options were expanded beyond the initial 3 to 8 newly-created variants in this cycle.
+- `landing-svg-lab.tsx` now showcases 18 SVG systems total.
+- Landing visual state is now consistent section-to-section with stage framing, sizing, and motion-safe accents.
+
+## Active Context Update (2026-02-17 - Public Components SVG Pass)
+
+- Scope locked to `app/components/**` public-surface visual quality (no dashboard changes in this pass).
+- Completed shared visual system upgrade for GSAP accents:
+  - added 3 new SVG options (Shield Matrix, Quantum Lattice, Token Stream)
+  - expanded SVG lab to 13 options
+  - upgraded `PublicPageHero` stage sizing + framing + optional accent caption
+  - propagated contextual `accentCaption` usage across all 13 hero-accent public components
+  - increased global SVG sizing clamps in `app/globals.css`
+- Current outcome: stronger, more consistent hero accents across public components with clearer semantic mapping by page purpose.
+
+## Active Context Update (2026-02-17)
+
+- Current focus: stabilize dashboard/chat path with strict typing and no `unknown`/`any` state leaks in edited files.
+- Completed now:
+  - `app/dashboard/workflows/page.tsx` run-result state migrated to `Record<string, JsonValue> | null` with runtime guard.
+  - `app/dashboard/observability/page.tsx` score-result state migrated similarly; JSX regression fixed.
+- Validation pass (targeted grep): no `any` / `as unknown as` / `Record<string, unknown>` remain in those two pages.
+- Next immediate step: continue remaining GSAP + dashboard fixes and verify agent deep-link chat flow end-to-end.
+
 # Active Context
+
+## [NEW 2026-02-17] Dashboard strict-typing + backend catalog alignment
+
+- In-progress hardening pass focused on two user-critical requirements:
+  1. remove `any`/unsafe cast patterns from dashboard runtime pages,
+  2. ensure public catalog components (agents/workflows/tools/networks) are backend-fed, not hardcoded.
+- Completed this pass so far:
+  - dashboard overview trace row rendering uses typed span fields directly.
+  - observability route migrated to typed dashboard hooks and strict span rendering.
+  - workflows route fixed for step union handling and input-schema display.
+  - telemetry route rebuilt to typed traces view.
+  - agent tab/tools tab removed `any` casts.
+  - tools/workflows/networks public list components now pull backend data.
+- Remaining hardening still needed in this stream: memory/logs/vectors routes still contain legacy cast patterns and require the same strict typing cleanup.
 
 ## Current Focus (Jan 2026)
 

@@ -199,18 +199,8 @@ export function ChatHeader() {
                             inputTokens: usage.inputTokens,
                             outputTokens: usage.outputTokens,
                             totalTokens: usage.totalTokens,
-                            outputTokenDetails:
-                                typeof usage.outputTokens === 'number'
-                                    ? { textTokens: usage.outputTokens, reasoningTokens: 0 }
-                                    : {
-                                        textTokens: (usage.outputTokens as unknown as { textTokens?: number }).textTokens ?? 0,
-                                        reasoningTokens: (usage.outputTokens as unknown as { reasoningTokens?: number }).reasoningTokens ?? 0,
-                                    },
-                            inputTokenDetails: {
-                                cacheReadTokens: (usage.inputTokenDetails as unknown as { cacheReadTokens?: number }).cacheReadTokens ?? 0,
-                                cacheWriteTokens: (usage.inputTokenDetails as unknown as { cacheWriteTokens?: number }).cacheWriteTokens ?? 0,
-                                noCacheTokens: (usage.inputTokenDetails as unknown as { noCacheTokens?: number }).noCacheTokens ?? 0,
-                            }
+                            outputTokenDetails: usage.outputTokenDetails,
+                            inputTokenDetails: usage.inputTokenDetails,
                         }}
                     >
                         <ContextTrigger />

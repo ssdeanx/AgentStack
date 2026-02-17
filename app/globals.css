@@ -891,8 +891,38 @@
     }
 
     .gsap-svg-icon {
-        width: clamp(6rem, 9vw, 8rem);
-        height: clamp(6rem, 9vw, 8rem);
+        width: clamp(10.5rem, 18vw, 14.5rem);
+        height: clamp(10.5rem, 18vw, 14.5rem);
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        filter: drop-shadow(0 10px 30px oklch(var(--primary) / 18%));
+    }
+
+    .gsap-svg-hero {
+        width: clamp(12rem, 20vw, 17rem);
+        height: clamp(12rem, 20vw, 17rem);
+    }
+
+    .gsap-svg-card {
+        width: clamp(7rem, 10vw, 9rem);
+        height: clamp(7rem, 10vw, 9rem);
+    }
+
+    .gsap-svg-stage {
+        width: clamp(13rem, 22vw, 18rem);
+        height: clamp(13rem, 22vw, 18rem);
+        border: 1px solid color-mix(in oklch, var(--border), transparent 20%);
+        background:
+            radial-gradient(
+                circle at 50% 40%,
+                color-mix(in oklch, var(--primary), transparent 90%) 0%,
+                transparent 62%
+            ),
+            color-mix(in oklch, var(--card), transparent 14%);
+        box-shadow:
+            0 10px 30px -16px color-mix(in oklch, var(--primary), transparent 68%),
+            inset 0 1px 0 color-mix(in oklch, white, transparent 90%);
     }
 
     .gsap-svg-crisp {

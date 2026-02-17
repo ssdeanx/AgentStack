@@ -1,4 +1,65 @@
+## 2026-02-17 Landing Components Full Pass
+
+- Completed landing-wide component polish across all `landing-*` sections:
+  - `landing-hero.tsx`
+  - `landing-stats.tsx`
+  - `landing-trust.tsx`
+  - `landing-features.tsx`
+  - `landing-svg-lab.tsx`
+  - `landing-testimonials.tsx`
+  - `landing-agents.tsx`
+  - `landing-cta.tsx`
+- Added 5 additional SVG variants (on top of prior 3), bringing new variants created in this cycle to 8 total:
+  - `AnimatedAegisCore`
+  - `AnimatedFractalBeacon`
+  - `AnimatedOrbitShards`
+  - `AnimatedWaveInterference`
+  - `AnimatedPacketBurst`
+- Expanded landing SVG lab from 13 to 18 samples and wired new variants into landing sections for professional visual consistency.
+
+## 2026-02-17 Public SVG Professionalization (Components Scope)
+
+- Added 3 new production SVG accents in `app/components/gsap/svg-suite/`:
+  - `animated-shield-matrix.tsx`
+  - `animated-quantum-lattice.tsx`
+  - `animated-token-stream.tsx`
+- Updated SVG suite barrel export (`svg-suite/index.ts`) and expanded `landing-svg-lab.tsx` from 10 to 13 showcase options.
+- Upgraded shared `PublicPageHero` quality:
+  - larger accent rendering (`size={192}`), stronger stage framing, radial + inner-border depth
+  - optional `accentCaption` support
+  - fixed subtitle alignment for desktop left layouts (`lg:mx-0 lg:text-left`)
+- Applied `accentCaption` to all public components using hero accents:
+  - `about-content.tsx`, `api-reference-content.tsx`, `blog-list.tsx`, `careers-content.tsx`, `changelog-list.tsx`, `contact-form.tsx`, `examples-list.tsx`, `networks-list.tsx`, `pricing-tiers.tsx`, `privacy-content.tsx`, `terms-content.tsx`, `tools-list.tsx`, `workflows-list.tsx`
+- Swapped selected pages to new SVG options for clearer semantics:
+  - Privacy → `AnimatedShieldMatrix`
+  - Tools → `AnimatedQuantumLattice`
+  - Changelog → `AnimatedTokenStream`
+- Increased global SVG scale tokens in `app/globals.css` (`.gsap-svg-icon`, `.gsap-svg-hero`, `.gsap-svg-stage`) to remove tiny-icon presentation.
+
+## 2026-02-17 Dashboard Typing Hardening
+
+- Removed `unknown`-based state in dashboard pages that were edited in this task:
+  - `app/dashboard/workflows/page.tsx`
+  - `app/dashboard/observability/page.tsx`
+- Added explicit JSON-safe result typing (`JsonValue`) and guarded runtime assignment paths.
+- Fixed broken JSX introduced during refactor in observability pagination action.
+- Kept scope limited to dashboard strict typing and stability (no backend wiring changes to public pages in this step).
+
 # Progress
+
+## Dashboard + Public Data Hardening **[Synced 2026-02-17]**
+
+- Removed unsafe dashboard casts in key routes/components:
+  - `app/dashboard/page.tsx` trace list no longer uses `as unknown as Record`.
+  - `app/dashboard/observability/page.tsx` moved to typed query hooks and typed `Trace/Span` rendering.
+  - `app/dashboard/workflows/page.tsx` fixed step union handling and schema rendering.
+  - `app/dashboard/agents/_components/agent-tab.tsx` + `agent-tools-tab.tsx` no longer use `any` casts.
+- Rebuilt `app/dashboard/telemetry/page.tsx` with typed traces query flow and strict rendering.
+- Replaced hardcoded public catalogs with backend-driven data:
+  - `app/components/tools-list.tsx`
+  - `app/components/workflows-list.tsx`
+  - `app/components/networks-list.tsx`
+- Public GSAP hero integration remains active via `PublicPageHero` accents for these public list surfaces.
 
 ## Skill Upgrade: Generative UI Architect **[Synced 2026-02-16]**
 
