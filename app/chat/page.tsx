@@ -45,10 +45,9 @@ export default function ChatPage() {
 function ChatPageContent() {
     const searchParams = useSearchParams()
     const agentParam = searchParams.get('agent')
+    const trimmedAgent = agentParam?.trim()
     const initialAgent =
-        agentParam !== null && agentParam.trim().length > 0
-            ? agentParam.trim()
-            : undefined
+        trimmedAgent && trimmedAgent.length > 0 ? trimmedAgent : undefined
 
     return (
         <ChatProvider defaultAgent={initialAgent}>
