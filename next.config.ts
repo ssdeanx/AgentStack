@@ -1,5 +1,4 @@
 import createMDX from '@next/mdx'
-import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin'
 import type { NextConfig } from 'next'
 import type { Configuration } from 'webpack'
 
@@ -42,61 +41,7 @@ const nextConfig: NextConfig = {
     webpack: (config: Configuration, { isServer }) => {
         if (!isServer) {
             config.plugins = config.plugins ?? []
-            config.plugins.push(
-                new MonacoWebpackPlugin({
-                    languages: [
-                        'typescript',
-                        'javascript',
-                        'json',
-                        'css',
-                        'markdown',
-                    ],
-                })
-            )
-
-            // Sanitize resolve.alias so values are serializable for Turbopack/worker cloning
-            // Ensure resolve exists and normalize alias values to strings/arrays of strings
-            const existingResolve = config.resolve ?? {}
-            const aliasObj = (existingResolve as unknown as Record<string, unknown>).alias ?? {}
-            if (typeof aliasObj === 'object' && aliasObj !== null) {
-                const normalized: Record<string, string | string[]> = {}
-                for (const [k, v] of Object.entries(aliasObj as Record<string, unknown>)) {
-                    if (Array.isArray(v)) {
-                        normalized[k] = v.map((x) => String(x))
-                    } else if (typeof v === 'object' && v !== null) {
-                        // For objects, stringify to avoid '[object Object]' implicit string coercion
-                        try {
-                            normalized[k] = JSON.stringify(v)
-                        } catch {
-                            normalized[k] = ''
-                        }
-                    } else if (typeof v === 'function') {
-                        // For functions, prefer the function name to avoid serializing the entire function
-                        // Narrow to an object with an optional name property to avoid using the broad Function type
-                        const fnName = (v as { name?: string })?.name ?? ''
-                        normalized[k] = fnName
-                    } else if (v === null || v === undefined) {
-                        // Keep null/undefined normalized to an empty string
-                        normalized[k] = ''
-                    } else {
-                        // At this point, expect primitives (string/number/boolean/symbol/bigint).
-                        // Guard against objects to avoid default Object stringification '[object Object]'.
-                        const t = typeof v
-                        if (t === 'string' || t === 'number' || t === 'boolean' || t === 'symbol' || t === 'bigint') {
-                            // Narrow the type for the linter to avoid base-to-string coercion warnings
-                            normalized[k] = String(v as string | number | boolean | symbol | bigint)
-                        } else {
-                            // Fallback for unexpected non-serializable values
-                            try {
-                                normalized[k] = JSON.stringify(v)
-                            } catch {
-                                normalized[k] = ''
-                            }
-                        }
-                    }
-                }
-                config.resolve = { ...existingResolve, alias: normalized } as Configuration['resolve']
-            }
+            config.plugins.push()
         }
 
         return config
@@ -153,7 +98,7 @@ const nextConfig: NextConfig = {
         //  turbopackFileSystemCacheForBuild: true,
         useCache: true,
         //    useLightningcss: true,
-        useWasmBinary: true,
+  //      useWasmBinary: true,
         //    swcTraceProfiling: true,
         //    forceSwcTransforms: true,
         ppr: false,

@@ -8,7 +8,7 @@
     "build": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\"  \"npm run build:next\" \"npm run build:mastra\"",
     "start": "dotenvx run -- concurrently -n \"NEXT,MASTRA\" -c \"blue.bold,green.bold\" \"npm run start:next\" \"npm run start:mastra\"",
     "dev:mastra": "cross-env NODE_OPTIONS='--max-old-space-size=8192' mastra dev",
-    "dev:next": "cross-env next dev --turbopack",
+    "dev:next": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",
     "build:next": "next build",
     "build:mastra": "mastra build",
     "start:mastra": "mastra start",

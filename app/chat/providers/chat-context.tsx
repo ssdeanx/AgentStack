@@ -189,7 +189,7 @@ export function ChatProvider({
         () =>
             new DefaultChatTransport({
                 // Use stable endpoint - agentId passed in body, not URL path
-                api: `${MASTRA_API_URL}/chat`,
+                api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
                 prepareSendMessagesRequest({ messages: outgoingMessages }) {
                     const last = outgoingMessages[outgoingMessages.length - 1]
                     const textPart = last?.parts?.find(

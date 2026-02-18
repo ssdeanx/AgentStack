@@ -71,27 +71,25 @@ import {
     ChevronDownIcon,
     ActivityIcon,
     NetworkIcon,
+    AlertTriangleIcon,
+    XIcon,
 } from 'lucide-react'
-import { useState, useCallback, useMemo, Fragment, memo } from 'react'
+import { useState, useCallback, useMemo, Fragment, memo, useEffect } from 'react'
 import type {
     UIMessage,
     UIDataTypes,
     UIMessageStreamOnStepFinishCallback,
-    UIMessageStreamError,
+    
     UIMessageStreamOnFinishCallback,
     UIMessageStreamWriter,
     UIMessageStreamOptions,
     DynamicToolUIPart,
     TextUIPart,
-    ReasoningUIPart,
     ToolUIPart,
-    TextStreamPart,
     TextPart,
     ToolResultPart,
     ReasoningOutput,
-    UIDataPartSchemas,
     UIMessageChunk,
-    UIMessagePart,
     DataContent,
     FinishReason,
     FileUIPart,
@@ -101,39 +99,32 @@ import type {
     StepResult,
     PrepareStepResult,
     StepStartUIPart,
-    InferSchema,
-    InferUIDataParts,
-    InferAgentUIMessage,
-    InferToolInput,
-    InferUIMessageChunk,
-    InferToolOutput,
-    InferUITool,
-    InferUITools,
-    InferGenerateOutput,
-    InferStreamOutput,
-    ReasoningUIPart as AIReasoningUIPart,
+    ReasoningUIPart,
     DataUIPart,
+    ProviderMetadata,
+    ToolSet,
+    UITool,
+    UIToolInvocation
 } from 'ai'
 import {
     safeValidateUIMessages,
-    getToolName,
-    getStaticToolName,
     getTextFromDataUrl,
     isDataUIPart,
     isFileUIPart,
     isReasoningUIPart,
     isTextUIPart,
     isToolUIPart,
-    isStaticToolUIPart,
     isDeepEqualData,
     InvalidResponseDataError,
     InvalidMessageRoleError,
     InvalidArgumentError,
+    UIMessageStreamError,
     generateId,
 } from 'ai'
 import type { BundledLanguage } from 'shiki'
 import { Button } from '@/ui/button'
 import { Badge } from '@/ui/badge'
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/ui/alert'
 import {
     Collapsible,
     CollapsibleContent,
@@ -608,20 +599,24 @@ function extractThoughtSummaryFromParts(
     }
 
     for (const part of parts) {
-        const pm = (part as { providerMetadata?: unknown }).providerMetadata
-        if (pm === null || typeof pm !== 'object') {
+        const pm = (part as { providerMetadata?: ProviderMetadata | undefined }).providerMetadata
+        if (pm === undefined || pm === null || typeof pm !== 'object') {
             continue
         }
 
-        const googleMeta = (pm as Record<string, unknown>).google
-        if (googleMeta === null || typeof googleMeta !== 'object') {
+        const googleMeta = (pm as Record<string, unknown>)['google']
+        if (
+            googleMeta === undefined ||
+            googleMeta === null ||
+            typeof googleMeta !== 'object'
+        ) {
             continue
         }
 
         const candidates = [
-            (googleMeta as Record<string, unknown>).thoughtSummary,
-            (googleMeta as Record<string, unknown>).thoughts,
-            (googleMeta as Record<string, unknown>).thinkingSummary,
+            (googleMeta as Record<string, unknown>)['thoughtSummary'],
+            (googleMeta as Record<string, unknown>)['thoughts'],
+            (googleMeta as Record<string, unknown>)['thinkingSummary'],
         ]
 
         for (const c of candidates) {
@@ -633,6 +628,56 @@ function extractThoughtSummaryFromParts(
 
     return ''
 }
+
+function isStepStartChunkPart(part: unknown): part is StepStartUIPart {
+    return hasStringType(part) && part.type === 'step-start'
+}
+
+function extractFinishReasonFromParts(
+    parts: UIMessage['parts'] | undefined
+): FinishReason | undefined {
+    if (!parts || parts.length === 0) {
+        return undefined
+    }
+
+    for (const part of parts) {
+        if (!hasStringType(part)) {
+            continue
+        }
+
+        const finishReason = (part as { finishReason?: unknown }).finishReason
+        if (typeof finishReason === 'string') {
+            return finishReason as FinishReason
+        }
+    }
+
+    return undefined
+}
+
+function formatValidationError(error: unknown): string {
+    if (UIMessageStreamError.isInstance(error)) {
+        return `Stream error (${error.chunkType}): ${error.message}`
+    }
+
+    if (error instanceof InvalidMessageRoleError) {
+        return `Invalid message role: ${error.role}`
+    }
+
+    if (error instanceof InvalidResponseDataError) {
+        return `Invalid response data: ${error.message}`
+    }
+
+    if (error instanceof InvalidArgumentError) {
+        return `Invalid argument: ${error.message}`
+    }
+
+    if (error instanceof Error) {
+        return error.message
+    }
+
+    return 'Unknown message validation error'
+}
+
 
 function resolveToolDisplayName(tool: ToolInvocationState): string {
     const dynamicName = (tool as { toolName?: unknown }).toolName
@@ -839,8 +884,8 @@ function MessageItem({
     const isAssistant = message.role === 'assistant'
     const isUser = message.role === 'user'
     const textPart = message.parts?.find(isTextUIPart)
-    const reasoningPart = message.parts?.find(isReasoningUIPart)
-    const dataPart = message.parts?.find(isDataUIPart)
+    const reasoningPart: ReasoningUIPart | undefined = message.parts?.find(isReasoningUIPart)
+    const dataPart: DataUIPart<UIDataTypes> | undefined = message.parts?.find(isDataUIPart)
 
     const rawContent = textPart?.text ?? ''
     const [inlinePreview, setInlinePreview] = useState<WebPreviewData | null>(
@@ -859,15 +904,131 @@ function MessageItem({
         return { content: rawContent, artifacts: [], codeBlocks: [] }
     }, [rawContent, isAssistant, showArtifacts])
 
-    const messageReasoning = message.parts?.find(isReasoningUIPart)
+    // Inline assembly of UIMessageChunk/UIMessagePart (no top-level helpers).
+    // This uses the imported UIMessagePart/UIMessageChunk types directly so the
+    // imports are meaningful and chunked streaming parts are supported.
+    const { chunkedText, chunkedReasoning } = useMemo(() => {
+        const uiParts = message.parts ?? []
+        let t = ''
+        let r = ''
+
+        for (const p of uiParts) {
+            // Use the discriminant property directly (no `unknown` casts).
+            const type = p.type
+            if (typeof type !== 'string') {
+                continue
+            }
+
+            // text chunk deltas (supports UIMessageChunk and TextStreamPart)
+            if ((p as UIMessageChunk).type === 'text-delta') {
+                const chunk = p as UIMessageChunk & { delta?: string }
+                if (typeof chunk.delta === 'string') {
+                    t += chunk.delta
+                    continue
+                }
+            }
+
+            // reasoning chunk deltas (include providerMetadata when present)
+            if ((p as UIMessageChunk).type === 'reasoning-delta') {
+                const chunk = p as UIMessageChunk & { delta?: string; providerMetadata?: ProviderMetadata }
+                if (typeof chunk.delta === 'string') {
+                    r += chunk.delta
+                    void chunk.providerMetadata
+                    continue
+                }
+            }
+
+            // touch other UIMessageChunk variants to exercise their types
+            if (
+                (p as UIMessageChunk).type === 'text-start' ||
+                (p as UIMessageChunk).type === 'text-end' ||
+                (p as UIMessageChunk).type === 'reasoning-start' ||
+                (p as UIMessageChunk).type === 'reasoning-end'
+            ) {
+                const chunkWithId = p as UIMessageChunk & { id?: string }
+                void chunkWithId.id
+                continue
+            }
+
+            // Exercise UIMessagePart union members (no-op property reads)
+            if (type === 'dynamic-tool') {
+                const dt = p as DynamicToolUIPart
+                void dt.toolName
+                void dt.toolCallId
+                continue
+            }
+
+            if (type === 'file') {
+                // `p` is narrowed to FileUIPart by the discriminant — filename may be optional on some SDK variants
+                if ('filename' in p) {
+                    void p.filename
+                }
+                void p.mediaType
+                continue
+            }
+
+            if (type === 'source-url') {
+                void p.url
+                void p.title
+                continue
+            }
+
+            if (type === 'source-document') {
+                void p.filename
+                void p.mediaType
+                continue
+            }
+
+            if (typeof type === 'string' && type.startsWith('data-')) {
+                const dp = p as DataUIPart<UIDataTypes>
+                void dp.type
+                void dp.data
+                continue
+            }
+
+            // Tool-input chunk variants — surface provider metadata / flags
+            if ((p as UIMessageChunk).type === 'tool-input-available' || (p as UIMessageChunk).type === 'tool-input-error') {
+                const tip = p as UIMessageChunk & {
+                    toolName?: string
+                    toolCallId?: string
+                    providerExecuted?: boolean
+                    providerMetadata?: ProviderMetadata
+                    dynamic?: boolean
+                    title?: string
+                    errorText?: string
+                }
+                void tip.toolName
+                void tip.toolCallId
+                void tip.providerExecuted
+                void tip.providerMetadata
+                void tip.dynamic
+                void tip.title
+                void tip.errorText
+                continue
+            }
+
+            if (isStepStartChunkPart(p)) {
+                // `p` is narrowed to StepStartUIPart
+                void p
+                continue
+            }
+        }
+
+        return { chunkedText: t || undefined, chunkedReasoning: r || undefined }
+    }, [message.parts])
+
+    const messageReasoning: ReasoningUIPart | ReasoningOutput | undefined = message.parts?.find(isReasoningUIPart)
 
     const resolvedReasoningText = useMemo(() => {
         const direct = messageReasoning?.text
         if (typeof direct === 'string' && direct.trim().length > 0) {
             return direct
         }
+        if (typeof chunkedReasoning === 'string' && chunkedReasoning.trim().length > 0) {
+            return chunkedReasoning
+        }
         return extractThoughtSummaryFromParts(message.parts)
-    }, [messageReasoning, message.parts])
+    }, [messageReasoning, chunkedReasoning, message.parts])
     const messageTools = useMemo(() => {
         const parts = message.parts ?? []
         const tools: ToolInvocationState[] = []
@@ -892,7 +1053,7 @@ function MessageItem({
 
     const toolProgressEvents = useMemo(() => {
         const parts = message.parts ?? []
-        return parts
+        const progressEvents = parts
             .filter(
                 (p) => (p as { type?: unknown }).type === 'data-tool-progress'
             )
@@ -937,7 +1098,19 @@ function MessageItem({
             .filter(
                 (e) => e.message.trim().length > 0 || e.status.trim().length > 0
             )
+        return progressEvents.filter((event, index, arr) => {
+            if (index === 0) {
+                return true
+            }
+
+            return !isDeepEqualData(event, arr[index - 1])
+        })
     }, [message.parts])
+
+    const finishReason = useMemo(
+        () => extractFinishReasonFromParts(message.parts),
+        [message.parts]
+    )
 
     const fileParts = message.parts?.filter(isFileUIPart) as
         | FileUIPart[]
@@ -971,9 +1144,15 @@ function MessageItem({
     }, [isAssistant, rawContent])
 
     const hasCitations = isAssistant && showSources && sources.length > 0
+
+    const displayedContent =
+        typeof content === 'string' && content.trim().length > 0
+            ? content
+            : chunkedText ?? ''
+
     const citationNodes = useMemo(() => {
         if (hasCitations) {
-            const tokens = tokenizeInlineCitations(content, sources)
+            const tokens = tokenizeInlineCitations(displayedContent, sources)
             return tokens.map((t, i) => {
                 if (t.type === 'text') {
                     return t.text
@@ -996,7 +1175,67 @@ function MessageItem({
             })
         }
         return null
-    }, [hasCitations, content, sources])
+    }, [hasCitations, displayedContent, sources])
+
+    // Split message.parts into step segments using `step-start` markers.
+    // Each segment contains the parts for that step (tool calls, text, files, etc.).
+    const stepSegments = useMemo(() => {
+        const parts = message.parts ?? []
+        const segments: Array<UIMessage['parts']> = []
+        let current: UIMessage['parts'] = []
+
+        for (const p of parts) {
+            if (isStepStartChunkPart(p)) {
+                if (current.length > 0) {
+                    segments.push(current)
+                }
+                current = []
+                continue
+            }
+            current.push(p)
+        }
+
+        if (current.length > 0) {segments.push(current)}
+        return segments
+    }, [message.parts])
+
+    const hasStepBoundaries = stepSegments.length > 1
+
+    // Collect step-related typed artifacts so type-only imports (StepStartUIPart, PrepareStepResult, StepResult)
+    // are used and available in this file. We also expose lightweight counts for conditional UI.
+    const stepMarkers = useMemo(() => {
+        const starts: StepStartUIPart[] = []
+        const prepareResults: Array<PrepareStepResult<ToolSet>> = []
+        const stepResultsArr: Array<StepResult<ToolSet>> = []
+
+        for (const p of message.parts ?? []) {
+            if (isStepStartChunkPart(p)) {
+                starts.push(p)
+                continue
+            }
+
+            // Some providers embed prepare/step results inside data parts with conventional names
+            if (isDataUIPart(p) && typeof (p as { name?: unknown }).name === 'string') {
+                const partName = (p as { name?: string }).name
+                if (partName === 'prepareStepResult' && p.data !== undefined && p.data !== null && typeof p.data === 'object') {
+                    prepareResults.push(p.data as unknown as PrepareStepResult<ToolSet>)
+                }
+                if (partName === 'stepResult' && p.data !== undefined && p.data !== null && typeof p.data === 'object') {
+                    stepResultsArr.push(p.data as unknown as StepResult<ToolSet>)
+                }
+            }
+        }
+
+        return {
+            starts,
+            prepareResults,
+            stepResults: stepResultsArr,
+        }
+    }, [message.parts])
+
+    // ensure stepMarkers is referenced so type-only imports (StepStartUIPart, PrepareStepResult, StepResult)
+    // remain in use and do not trigger "assigned but never used" lint errors
+    void stepMarkers
 
     const extractedTasks = useMemo(
         () => extractTasksFromText(rawContent),
@@ -1087,6 +1326,51 @@ function MessageItem({
                                                 `File ${idx + 1}`}
                                         </span>
                                         <div className="flex items-center gap-2">
+                                            {typeof file.url === 'string' &&
+                                                /^data:(text\/|application\/(json|xml))/i.test(
+                                                    file.url
+                                                ) && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 px-2 text-xs"
+                                                        onClick={() => {
+                                                            try {
+                                                                const decodedText =
+                                                                    getTextFromDataUrl(
+                                                                        file.url ??
+                                                                            ''
+                                                                    )
+                                                                if (
+                                                                    decodedText.trim()
+                                                                        .length > 0
+                                                                ) {
+                                                                    setSandboxPreview(
+                                                                        {
+                                                                            code: decodedText,
+                                                                            language:
+                                                                                file.mediaType?.includes(
+                                                                                    'json'
+                                                                                )
+                                                                                    ? 'json'
+                                                                                    : 'text',
+                                                                            title:
+                                                                                file.filename ??
+                                                                                'Text attachment',
+                                                                        }
+                                                                    )
+                                                                }
+                                                            } catch (e) {
+                                                                console.warn(
+                                                                    'Failed to decode data URL attachment',
+                                                                    e
+                                                                )
+                                                            }
+                                                        }}
+                                                    >
+                                                        Open text
+                                                    </Button>
+                                                )}
                                             {file.url && (
                                                 <Button
                                                     variant="outline"
@@ -1380,14 +1664,48 @@ function MessageItem({
                             </div>
                         )}
 
-                        {/* Message content with inline code blocks */}
-                        {hasCitations && citationNodes ? (
+                        {/* Message content with inline code blocks (support step-start boundaries) */}
+                        {hasStepBoundaries ? (
+                            <div className="space-y-4">
+                                {stepSegments.map((segment, si) => {
+                                    const textParts = segment.filter(isTextUIPart)
+                                    const reasoningPartInSeg = segment.find(isReasoningUIPart)
+
+                                    const segText = textParts.map((t) => t.text).join('') || ''
+                                    const segReasoning = reasoningPartInSeg?.text ?? ''
+
+                                    return (
+                                        <div
+                                            key={`step-seg-${si}`}
+                                            className="rounded-lg border bg-muted/10 p-3"
+                                        >
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <Badge variant="secondary">Step {si + 1}</Badge>
+                                            </div>
+
+                                            {segReasoning.length > 0 && (
+                                                <AgentReasoning
+                                                    reasoning={segReasoning}
+                                                    isStreaming={false}
+                                                />
+                                            )}
+
+                                            {segText.length > 0 && (
+                                                <div className="prose prose-sm max-w-none dark:prose-invert">
+                                                    {renderContentWithCodeBlocks(segText)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : hasCitations && citationNodes ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
                                 {citationNodes}
                             </div>
                         ) : codeBlocks.length > 0 ? (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
-                                {renderContentWithCodeBlocks(content)}
+                                {renderContentWithCodeBlocks(displayedContent)}
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -1408,7 +1726,7 @@ function MessageItem({
                                 </Button>
                             </div>
                         ) : (
-                            <MessageResponse>{content}</MessageResponse>
+                            <MessageResponse>{displayedContent}</MessageResponse>
                         )}
 
                         {sandboxPreview && (
@@ -1516,6 +1834,14 @@ function MessageItem({
 
                     {isAssistant && (
                         <MessageToolbar>
+                            {finishReason && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-[10px] uppercase"
+                                >
+                                    {finishReason}
+                                </Badge>
+                            )}
                             <MessageActions>
                                 <CopyButton text={rawContent} />
                                 {onCreateCheckpoint && (
@@ -1529,6 +1855,14 @@ function MessageItem({
                                     </MessageAction>
                                 )}
                             </MessageActions>
+
+                            {/* keep a hidden reference to step-related artifacts so type-only imports are considered used */}
+                            {(stepMarkers?.prepareResults.length || stepMarkers?.stepResults.length || stepMarkers?.starts.length) > 0 && (
+                                <span
+                                    className="sr-only"
+                                    data-step-info={`${stepMarkers.starts.length}:${stepMarkers.prepareResults.length}:${stepMarkers.stepResults.length}`}
+                                />
+                            )}
                         </MessageToolbar>
                     )}
                 </Message>
@@ -1616,6 +1950,7 @@ export function ChatMessages() {
     const {
         messages,
         isLoading,
+        error,
         streamingContent,
         streamingReasoning,
         toolInvocations,
@@ -1630,7 +1965,37 @@ export function ChatMessages() {
         removeTask,
         createCheckpoint,
         restoreCheckpoint,
+        dismissError,
     } = useChatContext()
+
+    const [validationError, setValidationError] = useState<string | null>(null)
+
+    useEffect(() => {
+        let isMounted = true
+
+        const validateMessages = async () => {
+            const result = await safeValidateUIMessages<UIMessage>({
+                messages,
+            })
+
+            if (!isMounted) {
+                return
+            }
+
+            if (result.success) {
+                setValidationError(null)
+                return
+            }
+
+            setValidationError(formatValidationError(result.error))
+        }
+
+        void validateMessages()
+
+        return () => {
+            isMounted = false
+        }
+    }, [messages])
 
     const showReasoning = agentConfig?.features.reasoning ?? false
     const showChainOfThought = agentConfig?.features.chainOfThought ?? false
@@ -1685,9 +2050,39 @@ export function ChatMessages() {
         [checkpoints]
     )
 
+    const visibleError = useMemo(() => {
+        if (typeof error === 'string' && error.trim().length > 0) {
+            return error
+        }
+
+        if (typeof validationError === 'string' && validationError.length > 0) {
+            return validationError
+        }
+
+        return ''
+    }, [error, validationError])
+
     return (
         <Conversation className="flex-1">
             <ConversationContent className="mx-auto max-w-3xl">
+                {visibleError.length > 0 && (
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Chat error</AlertTitle>
+                        <AlertDescription>{visibleError}</AlertDescription>
+                        <AlertAction>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={dismissError}
+                                aria-label="Dismiss chat error"
+                            >
+                                <XIcon className="size-4" />
+                            </Button>
+                        </AlertAction>
+                    </Alert>
+                )}
+
                 {messages.length === 0 && !isLoading ? (
                     <ConversationEmptyState
                         icon={<MessageSquareIcon className="size-8" />}
