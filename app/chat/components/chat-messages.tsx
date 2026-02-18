@@ -1973,27 +1973,30 @@ export function ChatMessages() {
     useEffect(() => {
         let isMounted = true
 
-        const validateMessages = async () => {
-            const result = await safeValidateUIMessages<UIMessage>({
-                messages,
-            })
+        const timeoutId = window.setTimeout(() => {
+            const validateMessages = async () => {
+                const result = await safeValidateUIMessages<UIMessage>({
+                    messages,
+                })
 
-            if (!isMounted) {
-                return
+                if (!isMounted) {
+                    return
+                }
+
+                if (result.success) {
+                    setValidationError(null)
+                    return
+                }
+
+                setValidationError(formatValidationError(result.error))
             }
 
-            if (result.success) {
-                setValidationError(null)
-                return
-            }
-
-            setValidationError(formatValidationError(result.error))
-        }
-
-        void validateMessages()
+            void validateMessages()
+        }, 300)
 
         return () => {
             isMounted = false
+            window.clearTimeout(timeoutId)
         }
     }, [messages])
 
