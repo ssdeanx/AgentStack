@@ -66,6 +66,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 const DEFAULT_MAX_TOKENS = 128000
 
@@ -95,9 +96,17 @@ export function ChatHeader() {
 
     const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
     const modelsByProvider = useMemo(() => getModelsByProvider(), [])
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
 
     const handleSelectAgent = (agent: AgentConfig) => {
         selectAgent(agent.id)
+
+        const nextParams = new URLSearchParams(searchParams.toString())
+        nextParams.set('agent', agent.id)
+        router.replace(`${pathname}?${nextParams.toString()}`)
+
         setAgentSelectorOpen(false)
     }
 
