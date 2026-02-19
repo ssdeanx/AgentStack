@@ -108,7 +108,7 @@ export function PolygonStockQuotesCard({
   }, [output])
 
   if (errorText) return <ErrorCard title="Quotes Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching quotes for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Quotes Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? []
@@ -126,11 +126,11 @@ export function PolygonStockQuotesCard({
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3 flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Quotes: {input.symbol}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Quotes: {(input as any).symbol}</CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">{(output as any).metadata?.count ?? data.length} points</Badge>
             <Button size="sm" variant="ghost" onClick={copyRaw}><CopyIcon className="size-4 mr-2" />{copied ? 'Copied' : 'Copy JSON'}</Button>
-            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-quotes.json`, data)}><Download className="size-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-quotes.json`, data)}><Download className="size-4" /></Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -142,7 +142,7 @@ export function PolygonStockQuotesCard({
           {filtered.length === 0 ? (
             <div className="text-sm text-muted-foreground">No quotes match</div>
           ) : (
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-75 pr-4">
               <div className="space-y-2">
                 {filtered.map((row: any, idx: number) => (
                   <div key={idx} className="p-2 border rounded flex items-center justify-between">
@@ -169,7 +169,7 @@ export function PolygonStockQuotesCard({
         <CardContent>
           <CodeBlock code={JSON.stringify(data, null, 2)} language="json">
             <CodeBlockCopyButton />
-            <Button size="icon" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-quotes-raw.json`, data)}><Download className="size-4" /></Button>
+            <Button size="icon" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-quotes-raw.json`, data)}><Download className="size-4" /></Button>
           </CodeBlock>
         </CardContent>
       </Card>
@@ -190,7 +190,7 @@ export function PolygonStockAggregatesCard({
   errorText?: string
 }) {
   if (errorText) return <ErrorCard title="Aggregates Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching aggregates for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Aggregates Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? []
@@ -200,15 +200,15 @@ export function PolygonStockAggregatesCard({
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3 flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Aggregates: {input.symbol}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Aggregates: {(input as any).symbol}</CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">{meta.count ?? data.length} bars</Badge>
-            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-aggregates.json`, data)}><Download className="size-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-aggregates.json`, data)}><Download className="size-4" /></Button>
           </div>
         </CardHeader>
         <CardContent>
           {data.length === 0 ? <div className="text-sm text-muted-foreground">No aggregates</div> : (
-            <ScrollArea className="h-[280px] pr-4">
+            <ScrollArea className="h-75 pr-4">
               <div className="space-y-2">
                 {data.map((row: any, i: number) => (
                   <div key={i} className="p-2 border rounded flex items-center justify-between">
@@ -232,7 +232,7 @@ export function PolygonStockAggregatesCard({
         <CardContent>
           <CodeBlock code={JSON.stringify(data, null, 2)} language="json">
             <CodeBlockCopyButton />
-            <Button size="icon" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-aggregates-raw.json`, data)}><Download className="size-4" /></Button>
+            <Button size="icon" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-aggregates-raw.json`, data)}><Download className="size-4" /></Button>
           </CodeBlock>
         </CardContent>
       </Card>
@@ -253,7 +253,7 @@ export function PolygonStockFundamentalsCard({
   errorText?: string
 }) {
   if (errorText) return <ErrorCard title="Fundamentals Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching fundamentals for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching fundamentals for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Fundamentals Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? {}
@@ -262,9 +262,9 @@ export function PolygonStockFundamentalsCard({
   return (
     <Card>
       <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Fundamentals: {input.symbol}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Fundamentals: {(input as any).symbol}</CardTitle>
         <div>
-          <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-fundamentals.json`, data)}><Download className="size-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-fundamentals.json`, data)}><Download className="size-4" /></Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -300,7 +300,7 @@ export function PolygonCryptoQuotesCard({
   const [filter, setFilter] = useState('')
 
   if (errorText) return <ErrorCard title="Crypto Quotes Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching crypto quotes for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching crypto quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Crypto Quotes Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? []
@@ -310,16 +310,16 @@ export function PolygonCryptoQuotesCard({
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3 flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Crypto Quotes: {input.symbol}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Crypto Quotes: {(input as any).symbol}</CardTitle>
           <div className="flex items-center gap-2">
             <Input value={filter} onChange={(e: ChangeEvent<HTMLInputElement>) => setFilter(e.target.value)} placeholder="Filter..." className="w-56 text-sm" />
             <Button size="sm" variant="ghost" onClick={() => setFilter('')}>Clear</Button>
-            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-crypto-quotes.json`, data)}><Download className="size-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-crypto-quotes.json`, data)}><Download className="size-4" /></Button>
           </div>
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? <div className="text-sm text-muted-foreground">No quotes</div> : (
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-75 pr-4">
               <div className="space-y-2">
                 {filtered.map((r: any, i: number) => (
                   <div key={i} className="p-2 rounded border flex items-center justify-between">
@@ -352,15 +352,15 @@ export function PolygonCryptoAggregatesCard({
   errorText?: string
 }) {
   if (errorText) return <ErrorCard title="Crypto Aggregates Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching aggregates for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Crypto Aggregates Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? []
   return (
     <Card>
       <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Crypto Aggregates: {input.symbol}</CardTitle>
-        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-crypto-aggregates.json`, data)}><Download className="size-4" /></Button></div>
+        <CardTitle className="flex items-center gap-2 text-sm"><ChartBar className="size-4 text-primary" /> Crypto Aggregates: {(input as any).symbol}</CardTitle>
+        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-crypto-aggregates.json`, data)}><Download className="size-4" /></Button></div>
       </CardHeader>
       <CardContent>
         <div className="text-sm">
@@ -384,19 +384,19 @@ export function PolygonCryptoSnapshotsCard({
   errorText?: string
 }) {
   if (errorText) return <ErrorCard title="Crypto Snapshots Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching snapshots for ${input.symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (!output) return <LoadingCard title={`Fetching snapshots for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
   if ('error' in output) return <ErrorCard title="Crypto Snapshots Error" message={(output as any).error ?? 'Unknown'} />
 
   const data = (output as any).data ?? []
   return (
     <Card>
       <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Crypto Snapshots: {input.symbol}</CardTitle>
-        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON(`${input.symbol}-snapshots.json`, data)}><Download className="size-4" /></Button></div>
+        <CardTitle className="flex items-center gap-2 text-sm"><FileText className="size-4 text-primary" /> Crypto Snapshots: {(input as any).symbol}</CardTitle>
+        <div><Button size="sm" variant="ghost" onClick={() => downloadJSON(`${(input as any).symbol}-snapshots.json`, data)}><Download className="size-4" /></Button></div>
       </CardHeader>
       <CardContent>
         {Array.isArray(data) ? (
-          <ScrollArea className="h-[320px] pr-4">
+          <ScrollArea className="h-80 pr-4">
             <div className="space-y-2">
               {data.map((s: any, i: number) => (
                 <div key={i} className="p-2 rounded border flex items-center justify-between">

@@ -4,6 +4,7 @@ import { Badge } from '@/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import type { BatchWebScraperUITool } from './types'
+import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal, Key } from 'react'
 
 interface BatchWebScraperToolProps {
     toolCallId: string
@@ -36,6 +37,9 @@ export function BatchWebScraperTool({
             </div>
         )
     }
+    // Safely derive URL count - input?.urls may be typed as `never` by TS
+    const _urls = (input as any)?.urls
+    const urlCount = Array.isArray(_urls) ? _urls.length : 0
 
     if (!output) {
         return (
@@ -43,7 +47,7 @@ export function BatchWebScraperTool({
                 <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm">
                         <Clock className="size-4 animate-pulse" />
-                        Batch scraping {input.urls.length} URLs...
+                        Batch scraping {urlCount} URLs...
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -56,6 +60,9 @@ export function BatchWebScraperTool({
     }
 
     const { results, totalProcessed, successful, failed } = output
+
+    // Ensure results is an array to avoid TS `never` type for .map
+    const resultsArray: any[] = Array.isArray(results) ? results : []
 
     return (
         <div className="space-y-4">
@@ -83,7 +90,7 @@ export function BatchWebScraperTool({
 
             {/* Results List */}
             <div className="space-y-3">
-                {results.map((result, index) => (
+                {resultsArray.map((result: any, index: number) => (
                     <Card
                         key={index}
                         className={`border ${result.success ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}

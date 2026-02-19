@@ -6,7 +6,12 @@ import {
     ReasoningContent,
 } from '@/src/components/ai-elements/reasoning'
 
-import type { AgentReasoningProps } from './chat.types'
+export interface AgentReasoningProps {
+    reasoning: string
+    isStreaming: boolean
+    duration?: number
+    className?: string
+}
 
 export function AgentReasoning({
     reasoning,
@@ -14,7 +19,8 @@ export function AgentReasoning({
     duration,
     className,
 }: AgentReasoningProps) {
-    if (!reasoning && !isStreaming) {
+    // Only render if there's actual reasoning content to display
+    if (!reasoning || reasoning === '') {
         return null
     }
 

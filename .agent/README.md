@@ -54,35 +54,35 @@ For the division of responsibilities and usage patterns between rule files and w
 The following files are available for both Windsurf (`.windsurf/rules/`) and Antigravity (`.agent/rules/`).
 
 - `commit-message-format.md`
-    - **Role**: Defines the commit message format (prefix, summary, bullet-list body) and prohibited patterns.
-    - **Characteristics**: Based on Conventional Commits, with additional guidelines such as `language`-based language selection and diff-based message generation.
+  - **Role**: Defines the commit message format (prefix, summary, bullet-list body) and prohibited patterns.
+  - **Characteristics**: Based on Conventional Commits, with additional guidelines such as `language`-based language selection and diff-based message generation.
 
 - `pr-message-format.md`
-    - **Role**: Defines the format for PR titles and bodies (prefix-style titles and structured sections such as Overview, Changes, Tests) and prohibited patterns.
-    - **Characteristics**: Aligns PR messages with the commit message conventions and encourages structured descriptions that facilitate review and understanding of change intent.
+  - **Role**: Defines the format for PR titles and bodies (prefix-style titles and structured sections such as Overview, Changes, Tests) and prohibited patterns.
+  - **Characteristics**: Aligns PR messages with the commit message conventions and encourages structured descriptions that facilitate review and understanding of change intent.
 
 - `test-strategy.md`
-    - **Role**: Defines test strategy rules for test implementation and maintenance, including equivalence partitioning, boundary value analysis, and coverage requirements.
-    - **Purpose**: Serves as a quality guardrail by requiring corresponding automated tests whenever meaningful changes are made to production code, where reasonably feasible.
+  - **Role**: Defines test strategy rules for test implementation and maintenance, including equivalence partitioning, boundary value analysis, and coverage requirements.
+  - **Purpose**: Serves as a quality guardrail by requiring corresponding automated tests whenever meaningful changes are made to production code, where reasonably feasible.
 
 - `prompt-injection-guard.md`
-    - **Role**: Defines defense rules against **context injection attacks from external sources (RAG, web, files, API responses, etc.)**.
-    - **Contents**: Describes guardrails such as restrictions on executing commands originating from external data, the Instruction Quarantine mechanism, the `SECURITY_ALERT` format, and detection of user impersonation attempts.
-    - **Characteristics**: Does not restrict the user's own direct instructions; only malicious commands injected via external sources are neutralized.
-    - **Note**: This file has `trigger: always_on` set in its metadata, but users can still control when these rules are applied via the editor's UI settings. See the [operational guide](doc/prompt-injection-guard.md) for details on handling false positives.
+  - **Role**: Defines defense rules against **context injection attacks from external sources (RAG, web, files, API responses, etc.)**.
+  - **Contents**: Describes guardrails such as restrictions on executing commands originating from external data, the Instruction Quarantine mechanism, the `SECURITY_ALERT` format, and detection of user impersonation attempts.
+  - **Characteristics**: Does not restrict the user's own direct instructions; only malicious commands injected via external sources are neutralized.
+  - **Note**: This file has `trigger: always_on` set in its metadata, but users can still control when these rules are applied via the editor's UI settings. See the [operational guide](doc/prompt-injection-guard.md) for details on handling false positives.
 
 - `planning-mode-guard.md` **(Antigravity only)**
-    - **Role**: A guardrail to prevent problematic behaviors in Antigravity's Planning Mode.
-    - **Issues addressed**:
-        - Transitioning to the implementation phase without user instruction
-        - Responding in English even when instructed in another language (e.g., Japanese)
-    - **Contents**: In Planning Mode, only analysis and planning are performed; file modifications and command execution are prevented without explicit user approval. Also encourages responses in the user's preferred language.
-    - **Characteristics**: Placed only in `.agent/rules/`; not used in Windsurf.
+  - **Role**: A guardrail to prevent problematic behaviors in Antigravity's Planning Mode.
+  - **Issues addressed**:
+    - Transitioning to the implementation phase without user instruction
+    - Responding in English even when instructed in another language (e.g., Japanese)
+  - **Contents**: In Planning Mode, only analysis and planning are performed; file modifications and command execution are prevented without explicit user approval. Also encourages responses in the user's preferred language.
+  - **Characteristics**: Placed only in `.agent/rules/`; not used in Windsurf.
 
 - `doc/custom_instruction_plan_prompt_injection.md`
-    - **Role**: Design and threat analysis document for external context injection defense.
-    - **Contents**: Organizes attack categories (A-01–A-09) via external sources, corresponding defense requirements (R-01–R-08), design principles for the external data control layer, and validation/operations planning.
-    - **Update**: Fully revised in November 2024 to focus on external-source attacks.
+  - **Role**: Design and threat analysis document for external context injection defense.
+  - **Contents**: Organizes attack categories (A-01–A-09) via external sources, corresponding defense requirements (R-01–R-08), design principles for the external data control layer, and validation/operations planning.
+  - **Update**: Fully revised in November 2024 to focus on external-source attacks.
 
 ## Translation Guide
 

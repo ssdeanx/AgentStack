@@ -447,11 +447,17 @@ export function ChatProvider({
                 )
             }
 
+            // Clear messages and state when switching agents
+            setMessages([])
             setSourcesState([])
             setChatError(null)
             setWebPreviewState(null)
+            setQueuedTasks([])
+            setPendingConfirmations([])
+            setCheckpoints([])
+            messageSnapshotsRef.current.clear()
         },
-        [defaultThreadId, identity.userId, threadStorageKey]
+        [defaultThreadId, identity.userId, threadStorageKey, setMessages]
     )
 
     const selectModel = useCallback((modelId: string) => {
@@ -504,13 +510,13 @@ export function ChatProvider({
                 prev.map((c) =>
                     c.id === confirmationId
                         ? {
-                              ...c,
-                              approval: {
-                                  ...c.approval,
-                                  approved: false,
-                                  reason,
-                              },
-                          }
+                            ...c,
+                            approval: {
+                                ...c.approval,
+                                approved: false,
+                                reason,
+                            },
+                        }
                         : c
                 )
             )
@@ -640,19 +646,19 @@ export function ChatProvider({
                     ) {
                         const usageData = partAny.usage as
                             | {
-                                  promptTokens?: number
-                                  inputTokens?: number
-                                  completionTokens?: number
-                                  outputTokens?: number
-                                  totalTokens?: number
-                                  inputTokenDetails?: {
-                                      cacheCreation?: number
-                                      cacheRead?: number
-                                  }
-                                  outputTokenDetails?: {
-                                      reasoning?: number
-                                  }
-                              }
+                                promptTokens?: number
+                                inputTokens?: number
+                                completionTokens?: number
+                                outputTokens?: number
+                                totalTokens?: number
+                                inputTokenDetails?: {
+                                    cacheCreation?: number
+                                    cacheRead?: number
+                                }
+                                outputTokenDetails?: {
+                                    reasoning?: number
+                                }
+                            }
                             | undefined
                         if (usageData) {
                             return {
