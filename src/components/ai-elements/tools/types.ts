@@ -80,7 +80,6 @@ import type {
   googleTrendsTool,
   homeDepotSearchTool,
   htmlToMarkdownTool,
-  imageToCSVTool,
   jsonToCsvTool,
   jwtAuthTool,
   linkExtractorTool,
@@ -111,11 +110,8 @@ import type {
   polygonStockAggregatesTool,
   polygonStockFundamentalsTool,
   polygonStockQuotesTool,
-  processSVGTool,
-  processXMLTool,
   readCSVDataTool,
   readDataFileTool,
-  readFile,
   readPDF,
   removeDataDirTool,
   runCode,
@@ -129,7 +125,6 @@ import type {
   testGeneratorTool,
   unitConverterTool,
   validateDataTool,
-  validateExcalidrawTool,
   walmartSearchTool,
   watchDirectory,
   weatherTool,
@@ -233,7 +228,7 @@ export type GoogleSearchToolUITool = InferUITool<typeof googleSearchTool>
 export type GoogleTrendsUITool = InferUITool<typeof googleTrendsTool>
 export type HomeDepotSearchUITool = InferUITool<typeof homeDepotSearchTool>
 export type HtmlToMarkdownUITool = InferUITool<typeof htmlToMarkdownTool>
-export type ImageToCSVUITool = InferUITool<typeof imageToCSVTool>
+//export type ImageToCSVUITool = InferUITool<typeof imageToCSVTool>
 export type JsonToCsvUITool = InferUITool<typeof jsonToCsvTool>
 export type JwtAuthUITool = InferUITool<typeof jwtAuthTool>
 export type LinkExtractorUITool = InferUITool<typeof linkExtractorTool>
@@ -279,11 +274,10 @@ export type PolygonStockFundamentalsUITool = InferUITool<
 export type PolygonStockQuotesUITool = InferUITool<
   typeof polygonStockQuotesTool
 >
-export type ProcessSVGUITool = InferUITool<typeof processSVGTool>
-export type ProcessXMLUITool = InferUITool<typeof processXMLTool>
+
 export type ReadCSVDataUITool = InferUITool<typeof readCSVDataTool>
 export type ReadDataFileUITool = InferUITool<typeof readDataFileTool>
-export type ReadFileUITool = InferUITool<typeof readFile>
+//export type ReadFileUITool = InferUITool<typeof readFile>
 export type ReadPDFUITool = InferUITool<typeof readPDF>
 export type RemoveDataDirUITool = InferUITool<typeof removeDataDirTool>
 export type RunCodeUITool = InferUITool<typeof runCode>
@@ -299,9 +293,9 @@ export type SiteMapExtractorUITool = InferUITool<typeof siteMapExtractorTool>
 export type SvgToExcalidrawUITool = InferUITool<typeof svgToExcalidrawTool>
 export type TestGeneratorUITool = InferUITool<typeof testGeneratorTool>
 export type ValidateDataUITool = InferUITool<typeof validateDataTool>
-export type ValidateExcalidrawUITool = InferUITool<
-  typeof validateExcalidrawTool
->
+//export type ValidateExcalidrawUITool = InferUITool<
+//  typeof validateExcalidrawTool
+//>
 export type WalmartSearchUITool = InferUITool<typeof walmartSearchTool>
 export type WatchDirectoryUITool = InferUITool<typeof watchDirectory>
 export type WeatherUITool = InferUITool<typeof weatherTool>
