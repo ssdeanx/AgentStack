@@ -1,27 +1,51 @@
 {
-  "requestsFinished": 1,
-  "requestsFailed": 0,
-  "requestsRetries": 0,
-  "requestsFailedPerMinute": 0,
-  "requestsFinishedPerMinute": 18,
-  "requestMinDurationMillis": 2271,
-  "requestMaxDurationMillis": 2271,
-  "requestTotalFailedDurationMillis": 0,
-  "requestTotalFinishedDurationMillis": 2271,
-  "crawlerStartedAt": "2026-02-17T06:30:53.455Z",
-  "crawlerFinishedAt": "2026-02-17T06:30:56.801Z",
-  "statsPersistedAt": "2026-02-17T06:30:56.801Z",
-  "crawlerRuntimeMillis": 3383,
-  "crawlerLastStartTimestamp": 1771309853418,
+  "requestsFinished": 0,
+  "requestsFailed": 1,
+  "requestsRetries": 1,
+  "requestsFailedPerMinute": 9,
+  "requestsFinishedPerMinute": 0,
+  "requestMinDurationMillis": null,
+  "requestMaxDurationMillis": 0,
+  "requestTotalFailedDurationMillis": 135,
+  "requestTotalFinishedDurationMillis": 0,
+  "crawlerStartedAt": "2026-02-20T17:08:02.592Z",
+  "crawlerFinishedAt": "2026-02-20T17:08:08.954Z",
+  "statsPersistedAt": "2026-02-20T17:08:08.954Z",
+  "crawlerRuntimeMillis": 6466,
+  "crawlerLastStartTimestamp": 1771607282488,
   "requestRetryHistogram": [
+    null,
+    null,
     1
   ],
   "statsId": 0,
-  "requestAvgFailedDurationMillis": null,
-  "requestAvgFinishedDurationMillis": 2271,
-  "requestTotalDurationMillis": 2271,
+  "requestAvgFailedDurationMillis": 135,
+  "requestAvgFinishedDurationMillis": null,
+  "requestTotalDurationMillis": 135,
   "requestsTotal": 1,
-  "requestsWithStatusCode": {},
-  "errors": {},
-  "retryErrors": {}
+  "requestsWithStatusCode": {
+    "404": 3
+  },
+  "errors": {
+    "file:///C:/Users/ssdsk/AgentStack/.mastra/output/tools/cd6ed769-7c2f-48f3-b92e-04b1554bb55e.mjs:602:21": {
+      "HTTP_ERROR": {
+        "ScrapingError": {
+          "HTTP 404: Not Found (code=HTTP_ERROR)": {
+            "count": 1
+          }
+        }
+      }
+    }
+  },
+  "retryErrors": {
+    "file:///C:/Users/ssdsk/AgentStack/.mastra/output/tools/cd6ed769-7c2f-48f3-b92e-04b1554bb55e.mjs:602:21": {
+      "HTTP_ERROR": {
+        "ScrapingError": {
+          "HTTP 404: Not Found (code=HTTP_ERROR)": {
+            "count": 2
+          }
+        }
+      }
+    }
+  }
 }

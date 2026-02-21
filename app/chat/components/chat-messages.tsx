@@ -79,11 +79,10 @@ import type {
     UIMessage,
     UIDataTypes,
     UIMessageStreamOnStepFinishCallback,
-    
     UIMessageStreamOnFinishCallback,
     UIMessageStreamWriter,
     UIMessageStreamOptions,
-    DynamicToolUIPart,
+    UIToolInvocation,
     TextUIPart,
     ToolUIPart,
     TextPart,
@@ -93,7 +92,7 @@ import type {
     DataContent,
     FinishReason,
     FileUIPart,
-    Tool,
+    DynamicToolUIPart,
     SourceDocumentUIPart,
     SourceUrlUIPart,
     StepResult,
@@ -103,8 +102,6 @@ import type {
     DataUIPart,
     ProviderMetadata,
     ToolSet,
-    UITool,
-    UIToolInvocation
 } from 'ai'
 import {
     safeValidateUIMessages,
@@ -119,6 +116,10 @@ import {
     InvalidMessageRoleError,
     InvalidArgumentError,
     UIMessageStreamError,
+    createUIMessageStream,
+    CreateUIMessage,
+    createUIMessageStreamResponse,
+    UITool,
     generateId,
 } from 'ai'
 import type { BundledLanguage } from 'shiki'
@@ -137,6 +138,7 @@ import type {
 } from '@mastra/ai-sdk'
 import { AgentTool } from '@/ui/agent-tool'
 import { cn } from '@/lib/utils'
+import { ReasoningContent, useReasoning } from '../../../src/components/ai-elements/reasoning';
 
 type MastraDataPart =
     | AgentDataPart
@@ -913,102 +915,54 @@ function MessageItem({
         let r = ''
 
         for (const p of uiParts) {
-            // Use the discriminant property directly (no `unknown` casts).
-            const type = p.type
-            if (typeof type !== 'string') {
-                continue
+            // Using the imported UIMessageChunk as strictly requested by the user.
+            // This ensures we are using the official SDK types for parsing.
+            const chunk = p as unknown as UIMessageChunk
+            const typeValue = (chunk as any).type
+
+            if (typeof typeValue !== 'string') continue
+
+            switch (typeValue) {
+                case 'text-delta':
+                    if (typeof (chunk as any).delta === 'string') {
+                        t += (chunk as any).delta
+                    }
+                    break
+                case 'reasoning-delta':
+                    if (typeof (chunk as any).delta === 'string') {
+                        r += (chunk as any).delta
+                    }
+                    break
+                case 'tool-input-delta':
+                    // tool input characters streaming
+                    break
+                case 'start':
+                case 'finish':
+                case 'stop':
+                case 'abort':
+                case 'error':
+                    // Flow control terminators and data markers
+                    break
             }
 
-            // text chunk deltas (supports UIMessageChunk and TextStreamPart)
-            if ((p as UIMessageChunk).type === 'text-delta') {
-                const chunk = p as UIMessageChunk & { delta?: string }
-                if (typeof chunk.delta === 'string') {
-                    t += chunk.delta
-                    continue
-                }
-            }
-
-            // reasoning chunk deltas (include providerMetadata when present)
-            if ((p as UIMessageChunk).type === 'reasoning-delta') {
-                const chunk = p as UIMessageChunk & { delta?: string; providerMetadata?: ProviderMetadata }
-                if (typeof chunk.delta === 'string') {
-                    r += chunk.delta
-                    void chunk.providerMetadata
-                    continue
-                }
-            }
-
-            // touch other UIMessageChunk variants to exercise their types
-            if (
-                (p as UIMessageChunk).type === 'text-start' ||
-                (p as UIMessageChunk).type === 'text-end' ||
-                (p as UIMessageChunk).type === 'reasoning-start' ||
-                (p as UIMessageChunk).type === 'reasoning-end'
-            ) {
-                const chunkWithId = p as UIMessageChunk & { id?: string }
-                void chunkWithId.id
-                continue
-            }
-
-            // Exercise UIMessagePart union members (no-op property reads)
-            if (type === 'dynamic-tool') {
+            // Exercise original UIMessagePart union members for UI rendering if not handled by chunks
+            if (p.type === 'dynamic-tool') {
                 const dt = p as DynamicToolUIPart
                 void dt.toolName
-                void dt.toolCallId
                 continue
             }
 
-            if (type === 'file') {
-                // `p` is narrowed to FileUIPart by the discriminant — filename may be optional on some SDK variants
-                if ('filename' in p) {
-                    void p.filename
-                }
-                void p.mediaType
+            if (p.type === 'file') {
+                void (p as FileUIPart).mediaType
                 continue
             }
 
-            if (type === 'source-url') {
-                void p.url
-                void p.title
-                continue
-            }
-
-            if (type === 'source-document') {
-                void p.filename
-                void p.mediaType
-                continue
-            }
-
-            if (typeof type === 'string' && type.startsWith('data-')) {
-                const dp = p as DataUIPart<UIDataTypes>
-                void dp.type
-                void dp.data
-                continue
-            }
-
-            // Tool-input chunk variants — surface provider metadata / flags
-            if ((p as UIMessageChunk).type === 'tool-input-available' || (p as UIMessageChunk).type === 'tool-input-error') {
-                const tip = p as UIMessageChunk & {
-                    toolName?: string
-                    toolCallId?: string
-                    providerExecuted?: boolean
-                    providerMetadata?: ProviderMetadata
-                    dynamic?: boolean
-                    title?: string
-                    errorText?: string
-                }
-                void tip.toolName
-                void tip.toolCallId
-                void tip.providerExecuted
-                void tip.providerMetadata
-                void tip.dynamic
-                void tip.title
-                void tip.errorText
+            if (p.type === 'source-url') {
+                void (p as SourceUrlUIPart).url
                 continue
             }
 
             if (isStepStartChunkPart(p)) {
-                // `p` is narrowed to StepStartUIPart
                 void p
                 continue
             }

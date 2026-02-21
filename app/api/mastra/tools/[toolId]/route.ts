@@ -1,12 +1,13 @@
 import { MastraClient } from '@mastra/client-js'
 import type { RequestContext } from '@mastra/core/request-context'
+type UnknownRecord = Record<string, unknown>
 
 const mastraClient = new MastraClient({
     baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
 })
 
 export async function GET(
-    request: Request,
+    _request: Request,
     { params }: { params: Promise<{ toolId: string }> }
 ) {
     try {
@@ -32,9 +33,9 @@ export async function POST(
         const { toolId } = await params
         const body = await request.json()
         const { args, runId, requestContext } = body as {
-            args?: Record<string, unknown>
+            args?: UnknownRecord
             runId?: string | undefined
-            requestContext?: RequestContext<unknown> | Record<string, any> | undefined
+            requestContext?: RequestContext<unknown> | UnknownRecord | undefined
         }
 
         const tool = mastraClient.getTool(toolId)

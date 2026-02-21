@@ -9,23 +9,35 @@ const mastraClient = new MastraClient({
  * List all vector indexes across all vector stores.
  * Uses MastraClient instead of raw fetch to localhost:4111
  */
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        // Try to get indexes from default vector store
-        const vector = mastraClient.getVector('default')
+        const { searchParams } = new URL(request.url)
+        const vectorName = searchParams.get('vectorName') || 'pgVector'
+
+        const vector = mastraClient.getVector(vectorName)
         const result = await vector.getIndexes()
 
-        // Transform result to array if needed
-        const indexes = Array.isArray(result)
+        const resultRecord = result as unknown as Record<string, unknown>
+        const indexes: unknown[] = Array.isArray(result)
             ? result
-            : (result as any)?.data || (result as any)?.indexes || []
+            : (resultRecord.data as unknown[]) || (resultRecord.indexes as unknown[]) || []
 
-        // Transform to sidebar format
-        const vectorList = indexes.map((idx: any) => ({
-            name: idx.name || idx.indexName || 'default',
-            dimension: idx.dimension || 3072,
-            count: idx.count || idx.vectorCount || 0,
-        }))
+        interface VectorIndexEntry {
+            name?: string
+            indexName?: string
+            dimension?: number
+            count?: number
+            vectorCount?: number
+        }
+
+        const vectorList = indexes.map((idx) => {
+            const entry = idx as VectorIndexEntry
+            return {
+                name: entry.name || entry.indexName || 'default',
+                dimension: entry.dimension || 3072,
+                count: entry.count || entry.vectorCount || 0,
+            }
+        })
 
         return Response.json(vectorList)
     } catch (error) {

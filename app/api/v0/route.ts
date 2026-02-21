@@ -6,7 +6,7 @@ export async function POST(req: Request) {
         system: 'You are an expert coder',
         message: prompt,
         modelConfiguration: {
-            modelId: 'v0-1.5-sm',
+            modelId: 'v0-mini',
             imageGenerations: false,
             thinking: false,
         },

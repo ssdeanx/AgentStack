@@ -30,9 +30,10 @@ export async function POST(req: Request) {
     const body: ChatRequestBody = await req.json()
 
     // Get available agents dynamically from mastra
-    const agentsMap = await mastra.getAgents()
+    const agentsMap = await mastra.listAgents()
+    
     const availableAgents = Object.keys(agentsMap)
-
+    const agent = await mastra.getAgent()
     // Prefer explicit top-level agentId, then nested data.agentId (network-style),
     // otherwise fall back to the first available agent
     const agentId = body.agentId ?? body.data?.agentId ?? availableAgents[0]
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-    const agentsMap = await mastra.getAgents()
+    const agentsMap = await mastra.listAgents()
     const availableAgents = Object.keys(agentsMap)
     return Response.json({
         agents: availableAgents,
