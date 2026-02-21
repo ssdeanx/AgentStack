@@ -1,5 +1,5 @@
 import { MastraClient } from '@mastra/client-js'
-import { RequestContext } from '@mastra/core/request-context'
+import type { StorageListMessagesOutput } from '@mastra/core/storage'
 
 const mastraClient = new MastraClient({
     baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
@@ -17,22 +17,26 @@ export async function GET(
     const orderByField = searchParams.get('orderBy')
     const orderByDir = searchParams.get('direction') || 'DESC'
 
-    try {   
+    try {
         const thread = mastraClient.getMemoryThread({ threadId })
-        const result = await thread.listMessages({
+        const orderBy =
+            orderByField === 'createdAt'
+            ? { field: 'createdAt' as const, direction: orderByDir as 'ASC' | 'DESC' }
+            : undefined
+
+        // client-js types ListMemoryThreadMessagesResponse as { messages }, but the server
+        // actually returns StorageListMessagesOutput (PaginationInfo & { messages }) at runtime
+        const result = (await thread.listMessages({
             page,
             perPage,
-            ...(orderByField && {
-                orderBy: {
-                    field: orderByField,
-                    direction: orderByDir as 'ASC' | 'DESC',
-                },
-            }),
-        })
+            ...(orderBy ? { orderBy } : {}),
+        })) as StorageListMessagesOutput
 
         return Response.json({
             messages: result.messages,
             total: result.total,
+            page: result.page,
+            perPage: result.perPage,
             hasMore: result.hasMore,
         })
     } catch (error) {
@@ -43,3 +47,4 @@ export async function GET(
         )
     }
 }
+
