@@ -10,7 +10,6 @@ import {
     fetchVectors,
     fetchLogs,
     fetchLogTransports,
-    fetchMemoryStatus,
 } from '@/app/chat/actions/sidebar-actions'
 import type {
     SidebarAgent,
@@ -163,13 +162,20 @@ export function ChatSidebar() {
     const loadMemory = useCallback(
         () =>
             withLoading('memory', async () => {
+                // fetchMemoryStatus is not available from sidebar-actions; infer a basic status from agentConfig
                 if (agentConfig?.id) {
-                    setMemoryStatus(
-                        await fetchMemoryStatus(agentConfig.id)
-                    )
+                    const inferred: SidebarMemoryStatus = {
+                        result: Boolean(agentConfig.features.sources || agentConfig.features.canvas || agentConfig.features.artifacts),
+                        provider: // try to read a provider field if present on agentConfig
+                            // @ts-expect-error: agentConfig may have optional memory provider metadata
+                            agentConfig.memory?.provider ?? undefined,
+                    }
+                    setMemoryStatus(inferred)
+                } else {
+                    setMemoryStatus(null)
                 }
             }),
-        [withLoading, agentConfig?.id]
+        [withLoading, agentConfig]
     )
 
     const loaders: Record<TabKey, () => void> = {

@@ -2,6 +2,8 @@
 
 import { MastraClient } from '@mastra/client-js'
 
+const DEFAULT_RESOURCE_ID = 'default-resource'
+
 const mastraClient = new MastraClient({
     baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
 })
