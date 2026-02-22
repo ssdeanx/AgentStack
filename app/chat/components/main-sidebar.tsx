@@ -51,34 +51,6 @@ import {
     PlusIcon,
 } from 'lucide-react'
 
-interface SidebarNavItem {
-    id: string
-    label: string
-    icon: React.ReactNode
-    href?: string
-}
-
-const NAV_ITEMS: SidebarNavItem[] = [
-    {
-        id: 'workflows',
-        label: 'Workflows',
-        icon: <WorkflowIcon className="size-4" />,
-        href: '/workflows',
-    },
-    {
-        id: 'tools',
-        label: 'Tools',
-        icon: <CpuIcon className="size-4" />,
-        href: '/tools',
-    },
-    {
-        id: 'observability',
-        label: 'Observability',
-        icon: <ActivityIcon className="size-4" />,
-        href: '/dashboard/observability',
-    },
-]
-
 export function MainSidebar() {
     const router = useRouter()
     const searchParams = useSearchParams()
