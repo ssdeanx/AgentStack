@@ -44,7 +44,6 @@ import {
     BotIcon,
     ChevronRightIcon,
     WorkflowIcon,
-    NetworkIcon,
     CpuIcon,
     ActivityIcon,
     Loader2Icon,
@@ -59,7 +58,8 @@ export function MainSidebar() {
     const [agents, setAgents] = useState<SidebarAgent[]>([])
     const [tools, setTools] = useState<SidebarTool[]>([])
     const [workflows, setWorkflows] = useState<SidebarWorkflow[]>([])
-    const [networks, setNetworks] = useState<any[]>([])
+
+
     const [traces, setTraces] = useState<SidebarTrace[]>([])
     const [threads, setThreads] = useState<SidebarThread[]>([])
     const [vectors, setVectors] = useState<SidebarVectorIndex[]>([])
@@ -232,32 +232,7 @@ export function MainSidebar() {
                                 </SidebarMenuItem>
                             </Collapsible>
 
-                            <Collapsible className="group/collapsible">
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton>
-                                            <NetworkIcon className="mr-2 size-4" />
-                                            <span>Networks</span>
-                                            <ChevronRightIcon className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {networks.map((net) => (
-                                                <SidebarMenuSubItem
-                                                    key={net.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-default">
-                                                        <span className="truncate">
-                                                            {net.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
+                            
 
                             <Collapsible className="group/collapsible">
                                 <SidebarMenuItem>
@@ -343,33 +318,6 @@ export function MainSidebar() {
                                                     <SidebarMenuSubButton className="w-full text-xs cursor-default">
                                                         <span className="truncate">
                                                             {wf.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-
-                            <Collapsible className="group/collapsible">
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton>
-                                            <NetworkIcon className="mr-2 size-4" />
-                                            <span>Networks</span>
-                                            <ChevronRightIcon className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {networks.map((net) => (
-                                                <SidebarMenuSubItem
-                                                    key={net.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-default">
-                                                        <span className="truncate">
-                                                            {net.name}
                                                         </span>
                                                     </SidebarMenuSubButton>
                                                 </SidebarMenuSubItem>
