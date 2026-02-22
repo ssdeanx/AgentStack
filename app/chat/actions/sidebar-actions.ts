@@ -127,12 +127,16 @@ export async function fetchTraces(limit = 20): Promise<SidebarTrace[]> {
                 perPage: limit,
             },
         })
-        return result.spans.map((span) => ({
+        const tracesList = (result as any).traces || (result as any).spans || []
+        return tracesList.map((span: any) => ({
             id: span.traceId ?? span.id ?? '',
             name: span.name ?? 'unnamed',
-            timestamp: span.startTime ? String(span.startTime) : new Date().toISOString(),
+            timestamp: span.startTime
+                ? String(span.startTime)
+                : new Date().toISOString(),
             status: span.statusCode as string | undefined,
-            duration: typeof span.duration === 'number' ? span.duration : undefined,
+            duration:
+                typeof span.duration === 'number' ? span.duration : undefined,
         }))
     } catch (error) {
         console.error('fetchTraces error:', error)
@@ -141,13 +145,16 @@ export async function fetchTraces(limit = 20): Promise<SidebarTrace[]> {
 }
 
 export async function fetchThreads(
-    resourceId?: string
+    resourceId?: string,
+    agentId?: string
 ): Promise<SidebarThread[]> {
     try {
-        const result = await mastraClient.listMemoryThreads(
-            resourceId ? { resourceId } : undefined
-        )
-        return result.threads.map((t) => ({
+        if (!resourceId) return []
+        const result = await mastraClient.listMemoryThreads({
+            resourceId,
+        })
+        const threadsList = (result as any).threads || (result as any) || []
+        return threadsList.map((t: any) => ({
             id: t.id ?? '',
             title: t.title ?? undefined,
             resourceId: t.resourceId ?? undefined,
@@ -177,7 +184,8 @@ export async function fetchVectors(
                     (entry.indexName as string) ??
                     'default',
                 dimension: entry.dimension as number | undefined,
-                count: (entry.count as number) ??
+                count:
+                    (entry.count as number) ??
                     (entry.vectorCount as number) ??
                     undefined,
             }
@@ -204,8 +212,7 @@ export async function fetchLogs(
                     message: (entry.message as string) ?? '',
                     level: (entry.level as string) ?? 'info',
                     timestamp:
-                        (entry.timestamp as string) ??
-                        new Date().toISOString(),
+                        (entry.timestamp as string) ?? new Date().toISOString(),
                 }
             })
         }
@@ -236,22 +243,121 @@ export async function fetchLogTransports(): Promise<string[]> {
     }
 }
 
-export async function fetchMemoryStatus(
-    agentId: string
-): Promise<SidebarMemoryStatus | null> {
+export interface SidebarProcessor {
+    id: string
+    name: string
+}
+
+export interface SidebarScorer {
+    id: string
+    name: string
+}
+
+export interface SidebarMcpServer {
+    id: string
+    name: string
+    status: string
+}
+
+export async function fetchProcessors(): Promise<SidebarProcessor[]> {
     try {
-        const status = await mastraClient.getMemoryStatus(agentId)
-        return {
-            result: status.result,
-            observationalMemory: status.observationalMemory
-                ? {
-                    enabled: status.observationalMemory.enabled,
-                    hasRecord: status.observationalMemory.hasRecord,
-                }
-                : undefined,
-        }
+        const processors = await mastraClient.listProcessors()
+        return Object.entries(processors).map(([id, proc]) => ({
+            id,
+            name: proc.id ?? id,
+        }))
     } catch (error) {
-        console.error('fetchMemoryStatus error:', error)
-        return null
+        console.error('fetchProcessors error:', error)
+        return []
+    }
+}
+
+export async function fetchScorers(): Promise<SidebarScorer[]> {
+    try {
+        const response = await mastraClient.listScorers()
+        // listScorers returns Record<string, GetScorerResponse> based on the types
+        return Object.entries(response).map(([id, scorer]) => ({
+            id,
+            // Fallback to id if name is missing
+            name: (scorer as any).name ?? id,
+        }))
+    } catch (error) {
+        console.error('fetchScorers error:', error)
+        return []
+    }
+}
+
+export async function createThread(
+    agentId: string,
+    title?: string,
+    resourceId?: string
+) {
+    try {
+        const response = await mastraClient.createMemoryThread({
+            agentId,
+            title: title ?? 'New Thread',
+            resourceId: resourceId ?? 'default-resource',
+        })
+        return { success: true, data: response }
+    } catch (error) {
+        console.error('createThread error:', error)
+        return { success: false, error: String(error) }
+    }
+}
+
+export async function deleteThread(agentId: string, threadId: string) {
+    try {
+        const thread = mastraClient.getMemoryThread({ threadId, agentId })
+        const response = await thread.delete()
+        return { success: true, data: response }
+    } catch (error) {
+        console.error('deleteThread error:', error)
+        return { success: false, error: String(error) }
+    }
+}
+
+export async function updateWorkingMemory(
+    agentId: string,
+    threadId: string,
+    workingMemory: string,
+    resourceId?: string
+) {
+    try {
+        const response = await mastraClient.updateWorkingMemory({
+            agentId,
+            threadId,
+            workingMemory,
+            resourceId: resourceId ?? 'default-resource',
+        })
+        return { success: true, data: response }
+    } catch (error) {
+        console.error('updateWorkingMemory error:', error)
+        return { success: false, error: String(error) }
+    }
+}
+
+export async function saveMessage(
+    agentId: string,
+    threadId: string,
+    messages: any[]
+) {
+    try {
+        const formattedMessages = messages.map((m) => ({
+            role: m.role || 'user',
+            content: m.content || '',
+            id: m.id || crypto.randomUUID?.() || Date.now().toString(),
+            threadId,
+            resourceId: m.resourceId || 'default-resource',
+            createdAt: m.createdAt || new Date(),
+            format: m.format || 2,
+        }))
+        const response = await mastraClient.saveMessageToMemory({
+            agentId,
+            messages: formattedMessages,
+        })
+        return { success: true, data: response }
+    } catch (error) {
+        console.error('saveMessage error:', error)
+        return { success: false, error: String(error) }
     }
 }
