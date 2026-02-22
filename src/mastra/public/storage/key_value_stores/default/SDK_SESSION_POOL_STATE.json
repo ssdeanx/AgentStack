@@ -3,7 +3,7 @@
   "retiredSessionsCount": 0,
   "sessions": [
     {
-      "id": "session_1dsmUSuHpC",
+      "id": "session_m2f8Zbu3Hq",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -16,14 +16,14 @@
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-02-20T17:58:03.821Z",
-      "createdAt": "2026-02-20T17:08:03.821Z",
+      "expiresAt": "2026-02-21T16:45:45.229Z",
+      "createdAt": "2026-02-21T15:55:45.229Z",
       "usageCount": 1,
       "maxUsageCount": 50,
       "errorScore": 1
     },
     {
-      "id": "session_7eaqkMpwYQ",
+      "id": "session_7theSs4SJL",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -36,14 +36,14 @@
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-02-20T17:58:07.283Z",
-      "createdAt": "2026-02-20T17:08:07.283Z",
+      "expiresAt": "2026-02-21T16:45:48.498Z",
+      "createdAt": "2026-02-21T15:55:48.498Z",
       "usageCount": 1,
       "maxUsageCount": 50,
       "errorScore": 1
     },
     {
-      "id": "session_ajGg989YMc",
+      "id": "session_FqMubR3jYS",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -56,14 +56,14 @@
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-02-20T17:58:08.042Z",
-      "createdAt": "2026-02-20T17:08:08.042Z",
+      "expiresAt": "2026-02-21T16:45:49.261Z",
+      "createdAt": "2026-02-21T15:55:49.261Z",
       "usageCount": 0,
       "maxUsageCount": 50,
       "errorScore": 0
     },
     {
-      "id": "session_NH0pwVJBnf",
+      "id": "session_u5j8hh1ZIe",
       "cookieJar": {
         "version": "tough-cookie@6.0.0",
         "storeType": "MemoryCookieStore",
@@ -76,8 +76,8 @@
       "userData": {},
       "maxErrorScore": 3,
       "errorScoreDecrement": 0.5,
-      "expiresAt": "2026-02-20T17:58:08.797Z",
-      "createdAt": "2026-02-20T17:08:08.797Z",
+      "expiresAt": "2026-02-21T16:45:49.997Z",
+      "createdAt": "2026-02-21T15:55:49.997Z",
       "usageCount": 1,
       "maxUsageCount": 50,
       "errorScore": 1
