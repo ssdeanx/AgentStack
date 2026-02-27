@@ -8,8 +8,8 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedHelixDna } from '@/app/components/gsap/svg-suite'
-import { useWorkflows } from '@/lib/hooks/use-mastra'
-import type { Workflow as WorkflowType } from '@/lib/hooks/use-mastra-query'
+import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import type { Workflow as WorkflowType } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
     PlayIcon,
@@ -53,24 +53,25 @@ function workflowStepsCount(workflow: WorkflowType): number {
     if (Array.isArray(workflow.steps)) {
         return workflow.steps.length
     }
-    if (workflow.steps) {
+    if (typeof workflow.steps === 'object') {
         return Object.keys(workflow.steps).length
     }
     return 0
 }
 
 export function WorkflowsList() {
-    const { data, loading, error } = useWorkflows()
+    const { useWorkflows } = useMastraQuery()
+    const { data, isLoading: loading, error } = useWorkflows()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
 
     const workflows: WorkflowCard[] = (data ?? []).map(
         (workflow: WorkflowType) => ({
-            id: workflow.id,
-            name: workflow.name ?? workflow.id,
+            id: workflow.name,
+            name: workflow.name,
             description:
                 workflow.description ?? 'Workflow available from backend.',
-            category: classifyWorkflowCategory(workflow.id),
+            category: classifyWorkflowCategory(workflow.name),
             steps: workflowStepsCount(workflow),
         })
     )

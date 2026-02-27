@@ -115,9 +115,9 @@ export type {
 }
 
 // Convenience Aliases for the app
-export type Agent = GetAgentResponse & { id: string }
-export type Tool = GetToolResponse & { id: string }
-export type Workflow = GetWorkflowResponse & { id: string }
+export type Agent = GetAgentResponse
+export type Tool = GetToolResponse
+export type Workflow = GetWorkflowResponse
 export type StoredAgent = StoredAgentResponse
 export type MemoryThread = ListMemoryThreadsResponse['threads'][number]
 export type Message = ListMemoryThreadMessagesResponse['messages'][number]
