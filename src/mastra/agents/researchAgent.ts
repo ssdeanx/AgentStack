@@ -4,8 +4,6 @@ import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-
-import { google } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
@@ -90,17 +88,10 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
       },
     }
   },
-  model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
-      return google.chat('gemini-3-pro-preview')
-    } else if (userTier === 'pro') {
-      // cheaper/faster model for pro tier
-      return 'google/gemini-3-flash-preview'
-    }
-    // cheaper/faster model for free tier
-    return google.chat('gemini-3-flash-preview')
+  model: {
+    url: "https://opencode.ai/zen/v1",
+    id: "opencode/minimax-m2.5-free",
+    apiKey: process.env.OPENCODE_API_KEY,
   },
   tools: {
     // Core Research Tools

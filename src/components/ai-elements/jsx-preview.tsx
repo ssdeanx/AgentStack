@@ -44,9 +44,9 @@ const matchJsxTag = (code: string) => {
     return null;
   }
 
-  const match = code.match(TAG_REGEX);
+  const match = TAG_REGEX.exec(code);
 
-  if (!match || match.index === undefined) {
+  if (match?.index === undefined) {
     return null;
   }
 

@@ -7,7 +7,7 @@ import { Badge } from '@/ui/badge'
 import { Input } from '@/ui/input'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedRadarScan } from '@/app/components/gsap/svg-suite'
-import { useAgents } from '@/lib/hooks/use-mastra'
+import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
 import type { Agent } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
@@ -18,7 +18,7 @@ import {
     AlertCircleIcon,
 } from 'lucide-react'
 
-type NetworkCard = {
+interface NetworkCard {
     id: string
     name: string
     description: string
@@ -52,14 +52,15 @@ function selectNetworkIcon(id: string): typeof NetworkIcon {
 }
 
 export function NetworksList() {
-    const { data, loading, error } = useAgents()
+    const { useAgents } = useMastraQuery()
+    const { data, isLoading: loading, error } = useAgents()
     const [search, setSearch] = useState('')
 
     const networks: NetworkCard[] = (data ?? [])
         .filter((agent: Agent) => agent.id.toLowerCase().includes('network'))
         .map((network: Agent) => ({
             id: network.id,
-            name: network.name ?? network.id,
+            name: network.name,
             description:
                 network.description ??
                 'Network orchestrator available from backend.',

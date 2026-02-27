@@ -397,7 +397,7 @@ export const getUpcomingEvents = createTool({
         ),
         count: z.number(),
     }),
-    
+
     execute: async (inputData, context) => {
         const requestCtx = context?.requestContext as
             | CalendarRequestContext

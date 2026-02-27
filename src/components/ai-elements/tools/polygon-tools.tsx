@@ -30,14 +30,14 @@ import { CodeBlock, CodeBlockCopyButton } from '../code-block'
 
 /* Utility helpers */
 function formatNumber(n?: number | string) {
-  if (n == null) return 'N/A'
+  if (n == null) {return 'N/A'}
   const num = typeof n === 'string' ? Number(n) : n
-  if (Number.isNaN(num)) return String(n)
+  if (Number.isNaN(num)) {return String(n)}
   return num >= 1000 ? num.toLocaleString() : num.toString()
 }
 
 function formatTime(ts?: number | string) {
-  if (!ts) return 'N/A'
+  if (!ts) {return 'N/A'}
   // polygon often uses unix ms timestamps or ISO
   const t = typeof ts === 'string' && /^\d+$/.test(ts) ? Number(ts) : ts
   const date = typeof t === 'number' ? new Date(t) : new Date(String(t))
@@ -104,12 +104,12 @@ export function PolygonStockQuotesCard({
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    if (bottomRef.current) {bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })}
   }, [output])
 
-  if (errorText) return <ErrorCard title="Quotes Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Quotes Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Quotes Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Quotes Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   const filtered = query ? data.filter((p: any) => JSON.stringify(p).toLowerCase().includes(query.toLowerCase())) : data
@@ -189,9 +189,9 @@ export function PolygonStockAggregatesCard({
   output?: PolygonStockAggregatesUITool['output']
   errorText?: string
 }) {
-  if (errorText) return <ErrorCard title="Aggregates Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Aggregates Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Aggregates Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Aggregates Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   const meta = (output as any).metadata ?? {}
@@ -252,9 +252,9 @@ export function PolygonStockFundamentalsCard({
   output?: PolygonStockFundamentalsUITool['output']
   errorText?: string
 }) {
-  if (errorText) return <ErrorCard title="Fundamentals Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching fundamentals for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Fundamentals Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Fundamentals Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching fundamentals for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Fundamentals Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? {}
   const entries = typeof data === 'object' ? Object.entries(data) : []
@@ -299,9 +299,9 @@ export function PolygonCryptoQuotesCard({
 }) {
   const [filter, setFilter] = useState('')
 
-  if (errorText) return <ErrorCard title="Crypto Quotes Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching crypto quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Crypto Quotes Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Crypto Quotes Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching crypto quotes for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Crypto Quotes Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   const filtered = filter ? data.filter((d: any) => JSON.stringify(d).toLowerCase().includes(filter.toLowerCase())) : data
@@ -351,9 +351,9 @@ export function PolygonCryptoAggregatesCard({
   output?: PolygonCryptoAggregatesUITool['output']
   errorText?: string
 }) {
-  if (errorText) return <ErrorCard title="Crypto Aggregates Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Crypto Aggregates Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Crypto Aggregates Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching aggregates for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Crypto Aggregates Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   return (
@@ -383,9 +383,9 @@ export function PolygonCryptoSnapshotsCard({
   output?: PolygonCryptoSnapshotsUITool['output']
   errorText?: string
 }) {
-  if (errorText) return <ErrorCard title="Crypto Snapshots Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching snapshots for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in output) return <ErrorCard title="Crypto Snapshots Error" message={(output as any).error ?? 'Unknown'} />
+  if (errorText) {return <ErrorCard title="Crypto Snapshots Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching snapshots for ${(input as any).symbol}`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in output) {return <ErrorCard title="Crypto Snapshots Error" message={(output as any).error ?? 'Unknown'} />}
 
   const data = (output as any).data ?? []
   return (

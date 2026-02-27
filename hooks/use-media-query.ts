@@ -2,21 +2,37 @@
 
 import { useEffect, useState } from 'react'
 
+/**
+ * Hook to track media query matches.
+ * Robust implementation with SSR support and fallback for older browsers.
+ */
 export function useMediaQuery(query: string): boolean {
     const [matches, setMatches] = useState(false)
 
     useEffect(() => {
+        if (typeof window === 'undefined') {return}
+
         const media = window.matchMedia(query)
-        if (media.matches !== matches) {
-            setMatches(media.matches)
+
+        // Set initial value
+        setMatches(media.matches)
+
+        const listener = (event: MediaQueryListEvent) => {
+            setMatches(event.matches)
         }
 
-        const listener = (event: MediaQueryListEvent) =>
-            setMatches(event.matches)
-        media.addEventListener('change', listener)
+        // Standard addEventListener for modern browsers
+        if (media.addEventListener) {
+            media.addEventListener('change', listener)
+            return () => media.removeEventListener('change', listener)
+        }
 
-        return () => media.removeEventListener('change', listener)
-    }, [matches, query])
+        // Fallback for older Safari (< 14) and other older browsers
+        // @ts-ignore - addListener is deprecated but required for old browsers
+        media.addListener(listener)
+        // @ts-ignore
+        return () => media.removeListener(listener)
+    }, [query])
 
     return matches
 }

@@ -8,7 +8,7 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedQuantumLattice } from '@/app/components/gsap/svg-suite'
-import { useTools } from '@/lib/hooks/use-mastra'
+import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
 import type { Tool } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
@@ -36,11 +36,13 @@ import {
     AlertCircleIcon,
 } from 'lucide-react'
 
-type ToolCard = {
+interface ToolCard {
     id: string
     name: string
     description: string
     category: string
+    inputSchema: string
+    outputSchema: string
     icon: typeof WrenchIcon
 }
 
@@ -130,15 +132,18 @@ function chooseToolIcon(id: string): typeof WrenchIcon {
 }
 
 export function ToolsList() {
-    const { data, loading, error } = useTools()
+    const { useTools } = useMastraQuery()
+    const { data, isLoading: loading, error } = useTools()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [showAll, setShowAll] = useState(false)
 
     const tools: ToolCard[] = (data ?? []).map((tool: Tool) => ({
         id: tool.id,
-        name: tool.name ?? tool.id,
-        description: tool.description ?? 'Tool available from backend catalog.',
+        name: tool.id,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+        outputSchema: tool.outputSchema,
         category: classifyToolCategory(tool.id),
         icon: chooseToolIcon(tool.id),
     }))

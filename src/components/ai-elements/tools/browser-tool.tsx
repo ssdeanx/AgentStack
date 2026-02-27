@@ -32,8 +32,8 @@ import { CodeBlock, CodeBlockCopyButton } from '../code-block'
 
 /* Helpers */
 function formatBytes(bytes?: number) {
-  if (bytes == null) return 'N/A'
-  if (bytes === 0) return '0 B'
+  if (bytes == null) {return 'N/A'}
+  if (bytes === 0) {return '0 B'}
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0
   let num = bytes
@@ -111,7 +111,7 @@ interface ScreenshotCardProps {
 export function ScreenshotCard({ input, output, errorText }: ScreenshotCardProps) {
   const [copied, setCopied] = useState(false)
 
-  if (errorText) return <ErrorCard title="Screenshot Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="Screenshot Failed" message={errorText} />}
   if (!output) {
     return <LoadingCard title={`Taking screenshot of ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
   }
@@ -179,7 +179,7 @@ interface PdfGeneratorCardProps {
 }
 
 export function PdfGeneratorCard({ input, output, errorText }: PdfGeneratorCardProps) {
-  if (errorText) return <ErrorCard title="PDF Generation Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="PDF Generation Failed" message={errorText} />}
   if (!output) {
     return <LoadingCard title={`Generating PDF from ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
   }
@@ -239,8 +239,8 @@ interface BrowserToolCardProps {
 }
 
 export function BrowserToolCard({ input, output, errorText }: BrowserToolCardProps) {
-  if (errorText) return <ErrorCard title="Browser Tool Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Browsing ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
+  if (errorText) {return <ErrorCard title="Browser Tool Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Browsing ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
   if (output && typeof output === 'object' && 'error' in output) {
     return <ErrorCard title="Browser Tool Failed" message={(output as any).error ?? 'Unknown error'} />
   }
@@ -293,9 +293,9 @@ interface ClickAndExtractCardProps {
 }
 
 export function ClickAndExtractCard({ input, output, errorText }: ClickAndExtractCardProps) {
-  if (errorText) return <ErrorCard title="Click & Extract Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Clicking ${(input as any).clickSelector} on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if (output && typeof output === 'object' && 'error' in output) return <ErrorCard title="Click & Extract Failed" message={(output as any).error ?? 'Unknown error'} />
+  if (errorText) {return <ErrorCard title="Click & Extract Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Clicking ${(input as any).clickSelector} on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if (output && typeof output === 'object' && 'error' in output) {return <ErrorCard title="Click & Extract Failed" message={(output as any).error ?? 'Unknown error'} />}
 
   const content = (output as any).content ?? (output as any).message ?? ''
 
@@ -340,9 +340,9 @@ interface FillFormCardProps {
 }
 
 export function FillFormCard({ input, output, errorText }: FillFormCardProps) {
-  if (errorText) return <ErrorCard title="Fill Form Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Filling form on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Fill Form Failed" message={(output as any).error ?? 'Unknown error'} />
+  if (errorText) {return <ErrorCard title="Fill Form Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Filling form on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Fill Form Failed" message={(output as any).error ?? 'Unknown error'} />}
 
   const finalUrl = (output as any).finalUrl ?? (output as any).message
 
@@ -383,9 +383,9 @@ interface GoogleSearchCardProps {
 
 export function GoogleSearchCard({ input, output, errorText }: GoogleSearchCardProps) {
   const [query, setQuery] = useState('')
-  if (errorText) return <ErrorCard title="Search Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Searching for ${(input as any).query}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if (output && typeof output === 'object' && 'error' in output) return <ErrorCard title="Search Failed" message={(output as any).error ?? 'Unknown error'} />
+  if (errorText) {return <ErrorCard title="Search Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Searching for ${(input as any).query}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if (output && typeof output === 'object' && 'error' in output) {return <ErrorCard title="Search Failed" message={(output as any).error ?? 'Unknown error'} />}
 
   // Some tools put results in different fields; try common ones
   const results = (output as any).organic_results || (output as any).results || (output as any).data || []
@@ -438,9 +438,9 @@ interface MonitorPageCardProps {
 }
 
 export function MonitorPageCard({ input, output, errorText }: MonitorPageCardProps) {
-  if (errorText) return <ErrorCard title="Monitor Page Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Monitoring ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Monitor Page Failed" message={(output as any).error ?? 'Unknown error'} />
+  if (errorText) {return <ErrorCard title="Monitor Page Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Monitoring ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Monitor Page Failed" message={(output as any).error ?? 'Unknown error'} />}
 
   const hasChanged = Boolean((output as any).changed)
 

@@ -780,7 +780,7 @@ export const contentStudioWorkflow = createWorkflow({
     .then(reviewStep)
     .dowhile(refineStep, async ({ inputData }) => {
         // Continue looping if score is less than 80
-        const result = inputData as z.infer<typeof reviewOutputSchema>
+        const result = inputData
         return (result?.score ?? 0) < 80
     })
     .commit()

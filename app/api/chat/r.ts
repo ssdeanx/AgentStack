@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     // Get available agents dynamically from mastra
     const agentsMap = await mastra.listAgents()
-    
+
     const availableAgents = Object.keys(agentsMap)
     const agent = await mastra.getAgent()
     // Prefer explicit top-level agentId, then nested data.agentId (network-style),

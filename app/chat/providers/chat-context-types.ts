@@ -190,6 +190,9 @@ export interface ChatContextValue {
     // Focus Mode
     isFocusMode: boolean
 
+    // Available Models
+    availableModels: ModelConfig[]
+
     // Actions
     sendMessage: (text: string, files?: File[]) => void
     stopGeneration: () => void

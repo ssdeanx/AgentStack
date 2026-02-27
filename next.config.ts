@@ -1,6 +1,6 @@
 import createMDX from '@next/mdx'
 import type { NextConfig } from 'next'
-import type { Configuration } from 'webpack'
+//import type { Configuration } from 'webpack'
 
 const nextConfig: NextConfig = {
     pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
@@ -38,15 +38,6 @@ const nextConfig: NextConfig = {
     typedRoutes: false,
     reactStrictMode: true,
     distDir: '.next',
-    webpack: (config: Configuration, { isServer }) => {
-        if (!isServer) {
-            config.plugins = config.plugins ?? []
-            config.plugins.push()
-        }
-
-        return config
-    },
-
     typescript: {
         ignoreBuildErrors: true,
         tsconfigPath: './tsconfig.json',

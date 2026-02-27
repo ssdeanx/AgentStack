@@ -1,219 +1,200 @@
 import { z } from 'zod'
+import type {
+    GetAgentResponse,
+    GetToolResponse,
+    GetWorkflowResponse,
+    GetScorerResponse,
+    GetObservationalMemoryResponse,
+    GetMemoryConfigResponseExtended,
+    GetProcessorDetailResponse,
+    GetProcessorProviderResponse,
+    GetProcessorResponse,
+    GetScorersResponse,
+    GetSkillReferenceResponse,
+    GetWorkflowRunByIdResponse,
+    GetToolProviderToolSchemaResponse,
+    GetVectorIndexResponse,
+    GetVNextNetworkResponse,
+    StoredAgentResponse,
+    ListMemoryThreadsResponse,
+    ListMemoryThreadMessagesResponse,
+    GetMemoryStatusResponse,
+    GetLogsResponse,
+    WorkspaceItem,
+    Provider,
+    ListStoredAgentsResponse,
+    GetMemoryConfigResponse,
+    ListAgentsModelProvidersResponse,
+    GetSystemPackagesResponse,
+    MastraClientError,
+    DatasetRecord,
+    DatasetItem,
+    DatasetExperiment,
+    DatasetExperimentResult,
+    CompareExperimentsResponse,
+    ListToolProvidersResponse,
+    GetProcessorProvidersResponse,
+    DatasetItemVersionResponse,
+    DatasetVersionResponse,
+    DeleteAgentVersionResponse,
+    DeleteScorerVersionResponse,
+    DeleteStoredAgentResponse,
+    DefaultOptions,
+    DeleteStoredMCPClientResponse,
+    DeleteStoredScorerResponse,
+    DeleteStoredSkillResponse,
+    ActivateAgentVersionResponse,
+    ActivateScorerVersionResponse,
+    AgentVersionResponse,
+    AwaitBufferStatusResponse,
+    CloneMemoryThreadResponse,
+    SaveMessageToMemoryResponse,
+    SaveScoreResponse,
+    SearchSkillsResponse,
+    StoredScorerResponse,
+    MemorySearchResponse,
+    McpServerListResponse,
+    MemorySearchResult,
+    McpServerToolListResponse
+} from '@mastra/client-js'
+import type { TraceRecord, ListTracesResponse,
+    TraceStatus, TraceEntry, traceSpanSchema, TraceSpan
+ } from '@mastra/core/storage'
+import type { BaseLogMessage } from '@mastra/core/logger'
 
-// Agent Types
+
+
+
+
+// --- CORE TYPES ---
+
+/**
+ * Model configuration representation
+ */
 export const ModelSchema = z.object({
     provider: z.string(),
     name: z.string(),
 })
+export type Model = z.infer<typeof ModelSchema>
+
+/**
+ * RequestContext-like structure for the frontend
+ * Use `unknown` instead of `any` to force explicit narrowing at call sites.
+ */
+export type RequestContextValue = Record<string, unknown>
+
+// --- RE-EXPORTED SDK TYPES ---
+
+// Direct re-exports to maintain absolute SDK parity
+export type {
+    GetAgentResponse,
+    GetToolResponse,
+    GetWorkflowResponse,
+    StoredAgentResponse,
+    ListMemoryThreadsResponse,
+    ListMemoryThreadMessagesResponse,
+    GetMemoryStatusResponse,
+    GetLogsResponse,
+    WorkspaceItem,
+    Provider,
+    ListStoredAgentsResponse,
+    GetMemoryConfigResponse,
+    ListAgentsModelProvidersResponse,
+    GetSystemPackagesResponse,
+    MastraClientError,
+    DatasetRecord,
+    DatasetItem,
+    DatasetExperiment,
+    DatasetExperimentResult,
+    CompareExperimentsResponse,
+    ListToolProvidersResponse,
+    GetProcessorProvidersResponse,
+    BaseLogMessage,
+    TraceRecord,
+    ListTracesResponse,
+}
+
+// Convenience Aliases for the app
+export type Agent = GetAgentResponse
+export type Tool = GetToolResponse
+export type Workflow = GetWorkflowResponse
+export type StoredAgent = StoredAgentResponse
+export type MemoryThread = ListMemoryThreadsResponse['threads'][number]
+export type Message = ListMemoryThreadMessagesResponse['messages'][number]
+export type MemoryStatus = GetMemoryStatusResponse
+export type LogEntry = BaseLogMessage
+export type ModelProvider = Provider
+export type TracesResponse = ListTracesResponse
+export type Trace = ListTracesResponse['spans'][number]
+
+// --- CHAT DATA STRUCTURES (as per README requirements) ---
+
+export interface AgentExecutionData {
+    text: string
+    usage: unknown
+    toolResults: unknown[]
+}
+
+export interface WorkflowStepData {
+    status: string
+    input: unknown
+    output: unknown
+    suspendPayload: unknown
+}
+
+export interface WorkflowExecutionData {
+    name: string
+    status: string
+    steps: Record<string, WorkflowStepData>
+    output: unknown
+}
+
+export interface NetworkStep {
+    name: string
+    status: string
+    input: unknown
+    output: unknown
+}
+
+export interface NetworkUsage {
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+}
+
+export interface NetworkExecutionData {
+    name: string
+    status: string
+    steps: NetworkStep[]
+    usage: NetworkUsage
+    output: unknown
+}
+
+// --- ZOD SCHEMAS FOR VALIDATION (Subset of SDK types used in UI logic) ---
 
 export const AgentSchema = z.object({
     id: z.string(),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    // Some SDK responses include the model id string while others return an object
-    modelId: z.string().optional(),
-    model: z.union([z.string(), ModelSchema]).optional(),
-    instructions: z.string().optional(),
-    // Tools can be provided as an array or as a record keyed by tool id
-    tools: z
-        .union([
-            z.array(
-                z.union([
-                    z.string(),
-                    z.object({ id: z.string(), name: z.string().optional() }),
-                ])
-            ),
-            z.record(
-                z.string(),
-                z.object({
-                    name: z.string().optional(),
-                    description: z.string().optional(),
-                })
-            ),
-        ])
-        .optional(),
-    config: z.record(z.string(), z.unknown()).optional(),
-})
-export type Agent = z.infer<typeof AgentSchema>
-
-export const AgentEvalsSchema = z.object({
-    ci: z.array(
-        z.object({
-            name: z.string().optional(),
-            score: z.number().optional(),
-            passed: z.boolean().optional(),
-        })
-    ),
-    live: z.array(
-        z.object({
-            name: z.string().optional(),
-            score: z.number().optional(),
-            status: z.string().optional(),
-        })
-    ),
-})
-export type AgentEvals = z.infer<typeof AgentEvalsSchema>
-
-// Workflow Types
-export const WorkflowStepSchema = z.object({
-    id: z.string(),
-    name: z.string().optional(),
-    type: z.string().optional(),
-    description: z.string().optional(),
-})
-export type WorkflowStep = z.infer<typeof WorkflowStepSchema>
-
-export const WorkflowSchema = z.object({
-    id: z.string(),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    // Workflows may define steps as an array or as a keyed record
-    steps: z
-        .union([
-            z.array(WorkflowStepSchema),
-            z.record(z.string(), WorkflowStepSchema),
-        ])
-        .optional(),
-    inputSchema: z.record(z.string(), z.unknown()).optional(),
-})
-export type Workflow = z.infer<typeof WorkflowSchema>
-
-// Tool Types
-export const ToolSchema = z.object({
-    id: z.string(),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    inputSchema: z.record(z.string(), z.unknown()).optional(),
-    outputSchema: z.record(z.string(), z.unknown()).optional(),
-})
-export type Tool = z.infer<typeof ToolSchema>
-
-// Trace Types
-export const SpanSchema = z.object({
-    spanId: z.string(),
-    traceId: z.string(),
-    name: z.string().optional(),
-    spanType: z.string().optional(),
-    duration: z.number().optional(),
-    startTime: z.string().optional(),
-    endTime: z.string().optional(),
-    status: z.string().optional(),
-    attributes: z.record(z.string(), z.unknown()).optional(),
-    depth: z.number().optional(),
-})
-export type Span = z.infer<typeof SpanSchema>
-
-export const TraceSchema = z.object({
-    traceId: z.string(),
-    name: z.string().optional(),
-    spanType: z.string().optional(),
-    duration: z.number().optional(),
-    startTime: z.string().optional(),
-    status: z.string().optional(),
-    spans: z.array(SpanSchema).optional(),
-    attributes: z.record(z.string(), z.unknown()).optional(),
-})
-export type Trace = z.infer<typeof TraceSchema>
-
-export const PaginationSchema = z.object({
-    page: z.number(),
-    perPage: z.number(),
-    totalPages: z.number(),
-    total: z.number().optional(),
-})
-export type Pagination = z.infer<typeof PaginationSchema>
-
-export const TracesResponseSchema = z.object({
-    spans: z.array(SpanSchema),
-    pagination: PaginationSchema,
-})
-export type TracesResponse = z.infer<typeof TracesResponseSchema>
-
-// Memory Types
-export const MemoryThreadSchema = z.object({
-    id: z.string(),
-    title: z.string().optional(),
-    resourceId: z.string().optional(),
-    agentId: z.string().optional(),
-    createdAt: z.union([z.string(), z.date()]).optional(),
-    updatedAt: z.union([z.string(), z.date()]).optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-})
-export type MemoryThread = z.infer<typeof MemoryThreadSchema>
-
-export const MessageSchema = z.object({
-    id: z.string(),
-    role: z.enum(['user', 'assistant', 'system']),
-    // Content can be a raw string or a richer structured object with 'content' or 'parts'
-    content: z.union([
-        z.string(),
-        z.object({ content: z.string() }),
-        z.object({
-            parts: z.array(
-                z.object({
-                    text: z.string().optional(),
-                    type: z.string().optional(),
-                })
-            ),
-        }),
-    ]),
-    format: z.number().optional(),
-    threadId: z.string().optional(),
-    createdAt: z.string().optional(),
-    type: z.string().optional(),
-})
-export type Message = z.infer<typeof MessageSchema>
-
-export const WorkingMemorySchema = z.object({
-    workingMemory: z.string().nullable(),
-    source: z.enum(['thread', 'resource']).optional(),
-    workingMemoryTemplate: z.string().optional(),
-    threadExists: z.boolean().optional(),
-})
-export type WorkingMemory = z.infer<typeof WorkingMemorySchema>
-
-// Log Types
-export const LogEntrySchema = z.object({
-    id: z.string().optional(),
-    level: z.string(),
-    message: z.string(),
-    timestamp: z.string().optional(),
-    source: z.string().optional(),
-    runId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-})
-export type LogEntry = z.infer<typeof LogEntrySchema>
-
-// Telemetry Types
-export const TelemetryEntrySchema = z.object({
-    id: z.string().optional(),
-    name: z.string().optional(),
-    scope: z.string().optional(),
-    startTime: z.string().optional(),
-    endTime: z.string().optional(),
-    duration: z.number().optional(),
-    attributes: z.record(z.string(), z.unknown()).optional(),
-})
-export type TelemetryEntry = z.infer<typeof TelemetryEntrySchema>
-
-// Vector Types
-export const VectorIndexSchema = z.object({
     name: z.string(),
-    dimension: z.number().optional(),
-    metric: z.string().optional(),
-    count: z.number().optional(),
+    description: z.string().optional(),
+    modelId: z.string().optional(),
 })
-export type VectorIndex = z.infer<typeof VectorIndexSchema>
 
-export const VectorQueryResultSchema = z.object({
+export const StoredAgentSchema = z.object({
     id: z.string(),
-    score: z.number(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-    vector: z.array(z.number()).optional(),
+    name: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
 })
-export type VectorQueryResult = z.infer<typeof VectorQueryResultSchema>
 
-// AI Span Type (matching MastraClient)
+// --- CUSTOM EXTENSIONS ---
+
+export interface VectorIndex {
+    dimension: number
+    metric: 'cosine' | 'euclidean' | 'dotproduct'
+    count: number
+    name: string
+}
+
 export type AISpanType =
     | 'agent'
     | 'workflow'

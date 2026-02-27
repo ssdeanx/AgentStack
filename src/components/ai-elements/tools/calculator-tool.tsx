@@ -93,7 +93,7 @@ export function CalculatorCard({ input, output, errorText }: CalculatorCardProps
 
   const exprInput = input && typeof input === 'object' && 'expression' in input ? (input as any).expression : undefined
 
-  if (errorText) return <ErrorCard title="Calculation Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="Calculation Failed" message={errorText} />}
   if (!output) {
     return <LoadingCard title={`Calculating...`} subtitle={exprInput ?? (input as any)?.expression} icon={<Loader2 className="size-4 animate-spin" />} />
   }
@@ -184,7 +184,7 @@ export function UnitConverterCard({ input, output, errorText }: UnitConverterCar
   const fromInput = input && typeof input === 'object' && 'fromUnit' in input ? (input as any).fromUnit : undefined
   const toInput = input && typeof input === 'object' && 'toUnit' in input ? (input as any).toUnit : undefined
 
-  if (errorText) return <ErrorCard title="Conversion Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="Conversion Failed" message={errorText} />}
   if (!output) {
     const subtitle = `${valInput ?? (input as any)?.value} ${fromInput ?? (input as any)?.fromUnit} → ${toInput ?? (input as any)?.toUnit}`
     return <LoadingCard title={`Converting ${valInput ?? (input as any)?.value}`} subtitle={subtitle} icon={<Loader2 className="size-4 animate-spin" />} />
@@ -253,7 +253,7 @@ export function MatrixCalculatorCard({ input, output, errorText }: MatrixCalcula
   const [showJson, setShowJson] = useState(false)
   const operationInput = input && typeof input === 'object' && 'operation' in input ? (input as any).operation : undefined
 
-  if (errorText) return <ErrorCard title="Matrix Operation Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="Matrix Operation Failed" message={errorText} />}
   if (!output) {
     return <LoadingCard title={`Computing matrix ${operationInput ?? 'operation'}`} icon={<Loader2 className="size-4 animate-spin" />} />
   }
@@ -302,7 +302,7 @@ export function MatrixCalculatorCard({ input, output, errorText }: MatrixCalcula
             {!showJson ? (
               <ScrollArea className="h-[260px] pr-4">
                 <div className="space-y-2">
-                  {(result as any[]).map((row: any[], rIdx: number) => (
+                  {(result).map((row: any[], rIdx: number) => (
                     <div key={rIdx} className="flex gap-2">
                       {row.map((val, cIdx) => (
                         <div key={cIdx} className="p-2 border rounded text-sm min-w-[48px] text-center">
