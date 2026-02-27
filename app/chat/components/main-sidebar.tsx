@@ -1,25 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
-import {
-    fetchAgents,
-    fetchTools,
-    fetchWorkflows,
-    fetchTraces,
-    fetchThreads,
-    fetchVectors,
-} from '@/app/chat/actions/sidebar-actions'
-import type {
-    SidebarAgent,
-    SidebarTool,
-    SidebarWorkflow,
-    SidebarTrace,
-    SidebarThread,
-    SidebarVectorIndex,
-} from '@/app/chat/actions/sidebar-actions'
+import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import type { Agent, Tool, TracesResponse, Workflow } from '@/lib/types/mastra-api'
 import { generateId } from 'ai'
+import type { UseQueryResult } from '@tanstack/react-query'
 import {
     Sidebar,
     SidebarContent,
@@ -55,54 +42,116 @@ export function MainSidebar() {
     const searchParams = useSearchParams()
     const { selectAgent, selectedAgent, setThreadId } = useChatContext()
 
-    const [agents, setAgents] = useState<SidebarAgent[]>([])
-    const [tools, setTools] = useState<SidebarTool[]>([])
-    const [workflows, setWorkflows] = useState<SidebarWorkflow[]>([])
+    const activeAgentFromUrl = searchParams.get('agent')
 
+    // Use hooks for data fetching - useMastraQuery is a factory that returns hook functions
+    const {
+        useAgents,
+        useTools,
+        useWorkflows,
+        useTraces,
+        useThreads,
+        useVectorIndexes,
+    } = useMastraQuery()
 
-    const [traces, setTraces] = useState<SidebarTrace[]>([])
-    const [threads, setThreads] = useState<SidebarThread[]>([])
-    const [vectors, setVectors] = useState<SidebarVectorIndex[]>([])
+    // Call each hook to get query results
+    const agentsResult: UseQueryResult<Agent[], Error> = useAgents()
+    const toolsResult: UseQueryResult<Tool[], Error> = useTools()
+    const workflowsResult: UseQueryResult<Workflow[], Error> = useWorkflows()
+    const tracesResult: UseQueryResult<TracesResponse, Error> = useTraces()
+    const threadsResult = useThreads()
+    const vectorsResult = useVectorIndexes()
 
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    interface TraceListItem {
+        id: string
+        name: string
+    }
 
-    // Load sidebar data on mount
-    useEffect(() => {
-        const loadData = async () => {
-            setLoading(true)
-            setError(null)
-            try {
-                const [
-                    agentsData,
-                    toolsData,
-                    workflowsData,
-                    tracesData,
-                    threadsData,
-                    vectorsData,
-                ] = await Promise.all([
-                    fetchAgents(),
-                    fetchTools(),
-                    fetchWorkflows(),
-                    fetchTraces(),
-                    fetchThreads(),
-                    fetchVectors(),
-                ])
-                setAgents(agentsData)
-                setTools(toolsData)
-                setWorkflows(workflowsData)
-                setTraces(tracesData)
-                setThreads(threadsData)
-                setVectors(vectorsData)
-            } catch (err) {
-                setError('Failed to load sidebar data')
-                console.error('loadData error:', err)
-            } finally {
-                setLoading(false)
+    const toTraceList = (value: unknown): TraceListItem[] => {
+        if (value === null || value === undefined) {
+            return []
+        }
+        if (typeof value !== 'object') {
+            return []
+        }
+
+        const {spans} = value as { spans?: unknown }
+        if (!Array.isArray(spans)) {
+            return []
+        }
+
+        return spans
+            .filter((span: unknown) => {
+                if (typeof span !== 'object' || span === null) {
+                    return false
+                }
+                const rec = span as Record<string, unknown>
+                return (
+                    typeof rec.spanId === 'string' && typeof rec.name === 'string'
+                )
+            })
+            .map((span: unknown) => {
+                const rec = span as Record<string, unknown>
+                return {
+                    id: rec.spanId as string,
+                    name: rec.name as string,
+                }
+            })
+    }
+
+    // Extract data with proper typing
+    const agentsData: Agent[] = agentsResult.data ?? []
+    const toolsData: Tool[] = toolsResult.data ?? []
+    const workflowsData: Array<{ id?: string; name: string }> =
+        workflowsResult.data ?? []
+
+    const tracesUnknown: unknown = tracesResult.data
+    const traces = toTraceList(tracesUnknown)
+    const threadsData = threadsResult.data ?? []
+    const vectorsData = vectorsResult.data ?? []
+
+    // Combine loading and error states
+    const loading =
+        agentsResult.isLoading ||
+        toolsResult.isLoading ||
+        workflowsResult.isLoading ||
+        tracesResult.isLoading ||
+        threadsResult.isLoading ||
+        vectorsResult.isLoading
+    const error =
+        (agentsResult.error ??
+        (toolsResult.error) ??
+        (workflowsResult.error) ??
+        tracesResult.error) ??
+        threadsResult.error ??
+        vectorsResult.error
+
+    const agents: Array<{ id: string; name: string }> = agentsData.map(
+        (agent) => ({
+            id: agent.id,
+            name: agent.name,
+        })
+    )
+
+    const tools: Array<{ id: string; name: string }> = toolsData.map((tool) => ({
+        id: tool.id,
+        name: tool.id,
+    }))
+
+    const workflows: Array<{ id: string; name: string }> = workflowsData.map(
+        (wf) => {
+            const id = wf.id ?? wf.name
+            return {
+                id,
+                name: wf.name,
             }
         }
-        loadData()
-    }, [])
+    )
+
+    const threads = threadsData
+    const vectors = vectorsData
+    const threadsCount = threads.length
+    const vectorsCount = vectors.length
 
     const handleAgentClick = useCallback(
         (agentId: string) => {
@@ -115,13 +164,10 @@ export function MainSidebar() {
             // Explicitly set the new thread ID
             setThreadId(newThreadId)
 
-            // Update URL
-            const params = new URLSearchParams(searchParams.toString())
-            params.set('agent', agentId)
-            params.delete('thread')
-            router.push(`/chat?${params.toString()}`)
+            // Navigate to dynamic route
+            router.push(`/chat/${agentId}`)
         },
-        [selectAgent, setThreadId, searchParams, router]
+        [selectAgent, setThreadId, router]
     )
 
     const handleNavClick = useCallback(
@@ -131,12 +177,23 @@ export function MainSidebar() {
         [router]
     )
 
+    const handleLogoClick = useCallback(() => {
+        handleNavClick('/chat')
+    }, [handleNavClick])
+
     return (
-        <Sidebar className="border-r">
+        <Sidebar
+            className="border-r"
+            data-threads-count={threadsCount}
+            data-vectors-count={vectorsCount}
+            data-active-agent={activeAgentFromUrl ?? ''}
+        >
             <SidebarHeader className="border-b px-4 py-2">
                 <div className="flex h-8 items-center">
                     <h2 className="text-sm font-semibold tracking-tight">
-                        AgentStack
+                        <button type="button" onClick={handleLogoClick}>
+                            AgentStack
+                        </button>
                     </h2>
                 </div>
             </SidebarHeader>
@@ -165,7 +222,7 @@ export function MainSidebar() {
                                                 </div>
                                             ) : error ? (
                                                 <div className="px-2 py-2 text-xs text-red-500">
-                                                    {error}
+                                                    {error?.message}
                                                 </div>
                                             ) : agents.length === 0 ? (
                                                 <div className="px-2 py-2 text-xs text-muted-foreground">
@@ -195,101 +252,6 @@ export function MainSidebar() {
                                                     </SidebarMenuSubItem>
                                                 ))
                                             )}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-
-                <SidebarGroup>
-                    <SidebarGroupLabel>Resources</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            <Collapsible className="group/collapsible">
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton>
-                                            <WorkflowIcon className="mr-2 size-4" />
-                                            <span>Workflows</span>
-                                            <ChevronRightIcon className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {workflows.map((wf) => (
-                                                <SidebarMenuSubItem key={wf.id}>
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-default">
-                                                        <span className="truncate">
-                                                            {wf.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-
-                            
-
-                            <Collapsible className="group/collapsible">
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton>
-                                            <CpuIcon className="mr-2 size-4" />
-                                            <span>Tools</span>
-                                            <ChevronRightIcon className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {tools.map((tool) => (
-                                                <SidebarMenuSubItem
-                                                    key={tool.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-default">
-                                                        <span className="truncate">
-                                                            {tool.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-
-                <SidebarGroup>
-                    <SidebarGroupLabel>Observability</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            <Collapsible className="group/collapsible">
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton>
-                                            <ActivityIcon className="mr-2 size-4" />
-                                            <span>Recent Traces</span>
-                                            <ChevronRightIcon className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {traces.map((trace) => (
-                                                <SidebarMenuSubItem
-                                                    key={trace.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-default">
-                                                        <span className="truncate">
-                                                            {trace.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
                                         </SidebarMenuSub>
                                     </CollapsibleContent>
                                 </SidebarMenuItem>
@@ -399,8 +361,13 @@ export function MainSidebar() {
                             variant="default"
                             className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90"
                             onClick={() => {
-                                handleAgentClick(selectedAgent)
+                                const agentId = selectedAgent ?? agents[0]?.id
+                                if (!agentId) {
+                                    return
+                                }
+                                handleAgentClick(agentId)
                             }}
+                            disabled={!selectedAgent && agents.length === 0}
                         >
                             <PlusIcon className="mr-2 size-4" />
                             New Thread

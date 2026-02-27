@@ -68,6 +68,7 @@ export const pgMemory = new Memory({
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
     options: {
         // Message management
+        observationalMemory: true,
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: true,
         // Advanced semantic recall with HNSW index configuration
@@ -91,7 +92,7 @@ export const pgMemory = new Memory({
         workingMemory: {
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
-       //   version: 'vnext',
+            version: 'vnext',
             template: `# User Context
 ## Profile
 - Name/Role:

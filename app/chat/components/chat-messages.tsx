@@ -16,6 +16,22 @@ import {
     MessageAction,
 } from '@/src/components/ai-elements/message'
 import { Loader } from '@/src/components/ai-elements/loader'
+import { Shimmer } from '@/src/components/ai-elements/shimmer'
+import {
+    Persona,
+    type PersonaState,
+} from '@/src/components/ai-elements/persona'
+import {
+    Agent,
+    AgentHeader,
+    AgentContent,
+    AgentInstructions,
+} from '@/src/components/ai-elements/agent'
+import {
+    Snippet,
+    SnippetInput,
+    SnippetCopyButton,
+} from '@/src/components/ai-elements/snippet'
 import {
     CodeBlock,
     CodeBlockCopyButton,
@@ -43,6 +59,7 @@ import {
     TranscriptionSegment,
 } from '@/src/components/ai-elements/transcription'
 import { AgentWebPreview, AgentCodeSandbox } from './agent-web-preview'
+import { AgentSandbox } from './agent-sandbox'
 import type { WebPreviewData } from './chat.types'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
 import type { ToolInvocationState } from '@/app/chat/providers/chat-context-types'
@@ -57,7 +74,7 @@ import { AgentTask } from './agent-task'
 import type { AgentTaskData, ArtifactData, TaskStep } from './chat.types'
 import { AgentQueue } from './agent-queue'
 import { AgentConfirmation } from './agent-confirmation'
-import { AgentInlineCitation } from './agent-inline-citation'
+import { AgentWorkflow, type WorkflowNode, type WorkflowEdge } from './agent-workflow'
 import {
     extractPlanFromText,
     parseReasoningToSteps,
@@ -74,19 +91,33 @@ import {
     AlertTriangleIcon,
     XIcon,
 } from 'lucide-react'
-import { useState, useCallback, useMemo, Fragment, memo, useEffect } from 'react'
+import {
+    useState,
+    useCallback,
+    useMemo,
+    Fragment,
+    memo,
+    useEffect,
+} from 'react'
 import type {
     UIMessage,
     UIDataTypes,
-    UIMessageStreamOnStepFinishCallback,
-    UIMessageStreamOnFinishCallback,
-    UIMessageStreamWriter,
-    UIMessageStreamOptions,
-    UIToolInvocation,
+//    UIMessageStreamOnStepFinishCallback,
+//    UIMessageStreamOnFinishCallback,
+//    UIMessageStreamWriter,
+//    UIMessageStreamOptions,
+//    UIToolInvocation,
     TextUIPart,
     ToolUIPart,
-    TextPart,
-    ToolResultPart,
+    UITools,
+//   TextPart,
+//   ToolResultPart,
+//    DeepPartial,
+//    FilePart,
+//    UIDataPartSchemas,
+//    TextStreamPart,
+    UIMessagePart,
+//    ContentPart,
     ReasoningOutput,
     UIMessageChunk,
     DataContent,
@@ -116,11 +147,11 @@ import {
     InvalidMessageRoleError,
     InvalidArgumentError,
     UIMessageStreamError,
-    createUIMessageStream,
-    CreateUIMessage,
-    createUIMessageStreamResponse,
-    UITool,
-    generateId,
+ //   createUIMessageStream,
+ //   CreateUIMessage,
+ //   createUIMessageStreamResponse,
+ //   UITool,
+ //   generateId,
 } from 'ai'
 import type { BundledLanguage } from 'shiki'
 import { Button } from '@/ui/button'
@@ -138,13 +169,45 @@ import type {
 } from '@mastra/ai-sdk'
 import { AgentTool } from '@/ui/agent-tool'
 import { cn } from '@/lib/utils'
-import { ReasoningContent, useReasoning } from '../../../src/components/ai-elements/reasoning';
+import {
+    Reasoning,
+    ReasoningTrigger,
+    ReasoningContent,
+} from '../../../src/components/ai-elements/reasoning'
+import { AgentInlineCitation } from './agent-inline-citation'
 
 type MastraDataPart =
     | AgentDataPart
     | WorkflowDataPart
     | NetworkDataPart
     | { type: `data-${string}`; id?: string; data: unknown }
+
+type MessagePart = UIMessagePart<UIDataTypes, UITools>
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isSourceDocumentUIPart(
+    part: MessagePart
+): part is SourceDocumentUIPart {
+    return part.type === 'source-document'
+}
+
+function isDataLikePart(part: MessagePart): part is MastraDataPart {
+    return typeof part.type === 'string' && part.type.startsWith('data-')
+}
+
+const MemoMessageItem = memo(MessageItem)
+
+function dataUrlToDataContent(url: string): DataContent | null {
+    const match = /^data:([^;,]+)?(;base64)?,(.*)$/i.exec(url)
+    if (!match) {
+        return null
+    }
+
+    return match[3] ?? '';
+}
 
 interface ChatMessagesProps {
     messages: UIMessage[]
@@ -197,43 +260,124 @@ const getSourcesFromParts = (parts: UIMessage['parts']): SourceDocument[] => {
     return sources
 }
 
-/**
- * Type guard to check for type property
- */
-function hasStringType(part: unknown): part is { type: string } {
-    return (
-        typeof part === 'object' &&
-        part !== null &&
-        'type' in part &&
-        typeof (part as { type: unknown }).type === 'string'
-    )
+function isAgentDataPart(part: MessagePart): part is AgentDataPart {
+    if (!isDataUIPart(part)) {
+        return false
+    }
+    if (part.type !== 'data-tool-agent') {
+        return false
+    }
+    return isPlainObject(part.data)
 }
 
-/**
- * Type guard to check if a part is an AgentDataPart
- */
-function isAgentDataPart(part: unknown): part is AgentDataPart {
-    return hasStringType(part) && part.type === 'data-tool-agent'
+function isWorkflowDataPart(
+    part: MessagePart
+): part is WorkflowDataPart {
+    if (!isDataUIPart(part)) {
+        return false
+    }
+    if (part.type !== 'data-workflow' && part.type !== 'data-tool-workflow') {
+        return false
+    }
+    return isPlainObject(part.data)
 }
 
-/**
- * Type guard to check if a part is a WorkflowDataPart
- */
-function isWorkflowDataPart(part: unknown): part is WorkflowDataPart {
-    return (
-        hasStringType(part) &&
-        (part.type === 'data-workflow' || part.type === 'data-tool-workflow')
-    )
+function isNetworkDataPart(
+    part: MessagePart
+): part is NetworkDataPart {
+    if (!isDataUIPart(part)) {
+        return false
+    }
+    if (part.type !== 'data-network' && part.type !== 'data-tool-network') {
+        return false
+    }
+    return isPlainObject(part.data)
 }
 
-/**
- * Type guard to check if a part is a NetworkDataPart
- */
-function isNetworkDataPart(part: unknown): part is NetworkDataPart {
-    return (
-        hasStringType(part) &&
-        (part.type === 'data-network' || part.type === 'data-tool-network')
-    )
+function isSandboxDataPart(
+    part: MessagePart
+): part is { type: 'data-sandbox'; data: Record<string, unknown> } {
+    if (!isDataUIPart(part)) {
+        return false
+    }
+    if (part.type !== 'data-sandbox') {
+        return false
+    }
+    return isPlainObject(part.data)
+}
+
+function isUIMessageChunk(value: unknown): value is UIMessageChunk {
+    if (value === null || typeof value !== 'object') {
+        return false
+    }
+
+    const obj = value as Record<string, unknown>
+    const typeValue = obj.type
+    if (typeof typeValue !== 'string') {
+        return false
+    }
+
+    switch (typeValue) {
+        case 'text-start':
+        case 'text-end':
+        case 'reasoning-start':
+        case 'reasoning-end':
+            return typeof obj.id === 'string'
+        case 'text-delta':
+        case 'reasoning-delta':
+            return (
+                typeof obj.id === 'string' && typeof obj.delta === 'string'
+            )
+        case 'tool-input-delta':
+            return (
+                typeof obj.toolCallId === 'string' &&
+                typeof obj.inputTextDelta === 'string'
+            )
+        case 'tool-input-start':
+        case 'tool-input-available':
+        case 'tool-input-error':
+            return (
+                typeof obj.toolCallId === 'string' &&
+                typeof obj.toolName === 'string'
+            )
+        case 'tool-approval-request':
+            return (
+                typeof obj.approvalId === 'string' &&
+                typeof obj.toolCallId === 'string'
+            )
+        case 'tool-output-available':
+        case 'tool-output-error':
+        case 'tool-output-denied':
+            return typeof obj.toolCallId === 'string'
+        case 'source-url':
+            return (
+                typeof obj.sourceId === 'string' && typeof obj.url === 'string'
+            )
+        case 'source-document':
+            return (
+                typeof obj.sourceId === 'string' &&
+                typeof obj.title === 'string' &&
+                typeof obj.mediaType === 'string'
+            )
+        case 'file':
+            return (
+                typeof obj.url === 'string' && typeof obj.mediaType === 'string'
+            )
+        case 'start-step':
+        case 'finish-step':
+            return true
+        case 'start':
+        case 'finish':
+            return true
+        case 'abort':
+            return true
+        case 'error':
+            return typeof obj.errorText === 'string'
+        case 'message-metadata':
+            return 'messageMetadata' in obj
+        default:
+            return typeValue.startsWith('data-')
+    }
 }
 
 /**
@@ -315,12 +459,35 @@ function AgentDataSection({ part }: { part: AgentDataPart }) {
     )
 }
 
-/**
- * Renders a nested workflow execution result
- */
 function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
     const workflowData = part.data
     const stepEntries = Object.entries(workflowData.steps ?? {})
+
+    // Create nodes and edges for workflow visualization
+    const stepNames = Object.keys(workflowData.steps ?? {})
+    const nodes: WorkflowNode[] = stepNames.map((stepName, index) => {
+        const stepData = workflowData.steps[stepName]
+        return {
+            id: stepName,
+            type: 'custom',
+            position: { x: index * 200, y: 50 },
+            data: {
+                label: stepName,
+                description: `Status: ${stepData.status}`,
+                status: stepData.status === 'success' ? 'completed' :
+                        stepData.status === 'failed' ? 'error' :
+                        stepData.status === 'running' ? 'running' : 'pending',
+                type: 'step'
+            }
+        }
+    })
+
+    const edges: WorkflowEdge[] = stepNames.slice(1).map((stepName, index) => ({
+        id: `edge-${stepNames[index]}-${stepName}`,
+        source: stepNames[index],
+        target: stepName,
+        type: 'animated'
+    }))
 
     return (
         <Collapsible defaultOpen={false} className="border rounded-lg">
@@ -351,56 +518,14 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
             </CollapsibleTrigger>
             <CollapsibleContent className="closed:animate-out open:animate-in closed:fade-out-0 open:fade-in-0 px-4 pb-4 pt-2">
                 <div className="space-y-3">
-                    {/* Workflow Steps */}
+                    {/* Workflow Visualization */}
                     {stepEntries.length > 0 && (
-                        <div className="space-y-2">
-                            <div className="text-xs font-semibold text-muted-foreground">
-                                Workflow Steps
-                            </div>
-                            {stepEntries.map(([stepName, stepData]) => (
-                                <div
-                                    key={stepName}
-                                    className="bg-muted/30 rounded-md p-3 border"
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-medium">
-                                            {stepName}
-                                        </span>
-                                        <Badge
-                                            variant={
-                                                stepData.status === 'success' ||
-                                                (stepData.status as string) ===
-                                                    'completed'
-                                                    ? 'default'
-                                                    : stepData.status ===
-                                                        'failed'
-                                                      ? 'destructive'
-                                                      : 'secondary'
-                                            }
-                                            className="text-xs"
-                                        >
-                                            {stepData.status}
-                                        </Badge>
-                                    </div>
-                                    <CodeBlock
-                                        code={JSON.stringify(
-                                            {
-                                                input: stepData.input,
-                                                output: stepData.output,
-                                                ...(stepData.suspendPayload && {
-                                                    suspended: true,
-                                                }),
-                                            },
-                                            null,
-                                            2
-                                        )}
-                                        language="json"
-                                    >
-                                        <CodeBlockCopyButton />
-                                    </CodeBlock>
-                                </div>
-                            ))}
-                        </div>
+                        <AgentWorkflow
+                            nodes={nodes}
+                            edges={edges}
+                            title={workflowData.name}
+                            className="h-64"
+                        />
                     )}
 
                     {/* Usage Statistics */}
@@ -601,7 +726,8 @@ function extractThoughtSummaryFromParts(
     }
 
     for (const part of parts) {
-        const pm = (part as { providerMetadata?: ProviderMetadata | undefined }).providerMetadata
+        const pm = (part as { providerMetadata?: ProviderMetadata | undefined })
+            .providerMetadata
         if (pm === undefined || pm === null || typeof pm !== 'object') {
             continue
         }
@@ -631,8 +757,10 @@ function extractThoughtSummaryFromParts(
     return ''
 }
 
-function isStepStartChunkPart(part: unknown): part is StepStartUIPart {
-    return hasStringType(part) && part.type === 'step-start'
+function isStepStartChunkPart(
+    part: MessagePart
+): part is StepStartUIPart {
+    return part.type === 'step-start'
 }
 
 function extractFinishReasonFromParts(
@@ -642,14 +770,22 @@ function extractFinishReasonFromParts(
         return undefined
     }
 
+    const isFinishReason = (value: string): value is FinishReason =>
+        value === 'stop' ||
+        value === 'length' ||
+        value === 'content-filter' ||
+        value === 'tool-calls' ||
+        value === 'error' ||
+        value === 'unknown'
+
     for (const part of parts) {
-        if (!hasStringType(part)) {
+        if (!('finishReason' in part)) {
             continue
         }
 
-        const finishReason = (part as { finishReason?: unknown }).finishReason
-        if (typeof finishReason === 'string') {
-            return finishReason as FinishReason
+        const finishReason = part.finishReason
+        if (typeof finishReason === 'string' && isFinishReason(finishReason)) {
+            return finishReason
         }
     }
 
@@ -680,46 +816,28 @@ function formatValidationError(error: unknown): string {
     return 'Unknown message validation error'
 }
 
-
-function resolveToolDisplayName(tool: ToolInvocationState): string {
-    const dynamicName = (tool as { toolName?: unknown }).toolName
-    if (typeof dynamicName === 'string' && dynamicName.trim().length > 0) {
-        return dynamicName
+function resolveToolDisplayName(
+    tool: ToolUIPart<UITools> | DynamicToolUIPart
+): string {
+    if (tool.type === 'dynamic-tool') {
+        return tool.toolName
     }
 
-    const typeVal = (tool as { type?: unknown }).type
-    if (typeof typeVal === 'string' && typeVal.startsWith('tool-')) {
-        const sliced = typeVal.slice('tool-'.length)
-        return sliced.length > 0 ? sliced : 'unknown'
-    }
-
-    return 'unknown'
+    const typeVal = tool.type
+    const sliced = typeVal.slice('tool-'.length)
+    return sliced.length > 0 ? sliced : 'unknown'
 }
 
 /**
  * Safely resolve a tool call id for use in React keys without using `any`.
  * Falls back to the provided index if no string id is available.
  */
-function getToolCallId(tool: unknown, fallbackIndex: number): string {
-    // Explicitly check for null and non-object values to satisfy strict boolean checks
-    if (tool === null || typeof tool !== 'object') {
-        return `idx-${fallbackIndex}`
-    }
-
-    const maybeTool = tool as { toolCallId?: unknown; id?: unknown }
-
-    if (
-        typeof maybeTool.toolCallId === 'string' &&
-        maybeTool.toolCallId.trim().length > 0
-    ) {
-        return maybeTool.toolCallId
-    }
-
-    if (typeof maybeTool.id === 'string' && maybeTool.id.trim().length > 0) {
-        return maybeTool.id
-    }
-
-    return `idx-${fallbackIndex}`
+function getToolCallId(
+    tool: ToolUIPart<UITools> | DynamicToolUIPart,
+    fallbackIndex: number
+): string {
+    const id = tool.toolCallId
+    return id.trim().length > 0 ? id : `idx-${fallbackIndex}`
 }
 
 // Extract extractTasksFromText to module level to fix scope issues
@@ -885,9 +1003,11 @@ function MessageItem({
 }: MessageItemProps) {
     const isAssistant = message.role === 'assistant'
     const isUser = message.role === 'user'
-    const textPart = message.parts?.find(isTextUIPart)
-    const reasoningPart: ReasoningUIPart | undefined = message.parts?.find(isReasoningUIPart)
-    const dataPart: DataUIPart<UIDataTypes> | undefined = message.parts?.find(isDataUIPart)
+    const textPart: TextUIPart | undefined = message.parts?.find(isTextUIPart)
+    const reasoningPart: ReasoningUIPart | undefined =
+        message.parts?.find(isReasoningUIPart)
+    const dataPart: DataUIPart<UIDataTypes> | undefined =
+        message.parts?.find(isDataUIPart)
 
     const rawContent = textPart?.text ?? ''
     const [inlinePreview, setInlinePreview] = useState<WebPreviewData | null>(
@@ -913,52 +1033,63 @@ function MessageItem({
         const uiParts = message.parts ?? []
         let t = ''
         let r = ''
+        let toolInputDeltaText = ''
 
         for (const p of uiParts) {
-            // Using the imported UIMessageChunk as strictly requested by the user.
-            // This ensures we are using the official SDK types for parsing.
-            const chunk = p as unknown as UIMessageChunk
-            const typeValue = (chunk as any).type
-
-            if (typeof typeValue !== 'string') continue
-
-            switch (typeValue) {
-                case 'text-delta':
-                    if (typeof (chunk as any).delta === 'string') {
-                        t += (chunk as any).delta
-                    }
-                    break
-                case 'reasoning-delta':
-                    if (typeof (chunk as any).delta === 'string') {
-                        r += (chunk as any).delta
-                    }
-                    break
-                case 'tool-input-delta':
-                    // tool input characters streaming
-                    break
-                case 'start':
-                case 'finish':
-                case 'stop':
-                case 'abort':
-                case 'error':
-                    // Flow control terminators and data markers
-                    break
+            // Some backends stream UIMessageChunk objects directly into `message.parts`.
+            // We support that by narrowing at runtime (no `as any`).
+            const maybeChunk: unknown = p
+            if (isUIMessageChunk(maybeChunk)) {
+                const chunk = maybeChunk
+                switch (chunk.type) {
+                    case 'text-delta':
+                        t += chunk.delta
+                        break
+                    case 'reasoning-delta':
+                        r += chunk.delta
+                        break
+                    case 'tool-input-delta':
+                        toolInputDeltaText += chunk.inputTextDelta
+                        break
+                    case 'text-start':
+                    case 'text-end':
+                    case 'reasoning-start':
+                    case 'reasoning-end':
+                    case 'tool-input-start':
+                    case 'tool-input-available':
+                    case 'tool-input-error':
+                    case 'tool-approval-request':
+                    case 'tool-output-available':
+                    case 'tool-output-error':
+                    case 'tool-output-denied':
+                    case 'source-url':
+                    case 'source-document':
+                    case 'file':
+                    case 'start-step':
+                    case 'finish-step':
+                    case 'start':
+                    case 'finish':
+                    case 'abort':
+                    case 'error':
+                    case 'message-metadata':
+                    default:
+                        break
+                }
             }
 
             // Exercise original UIMessagePart union members for UI rendering if not handled by chunks
-            if (p.type === 'dynamic-tool') {
-                const dt = p as DynamicToolUIPart
-                void dt.toolName
+            if (isToolUIPart(p)) {
+                void p
                 continue
             }
 
             if (p.type === 'file') {
-                void (p as FileUIPart).mediaType
+                void (p).mediaType
                 continue
             }
 
             if (p.type === 'source-url') {
-                void (p as SourceUrlUIPart).url
+                void (p).url
                 continue
             }
 
@@ -968,17 +1099,23 @@ function MessageItem({
             }
         }
 
+        void toolInputDeltaText
+
         return { chunkedText: t || undefined, chunkedReasoning: r || undefined }
     }, [message.parts])
 
-    const messageReasoning: ReasoningUIPart | ReasoningOutput | undefined = message.parts?.find(isReasoningUIPart)
+    const messageReasoning: ReasoningUIPart | ReasoningOutput | undefined =
+        message.parts?.find(isReasoningUIPart)
 
     const resolvedReasoningText = useMemo(() => {
         const direct = messageReasoning?.text
         if (typeof direct === 'string' && direct.trim().length > 0) {
             return direct
         }
-        if (typeof chunkedReasoning === 'string' && chunkedReasoning.trim().length > 0) {
+        if (
+            typeof chunkedReasoning === 'string' &&
+            chunkedReasoning.trim().length > 0
+        ) {
             return chunkedReasoning
         }
         return extractThoughtSummaryFromParts(message.parts)
@@ -989,7 +1126,7 @@ function MessageItem({
 
         for (const p of parts) {
             if (isToolUIPart(p)) {
-                tools.push(p as ToolInvocationState)
+                tools.push(p)
             }
         }
 
@@ -998,42 +1135,29 @@ function MessageItem({
 
     const dataParts = useMemo((): MastraDataPart[] => {
         const parts = message.parts ?? []
-        return parts.filter(
-            (p): p is MastraDataPart =>
-                typeof (p as { type?: unknown }).type === 'string' &&
-                (p as { type: string }).type.startsWith('data-')
-        )
+        return parts.filter(isDataLikePart)
     }, [message.parts])
 
     const toolProgressEvents = useMemo(() => {
         const parts = message.parts ?? []
         const progressEvents = parts
-            .filter(
-                (p) => (p as { type?: unknown }).type === 'data-tool-progress'
+            .filter((p): p is Extract<UIMessage['parts'][number], { type: `data-${string}` }> =>
+                isDataUIPart(p) && p.type === 'data-tool-progress'
             )
             .map((p) => {
-                const { data } = p as { data?: unknown }
-                const partId = (p as { id?: unknown }).id
+                const partId = p.id
+                const data = p.data
                 const messageText =
-                    data !== null &&
-                    typeof data === 'object' &&
-                    Object.prototype.hasOwnProperty.call(data, 'message') &&
-                    typeof (data as { message?: unknown }).message === 'string'
-                        ? (data as { message: string }).message
+                    isPlainObject(data) && typeof data.message === 'string'
+                        ? data.message
                         : ''
                 const statusText =
-                    data !== null &&
-                    typeof data === 'object' &&
-                    Object.prototype.hasOwnProperty.call(data, 'status') &&
-                    typeof (data as { status?: unknown }).status === 'string'
-                        ? (data as { status: string }).status
+                    isPlainObject(data) && typeof data.status === 'string'
+                        ? data.status
                         : ''
                 const stageText =
-                    data !== null &&
-                    typeof data === 'object' &&
-                    Object.prototype.hasOwnProperty.call(data, 'stage') &&
-                    typeof (data as { stage?: unknown }).stage === 'string'
-                        ? (data as { stage: string }).stage
+                    isPlainObject(data) && typeof data.stage === 'string'
+                        ? data.stage
                         : ''
 
                 const normalizedStatus: 'in-progress' | 'done' | '' =
@@ -1069,11 +1193,12 @@ function MessageItem({
     const fileParts = message.parts?.filter(isFileUIPart) as
         | FileUIPart[]
         | undefined
+    const sourceDocumentParts = useMemo(() => {
+        const parts = message.parts ?? []
+        return parts.filter(isSourceDocumentUIPart)
+    }, [message.parts])
     const imageParts = fileParts?.filter((f) =>
         f.mediaType?.startsWith('image/')
-    )
-    const otherFileParts = fileParts?.filter(
-        (f) => !f.mediaType?.startsWith('image/')
     )
     const audioParts = fileParts?.filter((f) =>
         f.mediaType?.startsWith('audio/')
@@ -1097,16 +1222,39 @@ function MessageItem({
         return null
     }, [isAssistant, rawContent])
 
-    const hasCitations = isAssistant && showSources && sources.length > 0
+    const resolvedSources = useMemo(() => {
+        if (sources.length > 0) {
+            return sources
+        }
+
+        const derived = getSourcesFromParts(message.parts)
+            .map((s) => {
+                const url = typeof s.url === 'string' ? s.url : ''
+                const title = typeof s.title === 'string' ? s.title : ''
+                return {
+                    url,
+                    title: title.length > 0 ? title : url,
+                }
+            })
+            .filter((s) => s.url.length > 0)
+
+        return derived
+    }, [sources, message.parts])
+
+    const hasCitations =
+        isAssistant && showSources && resolvedSources.length > 0
 
     const displayedContent =
         typeof content === 'string' && content.trim().length > 0
             ? content
-            : chunkedText ?? ''
+            : (chunkedText ?? '')
 
     const citationNodes = useMemo(() => {
         if (hasCitations) {
-            const tokens = tokenizeInlineCitations(displayedContent, sources)
+            const tokens = tokenizeInlineCitations(
+                displayedContent,
+                resolvedSources
+            )
             return tokens.map((t, i) => {
                 if (t.type === 'text') {
                     return t.text
@@ -1129,7 +1277,7 @@ function MessageItem({
             })
         }
         return null
-    }, [hasCitations, displayedContent, sources])
+    }, [hasCitations, displayedContent, resolvedSources])
 
     // Split message.parts into step segments using `step-start` markers.
     // Each segment contains the parts for that step (tool calls, text, files, etc.).
@@ -1149,7 +1297,9 @@ function MessageItem({
             current.push(p)
         }
 
-        if (current.length > 0) {segments.push(current)}
+        if (current.length > 0) {
+            segments.push(current)
+        }
         return segments
     }, [message.parts])
 
@@ -1169,13 +1319,30 @@ function MessageItem({
             }
 
             // Some providers embed prepare/step results inside data parts with conventional names
-            if (isDataUIPart(p) && typeof (p as { name?: unknown }).name === 'string') {
+            if (
+                isDataUIPart(p) &&
+                typeof (p as { name?: unknown }).name === 'string'
+            ) {
                 const partName = (p as { name?: string }).name
-                if (partName === 'prepareStepResult' && p.data !== undefined && p.data !== null && typeof p.data === 'object') {
-                    prepareResults.push(p.data as unknown as PrepareStepResult<ToolSet>)
+                if (
+                    partName === 'prepareStepResult' &&
+                    p.data !== undefined &&
+                    p.data !== null &&
+                    typeof p.data === 'object'
+                ) {
+                    prepareResults.push(
+                        p.data as unknown as PrepareStepResult<ToolSet>
+                    )
                 }
-                if (partName === 'stepResult' && p.data !== undefined && p.data !== null && typeof p.data === 'object') {
-                    stepResultsArr.push(p.data as unknown as StepResult<ToolSet>)
+                if (
+                    partName === 'stepResult' &&
+                    p.data !== undefined &&
+                    p.data !== null &&
+                    typeof p.data === 'object'
+                ) {
+                    stepResultsArr.push(
+                        p.data as unknown as StepResult<ToolSet>
+                    )
                 }
             }
         }
@@ -1245,130 +1412,143 @@ function MessageItem({
                     )}
                 >
                     <MessageContent>
-                        {/* User file attachments */}
-                        {isUser && fileParts && fileParts.length > 0 && (
-                            <div className="my-2 flex flex-wrap gap-2">
-                                {fileParts.map((file, idx) => (
-                                    <div
-                                        key={`file-${idx}`}
-                                        className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-1.5 text-xs font-medium"
-                                    >
-                                        <span className="truncate max-w-50">
-                                            {file.filename ??
-                                                file.mediaType ??
-                                                `File ${idx + 1}`}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        {(fileParts && fileParts.length > 0) ||
+                        sourceDocumentParts.length > 0 ? (
+                            <div className="my-2">
+                                <Attachments variant={isUser ? 'inline' : 'list'}>
+                                    {(fileParts ?? []).map((file, idx) => {
+                                        const attachmentData = {
+                                            ...file,
+                                            id: `${message.id}-file-${idx}`,
+                                        }
 
-                        {/* Non-image files with inline preview controls */}
-                        {otherFileParts && otherFileParts.length > 0 && (
-                            <div className="my-2 space-y-2 rounded-lg border bg-muted/30 p-3">
-                                <p className="text-xs font-medium text-muted-foreground">
-                                    Attachments
-                                </p>
-                                {otherFileParts.map((file, idx) => (
-                                    <div
-                                        key={`other-file-${idx}`}
-                                        className="flex items-center justify-between text-sm"
-                                    >
-                                        <span className="truncate">
-                                            {file.filename ??
-                                                file.mediaType ??
-                                                `File ${idx + 1}`}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            {typeof file.url === 'string' &&
-                                                /^data:(text\/|application\/(json|xml))/i.test(
-                                                    file.url
-                                                ) && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-6 px-2 text-xs"
-                                                        onClick={() => {
-                                                            try {
-                                                                const decodedText =
-                                                                    getTextFromDataUrl(
-                                                                        file.url ??
-                                                                            ''
-                                                                    )
-                                                                if (
-                                                                    decodedText.trim()
-                                                                        .length > 0
-                                                                ) {
-                                                                    setSandboxPreview(
-                                                                        {
-                                                                            code: decodedText,
-                                                                            language:
-                                                                                file.mediaType?.includes(
-                                                                                    'json'
-                                                                                )
-                                                                                    ? 'json'
-                                                                                    : 'text',
-                                                                            title:
-                                                                                file.filename ??
-                                                                                'Text attachment',
-                                                                        }
+                                        const canOpenText =
+                                            typeof file.url === 'string' &&
+                                            /^data:(text\/|application\/(json|xml))/i.test(
+                                                file.url
+                                            )
+
+                                        const canPreview =
+                                            typeof file.url === 'string' &&
+                                            file.url.trim().length > 0
+
+                                        return (
+                                            <Attachment
+                                                key={attachmentData.id}
+                                                data={attachmentData}
+                                            >
+                                                <AttachmentPreview />
+                                                <AttachmentInfo />
+                                                <div className="ml-auto flex items-center gap-2">
+                                                    {canOpenText && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={() => {
+                                                                try {
+                                                                    const dataContent =
+                                                                        typeof file.url ===
+                                                                            'string'
+                                                                            ? dataUrlToDataContent(
+                                                                                  file.url
+                                                                              )
+                                                                            : null
+                                                                    void dataContent
+                                                                    const decodedText =
+                                                                        getTextFromDataUrl(
+                                                                            file.url ??
+                                                                                ''
+                                                                        )
+                                                                    if (
+                                                                        decodedText.trim()
+                                                                            .length >
+                                                                        0
+                                                                    ) {
+                                                                        setSandboxPreview(
+                                                                            {
+                                                                                code: decodedText,
+                                                                                language:
+                                                                                    file.mediaType?.includes(
+                                                                                        'json'
+                                                                                    )
+                                                                                        ? 'json'
+                                                                                        : 'text',
+                                                                                title:
+                                                                                    file.filename ??
+                                                                                    'Text attachment',
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                } catch (e) {
+                                                                    console.warn(
+                                                                        'Failed to decode data URL attachment',
+                                                                        e
                                                                     )
                                                                 }
-                                                            } catch (e) {
-                                                                console.warn(
-                                                                    'Failed to decode data URL attachment',
-                                                                    e
-                                                                )
+                                                            }}
+                                                        >
+                                                            Open text
+                                                        </Button>
+                                                    )}
+
+                                                    {canPreview && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={() =>
+                                                                setInlinePreview({
+                                                                    id: attachmentData.id,
+                                                                    url: file.url,
+                                                                    title:
+                                                                        file.filename ??
+                                                                        'Preview',
+                                                                })
                                                             }
-                                                        }}
-                                                    >
-                                                        Open text
-                                                    </Button>
-                                                )}
-                                            {file.url && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-6 px-2 text-xs"
-                                                    onClick={() =>
-                                                        setInlinePreview({
-                                                            id:
-                                                                (
-                                                                    file as {
-                                                                        id?: string
-                                                                    }
-                                                                ).id ??
-                                                                `file-${idx}`,
-                                                            url: file.url,
-                                                            title:
-                                                                file.filename ??
-                                                                'Preview',
-                                                        })
-                                                    }
-                                                >
-                                                    Preview
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 px-2 text-xs"
-                                                onClick={() => {
-                                                    if (file.url) {
-                                                        window.open(
-                                                            file.url,
-                                                            '_blank'
-                                                        )
-                                                    }
-                                                }}
+                                                        >
+                                                            Preview
+                                                        </Button>
+                                                    )}
+
+                                                    {canPreview && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={() => {
+                                                                window.open(
+                                                                    file.url,
+                                                                    '_blank'
+                                                                )
+                                                            }}
+                                                        >
+                                                            Download
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </Attachment>
+                                        )
+                                    })}
+
+                                    {sourceDocumentParts.map((doc, idx) => {
+                                        const attachmentData = {
+                                            ...doc,
+                                            id: `${message.id}-source-${idx}`,
+                                        }
+                                        return (
+                                            <Attachment
+                                                key={attachmentData.id}
+                                                data={attachmentData}
                                             >
-                                                Download
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                                                <AttachmentPreview />
+                                                <AttachmentInfo />
+                                            </Attachment>
+                                        )
+                                    })}
+                                </Attachments>
                             </div>
-                        )}
+                        ) : null}
 
                         {inlinePreview && (
                             <div className="my-3">
@@ -1391,19 +1571,28 @@ function MessageItem({
                                     isStreaming={false}
                                 />
                             ) : (
-                                <AgentReasoning
-                                    reasoning={resolvedReasoningText}
-                                    isStreaming={false}
-                                />
+                                <Reasoning isStreaming={false} defaultOpen={false}>
+                                    <ReasoningTrigger />
+                                    <ReasoningContent>
+                                        {resolvedReasoningText}
+                                    </ReasoningContent>
+                                </Reasoning>
                             ))}
 
                         {/* Render reasoning part if present */}
                         {isAssistant && reasoningPart && (
                             <AgentReasoning
                                 reasoning={(() => {
-                                    const p = reasoningPart as Record<string, unknown> | undefined
-                                    if (!p) {return ''}
-                                    if (typeof p.reasoning === 'string' && p.reasoning.trim().length > 0) {
+                                    const p = reasoningPart as
+                                        | Record<string, unknown>
+                                        | undefined
+                                    if (!p) {
+                                        return ''
+                                    }
+                                    if (
+                                        typeof p.reasoning === 'string' &&
+                                        p.reasoning.trim().length > 0
+                                    ) {
                                         return p.reasoning
                                     }
                                     if (typeof p.text === 'string') {
@@ -1470,6 +1659,16 @@ function MessageItem({
                                                 key={key}
                                                 part={part}
                                             />
+                                        )
+                                    }
+
+                                    if (isSandboxDataPart(part)) {
+                                        return (
+                                            <div key={key} className="my-2">
+                                                <AgentSandbox
+                                                    data={part.data}
+                                                />
+                                            </div>
                                         )
                                     }
 
@@ -1615,6 +1814,17 @@ function MessageItem({
                                         </AudioPlayerControlBar>
                                     </AudioPlayer>
                                 ))}
+
+                                {/* ai-elements Transcription (segments are optional; render when available) */}
+                                <Transcription segments={[]}>
+                                    {(segment, index) => (
+                                        <TranscriptionSegment
+                                            key={`${index}-${segment.startSecond}`}
+                                            segment={segment}
+                                            index={index}
+                                        />
+                                    )}
+                                </Transcription>
                             </div>
                         )}
 
@@ -1622,11 +1832,16 @@ function MessageItem({
                         {hasStepBoundaries ? (
                             <div className="space-y-4">
                                 {stepSegments.map((segment, si) => {
-                                    const textParts = segment.filter(isTextUIPart)
-                                    const reasoningPartInSeg = segment.find(isReasoningUIPart)
+                                    const textParts =
+                                        segment.filter(isTextUIPart)
+                                    const reasoningPartInSeg =
+                                        segment.find(isReasoningUIPart)
 
-                                    const segText = textParts.map((t) => t.text).join('') || ''
-                                    const segReasoning = reasoningPartInSeg?.text ?? ''
+                                    const segText =
+                                        textParts.map((t) => t.text).join('') ||
+                                        ''
+                                    const segReasoning =
+                                        reasoningPartInSeg?.text ?? ''
 
                                     return (
                                         <div
@@ -1634,7 +1849,9 @@ function MessageItem({
                                             className="rounded-lg border bg-muted/10 p-3"
                                         >
                                             <div className="mb-2 flex items-center gap-2">
-                                                <Badge variant="secondary">Step {si + 1}</Badge>
+                                                <Badge variant="secondary">
+                                                    Step {si + 1}
+                                                </Badge>
                                             </div>
 
                                             {segReasoning.length > 0 && (
@@ -1646,7 +1863,9 @@ function MessageItem({
 
                                             {segText.length > 0 && (
                                                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                                                    {renderContentWithCodeBlocks(segText)}
+                                                    {renderContentWithCodeBlocks(
+                                                        segText
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1680,7 +1899,9 @@ function MessageItem({
                                 </Button>
                             </div>
                         ) : (
-                            <MessageResponse>{displayedContent}</MessageResponse>
+                            <MessageResponse>
+                                {displayedContent}
+                            </MessageResponse>
                         )}
 
                         {sandboxPreview && (
@@ -1811,7 +2032,9 @@ function MessageItem({
                             </MessageActions>
 
                             {/* keep a hidden reference to step-related artifacts so type-only imports are considered used */}
-                            {(stepMarkers?.prepareResults.length || stepMarkers?.stepResults.length || stepMarkers?.starts.length) > 0 && (
+                            {(stepMarkers?.prepareResults.length ||
+                                stepMarkers?.stepResults.length ||
+                                stepMarkers?.starts.length) > 0 && (
                                 <span
                                     className="sr-only"
                                     data-step-info={`${stepMarkers.starts.length}:${stepMarkers.prepareResults.length}:${stepMarkers.stepResults.length}`}
@@ -1900,7 +2123,8 @@ function WebPreviewPanel({ preview }: { preview: WebPreviewData | null }) {
     )
 }
 
-export function ChatMessages() {
+export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
+    void _props
     const {
         messages,
         isLoading,
@@ -1911,6 +2135,8 @@ export function ChatMessages() {
         sources,
         selectedAgent,
         agentConfig,
+        threadId,
+        resourceId,
         queuedTasks,
         checkpoints,
         webPreview,
@@ -1921,6 +2147,12 @@ export function ChatMessages() {
         restoreCheckpoint,
         dismissError,
     } = useChatContext()
+
+    const personaState: PersonaState = isLoading
+        ? 'thinking'
+        : messages.length === 0
+          ? 'idle'
+          : 'speaking'
 
     const [validationError, setValidationError] = useState<string | null>(null)
 
@@ -2022,6 +2254,32 @@ export function ChatMessages() {
     return (
         <Conversation className="flex-1">
             <ConversationContent className="mx-auto max-w-3xl">
+                <div className="mb-4">
+                    <Agent>
+                        <AgentHeader
+                            name={agentConfig?.name ?? selectedAgent}
+                        />
+                        <AgentContent>
+                            <div className="flex items-center gap-3">
+                                <Persona state={personaState} />
+                                <div className="flex-1 space-y-2">
+                                    <Snippet code={threadId}>
+                                        <SnippetInput />
+                                        <SnippetCopyButton />
+                                    </Snippet>
+                                    <Snippet code={resourceId}>
+                                        <SnippetInput />
+                                        <SnippetCopyButton />
+                                    </Snippet>
+                                </div>
+                            </div>
+
+                            <AgentInstructions>
+                                {agentConfig?.description ?? ''}
+                            </AgentInstructions>
+                        </AgentContent>
+                    </Agent>
+                </div>
                 {visibleError.length > 0 && (
                     <Alert variant="destructive" className="mb-4">
                         <AlertTriangleIcon className="size-4" />
@@ -2062,7 +2320,7 @@ export function ChatMessages() {
                         <WebPreviewPanel preview={webPreview} />
 
                         {messages.map((message, index) => (
-                            <MessageItem
+                            <MemoMessageItem
                                 key={`${message.id}-${index}`}
                                 message={message}
                                 messageIndex={index}
@@ -2087,6 +2345,9 @@ export function ChatMessages() {
                         {shouldRenderLoadingMessage && (
                             <Message from="assistant">
                                 <MessageContent>
+                                    <div className="mb-2">
+                                        <Shimmer>Thinking…</Shimmer>
+                                    </div>
                                     {hasStreamingChainOfThought && (
                                         <AgentChainOfThought
                                             steps={streamingReasoningSteps}

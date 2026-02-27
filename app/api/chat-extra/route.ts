@@ -35,8 +35,8 @@ export async function POST(req: Request) {
 
     // Create RequestContext for multi-tenancy isolation
     const requestContext = new RequestContext()
-    if (resourceId) requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
-    if (threadId) requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
+    if (resourceId) {requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)}
+    if (threadId) {requestContext.set(MASTRA_THREAD_ID_KEY, threadId)}
 
     // Merge other data into context if present
     if (data && typeof data === 'object') {
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
                 try {
                     while (true) {
                         const { value, done } = await reader.read()
-                        if (done) break
+                        if (done) {break}
                         await writer.write(value)
                     }
                 } finally {

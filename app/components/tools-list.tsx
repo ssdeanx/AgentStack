@@ -9,7 +9,7 @@ import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedQuantumLattice } from '@/app/components/gsap/svg-suite'
 import { useTools } from '@/lib/hooks/use-mastra'
-import type { Tool } from '@/lib/types/mastra-api'
+import type { Tool } from '@/lib/hooks/use-mastra-query'
 import {
     SearchIcon,
     WrenchIcon,
@@ -36,11 +36,13 @@ import {
     AlertCircleIcon,
 } from 'lucide-react'
 
-type ToolCard = {
+interface ToolCard {
     id: string
     name: string
     description: string
     category: string
+    inputSchema: string
+    outputSchema: string
     icon: typeof WrenchIcon
 }
 
@@ -139,6 +141,8 @@ export function ToolsList() {
         id: tool.id,
         name: tool.name ?? tool.id,
         description: tool.description ?? 'Tool available from backend catalog.',
+        inputSchema: tool.id,
+        outputSchema: tool.id,
         category: classifyToolCategory(tool.id),
         icon: chooseToolIcon(tool.id),
     }))

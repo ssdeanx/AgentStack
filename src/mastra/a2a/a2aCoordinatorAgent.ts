@@ -1,4 +1,4 @@
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
   createAnswerRelevancyScorer,

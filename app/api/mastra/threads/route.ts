@@ -15,8 +15,6 @@ export async function GET(request: Request) {
         const perPage = parseInt(searchParams.get('perPage') || '20')
 
 
-
-
         const threads = await mastraClient.listMemoryThreads({
             resourceId,
             agentId,

@@ -201,11 +201,7 @@ function ChartTooltipContent({
                                       typeof RechartsPrimitive.Tooltip
                                   >['payload']
                               >)
-                            : (payload as NonNullable<
-                                  React.ComponentProps<
-                                      typeof RechartsPrimitive.Tooltip
-                                  >['payload']
-                              >))
+                            : (payload))
 
                         const indicatorColor: string | undefined = (() => {
                             if (typeof color === 'string') {return color}

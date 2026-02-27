@@ -229,7 +229,7 @@ export const MicSelectorLabel = ({
   className,
   ...props
 }: MicSelectorLabelProps) => {
-  const matches = device.label.match(deviceIdRegex);
+  const matches = deviceIdRegex.exec(device.label);
 
   if (!matches) {
     return (

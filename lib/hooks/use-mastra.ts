@@ -1,8 +1,33 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Message } from '@/lib/types/mastra-api'
 import { mastraClient } from '@/lib/mastra-client'
+import type { SpanType } from '@mastra/core/observability'
+
+interface MastraPaginationInfo {
+    total: number
+    page: number
+    perPage: number | false
+    hasMore: boolean
+}
+
+interface MastraTraceSpanListItem {
+    traceId: string
+    spanId: string
+    name: string
+    startedAt: Date
+    endedAt?: Date | null
+}
+
+interface MastraListTracesResponse {
+    pagination: MastraPaginationInfo
+    spans: MastraTraceSpanListItem[]
+}
+
+interface MastraTraceRecord {
+    traceId: string
+    spans: unknown[]
+}
 
 // Generic fetch hook for MastraClient data
 export function useMastraFetch<T>(
@@ -27,8 +52,9 @@ export function useMastraFetch<T>(
     }, [fetcher])
 
     useEffect(() => {
-        refetch()
-    }, deps)
+        void refetch()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refetch, ...deps])
 
     return { data, loading, error, refetch }
 }
@@ -166,7 +192,7 @@ export function useTools() {
 
 export function useTool(toolId: string | null) {
     return useMastraFetch(async () => {
-        if (!toolId) {
+        if (toolId === null || toolId === undefined) {
             return null
         }
         const tool = mastraClient.getTool(toolId)
@@ -204,7 +230,16 @@ export function useMemoryThreads(resourceId: string, agentId: string) {
 }
 
 export function useMemoryThread(threadId: string | null, agentId: string) {
-    const [messages, setMessages] = useState<Message[]>([])
+    interface ThreadMessageView {
+        id: string
+        role: 'system' | 'user' | 'assistant'
+        content: string
+        threadId?: string
+        createdAt: Date
+        type?: string
+    }
+
+    const [messages, setMessages] = useState<ThreadMessageView[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)
 
@@ -217,7 +252,7 @@ export function useMemoryThread(threadId: string | null, agentId: string) {
             const thread = mastraClient.getMemoryThread({ threadId, agentId })
             const result = await thread.listMessages({})
             const dbMessages: unknown[] = result.messages ?? []
-            const uiMessages: Message[] = dbMessages.map((m: unknown) => {
+            const uiMessages: ThreadMessageView[] = dbMessages.map((m: unknown) => {
                 const record = m as Record<string, unknown>
                 const contentRaw = record.content
                 let contentStr = ''
@@ -242,7 +277,7 @@ export function useMemoryThread(threadId: string | null, agentId: string) {
                         .map((p) =>
                             typeof p === 'object' &&
                             p !== null &&
-                            (p as Record<string, unknown>).text
+                            (Boolean((p as Record<string, unknown>).text))
                                 ? ((p as Record<string, unknown>)
                                       .text as string)
                                 : ''
@@ -251,12 +286,28 @@ export function useMemoryThread(threadId: string | null, agentId: string) {
                 } else {
                     contentStr = JSON.stringify(contentRaw)
                 }
+
+                const createdAtRaw = record.createdAt
+                const createdAtDate =
+                    createdAtRaw instanceof Date
+                        ? createdAtRaw
+                        : typeof createdAtRaw === 'string'
+                          ? new Date(createdAtRaw)
+                          : new Date(0)
                 return {
                     id: (record.id as string) ?? '',
-                    role: (record.role as Message['role']) ?? 'user',
+                    role:
+                        record.role === 'system' ||
+                        record.role === 'assistant' ||
+                        record.role === 'user'
+                            ? record.role
+                            : 'user',
                     content: contentStr,
-                    threadId: record.threadId as string | undefined,
-                    createdAt: record.createdAt as string | undefined,
+                    threadId:
+                        typeof record.threadId === 'string'
+                            ? record.threadId
+                            : undefined,
+                    createdAt: createdAtDate,
                     type: record.type as string | undefined,
                 }
             })
@@ -269,7 +320,7 @@ export function useMemoryThread(threadId: string | null, agentId: string) {
     }, [threadId, agentId])
 
     useEffect(() => {
-        fetchMessages()
+        void fetchMessages()
     }, [fetchMessages])
 
     return { messages, loading, error, refetch: fetchMessages }
@@ -301,32 +352,36 @@ export function useAITraces(params?: {
     perPage?: number
     filters?: {
         name?: string
-        spanType?: string
+        spanType?: SpanType
         entityId?: string
         entityType?: 'agent' | 'workflow'
     }
     dateRange?: { start: Date; end: Date }
 }) {
-    return useMastraFetch(async () => {
-        return await mastraClient.getTraces({
+    return useMastraFetch<MastraListTracesResponse>(async () => {
+        const res: unknown = await mastraClient.listTraces({
             pagination: {
                 page: params?.page ?? 1,
                 perPage: params?.perPage ?? 20,
-                dateRange: params?.dateRange,
             },
-            filters: params?.filters as Parameters<
-                typeof mastraClient.getTraces
-            >[0]['filters'],
+            filter: {
+                name: params?.filters?.name,
+                spanType: params?.filters?.spanType,
+                entityId: params?.filters?.entityId,
+                entityType: params?.filters?.entityType,
+            },
         })
+        return res as MastraListTracesResponse
     }, [params?.page, params?.perPage, JSON.stringify(params?.filters)])
 }
 
 export function useAITrace(traceId: string | null) {
-    return useMastraFetch(async () => {
-        if (!traceId) {
+    return useMastraFetch<MastraTraceRecord | null>(async () => {
+        if (traceId === null || traceId === undefined) {
             return null
         }
-        return await mastraClient.getTrace(traceId)
+        const res: unknown = await mastraClient.getTrace(traceId)
+        return res as MastraTraceRecord
     }, [traceId])
 }
 
@@ -339,7 +394,7 @@ export function useLogs(transportId?: string) {
 
 export function useRunLogs(runId: string | null, transportId?: string) {
     return useMastraFetch(async () => {
-        if (!runId) {
+        if (runId === null || runId === undefined) {
             return null
         }
         return await mastraClient.getLogForRun({
@@ -392,7 +447,7 @@ export function useExecuteTool() {
                 ) {
                     params.resourceId = options.resourceId
                 }
-                const res = await tool.execute(params)
+                const res: unknown = await tool.execute(params)
                 setResult(res)
                 return res
             } catch (err) {

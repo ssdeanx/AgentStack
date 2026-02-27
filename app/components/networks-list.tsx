@@ -7,8 +7,8 @@ import { Badge } from '@/ui/badge'
 import { Input } from '@/ui/input'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedRadarScan } from '@/app/components/gsap/svg-suite'
-import { useAgents } from '@/lib/hooks/use-mastra'
-import type { Agent } from '@/lib/types/mastra-api'
+import { useAgents } from '@/lib/hooks/use-mastra-query'
+import type { Agent } from '@/lib/hooks/use-mastra-query'
 import {
     SearchIcon,
     NetworkIcon,
@@ -18,7 +18,7 @@ import {
     AlertCircleIcon,
 } from 'lucide-react'
 
-type NetworkCard = {
+interface NetworkCard {
     id: string
     name: string
     description: string

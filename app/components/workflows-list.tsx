@@ -9,7 +9,7 @@ import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedHelixDna } from '@/app/components/gsap/svg-suite'
 import { useWorkflows } from '@/lib/hooks/use-mastra'
-import type { Workflow as WorkflowType } from '@/lib/types/mastra-api'
+import type { Workflow as WorkflowType } from '@/lib/hooks/use-mastra-query'
 import {
     SearchIcon,
     PlayIcon,
@@ -21,7 +21,7 @@ import {
     AlertCircleIcon,
 } from 'lucide-react'
 
-type WorkflowCard = {
+interface WorkflowCard {
     id: string
     name: string
     description: string

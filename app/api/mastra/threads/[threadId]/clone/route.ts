@@ -27,12 +27,12 @@ export async function POST(
         const thread = mastraClient.getMemoryThread({ threadId })
 
         const cloneOptions: Record<string, unknown> = {}
-        if (newThreadId) cloneOptions.newThreadId = newThreadId
-        if (title) cloneOptions.title = title
-        if (metadata) cloneOptions.metadata = metadata
+        if (newThreadId) {cloneOptions.newThreadId = newThreadId}
+        if (title) {cloneOptions.title = title}
+        if (metadata) {cloneOptions.metadata = metadata}
         if (options) {
             const opts: Record<string, unknown> = {}
-            if (options.messageLimit) opts.messageLimit = options.messageLimit
+            if (options.messageLimit) {opts.messageLimit = options.messageLimit}
             if (options.messageFilter) {
                 opts.messageFilter = {
                     startDate: options.messageFilter.startDate

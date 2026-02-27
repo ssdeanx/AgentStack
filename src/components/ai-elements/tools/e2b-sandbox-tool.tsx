@@ -89,8 +89,8 @@ function LoadingCard({ title, subtitle, icon }: { title: string; subtitle?: stri
 
 // Nicely format bytes for human-oriented display
 function formatBytes(bytes?: number) {
-  if (bytes == null) return 'N/A'
-  if (bytes === 0) return '0 B'
+  if (bytes == null) {return 'N/A'}
+  if (bytes === 0) {return '0 B'}
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0
   let num = bytes
@@ -104,13 +104,13 @@ function formatBytes(bytes?: number) {
 
 // Map a loose language name to a shiki BundledLanguage we support
 function mapToBundledLanguage(lang?: string): any {
-  if (!lang) return 'bash'
+  if (!lang) {return 'bash'}
   const l = lang.toLowerCase()
-  if (l.includes('ts')) return 'typescript'
-  if (l.includes('js') || l.includes('javascript')) return 'javascript'
-  if (l.includes('py') || l.includes('python')) return 'python'
-  if (l.includes('json')) return 'json'
-  if (l.includes('html')) return 'html'
+  if (l.includes('ts')) {return 'typescript'}
+  if (l.includes('js') || l.includes('javascript')) {return 'javascript'}
+  if (l.includes('py') || l.includes('python')) {return 'python'}
+  if (l.includes('json')) {return 'json'}
+  if (l.includes('html')) {return 'html'}
   return 'bash'
 }
 
@@ -143,14 +143,14 @@ export function CreateSandboxCard(props: CreateSandboxCardProps) {
   const { input, output, errorText } = props
   const [copied, setCopied] = useState(false)
 
-  if (errorText) return <ErrorCard title="Create Sandbox Failed" message={errorText} />
+  if (errorText) {return <ErrorCard title="Create Sandbox Failed" message={errorText} />}
 
   if (!output) {
     return <LoadingCard title="Creating sandbox..." subtitle={(input as any).metadata?.name ?? undefined} icon={<Play className="size-4 animate-pulse" />} />
   }
 
   const copyId = async () => {
-    if (!(output as any)?.sandboxId) return
+    if (!(output as any)?.sandboxId) {return}
     try {
       await navigator.clipboard.writeText((output as any)!.sandboxId)
       setCopied(true)
@@ -195,8 +195,8 @@ interface WriteFileCardProps {
 }
 
 export function WriteFileCard({ input, output, errorText }: WriteFileCardProps) {
-  if (errorText) return <ErrorCard title="Write File Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Writing file to ${(input as any).path}...`} icon={<FileText className="size-4 animate-pulse" />} />
+  if (errorText) {return <ErrorCard title="Write File Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Writing file to ${(input as any).path}...`} icon={<FileText className="size-4 animate-pulse" />} />}
 
   if ('error' in (output as any)) {
     return <ErrorCard title="Write File Failed" message={String((output as any).error)} />
@@ -232,8 +232,8 @@ interface WriteFilesCardProps {
 }
 
 export function WriteFilesCard({ input, output, errorText }: WriteFilesCardProps) {
-  if (errorText) return <ErrorCard title="Write Files Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Writing ${(input as any).files?.length ?? 'files'}...`} icon={<FileText className="size-4 animate-pulse" />} />
+  if (errorText) {return <ErrorCard title="Write Files Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Writing ${(input as any).files?.length ?? 'files'}...`} icon={<FileText className="size-4 animate-pulse" />} />}
 
   if ('error' in (output as any)) {
     return <ErrorCard title="Write Files Failed" message={String((output as any).error)} />
@@ -286,8 +286,8 @@ interface ListFilesCardProps {
 }
 
 export function ListFilesCard({ input, output, errorText }: ListFilesCardProps) {
-  if (errorText) return <ErrorCard title="List Files Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Listing files in ${(input as any).path ?? '/'}...`} icon={<List className="size-4 animate-pulse" />} />
+  if (errorText) {return <ErrorCard title="List Files Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Listing files in ${(input as any).path ?? '/'}...`} icon={<List className="size-4 animate-pulse" />} />}
 
   const files = (output as any).files || []
   const fileCount = files.length
@@ -377,9 +377,9 @@ interface DeleteFileCardProps {
 }
 
 export function DeleteFileCard({ input, output, errorText }: DeleteFileCardProps) {
-  if (errorText) return <ErrorCard title="Delete File Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Deleting ${(input as any).path}...`} icon={<Trash2 className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Delete File Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Delete File Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Deleting ${(input as any).path}...`} icon={<Trash2 className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Delete File Failed" message={String((output as any).error)} />}
 
   return (
     <Card>
@@ -406,9 +406,9 @@ interface CreateDirectoryCardProps {
 }
 
 export function CreateDirectoryCard({ input, output, errorText }: CreateDirectoryCardProps) {
-  if (errorText) return <ErrorCard title="Create Directory Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Creating directory ${(input as any).path}...`} icon={<Folder className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Create Directory Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Create Directory Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Creating directory ${(input as any).path}...`} icon={<Folder className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Create Directory Failed" message={String((output as any).error)} />}
 
   return (
     <Card>
@@ -435,9 +435,9 @@ interface GetFileInfoCardProps {
 }
 
 export function GetFileInfoCard({ input, output, errorText }: GetFileInfoCardProps) {
-  if (errorText) return <ErrorCard title="Get File Info Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Fetching info for ${(input as any).path}...`} icon={<FileText className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Get File Info Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Get File Info Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Fetching info for ${(input as any).path}...`} icon={<FileText className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Get File Info Failed" message={String((output as any).error)} />}
 
   return (
     <Card>
@@ -478,9 +478,9 @@ interface CheckFileExistsCardProps {
 }
 
 export function CheckFileExistsCard({ input, output, errorText }: CheckFileExistsCardProps) {
-  if (errorText) return <ErrorCard title="Check File Exists Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Checking ${(input as any).path}...`} icon={<Loader2 className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Check File Exists Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Check File Exists Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Checking ${(input as any).path}...`} icon={<Loader2 className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Check File Exists Failed" message={String((output as any).error)} />}
 
   return (
     <Card>
@@ -551,7 +551,7 @@ interface WatchDirectoryCardProps {
 }
 
 export function WatchDirectoryCard({ input, output, errorText }: WatchDirectoryCardProps) {
-  type WatchEvent = { type: string; name: string; timestamp: string }
+  interface WatchEvent { type: string; name: string; timestamp: string }
 
   const [visibleEvents, setVisibleEvents] = useState<WatchEvent[]>(() =>
     output && 'events' in (output as any) && Array.isArray((output as any).events) ? ((output as any).events as WatchEvent[]) : []
@@ -585,9 +585,9 @@ export function WatchDirectoryCard({ input, output, errorText }: WatchDirectoryC
     }
   }
 
-  if (errorText) return <ErrorCard title="Watch Directory Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Watching ${(input as any).path}...`} icon={<Clock className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Watch Directory Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Watch Directory Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Watching ${(input as any).path}...`} icon={<Clock className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Watch Directory Failed" message={String((output as any).error)} />}
 
   const filteredEvents = eventQuery
     ? visibleEvents.filter(
@@ -660,9 +660,9 @@ interface RunCommandCardProps {
 }
 
 export function RunCommandCard({ input, output, errorText }: RunCommandCardProps) {
-  if (errorText) return <ErrorCard title="Run Command Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Running command: ${(input as any).command}`} icon={<Terminal className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Run Command Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Run Command Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Running command: ${(input as any).command}`} icon={<Terminal className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Run Command Failed" message={String((output as any).error)} />}
 
   const stdout = (output as any).stdout ?? ''
   const stderr = (output as any).stderr ?? ''
@@ -679,11 +679,11 @@ export function RunCommandCard({ input, output, errorText }: RunCommandCardProps
   const stderrBottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (autoScrollStdout && stdoutBottomRef.current) stdoutBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    if (autoScrollStdout && stdoutBottomRef.current) {stdoutBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })}
   }, [stdoutFiltered, autoScrollStdout])
 
   useEffect(() => {
-    if (autoScrollStderr && stderrBottomRef.current) stderrBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    if (autoScrollStderr && stderrBottomRef.current) {stderrBottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })}
   }, [stderrFiltered, autoScrollStderr])
 
   return (
@@ -784,9 +784,9 @@ interface RunCodeCardProps {
 }
 
 export function RunCodeCard({ input, output, errorText }: RunCodeCardProps) {
-  if (errorText) return <ErrorCard title="Run Code Failed" message={errorText} />
-  if (!output) return <LoadingCard title={`Executing code (${(input as any).runCodeOpts?.language || 'unknown'})...`} icon={<CodeIcon className="size-4 animate-pulse" />} />
-  if ('error' in (output as any)) return <ErrorCard title="Run Code Failed" message={String((output as any).error)} />
+  if (errorText) {return <ErrorCard title="Run Code Failed" message={errorText} />}
+  if (!output) {return <LoadingCard title={`Executing code (${(input as any).runCodeOpts?.language || 'unknown'})...`} icon={<CodeIcon className="size-4 animate-pulse" />} />}
+  if ('error' in (output as any)) {return <ErrorCard title="Run Code Failed" message={String((output as any).error)} />}
 
   const execution: any = (output as any).execution || {}
   const logs: any = execution.logs || {}

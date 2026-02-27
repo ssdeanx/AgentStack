@@ -6,6 +6,7 @@ import { getAgentConfig, DEFAULT_AGENT_ID } from '../config/agents'
 import {
     getDefaultModel,
     getModelConfig,
+    MODEL_CONFIGS,
     type ModelConfig,
 } from '../config/models'
 // AI SDK v6 types imported from local types file
@@ -15,52 +16,7 @@ import type {
     TextUIPart,
     ReasoningUIPart,
     ToolUIPart,
-    UIDataTypes,
-    UIDataPartSchemas,
-    UIMessageChunk,
-    UIMessagePart,
-    TextStreamPart,
-    TextPart,
-    ToolResultPart,
-    ReasoningOutput,
-    DataContent,
-    FinishReason,
-    FileUIPart,
-    Tool,
-    DataUIPart,
-    SourceDocumentUIPart,
-    SourceUrlUIPart,
-    StepResult,
-    PrepareStepResult,
-    StepStartUIPart,
-    InferSchema,
-    InferUIDataParts,
-    InferAgentUIMessage,
-    InferToolInput,
-    InferUIMessageChunk,
-    InferToolOutput,
-    InferUITool,
-    InferUITools,
-    InferGenerateOutput,
-    InferStreamOutput,
 } from './chat-context-types'
-import {
-    getToolName,
-    isDataUIPart,
-    isFileUIPart,
-    isReasoningUIPart,
-    isTextUIPart,
-    isToolUIPart,
-    isStaticToolUIPart,
-    isDeepEqualData,
-    InvalidResponseDataError,
-    InvalidMessageRoleError,
-    InvalidArgumentError,
-    getStaticToolName,
-    getTextFromDataUrl,
-    safeValidateUIMessages,
-    generateId,
-} from 'ai'
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
     getClientIdentity,
@@ -83,12 +39,6 @@ import {
     MASTRA_RESOURCE_ID_KEY,
     MASTRA_THREAD_ID_KEY,
 } from '@mastra/core/request-context'
-
-interface InputTokenDetails {
-    cacheReadTokens: number
-    cacheWriteTokens: number
-    noCacheTokens: number
-}
 
 export interface ChatProviderProps {
     children: ReactNode
@@ -190,7 +140,12 @@ export function ChatProvider({
             new DefaultChatTransport({
                 // Use stable endpoint - agentId passed in body, not URL path
                 api: `${MASTRA_API_URL}/chat/${selectedAgent}`,
-                prepareSendMessagesRequest({ messages: outgoingMessages }) {
+                prepareSendMessagesRequest({
+                    messages: outgoingMessages,
+                    requestMetadata,
+                    trigger,
+                    messageId,
+                }) {
                     const last = outgoingMessages[outgoingMessages.length - 1]
                     const textPart = last?.parts?.find(
                         (p): p is TextUIPart => p.type === 'text'
@@ -201,25 +156,32 @@ export function ChatProvider({
                     requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
                     requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
 
+                    const runtimeContext = requestContext.toJSON()
+
                     return {
                         body: {
                             id: selectedAgent,
                             messages: outgoingMessages,
+                            parts: outgoingMessages.flatMap(
+                                (m) => (m.parts ?? []) as UIMessage['parts']
+                            ),
+                            trigger,
+                            messageId,
                             memory: {
                                 thread: threadId,
                                 resource: resourceId,
                             },
-                            requestMetadata: {
-                                agentId: selectedAgent,
-                                resourceId,
-                            },
+                            requestMetadata:
+                                requestMetadata !== undefined
+                                    ? requestMetadata
+                                    : runtimeContext,
                             resourceId,
                             data: {
                                 agentId: selectedAgent,
                                 threadId,
                                 input: textPart?.text ?? '',
                             },
-                            requestContext,
+                            requestContext: runtimeContext,
                         },
                     }
                 },
@@ -398,11 +360,22 @@ export function ChatProvider({
                 return
             }
             setChatError(null)
+
+            const fileList: FileList | undefined = (() => {
+                if (!files || files.length === 0) {
+                    return undefined
+                }
+                const dt = new DataTransfer()
+                for (const f of files) {
+                    dt.items.add(f)
+                }
+                return dt.files
+            })()
+
             // Fire-and-forget to avoid returning a Promise where a void is expected.
             void aiSendMessage({
                 text: text.trim(),
-                // @ts-expect-error - attachments support in AI SDK v5
-                attachments: files,
+                ...(fileList ? { files: fileList } : {}),
             })
         },
         [isLoading, aiSendMessage]
@@ -719,6 +692,7 @@ export function ChatProvider({
             error,
             agentConfig,
             selectedModel,
+            availableModels: MODEL_CONFIGS,
             queuedTasks,
             pendingConfirmations,
             checkpoints,

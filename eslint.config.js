@@ -1,16 +1,22 @@
+import { defineConfig, globalIgnores } from 'eslint/config'
 import js from '@eslint/js'
 import prettierConfig from 'eslint-config-prettier'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
-import { globalIgnores } from 'eslint/config'
+//import { includeIgnoreFile } from '@eslint/compat'
+//import { fileURLToPath } from 'node:url'
 import globals from 'globals'
-import typescriptEslint from 'typescript-eslint'
+import tsPlugin from '@typescript-eslint/eslint-plugin'
+import tsParser from '@typescript-eslint/parser'
 
-const tsTypeCheckedRecommended = typescriptEslint.plugin.configs['flat/recommended-type-checked'].map((cfg) =>
+//const gitignorePath = fileURLToPath(new URL('.gitignore', import.meta.url))
+
+const tsTypeCheckedRecommended = tsPlugin.configs['flat/recommended-type-checked'].map((cfg) =>
   cfg.files ? cfg : { ...cfg, files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'] }
 )
 
-export default [
+export default defineConfig([
+  //includeIgnoreFile(gitignorePath, 'Imported .gitignore patterns'),
   globalIgnores([
     'dist/**',
     '**/node_modules/',
@@ -56,21 +62,30 @@ export default [
     '.github/chatmodes/*.md',
   ]),
   js.configs.recommended,
+  // Global linter options: fail on unused disable directives to surface hidden errors
+  {
+    linterOptions: {
+      // Prevent suppressing errors silently in-code during CI runs consider setting to true for CI
+      noInlineConfig: false,
+      // Surface unused disable directives as errors so they are fixed or removed
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
   reactHooks.configs.flat.recommended,
   reactRefresh.configs.next,
   prettierConfig,
-  ...typescriptEslint.plugin.configs['flat/recommended'],
+  ...tsPlugin.configs['flat/recommended'],
   ...tsTypeCheckedRecommended,
   {
     files: ['**/*.ts', '**/*.tsx'],
     plugins: {
-      '@typescript-eslint': typescriptEslint.plugin,
+      '@typescript-eslint': tsPlugin,
     },
     languageOptions: {
-      parser: typescriptEslint.parser,
+      parser: tsParser,
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: 'latest',
         sourceType: 'module',
         project: './tsconfig.json',
       },
@@ -133,4 +148,5 @@ export default [
       'eol-last': 'warn',
     },
   },
-]
+])
+
