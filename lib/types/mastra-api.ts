@@ -115,7 +115,41 @@ export type {
 }
 
 // Convenience Aliases for the app
-export type Agent = GetAgentResponse
+export interface Agent {
+    id: string;
+    name: string;
+    description?: string;
+    instructions?: any; // SystemMessage
+    tools?: Record<string, any>; // GetToolResponse
+    workflows?: Record<string, any>; // GetWorkflowResponse
+    agents?: Record<string, { id: string; name: string }>;
+    skills?: any[]; // SkillMetadata[]
+    workspaceTools?: string[];
+    workspaceId?: string;
+    provider?: string;
+    modelId?: string;
+    modelVersion?: string;
+    modelList?: Array<{
+        id: string;
+        enabled: boolean;
+        maxRetries: number;
+        model: {
+            modelId: string;
+            provider: string;
+            modelVersion: string;
+        };
+    }>;
+    inputProcessors?: Array<{ id: string; name: string }>;
+    outputProcessors?: Array<{ id: string; name: string }>;
+    defaultOptions?: any;
+    defaultGenerateOptionsLegacy?: any;
+    defaultStreamOptionsLegacy?: any;
+    requestContextSchema?: string;
+    source?: "code" | "stored";
+    status?: "draft" | "published" | "archived";
+    activeVersionId?: string;
+    hasDraft?: boolean;
+}
 export type Tool = GetToolResponse
 export type Workflow = GetWorkflowResponse
 export type StoredAgent = StoredAgentResponse

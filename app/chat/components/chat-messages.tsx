@@ -2161,6 +2161,11 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
 
         const timeoutId = window.setTimeout(() => {
             const validateMessages = async () => {
+                if (messages.length === 0) {
+                    setValidationError(null)
+                    return
+                }
+
                 const result = await safeValidateUIMessages<UIMessage>({
                     messages,
                 })

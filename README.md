@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"AgentStack README","version":"3.4.0","applies_to":"/","last_updated":"2026-02-16T00:00:00Z","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"1.2.1","applies_to":"/","last_updated":"2026-02-27","status":"stable"} -->
 
 <div align="center">
 
@@ -19,10 +19,10 @@
 
 <!-- Stats Badges -->
 
-[![Agents](https://img.shields.io/badge/Agents-48+-blue?logo=robot&logoColor=white)](src/mastra/agents)
-[![Tools](https://img.shields.io/badge/Tools-94+-orange?logo=hammer&logoColor=white)](src/mastra/tools)
+[![Agents](https://img.shields.io/badge/Agents-41-blue?logo=robot&logoColor=white)](src/mastra/agents)
+[![Tools](https://img.shields.io/badge/Tools-57-orange?logo=hammer&logoColor=white)](src/mastra/tools)
 [![Workflows](https://img.shields.io/badge/Workflows-21-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
-[![Networks](https://img.shields.io/badge/Networks-12-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
+[![Networks](https://img.shields.io/badge/Networks-11-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
 [![UI Components](https://img.shields.io/badge/UI%20Components-105-pink?logo=react&logoColor=white)](ui/)
 
 <!-- Quality Badges -->
@@ -37,7 +37,7 @@
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 [![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **60+ enterprise tools**, **48+ specialized agents**, **21 workflows**, **12 agent networks**, **105 UI components** (50+ AI Elements + 55+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **57 enterprise tools**, **41 specialized agents**, **21 workflows**, **11 agent networks**, **105 UI components** (50+ AI Elements + 55+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
 
 <!-- Mastra Ecosystem -->
 
@@ -71,9 +71,9 @@ AgentStack bridges the gap between experimental AI frameworks and production-rea
 | **Production Observability**  | ✅ **Full Langfuse tracing + 10+ custom scorers**               | ⚠️ Partial    | ❌ Basic      | ❌ Limited |
 | **Financial Intelligence**    | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**             | ❌ None       | ❌ None       | ❌ None    |
 | **RAG Pipeline**              | ✅ **PgVector HNSW + rerank + graphRAG**                        | ⚠️ External   | ❌ Basic      | ❌ None    |
-| **Multi-Agent Orchestration** | ✅ **A2A MCP + parallel execution (48+ agents)**                | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
+| **Multi-Agent Orchestration** | ✅ **A2A MCP + parallel execution (41 agents)**                 | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
 | **Enterprise Security**       | ✅ **JWT/RBAC + path traversal protection + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
-| **Type Safety**               | ✅ **Zod schemas everywhere (94+ tools)**                       | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
+| **Type Safety**               | ✅ **Zod schemas everywhere (57 tools)**                        | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
 | **UI Components**             | ✅ **105 components (AI Elements + shadcn/ui)**                 | ❌ None       | ❌ None       | ❌ None    |
 | **Testing**                   | ✅ **Vitest + 97% coverage + comprehensive mocks**              | ⚠️ Partial    | ❌ Sparse     | ⚠️ Partial |
 
@@ -88,9 +88,9 @@ AgentStack bridges the gap between experimental AI frameworks and production-rea
 
 - **💰 Financial Intelligence**: 30+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
 - **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
-- **🤖 48+ Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane/social media/SEO/translation/customer support/project management)
+- **🤖 41 Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane/social media/SEO/translation/customer support/project management)
 - **📋 21 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis, marketing campaign
-- **🌐 12 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline, content creation, financial intelligence, learning, marketing automation, DevOps, business intelligence, security
+- **🌐 11 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline, content creation, financial intelligence, learning, marketing automation, DevOps, business intelligence, security
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report), A2A coordinator for cross-agent communication
 - **🎨 105 UI Components**: AI Elements (50 chat/reasoning/canvas components) + shadcn/ui (55 base primitives)
 - **📊 Full Observability**: Langfuse traces + 10+ custom scorers (diversity/quality/completeness) + TanStack Query for state management

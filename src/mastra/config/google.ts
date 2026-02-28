@@ -26,7 +26,7 @@ export const googleChatModels = {
     // Gemini 2.5 Pro model for higher-performance applications
     gemini25Pro: google.chat('gemini-2.5-pro'),
     // Gemini 2.5 Flash model for general-purpose applications
-    gemini25Flash: google.chat('gemini-2.5-flash-preview-09-2025'),
+    gemini25Flash: google.chat('gemini-2.5-flash'),
     // Gemini 2.5 Flash Lite model for free-tier applications
     gemini25FlashLite: google.chat('gemini-2.5-flash-lite-preview-09-2025'),
     // Gemini Computer Use model for tasks requiring higher accuracy and reliability

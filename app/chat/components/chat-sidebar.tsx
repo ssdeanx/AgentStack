@@ -6,6 +6,7 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
+import { ScrollArea, ScrollBar } from '@/ui/scroll-area'
 import {
     BotIcon,
     CpuIcon,
@@ -38,7 +39,6 @@ type TabKey =
     | 'workflows'
     | 'traces'
     | 'vectors'
-    | 'logs'
     | 'memory'
     | 'config'
 
@@ -57,7 +57,6 @@ export function ChatSidebar() {
     const [tempThreadId, setTempThreadId] = useState(threadId)
     const [tempResourceId, setTempResourceId] = useState(resourceId)
     const [memorySearchQuery, setMemorySearchQuery] = useState('')
-    const [selectedTransport, setSelectedTransport] = useState<string>('')
     const [instructions, setInstructions] = useState('')
     const [isEditingInstructions, setIsEditingInstructions] = useState(false)
     const [activeTab, setActiveTab] = useState<TabKey>('threads')
@@ -69,8 +68,6 @@ export function ChatSidebar() {
         useTraces,
         useThreads,
         useVectorIndexes,
-        useLogs,
-        useLogTransports,
         useMemoryStatus,
         useAgent,
         useAgentEnhanceInstructionsMutation,
@@ -83,8 +80,6 @@ export function ChatSidebar() {
     const tracesQuery = useTraces({ pagination: { page: 1, perPage: 20 } })
     const threadsQuery = useThreads({ resourceId })
     const vectorsQuery = useVectorIndexes()
-    const logsQuery = useLogs({ transportId: selectedTransport })
-    const transportsQuery = useLogTransports()
     const memoryStatusQuery = useMemoryStatus(agentConfig?.id ?? '')
     const agentDetailsQuery = useAgent(selectedAgent)
 
@@ -108,9 +103,6 @@ export function ChatSidebar() {
         void vectorsQuery.refetch()
     }, [vectorsQuery])
 
-    const onRefreshLogs = useCallback(() => {
-        void logsQuery.refetch()
-    }, [logsQuery])
 
     const onRefreshThreads = useCallback(() => {
         void threadsQuery.refetch()
@@ -134,14 +126,6 @@ export function ChatSidebar() {
     const vectors = vectorsQuery.data ?? []
     const loadingVectors = vectorsQuery.isLoading
 
-    const logs = logsQuery.data ?? []
-    const loadingLogs = logsQuery.isLoading
-
-    const transportsRes = useMemo<string[]>(() => {
-        const v = transportsQuery.data
-        return Array.isArray(v) ? v : []
-    }, [transportsQuery.data])
-    const loadingTransports = transportsQuery.isLoading
 
     const memoryStatusRes = memoryStatusQuery.data
     const loadingMemory = memoryStatusQuery.isLoading
@@ -195,7 +179,6 @@ export function ChatSidebar() {
         return Array.isArray(spans) ? (spans as unknown[]) : []
     }, [tracesRes])
 
-    const logTransports = useMemo(() => transportsRes, [transportsRes])
     const memoryStatus = useMemo(() => memoryStatusRes, [memoryStatusRes])
 
     const handleSaveMemory = useCallback(() => {
@@ -248,113 +231,121 @@ export function ChatSidebar() {
     }
 
     return (
-        <aside className="flex h-full w-80 flex-col border-l glass responsive-card overflow-y-auto noise">
+        <aside className="group relative flex h-full w-full flex-col overflow-hidden border-l bg-card/30 shadow-2xl transition-all duration-300 backdrop-blur-3xl">
+            {/* Glossy top highlight */}
+            <div className="absolute inset-x-0 top-0 h-px bg-white/10 pointer-events-none z-10" />
+            <div className="absolute inset-0 bg-noise-subtle opacity-[0.03] pointer-events-none" />
+
             <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v as TabKey)}
-                className="flex flex-col flex-1"
+                className="flex flex-col flex-1 overflow-hidden"
             >
-                <div className="p-4 border-b">
-                    <TabsList className="w-full grid grid-cols-4 gap-1">
+                <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-xl shrink-0">
+                    <TabsList className="w-full grid grid-cols-8 gap-0.5 p-1 bg-black/40 rounded-xl h-auto border border-white/10 shadow-inner overflow-x-auto no-scrollbar">
                         <TabsTrigger
                             value="threads"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <MessageSquareIcon className="size-3" /> Threads
+                            <MessageSquareIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Threads</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="agents"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <BotIcon className="size-3" /> Agents
+                            <BotIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Agents</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="tools"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <CpuIcon className="size-3" /> Tools
+                            <CpuIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Tools</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="workflows"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <WorkflowIcon className="size-3" /> Flows
+                            <WorkflowIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Flows</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="traces"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <ActivityIcon className="size-3" /> Traces
+                            <ActivityIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Traces</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="vectors"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <LayersIcon className="size-3" /> Vectors
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="logs"
-                            className="flex items-center gap-1 text-xs"
-                        >
-                            <ScrollTextIcon className="size-3" /> Logs
+                            <LayersIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Vectors</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="memory"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <BrainIcon className="size-3" /> Memory
+                            <BrainIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Memory</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="config"
-                            className="flex items-center gap-1 text-xs"
+                            className="flex flex-col items-center gap-1 text-[10px] py-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 rounded-lg group/tab data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.1)] border border-transparent data-[state=active]:border-primary/20"
                         >
-                            <SettingsIcon className="size-3" /> Config
+                            <SettingsIcon className="size-3 group-hover/tab:scale-110 transition-transform duration-300" />
+                            <span className="opacity-70 group-data-[state=active]:opacity-100 font-semibold tracking-tight text-[8px]">Config</span>
                         </TabsTrigger>
                     </TabsList>
                 </div>
 
-                {/* ──── Threads Tab ──── */}
-                <TabsContent
-                    value="threads"
-                    className="flex flex-col flex-1 m-0 overflow-y-auto"
-                >
-                    <div className="p-4 border-b">
-                        <div className="flex items-center gap-2 mb-2">
-                            <BotIcon className="size-4 text-primary" />
-                            <h3 className="font-semibold text-sm">
-                                Agent Details
-                            </h3>
+                <ScrollArea className="flex-1">
+                    <div className="flex flex-col min-h-full">
+                    {/* ──── Threads Tab ──── */}
+                    <TabsContent
+                        value="threads"
+                        className="flex flex-col m-0 data-[state=inactive]:hidden"
+                    >
+                        <div className="p-4 border-b border-white/5 bg-white/5">
+                            <div className="flex items-center gap-2 mb-2">
+                                <BotIcon className="size-4 text-primary" />
+                                <h3 className="font-semibold text-sm text-foreground">
+                                    Agent Details
+                                </h3>
+                            </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
+                                        Name
+                                    </div>
+                                    <div className="text-sm font-medium text-foreground">
+                                        {agentConfig?.name}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
+                                        Category
+                                    </div>
+                                    <Badge
+                                        variant="outline"
+                                        className="text-[10px] uppercase tracking-wider border-primary/20 bg-primary/5 text-primary"
+                                    >
+                                        {CATEGORY_LABELS[agentConfig.category]}
+                                    </Badge>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
+                                        Description
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        {agentConfig?.description}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="space-y-3">
-                            <div>
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                    Name
-                                </div>
-                                <div className="text-sm font-medium">
-                                    {agentConfig.name}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                    Category
-                                </div>
-                                <Badge
-                                    variant="outline"
-                                    className="text-[10px] uppercase tracking-wider"
-                                >
-                                    {CATEGORY_LABELS[agentConfig.category]}
-                                </Badge>
-                            </div>
-                            <div>
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                    Description
-                                </div>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {agentConfig.description}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
 
                     <div className="p-4 border-b">
                         <div className="flex items-center gap-2 mb-3">
@@ -782,92 +773,6 @@ export function ChatSidebar() {
                     </div>
                 </TabsContent>
 
-                {/* ──── Logs Tab ──── */}
-                <TabsContent
-                    value="logs"
-                    className="flex flex-col flex-1 m-0 overflow-y-auto"
-                >
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <ScrollTextIcon className="size-4 text-primary" />
-                                <h3 className="font-semibold text-sm">Logs</h3>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onRefreshLogs}
-                                className="h-7 text-xs"
-                            >
-                                {loadingLogs ? (
-                                    <Loader2Icon className="size-3 animate-spin" />
-                                ) : (
-                                    'Refresh'
-                                )}
-                            </Button>
-                        </div>
-
-                        {loadingTransports ? (
-                            <div className="mb-3 text-xs text-muted-foreground">
-                                Loading transports...
-                            </div>
-                        ) : logTransports.length > 0 ? (
-                            <div className="mb-3">
-                                <select
-                                    value={selectedTransport}
-                                    onChange={(e) =>
-                                        setSelectedTransport(e.target.value)
-                                    }
-                                    aria-label="Log transport filter"
-                                    className="w-full rounded-md border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                                >
-                                    <option value="">All transports</option>
-                                    {logTransports.map((t: string) => (
-                                        <option key={t} value={t}>
-                                            {t}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        ) : null}
-
-                        {loadingLogs ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : logs.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">
-                                No logs available
-                            </p>
-                        ) : (
-                            <div className="space-y-1">
-                                {logs.map((log, i) => (
-                                    <div
-                                        key={`${log.time.toISOString()}-${i}`}
-                                        className="rounded border bg-card px-2 py-1.5 font-mono"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className={cn(
-                                                    'text-[9px] font-bold uppercase',
-                                                    levelColor(log.level)
-                                                )}
-                                            >
-                                                {log.level}
-                                            </span>
-                                            <span className="text-[9px] text-muted-foreground">
-                                                {log.time.toLocaleTimeString()}
-                                            </span>
-                                        </div>
-                                        <p className="text-[10px] text-foreground/80 mt-0.5 line-clamp-3">
-                                            {log.msg}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </TabsContent>
 
                 {/* ──── Memory Tab ──── */}
                 <TabsContent
@@ -1094,6 +999,9 @@ export function ChatSidebar() {
                         )}
                     </div>
                 </TabsContent>
+                    </div>
+                    <ScrollBar orientation="vertical" />
+                </ScrollArea>
             </Tabs>
         </aside>
     )

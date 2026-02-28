@@ -48,13 +48,3 @@ export {
     type AgentAvatarProps,
     type Source,
 } from './agent-response'
-
-export {
-    CodeEditor,
-    CodeEditorSimple,
-    type CodeEditorProps,
-    type CodeEditorSimpleProps,
-    type CodeLanguage,
-    type EditorFile,
-    type EditorTheme,
-} from './code-editor'

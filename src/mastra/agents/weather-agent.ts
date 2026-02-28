@@ -8,6 +8,7 @@ import { webScraperTool } from '../tools/web-scraper-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import { mainWorkspace } from '../workspaces'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 export interface WeatherRuntimeContext {
@@ -76,6 +77,7 @@ export const weatherAgent = new Agent({
         },
     },
     maxRetries: 5,
+    workspace: mainWorkspace,
 
   //  defaultOptions: {
 //       autoResumeSuspendedTools: true,

@@ -24,6 +24,8 @@ import { htmlToMarkdownTool, webScraperTool } from '../tools/web-scraper-tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
+import { mainWorkspace } from '../workspaces'
+import { convexMemory } from '../config/convex'
 
 type UserTier = 'free' | 'pro' | 'enterprise'
 type ResearchPhase = 'initial' | 'followup' | 'validation'
@@ -135,6 +137,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     //        emitOnNonText: true,
     //     }),
   ],
+  workspace: mainWorkspace,
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },
