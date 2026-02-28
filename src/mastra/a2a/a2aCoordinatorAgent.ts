@@ -40,11 +40,11 @@ export const a2aCoordinatorAgent = new Agent({
   description:
     'A2A Coordinator that orchestrates multiple specialized agents in parallel. Routes tasks dynamically, coordinates workflows, and synthesizes results using the A2A protocol.',
   instructions: ({ requestContext }) => {
-    const userId = requestContext.get('userId')
+   // const userId = requestContext.get('userId')
     return {
       role: 'system',
       content: `You are an A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent workflows.
-userId: ${userId}
+
 CORE CAPABILITIES:
 - Orchestrate multiple agents working in parallel
 - Route tasks to specialized agents dynamically

@@ -15,20 +15,27 @@ export function ChatLayout() {
     return (
         <main
             className={cn(
-                'ui-crisp flex h-[calc(100vh-4rem)] flex-col bg-background transition-all duration-500',
+                'flex h-screen pt-16 flex-col bg-background transition-all duration-500 overflow-hidden',
                 isFocusMode && 'focus-mode-active'
             )}
         >
             <ChatHeader />
-            <SidebarProvider className="flex flex-1 overflow-hidden min-h-0 bg-background">
+            <SidebarProvider className="flex flex-1 overflow-hidden min-h-0 bg-background w-full">
                 <MainSidebar />
-                <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background m-0 rounded-none border-x-0">
-                    <ChatMessages />
-                    <ChatInput />
+                <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background m-0 rounded-none border-x-0 relative min-w-0">
+                    <div className="flex h-full w-full flex-1 overflow-hidden">
+                        <div className="flex flex-1 flex-col overflow-hidden relative min-w-0">
+                            <ChatMessages />
+                            <ChatInput />
+                        </div>
+
+                        {!isFocusMode && (
+                            <div className="w-[380px] h-full border-l bg-card/30 backdrop-blur-xl overflow-hidden min-w-[380px] shrink-0">
+                                <ChatSidebar />
+                            </div>
+                        )}
+                    </div>
                 </SidebarInset>
-                <div className="hide-on-focus h-full border-l">
-                    <ChatSidebar />
-                </div>
             </SidebarProvider>
         </main>
     )

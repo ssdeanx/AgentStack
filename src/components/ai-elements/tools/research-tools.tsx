@@ -50,7 +50,7 @@ export function NewsCarousel({
         )
     }
 
-    const news = output.news_results || output.data || []
+    const news = output.news_results ?? output.data ?? []
 
     return (
         <Card className="w-full">
@@ -61,7 +61,7 @@ export function NewsCarousel({
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="h-[300px] pr-4">
+                <ScrollArea className="h-75 pr-4">
                     <div className="space-y-4">
                         {news.map((item: any, idx: number) => (
                             <div
@@ -70,7 +70,7 @@ export function NewsCarousel({
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="text-xs font-medium text-muted-foreground">
-                                        {item.source?.name || item.source}
+                                        {item.source?.name ?? item.source}
                                     </span>
                                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                                         {item.date}

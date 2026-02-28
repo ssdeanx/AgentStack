@@ -252,20 +252,37 @@ export const Persona: FC<PersonaProps> = memo(
     const speakingInput = useStateMachineInput(rive, stateMachine, "speaking");
     const asleepInput = useStateMachineInput(rive, stateMachine, "asleep");
 
+    const listeningRef = useRef(listeningInput);
+    const thinkingRef = useRef(thinkingInput);
+    const speakingRef = useRef(speakingInput);
+    const asleepRef = useRef(asleepInput);
+
     useEffect(() => {
-      if (listeningInput) {
-        listeningInput.value = state === "listening";
-      }
-      if (thinkingInput) {
-        thinkingInput.value = state === "thinking";
-      }
-      if (speakingInput) {
-        speakingInput.value = state === "speaking";
-      }
-      if (asleepInput) {
-        asleepInput.value = state === "asleep";
-      }
-    }, [state, listeningInput, thinkingInput, speakingInput, asleepInput]);
+      listeningRef.current = listeningInput;
+      thinkingRef.current = thinkingInput;
+      speakingRef.current = speakingInput;
+      asleepRef.current = asleepInput;
+    }, [listeningInput, thinkingInput, speakingInput, asleepInput]);
+
+    useEffect(() => {
+      // Use a local function to isolate mutation from compiler's view
+      const updateRiveInputs = () => {
+        if (listeningRef.current && "value" in listeningRef.current) {
+          listeningRef.current.value = state === "listening";
+        }
+        if (thinkingRef.current && "value" in thinkingRef.current) {
+          thinkingRef.current.value = state === "thinking";
+        }
+        if (speakingRef.current && "value" in speakingRef.current) {
+          speakingRef.current.value = state === "speaking";
+        }
+        if (asleepRef.current && "value" in asleepRef.current) {
+          asleepRef.current.value = state === "asleep";
+        }
+      };
+
+      updateRiveInputs();
+    }, [state]);
 
     const Component = source.hasModel ? PersonaWithModel : PersonaWithoutModel;
 
