@@ -188,7 +188,7 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.4",
     "react-jsx-parser": "^2.4.1",
-    "react-resizable-panels": "^4.6.5",
+    "react-resizable-panels": "^4.7.0",
     "recharts": "^2.15.4",
     "rehype": "^13.0.2",
     "rehype-class-names": "^2.0.0",

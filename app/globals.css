@@ -575,31 +575,80 @@
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
     }
 
-    /* Mesh Gradient Background */
+    /* Mesh Gradient Background - Enhanced with floating animation */
     .mesh-gradient {
         background-color: var(--background);
         background-image:
             radial-gradient(
                 at 0% 0%,
-                oklch(0.7 0.2 260 / 15%) 0px,
-                transparent 50%
+                oklch(0.65 0.25 265 / 15%) 0px,
+                transparent 55%
             ),
             radial-gradient(
                 at 100% 0%,
-                oklch(0.6 0.2 300 / 15%) 0px,
+                oklch(0.6 0.22 310 / 12%) 0px,
                 transparent 50%
             ),
             radial-gradient(
                 at 100% 100%,
-                oklch(0.8 0.2 100 / 10%) 0px,
-                transparent 50%
+                oklch(0.75 0.18 110 / 8%) 0px,
+                transparent 45%
             ),
             radial-gradient(
                 at 0% 100%,
-                oklch(0.5 0.2 200 / 15%) 0px,
-                transparent 50%
+                oklch(0.55 0.2 210 / 15%) 0px,
+                transparent 55%
             );
         background-attachment: fixed;
+        background-size: 200% 200%;
+        animation: mesh-drift 20s ease infinite alternate;
+    }
+
+    @keyframes mesh-drift {
+        0% {
+            background-position: 0% 0%;
+        }
+        100% {
+            background-position: 100% 100%;
+        }
+    }
+
+    /* 3D Stage & Layers */
+    .stage-3d {
+        perspective: 1200px;
+        transform-style: preserve-3d;
+    }
+
+    .layer-3d {
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+    }
+
+    .layer-back {
+        transform: translateZ(-100px) scale(1.1);
+    }
+    .layer-mid {
+        transform: translateZ(0);
+    }
+    .layer-front {
+        transform: translateZ(100px) scale(0.9);
+    }
+
+    /* Ultra-Refined Glassmorphism */
+    .glass-ultra {
+        background: color-mix(in oklch, var(--surface-glass), transparent 20%);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid oklch(1 0 0 / 15%);
+        box-shadow:
+            0 8px 32px 0 oklch(0 0 0 / 15%),
+            inset 0 0 1px 1px oklch(1 0 0 / 10%);
+    }
+
+    .glass-morphism {
+        background: oklch(1 0 0 / 5%);
+        backdrop-filter: blur(8px);
+        border: 1px solid oklch(1 0 0 / 10%);
+        box-shadow: 0 4px 24px 0 oklch(0 0 0 / 8%);
     }
 
     /*
@@ -921,7 +970,8 @@
             ),
             color-mix(in oklch, var(--card), transparent 14%);
         box-shadow:
-            0 10px 30px -16px color-mix(in oklch, var(--primary), transparent 68%),
+            0 10px 30px -16px
+                color-mix(in oklch, var(--primary), transparent 68%),
             inset 0 1px 0 color-mix(in oklch, white, transparent 90%);
     }
 
