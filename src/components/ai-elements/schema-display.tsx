@@ -94,7 +94,7 @@ export const SchemaDisplay = ({
                 <SchemaDisplayPath />
               </div>
             </SchemaDisplayHeader>
-            {description && <SchemaDisplayDescription />}
+            {(Boolean(description)) && <SchemaDisplayDescription />}
             <SchemaDisplayContent>
               {parameters && parameters.length > 0 && (
                 <SchemaDisplayParameters />
@@ -282,7 +282,7 @@ export const SchemaDisplayParameter = ({
         </Badge>
       )}
     </div>
-    {description && (
+    {(Boolean(description)) && (
       <p className="mt-1 text-muted-foreground text-sm">{description}</p>
     )}
   </div>
@@ -397,7 +397,7 @@ export const SchemaDisplayProperty = ({
             </Badge>
           )}
         </CollapsibleTrigger>
-        {description && (
+        {(Boolean(description)) && (
           <p
             className="pb-2 text-muted-foreground text-sm"
             style={{ paddingLeft: paddingLeft + 24 }}
@@ -449,7 +449,7 @@ export const SchemaDisplayProperty = ({
           </Badge>
         )}
       </div>
-      {description && (
+      {(Boolean(description)) && (
         <p className="mt-1 pl-6 text-muted-foreground text-sm">{description}</p>
       )}
     </div>

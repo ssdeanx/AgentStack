@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useInView } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
 import {
     BotIcon,
     WrenchIcon,
@@ -139,13 +139,19 @@ export function LandingStats() {
                         Platform Metrics
                     </Badge>
                     <div className="mb-5 flex justify-center">
-                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2">
+                        <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            whileInView={{ scale: 1, opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2"
+                        >
                             <AnimatedPacketBurst
                                 className="gsap-svg-icon gsap-svg-crisp"
                                 size={142}
                                 animate
                             />
-                        </div>
+                        </motion.div>
                     </div>
                     <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Measurable Performance at Scale
@@ -157,11 +163,18 @@ export function LandingStats() {
                 </div>
 
                 {/* Primary stats */}
-                <div className="stat-card @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4">
+                <div className="stat-card @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4 perspective-1000">
                     {STATS.map((stat) => (
-                        <div
+                        <motion.div
                             key={stat.label}
-                            className="group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                            whileHover={{ 
+                                rotateY: 10, 
+                                rotateX: -5,
+                                translateZ: 20,
+                                scale: 1.02
+                            }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            className="group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transform-style-3d glass-morphism"
                         >
                             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl border border-border bg-background shadow-sm text-foreground transition-all duration-300 group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
                                 <stat.icon
@@ -170,7 +183,7 @@ export function LandingStats() {
                                 />
                             </div>
 
-                            <div className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                            <div className="mb-2 text-4xl font-bold tracking-tight text-foreground sm:text-5xl group-hover:text-primary transition-colors">
                                 <AnimatedCounter
                                     value={stat.value}
                                     suffix={stat.suffix}
@@ -184,23 +197,32 @@ export function LandingStats() {
                             <div className="text-xs text-muted-foreground">
                                 {stat.description}
                             </div>
-                        </div>
+                            
+                            {/* Decorative Glow */}
+                            <div className="absolute inset-0 bg-radial-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
+                        </motion.div>
                     ))}
                 </div>
 
                 {/* Secondary stats bar */}
-                <div className="stat-bar rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                    className="stat-bar rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-sm glass-ultra"
+                >
                     <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
                         {SECONDARY_STATS.map((stat) => (
                             <div
                                 key={stat.label}
-                                className="flex items-center justify-center gap-4 text-center transition-all duration-200 ease-smooth hover:scale-105 md:justify-start"
+                                className="flex items-center justify-center gap-4 text-center transition-all duration-200 ease-smooth hover:scale-105 md:justify-start group"
                             >
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-200 hover:bg-foreground/10 hover:text-foreground">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary group-hover:rotate-6">
                                     <stat.icon className="size-5" />
                                 </div>
                                 <div className="text-left">
-                                    <div className="text-2xl font-bold text-foreground">
+                                    <div className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
                                         <AnimatedCounter
                                             value={stat.value}
                                             suffix={stat.suffix}
@@ -214,7 +236,7 @@ export function LandingStats() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
 
                 <p className={`stat-footer mt-8 text-center ${SECTION_BODY.body}`}>
                     Join thousands of developers building the future of AI

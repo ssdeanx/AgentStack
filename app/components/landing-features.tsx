@@ -1,5 +1,6 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import {
     BotIcon,
     DatabaseIcon,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/ui/badge'
 import { BentoGrid, BentoGridItem } from '@/ui/effects/bento-grid'
+import { cn } from '@/lib/utils'
 import {
     SectionLayout,
     useSectionReveal,
@@ -101,13 +103,19 @@ export function LandingFeatures() {
                         Features
                     </Badge>
                     <div className="mb-5 flex justify-center">
-                        <div className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2">
+                        <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            whileInView={{ scale: 1, opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="gsap-svg-stage relative flex items-center justify-center rounded-2xl border border-border/60 bg-linear-to-br from-card to-primary/5 p-2"
+                        >
                             <AnimatedOrbitShards
                                 className="gsap-svg-icon gsap-svg-crisp"
                                 size={142}
                                 animate
                             />
-                        </div>
+                        </motion.div>
                     </div>
                     <h2 className={`mb-4 ${SECTION_HEADING.h2}`}>
                         Everything You Need
@@ -119,25 +127,39 @@ export function LandingFeatures() {
                 </div>
 
                 {/* Main feature grid (Bento) */}
-                <BentoGrid className="feat-bento mb-24">
-                    {FEATURES.map((feature, i) => (
-                        <BentoGridItem
-                            key={i}
-                            title={feature.title}
-                            description={feature.description}
-                            header={feature.header}
-                            icon={feature.icon}
-                            className={feature.className}
-                        />
-                    ))}
-                </BentoGrid>
+                <motion.div
+                    initial={{ y: 40, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    viewport={{ once: true, margin: '-100px' }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
+                >
+                    <BentoGrid className="feat-bento mb-24">
+                        {FEATURES.map((feature, i) => (
+                            <BentoGridItem
+                                key={i}
+                                title={feature.title}
+                                description={feature.description}
+                                header={feature.header}
+                                icon={feature.icon}
+                                className={cn(
+                                    "hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500",
+                                    feature.className
+                                )}
+                            />
+                        ))}
+                    </BentoGrid>
+                </motion.div>
 
                 {/* Additional features */}
                 <div className="feat-grid @container grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    {ADDITIONAL_FEATURES.map((feature) => (
-                        <div
+                    {ADDITIONAL_FEATURES.map((feature, i) => (
+                        <motion.div
                             key={feature.title}
-                            className="group rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
+                            initial={{ y: 20, opacity: 0 }}
+                            whileInView={{ y: 0, opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.1, duration: 0.5 }}
+                            className="group rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-500 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 glass-morphism"
                         >
                             <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-border bg-background shadow-sm text-foreground transition-all group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
                                 <feature.icon
@@ -151,12 +173,18 @@ export function LandingFeatures() {
                             <p className={SECTION_BODY.body}>
                                 {feature.description}
                             </p>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
 
                 {/* Stats bar */}
-                <div className="feat-stats mt-24 rounded-2xl border border-border/50 bg-muted/20 p-8 backdrop-blur-sm">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                    className="feat-stats mt-24 rounded-2xl border border-border/50 bg-muted/20 p-8 backdrop-blur-sm glass-ultra"
+                >
                     <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
                         {[
                             { value: '22+', label: 'Specialized Agents' },
@@ -168,13 +196,13 @@ export function LandingFeatures() {
                                 <div className="text-3xl font-bold text-foreground lg:text-4xl transition-colors group-hover:text-primary">
                                     {item.value}
                                 </div>
-                                <div className="mt-1 text-sm text-muted-foreground">
+                                <div className="mt-1 text-sm text-muted-foreground uppercase tracking-widest text-[10px] font-bold">
                                     {item.label}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             </div>
         </SectionLayout>
     )
