@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { motion, useInView } from 'framer-motion'
 import {
     BotIcon,
@@ -126,20 +129,72 @@ function AnimatedCounter({
 }
 
 export function LandingStats() {
+    const sectionRef = useRef<HTMLDivElement>(null)
+    const lineRef = useRef<HTMLDivElement>(null)
+
     const revealRef = useSectionReveal<HTMLDivElement>({
-        selector: '.stat-header, .stat-card, .stat-bar, .stat-footer',
+        selector: '.stat-header, .stat-bar, .stat-footer',
         stagger: 0.06,
     })
 
+    useGSAP(
+        () => {
+            if (!sectionRef.current) { return }
+            gsap.registerPlugin(ScrollTrigger)
+
+            // Individual stat cards cascade in with 3D tilt
+            const cards = sectionRef.current.querySelectorAll('.stat-card-item')
+            if (cards.length > 0) {
+                gsap.fromTo(
+                    cards,
+                    { opacity: 0, y: 40, rotateY: -8, scale: 0.95 },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        rotateY: 0,
+                        scale: 1,
+                        duration: 0.6,
+                        stagger: 0.12,
+                        ease: 'power3.out',
+                        scrollTrigger: {
+                            trigger: sectionRef.current.querySelector('.stat-card-grid'),
+                            start: 'top 80%',
+                            once: true,
+                        },
+                    }
+                )
+            }
+
+            // Animated divider line that draws across on scroll
+            if (lineRef.current) {
+                gsap.fromTo(
+                    lineRef.current,
+                    { scaleX: 0, transformOrigin: 'left center' },
+                    {
+                        scaleX: 1,
+                        duration: 1.2,
+                        ease: 'power2.inOut',
+                        scrollTrigger: {
+                            trigger: lineRef.current,
+                            start: 'top 85%',
+                            once: true,
+                        },
+                    }
+                )
+            }
+        },
+        { scope: sectionRef }
+    )
+
     return (
         <SectionLayout spacing="base" background="grid" borderBottom>
-            <div ref={revealRef}>
+            <div ref={sectionRef}>
                 <div className={`stat-header ${SECTION_LAYOUT.headerCenter}`}>
                     <Badge variant="outline" className="mb-4">
                         Platform Metrics
                     </Badge>
                     <div className="mb-5 flex justify-center">
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             whileInView={{ scale: 1, opacity: 1 }}
                             viewport={{ once: true }}
@@ -162,19 +217,27 @@ export function LandingStats() {
                     </p>
                 </div>
 
+                {/* Animated drawing line separator */}
+                <div
+                    ref={lineRef}
+                    className="mb-12 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent"
+                    style={{ transform: 'scaleX(0)' }}
+                />
+
                 {/* Primary stats */}
-                <div className="stat-card @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4 perspective-1000">
+                <div ref={revealRef} className="stat-card-grid @container mb-16 grid grid-cols-2 gap-6 @md:grid-cols-4 perspective-1000">
                     {STATS.map((stat) => (
                         <motion.div
                             key={stat.label}
-                            whileHover={{ 
-                                rotateY: 10, 
-                                rotateX: -5,
+                            whileHover={{
+                                rotateY: 8,
+                                rotateX: -4,
                                 translateZ: 20,
-                                scale: 1.02
+                                scale: 1.03
                             }}
                             transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                            className="group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 transform-style-3d glass-morphism"
+                            className="stat-card-item group relative rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/10 transform-style-3d glass-morphism"
+                            style={{ opacity: 0 }}
                         >
                             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl border border-border bg-background shadow-sm text-foreground transition-all duration-300 group-hover:border-primary/30 group-hover:text-primary group-hover:scale-110">
                                 <stat.icon
@@ -197,15 +260,15 @@ export function LandingStats() {
                             <div className="text-xs text-muted-foreground">
                                 {stat.description}
                             </div>
-                            
-                            {/* Decorative Glow */}
-                            <div className="absolute inset-0 bg-radial-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
+
+                            {/* Hover glow */}
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_100%,oklch(0.6_0.2_265/10%)_0%,transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
                         </motion.div>
                     ))}
                 </div>
 
                 {/* Secondary stats bar */}
-                <motion.div 
+                <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     whileInView={{ y: 0, opacity: 1 }}
                     viewport={{ once: true }}

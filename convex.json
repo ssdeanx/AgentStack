@@ -1,6 +1,0 @@
-{
-  "node": {
-    "nodeVersion": "20"
-  },
-  "$schema": "./node_modules/convex/schemas/convex.schema.json"
-}

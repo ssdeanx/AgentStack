@@ -6,6 +6,7 @@ import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { cn } from '@/lib/utils'
 import type { GsapSvgProps } from './types'
+import React from 'react'
 
 export function AnimatedNeuralMesh({
     className,
@@ -17,36 +18,42 @@ export function AnimatedNeuralMesh({
     useGSAP(
         () => {
             ensureGsapRegistered()
-            if (!ref.current) {
-                return
-            }
+            if (!ref.current || !animate) {return}
 
-            if (!animate) {
-                return
-            }
-
-            gsap.to('[data-edge]', {
-                opacity: 0.15,
-                duration: 1.2,
+            // Complex connection flow
+            gsap.to('[data-mesh-edge]', {
+                strokeDashoffset: -100,
+                duration: 8,
                 repeat: -1,
-                yoyo: true,
-                stagger: 0.08,
-            })
-
-            gsap.to('[data-node]', {
-                scale: 1.2,
-                duration: 0.9,
-                repeat: -1,
-                yoyo: true,
-                transformOrigin: '50% 50%',
-                stagger: 0.1,
-            })
-
-            gsap.to('[data-link-flow]', {
-                strokeDashoffset: -36,
-                duration: 1.6,
                 ease: 'none',
+                stagger: {
+                    each: 0.5,
+                    from: 'random'
+                }
+            })
+
+            // Node focal glow
+            gsap.to('[data-mesh-node]', {
+                scale: 1.15,
+                opacity: 0.8,
+                duration: 'random(1.5, 3)',
                 repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut',
+                stagger: {
+                    each: 0.2,
+                    from: 'center'
+                }
+            })
+
+            // Global mesh wobble for organic feel
+            gsap.to('[data-mesh-group]', {
+                x: '+=3',
+                y: '+=2',
+                duration: 4,
+                repeat: -1,
+                yoyo: true,
+                ease: 'sine.inOut'
             })
         },
         { scope: ref, dependencies: [animate] }
@@ -55,48 +62,42 @@ export function AnimatedNeuralMesh({
     return (
         <svg
             ref={ref}
-                className={cn('text-indigo-500 dark:text-indigo-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
+            className={cn('text-primary/70 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
-            viewBox="0 0 120 120"
+            viewBox="0 0 160 160"
             fill="none"
             role="img"
-            aria-label="Animated neural mesh"
+            aria-label="High-end Neural Mesh"
         >
-            <g stroke="currentColor" strokeOpacity="0.32">
-                <line data-edge x1="20" y1="30" x2="60" y2="20" />
-                <line data-edge x1="60" y1="20" x2="98" y2="36" />
-                <line data-edge x1="20" y1="30" x2="35" y2="74" />
-                <line data-edge x1="35" y1="74" x2="74" y2="62" />
-                <line data-edge x1="74" y1="62" x2="98" y2="36" />
-                <line data-edge x1="74" y1="62" x2="90" y2="92" />
-                <line data-edge x1="35" y1="74" x2="90" y2="92" />
+            <g data-mesh-group>
+                <g stroke="currentColor" strokeOpacity="0.05" strokeWidth="0.5">
+                    {[20, 40, 60, 80, 100, 120, 140].map(p => (
+                        <React.Fragment key={p}>
+                            <line x1={p} y1="10" x2={p} y2="150" />
+                            <line x1="10" y1={p} x2="150" y2={p} />
+                        </React.Fragment>
+                    ))}
+                </g>
+
+                <g stroke="currentColor" strokeOpacity="0.4" strokeWidth="1.2">
+                    <path data-mesh-edge d="M40 50 L80 30 L120 55 L100 110 L55 125 L40 50 Z" strokeDasharray="5 15" />
+                    <path data-mesh-edge d="M80 30 L100 110" strokeDasharray="4 20" />
+                    <path data-mesh-edge d="M40 50 L120 55" strokeDasharray="10 25" />
+                    <path data-mesh-edge d="M55 125 L80 30" strokeDasharray="3 15" />
+                </g>
+
+                {[
+                    [40, 50, 4], [80, 30, 3], [120, 55, 5],
+                    [100, 110, 4], [55, 125, 3.5], [85, 80, 6]
+                ].map(([x, y, r], i) => (
+                    <g key={i} data-mesh-node transform={`translate(${x}, ${y})`}>
+                        <circle cx="0" cy="0" r={r * 2} fill="currentColor" fillOpacity="0.05" />
+                        <circle cx="0" cy="0" r={r} fill="currentColor" fillOpacity="0.6" />
+                        <circle cx="0" cy="0" r={r * 0.4} fill="white" fillOpacity="0.3" />
+                    </g>
+                ))}
             </g>
-            <path
-                data-link-flow
-                d="M20 30 L60 20 L98 36 L74 62 L35 74 L90 92"
-                stroke="currentColor"
-                strokeOpacity="0.45"
-                strokeDasharray="6 10"
-                fill="none"
-            />
-            {[
-                [20, 30],
-                [60, 20],
-                [98, 36],
-                [35, 74],
-                [74, 62],
-                [90, 92],
-            ].map(([x, y]) => (
-                <circle
-                    key={`${x}-${y}`}
-                    data-node
-                    cx={x}
-                    cy={y}
-                    r="3"
-                    fill="currentColor"
-                />
-            ))}
         </svg>
     )
 }

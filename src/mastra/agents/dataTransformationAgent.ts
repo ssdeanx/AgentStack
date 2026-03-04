@@ -113,7 +113,7 @@ export const dataTransformationAgent = new Agent({
 - Large data: Warn about potential memory constraints
 `
     },
-    model: googleAI3,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     tools: {
         csvToJsonTool,

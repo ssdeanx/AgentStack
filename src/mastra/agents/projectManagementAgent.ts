@@ -140,7 +140,7 @@ export const projectManagementAgent = new Agent({
 - Document assumptions and dependencies that could impact project success
 - Offer regular check-ins and progress updates throughout project lifecycle
 `,
-    model: googleAI3,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     agents: {
         calendarAgent,

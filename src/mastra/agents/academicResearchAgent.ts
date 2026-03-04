@@ -119,9 +119,9 @@ ${
         if (userTier === 'enterprise') {
             return google.chat('gemini-3-pro-preview')
         } else if (userTier === 'pro') {
-            return 'google/gemini-3-flash-preview'
+            return google.chat('gemini-3.1-flash-preview')
         }
-        return google.chat('gemini-3-flash-preview')
+        return google.chat('gemini-3.1-flash-lite-preview')
     },
     tools: {
         // serpapiSearchTool,

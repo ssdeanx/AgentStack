@@ -116,7 +116,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     pdfToMarkdownTool,
     htmlToMarkdownTool,
   },
-  memory: pgMemory,
+  memory: convexMemory,
   scorers: {
     //  toneConsistency: { scorer: createToneScorer() },
     //  textualDifference: { scorer: createTextualDifferenceScorer() },

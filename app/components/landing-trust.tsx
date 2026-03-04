@@ -23,42 +23,42 @@ import { AnimatedAegisCore } from '@/app/components/gsap/svg-suite'
 const TRUST_SIGNALS = [
     {
         icon: ShieldIcon,
-        title: 'Enterprise Security',
+        title: 'Security First',
         description:
-            'SOC 2 Type II compliant with end-to-end encryption for all data in transit and at rest.',
+            'Built with security in mind. Local-first architecture ensures your data stays in your control.',
     },
     {
         icon: LockIcon,
-        title: 'Data Privacy',
+        title: 'Open Source',
         description:
-            'GDPR and CCPA compliant with zero data retention policies. Your data stays yours.',
+            'Transparent, auditable, and extensible. Built by developers, for developers.',
     },
     {
         icon: ServerIcon,
-        title: '99.9% Uptime SLA',
+        title: 'Production Ready',
         description:
-            'Enterprise-grade infrastructure with redundancy and automatic failover.',
+            'Reliable agent orchestration with graph-based signaling and robust error handling.',
     },
     {
         icon: GlobeIcon,
-        title: 'Global Infrastructure',
+        title: 'Framework Agnostic',
         description:
-            'Deployed across multiple regions for low latency and high availability worldwide.',
+            'Integrate seamlessly with your existing stack. Built on open standards.',
     },
 ]
 
 const CERTIFICATIONS = [
-    { name: 'SOC 2 Type II', icon: AwardIcon },
-    { name: 'GDPR Compliant', icon: CheckCircleIcon },
-    { name: 'HIPAA Ready', icon: ShieldIcon },
-    { name: 'ISO 27001', icon: LockIcon },
+    { name: 'MIT Licensed', icon: CheckCircleIcon },
+    { name: 'Open Source', icon: GlobeIcon },
+    { name: 'TypeScript Native', icon: ShieldIcon },
+    { name: 'Local First', icon: LockIcon },
 ]
 
 const TRUST_METRICS = [
-    { label: 'Uptime', value: '99.99%', icon: ClockIcon },
-    { label: 'Security Score', value: 'A+', icon: ShieldIcon },
-    { label: 'Data Centers', value: '12+', icon: ServerIcon },
-    { label: 'Support SLA', value: '< 1hr', icon: HeartHandshakeIcon },
+    { label: 'Active Agents', value: '22+', icon: ClockIcon },
+    { label: 'Built-in Tools', value: '30+', icon: ShieldIcon },
+    { label: 'Open Source', value: '100%', icon: ServerIcon },
+    { label: 'Node.js', value: '20.9+', icon: HeartHandshakeIcon },
 ]
 
 export function LandingTrust() {

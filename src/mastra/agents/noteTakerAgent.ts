@@ -13,7 +13,7 @@ export const noteTakerAgent = new Agent({
     instructions: instructions1,
     memory: pgMemory,
     //  tools: [],
-    model: 'google/gemini-3-flash-preview',
+    model: 'google/gemini-3.1-flash-lite-preview',
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

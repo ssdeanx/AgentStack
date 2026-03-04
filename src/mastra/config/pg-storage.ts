@@ -68,7 +68,26 @@ export const pgMemory = new Memory({
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
     options: {
         // Message management
-        observationalMemory: true,
+         observationalMemory: {
+            enabled: true,
+            scope: 'resource', // 'resource' | 'thread'
+            model: 'google/gemini-2.5-flash',
+            shareTokenBudget: true,
+            observation: {
+                instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
+                messageTokens: 40_000,
+                modelSettings: {
+                    temperature: 0.3,
+                    maxOutputTokens: 100_000,
+                    topK: 40,
+                    topP: 0.95,
+                },
+            },
+            reflection: {
+                observationTokens: 90_000,
+             },
+        },
+
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: true,
         // Advanced semantic recall with HNSW index configuration

@@ -147,13 +147,13 @@ export const legalResearchAgent = new Agent({
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
-      return googleAI3
+      return "google/gemini-3.1-pro-preview"
     } else if (userTier === 'pro') {
       // Chat bison for pro as well
-      return googleAI
+      return "google/gemini-3.1-flash-preview"
     }
     // cheaper/faster model for free tier
-    return googleAIFlashLite
+    return "google/gemini-3.1-flash-lite-preview"
   },
 
   tools: {

@@ -330,60 +330,24 @@ export const mastra = new Mastra({
                 exporters: [
                     new DefaultExporter({
                         logger: log,
-                        logLevel: 'debug',
+                        logLevel: 'info',
                         strategy: 'auto',
                         // maxBatchSize: 1000,
                         // maxBufferSize: 10000,
                         // maxBatchWaitMs: 5000,
                         maxRetries: 5,
                     }), // Studio access0
-                    new CloudExporter(),
+                  //  new CloudExporter(),
                 ],
                 includeInternalSpans: true,
-
-                //      bridge: new OtelBridge({
-                //          name: 'mastra-otel-bridge',
-                //            otelTracer: {
-                //              startSpan: (name: string, options: SpanOptions | undefined) => {
-                //                const tracer = trace.getTracer("mastra-otel-bridge-tracer");
-                //                return tracer.startSpan(name, options);
-                //              },
-                //            },
-                //          logger: log,
-                //          logLevel: 'info',
-                //            batchsize: 500,
-                //         timeout: 50000,
-                //         serializationOptions: {
-                //             maxStringLength: 1024, // Maximum length for string values (default: 1024)
-                //             maxDepth: 6, // Maximum depth for nested objects (default: 6)
-                //             maxArrayLength: 50, // Maximum number of items in arrays (default: 50)
-                //             maxObjectKeys: 50, // Maximum number of keys in objects (default: 50)
-                //         },
-                //         resourceAttributes: {
-                //             'deployment.environment': 'dev',
-                //         },
-                //      }),
-            },
-            //      exporters: [
-            //          new DefaultExporter(), // Studio access
-
-            //         new OtelExporter({
-            //            provider: {
-            //              traceloop: {
-            //                apiKey: process.env.TRACELOOP_API_KEY,
-            //                destinationId: 'my-destination',
-            //              },
-            //            },
-            //            batchSize: 500,
-            //            timeout: 50000,
-            //            logger: log,
-            //            logLevel: 'debug',
-            //            resourceAttributes: {
-            //              'deployment.environment': 'dev',
-            //            },
-            //          }),
-            //        ],
-        },
+                serializationOptions: {
+                    maxStringLength: 1024, // Truncate long strings to prevent oversized spans
+                    maxArrayLength: 100, // Limit array lengths in span attributes
+                    maxDepth: 6, // Limit depth of nested objects in span attributes
+                    maxObjectKeys: 50, // Limit number of keys in objects included in span attributes
+                }
+            }
+        }
     }),
     server: {
         build: {

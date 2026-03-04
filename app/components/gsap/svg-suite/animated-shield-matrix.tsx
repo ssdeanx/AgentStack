@@ -6,9 +6,12 @@ import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { cn } from '@/lib/utils'
 import type { GsapSvgProps } from './types'
+import React from 'react'
 
 /**
- * Security lattice icon: shield frame + scanning lock lines + node heartbeat.
+ * AnimatedShieldMatrix: High-end architectural security visual.
+ * Features a double-walled frame, internal security grid,
+ * multi-frequency scanlines, and refractive depth layers.
  */
 export function AnimatedShieldMatrix({
     className,
@@ -20,34 +23,55 @@ export function AnimatedShieldMatrix({
     useGSAP(
         () => {
             ensureGsapRegistered()
-            if (!animate) {
-                return
-            }
+            if (!ref.current || !animate) {return}
 
-            gsap.to('[data-scan-line]', {
-                y: 38,
-                duration: 1.4,
-                ease: 'sine.inOut',
-                yoyo: true,
+            // High-frequency scanline pass
+            gsap.fromTo('[data-scan-bar]',
+                { y: -30, opacity: 0 },
+                {
+                    y: 110,
+                    opacity: 0.8,
+                    duration: 2.2,
+                    repeat: -1,
+                    ease: 'power2.inOut',
+                    stagger: {
+                        each: 0.8,
+                        repeat: -1
+                    }
+                }
+            )
+
+            // Security grid flicker
+            gsap.to('[data-grid-hex]', {
+                opacity: 0.15,
+                duration: 'random(0.5, 2)',
                 repeat: -1,
+                yoyo: true,
+                stagger: {
+                    each: 0.1,
+                    from: 'random'
+                }
             })
 
-            gsap.to('[data-pulse-node]', {
-                opacity: 0.3,
-                scale: 1.25,
-                duration: 0.9,
-                yoyo: true,
+            // Encryption core pulse
+            gsap.to('[data-shield-core]', {
+                scale: 1.15,
+                filter: 'brightness(1.5) blur(1px)',
+                duration: 1.2,
                 repeat: -1,
-                stagger: 0.08,
-                transformOrigin: '50% 50%',
+                yoyo: true,
+                ease: 'sine.inOut'
             })
 
-            gsap.to('[data-lock-ring]', {
-                rotation: 360,
-                duration: 8,
-                ease: 'none',
+            // Lock node heartbeat
+            gsap.to('[data-lock-node]', {
+                scale: 1.3,
+                opacity: 0.8,
+                duration: 0.6,
                 repeat: -1,
-                transformOrigin: '50% 50%',
+                yoyo: true,
+                ease: 'power2.out',
+                stagger: 0.15
             })
         },
         { scope: ref, dependencies: [animate] }
@@ -56,71 +80,86 @@ export function AnimatedShieldMatrix({
     return (
         <svg
             ref={ref}
-            className={cn(
-                'text-green-500 dark:text-green-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp',
-                className
-            )}
+            className={cn('text-primary/70 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
-            viewBox="0 0 120 120"
+            viewBox="0 0 160 160"
             fill="none"
             role="img"
-            aria-label="Animated shield matrix"
+            aria-label="High-end Shield Matrix"
         >
+            <defs>
+                <filter id="shield-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="glow" />
+                </filter>
+                <linearGradient id="scan-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0" />
+                    <stop offset="50%" stopColor="currentColor" stopOpacity="1" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                </linearGradient>
+                <clipPath id="shield-clip">
+                    <path d="M80 15 L130 35 V75 C130 115 105 145 80 155 C55 145 30 115 30 75 V35 L80 15 Z" />
+                </clipPath>
+            </defs>
+
+            {/* Architectural Frame (Outer) */}
             <path
-                d="M60 10 L94 24 V52 C94 78 75 98 60 106 C45 98 26 78 26 52 V24 Z"
+                d="M80 15 L130 35 V75 C130 115 105 145 80 155 C55 145 30 115 30 75 V35 L80 15 Z"
                 stroke="currentColor"
-                strokeOpacity="0.75"
-                strokeWidth="2"
+                strokeOpacity="0.1"
+                strokeWidth="4"
             />
+
+            {/* Architectural Frame (Inner Detail) */}
             <path
-                d="M60 22 L84 32 V52 C84 70 71 84 60 91 C49 84 36 70 36 52 V32 Z"
-                fill="currentColor"
-                opacity="0.12"
+                d="M80 25 L120 40 V75 C120 105 100 130 80 140 C60 130 40 105 40 75 V40 L80 25 Z"
+                stroke="currentColor"
+                strokeOpacity="0.4"
+                strokeWidth="1.5"
             />
-            <g data-lock-ring>
-                <circle
-                    cx="60"
-                    cy="55"
-                    r="17"
-                    stroke="currentColor"
-                    strokeOpacity="0.4"
-                    strokeDasharray="8 8"
+
+            <g clipPath="url(#shield-clip)">
+                {/* Security Hex Grid */}
+                <g stroke="currentColor" strokeOpacity="0.05" strokeWidth="1">
+                    {[35, 55, 75, 95, 115, 135].map(y => (
+                        <path key={y} data-grid-hex d={`M20 ${y} h120`} />
+                    ))}
+                    {[40, 60, 80, 100, 120].map(x => (
+                        <path key={x} data-grid-hex d={`M${x} 20 v120`} />
+                    ))}
+                </g>
+
+                {/* Vertical Scan Bar */}
+                <rect
+                    data-scan-bar
+                    x="30"
+                    y="0"
+                    width="100"
+                    height="8"
+                    fill="url(#scan-grad)"
+                    fillOpacity="0.5"
                 />
             </g>
-            <path
-                data-scan-line
-                d="M43 43 H77"
-                stroke="currentColor"
-                strokeOpacity="0.9"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
-            {[44, 52, 60, 68, 76].map((x) => (
-                <circle
-                    key={x}
-                    data-pulse-node
-                    cx={x}
-                    cy="55"
-                    r="1.7"
-                    fill="currentColor"
-                />
+
+            {/* Lock Mechanisms */}
+            <g transform="translate(80, 80)">
+                <circle cx="0" cy="0" r="22" stroke="currentColor" strokeOpacity="0.1" strokeDasharray="4 6" />
+                <circle data-shield-core cx="0" cy="0" r="7" fill="currentColor" filter="url(#shield-glow)" />
+                <circle cx="0" cy="0" r="3" fill="white" fillOpacity="0.3" />
+            </g>
+
+            {/* Encryption Nodes */}
+            {[
+                [60, 60], [100, 60], [60, 100], [100, 100]
+            ].map(([x, y], i) => (
+                <g key={i} data-lock-node transform={`translate(${x}, ${y})`}>
+                    <circle r="4" fill="currentColor" fillOpacity="0.05" />
+                    <circle r="1.5" fill="currentColor" />
+                </g>
             ))}
-            <rect
-                x="54"
-                y="50"
-                width="12"
-                height="10"
-                rx="2"
-                fill="currentColor"
-                opacity="0.85"
-            />
-            <path
-                d="M56 50 V46 C56 43.8 57.8 42 60 42 C62.2 42 64 43.8 64 46 V50"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
+
+            {/* Status Beacon */}
+            <path d="M70 15 H90" stroke="currentColor" strokeWidth="2" strokeOpacity="0.8" strokeLinecap="round" />
         </svg>
     )
 }

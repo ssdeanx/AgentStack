@@ -60,13 +60,13 @@ User: ${userTier} | Lang: ${language}
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
-      return google.chat('gemini-3-pro-preview')
+      return google.chat('gemini-3.1-pro-preview')
     } else if (userTier === 'pro') {
       // Chat bison for pro as well
-      return googleAI
+      return google.chat('gemini-3.1-flash-preview')
     }
     // cheaper/faster model for free tier
-    return google.chat('gemini-2.5-flash-preview-09-2025')
+    return google.chat('gemini-3.1-flash-lite-preview')
   },
   memory: pgMemory,
   options: {

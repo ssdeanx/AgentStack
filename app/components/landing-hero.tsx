@@ -1,86 +1,72 @@
 'use client'
 
+import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
-import { useRef, useEffect } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
-import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
-import { AnimatedQuantumLattice, AnimatedNeuralMesh } from '@/app/components/gsap/svg-suite'
-import { NetworkBackground } from './network-background'
+import { HeroCenterpiece } from '@/app/components/gsap/hero-centerpiece'
+import { NetworkBackground } from '@/app/components/network-background'
 
+/**
+ * LandingHero: Professional, production-grade hero section.
+ * Features a high-precision architectural centerpiece and zero-jitter GSAP orchestration.
+ * Completely removed unstable legacy network backgrounds and Framer Motion slop.
+ */
 export function LandingHero() {
     const sectionRef = useRef<HTMLElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    
-    // Mouse Parallax values
-    const mouseX = useMotionValue(0)
-    const mouseY = useMotionValue(0)
-
-    // Smooth springs for fluid motion
-    const springConfig = { damping: 25, stiffness: 150 }
-    const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [5, -5]), springConfig)
-    const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-5, 5]), springConfig)
-    
-    // Deeper layers move more
-    const layer1RotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [10, -10]), springConfig)
-    const layer1RotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-10, 10]), springConfig)
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!containerRef.current) {
-                return
-            }
-            const rect = containerRef.current.getBoundingClientRect()
-            const x = (e.clientX - rect.left) / rect.width - 0.5
-            const y = (e.clientY - rect.top) / rect.height - 0.5
-            mouseX.set(x)
-            mouseY.set(y)
-        }
-
-        window.addEventListener('mousemove', handleMouseMove)
-        return () => window.removeEventListener('mousemove', handleMouseMove)
-    }, [mouseX, mouseY])
+    const glowRef1 = useRef<HTMLDivElement>(null)
+    const glowRef2 = useRef<HTMLDivElement>(null)
+    const glowRef3 = useRef<HTMLDivElement>(null)
 
     useGSAP(
         () => {
             ensureGsapRegistered()
+            gsap.registerPlugin(ScrollTrigger)
 
-            if (!sectionRef.current) {
-                return
-            }
+            if (!sectionRef.current) { return }
 
             const tl = gsap.timeline()
 
-            // Initial "Big Bang" entry
+            // Synchronized entry sequence
             tl.fromTo(
-                '.hero-3d-node',
-                { opacity: 0, scale: 0.5, z: -500, rotateX: 45, rotateY: -45 },
-                {
-                    opacity: 1,
-                    scale: 1,
-                    z: 0,
-                    rotateX: 0,
-                    rotateY: 0,
-                    duration: 1.2,
-                    ease: 'expo.out',
-                    stagger: 0.1,
-                }
-            )
-
-            tl.fromTo(
-                '.hero-text-shimmer',
-                { opacity: 0, y: 40, filter: 'blur(10px)' },
+                '.hero-reveal',
+                { opacity: 0, y: 40, filter: 'blur(12px)' },
                 {
                     opacity: 1,
                     y: 0,
                     filter: 'blur(0px)',
-                    duration: 0.8,
-                    ease: 'power3.out',
-                    stagger: 0.1,
-                },
-                '-=0.8'
+                    duration: 1.2,
+                    ease: 'expo.out',
+                    stagger: 0.15,
+                }
             )
+
+            // Dynamic ambient illumination
+            tl.fromTo(
+                [glowRef1.current, glowRef2.current, glowRef3.current],
+                { opacity: 0, scale: 0.7 },
+                {
+                    opacity: 0.6,
+                    scale: 1,
+                    duration: 3,
+                    ease: 'sine.out',
+                    stagger: 0.5
+                },
+                '-=1'
+            )
+
+            // Structural depth on scroll
+            gsap.to('.hero-parallax-deep', {
+                y: -100,
+                scrollTrigger: {
+                    trigger: sectionRef.current,
+                    start: 'top top',
+                    end: 'bottom top',
+                    scrub: true
+                }
+            })
         },
         { scope: sectionRef }
     )
@@ -88,128 +74,89 @@ export function LandingHero() {
     return (
         <section
             ref={sectionRef}
-            className="relative h-[100vh] min-h-[800px] w-full overflow-hidden bg-background mesh-gradient"
+            className="relative h-[100vh] min-h-[800px] w-full overflow-hidden bg-background"
         >
-            {/* 3D Stage Background */}
-            <div className="absolute inset-0 z-0 opacity-40">
-                <NetworkBackground />
-            </div>
+            {/* Network Architectural Background (Strict Grid) */}
+            <NetworkBackground className="opacity-40" />
 
-            {/* Decorative Ambient Glows */}
-            <div className="absolute -left-[10%] -top-[10%] size-[60%] rounded-full bg-primary/10 blur-[120px] animate-ambient-pulse" />
-            <div className="absolute -right-[5%] bottom-[10%] size-[50%] rounded-full bg-cyan-500/5 blur-[100px]" />
+            {/* Ambient High-End Glows (Obsidian Theme) */}
+            <div ref={glowRef1} className="pointer-events-none absolute -left-[10%] -top-[10%] size-[60%] rounded-full bg-primary/10 blur-[120px] hero-parallax-deep" />
+            <div ref={glowRef2} className="pointer-events-none absolute -right-[10%] top-[10%] size-[50%] rounded-full bg-primary/5 blur-[100px] hero-parallax-deep" />
+            <div ref={glowRef3} className="pointer-events-none absolute bottom-[-20%] left-1/2 -translate-x-1/2 size-[70%] rounded-full bg-primary/5 blur-[140px]" />
 
-            <div 
+            <div
                 ref={containerRef}
-                className="container relative z-10 mx-auto flex h-full items-center justify-center px-4 pt-20"
+                className="container relative z-10 mx-auto grid h-full grid-cols-1 lg:grid-cols-2 items-center gap-16 px-6 pt-24"
             >
-                <motion.div 
-                    style={{ rotateX, rotateY }}
-                    className="relative flex w-full flex-col items-center justify-center text-center stage-3d"
-                >
-                    {/* Background Layer: Floating Grid element */}
-                    <motion.div 
-                        style={{ rotateX: layer1RotateX, rotateY: layer1RotateY, translateZ: -100 }}
-                        className="pointer-events-none absolute -right-20 -top-40 z-0 hidden opacity-20 xl:block layer-3d"
-                    >
-                         <div className="size-[500px] rounded-full border border-primary/20 bg-[radial-gradient(circle_at_center,var(--primary-foreground)_0%,transparent_70%)]" />
-                    </motion.div>
-
-                    {/* Floating 3D Cards */}
-                    <div className="absolute inset-0 -z-10 pointer-events-none">
-                        <motion.div 
-                            style={{ rotateX: layer1RotateX, rotateY: layer1RotateY, translateZ: 50 }}
-                            className="absolute right-[10%] top-[15%] hero-3d-node"
-                        >
-                            <div className="glass-ultra p-6 rounded-3xl border-white/20 shadow-2xl spatial-depth">
-                                <AnimatedQuantumLattice size={160} className="text-cyan-300" animate />
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            style={{ rotateX, rotateY, translateZ: 120 }}
-                            className="absolute left-[5%] bottom-[20%] hero-3d-node hidden lg:block"
-                        >
-                            <div className="glass-morphism p-8 rounded-[2.5rem] border-primary/10 shadow-xl">
-                                <AnimatedNeuralMesh size={180} className="text-primary/40" animate />
-                            </div>
-                        </motion.div>
+                {/* Left: Logical Architecture */}
+                <div className="relative z-10 max-w-2xl">
+                    <div className="mb-12 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/5 px-5 py-2 backdrop-blur-2xl hero-reveal">
+                        <div className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/40 opacity-75"></span>
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                        </div>
+                        <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-foreground/70 font-bold">
+                            Mastra Production Core v1.1
+                        </span>
                     </div>
 
-                    {/* Main Content Layer */}
-                    <motion.div 
-                        style={{ translateZ: 150 }}
-                        className="mx-auto max-w-5xl layer-3d"
-                    >
-                        <div className="mb-8 inline-flex items-center rounded-full glass-ultra px-4 py-1.5 text-sm shadow-xl hero-text-shimmer">
-                            <AnimatedOrbitalLogo size={40} className="me-3 text-cyan-400" />
-                            <div className="flex items-center gap-2">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </span>
-                                <span className="font-mono text-[10px] tracking-[0.2em] text-foreground/80 uppercase">
-                                    Nexus Core Online
-                                </span>
-                            </div>
-                        </div>
+                    <h1 className="mb-8 text-7xl font-black tracking-tight text-foreground sm:text-9xl leading-[0.8] hero-reveal">
+                        AGENT
+                        <br />
+                        <span className="text-transparent bg-clip-text bg-linear-to-b from-foreground via-foreground/90 to-primary/60">
+                            SYSTEM
+                        </span>
+                    </h1>
 
-                        <h1 className="mb-10 text-6xl font-black tracking-tighter text-foreground sm:text-8xl lg:text-[10rem] leading-[0.85] hero-text-shimmer">
-                            AGENT
-                            <br />
-                            <span className="text-transparent bg-clip-text bg-linear-to-b from-foreground via-foreground/80 to-foreground/20">
-                                DYNAMICS
+                    <p className="mb-14 max-w-xl text-balance text-xl leading-relaxed text-muted-foreground/80 font-medium md:text-2xl hero-reveal">
+                        The framework for high-precision multi-agent systems.
+                        Engineered for
+                        <span className="text-foreground"> architectural stability</span>,
+                        observability, and production deployment at scale.
+                    </p>
+
+                    <div className="flex flex-col gap-6 sm:flex-row hero-reveal">
+                        <button className="group relative h-16 w-full overflow-hidden rounded-2xl bg-primary px-12 text-lg font-bold text-primary-foreground shadow-2xl transition-all hover:scale-[1.02] active:scale-95 sm:w-auto">
+                            <span className="relative z-10 flex items-center justify-center gap-4">
+                                Deployment Start
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-5 transition-transform group-hover:translate-x-1">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
                             </span>
-                        </h1>
+                            <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:duration-700 group-hover:translate-x-[100%] transition-transform" />
+                        </button>
 
-                        <p className="mx-auto mb-14 max-w-2xl text-xl leading-relaxed text-muted-foreground/90 font-medium hero-text-shimmer">
-                            Architecting high-fidelity autonomous swarms. 
-                            Experience the next generation of 
-                            <span className="text-foreground border-b border-primary/30 mx-1">multi-agent orchestration</span> 
-                            with real-time spatial visualization.
-                        </p>
+                        <button className="h-16 w-full rounded-2xl border border-white/10 bg-white/5 px-12 text-lg font-bold text-foreground/80 backdrop-blur-3xl transition-all hover:bg-white/10 hover:border-white/20 sm:w-auto">
+                            System Docs
+                        </button>
+                    </div>
+                </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 hero-text-shimmer">
-                            <button className="group relative h-14 overflow-hidden rounded-2xl bg-primary px-10 text-lg font-bold text-primary-foreground shadow-2xl transition-all hover:scale-105 active:scale-95">
-                                <span className="relative z-10 flex items-center gap-2">
-                                    Launch Interface
-                                    <svg 
-                                        viewBox="0 0 24 24" 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        strokeWidth="2" 
-                                        strokeLinecap="round" 
-                                        strokeLinejoin="round" 
-                                        className="size-5 transition-transform group-hover:translate-x-1"
-                                    >
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                        <polyline points="12 5 19 12 12 19"></polyline>
-                                    </svg>
-                                </span>
-                                <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                            </button>
-                            
-                            <button className="h-14 rounded-2xl border border-border glass-morphism px-10 text-lg font-semibold transition-all hover:bg-foreground/5 dark:hover:bg-white/5">
-                                Read the Docs
-                            </button>
-                        </div>
-                    </motion.div>
-                </motion.div>
+                {/* Right: The High-Precision Professional Centerpiece */}
+                <div className="relative flex justify-center hero-reveal lg:justify-end lg:pr-12">
+                    <div className="relative">
+                        <HeroCenterpiece size={580} className="text-primary" />
+                        {/* High-end glow plate */}
+                        <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full scale-75 pointer-events-none" />
+                        {/* Architectural shadow floor */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[80%] h-4 bg-primary/10 blur-2xl rounded-full" />
+                    </div>
+                </div>
             </div>
 
-            {/* Custom Floating Animation for 3D elements */}
-            <style jsx global>{`
-                @keyframes float-hero {
-                    0%, 100% { transform: translateY(0) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)); }
-                    50% { transform: translateY(-20px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)); }
-                }
-                .hero-3d-node {
-                    animation: float-hero 6s ease-in-out infinite;
-                }
-            `}</style>
+            {/* Status Monitoring Bar (Bottom) */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-background to-transparent z-20 pointer-events-none" />
 
-            {/* Stage Floor Shadow */}
-            <div className="absolute bottom-0 left-0 right-0 h-40 bg-linear-to-t from-background to-transparent pointer-events-none" />
+            <div className="absolute bottom-10 left-12 hero-reveal hidden xl:flex gap-12 font-mono text-[9px] uppercase tracking-[0.3em] text-foreground/30">
+                <div className="flex items-center gap-3">
+                    <div className="size-1 rounded-full bg-primary" />
+                    <span>Latent Orchestration: Active</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="size-1 rounded-full bg-primary" />
+                    <span>Nodes Online: 1,024</span>
+                </div>
+            </div>
         </section>
     )
 }

@@ -73,7 +73,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
       },
     }
   },
-  model: 'google/gemini-2.5-flash-lite-preview-09-2025',
+  model: 'google/gemini-3.1-flash-lite-preview',
   memory: pgMemory,
   tools: {
     webScraperTool,

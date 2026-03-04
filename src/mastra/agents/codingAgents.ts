@@ -251,7 +251,7 @@ Be constructive and educational in feedback.`,
   },
   model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
+    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
   },
   tools: {
     codeAnalysisTool,
@@ -388,7 +388,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
   },
   model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
+    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
   },
   tools: {
     codeAnalysisTool,
@@ -533,7 +533,7 @@ For each refactoring:
   },
   model: ({ requestContext }) => {
     const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? googleAI3 : googleAI
+    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
   },
   tools: {
     multiStringEditTool,

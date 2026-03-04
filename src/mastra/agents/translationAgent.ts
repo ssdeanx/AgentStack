@@ -116,7 +116,7 @@ export const translationAgent = new Agent({
 - Include notes about untranslatable elements or cultural references
 - Offer alternative translations when cultural nuances allow multiple interpretations
 `,
-  model: googleAI3,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   agents: {
     evaluationAgent,

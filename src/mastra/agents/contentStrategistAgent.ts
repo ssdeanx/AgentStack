@@ -78,7 +78,7 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
       },
     }
   },
-  model: google3,
+  model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
   tools: {
     webScraperTool,

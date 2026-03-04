@@ -124,7 +124,7 @@ export const customerSupportAgent = new Agent({
 - Offer additional assistance and follow-up options
 - Document any new issues or solutions encountered for future reference
 `,
-  model: googleAI3,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   agents: {
     researchAgent,

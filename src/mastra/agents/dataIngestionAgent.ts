@@ -63,7 +63,7 @@ User: ${userId} | Dir: ${sourceDirectory} | Max Rows: ${maxRows}
 - **Guidelines**: Handle encoding issues; truncate if > ${maxRows} rows.
 `
   },
-  model: googleAI,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     csvToJsonTool,

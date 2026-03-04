@@ -24,5 +24,7 @@ export const mainWorkspace = new Workspace({
     id: 'sandbox',
     workingDirectory: './workspace',
   }),
-  skills: ['/skills'],
+  skills: ['./**/skills'],
+  bm25: true,
+
 });
