@@ -26,7 +26,8 @@
     "format": "npm run prettier:write",
     "build-cli": "tsc -p tsconfig.cli.json",
     "cli": "node dist/index.js",
-    "generate-index": "node dist/cli/index.js"
+    "generate-index": "node dist/cli/index.js",
+    "convex": "npx convex dev --env-file .env.local"
   },
   "keywords": [
     "ai",
@@ -46,12 +47,12 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.34",
-    "@ai-sdk/google-vertex": "^4.0.68",
-    "@ai-sdk/openai": "^3.0.37",
+    "@ai-sdk/google": "^3.0.35",
+    "@ai-sdk/google-vertex": "^4.0.69",
+    "@ai-sdk/openai": "^3.0.38",
     "@ai-sdk/openai-compatible": "^2.0.31",
     "@ai-sdk/provider-utils": "^4.0.16",
-    "@ai-sdk/react": "^3.0.107",
+    "@ai-sdk/react": "^3.0.108",
     "@dotenvx/dotenvx": "^1.52.0",
     "@e2b/code-interpreter": "^2.3.3",
     "@emotion/react": "^11.14.0",
@@ -152,8 +153,8 @@
     "excalidraw-to-svg": "^3.1.0",
     "fast-glob": "^3.3.3",
     "fast-xml-parser": "^5.4.1",
-    "framer-motion": "^12.34.3",
-    "globals": "^17.3.0",
+    "framer-motion": "^12.34.4",
+    "globals": "^17.4.0",
     "gray-matter": "^4.0.3",
     "gsap": "^3.14.2",
     "html-to-image": "^1.11.13",
@@ -171,7 +172,7 @@
     "marked": "^17.0.3",
     "mathjs": "^15.1.1",
     "media-chrome": "^4.18.0",
-    "motion": "^12.34.3",
+    "motion": "^12.34.4",
     "nanoid": "^5.1.6",
     "next": "^16.1.6",
     "next-themes": "^0.4.6",

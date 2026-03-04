@@ -46,7 +46,7 @@ export const daneCommitMessage = new Agent({
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   options: {
     tracingPolicy: {
@@ -91,7 +91,7 @@ export const daneIssueLabeler = new Agent({
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   outputProcessors: [
     new TokenLimiterProcessor(128576),
@@ -144,7 +144,7 @@ export const daneLinkChecker = new Agent({
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   options: {
     tracingPolicy: {
@@ -196,7 +196,7 @@ export const daneChangeLog = new Agent({
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   defaultOptions: {
     autoResumeSuspendedTools: true,
@@ -270,7 +270,7 @@ export const dane = new Agent({
       },
     }
   },
-  model: 'google/gemini-3-flash-preview',
+  model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
   tools: {
     execaTool,

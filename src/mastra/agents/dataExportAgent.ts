@@ -56,7 +56,7 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
 - **Guidelines**: Escape special characters; report errors clearly.
 `
   },
-  model: googleAI,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     jsonToCsvTool,

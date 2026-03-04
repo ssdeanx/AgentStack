@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import React, { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils'
 import type { GsapSvgProps } from './types'
 
 /**
- * Orchestration lattice: multi-node compute graph with directional flow lanes.
+ * AnimatedQuantumLattice: Architectural compute-graph topology.
+ * Replaces 'slop' with high-precision interconnects and zero IDs.
  */
 export function AnimatedQuantumLattice({
     className,
-    size = 220,
+    size = 200,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
@@ -20,33 +21,42 @@ export function AnimatedQuantumLattice({
     useGSAP(
         () => {
             ensureGsapRegistered()
-            if (!animate) {
-                return
-            }
+            if (!ref.current || !animate) { return }
 
-            gsap.to('[data-lane-flow]', {
-                strokeDashoffset: -40,
-                duration: 1.2,
-                ease: 'none',
+            // Compute flow pulses
+            gsap.to('[data-lattice-flow]', {
+                strokeDashoffset: -60,
+                duration: 4,
                 repeat: -1,
+                ease: 'none',
+                stagger: {
+                    each: 0.3,
+                    from: 'random'
+                }
             })
 
+            // Logic core rotation
             gsap.to('[data-node-core]', {
-                scale: 1.18,
-                opacity: 0.45,
-                duration: 0.8,
-                yoyo: true,
+                rotation: 360,
+                duration: 'random(10, 20)',
                 repeat: -1,
-                stagger: 0.08,
-                transformOrigin: '50% 50%',
+                ease: 'none',
+                transformOrigin: 'center'
             })
 
-            gsap.to('[data-outer-ring]', {
-                rotation: -360,
-                duration: 9,
-                ease: 'none',
+            // Active node heartbeats
+            gsap.to('[data-node-active]', {
+                opacity: 1,
+                scale: 1.2,
+                duration: 1.5,
                 repeat: -1,
-                transformOrigin: '50% 50%',
+                yoyo: true,
+                ease: 'sine.inOut',
+                stagger: {
+                    grid: [4, 4],
+                    from: 'center',
+                    amount: 2
+                }
             })
         },
         { scope: ref, dependencies: [animate] }
@@ -55,57 +65,48 @@ export function AnimatedQuantumLattice({
     return (
         <svg
             ref={ref}
-            className={cn(
-                'text-violet-500 dark:text-violet-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp',
-                className
-            )}
+            className={cn('text-primary/60 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
-            viewBox="0 0 120 120"
+            viewBox="0 0 160 160"
             fill="none"
             role="img"
-            aria-label="Animated quantum lattice"
+            aria-label="High-Precision Compute Topology"
         >
-            <g data-outer-ring>
-                <circle
-                    cx="60"
-                    cy="60"
-                    r="44"
-                    stroke="currentColor"
-                    strokeOpacity="0.18"
-                    strokeDasharray="7 9"
-                />
+            {/* Technical Sub-Grid */}
+            <g stroke="currentColor" strokeOpacity="0.05" strokeWidth="0.5">
+                {[20, 60, 100, 140].map(v => (
+                    <React.Fragment key={v}>
+                        <circle cx="80" cy="80" r={v / 2} strokeDasharray="1 8" />
+                        <line x1={v} y1="0" x2={v} y2="160" />
+                        <line x1="0" y1={v} x2="160" y2={v} />
+                    </React.Fragment>
+                ))}
             </g>
 
-            <path d="M24 36 H96" stroke="currentColor" strokeOpacity="0.2" />
-            <path d="M24 60 H96" stroke="currentColor" strokeOpacity="0.2" />
-            <path d="M24 84 H96" stroke="currentColor" strokeOpacity="0.2" />
+            {/* Topological Lanes (Data Channels) */}
+            <g stroke="currentColor" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="4 16">
+                <path data-lattice-flow d="M40 40 L80 120 L120 40" />
+                <path data-lattice-flow d="M40 120 L80 40 L120 120" />
+                <circle cx="80" cy="80" r="40" strokeOpacity="0.2" />
+            </g>
 
-            <path
-                data-lane-flow
-                d="M24 60 H96"
-                stroke="currentColor"
-                strokeOpacity="0.9"
-                strokeWidth="2"
-                strokeDasharray="10 10"
-            />
-
+            {/* Neural Logic Nodes */}
             {[
-                [30, 36],
-                [60, 36],
-                [90, 36],
-                [30, 60],
-                [60, 60],
-                [90, 60],
-                [30, 84],
-                [60, 84],
-                [90, 84],
-            ].map(([x, y]) => (
-                <g key={`${x}-${y}`}>
-                    <circle cx={x} cy={y} r="5" fill="currentColor" opacity="0.2" />
-                    <circle data-node-core cx={x} cy={y} r="2" fill="currentColor" />
+                [40, 40], [120, 40], [40, 120], [120, 120],
+                [80, 80], [80, 40], [80, 120], [40, 80], [120, 80]
+            ].map(([x, y], i) => (
+                <g key={i} transform={`translate(${x}, ${y})`}>
+                    <g data-node-core transform-origin="center">
+                        <rect x="-6" y="-6" width="12" height="12" rx="2" fill="currentColor" fillOpacity="0.03" stroke="currentColor" strokeOpacity="0.1" />
+                        <line x1="-8" y1="0" x2="8" y2="0" strokeOpacity="0.05" />
+                    </g>
+                    <circle data-node-active r="2" fill="currentColor" fillOpacity="0.4" />
                 </g>
             ))}
+
+            {/* Calibration Rings (Outer Perimeter) */}
+            <circle cx="80" cy="80" r="75" stroke="currentColor" strokeOpacity="0.05" strokeWidth="0.5" strokeDasharray="1 10" />
         </svg>
     )
 }

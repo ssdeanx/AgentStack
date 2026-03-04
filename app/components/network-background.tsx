@@ -1,182 +1,88 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { motion, useAnimation } from 'framer-motion'
+import { useRef } from 'react'
+import { useGSAP } from '@gsap/react'
+import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { cn } from '@/lib/utils'
 
-interface Node {
-    id: number
-    x: number
-    y: number
-    radius: number
-    color: string
-    velocity: { x: number; y: number }
-    connections: number[]
-}
-
 export function NetworkBackground({ className }: { className?: string }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [nodes, setNodes] = useState<Node[]>([])
-    const requestRef = useRef<number | null>(null)
-    const mouseRef = useRef<{ x: number; y: number }>({ x: -1000, y: -1000 })
+    const ref = useRef<SVGSVGElement>(null)
 
-    // Initialize nodes
-    useEffect(() => {
-        if (!containerRef.current) {
-            return
-        }
+    useGSAP(
+        () => {
+            ensureGsapRegistered()
+            if (!ref.current) { return }
 
-        const { width, height } = containerRef.current.getBoundingClientRect()
-        const nodeCount = 40
-        const newNodes: Node[] = []
-
-        for (let i = 0; i < nodeCount; i++) {
-            newNodes.push({
-                id: i,
-                x: Math.random() * width,
-                y: Math.random() * height,
-                radius: Math.random() * 2 + 1,
-                color: 'rgba(255, 255, 255, 0.3)', // Default node color
-                velocity: {
-                    x: (Math.random() - 0.5) * 0.5,
-                    y: (Math.random() - 0.5) * 0.5,
-                },
-                connections: [],
-            })
-        }
-
-        setNodes(newNodes)
-    }, [])
-
-    // Animation Loop
-    useEffect(() => {
-        const canvas = canvasRef.current
-        if (!canvas) {
-            return
-        }
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-            return
-        }
-
-        const resizeCanvas = () => {
-            if (containerRef.current && canvas) {
-                const { width, height } =
-                    containerRef.current.getBoundingClientRect()
-                canvas.width = width
-                canvas.height = height
-            }
-        }
-        window.addEventListener('resize', resizeCanvas)
-        resizeCanvas()
-
-        const animate = () => {
-            if (!containerRef.current || !canvas) {
-                return
-            }
-            const { width, height } =
-                containerRef.current.getBoundingClientRect()
-
-            ctx.clearRect(0, 0, width, height)
-
-            // Update and draw nodes
-            nodes.forEach((node) => {
-                // Move
-                node.x += node.velocity.x
-                node.y += node.velocity.y
-
-                // Bounce
-                if (node.x <= 0 || node.x >= width) {
-                    node.velocity.x *= -1
-                }
-                if (node.y <= 0 || node.y >= height) {
-                    node.velocity.y *= -1
-                }
-
-                // Mouse interaction (repel/attract or light up)
-                const dx = mouseRef.current.x - node.x
-                const dy = mouseRef.current.y - node.y
-                const distance = Math.sqrt(dx * dx + dy * dy)
-                const interactionRadius = 200
-
-                let nodeColor = node.color
-                if (distance < interactionRadius) {
-                    nodeColor = 'rgba(255, 255, 255, 0.8)'
-                    // Gentle attraction to mouse
-                    node.x += dx * 0.005
-                    node.y += dy * 0.005
-                }
-
-                // Draw connections
-                nodes.forEach((otherNode) => {
-                    if (node.id === otherNode.id) {
-                        return
-                    }
-                    const dxNode = node.x - otherNode.x
-                    const dyNode = node.y - otherNode.y
-                    const distNode = Math.sqrt(
-                        dxNode * dxNode + dyNode * dyNode
-                    )
-
-                    if (distNode < 150) {
-                        const opacity = 1 - distNode / 150
-                        if (distance < interactionRadius) {
-                            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})` // Brighter near mouse
-                        } else {
-                            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.15})` // Dim otherwise
-                        }
-                        ctx.lineWidth = 1
-                        ctx.beginPath()
-                        ctx.moveTo(node.x, node.y)
-                        ctx.lineTo(otherNode.x, otherNode.y)
-                        ctx.stroke()
-                    }
-                })
-
-                // Draw node
-                ctx.beginPath()
-                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2)
-                ctx.fillStyle = nodeColor
-                ctx.fill()
-            })
-
-            requestRef.current = requestAnimationFrame(animate)
-        }
-
-        animate()
-
-        const handleMouseMove = (e: MouseEvent) => {
-            if (containerRef.current) {
-                const rect = containerRef.current.getBoundingClientRect()
-                mouseRef.current = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top,
-                }
-            }
-        }
-
-        // Use global listener to track mouse even if over other elements in the hero
-        containerRef.current?.addEventListener('mousemove', handleMouseMove)
-
-        return () => {
-            window.removeEventListener('resize', resizeCanvas)
-            if (requestRef.current) {
-                cancelAnimationFrame(requestRef.current)
-            }
-            containerRef.current?.removeEventListener(
-                'mousemove',
-                handleMouseMove
+            // Architectural grid expansion
+            gsap.fromTo('[data-net-grid]',
+                { opacity: 0, scale: 0.95 },
+                { opacity: 1, scale: 1, duration: 2, ease: 'expo.out' }
             )
-        }
-    }, [nodes])
+
+            // Systematic pulse progression
+            gsap.to('[data-net-pulse]', {
+                strokeDashoffset: -100,
+                duration: 10,
+                repeat: -1,
+                ease: 'none',
+                stagger: 2
+            })
+        },
+        { scope: ref }
+    )
 
     return (
-        <div
-            ref={containerRef}
-            className={cn('absolute inset-0 z-0', className)}
-        >
-            <canvas ref={canvasRef} className="block size-full" />
+        <div className={cn('absolute inset-0 z-0 pointer-events-none', className)}>
+            <svg
+                ref={ref}
+                className="size-full opacity-20"
+                viewBox="0 0 1000 1000"
+                preserveAspectRatio="xMidYMid slice"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="0.5"
+            >
+                {/* Horizontal System Struts */}
+                <g data-net-grid strokeOpacity="0.1">
+                    <line x1="0" y1="100" x2="1000" y2="100" />
+                    <line x1="0" y1="200" x2="1000" y2="200" />
+                    <line x1="0" y1="300" x2="1000" y2="300" />
+                    <line x1="0" y1="400" x2="1000" y2="400" />
+                    <line x1="0" y1="500" x2="1000" y2="500" />
+                    <line x1="0" y1="600" x2="1000" y2="600" />
+                    <line x1="0" y1="700" x2="1000" y2="700" />
+                    <line x1="0" y1="800" x2="1000" y2="800" />
+                    <line x1="0" y1="900" x2="1000" y2="900" />
+                </g>
+
+                {/* Vertical System Struts */}
+                <g data-net-grid strokeOpacity="0.1">
+                    <line x1="100" y1="0" x2="100" y2="1000" />
+                    <line x1="200" y1="0" x2="200" y2="1000" />
+                    <line x1="300" y1="0" x2="300" y2="1000" />
+                    <line x1="400" y1="0" x2="400" y2="1000" />
+                    <line x1="500" y1="0" x2="500" y2="1000" />
+                    <line x1="600" y1="0" x2="600" y2="1000" />
+                    <line x1="700" y1="0" x2="700" y2="1000" />
+                    <line x1="800" y1="0" x2="800" y2="1000" />
+                    <line x1="900" y1="0" x2="900" y2="1000" />
+                </g>
+
+                {/* Primary Data Highways (Pulse Target) */}
+                <g strokeWidth="1" strokeOpacity="0.3" strokeDasharray="10 40">
+                    <line data-net-pulse x1="500" y1="0" x2="500" y2="1000" />
+                    <line data-net-pulse x1="0" y1="500" x2="1000" y2="500" />
+                </g>
+
+                {/* Junction Points - Defined Manually */}
+                <g opacity="0.4">
+                    <circle cx="500" cy="500" r="2" fill="currentColor" />
+                    <circle cx="200" cy="200" r="1.5" fill="currentColor" />
+                    <circle cx="800" cy="200" r="1.5" fill="currentColor" />
+                    <circle cx="200" cy="800" r="1.5" fill="currentColor" />
+                    <circle cx="800" cy="800" r="1.5" fill="currentColor" />
+                </g>
+            </svg>
         </div>
     )
 }

@@ -56,7 +56,7 @@ Extract the single most important learning and create one relevant follow-up que
             },
         }
     },
-    model: googleAI,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     scorers: {},
     options: {

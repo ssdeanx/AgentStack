@@ -109,7 +109,7 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
             },
         }
     },
-    model: googleAI,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     tools: {},
     scorers: {},

@@ -58,7 +58,7 @@ Current user: ${userId ?? 'anonymous'}`,
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     listEvents,

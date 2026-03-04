@@ -29,63 +29,67 @@ export function AnimatedOrbitalLogo({
                 return
             }
 
+            // Core pulse
             gsap.fromTo(
                 '[data-core]',
-                { scale: 0.85, autoAlpha: 0.75 },
+                { scale: 0.8, autoAlpha: 0.5 },
                 {
                     scale: 1,
                     autoAlpha: 1,
-                    duration: 0.6,
-                    ease: 'power2.out',
+                    duration: 2.5,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: 'sine.inOut',
                 }
             )
 
+            // Outer rings rotation
             if (rotate) {
-                gsap.to('[data-orbit-a]', {
+                gsap.to('[data-orbit-outer]', {
                     rotation: 360,
                     transformOrigin: '50% 50%',
-                    duration: 10,
+                    duration: 35,
                     ease: 'none',
                     repeat: -1,
                 })
 
-                gsap.to('[data-orbit-b]', {
+                gsap.to('[data-orbit-mid]', {
                     rotation: -360,
                     transformOrigin: '50% 50%',
-                    duration: 14,
+                    duration: 25,
+                    ease: 'none',
+                    repeat: -1,
+                })
+
+                gsap.to('[data-orbit-inner]', {
+                    rotation: 360,
+                    transformOrigin: '50% 50%',
+                    duration: 15,
                     ease: 'none',
                     repeat: -1,
                 })
             }
 
+            // Nodes staggered pulse
             if (pulseNodes) {
                 gsap.to('[data-node]', {
-                    scale: 1.12,
-                    autoAlpha: 0.75,
-                    duration: 1.2,
-                    ease: 'sine.inOut',
-                    repeat: -1,
-                    yoyo: true,
+                    scale: 1.4,
+                    duration: 1,
                     stagger: {
-                        each: 0.15,
+                        each: 0.2,
                         repeat: -1,
                         yoyo: true,
                     },
+                    ease: 'power1.inOut',
                 })
             }
 
-            gsap.to('[data-link-pulse]', {
-                strokeDashoffset: -42,
-                duration: 1.1,
-                ease: 'none',
+            // Data flow animation
+            gsap.to('[data-flow]', {
+                strokeDashoffset: -40,
+                duration: 2,
                 repeat: -1,
-            })
-
-            gsap.to('[data-link-pulse]', {
-                strokeDashoffset: -42,
-                duration: 1.1,
                 ease: 'none',
-                repeat: -1,
             })
         },
         { scope: svgRef }
@@ -94,84 +98,82 @@ export function AnimatedOrbitalLogo({
     return (
         <svg
             ref={svgRef}
-            className={cn('text-blue-500 dark:text-blue-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
+            className={cn('text-primary gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 100 100"
             fill="none"
             role="img"
-            aria-label="AgentStack animated orbital logo"
+            aria-label="AgentStack professional orbital logo"
         >
-            <g data-orbit-group data-orbit-a>
-                <circle
-                    cx="50"
-                    cy="50"
-                    r="34"
-                    stroke="currentColor"
-                    strokeOpacity="0.28"
-                    strokeWidth="2"
-                />
-                <circle data-node cx="84" cy="50" r="4" fill="currentColor" />
-                <circle
-                    data-node
-                    cx="50"
-                    cy="16"
-                    r="3"
-                    fill="currentColor"
-                    fillOpacity="0.9"
-                />
-            </g>
-
-            <g data-orbit-group data-orbit-b>
-                <ellipse
-                    cx="50"
-                    cy="50"
-                    rx="25"
-                    ry="15"
-                    stroke="currentColor"
-                    strokeOpacity="0.2"
-                    strokeWidth="2"
-                    transform="rotate(35 50 50)"
-                />
-                <circle
-                    data-node
-                    cx="72"
-                    cy="35"
-                    r="3"
-                    fill="currentColor"
-                    fillOpacity="0.85"
-                />
-            </g>
-
-            <path
-                data-link-pulse
-                d="M28 64 Q50 50 72 36"
-                stroke="currentColor"
-                strokeOpacity="0.5"
-                strokeWidth="1.8"
-                strokeDasharray="6 8"
-                fill="none"
-            />
-
-            <path
-                data-link-pulse
-                d="M28 64 Q50 50 72 36"
-                stroke="currentColor"
-                strokeOpacity="0.5"
-                strokeWidth="1.8"
-                strokeDasharray="6 8"
-                fill="none"
-            />
-
+            {/* Outer dotted orbit */}
             <circle
-                data-core
+                data-orbit-outer
                 cx="50"
                 cy="50"
-                r="12"
-                fill="currentColor"
-                fillOpacity="0.18"
+                r="46"
+                stroke="currentColor"
+                strokeOpacity="0.1"
+                strokeWidth="1"
+                strokeDasharray="1 6"
             />
-            <circle cx="50" cy="50" r="7" fill="currentColor" />
+
+            {/* Main orbits */}
+            <g data-orbit-mid>
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    stroke="currentColor"
+                    strokeOpacity="0.15"
+                    strokeWidth="1.5"
+                />
+                <circle data-node cx="88" cy="50" r="2.5" fill="currentColor" />
+                <circle data-node cx="12" cy="50" r="2.5" fill="currentColor" />
+            </g>
+
+            <g data-orbit-inner>
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="28"
+                    stroke="currentColor"
+                    strokeOpacity="0.25"
+                    strokeWidth="2"
+                    strokeDasharray="15 8"
+                />
+                <circle data-node cx="50" cy="22" r="3.5" fill="currentColor" />
+                <circle data-node cx="50" cy="78" r="3.5" fill="currentColor" />
+            </g>
+
+            {/* Data flow lines */}
+            <path
+                data-flow
+                d="M50 22 A28 28 0 0 1 78 50"
+                stroke="currentColor"
+                strokeOpacity="0.4"
+                strokeWidth="2"
+                strokeDasharray="4 8"
+            />
+            <path
+                data-flow
+                d="M22 50 A28 28 0 0 0 50 78"
+                stroke="currentColor"
+                strokeOpacity="0.4"
+                strokeWidth="2"
+                strokeDasharray="4 8"
+            />
+
+            {/* Hexagonal Core */}
+            <path
+                data-core
+                d="M50 38 L60.4 44 V56 L50 62 L39.6 56 V44 Z"
+                fill="currentColor"
+                fillOpacity="0.1"
+                stroke="currentColor"
+                strokeWidth="1.5"
+            />
+            <circle cx="50" cy="50" r="4" fill="currentColor" />
         </svg>
     )
 }

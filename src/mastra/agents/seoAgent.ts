@@ -100,7 +100,7 @@ export const seoAgent = new Agent({
 - Include performance tracking suggestions
 - Consider both immediate wins and long-term strategy
 `,
-  model: googleAI3,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   agents: {
     researchAgent,

@@ -104,11 +104,11 @@ Provide structured results with:
     model: ({ requestContext }) => {
         const userTier = requestContext.get('user-tier') ?? 'free'
         if (userTier === 'enterprise') {
-            return google.chat('gemini-3-pro-preview')
+            return google.chat('gemini-3.1-pro-preview')
         } else if (userTier === 'pro') {
-            return 'google/gemini-3-flash-preview'
+            return 'google/gemini-3.1-flash-preview'
         }
-        return google.chat('gemini-3-flash-preview')
+        return google.chat('gemini-3.1-flash-lite-previeww')
     },
     tools: {
         webScraperTool,

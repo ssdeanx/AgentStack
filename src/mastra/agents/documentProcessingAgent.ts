@@ -63,7 +63,7 @@ User: ${userId} | In: ${inputDirectory} | Out: ${outputDirectory}
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 `
     },
-    model: googleAI3,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     tools: {
         pdfToMarkdownTool,

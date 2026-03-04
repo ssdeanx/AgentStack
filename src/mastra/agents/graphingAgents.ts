@@ -117,7 +117,7 @@ Rules and best practices:
       },
     }
   },
-  model: googleAI,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     chartSupervisorTool,
@@ -194,7 +194,7 @@ export const technicalAnalysisAgent = new Agent({
       },
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     technicalAnalysisTool,
@@ -231,7 +231,7 @@ export const chartJsAgent = new Agent({
     content:
       'Generate Chart.js config JSON and any helper metadata. Downsample large series before visualization to keep UI performant.',
   }),
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     chartJsTool,
@@ -254,7 +254,7 @@ export const mappingAgent = new Agent({
     content:
       'Return GeoJSON, center and markers for Leaflet; or Cytoscape elements for graph visualizations. Validate coordinates and keep payload sizes reasonable.',
   }),
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     leafletTool,
@@ -282,7 +282,7 @@ export const fetchAgent = new Agent({
     content:
       'Use the resilient-fetch tool for all external HTTP fetching. Respect API rate limits and provide concise error messages when failures occur.',
   }),
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: { resilientFetchTool },
   options: {
@@ -307,7 +307,7 @@ export const finnhubAgent = new Agent({
     content:
       'Use Finnhub tools to fetch the requested data and normalize result to a consistent schema. If FINNHUB_API_KEY is missing, return an explanatory error.',
   }),
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     finnhubQuotesTool,
@@ -373,7 +373,7 @@ Rules:
 `,
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     cytoscapeTool,
@@ -437,7 +437,7 @@ Rules:
 `,
     }
   },
-  model: googleAIFlashLite,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
     resilientFetchTool,

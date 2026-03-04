@@ -171,29 +171,34 @@
 }
 
 .dark {
-    --background: oklch(0.05 0 0); /* Obsidian Dark */
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.1 0 0); /* Slightly lighter for cards */
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.05 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.129 0.042 264.695);
-    --secondary: oklch(0.15 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.15 0 0);
-    --muted-foreground: oklch(0.65 0 0);
-    --accent: oklch(0.15 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(0.2 0 0); /* Subtle borders */
-    --input: oklch(0.2 0 0);
-    --ring: oklch(0.8 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
+    --background: oklch(0.08 0 0); /* Pure Obsidian */
+    --foreground: oklch(0.99 0 0);
+    --card: oklch(0.12 0 0); 
+    --card-foreground: oklch(0.99 0 0);
+    --popover: oklch(0.08 0 0);
+    --popover-foreground: oklch(0.99 0 0);
+    --primary: oklch(0.7 0.25 265); /* Vibrant Indigo */
+    --primary-foreground: oklch(0.12 0 0);
+    --secondary: oklch(0.18 0 0);
+    --secondary-foreground: oklch(0.99 0 0);
+    --muted: oklch(0.18 0 0);
+    --muted-foreground: oklch(0.6 0 0);
+    --accent: oklch(0.18 0 0);
+    --accent-foreground: oklch(0.99 0 0);
+    --destructive: oklch(0.6 0.2 25);
+    --border: oklch(0.25 0 0 / 40%);
+    --input: oklch(0.25 0 0 / 40%);
+    --ring: oklch(0.7 0.25 265);
+    
+    /* Precision Accents */
+    --accent-cyan: oklch(0.75 0.2 200);
+    --accent-violet: oklch(0.65 0.25 285);
+    --accent-emerald: oklch(0.8 0.2 160);
+
+    /* High-End Hero Glows (Vibrant but Deep) */
+    --hero-glow-primary: radial-gradient(circle at center, oklch(0.65 0.25 265 / 15%) 0%, transparent 70%);
+    --hero-glow-secondary: radial-gradient(circle at center, oklch(0.75 0.2 200 / 10%) 0%, transparent 70%);
+    --hero-glow-tertiary: radial-gradient(circle at center, oklch(0.65 0.25 285 / 10%) 0%, transparent 70%);
     --sidebar: oklch(0.05 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -207,6 +212,34 @@
     --surface-glass: oklch(0.1 0 0 / var(--glass-opacity));
     --glass-border: oklch(1 0 0 / 5%);
     --glow-primary: oklch(0.7 0.2 260 / 30%);
+
+    /* Hero Glow Gradients */
+    --hero-glow-1-bg: radial-gradient(circle at center, oklch(0.6 0.25 250 / 25%) 0%, transparent 70%);
+    --hero-glow-2-bg: radial-gradient(circle at center, oklch(0.6 0.18 200 / 15%) 0%, transparent 70%);
+    --hero-glow-3-bg: radial-gradient(circle at center, oklch(0.5 0.1 260 / 20%) 0%, transparent 70%);
+}
+
+@layer utilities {
+    .hero-glow-1 {
+        background: radial-gradient(circle at center, oklch(0.65 0.25 265 / 10%) 0%, transparent 70%);
+        filter: blur(120px);
+    }
+    .hero-glow-2 {
+        background: radial-gradient(circle at center, oklch(0.7 0.15 250 / 8%) 0%, transparent 70%);
+        filter: blur(100px);
+    }
+    .hero-glow-3 {
+        background: radial-gradient(circle at center, oklch(0.6 0.2 280 / 8%) 0%, transparent 70%);
+        filter: blur(140px);
+    }
+    
+    .text-balance {
+        text-wrap: balance;
+    }
+    
+    .glass-premium {
+        @apply bg-background/60 backdrop-blur-2xl border border-border sm:border-t-border/50;
+    }
 }
 
 @layer base {

@@ -92,7 +92,7 @@ export const socialMediaAgent = new Agent({
 - Suggest optimal posting times based on audience data
 - Include relevant hashtags and platform-specific formatting
 `,
-  model: googleAI3,
+  model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   agents: {
     copywriterAgent,

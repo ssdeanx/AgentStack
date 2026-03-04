@@ -81,10 +81,9 @@ export function LandingCTA() {
                     <p
                         className={`cta-desc mx-auto mb-10 max-w-2xl ${SECTION_BODY.subtitleCentered} lg:text-xl`}
                     >
-                        Join thousands of developers building the next
-                        generation of AI applications with AgentStack. Open
-                        source, enterprise-ready, and backed by an amazing
-                        community.
+                        Start building the next generation of AI applications
+                        with AgentStack today. Open source, production-ready,
+                        and designed for the modern AI developer.
                     </p>
 
                     <div className="cta-visual mb-10 flex justify-center">

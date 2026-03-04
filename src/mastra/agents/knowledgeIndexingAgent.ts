@@ -60,7 +60,7 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 `
     },
-    model: google3,
+    model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
     tools: {
         mdocumentChunker,

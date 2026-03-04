@@ -177,3 +177,6 @@ thoughts/ledgers/CONTINUITY_ses_3772.md
 src/mastra/tracing.ts
 .github/-/observability-setup.md
 .github/-/testing-strategies.md
+src/mastra/public/storage/key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json
+src/mastra/public/storage/key_value_stores/default/SDK_SESSION_POOL_STATE.json
+src/mastra/public/workspace/workspace/iran-war-report.md

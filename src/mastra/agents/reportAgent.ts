@@ -68,13 +68,13 @@ export const reportAgent = new Agent({
     const userTier = requestContext.get('user-tier') ?? 'free'
     if (userTier === 'enterprise') {
       // higher quality (chat style) for enterprise
-      return googleAIPro
+      return "google/gemini-3.1-flash-lite-preview"
     } else if (userTier === 'pro') {
       // Chat bison for pro as well
-      return google3
+      return "google/gemini-3.1-flash-lite-preview"
     }
     // cheaper/faster model for free tier
-    return googleAIFlashLite
+    return "google/gemini-3.1-flash-lite-preview"
   },
   memory: pgMemory,
   options: {

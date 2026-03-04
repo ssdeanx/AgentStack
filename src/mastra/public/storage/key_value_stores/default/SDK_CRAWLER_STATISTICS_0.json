@@ -1,51 +1,27 @@
 {
-  "requestsFinished": 0,
-  "requestsFailed": 1,
-  "requestsRetries": 1,
-  "requestsFailedPerMinute": 9,
-  "requestsFinishedPerMinute": 0,
-  "requestMinDurationMillis": null,
-  "requestMaxDurationMillis": 0,
-  "requestTotalFailedDurationMillis": 60,
-  "requestTotalFinishedDurationMillis": 0,
-  "crawlerStartedAt": "2026-02-21T15:55:43.489Z",
-  "crawlerFinishedAt": "2026-02-21T15:55:50.080Z",
-  "statsPersistedAt": "2026-02-21T15:55:50.080Z",
-  "crawlerRuntimeMillis": 6638,
-  "crawlerLastStartTimestamp": 1771689343442,
+  "requestsFinished": 1,
+  "requestsFailed": 0,
+  "requestsRetries": 0,
+  "requestsFailedPerMinute": 0,
+  "requestsFinishedPerMinute": 10,
+  "requestMinDurationMillis": 4801,
+  "requestMaxDurationMillis": 4801,
+  "requestTotalFailedDurationMillis": 0,
+  "requestTotalFinishedDurationMillis": 4801,
+  "crawlerStartedAt": "2026-03-02T19:53:04.280Z",
+  "crawlerFinishedAt": "2026-03-02T19:53:09.967Z",
+  "statsPersistedAt": "2026-03-02T19:53:09.967Z",
+  "crawlerRuntimeMillis": 5731,
+  "crawlerLastStartTimestamp": 1772481184236,
   "requestRetryHistogram": [
-    null,
-    null,
     1
   ],
   "statsId": 0,
-  "requestAvgFailedDurationMillis": 60,
-  "requestAvgFinishedDurationMillis": null,
-  "requestTotalDurationMillis": 60,
+  "requestAvgFailedDurationMillis": null,
+  "requestAvgFinishedDurationMillis": 4801,
+  "requestTotalDurationMillis": 4801,
   "requestsTotal": 1,
-  "requestsWithStatusCode": {
-    "404": 3
-  },
-  "errors": {
-    "file:///C:/Users/ssdsk/AgentStack/.mastra/output/tools/63e94f59-8415-41f8-b936-2b2d519f5000.mjs:602:21": {
-      "HTTP_ERROR": {
-        "ScrapingError": {
-          "HTTP 404: Not Found (code=HTTP_ERROR)": {
-            "count": 1
-          }
-        }
-      }
-    }
-  },
-  "retryErrors": {
-    "file:///C:/Users/ssdsk/AgentStack/.mastra/output/tools/63e94f59-8415-41f8-b936-2b2d519f5000.mjs:602:21": {
-      "HTTP_ERROR": {
-        "ScrapingError": {
-          "HTTP 404: Not Found (code=HTTP_ERROR)": {
-            "count": 2
-          }
-        }
-      }
-    }
-  }
+  "requestsWithStatusCode": {},
+  "errors": {},
+  "retryErrors": {}
 }

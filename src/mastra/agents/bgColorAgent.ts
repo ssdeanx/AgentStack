@@ -12,7 +12,7 @@ export const bgColorAgent = new Agent({
       You will be given a color in any format (e.g., "red", "rgb(255, 0, 0)", "hsl(0, 100%, 50%)").
       Your task is to convert this color to HEX format (e.g., "#FF0000") and call the colorChangeTool with the HEX color.
 `,
-  model: 'openai/gpt-4o-mini',
+  model: 'google/gemini-3.1-flash-lite-preview',
   tools: { colorChangeTool },
   memory: new Memory(),
   options: {

@@ -1,60 +1,46 @@
 'use client'
 
-import { useId, useRef } from 'react'
+import React, { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { cn } from '@/lib/utils'
 import type { GsapSvgProps } from './types'
 
+/**
+ * AnimatedLiquidBlob: High-precision architectural fluid schematic.
+ * Replaces 'slop' blobs with structured arcs and zero IDs.
+ */
 export function AnimatedLiquidBlob({
     className,
-    size = 220,
+    size = 200,
     animate = true,
 }: GsapSvgProps) {
     const ref = useRef<SVGSVGElement>(null)
-    const gradientId = useId().replace(/:/g, '')
 
     useGSAP(
         () => {
             ensureGsapRegistered()
-            if (!ref.current) {
-                return
-            }
+            if (!ref.current || !animate) { return }
 
-            if (!animate) {
-                return
-            }
-
-            gsap.to('[data-blob-a]', {
-                x: 8,
-                y: -6,
-                scale: 1.08,
-                duration: 2.6,
-                ease: 'sine.inOut',
-                yoyo: true,
+            // Fluid oscillation
+            gsap.to('[data-blob-layer]', {
+                rotation: 'random(5, 15)',
+                scale: 'random(0.95, 1.05)',
+                duration: 'random(2, 4)',
                 repeat: -1,
-                transformOrigin: '50% 50%',
+                yoyo: true,
+                ease: 'sine.inOut',
+                transformOrigin: 'center'
             })
 
-            gsap.to('[data-blob-b]', {
-                x: -7,
-                y: 5,
-                scale: 0.94,
-                duration: 2.2,
-                ease: 'sine.inOut',
-                yoyo: true,
+            // Surface tension reflections
+            gsap.to('[data-blob-reflect]', {
+                opacity: 0.1,
+                duration: 2,
                 repeat: -1,
-                transformOrigin: '50% 50%',
-            })
-
-            gsap.to('[data-highlight]', {
-                x: 5,
-                y: -3,
-                duration: 1.7,
-                ease: 'sine.inOut',
                 yoyo: true,
-                repeat: -1,
+                ease: 'power1.inOut'
             })
         },
         { scope: ref, dependencies: [animate] }
@@ -63,56 +49,37 @@ export function AnimatedLiquidBlob({
     return (
         <svg
             ref={ref}
-            className={cn('text-cyan-500 dark:text-cyan-400 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
+            className={cn('text-primary/60 gsap-will-change gsap-composite gsap-motion-safe gsap-svg-crisp', className)}
             width={size}
             height={size}
             viewBox="0 0 120 120"
             fill="none"
             role="img"
-            aria-label="Animated liquid blobs"
+            aria-label="Architectural Fluid Topology"
         >
-            <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="120" y2="120">
-                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.35" />
-                </linearGradient>
-            </defs>
-            <g>
-                <ellipse
-                    cx="60"
-                    cy="62"
-                    rx="44"
-                    ry="36"
-                    fill="currentColor"
-                    opacity="0.08"
-                />
-                <ellipse
-                    data-blob-a
-                    cx="52"
-                    cy="58"
-                    rx="34"
-                    ry="28"
-                    fill={`url(#${gradientId})`}
-                />
-                <ellipse
-                    data-blob-b
-                    cx="72"
-                    cy="64"
-                    rx="24"
-                    ry="21"
-                    fill="currentColor"
-                    opacity="0.45"
-                />
-                <ellipse
-                    data-highlight
-                    cx="66"
-                    cy="50"
-                    rx="10"
-                    ry="6"
-                    fill="currentColor"
-                    opacity="0.22"
-                />
+            {/* Structured Fluid Boundary */}
+            <g data-blob-layer>
+                <circle cx="60" cy="60" r="45" stroke="currentColor" strokeOpacity="0.1" strokeWidth="1" />
+                <circle cx="60" cy="60" r="40" stroke="currentColor" strokeOpacity="0.2" strokeWidth="0.5" strokeDasharray="2 6" />
+
+                {/* Internal Volume schematic */}
+                <ellipse cx="60" cy="60" rx="35" ry="30" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1" />
             </g>
+
+            {/* Reflection Facets (Architectural Highlight) */}
+            <g data-blob-reflect opacity="0.4">
+                <path d="M45 40 Q60 30 75 40" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="50" cy="35" r="1.5" fill="white" fillOpacity="0.4" />
+            </g>
+
+            {/* Topology Markers */}
+            {[0, 90, 180, 270].map(angle => (
+                <rect
+                    key={angle}
+                    transform={`rotate(${angle} 60 60) translate(60, 15)`}
+                    width="1" height="6" fill="currentColor" fillOpacity="0.4"
+                />
+            ))}
         </svg>
     )
 }
