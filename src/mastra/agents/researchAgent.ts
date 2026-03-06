@@ -9,6 +9,7 @@ import { pgMemory } from '../config/pg-storage'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
+import { fetchTool } from '../tools/fetch.tool'
 import { finnhubQuotesTool } from '../tools/finnhub-tools'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { polygonStockQuotesTool } from '../tools/polygon-tools'
@@ -67,7 +68,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 5. **Synthesize**: Provide final answer with citations and confidence levels. STOP after Phase 2.
 
 ## Tool Selection Guide
-- **Web**: 'webScraperTool' (single URL), 'batchWebScraperTool' (multiple).
+- **Web**: Prefer 'fetchTool' for reliable URL fetch/search to markdown. Use 'webScraperTool' for selector-based extraction.
 - **News/Trends**: 'googleNewsTool', 'googleTrendsTool', 'googleFinanceTool'.
 - **Academic**: 'googleScholarTool'.
 - **Financial**: Use 'polygon*', 'finnhub*', or 'alphaVantage*' for stocks/crypto.
@@ -97,6 +98,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
   },
   tools: {
     // Core Research Tools
+    fetchTool,
     webScraperTool,
     googleScholarTool,
     googleNewsLiteTool,

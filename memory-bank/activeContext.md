@@ -1,3 +1,17 @@
+## Active Context Update (2026-03-05 - Workspace/Sandbox Hook Expansion)
+
+- Mastra workspace docs were reviewed for frontend integration (`local-filesystem`, `local-sandbox`, `sandbox`, `workspace-class`, `workspace/search`).
+- `lib/hooks/use-mastra-query.ts` now includes workspace-facing hooks for sandbox-style UI workflows:
+  - Queries: `useWorkspaceInfo`, `useWorkspaceFiles`, `useWorkspaceReadFile`, `useWorkspaceStat`, `useWorkspaceSearch`, `useWorkspaceSkills`, `useWorkspaceSearchSkills`
+  - Mutations: `useWorkspaceWriteFileMutation`, `useWorkspaceDeleteMutation`, `useWorkspaceMkdirMutation`, `useWorkspaceIndexMutation`
+- Added granular query keys under `mastraQueryKeys.workspaces` to support cache-safe UI invalidation after file/index mutations.
+
+## Active Context Update (2026-03-05 - Hook Error Cleanup)
+
+- `lib/hooks/use-mastra-query.ts` was corrected after partial MCP/A2A integration left type errors.
+- Sandbox was split into its own hook set (`useSandbox*`) instead of helper verification hooks.
+- MCP/A2A hooks are now included in the returned hook object and can be consumed in frontend UI components.
+
 ## Active Context Update (2026-02-17 - Landing Components Complete)
 
 - All homepage landing sections (`landing-*`) received visual polish and GSAP SVG accent integration.

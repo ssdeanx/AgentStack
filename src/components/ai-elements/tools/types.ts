@@ -48,6 +48,7 @@ import type {
   execaTool,
   extractLearningsTool,
   extractTablesTool,
+  fetchTool,
   fillFormTool,
   findFreeSlots,
   findReferencesTool,
@@ -194,6 +195,7 @@ export type ExcalidrawToSVGUITool = InferUITool<typeof excalidrawToSVGTool>
 export type ExecaUITool = InferUITool<typeof execaTool>
 export type ExtractLearningsUITool = InferUITool<typeof extractLearningsTool>
 export type ExtractTablesUITool = InferUITool<typeof extractTablesTool>
+export type FetchUITool = InferUITool<typeof fetchTool>
 export type FillFormUITool = InferUITool<typeof fillFormTool>
 export type FindFreeSlotsUITool = InferUITool<typeof findFreeSlots>
 export type FindReferencesUITool = InferUITool<typeof findReferencesTool>

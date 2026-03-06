@@ -47,6 +47,22 @@
 
 # Progress
 
+## 2026-03-05 use-mastra-query error cleanup
+
+- Fixed `lib/hooks/use-mastra-query.ts` compile issues caused by partially wired hooks.
+- Removed the stray helper-style `useWorkspaceSandboxReady` hook.
+- Added explicit **separate sandbox hooks** (`useSandboxInfo/files/read/stat/search` + sandbox write/delete/mkdir/index mutations).
+- Wired MCP hooks (`useMcpServers`, `useMcpServerDetails`, `useMcpServerTools`, `useMcpToolDetails`, `useMcpToolExecuteMutation`) into returned hook object.
+- Wired A2A hooks (`useA2ACard`, `useA2AGetTask`, `useA2ASendMessageMutation`, `useA2ACancelTaskMutation`) into returned hook object.
+
+## 2026-03-05 Workspace/Sandbox Hooks for Frontend UI
+
+- Reviewed Mastra Workspace docs/reference pages (`local-filesystem`, `local-sandbox`, `sandbox`, `workspace-class`, `workspace/search`) and mapped to `@mastra/client-js` Workspace API.
+- Extended `lib/hooks/use-mastra-query.ts` with frontend-ready hooks for workspace filesystem + search + skills:
+  - queries: `useWorkspaceInfo`, `useWorkspaceFiles`, `useWorkspaceReadFile`, `useWorkspaceStat`, `useWorkspaceSearch`, `useWorkspaceSkills`, `useWorkspaceSearchSkills`
+  - mutations: `useWorkspaceWriteFileMutation`, `useWorkspaceDeleteMutation`, `useWorkspaceMkdirMutation`, `useWorkspaceIndexMutation`
+- Added new `mastraQueryKeys.workspaces.*` keys for granular cache invalidation and stable UI refresh.
+
 ## Dashboard + Public Data Hardening **[Synced 2026-02-17]**
 
 - Removed unsafe dashboard casts in key routes/components:

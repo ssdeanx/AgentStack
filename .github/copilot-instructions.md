@@ -22,6 +22,14 @@ applyTo: '**'
     - This tool will help you identify issues and suggest fixes.
     - This is especially useful for debugging and improving code quality.
     - Try run it before writing new code & after completing so you can ensure everything works correctly.
+- 🧪 When editing a page/component (especially `app/**/page.tsx`), use VS Code interaction error checks (`get_errors` / `#problems`) on the edited files before and after changes.
+- ⚙️ Internal error-tool enable flow (required for page edits):
+    - 1) Activate VS Code interaction tools.
+    - 2) Run `get_errors` on the exact files being edited (not project-wide).
+    - 3) Fix reported issues.
+    - 4) Run `get_errors` again on those same files to verify clean state.
+- 🌐 When unsure about framework/API behavior while editing UI pages, use internet research tools first (`#web`, `#websearch`, or `fetch_webpage`) and then apply fixes.
+- 🚫 Do not run project-wide type checks/lint commands by default for page edits. Use targeted `get_errors` checks unless the user explicitly asks for `typecheck`/`lint` runs.
 - 📌 To update your memory bank, use [#update-memory-bank] tool to add new information.
 - 🛠 Mastra mcp tools use [#mastradocs], [#mastraChanges], [#mastraexamples] tool.
     - These tools provide access to Mastra documentation, recent changes, and code examples.

@@ -20,3 +20,10 @@ The `lib/` directory serves as the frontend client library layer for AgentStack,
 - **`api.ts`**: Contains typed API client functions that wrap the underlying fetch calls to the Mastra backend.
 - **`utils.ts`**: Shared UI and logic utilities, including `cn` for Tailwind class merging and date formatting helpers.
 - **`a2a.ts` & `auth.ts`**: Utilities for Agent-to-Agent coordination and authentication management.
+
+## Recent Update (2026-03-05)
+
+- `hooks/use-mastra-query.ts` was expanded with workspace/sandbox UI hooks aligned to `@mastra/client-js` Workspace APIs:
+  - Queries: `useWorkspaceInfo`, `useWorkspaceFiles`, `useWorkspaceReadFile`, `useWorkspaceStat`, `useWorkspaceSearch`, `useWorkspaceSkills`, `useWorkspaceSearchSkills`
+  - Mutations: `useWorkspaceWriteFileMutation`, `useWorkspaceDeleteMutation`, `useWorkspaceMkdirMutation`, `useWorkspaceIndexMutation`
+- Added granular workspace query keys to support frontend cache invalidation after file/index mutations.
