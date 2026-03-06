@@ -33,6 +33,8 @@ import {
     WorkflowIcon,
     CpuIcon,
     ActivityIcon,
+    FolderTreeIcon,
+    NetworkIcon,
     Loader2Icon,
     PlusIcon,
 } from 'lucide-react'
@@ -216,6 +218,26 @@ export function MainSidebar() {
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    className="hover:bg-muted/50 transition-all duration-200"
+                                    onClick={() => handleNavClick('/chat/workspaces')}
+                                >
+                                    <FolderTreeIcon className="mr-2 size-4 text-primary/70" />
+                                    <span className="font-medium">Workspaces</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    className="hover:bg-muted/50 transition-all duration-200"
+                                    onClick={() => handleNavClick('/chat/mcp-a2a')}
+                                >
+                                    <NetworkIcon className="mr-2 size-4 text-primary/70" />
+                                    <span className="font-medium">MCP / A2A</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+
                             <Collapsible
                                 open={openSection === 'agents'}
                                 onOpenChange={() => toggleSection('agents')}
@@ -284,12 +306,12 @@ export function MainSidebar() {
                                                                         <h3 className="font-bold text-sm tracking-tight text-foreground">
                                                                             {agent.name}
                                                                         </h3>
-                                                                        {!!(agent.provider || agent.modelId) && (
+                                                                        {!(!(agent.provider ?? agent.modelId)) && (
                                                                             <div className="mt-1.5 flex items-center gap-2">
                                                                                 <div className="flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-primary">
                                                                                     <CpuIcon className="mr-1 size-3" />
                                                                                     <span>
-                                                                                        {agent.provider && `${agent.provider} • `}
+                                                                                        {(Boolean(agent.provider)) && `${agent.provider} • `}
                                                                                         {agent.modelId}
                                                                                     </span>
                                                                                 </div>
@@ -299,7 +321,7 @@ export function MainSidebar() {
 
                                                                     {/* Description section */}
                                                                     <div className="p-4 pt-3">
-                                                                        {agent.description ? (
+                                                                        {(agent.description) ? (
                                                                             <div className="space-y-2">
                                                                                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
                                                                                     Capabilities
@@ -309,7 +331,7 @@ export function MainSidebar() {
                                                                                 </p>
                                                                             </div>
                                                                         ) : (
-                                                                            <p className="text-xs italic text-muted-foreground/60 italic leading-relaxed">
+                                                                            <p className="text-xs italic text-muted-foreground/60 leading-relaxed">
                                                                                 Specialized AI assistant ready to help with your task.
                                                                             </p>
                                                                         )}

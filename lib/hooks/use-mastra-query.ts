@@ -20,16 +20,41 @@ import type {
   CreateMemoryThreadParams,
   GetLogsParams,
   GetMemoryConfigParams,
+  ListSkillsResponse,
   ListMemoryThreadMessagesParams,
+  McpServerListResponse,
+  McpServerToolListResponse,
   ListScoresByEntityIdParams,
   ListScoresByRunIdParams,
   ListScoresByScorerIdParams,
   ListStoredAgentsParams,
   QueryVectorParams,
+  SearchSkillsParams,
+  SearchSkillsResponse,
   StreamParams,
   UpdateMemoryThreadParams,
   UpdateModelParams,
+  WorkspaceFsDeleteResponse,
+  WorkspaceFsListResponse,
+  WorkspaceFsMkdirResponse,
+  WorkspaceFsReadResponse,
+  WorkspaceFsStatResponse,
+  WorkspaceFsWriteResponse,
+  WorkspaceIndexParams,
+  WorkspaceIndexResponse,
+  WorkspaceInfoResponse,
+  WorkspaceSearchParams,
+  WorkspaceSearchResponse,
 } from '@mastra/client-js'
+import type {
+  AgentCard,
+  GetTaskResponse,
+  MessageSendParams,
+  SendMessageResponse,
+  Task,
+  TaskQueryParams,
+} from '@mastra/core/a2a'
+import type { ServerDetailInfo } from '@mastra/core/mcp'
 import type { TracingOptions } from '@mastra/core/observability'
 import { RequestContext } from '@mastra/core/request-context'
 import type { ListTracesArgs } from '@mastra/core/storage'
@@ -79,6 +104,155 @@ interface MastraQueryHooks {
     { instructions: string; comment: string },
     unknown
   >
+  useWorkspaces: () => UseQueryResult<{ workspaces: WorkspaceItem[] }, Error>
+  useWorkspace: (id: string) => UseQueryResult<WorkspaceInfoResponse, Error>
+  useWorkspaceInfo: (id: string) => UseQueryResult<WorkspaceInfoResponse, Error>
+  useWorkspaceFiles: (
+    workspaceId: string,
+    path?: string,
+    recursive?: boolean
+  ) => UseQueryResult<WorkspaceFsListResponse, Error>
+  useWorkspaceReadFile: (
+    workspaceId: string,
+    path: string,
+    encoding?: string
+  ) => UseQueryResult<WorkspaceFsReadResponse, Error>
+  useWorkspaceStat: (
+    workspaceId: string,
+    path: string
+  ) => UseQueryResult<WorkspaceFsStatResponse, Error>
+  useWorkspaceSearch: (
+    workspaceId: string,
+    params: WorkspaceSearchParams
+  ) => UseQueryResult<WorkspaceSearchResponse, Error>
+  useWorkspaceSkills: (
+    workspaceId: string
+  ) => UseQueryResult<ListSkillsResponse, Error>
+  useWorkspaceSearchSkills: (
+    workspaceId: string,
+    params: SearchSkillsParams
+  ) => UseQueryResult<SearchSkillsResponse, Error>
+  useWorkspaceWriteFileMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsWriteResponse,
+    Error,
+    {
+      path: string
+      content: string
+      options?: { encoding?: 'utf-8' | 'base64'; recursive?: boolean }
+    },
+    unknown
+  >
+  useWorkspaceDeleteMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsDeleteResponse,
+    Error,
+    { path: string; options?: { recursive?: boolean; force?: boolean } },
+    unknown
+  >
+  useWorkspaceMkdirMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsMkdirResponse,
+    Error,
+    { path: string; recursive?: boolean },
+    unknown
+  >
+  useWorkspaceIndexMutation: (
+    workspaceId: string
+  ) => UseMutationResult<WorkspaceIndexResponse, Error, WorkspaceIndexParams, unknown>
+  useSandboxInfo: (
+    workspaceId: string
+  ) => UseQueryResult<WorkspaceInfoResponse, Error>
+  useSandboxFiles: (
+    workspaceId: string,
+    path?: string,
+    recursive?: boolean
+  ) => UseQueryResult<WorkspaceFsListResponse, Error>
+  useSandboxReadFile: (
+    workspaceId: string,
+    path: string,
+    encoding?: string
+  ) => UseQueryResult<WorkspaceFsReadResponse, Error>
+  useSandboxStat: (
+    workspaceId: string,
+    path: string
+  ) => UseQueryResult<WorkspaceFsStatResponse, Error>
+  useSandboxSearch: (
+    workspaceId: string,
+    params: WorkspaceSearchParams
+  ) => UseQueryResult<WorkspaceSearchResponse, Error>
+  useSandboxWriteFileMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsWriteResponse,
+    Error,
+    {
+      path: string
+      content: string
+      options?: { encoding?: 'utf-8' | 'base64'; recursive?: boolean }
+    },
+    unknown
+  >
+  useSandboxDeleteMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsDeleteResponse,
+    Error,
+    { path: string; options?: { recursive?: boolean; force?: boolean } },
+    unknown
+  >
+  useSandboxMkdirMutation: (
+    workspaceId: string
+  ) => UseMutationResult<
+    WorkspaceFsMkdirResponse,
+    Error,
+    { path: string; recursive?: boolean },
+    unknown
+  >
+  useSandboxIndexMutation: (
+    workspaceId: string
+  ) => UseMutationResult<WorkspaceIndexResponse, Error, WorkspaceIndexParams, unknown>
+  useMcpServers: (params?: {
+    page?: number
+    perPage?: number
+    offset?: number
+    limit?: number
+  }) => UseQueryResult<McpServerListResponse, Error>
+  useMcpServerDetails: (
+    serverId: string,
+    params?: { version?: string }
+  ) => UseQueryResult<ServerDetailInfo, Error>
+  useMcpServerTools: (
+    serverId: string
+  ) => UseQueryResult<McpServerToolListResponse, Error>
+  useMcpToolDetails: (
+    serverId: string,
+    toolId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<unknown, Error>
+  useMcpToolExecuteMutation: (
+    serverId: string,
+    toolId: string
+  ) => UseMutationResult<
+    unknown,
+    Error,
+    { data?: unknown; requestContext?: RequestContext },
+    unknown
+  >
+  useA2ACard: (agentId: string) => UseQueryResult<AgentCard, Error>
+  useA2ASendMessageMutation: (
+    agentId: string
+  ) => UseMutationResult<SendMessageResponse, Error, MessageSendParams, unknown>
+  useA2AGetTask: (
+    agentId: string,
+    params: TaskQueryParams
+  ) => UseQueryResult<GetTaskResponse, Error>
+  useA2ACancelTaskMutation: (
+    agentId: string
+  ) => UseMutationResult<Task, Error, TaskQueryParams, unknown>
 }
 
 /**
@@ -215,6 +389,68 @@ export const mastraQueryKeys = {
     list: () => [...mastraQueryKeys.workspaces.all, 'list'] as const,
     details: (id: string) =>
       [...mastraQueryKeys.workspaces.all, 'details', id] as const,
+    info: (id: string) =>
+      [...mastraQueryKeys.workspaces.all, 'info', id] as const,
+    files: (workspaceId: string, path: string, recursive: boolean) =>
+      [
+        ...mastraQueryKeys.workspaces.all,
+        'files',
+        workspaceId,
+        path,
+        recursive,
+      ] as const,
+    file: (workspaceId: string, path: string, encoding?: string) =>
+      [...mastraQueryKeys.workspaces.all, 'file', workspaceId, path, encoding] as const,
+    stat: (workspaceId: string, path: string) =>
+      [...mastraQueryKeys.workspaces.all, 'stat', workspaceId, path] as const,
+    search: (workspaceId: string, params: WorkspaceSearchParams) =>
+      [...mastraQueryKeys.workspaces.all, 'search', workspaceId, params] as const,
+    skills: (workspaceId: string) =>
+      [...mastraQueryKeys.workspaces.all, 'skills', workspaceId] as const,
+    searchSkills: (workspaceId: string, params: SearchSkillsParams) =>
+      [
+        ...mastraQueryKeys.workspaces.all,
+        'searchSkills',
+        workspaceId,
+        params,
+      ] as const,
+  },
+  sandbox: {
+    all: ['mastra', 'sandbox'] as const,
+    info: (workspaceId: string) =>
+      [...mastraQueryKeys.sandbox.all, 'info', workspaceId] as const,
+    files: (workspaceId: string, path: string, recursive: boolean) =>
+      [...mastraQueryKeys.sandbox.all, 'files', workspaceId, path, recursive] as const,
+    file: (workspaceId: string, path: string, encoding?: string) =>
+      [...mastraQueryKeys.sandbox.all, 'file', workspaceId, path, encoding] as const,
+    stat: (workspaceId: string, path: string) =>
+      [...mastraQueryKeys.sandbox.all, 'stat', workspaceId, path] as const,
+    search: (workspaceId: string, params: WorkspaceSearchParams) =>
+      [...mastraQueryKeys.sandbox.all, 'search', workspaceId, params] as const,
+  },
+  mcp: {
+    all: ['mastra', 'mcp'] as const,
+    servers: (params?: unknown) =>
+      [...mastraQueryKeys.mcp.all, 'servers', params] as const,
+    serverDetails: (serverId: string, params?: unknown) =>
+      [...mastraQueryKeys.mcp.all, 'serverDetails', serverId, params] as const,
+    serverTools: (serverId: string) =>
+      [...mastraQueryKeys.mcp.all, 'serverTools', serverId] as const,
+    toolDetails: (serverId: string, toolId: string, params?: unknown) =>
+      [
+        ...mastraQueryKeys.mcp.all,
+        'toolDetails',
+        serverId,
+        toolId,
+        params,
+      ] as const,
+  },
+  a2a: {
+    all: ['mastra', 'a2a'] as const,
+    card: (agentId: string) =>
+      [...mastraQueryKeys.a2a.all, 'card', agentId] as const,
+    task: (agentId: string, params: unknown) =>
+      [...mastraQueryKeys.a2a.all, 'task', agentId, params] as const,
   },
 }
 
@@ -656,6 +892,299 @@ export function useMastraQuery(): MastraQueryHooks {
       enabled: !!id,
     })
 
+  const useWorkspaceInfo = (id: string) =>
+    useQuery<WorkspaceInfoResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.info(id),
+      queryFn: () => mastraClient.getWorkspace(id).info(),
+      enabled: !!id,
+    })
+
+  const useWorkspaceFiles = (
+    workspaceId: string,
+    path = '/',
+    recursive = false
+  ) =>
+    useQuery<WorkspaceFsListResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.files(workspaceId, path, recursive),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).listFiles(path, recursive),
+      enabled: !!workspaceId,
+    })
+
+  const useWorkspaceReadFile = (
+    workspaceId: string,
+    path: string,
+    encoding = 'utf-8'
+  ) =>
+    useQuery<WorkspaceFsReadResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.file(workspaceId, path, encoding),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).readFile(path, encoding),
+      enabled: !!workspaceId && !!path,
+    })
+
+  const useWorkspaceStat = (workspaceId: string, path: string) =>
+    useQuery<WorkspaceFsStatResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.stat(workspaceId, path),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).stat(path),
+      enabled: !!workspaceId && !!path,
+    })
+
+  const useWorkspaceSearch = (workspaceId: string, params: WorkspaceSearchParams) =>
+    useQuery<WorkspaceSearchResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.search(workspaceId, params),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).search(params),
+      enabled: !!workspaceId && !!params?.query,
+    })
+
+  const useWorkspaceSkills = (workspaceId: string) =>
+    useQuery<ListSkillsResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.skills(workspaceId),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).listSkills(),
+      enabled: !!workspaceId,
+    })
+
+  const useWorkspaceSearchSkills = (
+    workspaceId: string,
+    params: SearchSkillsParams
+  ) =>
+    useQuery<SearchSkillsResponse, Error>({
+      queryKey: mastraQueryKeys.workspaces.searchSkills(workspaceId, params),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).searchSkills(params),
+      enabled: !!workspaceId,
+    })
+
+  // Workspace Mutations
+  const useWorkspaceWriteFileMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: {
+        path: string
+        content: string
+        options?: { encoding?: 'utf-8' | 'base64'; recursive?: boolean }
+      }) =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .writeFile(params.path, params.content, params.options),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.workspaces.all,
+        })
+      },
+    })
+
+  const useWorkspaceDeleteMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: {
+        path: string
+        options?: { recursive?: boolean; force?: boolean }
+      }) =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .delete(params.path, params.options),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.workspaces.all,
+        })
+      },
+    })
+
+  const useWorkspaceMkdirMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: { path: string; recursive?: boolean }) =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .mkdir(params.path, params.recursive),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.workspaces.all,
+        })
+      },
+    })
+
+  const useWorkspaceIndexMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: WorkspaceIndexParams) =>
+        mastraClient.getWorkspace(workspaceId).index(params),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.workspaces.all,
+        })
+      },
+    })
+
+  // --- SANDBOX (separate frontend hooks) ---
+
+  const useSandboxInfo = (workspaceId: string) =>
+    useQuery<WorkspaceInfoResponse, Error>({
+      queryKey: mastraQueryKeys.sandbox.info(workspaceId),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).info(),
+      enabled: !!workspaceId,
+    })
+
+  const useSandboxFiles = (
+    workspaceId: string,
+    path = '/',
+    recursive = false
+  ) =>
+    useQuery<WorkspaceFsListResponse, Error>({
+      queryKey: mastraQueryKeys.sandbox.files(workspaceId, path, recursive),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).listFiles(path, recursive),
+      enabled: !!workspaceId,
+    })
+
+  const useSandboxReadFile = (
+    workspaceId: string,
+    path: string,
+    encoding = 'utf-8'
+  ) =>
+    useQuery<WorkspaceFsReadResponse, Error>({
+      queryKey: mastraQueryKeys.sandbox.file(workspaceId, path, encoding),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).readFile(path, encoding),
+      enabled: !!workspaceId && !!path,
+    })
+
+  const useSandboxStat = (workspaceId: string, path: string) =>
+    useQuery<WorkspaceFsStatResponse, Error>({
+      queryKey: mastraQueryKeys.sandbox.stat(workspaceId, path),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).stat(path),
+      enabled: !!workspaceId && !!path,
+    })
+
+  const useSandboxSearch = (workspaceId: string, params: WorkspaceSearchParams) =>
+    useQuery<WorkspaceSearchResponse, Error>({
+      queryKey: mastraQueryKeys.sandbox.search(workspaceId, params),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).search(params),
+      enabled: !!workspaceId && !!params?.query,
+    })
+
+  const useSandboxWriteFileMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: {
+        path: string
+        content: string
+        options?: { encoding?: 'utf-8' | 'base64'; recursive?: boolean }
+      }) =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .writeFile(params.path, params.content, params.options),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.sandbox.all })
+      },
+    })
+
+  const useSandboxDeleteMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: {
+        path: string
+        options?: { recursive?: boolean; force?: boolean }
+      }) =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .delete(params.path, params.options),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.sandbox.all })
+      },
+    })
+
+  const useSandboxMkdirMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: { path: string; recursive?: boolean }) =>
+        mastraClient.getWorkspace(workspaceId).mkdir(params.path, params.recursive),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.sandbox.all })
+      },
+    })
+
+  const useSandboxIndexMutation = (workspaceId: string) =>
+    useMutation({
+      mutationFn: (params: WorkspaceIndexParams) =>
+        mastraClient.getWorkspace(workspaceId).index(params),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.sandbox.all })
+      },
+    })
+
+  // --- MCP ---
+
+  const useMcpServers = (params?: {
+    page?: number
+    perPage?: number
+    offset?: number
+    limit?: number
+  }) =>
+    useQuery<McpServerListResponse, Error>({
+      queryKey: mastraQueryKeys.mcp.servers(params),
+      queryFn: () => mastraClient.getMcpServers(params),
+    })
+
+  const useMcpServerDetails = (
+    serverId: string,
+    params?: { version?: string }
+  ) =>
+    useQuery<ServerDetailInfo, Error>({
+      queryKey: mastraQueryKeys.mcp.serverDetails(serverId, params),
+      queryFn: () => mastraClient.getMcpServerDetails(serverId, params),
+      enabled: !!serverId,
+    })
+
+  const useMcpServerTools = (serverId: string) =>
+    useQuery<McpServerToolListResponse, Error>({
+      queryKey: mastraQueryKeys.mcp.serverTools(serverId),
+      queryFn: () => mastraClient.getMcpServerTools(serverId),
+      enabled: !!serverId,
+    })
+
+  const useMcpToolDetails = (
+    serverId: string,
+    toolId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery<unknown, Error>({
+      queryKey: mastraQueryKeys.mcp.toolDetails(serverId, toolId, requestContext),
+      queryFn: () =>
+        mastraClient
+          .getMcpServerTool(serverId, toolId)
+          .details(requestContext as RequestContext),
+      enabled: !!serverId && !!toolId,
+    })
+
+  const useMcpToolExecuteMutation = (serverId: string, toolId: string) =>
+    useMutation({
+      mutationFn: (params: { data?: unknown; requestContext?: RequestContext }) =>
+        mastraClient
+          .getMcpServerTool(serverId, toolId)
+          .execute({
+            data: params.data,
+            requestContext: params.requestContext,
+          }),
+    })
+
+  // --- A2A ---
+
+  const useA2ACard = (agentId: string) =>
+    useQuery<AgentCard, Error>({
+      queryKey: mastraQueryKeys.a2a.card(agentId),
+      queryFn: () => mastraClient.getA2A(agentId).getCard(),
+      enabled: !!agentId,
+    })
+
+  const useA2ASendMessageMutation = (agentId: string) =>
+    useMutation<SendMessageResponse, Error, MessageSendParams>({
+      mutationFn: (params: MessageSendParams) =>
+        mastraClient.getA2A(agentId).sendMessage(params),
+    })
+
+  const useA2AGetTask = (agentId: string, params: TaskQueryParams) =>
+    useQuery<GetTaskResponse, Error>({
+      queryKey: mastraQueryKeys.a2a.task(agentId, params),
+      queryFn: () => mastraClient.getA2A(agentId).getTask(params),
+      enabled: !!agentId && !!params?.id,
+    })
+
+  const useA2ACancelTaskMutation = (agentId: string) =>
+    useMutation<Task, Error, TaskQueryParams>({
+      mutationFn: (params: TaskQueryParams) =>
+        mastraClient.getA2A(agentId).cancelTask(params),
+    })
+
   // --- SYSTEM ---
 
   const useSystemPackages = () =>
@@ -919,6 +1448,24 @@ export function useMastraQuery(): MastraQueryHooks {
     useVectorDetails,
     useWorkspaces,
     useWorkspace,
+    useWorkspaceInfo,
+    useWorkspaceFiles,
+    useWorkspaceReadFile,
+    useWorkspaceStat,
+    useWorkspaceSearch,
+    useWorkspaceSkills,
+    useWorkspaceSearchSkills,
+    useSandboxInfo,
+    useSandboxFiles,
+    useSandboxReadFile,
+    useSandboxStat,
+    useSandboxSearch,
+    useMcpServers,
+    useMcpServerDetails,
+    useMcpServerTools,
+    useMcpToolDetails,
+    useA2ACard,
+    useA2AGetTask,
     useSystemPackages,
 
     // Mutations
@@ -940,6 +1487,17 @@ export function useMastraQuery(): MastraQueryHooks {
     useUpdateWorkingMemoryMutation,
     useVectorQueryMutation,
     useVectorUpsertMutation,
+    useWorkspaceWriteFileMutation,
+    useWorkspaceDeleteMutation,
+    useWorkspaceMkdirMutation,
+    useWorkspaceIndexMutation,
+    useSandboxWriteFileMutation,
+    useSandboxDeleteMutation,
+    useSandboxMkdirMutation,
+    useSandboxIndexMutation,
+    useMcpToolExecuteMutation,
+    useA2ASendMessageMutation,
+    useA2ACancelTaskMutation,
     useScoreMutation,
   }
 
