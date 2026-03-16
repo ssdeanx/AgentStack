@@ -765,21 +765,252 @@ sequenceDiagram
     ProgressPanel->>User: Render grouped progress items with stable IDs
 ```
 
-## 🚀 **Quick Start** (5 Minutes to Production)
+## 🚀 **Hooks** (5 Minutes to Production)
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
-flowchart LR
-    A[1️⃣ Prerequisites] --> B[2️⃣ Clone & Install]
-    B --> C[3️⃣ Configure Env]
-    C --> D[4️⃣ Run Dev]
-    D --> E[5️⃣ Start Building]
+classDiagram
+  class MastraQueryHooks {
+    <<interface>>
+    % Core access
+    +useAgents()
+    +useAgent(agentId, requestContext)
+    +useAgentModelProviders()
+    +useAgentSpeakers(agentId, requestContext)
+    +useAgentListener(agentId, requestContext)
 
-    style A fill:#1565c0,color:#fff
-    style B fill:#2e7d32,color:#fff
-    style C fill:#ef6c00,color:#fff
-    style D fill:#6a1b9a,color:#fff
-    style E fill:#c62828,color:#fff
+    % Tools and processors
+    +useTools(requestContext)
+    +useTool(toolId, requestContext)
+    +useToolProviders()
+    +useToolProvider(providerId)
+    +useToolProviderToolkits(providerId)
+    +useToolProviderTools(providerId, params)
+    +useToolProviderToolSchema(providerId, toolSlug)
+    +useProcessors(requestContext)
+    +useProcessor(processorId, requestContext)
+    +useProcessorProviders()
+    +useProcessorProvider(providerId)
+    +useProcessorExecuteMutation(processorId)
+
+    % Workflows and runs
+    +useWorkflows(requestContext, partial)
+    +useWorkflow(workflowId, requestContext)
+    +useWorkflowRun(workflowId, runId, options)
+    +useWorkflowRuns(workflowId, params, requestContext)
+    +useWorkflowSchema(workflowId)
+    +useWorkflowStartMutation(workflowId)
+    +useWorkflowStartAsyncMutation(workflowId)
+    +useWorkflowDeleteRunMutation(workflowId)
+    +useWorkflowResumeMutation(workflowId)
+    +useWorkflowResumeAsyncMutation(workflowId)
+    +useWorkflowCancelMutation(workflowId)
+    +useWorkflowRestartMutation(workflowId)
+    +useWorkflowRestartAsyncMutation(workflowId)
+    +useWorkflowTimeTravelMutation(workflowId)
+    +useWorkflowTimeTravelAsyncMutation(workflowId)
+
+    % Memory and threads
+    +useThreads(params)
+    +useThread(threadId, agentId, requestContext)
+    +useThreadMessages(threadId, opts)
+    +useThreadMessagesPaginated(threadId, opts)
+    +useWorkingMemory(params)
+    +useMemorySearch(params)
+    +useMemoryStatus(agentId, requestContext, opts)
+    +useMemoryConfig(params)
+    +useObservationalMemory(params)
+    +useAwaitBufferStatus(params)
+    +useCreateThreadMutation()
+    +useDeleteThreadMutation()
+    +useUpdateMemoryThreadMutation(threadId, agentId)
+    +useUpdateWorkingMemoryMutation(agentId, threadId)
+    +useSaveMessageToMemoryMutation()
+    +useDeleteThreadMessagesMutation(threadId, agentId)
+    +useCloneThreadMutation(threadId, agentId)
+
+    % Stored agents and versions
+    +useStoredAgents(params)
+    +useStoredAgent(id, requestContext, options)
+    +useStoredAgentVersions(storedAgentId, params, requestContext)
+    +useStoredAgentVersion(storedAgentId, versionId, requestContext)
+    +useCompareStoredAgentVersions(storedAgentId, fromId, toId, requestContext)
+    +useCreateStoredAgentMutation()
+    +useUpdateStoredAgentMutation(storedAgentId)
+    +useDeleteStoredAgentMutation(storedAgentId)
+    +useCreateStoredAgentVersionMutation(storedAgentId)
+    +useActivateStoredAgentVersionMutation(storedAgentId)
+    +useRestoreStoredAgentVersionMutation(storedAgentId)
+    +useDeleteStoredAgentVersionMutation(storedAgentId)
+
+    % Stored prompt blocks
+    +useStoredPromptBlocks(params)
+    +useStoredPromptBlock(id, requestContext, options)
+    +useStoredPromptBlockVersions(storedPromptBlockId, params, requestContext)
+    +useStoredPromptBlockVersion(storedPromptBlockId, versionId, requestContext)
+    +useCompareStoredPromptBlockVersions(storedPromptBlockId, fromId, toId, requestContext)
+    +useCreateStoredPromptBlockMutation()
+    +useUpdateStoredPromptBlockMutation(storedPromptBlockId)
+    +useDeleteStoredPromptBlockMutation(storedPromptBlockId)
+    +useCreateStoredPromptBlockVersionMutation(storedPromptBlockId)
+    +useActivateStoredPromptBlockVersionMutation(storedPromptBlockId)
+    +useRestoreStoredPromptBlockVersionMutation(storedPromptBlockId)
+    +useDeleteStoredPromptBlockVersionMutation(storedPromptBlockId)
+
+    % Stored scorers
+    +useStoredScorers(params)
+    +useStoredScorer(id, requestContext, options)
+    +useStoredScorerVersions(storedScorerId, params, requestContext)
+    +useStoredScorerVersion(storedScorerId, versionId, requestContext)
+    +useCompareStoredScorerVersions(storedScorerId, fromId, toId, requestContext)
+    +useCreateStoredScorerMutation()
+    +useUpdateStoredScorerMutation(storedScorerId)
+    +useDeleteStoredScorerMutation(storedScorerId)
+    +useCreateStoredScorerVersionMutation(storedScorerId)
+    +useActivateStoredScorerVersionMutation(storedScorerId)
+    +useRestoreStoredScorerVersionMutation(storedScorerId)
+    +useDeleteStoredScorerVersionMutation(storedScorerId)
+
+    % Stored MCP clients and skills
+    +useStoredMcpClients(params)
+    +useStoredMcpClient(id, requestContext)
+    +useCreateStoredMcpClientMutation()
+    +useUpdateStoredMcpClientMutation(storedMcpClientId)
+    +useDeleteStoredMcpClientMutation(storedMcpClientId)
+    +useStoredSkills(params)
+    +useStoredSkill(id, requestContext)
+    +useCreateStoredSkillMutation()
+    +useUpdateStoredSkillMutation(storedSkillId)
+    +useDeleteStoredSkillMutation(storedSkillId)
+
+    % Vectors and embedders
+    +useVectorIndexes()
+    +useVectorDetails(indexName)
+    +useVectors()
+    +useEmbedders()
+    +useVectorQueryMutation(vectorName, indexName)
+    +useVectorUpsertMutation(vectorName, indexName)
+
+    % Workspaces and skills
+    +useWorkspaces()
+    +useWorkspace(id)
+    +useWorkspaceInfo(id)
+    +useWorkspaceFiles(id, params)
+    +useWorkspaceReadFile(id, path)
+    +useWorkspaceSearch(id, params)
+    +useWorkspaceSkills(id)
+    +useWorkspaceSearchSkills(workspaceId, params)
+    +useWorkspaceSkill(workspaceId, skillName)
+    +useWorkspaceSkillReferences(workspaceId, skillName)
+    +useWorkspaceSkillReference(workspaceId, skillName, referencePath)
+    +useWorkspaceWriteFileMutation(workspaceId)
+    +useWorkspaceDeleteMutation(workspaceId)
+    +useWorkspaceMkdirMutation(workspaceId)
+    +useWorkspaceRenameMutation(workspaceId)
+
+    % A2A and Agent Builder
+    +useA2ASendMessageMutation(agentId)
+    +useA2ASendStreamingMessageMutation(agentId)
+    +useA2AGetTask(agentId, params)
+    +useA2ACancelTaskMutation(agentId)
+    +useAgentBuilderActions()
+    +useAgentBuilderAction(actionId)
+    +useAgentBuilderRuns(actionId, params)
+    +useAgentBuilderRun(actionId, runId, options)
+    +useAgentBuilderCreateRunMutation(actionId)
+    +useAgentBuilderStartAsyncMutation(actionId)
+    +useAgentBuilderStartRunMutation(actionId)
+    +useAgentBuilderResumeMutation(actionId)
+    +useAgentBuilderResumeAsyncMutation(actionId)
+    +useAgentBuilderCancelRunMutation(actionId)
+  }
+
+  class MastraClient {
+    +listTools(requestContext)
+    +getTool(toolId)
+    +listToolProviders()
+    +getToolProvider(providerId)
+    +listProcessors(requestContext)
+    +getProcessor(processorId)
+    +listStoredAgents(params)
+    +getStoredAgent(id)
+    +listStoredPromptBlocks(params)
+    +getStoredPromptBlock(id)
+    +listStoredScorers(params)
+    +getStoredScorer(id)
+    +listStoredMCPClients(params)
+    +getStoredMCPClient(id)
+    +listStoredSkills(params)
+    +getStoredSkill(id)
+    +listWorkflows(requestContext, partial)
+    +getWorkflow(workflowId)
+    +getWorkingMemory(params)
+    +searchMemory(params)
+    +getObservationalMemory(params)
+    +awaitBufferStatus(params)
+    +listVectors()
+    +listEmbedders()
+    +getWorkspace(id)
+    +getA2A(agentId)
+    +getAgentBuilderActions()
+    +getAgentBuilderAction(actionId)
+  }
+
+  class ReactQueryClient {
+    +useQuery(options)
+    +useMutation(options)
+    +invalidateQueries(options)
+  }
+
+  MastraQueryHooks ..> MastraClient : uses
+  MastraQueryHooks ..> ReactQueryClient : uses
+  MastraClient <|.. MastraClientStoredAgent
+  class MastraClientStoredAgent {
+    +details(requestContext, options)
+    +listVersions(params, requestContext)
+    +getVersion(versionId, requestContext)
+    +compareVersions(fromId, toId, requestContext)
+    +update(params)
+    +delete(requestContext)
+    +createVersion(params, requestContext)
+    +activateVersion(versionId, requestContext)
+    +restoreVersion(versionId, requestContext)
+    +deleteVersion(versionId, requestContext)
+  }
+
+  MastraClient <|.. MastraClientWorkflow
+  class MastraClientWorkflow {
+    +details(requestContext)
+    +runs(params, requestContext)
+    +runById(runId, options)
+    +getSchema()
+    +createRun(params)
+    +deleteRunById(runId)
+  }
+
+  MastraClient <|.. MastraClientProcessor
+  class MastraClientProcessor {
+    +details(requestContext)
+    +execute(params)
+  }
+
+  MastraClient <|.. MastraClientAgentBuilderAction
+  class MastraClientAgentBuilderAction {
+    +details()
+    +runs(params)
+    +runById(runId, options)
+    +createRun(params)
+    +startAsync(params, runId)
+    +startActionRun(params, runId)
+    +resume(params, runId)
+    +resumeAsync(params, runId)
+    +cancelRun(runId)
+  }
+
+  MastraQueryHooks ..> MastraClientStoredAgent : stored agent hooks
+  MastraQueryHooks ..> MastraClientWorkflow : workflow hooks
+  MastraQueryHooks ..> MastraClientProcessor : processor hooks
+  MastraQueryHooks ..> MastraClientAgentBuilderAction : agent builder hooks
 ```
 
 ### 1️⃣ Prerequisites
@@ -853,7 +1084,7 @@ npm run dev
 
 **Expected startup output:**
 
-```
+```bash
 ✓ Mastra Dev Server: http://localhost:4111
 ✓ Next.js Dev Server: http://localhost:3000
 ✓ 48 agents registered
@@ -1001,10 +1232,10 @@ export function AgentsList() {
 
 - `lib/mastra-client.ts` - MastraClient configuration for frontend
 - `lib/hooks/` - TanStack Query hooks for data fetching (15+ hooks)
-    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-    - `use-mastra.ts` - Generic fetch hook with loading/error states
+  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+  - `use-mastra.ts` - Generic fetch hook with loading/error states
 - `lib/types/` - Zod schemas and TypeScript types
-    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - `lib/utils.ts` - Shared utilities (cn, formatDate, etc.)
 - `lib/a2a.ts` - Agent-to-agent coordination utilities
 - `lib/auth.ts` - Authentication utilities
@@ -1535,12 +1766,12 @@ npx vitest --watch
 
 ### **Testing Philosophy**
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────┐
-│  Every Tool → Unit Test + Integration Test + Mock      │
-│  Every Agent → Evaluation Scorer + Behavior Test       │
-│  Every Workflow → E2E Test + Step Validation           │
-│  Every API → Contract Test + Response Validation       │
+│  Every Tool → Unit Test + Integration Test + Mock       │
+│  Every Agent → Evaluation Scorer + Behavior Test        │
+│  Every Workflow → E2E Test + Step Validation            │
+│  Every API → Contract Test + Response Validation        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -1632,16 +1863,16 @@ AgentStack implements enterprise-grade security controls for production deployme
 
 ### **Security Layers**
 
-```
+```bash
 ┌─────────────────────────────────────────────────────────────┐
-│                    Security Architecture                     │
+│                    Security Architecture                    │
 ├─────────────────────────────────────────────────────────────┤
-│  🔐 Authentication    │  JWT tokens + Role-based access      │
-│  🛡️ Authorization     │  RBAC with policy definitions        │
-│  🔍 Input Validation  │  Zod schemas for all inputs          │
-│  🧹 Output Sanitizing │  HTML/JS sanitization                │
-│  🔒 Secrets Handling  │  Automatic masking in logs/traces    │
-│  📁 File Security     │  Path traversal prevention           │
+│  🔐 Authentication    │  JWT tokens + Role-based access     │
+│  🛡️ Authorization     │  RBAC with policy definitions       │
+│  🔍 Input Validation  │  Zod schemas for all inputs         │
+│  🧹 Output Sanitizing │  HTML/JS sanitization               │
+│  🔒 Secrets Handling  │  Automatic masking in logs/traces   │
+│  📁 File Security     │  Path traversal prevention          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -2088,10 +2319,10 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 **Shared Libraries:**
 
 - **[lib/hooks](lib/hooks/)**: TanStack Query hooks for data fetching (15+ hooks)
-    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-    - `use-mastra.ts` - Generic fetch hook with loading/error states
+  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+  - `use-mastra.ts` - Generic fetch hook with loading/error states
 - **[lib/types](lib/types/)**: Zod schemas and TypeScript types
-    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - **[lib/](lib/)**: Client SDK, utilities, auth, A2A coordination
 
 **Core Components:**
