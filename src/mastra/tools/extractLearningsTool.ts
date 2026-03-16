@@ -28,7 +28,6 @@ export const extractLearningsTool = createTool({
     execute: async (inputData, context) => {
         const mastra = context?.mastra
         const writer = context?.writer
-        const tracingContext = context?.tracingContext
         const requestContext = context?.requestContext as
             | ExtractLearningsContext
             | undefined
@@ -317,12 +316,20 @@ export const extractLearningsTool = createTool({
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const parsed = z
+            .object({
+                learning: z.string(),
+                followUpQuestions: z.array(z.string()),
+            })
+            .safeParse(output)
         log.info('extractLearningsTool completed', {
             toolCallId,
             toolName,
             outputData: {
-                learning: output.learning,
-                followUpQuestions: output.followUpQuestions,
+                learning: parsed.success ? parsed.data.learning : '',
+                followUpQuestions: parsed.success
+                    ? parsed.data.followUpQuestions
+                    : [],
             },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',

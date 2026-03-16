@@ -1460,11 +1460,19 @@ export const getRepoFileTree = createTool({
 
         try {
             const octokit = getOctokit()
+            const resolvedBranch =
+                inputData.branch?.trim() ||
+                (
+                    await octokit.rest.repos.get({
+                        owner: inputData.owner,
+                        repo: inputData.repo,
+                    })
+                ).data.default_branch
             // Get branch commit to find tree SHA
             const branchRes = await octokit.rest.repos.getBranch({
                 owner: inputData.owner,
                 repo: inputData.repo,
-                branch: inputData.branch,
+                branch: resolvedBranch,
             })
             const treeSha = (branchRes.data as GitHubBranchResponse).commit
                 .commit.tree.sha

@@ -4,7 +4,7 @@ import {
   FileTree,
   FileTreeFile,
   FileTreeFolder,
-} from "@/components/ai-elements/file-tree";
+} from "@/src/components/ai-elements/file-tree";
 
 const Example = () => (
   <FileTree defaultExpanded={new Set(["src", "src/components"])}>

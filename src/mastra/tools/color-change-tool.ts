@@ -17,12 +17,56 @@ export function changeBgColor(color: string) {
     }
 }
 
+const ColorChangeInputSchema = z.object({
+    color: z.string(),
+})
+
+const ColorChangeOutputSchema = z.object({
+    success: z.boolean(),
+    color: z.string(),
+})
+
 export const colorChangeTool = createTool({
     id: 'changeColor',
     description: 'Changes the background color',
-    inputSchema: z.object({
-        color: z.string(),
-    }),
+    inputSchema: ColorChangeInputSchema,
+    outputSchema: ColorChangeOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Color change tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Color change received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Color change received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            color: input.color,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Color change completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            success: output.success,
+            color: output.color,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
         const { color } = input
         const writer = context?.writer
@@ -111,41 +155,5 @@ export const colorChangeTool = createTool({
             )
             throw error
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Color change tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Color change received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Color change received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            color: input.color,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Color change completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            success: output.success,
-            color: output.color,
-            hook: 'onOutput',
-        })
     },
 })

@@ -14,7 +14,7 @@ describe('Keyword Coverage Scorer', () => {
             ],
         })
 
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
             requestContext: { requiredKeywords: ['React', 'Vue'] },
@@ -30,7 +30,7 @@ describe('Keyword Coverage Scorer', () => {
             ],
         })
 
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
             requestContext: { requiredKeywords: ['React', 'Vue'] },

@@ -18,7 +18,7 @@ describe('Tool Call Accuracy (Code)', () => {
                 }),
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })
@@ -42,7 +42,7 @@ describe('Tool Call Accuracy (Code)', () => {
                 }),
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })

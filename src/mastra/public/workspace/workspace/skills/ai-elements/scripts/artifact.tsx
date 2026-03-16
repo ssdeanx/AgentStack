@@ -8,8 +8,8 @@ import {
   ArtifactDescription,
   ArtifactHeader,
   ArtifactTitle,
-} from "@/components/ai-elements/artifact";
-import { CodeBlock } from "@/components/ai-elements/code-block";
+} from "@/src/components/ai-elements/artifact";
+import { CodeBlock } from "@/src/components/ai-elements/code-block";
 import {
   CopyIcon,
   DownloadIcon,

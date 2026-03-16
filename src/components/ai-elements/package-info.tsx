@@ -1,11 +1,10 @@
 "use client";
 
-import type { HTMLAttributes } from "react";
-
 import { Badge } from "@/ui/badge";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
-import { createContext, useContext } from "react";
+import type { HTMLAttributes } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 type ChangeType = "major" | "minor" | "patch" | "added" | "removed";
 
@@ -19,42 +18,6 @@ interface PackageInfoContextType {
 const PackageInfoContext = createContext<PackageInfoContextType>({
   name: "",
 });
-
-export type PackageInfoProps = HTMLAttributes<HTMLDivElement> & {
-  name: string;
-  currentVersion?: string;
-  newVersion?: string;
-  changeType?: ChangeType;
-};
-
-export const PackageInfo = ({
-  name,
-  currentVersion,
-  newVersion,
-  changeType,
-  className,
-  children,
-  ...props
-}: PackageInfoProps) => (
-  <PackageInfoContext.Provider
-    value={{ changeType, currentVersion, name, newVersion }}
-  >
-    <div
-      className={cn("rounded-lg border bg-background p-4", className)}
-      {...props}
-    >
-      {children ?? (
-        <>
-          <PackageInfoHeader>
-            <PackageInfoName />
-            {changeType && <PackageInfoChangeType />}
-          </PackageInfoHeader>
-          {((currentVersion ?? newVersion) !== null) && <PackageInfoVersion />}
-        </>
-      )}
-    </div>
-  </PackageInfoContext.Provider>
-);
 
 export type PackageInfoHeaderProps = HTMLAttributes<HTMLDivElement>;
 
@@ -143,7 +106,7 @@ export const PackageInfoVersion = ({
 }: PackageInfoVersionProps) => {
   const { currentVersion, newVersion } = useContext(PackageInfoContext);
 
-  if (!((Boolean(currentVersion)) || (Boolean(newVersion)))) {
+  if (!(currentVersion || newVersion)) {
     return null;
   }
 
@@ -157,16 +120,57 @@ export const PackageInfoVersion = ({
     >
       {children ?? (
         <>
-          {(Boolean(currentVersion)) && <span>{currentVersion}</span>}
-          {(Boolean(currentVersion)) && (Boolean(newVersion)) && (
+          {currentVersion && <span>{currentVersion}</span>}
+          {currentVersion && newVersion && (
             <ArrowRightIcon className="size-3" />
           )}
-          {(Boolean(newVersion)) && (
+          {newVersion && (
             <span className="font-medium text-foreground">{newVersion}</span>
           )}
         </>
       )}
     </div>
+  );
+};
+
+export type PackageInfoProps = HTMLAttributes<HTMLDivElement> & {
+  name: string;
+  currentVersion?: string;
+  newVersion?: string;
+  changeType?: ChangeType;
+};
+
+export const PackageInfo = ({
+  name,
+  currentVersion,
+  newVersion,
+  changeType,
+  className,
+  children,
+  ...props
+}: PackageInfoProps) => {
+  const contextValue = useMemo(
+    () => ({ changeType, currentVersion, name, newVersion }),
+    [changeType, currentVersion, name, newVersion]
+  );
+
+  return (
+    <PackageInfoContext.Provider value={contextValue}>
+      <div
+        className={cn("rounded-lg border bg-background p-4", className)}
+        {...props}
+      >
+        {children ?? (
+          <>
+            <PackageInfoHeader>
+              <PackageInfoName />
+              {changeType && <PackageInfoChangeType />}
+            </PackageInfoHeader>
+            {(currentVersion || newVersion) && <PackageInfoVersion />}
+          </>
+        )}
+      </div>
+    </PackageInfoContext.Provider>
   );
 };
 
@@ -228,7 +232,7 @@ export const PackageInfoDependency = ({
     {children ?? (
       <>
         <span className="font-mono text-muted-foreground">{name}</span>
-        {(Boolean(version)) && <span className="font-mono text-xs">{version}</span>}
+        {version && <span className="font-mono text-xs">{version}</span>}
       </>
     )}
   </div>

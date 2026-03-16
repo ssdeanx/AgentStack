@@ -1,20 +1,5 @@
 "use client";
 
-import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
-import type {
-  ChangeEvent,
-  ChangeEventHandler,
-  ClipboardEventHandler,
-  ComponentProps,
-  FormEvent,
-  FormEventHandler,
-  HTMLAttributes,
-  KeyboardEventHandler,
-  PropsWithChildren,
-  ReactNode,
-  RefObject,
-} from "react";
-
 import {
   Command,
   CommandEmpty,
@@ -55,14 +40,29 @@ import {
   TooltipTrigger,
 } from "@/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
 import {
   CornerDownLeftIcon,
   ImageIcon,
+  Monitor,
   PlusIcon,
   SquareIcon,
   XIcon,
 } from "lucide-react";
 import { nanoid } from "nanoid";
+import type {
+  ChangeEvent,
+  ChangeEventHandler,
+  ClipboardEventHandler,
+  ComponentProps,
+  FormEvent,
+  FormEventHandler,
+  HTMLAttributes,
+  KeyboardEventHandler,
+  PropsWithChildren,
+  ReactNode,
+  RefObject,
+} from "react";
 import {
   Children,
   createContext,
@@ -97,12 +97,89 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
   }
 };
 
+const captureScreenshot = async (): Promise<File | null> => {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.mediaDevices?.getDisplayMedia
+  ) {
+    return null;
+  }
+
+  let stream: MediaStream | null = null;
+  const video = document.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      audio: false,
+      video: true,
+    });
+
+    video.srcObject = stream;
+
+    // Video element uses callback-based API, wrapping in Promise is necessary
+    // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
+    await new Promise<void>((resolve, reject) => {
+      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
+      video.onloadedmetadata = () => resolve();
+      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
+      video.onerror = () => reject(new Error("Failed to load screen stream"));
+    });
+
+    await video.play();
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+    if (!width || !height) {
+      return null;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return null;
+    }
+
+    context.drawImage(video, 0, 0, width, height);
+    // canvas.toBlob uses callback-based API, wrapping in Promise is necessary
+    // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/png");
+    });
+    if (!blob) {
+      return null;
+    }
+
+    const timestamp = new Date()
+      .toISOString()
+      .replaceAll(/[:.]/g, "-")
+      .replace("T", "_")
+      .replace("Z", "");
+
+    return new File([blob], `screenshot-${timestamp}.png`, {
+      lastModified: Date.now(),
+      type: "image/png",
+    });
+  } finally {
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+    }
+    video.pause();
+    video.srcObject = null;
+  }
+};
+
 // ============================================================================
 // Provider Context & Types
 // ============================================================================
 
 export interface AttachmentsContext {
-  files: Array<FileUIPart & { id: string }>;
+  files: (FileUIPart & { id: string })[];
   add: (files: File[] | FileList) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -178,7 +255,7 @@ export const PromptInputProvider = ({
 
   // ----- attachments state (global when wrapped)
   const [attachmentFiles, setAttachmentFiles] = useState<
-    Array<FileUIPart & { id: string }>
+    (FileUIPart & { id: string })[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // oxlint-disable-next-line eslint(no-empty-function)
@@ -312,7 +389,7 @@ export const usePromptInputAttachments = () => {
 // ============================================================================
 
 export interface ReferencedSourcesContext {
-  sources: Array<SourceDocumentUIPart & { id: string }>;
+  sources: (SourceDocumentUIPart & { id: string })[];
   add: (sources: SourceDocumentUIPart[] | SourceDocumentUIPart) => void;
   remove: (id: string) => void;
   clear: () => void;
@@ -354,6 +431,52 @@ export const PromptInputActionAddAttachments = ({
   return (
     <DropdownMenuItem {...props} onSelect={handleSelect}>
       <ImageIcon className="mr-2 size-4" /> {label}
+    </DropdownMenuItem>
+  );
+};
+
+export type PromptInputActionAddScreenshotProps = ComponentProps<
+  typeof DropdownMenuItem
+> & {
+  label?: string;
+};
+
+export const PromptInputActionAddScreenshot = ({
+  label = "Take screenshot",
+  onSelect,
+  ...props
+}: PromptInputActionAddScreenshotProps) => {
+  const attachments = usePromptInputAttachments();
+
+  const handleSelect = useCallback(
+    async (event: Event) => {
+      onSelect?.(event);
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      try {
+        const screenshot = await captureScreenshot();
+        if (screenshot) {
+          attachments.add([screenshot]);
+        }
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          (error.name === "NotAllowedError" || error.name === "AbortError")
+        ) {
+          return;
+        }
+        throw error;
+      }
+    },
+    [onSelect, attachments]
+  );
+
+  return (
+    <DropdownMenuItem {...props} onSelect={handleSelect}>
+      <Monitor className="mr-2 size-4" />
+      {label}
     </DropdownMenuItem>
   );
 };
@@ -410,12 +533,12 @@ export const PromptInput = ({
   const formRef = useRef<HTMLFormElement | null>(null);
 
   // ----- Local attachments (only used when no provider)
-  const [items, setItems] = useState<Array<FileUIPart & { id: string }>>([]);
+  const [items, setItems] = useState<(FileUIPart & { id: string })[]>([]);
   const files = usingProvider ? controller.attachments.files : items;
 
   // ----- Local referenced sources (always local to PromptInput)
   const [referencedSources, setReferencedSources] = useState<
-    Array<SourceDocumentUIPart & { id: string }>
+    (SourceDocumentUIPart & { id: string })[]
   >([]);
 
   // Keep a ref to files for cleanup on unmount (avoids stale closure)
@@ -487,7 +610,7 @@ export const PromptInput = ({
             message: "Too many files. Some were not added.",
           });
         }
-        const next: Array<FileUIPart & { id: string }> = [];
+        const next: (FileUIPart & { id: string })[] = [];
         for (const file of capped) {
           next.push({
             filename: file.name,
@@ -601,7 +724,7 @@ export const PromptInput = ({
   // Note: File input cannot be programmatically set for security reasons
   // The syncHiddenInput prop is no longer functional
   useEffect(() => {
-    if ((syncHiddenInput ?? false) && inputRef.current && files.length === 0) {
+    if (syncHiddenInput && inputRef.current && files.length === 0) {
       inputRef.current.value = "";
     }
   }, [files, syncHiddenInput]);
@@ -674,7 +797,6 @@ export const PromptInput = ({
         }
       }
     },
-
     [usingProvider]
   );
 
@@ -720,7 +842,7 @@ export const PromptInput = ({
   );
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = useCallback(
-    (event) => {
+    async (event) => {
       event.preventDefault();
 
       const form = event.currentTarget;
@@ -737,49 +859,45 @@ export const PromptInput = ({
         form.reset();
       }
 
-      // Snapshot files synchronously to avoid stale/changed state inside async work
-      const filesSnapshot = files.map((f) => ({ ...f }));
-
-      void (async () => {
-        try {
-          // Convert blob URLs to data URLs asynchronously
-          const convertedFiles: FileUIPart[] = await Promise.all(
-            filesSnapshot.map(async (file) => {
-              const { filename, mediaType, type, url } = file;
-              const item: FileUIPart = { filename, mediaType, type, url };
-              if (item.url?.startsWith("blob:")) {
-                const dataUrl = await convertBlobUrlToDataUrl(item.url);
-                // If conversion failed, keep the original blob URL
-                return { ...item, url: dataUrl ?? item.url };
-              }
-              return item;
-            })
-          );
-
-          const result = onSubmit({ files: convertedFiles, text }, event);
-
-          // Handle both sync and async onSubmit
-          if (result instanceof Promise) {
-            try {
-              await result;
-              clear();
-              if (usingProvider) {
-                controller.textInput.clear();
-              }
-            } catch {
-              // Don't clear on error - user may want to retry
+      try {
+        // Convert blob URLs to data URLs asynchronously
+        const convertedFiles: FileUIPart[] = await Promise.all(
+          files.map(async ({ id: _id, ...item }) => {
+            if (item.url?.startsWith("blob:")) {
+              const dataUrl = await convertBlobUrlToDataUrl(item.url);
+              // If conversion failed, keep the original blob URL
+              return {
+                ...item,
+                url: dataUrl ?? item.url,
+              };
             }
-          } else {
-            // Sync function completed without throwing, clear inputs
+            return item;
+          })
+        );
+
+        const result = onSubmit({ files: convertedFiles, text }, event);
+
+        // Handle both sync and async onSubmit
+        if (result instanceof Promise) {
+          try {
+            await result;
             clear();
             if (usingProvider) {
               controller.textInput.clear();
             }
+          } catch {
+            // Don't clear on error - user may want to retry
           }
-        } catch {
-          // Don't clear on error - user may want to retry
+        } else {
+          // Sync function completed without throwing, clear inputs
+          clear();
+          if (usingProvider) {
+            controller.textInput.clear();
+          }
         }
-      })();
+      } catch {
+        // Don't clear on error - user may want to retry
+      }
     },
     [usingProvider, controller, files, onSubmit, clear]
   );
@@ -1040,7 +1158,7 @@ export const PromptInputButton = ({
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent side={side}>
         {tooltipContent}
-        {(Boolean(shortcut)) && (
+        {shortcut && (
           <span className="ml-2 text-muted-foreground">{shortcut}</span>
         )}
       </TooltipContent>

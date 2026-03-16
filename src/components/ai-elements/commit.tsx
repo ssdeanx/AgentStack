@@ -1,7 +1,5 @@
 "use client";
 
-import type { ComponentProps, HTMLAttributes } from "react";
-
 import { Avatar, AvatarFallback } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import {
@@ -18,6 +16,7 @@ import {
   MinusIcon,
   PlusIcon,
 } from "lucide-react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CommitProps = ComponentProps<typeof Collapsible>;
@@ -151,35 +150,28 @@ const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
 });
 
+const formatRelativeDate = (date: Date) => {
+  const days = Math.round(
+    (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+  return relativeTimeFormat.format(days, "day");
+};
+
 export const CommitTimestamp = ({
   date,
   className,
   children,
   ...props
 }: CommitTimestampProps) => {
-  const [relative, setRelative] = useState<string>("");
+  const [formatted, setFormatted] = useState("");
 
-  // avoid calling Date.now() during render — compute relative time in an effect
-  const hasChildren = children !== undefined && children !== null;
+  const updateFormatted = useCallback(() => {
+    setFormatted(formatRelativeDate(date));
+  }, [date]);
 
   useEffect(() => {
-    if (hasChildren) {return;}
-
-    const update = () => {
-      const days = Math.round(
-        (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      setRelative(relativeTimeFormat.format(days, "day"));
-    };
-
-    update();
-
-    // refresh periodically so the relative label stays up-to-date
-    const id = window.setInterval(update, 60 * 60 * 1000);
-    return () => window.clearInterval(id);
-  }, [date, hasChildren]);
-
-  const display = children ?? (relative || date.toISOString());
+    updateFormatted();
+  }, [updateFormatted]);
 
   return (
     <time
@@ -187,7 +179,7 @@ export const CommitTimestamp = ({
       dateTime={date.toISOString()}
       {...props}
     >
-      {display}
+      {children ?? formatted}
     </time>
   );
 };
@@ -202,8 +194,6 @@ export const CommitActions = ({
   children,
   ...props
 }: CommitActionsProps) => (
-  // biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation required for nested interactions
-  // biome-ignore lint/a11y/useSemanticElements: fieldset doesn't fit this UI pattern
   <div
     className={cn("flex items-center gap-1", className)}
     onClick={handleActionsClick}

@@ -14,7 +14,7 @@ import {
   InlineCitationCarouselPrev,
   InlineCitationSource,
   InlineCitationText,
-} from "@/components/ai-elements/inline-citation";
+} from "@/src/components/ai-elements/inline-citation";
 
 const citation = {
   sources: [

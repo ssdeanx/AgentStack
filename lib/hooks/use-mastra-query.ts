@@ -16,11 +16,25 @@ import type {
   WorkspaceItem,
 } from '@/lib/types/mastra-api'
 import type {
+  AddDatasetItemParams,
+  BatchDeleteDatasetItemsParams,
+  BatchInsertDatasetItemsParams,
+  CompareExperimentsParams,
+  CompareExperimentsResponse,
   CloneAgentParams,
+  CreateDatasetParams,
   CreateMemoryThreadParams,
+  DatasetExperiment,
+  DatasetExperimentResult,
+  DatasetItem,
+  DatasetItemVersionResponse,
+  DatasetRecord,
+  DatasetVersionResponse,
   GetLogsParams,
   GetMemoryConfigParams,
+  GetScorerResponse,
   ListSkillsResponse,
+  ListScoresResponse,
   ListMemoryThreadMessagesParams,
   McpServerListResponse,
   McpServerToolListResponse,
@@ -32,6 +46,9 @@ import type {
   SearchSkillsParams,
   SearchSkillsResponse,
   StreamParams,
+  TriggerDatasetExperimentParams,
+  UpdateDatasetItemParams,
+  UpdateDatasetParams,
   UpdateMemoryThreadParams,
   UpdateModelParams,
   WorkspaceFsDeleteResponse,
@@ -83,11 +100,171 @@ interface MastraQueryHooks {
     requestContext?: RequestContext | RequestContextValue,
     partial?: boolean
   ) => UseQueryResult<Workflow[], Error>
+  useScorers: (
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Record<string, GetScorerResponse>, Error>
+  useScorer: (scorerId: string) => UseQueryResult<GetScorerResponse, Error>
   useTraces: (params?: ListTracesArgs) => UseQueryResult<TracesResponse, Error>
+  useScoresByRun: (
+    params?: ListScoresByRunIdParams
+  ) => UseQueryResult<ListScoresResponse, Error>
+  useScoresByScorer: (
+    params?: ListScoresByScorerIdParams
+  ) => UseQueryResult<ListScoresResponse, Error>
+  useScoresByEntity: (
+    params?: ListScoresByEntityIdParams
+  ) => UseQueryResult<ListScoresResponse, Error>
   useThreads: (params?: {
     resourceId?: string
     agentId?: string
   }) => UseQueryResult<MemoryThread[], Error>
+  useDatasets: (pagination?: {
+    page?: number
+    perPage?: number
+  }) => UseQueryResult<{
+    datasets: DatasetRecord[]
+    pagination: {
+      total: number
+      page: number
+      perPage: number | false
+      hasMore: boolean
+    }
+  }, Error>
+  useDataset: (datasetId: string) => UseQueryResult<DatasetRecord, Error>
+  useDatasetItems: (
+    datasetId: string,
+    params?: {
+      page?: number
+      perPage?: number
+      search?: string
+      version?: number | null
+    }
+  ) => UseQueryResult<{
+    items: DatasetItem[]
+    pagination: {
+      total: number
+      page: number
+      perPage: number | false
+      hasMore: boolean
+    }
+  }, Error>
+  useDatasetItem: (
+    datasetId: string,
+    itemId: string
+  ) => UseQueryResult<DatasetItem, Error>
+  useDatasetItemHistory: (
+    datasetId: string,
+    itemId: string
+  ) => UseQueryResult<{ history: DatasetItemVersionResponse[] }, Error>
+  useDatasetItemVersion: (
+    datasetId: string,
+    itemId: string,
+    datasetVersion: number
+  ) => UseQueryResult<DatasetItemVersionResponse, Error>
+  useDatasetVersions: (
+    datasetId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) => UseQueryResult<{
+    versions: DatasetVersionResponse[]
+    pagination: {
+      total: number
+      page: number
+      perPage: number | false
+      hasMore: boolean
+    }
+  }, Error>
+  useDatasetExperiments: (
+    datasetId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) => UseQueryResult<{
+    experiments: DatasetExperiment[]
+    pagination: {
+      total: number
+      page: number
+      perPage: number | false
+      hasMore: boolean
+    }
+  }, Error>
+  useDatasetExperiment: (
+    datasetId: string,
+    experimentId: string
+  ) => UseQueryResult<DatasetExperiment, Error>
+  useDatasetExperimentResults: (
+    datasetId: string,
+    experimentId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) => UseQueryResult<{
+    results: DatasetExperimentResult[]
+    pagination: {
+      total: number
+      page: number
+      perPage: number | false
+      hasMore: boolean
+    }
+  }, Error>
+  useCompareExperiments: (
+    params?: CompareExperimentsParams
+  ) => UseQueryResult<CompareExperimentsResponse, Error>
+  useCreateDatasetMutation: () => UseMutationResult<
+    DatasetRecord,
+    Error,
+    CreateDatasetParams,
+    unknown
+  >
+  useUpdateDatasetMutation: () => UseMutationResult<
+    DatasetRecord,
+    Error,
+    UpdateDatasetParams,
+    unknown
+  >
+  useDeleteDatasetMutation: () => UseMutationResult<
+    { success: boolean },
+    Error,
+    string,
+    unknown
+  >
+  useAddDatasetItemMutation: () => UseMutationResult<
+    DatasetItem,
+    Error,
+    AddDatasetItemParams,
+    unknown
+  >
+  useUpdateDatasetItemMutation: () => UseMutationResult<
+    DatasetItem,
+    Error,
+    UpdateDatasetItemParams,
+    unknown
+  >
+  useDeleteDatasetItemMutation: () => UseMutationResult<
+    { success: boolean },
+    Error,
+    { datasetId: string; itemId: string },
+    unknown
+  >
+  useBatchInsertDatasetItemsMutation: () => UseMutationResult<
+    { items: DatasetItem[]; count: number },
+    Error,
+    BatchInsertDatasetItemsParams,
+    unknown
+  >
+  useBatchDeleteDatasetItemsMutation: () => UseMutationResult<
+    { success: boolean; deletedCount: number },
+    Error,
+    BatchDeleteDatasetItemsParams,
+    unknown
+  >
+  useTriggerDatasetExperimentMutation: () => UseMutationResult<
+    Awaited<ReturnType<typeof mastraClient.triggerDatasetExperiment>>,
+    Error,
+    TriggerDatasetExperimentParams,
+    unknown
+  >
+  useSaveScoreMutation: () => UseMutationResult<
+    Awaited<ReturnType<typeof mastraClient.saveScore>>,
+    Error,
+    Parameters<typeof mastraClient.saveScore>[0],
+    unknown
+  >
   useVectorIndexes: (vectorName?: string) => UseQueryResult<VectorIndex[], Error>
   useLogs: (params: GetLogsParams) => UseQueryResult<LogEntry[], Error>
   useLogTransports: () => UseQueryResult<string[], Error>
@@ -384,6 +561,51 @@ export const mastraQueryKeys = {
         { vectorName, indexName },
       ] as const,
   },
+  datasets: {
+    all: ['mastra', 'datasets'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.datasets.all, 'list', params] as const,
+    details: (datasetId: string) =>
+      [...mastraQueryKeys.datasets.all, 'details', datasetId] as const,
+    items: (datasetId: string, params?: unknown) =>
+      [...mastraQueryKeys.datasets.all, 'items', datasetId, params] as const,
+    item: (datasetId: string, itemId: string) =>
+      [...mastraQueryKeys.datasets.all, 'item', datasetId, itemId] as const,
+    itemHistory: (datasetId: string, itemId: string) =>
+      [...mastraQueryKeys.datasets.all, 'itemHistory', datasetId, itemId] as const,
+    itemVersion: (
+      datasetId: string,
+      itemId: string,
+      datasetVersion: number
+    ) =>
+      [
+        ...mastraQueryKeys.datasets.all,
+        'itemVersion',
+        datasetId,
+        itemId,
+        datasetVersion,
+      ] as const,
+    versions: (datasetId: string, params?: unknown) =>
+      [...mastraQueryKeys.datasets.all, 'versions', datasetId, params] as const,
+    experiments: (datasetId: string, params?: unknown) =>
+      [...mastraQueryKeys.datasets.all, 'experiments', datasetId, params] as const,
+    experiment: (datasetId: string, experimentId: string) =>
+      [...mastraQueryKeys.datasets.all, 'experiment', datasetId, experimentId] as const,
+    experimentResults: (
+      datasetId: string,
+      experimentId: string,
+      params?: unknown
+    ) =>
+      [
+        ...mastraQueryKeys.datasets.all,
+        'experimentResults',
+        datasetId,
+        experimentId,
+        params,
+      ] as const,
+    compare: (params?: unknown) =>
+      [...mastraQueryKeys.datasets.all, 'compare', params] as const,
+  },
   workspaces: {
     all: ['mastra', 'workspaces'] as const,
     list: () => [...mastraQueryKeys.workspaces.all, 'list'] as const,
@@ -614,6 +836,21 @@ export function useMastraQuery(): MastraQueryHooks {
       enabled: !!workflowId,
     })
 
+  const useScorers = (
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery<Record<string, GetScorerResponse>, Error>({
+      queryKey: [...mastraQueryKeys.observability.all, 'scorers', requestContext] as const,
+      queryFn: () => mastraClient.listScorers(requestContext as RequestContext),
+    })
+
+  const useScorer = (scorerId: string) =>
+    useQuery<GetScorerResponse, Error>({
+      queryKey: [...mastraQueryKeys.observability.all, 'scorer', scorerId] as const,
+      queryFn: () => mastraClient.getScorer(scorerId),
+      enabled: !!scorerId,
+    })
+
   const useWorkflowRun = (
     workflowId: string,
     runId: string,
@@ -821,6 +1058,115 @@ export function useMastraQuery(): MastraQueryHooks {
     useQuery({
       queryKey: [...mastraQueryKeys.observability.all, 'scores', 'byEntity', params] as const,
       queryFn: () => mastraClient.listScoresByEntityId(params as ListScoresByEntityIdParams),
+      enabled: !!params,
+    })
+
+  const useDatasets = (pagination?: { page?: number; perPage?: number }) =>
+    useQuery({
+      queryKey: mastraQueryKeys.datasets.list(pagination),
+      queryFn: () => mastraClient.listDatasets(pagination),
+    })
+
+  const useDataset = (datasetId: string) =>
+    useQuery<DatasetRecord, Error>({
+      queryKey: mastraQueryKeys.datasets.details(datasetId),
+      queryFn: () => mastraClient.getDataset(datasetId),
+      enabled: !!datasetId,
+    })
+
+  const useDatasetItems = (
+    datasetId: string,
+    params?: {
+      page?: number
+      perPage?: number
+      search?: string
+      version?: number | null
+    }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.datasets.items(datasetId, params),
+      queryFn: () => mastraClient.listDatasetItems(datasetId, params),
+      enabled: !!datasetId,
+    })
+
+  const useDatasetItem = (datasetId: string, itemId: string) =>
+    useQuery<DatasetItem, Error>({
+      queryKey: mastraQueryKeys.datasets.item(datasetId, itemId),
+      queryFn: () => mastraClient.getDatasetItem(datasetId, itemId),
+      enabled: !!datasetId && !!itemId,
+    })
+
+  const useDatasetItemHistory = (datasetId: string, itemId: string) =>
+    useQuery<{ history: DatasetItemVersionResponse[] }, Error>({
+      queryKey: mastraQueryKeys.datasets.itemHistory(datasetId, itemId),
+      queryFn: () => mastraClient.getItemHistory(datasetId, itemId),
+      enabled: !!datasetId && !!itemId,
+    })
+
+  const useDatasetItemVersion = (
+    datasetId: string,
+    itemId: string,
+    datasetVersion: number
+  ) =>
+    useQuery<DatasetItemVersionResponse, Error>({
+      queryKey: mastraQueryKeys.datasets.itemVersion(datasetId, itemId, datasetVersion),
+      queryFn: () =>
+        mastraClient.getDatasetItemVersion(datasetId, itemId, datasetVersion),
+      enabled: !!datasetId && !!itemId,
+    })
+
+  const useDatasetVersions = (
+    datasetId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.datasets.versions(datasetId, pagination),
+      queryFn: () => mastraClient.listDatasetVersions(datasetId, pagination),
+      enabled: !!datasetId,
+    })
+
+  const useDatasetExperiments = (
+    datasetId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.datasets.experiments(datasetId, pagination),
+      queryFn: () => mastraClient.listDatasetExperiments(datasetId, pagination),
+      enabled: !!datasetId,
+    })
+
+  const useDatasetExperiment = (datasetId: string, experimentId: string) =>
+    useQuery<DatasetExperiment, Error>({
+      queryKey: mastraQueryKeys.datasets.experiment(datasetId, experimentId),
+      queryFn: () => mastraClient.getDatasetExperiment(datasetId, experimentId),
+      enabled: !!datasetId && !!experimentId,
+    })
+
+  const useDatasetExperimentResults = (
+    datasetId: string,
+    experimentId: string,
+    pagination?: { page?: number; perPage?: number }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.datasets.experimentResults(
+        datasetId,
+        experimentId,
+        pagination
+      ),
+      queryFn: () =>
+        mastraClient.listDatasetExperimentResults(
+          datasetId,
+          experimentId,
+          pagination
+        ),
+      enabled: !!datasetId && !!experimentId,
+    })
+
+  const useCompareExperiments = (params?: CompareExperimentsParams) =>
+    useQuery<CompareExperimentsResponse, Error>({
+      queryKey: mastraQueryKeys.datasets.compare(params),
+      queryFn: () =>
+        mastraClient.compareExperiments(params as CompareExperimentsParams),
       enabled: !!params,
     })
 
@@ -1390,6 +1736,84 @@ export function useMastraQuery(): MastraQueryHooks {
       },
     })
 
+  const useCreateDatasetMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateDatasetParams) => mastraClient.createDataset(params),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.all })
+      },
+    })
+
+  const useUpdateDatasetMutation = () =>
+    useMutation({
+      mutationFn: (params: UpdateDatasetParams) => mastraClient.updateDataset(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.all })
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.details(variables.datasetId) })
+      },
+    })
+
+  const useDeleteDatasetMutation = () =>
+    useMutation({
+      mutationFn: (datasetId: string) => mastraClient.deleteDataset(datasetId),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.all })
+      },
+    })
+
+  const useAddDatasetItemMutation = () =>
+    useMutation({
+      mutationFn: (params: AddDatasetItemParams) => mastraClient.addDatasetItem(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.items(variables.datasetId) })
+      },
+    })
+
+  const useUpdateDatasetItemMutation = () =>
+    useMutation({
+      mutationFn: (params: UpdateDatasetItemParams) => mastraClient.updateDatasetItem(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.items(variables.datasetId) })
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.item(variables.datasetId, variables.itemId) })
+      },
+    })
+
+  const useDeleteDatasetItemMutation = () =>
+    useMutation({
+      mutationFn: ({ datasetId, itemId }: { datasetId: string; itemId: string }) =>
+        mastraClient.deleteDatasetItem(datasetId, itemId),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.items(variables.datasetId) })
+      },
+    })
+
+  const useBatchInsertDatasetItemsMutation = () =>
+    useMutation({
+      mutationFn: (params: BatchInsertDatasetItemsParams) =>
+        mastraClient.batchInsertDatasetItems(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.items(variables.datasetId) })
+      },
+    })
+
+  const useBatchDeleteDatasetItemsMutation = () =>
+    useMutation({
+      mutationFn: (params: BatchDeleteDatasetItemsParams) =>
+        mastraClient.batchDeleteDatasetItems(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.items(variables.datasetId) })
+      },
+    })
+
+  const useTriggerDatasetExperimentMutation = () =>
+    useMutation({
+      mutationFn: (params: TriggerDatasetExperimentParams) =>
+        mastraClient.triggerDatasetExperiment(params),
+      onSuccess: async (_, variables) => {
+        await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.experiments(variables.datasetId) })
+      },
+    })
+
   // Vector Mutations
   const useVectorQueryMutation = (vectorName: string) =>
     useMutation({
@@ -1416,6 +1840,12 @@ export function useMastraQuery(): MastraQueryHooks {
       }) => mastraClient.score(params),
     })
 
+  const useSaveScoreMutation = () =>
+    useMutation({
+      mutationFn: (params: Parameters<typeof mastraClient.saveScore>[0]) =>
+        mastraClient.saveScore(params),
+    })
+
   const hooks = {
     // Queries
     useAgents,
@@ -1429,6 +1859,8 @@ export function useMastraQuery(): MastraQueryHooks {
     useWorkflow,
     useWorkflowRun,
     useWorkflowRuns,
+    useScorers,
+    useScorer,
     useTools,
     useTool,
     useThreads,
@@ -1439,6 +1871,17 @@ export function useMastraQuery(): MastraQueryHooks {
     useScoresByRun,
     useScoresByScorer,
     useScoresByEntity,
+    useDatasets,
+    useDataset,
+    useDatasetItems,
+    useDatasetItem,
+    useDatasetItemHistory,
+    useDatasetItemVersion,
+    useDatasetVersions,
+    useDatasetExperiments,
+    useDatasetExperiment,
+    useDatasetExperimentResults,
+    useCompareExperiments,
     useTraces,
     useTrace,
     useLogs,
@@ -1485,6 +1928,15 @@ export function useMastraQuery(): MastraQueryHooks {
     useDeleteThreadMutation,
     useUpdateMemoryThreadMutation,
     useUpdateWorkingMemoryMutation,
+    useCreateDatasetMutation,
+    useUpdateDatasetMutation,
+    useDeleteDatasetMutation,
+    useAddDatasetItemMutation,
+    useUpdateDatasetItemMutation,
+    useDeleteDatasetItemMutation,
+    useBatchInsertDatasetItemsMutation,
+    useBatchDeleteDatasetItemsMutation,
+    useTriggerDatasetExperimentMutation,
     useVectorQueryMutation,
     useVectorUpsertMutation,
     useWorkspaceWriteFileMutation,
@@ -1499,6 +1951,7 @@ export function useMastraQuery(): MastraQueryHooks {
     useA2ASendMessageMutation,
     useA2ACancelTaskMutation,
     useScoreMutation,
+    useSaveScoreMutation,
   }
 
   return hooks as MastraQueryHooks

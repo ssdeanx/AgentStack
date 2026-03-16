@@ -141,6 +141,7 @@ export const googleSearchTool = createTool({
         validateSerpApiKey()
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const numResults = input.numResults ?? 10
         const requestContext = context?.requestContext as
             | SerpApiSearchContext
             | undefined
@@ -169,7 +170,7 @@ export const googleSearchTool = createTool({
             metadata: {
                 'tool.id': 'google-search',
                 'tool.input.query': input.query,
-                'tool.input.numResults': input.numResults,
+                'tool.input.numResults': numResults,
                 'tool.input.location': input.location,
                 'tool.input.language': input.language,
                 'tool.input.device': input.device,
@@ -187,7 +188,7 @@ export const googleSearchTool = createTool({
             const params: Record<string, string | number> = {
                 engine: 'google',
                 q: input.query,
-                num: input.numResults,
+                num: numResults,
             }
             if (
                 typeof input.location === 'string' &&

@@ -1,7 +1,5 @@
 "use client";
 
-import type { ComponentProps } from "react";
-
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Button } from "@/ui/button";
 import {
@@ -16,6 +14,7 @@ import {
   ChevronDownIcon,
   CopyIcon,
 } from "lucide-react";
+import type { ComponentProps } from "react";
 import {
   createContext,
   memo,
@@ -71,7 +70,7 @@ const parseStackFrame = (line: string): StackFrame => {
   const trimmed = line.trim();
 
   // Pattern: at functionName (filePath:line:column)
-  const withParensMatch = STACK_FRAME_WITH_PARENS_REGEX.exec(trimmed);
+  const withParensMatch = trimmed.match(STACK_FRAME_WITH_PARENS_REGEX);
   if (withParensMatch) {
     const [, functionName, filePath, lineNum, colNum] = withParensMatch;
     const isInternal =
@@ -89,7 +88,7 @@ const parseStackFrame = (line: string): StackFrame => {
   }
 
   // Pattern: at filePath:line:column (no function name)
-  const withoutFnMatch = STACK_FRAME_WITHOUT_FN_REGEX.exec(trimmed);
+  const withoutFnMatch = trimmed.match(STACK_FRAME_WITHOUT_FN_REGEX);
   if (withoutFnMatch) {
     const [, filePath, lineNum, colNum] = withoutFnMatch;
     const isInternal =
@@ -134,7 +133,7 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
   let errorMessage = firstLine;
 
   // Try to extract error type from "ErrorType: message" format
-  const errorMatch = ERROR_TYPE_REGEX.exec(firstLine);
+  const errorMatch = firstLine.match(ERROR_TYPE_REGEX);
   if (errorMatch) {
     const [, type, msg] = errorMatch;
     errorType = type;
@@ -291,8 +290,6 @@ const handleActionsKeyDown = (e: React.KeyboardEvent) => {
 
 export const StackTraceActions = memo(
   ({ className, children, ...props }: StackTraceActionsProps) => (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation required for nested interactions
-    // biome-ignore lint/a11y/useSemanticElements: fieldset doesn't fit this UI pattern
     <div
       className={cn("flex shrink-0 items-center gap-1", className)}
       onClick={handleActionsClick}
@@ -355,7 +352,7 @@ export const StackTraceCopyButton = memo(
     return (
       <Button
         className={cn("size-7", className)}
-        onClick={() => void copyToClipboard()}
+        onClick={copyToClipboard}
         size="icon"
         variant="ghost"
         {...props}
@@ -408,7 +405,7 @@ export const StackTraceContent = memo(
         <CollapsibleContent
           className={cn(
             "overflow-auto border-t bg-muted/30",
-            "closed:fade-out-0 data-[state=open]:fade-in-0 closed:animate-out data-[state=open]:animate-in",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=open]:animate-in",
             className
           )}
           style={{ maxHeight }}
@@ -480,7 +477,7 @@ export const StackTraceFrames = memo(
 
     return (
       <div className={cn("space-y-1 p-3", className)} {...props}>
-        {framesToShow.map((frame, index) => (
+        {framesToShow.map((frame) => (
           <div
             className={cn(
               "text-xs",
@@ -488,15 +485,15 @@ export const StackTraceFrames = memo(
                 ? "text-muted-foreground/50"
                 : "text-foreground/90"
             )}
-            key={`${frame.raw}-${index}`}
+            key={frame.raw}
           >
             <span className="text-muted-foreground">at </span>
-            {(Boolean(frame.functionName)) && (
+            {frame.functionName && (
               <span className={frame.isInternal ? "" : "text-foreground"}>
                 {frame.functionName}{" "}
               </span>
             )}
-            {(Boolean(frame.filePath)) && (
+            {frame.filePath && (
               <>
                 <span className="text-muted-foreground">(</span>
                 <FilePathButton
@@ -506,7 +503,7 @@ export const StackTraceFrames = memo(
                 <span className="text-muted-foreground">)</span>
               </>
             )}
-            {(!(frame.filePath ?? frame.functionName)) && (
+            {!(frame.filePath || frame.functionName) && (
               <span>{frame.raw.replace(AT_PREFIX_REGEX, "")}</span>
             )}
           </div>

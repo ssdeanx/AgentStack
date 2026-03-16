@@ -6,75 +6,127 @@ import { z } from 'zod'
 import { log, logToolExecution } from '../config/logger'
 import { downsampleTool } from './downsample.tool'
 
+const ChartJsInputSchema = z.object({
+    data: z
+        .array(
+            z.object({
+                date: z.string(),
+                close: z.number(),
+                open: z.number().optional(),
+                high: z.number().optional(),
+                low: z.number().optional(),
+                volume: z.number().optional(),
+            })
+        )
+        .describe('Time series data'),
+    indicators: z
+        .array(
+            z.object({
+                type: z.enum(['SMA', 'EMA', 'RSI', 'MACD', 'BollingerBands']),
+                period: z.number().optional().default(14),
+                color: z.string().optional(),
+                stdDev: z.number().optional(),
+                fastPeriod: z.number().optional(),
+                slowPeriod: z.number().optional(),
+                signalPeriod: z.number().optional(),
+            })
+        )
+        .optional()
+        .default([])
+        .describe('Indicators to overlay'),
+    chartType: z
+        .enum(['line', 'bar', 'candlestick'])
+        .default('line')
+        .describe('Base chart type'),
+    title: z.string().optional(),
+})
+
+const ChartJsOutputSchema = z.object({
+    config: z.object({
+        type: z.string(),
+        data: z.object({
+            labels: z.array(z.string()),
+            datasets: z.array(
+                z.object({
+                    label: z.string().optional(),
+                    data: z.array(z.union([z.number(), z.null()])),
+                    borderColor: z.string().optional(),
+                    backgroundColor: z.string().optional(),
+                    type: z.string().optional(),
+                    yAxisID: z.string().optional(),
+                    order: z.number().optional(),
+                    borderWidth: z.number().optional(),
+                    pointRadius: z.number().optional(),
+                    fill: z.union([z.boolean(), z.string()]).optional(),
+                })
+            ),
+        }),
+        options: z.record(z.string(), z.unknown()),
+    }),
+})
+
+type ChartJsToolOutput = z.infer<typeof ChartJsOutputSchema>
+
+interface ChartJsDataset {
+    label?: string
+    data: Array<number | null>
+    borderColor?: string
+    backgroundColor?: string
+    type?: string
+    yAxisID?: string
+    order?: number
+    borderWidth?: number
+    pointRadius?: number
+    fill?: boolean | string
+}
+
+interface MacdPoint {
+    MACD: number
+    signal: number
+    histogram: number
+}
+
 export const chartJsTool = createTool({
     id: 'chartjs-generator',
     description:
         'Generates Chart.js configuration with technical indicators for UI visualization',
-    inputSchema: z.object({
-        data: z
-            .array(
-                z.object({
-                    date: z.string(),
-                    close: z.number(),
-                    open: z.number().optional(),
-                    high: z.number().optional(),
-                    low: z.number().optional(),
-                    volume: z.number().optional(),
-                })
-            )
-            .describe('Time series data'),
-        indicators: z
-            .array(
-                z.object({
-                    type: z.enum([
-                        'SMA',
-                        'EMA',
-                        'RSI',
-                        'MACD',
-                        'BollingerBands',
-                    ]),
-                    period: z.number().optional().default(14),
-                    color: z.string().optional(),
-                    stdDev: z.number().optional(),
-                    fastPeriod: z.number().optional(),
-                    slowPeriod: z.number().optional(),
-                    signalPeriod: z.number().optional(),
-                })
-            )
-            .optional()
-            .default([])
-            .describe('Indicators to overlay'),
-        chartType: z
-            .enum(['line', 'bar', 'candlestick'])
-            .default('line')
-            .describe('Base chart type'),
-        title: z.string().optional(),
-    }),
-    outputSchema: z.object({
-        config: z.object({
-            type: z.string(),
-            data: z.object({
-                labels: z.array(z.string()),
-                datasets: z.array(
-                    z.object({
-                        label: z.string().optional(),
-                        data: z.array(z.union([z.number(), z.null()])),
-                        borderColor: z.string().optional(),
-                        backgroundColor: z.string().optional(),
-                        type: z.string().optional(),
-                        yAxisID: z.string().optional(),
-                        order: z.number().optional(),
-                        borderWidth: z.number().optional(),
-                        pointRadius: z.number().optional(),
-                        fill: z.union([z.boolean(), z.string()]).optional(),
-                    })
-                ),
-            }),
-            options: z.record(z.string(), z.unknown()),
-        }),
-    }),
+    inputSchema: ChartJsInputSchema,
+    outputSchema: ChartJsOutputSchema,
+    onInputStart: ({ toolCallId, messages }) => {
+        log.info('Chart.js generator tool input streaming started', {
+            toolCallId,
+            messages: messages.length,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages }) => {
+        log.info('Chart.js generator tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messages: messages.length,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages }) => {
+        log.info('Chart.js generator tool received input', {
+            toolCallId,
+            inputData: input,
+            messages: messages.length,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log.info('Chart.js generator tool completed', {
+            toolCallId,
+            toolName,
+            output,
+            hook: 'onOutput',
+        })
+    },
     execute: async (input, context) => {
-        const { data, indicators, chartType, title } = input
+        const { data, title } = input
+        const indicators = input.indicators ?? []
+        const chartType = input.chartType ?? 'line'
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -120,19 +172,6 @@ export const chartJsTool = createTool({
         const labels = data.map((d) => d.date)
         const closePrices = data.map((d) => d.close)
 
-        interface ChartJsDataset {
-            label?: string
-            data: Array<number | null>
-            borderColor?: string
-            backgroundColor?: string
-            type?: string
-            yAxisID?: string
-            order?: number
-            borderWidth?: number
-            pointRadius?: number
-            fill?: boolean | string
-        }
-
         const datasets: ChartJsDataset[] = []
 
         // Base price dataset
@@ -146,13 +185,7 @@ export const chartJsTool = createTool({
             order: 1,
         })
 
-        let config:
-            | {
-                  type: string
-                  data: { labels: string[]; datasets: ChartJsDataset[] }
-                  options: Record<string, unknown>
-              }
-            | undefined
+                let config: ChartJsToolOutput['config'] | null = null
 
         try {
             // Calculate indicators
@@ -165,7 +198,7 @@ export const chartJsTool = createTool({
                     switch (ind.type) {
                         case 'SMA': {
                             const sma = (SMA.calculate({
-                                period: ind.period,
+                                period: ind.period ?? 14,
                                 values: closePrices,
                             })) ?? []
                             label = `SMA (${ind.period})`
@@ -186,7 +219,7 @@ export const chartJsTool = createTool({
                         }
                         case 'EMA': {
                             const ema = EMA.calculate({
-                                period: ind.period,
+                                period: ind.period ?? 14,
                                 values: closePrices,
                             }) ?? []
                             label = `EMA (${ind.period})`
@@ -204,7 +237,7 @@ export const chartJsTool = createTool({
                         }
                         case 'RSI': {
                             const rsiValues = (RSI.calculate({
-                                period: ind.period,
+                                period: ind.period ?? 14,
                                 values: closePrices,
                             }) ?? [])
                             label = `RSI (${ind.period})`
@@ -233,18 +266,12 @@ export const chartJsTool = createTool({
                                 values: closePrices,
                                 SimpleMAOscillator: false,
                                 SimpleMASignal: false,
-                            }) ?? []) as Array<Record<string, unknown>>
+                            }) ?? []) as MacdPoint[]
 
                             // Ensure the mapped series are typed as numbers to avoid `any[]` assignments
-                            const macd = macdResult.map((m: Record<string, unknown>) =>
-                                Number((m.MACD) as number)
-                            )
-                            const signal = macdResult.map((m: Record<string, unknown>) =>
-                                Number((m.signal) as number)
-                            )
-                            const histogram = macdResult.map((m: Record<string, unknown>) =>
-                                Number((m.histogram) as number)
-                            )
+                            const macd = macdResult.map((m) => Number(m.MACD))
+                            const signal = macdResult.map((m) => Number(m.signal))
+                            const histogram = macdResult.map((m) => Number(m.histogram))
 
                             const padding = Array(
                                 closePrices.length - macd.length
@@ -280,7 +307,7 @@ export const chartJsTool = createTool({
                         case 'BollingerBands':
                             {
                                 const bb = (BollingerBands.calculate({
-                                    period: ind.period,
+                                    period: ind.period ?? 14,
                                     stdDev: ind.stdDev ?? 2,
                                     values: closePrices,
                                 }) ?? []) as Array<{
@@ -371,16 +398,9 @@ export const chartJsTool = createTool({
                     // Build new labels and datasets sampled at the chosen indices
                     finalLabels = indices.map((i) => labels[i])
                     finalDatasets = datasets.map((ds) => {
-                        const dsData = (ds as { data?: unknown }).data
-                        const dsArr = Array.isArray(dsData)
-                            ? (dsData as unknown[])
-                            : []
                         return {
                             ...ds,
-                            data: indices.map((idx) => {
-                                const v = dsArr[idx]
-                                return typeof v === 'number' ? v : null
-                            }),
+                            data: indices.map((idx) => ds.data[idx] ?? null),
                         }
                     })
                 } catch (e) {
@@ -452,6 +472,10 @@ export const chartJsTool = createTool({
             toolSpan?.end()
 
             // Log tool execution success
+            if (config === null) {
+                throw new Error('Chart configuration generation failed')
+            }
+
             logToolExecution(
                 'chartjs-generator',
                 { dataCount: data.length, indicatorsCount: indicators.length },
@@ -461,9 +485,9 @@ export const chartJsTool = createTool({
                     durationMs: duration,
                 }
             )
-        } catch (e: unknown) {
-            // Cast unknown to Error when reporting to span
-            const err = e instanceof Error ? e : new Error(String(e))
+        } catch (error) {
+            const err =
+                error instanceof Error ? error : new Error(String(error))
             toolSpan?.error({ error: err, endSpan: true })
             // Log error to central logger
             log.error('chartjs-generator failed', { error: err.message })
@@ -473,7 +497,7 @@ export const chartJsTool = createTool({
                 { dataCount: data.length, indicatorsCount: indicators.length },
                 { success: false, error: err.message }
             )
-            throw e
+            throw err
         }
 
         await context?.writer?.custom({
@@ -487,67 +511,6 @@ export const chartJsTool = createTool({
         })
 
         return { config }
-    },
-    onInputStart: ({
-        toolCallId,
-        messages,
-    }: {
-        toolCallId: string
-        messages: unknown[]
-    }) => {
-        log.info('Chart.js generator tool input streaming started', {
-            toolCallId,
-            messages: Array.isArray(messages) ? messages.length : 0,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({
-        inputTextDelta,
-        toolCallId,
-        messages,
-    }: {
-        inputTextDelta: string
-        toolCallId: string
-        messages: unknown[]
-    }) => {
-        log.info('Chart.js generator tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messages: Array.isArray(messages) ? messages.length : 0,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({
-        input,
-        toolCallId,
-        messages,
-    }: {
-        input: unknown
-        toolCallId: string
-        messages: unknown[]
-    }) => {
-        log.info('Chart.js generator tool received input', {
-            toolCallId,
-            inputData: input,
-            messages: Array.isArray(messages) ? messages.length : 0,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({
-        output,
-        toolCallId,
-        toolName,
-    }: {
-        output: unknown
-        toolCallId: string
-        toolName: string
-    }) => {
-        log.info('Chart.js generator tool completed', {
-            toolCallId,
-            toolName,
-            output,
-            hook: 'onOutput',
-        })
     },
 })
 

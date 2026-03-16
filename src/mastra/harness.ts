@@ -6,6 +6,7 @@
  *
  * @see https://mastra.ai/reference/harness/harness-class
  */
+import type { Agent as MastraAgent } from '@mastra/core/agent'
 import { Harness } from '@mastra/core/harness'
 import { z } from 'zod'
 
@@ -33,6 +34,8 @@ const harnessStateSchema = z.object({
 
 export type HarnessState = z.infer<typeof harnessStateSchema>
 
+const asHarnessAgent = (agent: unknown): MastraAgent => agent as MastraAgent
+
 /**
  * Main Harness instance for AgentStack
  *
@@ -52,62 +55,55 @@ export const mainHarness = new Harness({
     storage: pgStore,
     // State management
     stateSchema: harnessStateSchema,
-    initialState: {
-        files: [],
-        context: {},
-      //  currentTask: any,
-      //  lastMode: undefined,
-    },
-
     // Agent modes - each represents a different capability/personality
     modes: [
         {
             id: 'plan',
             name: 'Planner',
-            agent: codeArchitectAgent,
+            agent: asHarnessAgent(codeArchitectAgent),
             default: true,
             color: '#7c3aed', // Purple
         },
         {
             id: 'code',
             name: 'Builder',
-            agent: codeArchitectAgent,
+            agent: asHarnessAgent(codeArchitectAgent),
             color: '#22c55e', // Green
         },
         {
             id: 'review',
             name: 'Reviewer',
-            agent: codeReviewerAgent,
+            agent: asHarnessAgent(codeReviewerAgent),
             color: '#f59e0b', // Amber
         },
         {
             id: 'test',
             name: 'Tester',
-            agent: testEngineerAgent,
+            agent: asHarnessAgent(testEngineerAgent),
             color: '#3b82f6', // Blue
         },
         {
             id: 'refactor',
             name: 'Refactorer',
-            agent: refactoringAgent,
+            agent: asHarnessAgent(refactoringAgent),
             color: '#ec4899', // Pink
         },
         {
             id: 'research',
             name: 'Researcher',
-            agent: researchAgent,
+            agent: asHarnessAgent(researchAgent),
             color: '#06b6d4', // Cyan
         },
         {
             id: 'edit',
             name: 'Editor',
-            agent: editorAgent,
+            agent: asHarnessAgent(editorAgent),
             color: '#8b5cf6', // Violet
         },
         {
             id: 'report',
             name: 'Reporter',
-            agent: reportAgent,
+            agent: asHarnessAgent(reportAgent),
             color: '#f97316', // Orange
         },
     ],
@@ -124,7 +120,6 @@ export const mainHarness = new Harness({
             instructions:
                 'You are a focused exploration agent. Quickly scan and identify relevant patterns, files, and code structures. Be concise and efficient.',
             allowedHarnessTools: [],
-            defaultModelId: 'opencode/GLM-5-free',
         },
         {
             id: 'quick-fix',
@@ -133,7 +128,6 @@ export const mainHarness = new Harness({
             instructions:
                 'You are a focused fix agent. Apply minimal, surgical fixes to resolve the specific issue. Do not refactor or optimize beyond what is necessary.',
             allowedHarnessTools: [],
-            defaultModelId: 'opencode/GLM-5-free',
         },
         {
             id: 'deep-dive',

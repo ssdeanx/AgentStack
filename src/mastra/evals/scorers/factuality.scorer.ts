@@ -1,5 +1,4 @@
 import { createScorer } from '@mastra/core/evals'
-import { googleAIFlashLite } from '../../config/google'
 import { z } from 'zod'
 
 export const factualityScorer = createScorer({
@@ -8,7 +7,7 @@ export const factualityScorer = createScorer({
     description:
         'Evaluates if the claims in the output are factual and supported by evidence',
     judge: {
-        model: googleAIFlashLite,
+        model: 'google/gemini-3.1-flash-lite-preview',
         instructions: 'You are a fact-checker and research evaluator.',
     },
     type: 'agent',

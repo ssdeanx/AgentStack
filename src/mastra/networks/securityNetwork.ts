@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { codeReviewerAgent } from '../agents/codingAgents'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { reportAgent } from '../agents/reportAgent'
@@ -165,12 +166,12 @@ export const securityNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: {
+  agents: asNestedAgents({
     codeReviewerAgent,
     evaluationAgent,
     researchAgent,
     reportAgent,
-  },
+  }),
 
   //   tools: { confirmationTool },
   options: {},

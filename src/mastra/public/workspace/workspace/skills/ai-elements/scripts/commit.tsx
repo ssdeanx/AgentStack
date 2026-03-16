@@ -23,7 +23,7 @@ import {
   CommitMetadata,
   CommitSeparator,
   CommitTimestamp,
-} from "@/components/ai-elements/commit";
+} from "@/src/components/ai-elements/commit";
 
 const handleCopy = () => {
   console.log("Copied hash!");

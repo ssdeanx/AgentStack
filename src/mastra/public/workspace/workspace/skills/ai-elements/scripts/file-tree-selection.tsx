@@ -4,7 +4,7 @@ import {
   FileTree,
   FileTreeFile,
   FileTreeFolder,
-} from "@/components/ai-elements/file-tree";
+} from "@/src/components/ai-elements/file-tree";
 import { useState } from "react";
 
 const Example = () => {

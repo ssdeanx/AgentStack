@@ -4,8 +4,8 @@ import {
   JSXPreview,
   JSXPreviewContent,
   JSXPreviewError,
-} from "@/components/ai-elements/jsx-preview";
-import { Button } from "@/components/ui/button";
+} from "@/src/components/ai-elements/jsx-preview";
+import { Button } from "@/src/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const handleError = (error: Error) => {

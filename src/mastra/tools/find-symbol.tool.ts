@@ -126,8 +126,13 @@ export const findSymbolTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const { symbolName, projectPath, symbolType, includeDependencies } =
-            inputData
+        const {
+            symbolName,
+            projectPath: rawProjectPath,
+            symbolType = 'all',
+            includeDependencies = false,
+        } = inputData
+        const projectPath = rawProjectPath?.trim() ?? process.cwd()
         const requestContext =
             context?.requestContext as RequestContext<SymbolContext>
         const abortSignal = context?.abortSignal

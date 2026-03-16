@@ -97,21 +97,21 @@ const ExcalidrawElementSchema = z.object({
     opacity: z.number().default(100),
     angle: z.number().default(0),
     points: z.array(z.array(z.number())).optional(),
-    startBinding: z.any().optional(),
-    endBinding: z.any().optional(),
-    arrowheads: z.any().optional(),
+    startBinding: z.unknown().optional(),
+    endBinding: z.unknown().optional(),
+    arrowheads: z.unknown().optional(),
     fontSize: z.number().optional(),
     fontFamily: z.number().optional(),
     textAlign: z.enum(['left', 'center', 'right']).optional(),
     verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
     groupIds: z.array(z.string()).optional(),
     frameId: z.string().nullable().optional(),
-    roundness: z.any().optional(),
+    roundness: z.unknown().optional(),
     seed: z.number().default(Math.floor(Math.random() * 1000000)),
     version: z.number().default(1),
     versionNonce: z.number().default(Math.floor(Math.random() * 1000000)),
     isDeleted: z.boolean().default(false),
-    boundElements: z.any().optional(),
+    boundElements: z.unknown().optional(),
     updated: z.number().default(Date.now()),
     link: z.string().nullable().optional(),
     locked: z.boolean().default(false),
@@ -128,7 +128,7 @@ const ExcalidrawSchema = z.object({
         gridModeEnabled: z.boolean().optional(),
         viewBackgroundColor: z.string(),
     }),
-    files: z.record(z.string(), z.any()).optional(),
+    files: z.record(z.string(), z.unknown()).optional(),
 })
 
 // Type aliases derived from Zod schemas to avoid using `any`
@@ -655,7 +655,7 @@ export const validateDataTool = createTool({
     id: 'validate-data',
     description: 'Validates data against a specified schema',
     inputSchema: z.object({
-        data: z.any().describe('Data to validate'),
+        data: z.unknown().describe('Data to validate'),
         schemaType: z.enum(['excalidraw', 'csv', 'json', 'xml']),
         strict: z.boolean().optional().default(true),
     }),
@@ -663,7 +663,7 @@ export const validateDataTool = createTool({
         isValid: z.boolean(),
         errors: z.array(z.string()),
         warnings: z.array(z.string()),
-        validatedData: z.any().optional(),
+        validatedData: z.unknown().optional(),
     }),
 
     execute: async (inputData, context) => {
@@ -1062,8 +1062,32 @@ export const excalidrawToSVGTool = createTool({
             }
 
             // Convert to SVG
+            type ExcalidrawSvgInput = Parameters<typeof excalidrawToSvg>[0]
+            const svgReadyData: ExcalidrawSvgInput = {
+                ...inputData.excalidrawData,
+                elements: inputData.excalidrawData.elements.map((element) => ({
+                    ...element,
+                    angle: element.angle ?? 0,
+                    strokeColor: element.strokeColor ?? '#000000',
+                    backgroundColor: element.backgroundColor ?? 'transparent',
+                    fillStyle: element.fillStyle ?? 'solid',
+                    strokeWidth: element.strokeWidth ?? 2,
+                    strokeStyle: element.strokeStyle ?? 'solid',
+                    roughness: element.roughness ?? 1,
+                    opacity: element.opacity ?? 100,
+                    groupIds: element.groupIds ?? [],
+                    frameId: element.frameId ?? null,
+                    seed: element.seed ?? 0,
+                    version: element.version ?? 1,
+                    versionNonce: element.versionNonce ?? 0,
+                    isDeleted: element.isDeleted ?? false,
+                    updated: element.updated ?? Date.now(),
+                    locked: element.locked ?? false,
+                })),
+            }
+
             const svgContent = await excalidrawToSvg(
-                inputData.excalidrawData,
+                svgReadyData,
                 inputData.exportOptions
             )
 

@@ -1,7 +1,5 @@
 "use client";
 
-import type { ComponentProps } from "react";
-
 import { Button } from "@/ui/button";
 import {
   Collapsible,
@@ -11,6 +9,7 @@ import {
 import { ScrollArea } from "@/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon, PaperclipIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 
 export interface QueueMessagePart {
   type: string;
@@ -76,7 +75,7 @@ export const QueueItemContent = ({
 }: QueueItemContentProps) => (
   <span
     className={cn(
-      "line-clamp-1 grow wrap-break-word",
+      "line-clamp-1 grow break-words",
       completed
         ? "text-muted-foreground/50 line-through"
         : "text-muted-foreground",
@@ -176,7 +175,7 @@ export const QueueItemFile = ({
     {...props}
   >
     <PaperclipIcon size={12} />
-    <span className="max-w-25 truncate">{children}</span>
+    <span className="max-w-[100px] truncate">{children}</span>
   </span>
 );
 
@@ -242,7 +241,7 @@ export const QueueSectionLabel = ({
   ...props
 }: QueueSectionLabelProps) => (
   <span className={cn("flex items-center gap-2", className)} {...props}>
-    <ChevronDownIcon className="size-4 transition-transform group-closed:-rotate-90" />
+    <ChevronDownIcon className="size-4 transition-transform group-data-[state=closed]:-rotate-90" />
     {icon}
     <span>
       {count} {label}

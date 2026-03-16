@@ -210,7 +210,9 @@ export const googleNewsTool = createTool({
             const params: Record<string, string | number> = {
                 engine: 'google_news',
                 q: input.query,
-                num: input.numResults,
+            }
+            if (typeof input.numResults === 'number') {
+                params.num = input.numResults
             }
             if (
                 typeof input.location === 'string' &&
@@ -358,7 +360,9 @@ export const googleNewsLiteTool = createTool({
             const params: Record<string, string | number> = {
                 engine: 'google_news',
                 q: input.query,
-                num: input.numResults,
+            }
+            if (typeof input.numResults === 'number') {
+                params.num = input.numResults
             }
             const response = await getJson(params)
 
@@ -532,8 +536,13 @@ export const googleTrendsTool = createTool({
                 engine: 'google_trends',
                 q: input.query,
                 data_type: 'TIMESERIES',
-                geo: input.location,
-                date: input.timeRange,
+            }
+
+            if (typeof input.location === 'string' && input.location.length > 0) {
+                params.geo = input.location
+            }
+            if (typeof input.timeRange === 'string' && input.timeRange.length > 0) {
+                params.date = input.timeRange
             }
 
             if (typeof input.category === 'number') {

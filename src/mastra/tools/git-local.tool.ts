@@ -920,7 +920,7 @@ export const gitLogTool = createTool({
 
         try {
             const cwd = inputData.repoPath ?? process.cwd()
-            const actualCount = Math.min(inputData.count, maxCommits)
+            const actualCount = Math.min(inputData.count ?? 10, maxCommits)
             const args = ['log']
 
             // Basic formatting

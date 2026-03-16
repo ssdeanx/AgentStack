@@ -124,11 +124,6 @@ interface BollingerBandsOutput {
     lower: number
 }
 
-interface StochasticOutput {
-    k: number
-    d: number
-}
-
 interface HeikinAshiOutput {
     open: number
     high: number
@@ -177,12 +172,16 @@ export const ichimokuCloudTool = createTool({
 
         const userId = requestCtx?.userId
         const workspaceId = requestCtx?.workspaceId
+        const conversionPeriod = inputData.conversionPeriod ?? 9
+        const basePeriod = inputData.basePeriod ?? 26
+        const spanPeriod = inputData.spanPeriod ?? 52
+        const displacement = inputData.displacement ?? 26
 
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `Input: conversionPeriod=${inputData.conversionPeriod} - ☁️ Calculating Ichimoku Cloud`,
+                message: `Input: conversionPeriod=${conversionPeriod} - ☁️ Calculating Ichimoku Cloud`,
                 stage: 'ichimoku-cloud',
             },
             id: 'ichimoku-cloud',
@@ -208,10 +207,10 @@ export const ichimokuCloudTool = createTool({
             const results = IchimokuCloud.calculate({
                 high: inputData.high,
                 low: inputData.low,
-                conversionPeriod: inputData.conversionPeriod,
-                basePeriod: inputData.basePeriod,
-                spanPeriod: inputData.spanPeriod,
-                displacement: inputData.displacement,
+                conversionPeriod,
+                basePeriod,
+                spanPeriod,
+                displacement,
             })
 
             const finalResult = {
@@ -270,26 +269,26 @@ export const ichimokuCloudTool = createTool({
             return { success: false, message: err.message }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('Ichimoku tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ toolCallId }) => {
         log.info('Ichimoku tool received input chunk', {
             toolCallId,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('Ichimoku tool received input', {
             toolCallId,
             inputData: input,
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ toolCallId, toolName }) => {
         log.info('Ichimoku tool completed', {
             toolCallId,
             toolName,
@@ -394,7 +393,7 @@ export const fibonacciTool = createTool({
             })
 
             return finalResult
-        } catch (error: any) {
+        } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
             toolSpan?.error({
@@ -414,26 +413,26 @@ export const fibonacciTool = createTool({
             return { success: false, message: errorMessage }
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('Fibonacci tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ toolCallId }) => {
         log.info('Fibonacci tool received input chunk', {
             toolCallId,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('Fibonacci tool received input', {
             toolCallId,
             inputData: input,
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ toolCallId, toolName }) => {
         log.info('Fibonacci tool completed', {
             toolCallId,
             toolName,
@@ -607,7 +606,7 @@ export const pivotPointsTool = createTool({
             })
 
             return results
-        } catch (error: any) {
+        } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
             toolSpan?.error({
@@ -635,7 +634,7 @@ export const pivotPointsTool = createTool({
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ toolCallId, messages, abortSignal }) => {
         log.info('Pivot points tool received input chunk', {
             toolCallId,
             hook: 'onInputDelta',
@@ -652,7 +651,7 @@ export const pivotPointsTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ toolCallId, toolName, abortSignal }) => {
         log.info('Pivot points tool completed', {
             toolCallId,
             toolName,
@@ -738,14 +737,18 @@ export const trendAnalysisTool = createTool({
         try {
             const {
                 data,
-                period,
-                fastPeriod,
-                slowPeriod,
-                signalPeriod,
+                period: rawPeriod,
+                fastPeriod: rawFastPeriod,
+                slowPeriod: rawSlowPeriod,
+                signalPeriod: rawSignalPeriod,
                 high,
                 low,
                 close,
             } = inputData
+            const period = rawPeriod ?? 14
+            const fastPeriod = rawFastPeriod ?? 12
+            const slowPeriod = rawSlowPeriod ?? 26
+            const signalPeriod = rawSignalPeriod ?? 9
             const results: Record<string, unknown> = {
                 success: true,
                 sma: SMA.calculate({ values: data, period }),
@@ -921,8 +924,10 @@ export const momentumAnalysisTool = createTool({
         })
 
         try {
-            const { data, period, signalPeriod, high, low, close, volume } =
+            const { data, period: rawPeriod, signalPeriod: rawSignalPeriod, high, low, close, volume } =
                 inputData
+            const period = rawPeriod ?? 14
+            const signalPeriod = rawSignalPeriod ?? 3
             const results: Record<string, unknown> = {
                 success: true,
                 rsi: RSI.calculate({ values: data, period }),
@@ -1094,7 +1099,9 @@ export const volatilityAnalysisTool = createTool({
         })
 
         try {
-            const { data, period, stdDev, high, low, close } = inputData
+            const { data, period: rawPeriod, stdDev: rawStdDev, high, low, close } = inputData
+            const period = rawPeriod ?? 20
+            const stdDev = rawStdDev ?? 2
             const results: Record<string, unknown> = {
                 success: true,
                 bollinger: BollingerBands.calculate({
@@ -1238,7 +1245,8 @@ export const volumeAnalysisTool = createTool({
         })
 
         try {
-            const { high, low, close, volume, period } = inputData
+            const { high, low, close, volume, period: rawPeriod } = inputData
+            const period = rawPeriod ?? 14
             const results: Record<string, unknown> = {
                 success: true,
                 obv: OBV.calculate({ close, volume }),

@@ -3,6 +3,28 @@
 import { useCallback, useEffect, useState } from 'react'
 import { mastraClient } from '@/lib/mastra-client'
 import type { SpanType } from '@mastra/core/observability'
+import type {
+    AddDatasetItemParams,
+    BatchDeleteDatasetItemsParams,
+    BatchInsertDatasetItemsParams,
+    CompareExperimentsParams,
+    CompareExperimentsResponse,
+    CreateDatasetParams,
+    DatasetExperiment,
+    DatasetExperimentResult,
+    DatasetItem,
+    DatasetItemVersionResponse,
+    DatasetRecord,
+    DatasetVersionResponse,
+    GetScorerResponse,
+    ListScoresByEntityIdParams,
+    ListScoresByRunIdParams,
+    ListScoresByScorerIdParams,
+    ListScoresResponse,
+    TriggerDatasetExperimentParams,
+    UpdateDatasetItemParams,
+    UpdateDatasetParams,
+} from '@mastra/client-js'
 
 interface MastraPaginationInfo {
     total: number
@@ -27,6 +49,176 @@ interface MastraListTracesResponse {
 interface MastraTraceRecord {
     traceId: string
     spans: unknown[]
+}
+
+interface MastraDatasetsResponse {
+    datasets: DatasetRecord[]
+    pagination: MastraPaginationInfo
+}
+
+interface MastraDatasetItemsResponse {
+    items: DatasetItem[]
+    pagination: MastraPaginationInfo
+}
+
+interface MastraDatasetVersionsResponse {
+    versions: DatasetVersionResponse[]
+    pagination: MastraPaginationInfo
+}
+
+interface MastraDatasetExperimentsResponse {
+    experiments: DatasetExperiment[]
+    pagination: MastraPaginationInfo
+}
+
+interface MastraDatasetExperimentResultsResponse {
+    results: DatasetExperimentResult[]
+    pagination: MastraPaginationInfo
+}
+
+export interface HarnessModeView {
+    id: string
+    name?: string
+    color?: string
+    default?: boolean
+}
+
+export interface HarnessThreadView {
+    id: string
+    resourceId: string
+    title?: string
+    createdAt: string
+    updatedAt: string
+}
+
+export interface HarnessMessageView {
+    id: string
+    role: 'system' | 'user' | 'assistant'
+    content: string
+    createdAt?: string
+    type?: string
+}
+
+export interface HarnessDisplayStateView {
+    currentModeId?: string
+    currentThreadId?: string | null
+    isRunning?: boolean
+    activeTool?: unknown
+    activeSubagent?: unknown
+    pendingQuestion?: unknown
+    pendingToolApproval?: unknown
+    pendingPlanApproval?: unknown
+    omProgress?: unknown
+    lastError?: string | null
+}
+
+export interface HarnessSessionView {
+    currentThreadId: string | null
+    currentModeId: string
+    threads: HarnessThreadView[]
+}
+
+export interface HarnessSnapshotResponse {
+    session: HarnessSessionView
+    modes: HarnessModeView[]
+    messages: HarnessMessageView[]
+    displayState: HarnessDisplayStateView
+    state: Record<string, unknown>
+    currentModelId?: string | null
+    resourceId?: string
+}
+
+export interface HarnessSnapshotParams {
+    resourceId?: string
+    threadId?: string
+    messageLimit?: number
+}
+
+export interface HarnessSendMessageParams {
+    content: string
+    resourceId?: string
+    threadId?: string
+}
+
+export interface HarnessSwitchModeParams {
+    modeId: string
+    resourceId?: string
+    threadId?: string
+}
+
+export interface HarnessCreateThreadParams {
+    title?: string
+    resourceId?: string
+}
+
+export interface HarnessSwitchThreadParams {
+    threadId: string
+    resourceId?: string
+}
+
+const HARNESS_PATH = '/harness'
+
+function buildHarnessPath(params?: HarnessSnapshotParams): string {
+    const searchParams = new URLSearchParams()
+
+    if (typeof params?.resourceId === 'string' && params.resourceId.length > 0) {
+        searchParams.set('resourceId', params.resourceId)
+    }
+
+    if (typeof params?.threadId === 'string' && params.threadId.length > 0) {
+        searchParams.set('threadId', params.threadId)
+    }
+
+    if (typeof params?.messageLimit === 'number') {
+        searchParams.set('messageLimit', String(params.messageLimit))
+    }
+
+    const query = searchParams.toString()
+    return query.length > 0 ? `${HARNESS_PATH}?${query}` : HARNESS_PATH
+}
+
+export function getHarnessSnapshot(params?: HarnessSnapshotParams) {
+    return mastraClient.request<HarnessSnapshotResponse>(buildHarnessPath(params))
+}
+
+export function sendHarnessMessage(params: HarnessSendMessageParams) {
+    return mastraClient.request<HarnessSnapshotResponse>(HARNESS_PATH, {
+        method: 'POST',
+        body: {
+            action: 'send-message',
+            ...params,
+        },
+    })
+}
+
+export function switchHarnessMode(params: HarnessSwitchModeParams) {
+    return mastraClient.request<HarnessSnapshotResponse>(HARNESS_PATH, {
+        method: 'POST',
+        body: {
+            action: 'switch-mode',
+            ...params,
+        },
+    })
+}
+
+export function createHarnessThread(params?: HarnessCreateThreadParams) {
+    return mastraClient.request<HarnessSnapshotResponse>(HARNESS_PATH, {
+        method: 'POST',
+        body: {
+            action: 'create-thread',
+            ...(params ?? {}),
+        },
+    })
+}
+
+export function switchHarnessThread(params: HarnessSwitchThreadParams) {
+    return mastraClient.request<HarnessSnapshotResponse>(HARNESS_PATH, {
+        method: 'POST',
+        body: {
+            action: 'switch-thread',
+            ...params,
+        },
+    })
 }
 
 // Generic fetch hook for MastraClient data
@@ -364,11 +556,14 @@ export function useAITraces(params?: {
                 page: params?.page ?? 1,
                 perPage: params?.perPage ?? 20,
             },
-            filter: {
-                name: params?.filters?.name,
+            filters: {
+              //  name: params?.filters?.name,
+              //  status: typeof TraceStatus, // Example filter by completed traces
+              //  hasChildError: params?.filters?.hasChildError,
                 spanType: params?.filters?.spanType,
                 entityId: params?.filters?.entityId,
-                entityType: params?.filters?.entityType,
+             //   entityType: params?.filters?.entityType,
+                //tags: {},
             },
         })
         return res as MastraListTracesResponse
@@ -383,6 +578,204 @@ export function useAITrace(traceId: string | null) {
         const res: unknown = await mastraClient.getTrace(traceId)
         return res as MastraTraceRecord
     }, [traceId])
+}
+
+export function useScorers() {
+    return useMastraFetch<Record<string, GetScorerResponse>>(
+        async () => await mastraClient.listScorers(),
+        []
+    )
+}
+
+export function useScorer(scorerId: string | null) {
+    return useMastraFetch<GetScorerResponse | null>(async () => {
+        if (scorerId === null || scorerId === undefined) {
+            return null
+        }
+
+        return await mastraClient.getScorer(scorerId)
+    }, [scorerId])
+}
+
+export function useScoresByRun(params: ListScoresByRunIdParams | null) {
+    return useMastraFetch<ListScoresResponse | null>(async () => {
+        if (params === null) {
+            return null
+        }
+
+        return await mastraClient.listScoresByRunId(params)
+    }, [params])
+}
+
+export function useScoresByScorer(params: ListScoresByScorerIdParams | null) {
+    return useMastraFetch<ListScoresResponse | null>(async () => {
+        if (params === null) {
+            return null
+        }
+
+        return await mastraClient.listScoresByScorerId(params)
+    }, [params])
+}
+
+export function useScoresByEntity(params: ListScoresByEntityIdParams | null) {
+    return useMastraFetch<ListScoresResponse | null>(async () => {
+        if (params === null) {
+            return null
+        }
+
+        return await mastraClient.listScoresByEntityId(params)
+    }, [params])
+}
+
+export function useDatasets(pagination?: { page?: number; perPage?: number }) {
+    return useMastraFetch<MastraDatasetsResponse>(
+        async () => await mastraClient.listDatasets(pagination),
+        [pagination?.page, pagination?.perPage]
+    )
+}
+
+export function useDataset(datasetId: string | null) {
+    return useMastraFetch<DatasetRecord | null>(async () => {
+        if (datasetId === null || datasetId === undefined) {
+            return null
+        }
+
+        return await mastraClient.getDataset(datasetId)
+    }, [datasetId])
+}
+
+export function useDatasetItems(
+    datasetId: string | null,
+    params?: { page?: number; perPage?: number; search?: string; version?: number | null }
+) {
+    return useMastraFetch<MastraDatasetItemsResponse | null>(async () => {
+        if (datasetId === null || datasetId === undefined) {
+            return null
+        }
+
+        return await mastraClient.listDatasetItems(datasetId, params)
+    }, [datasetId, params?.page, params?.perPage, params?.search, params?.version])
+}
+
+export function useDatasetItem(datasetId: string | null, itemId: string | null) {
+    return useMastraFetch<DatasetItem | null>(async () => {
+        if (datasetId === null || itemId === null || datasetId === undefined || itemId === undefined) {
+            return null
+        }
+
+        return await mastraClient.getDatasetItem(datasetId, itemId)
+    }, [datasetId, itemId])
+}
+
+export function useDatasetItemHistory(datasetId: string | null, itemId: string | null) {
+    return useMastraFetch<{ history: DatasetItemVersionResponse[] } | null>(async () => {
+        if (datasetId === null || itemId === null || datasetId === undefined || itemId === undefined) {
+            return null
+        }
+
+        return await mastraClient.getItemHistory(datasetId, itemId)
+    }, [datasetId, itemId])
+}
+
+export function useDatasetItemVersion(
+    datasetId: string | null,
+    itemId: string | null,
+    datasetVersion: number | null
+) {
+    return useMastraFetch<DatasetItemVersionResponse | null>(async () => {
+        if (
+            datasetId === null ||
+            itemId === null ||
+            datasetVersion === null ||
+            datasetId === undefined ||
+            itemId === undefined
+        ) {
+            return null
+        }
+
+        return await mastraClient.getDatasetItemVersion(
+            datasetId,
+            itemId,
+            datasetVersion
+        )
+    }, [datasetId, itemId, datasetVersion])
+}
+
+export function useDatasetVersions(
+    datasetId: string | null,
+    pagination?: { page?: number; perPage?: number }
+) {
+    return useMastraFetch<MastraDatasetVersionsResponse | null>(async () => {
+        if (datasetId === null || datasetId === undefined) {
+            return null
+        }
+
+        return await mastraClient.listDatasetVersions(datasetId, pagination)
+    }, [datasetId, pagination?.page, pagination?.perPage])
+}
+
+export function useDatasetExperiments(
+    datasetId: string | null,
+    pagination?: { page?: number; perPage?: number }
+) {
+    return useMastraFetch<MastraDatasetExperimentsResponse | null>(async () => {
+        if (datasetId === null || datasetId === undefined) {
+            return null
+        }
+
+        return await mastraClient.listDatasetExperiments(datasetId, pagination)
+    }, [datasetId, pagination?.page, pagination?.perPage])
+}
+
+export function useDatasetExperiment(
+    datasetId: string | null,
+    experimentId: string | null
+) {
+    return useMastraFetch<DatasetExperiment | null>(async () => {
+        if (
+            datasetId === null ||
+            experimentId === null ||
+            datasetId === undefined ||
+            experimentId === undefined
+        ) {
+            return null
+        }
+
+        return await mastraClient.getDatasetExperiment(datasetId, experimentId)
+    }, [datasetId, experimentId])
+}
+
+export function useDatasetExperimentResults(
+    datasetId: string | null,
+    experimentId: string | null,
+    pagination?: { page?: number; perPage?: number }
+) {
+    return useMastraFetch<MastraDatasetExperimentResultsResponse | null>(async () => {
+        if (
+            datasetId === null ||
+            experimentId === null ||
+            datasetId === undefined ||
+            experimentId === undefined
+        ) {
+            return null
+        }
+
+        return await mastraClient.listDatasetExperimentResults(
+            datasetId,
+            experimentId,
+            pagination
+        )
+    }, [datasetId, experimentId, pagination?.page, pagination?.perPage])
+}
+
+export function useCompareExperiments(params: CompareExperimentsParams | null) {
+    return useMastraFetch<CompareExperimentsResponse | null>(async () => {
+        if (params === null) {
+            return null
+        }
+
+        return await mastraClient.compareExperiments(params)
+    }, [params])
 }
 
 // Logs hooks
@@ -495,6 +888,195 @@ export function useCreateMemoryThread() {
     return { create, loading, error }
 }
 
+export function useCreateDataset() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const create = useCallback(async (params: CreateDatasetParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.createDataset(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { create, loading, error }
+}
+
+export function useUpdateDataset() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const update = useCallback(async (params: UpdateDatasetParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.updateDataset(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { update, loading, error }
+}
+
+export function useDeleteDataset() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const remove = useCallback(async (datasetId: string) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.deleteDataset(datasetId)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { remove, loading, error }
+}
+
+export function useAddDatasetItem() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const add = useCallback(async (params: AddDatasetItemParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.addDatasetItem(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { add, loading, error }
+}
+
+export function useUpdateDatasetItem() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const update = useCallback(async (params: UpdateDatasetItemParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.updateDatasetItem(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { update, loading, error }
+}
+
+export function useDeleteDatasetItem() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const remove = useCallback(async (datasetId: string, itemId: string) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.deleteDatasetItem(datasetId, itemId)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { remove, loading, error }
+}
+
+export function useBatchInsertDatasetItems() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const insert = useCallback(async (params: BatchInsertDatasetItemsParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.batchInsertDatasetItems(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { insert, loading, error }
+}
+
+export function useBatchDeleteDatasetItems() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const remove = useCallback(async (params: BatchDeleteDatasetItemsParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.batchDeleteDatasetItems(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { remove, loading, error }
+}
+
+export function useTriggerDatasetExperiment() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const trigger = useCallback(async (params: TriggerDatasetExperimentParams) => {
+        setLoading(true)
+        setError(null)
+        try {
+            return await mastraClient.triggerDatasetExperiment(params)
+        } catch (err) {
+            const errorInstance = err instanceof Error ? err : new Error(String(err))
+            setError(errorInstance)
+            throw errorInstance
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    return { trigger, loading, error }
+}
+
 export function useUpdateWorkingMemory() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)
@@ -591,3 +1173,29 @@ export function useScoreTraces() {
 
     return { score, loading, error }
 }
+
+export function useSaveScore() {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<Error | null>(null)
+
+    const save = useCallback(
+        async (params: Parameters<typeof mastraClient.saveScore>[0]) => {
+            setLoading(true)
+            setError(null)
+            try {
+                return await mastraClient.saveScore(params)
+            } catch (err) {
+                const errorInstance =
+                    err instanceof Error ? err : new Error(String(err))
+                setError(errorInstance)
+                throw errorInstance
+            } finally {
+                setLoading(false)
+            }
+        },
+        []
+    )
+
+    return { save, loading, error }
+}
+

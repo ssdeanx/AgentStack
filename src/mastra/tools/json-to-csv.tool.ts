@@ -89,6 +89,10 @@ export const jsonToCsvTool = createTool({
                 jsonCsvSpan?.end()
                 return { csv: '' }
             }
+            const resolvedOptions = options ?? {
+                delimiter: ',',
+                includeHeaders: true,
+            }
 
             const config = requestContext?.csvToolContext
             const maxRows = config?.maxRows
@@ -103,7 +107,7 @@ export const jsonToCsvTool = createTool({
             const headers = Array.from(
                 new Set(data.flatMap((row) => Object.keys(row)))
             )
-            const delimiter = options.delimiter || ','
+            const delimiter = resolvedOptions.delimiter || ','
 
             const escapeValue = (value: unknown): string => {
                 if (value === null || value === undefined) {
@@ -133,7 +137,7 @@ export const jsonToCsvTool = createTool({
 
             const rows: string[] = []
 
-            if (options.includeHeaders) {
+            if (resolvedOptions.includeHeaders) {
                 rows.push(headers.map((h) => escapeValue(h)).join(delimiter))
             }
 
@@ -240,13 +244,20 @@ export const jsonToCsvTool = createTool({
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const csvLines = output.csv.split('\n').length
+        const csvOutput =
+            typeof output === 'object' &&
+            output !== null &&
+            'csv' in output &&
+            typeof (output as { csv?: unknown }).csv === 'string'
+                ? (output as { csv: string }).csv
+                : ''
+        const csvLines = csvOutput.split('\n').length
         log.info('JSON to CSV conversion completed', {
             toolCallId,
             toolName,
             abortSignal: abortSignal?.aborted,
             csvLines,
-            csvLength: output.csv.length,
+            csvLength: csvOutput.length,
             hook: 'onOutput',
         })
     },

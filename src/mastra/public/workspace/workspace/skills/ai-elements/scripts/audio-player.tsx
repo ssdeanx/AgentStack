@@ -14,7 +14,7 @@ import {
   AudioPlayerTimeDisplay,
   AudioPlayerTimeRange,
   AudioPlayerVolumeRange,
-} from "@/components/ai-elements/audio-player";
+} from "@/src/components/ai-elements/audio-player";
 import { useEffect, useState } from "react";
 
 const Example = () => {

@@ -130,7 +130,7 @@ async function extractPdfText(
  * Sub-tool: Extract and structure PDF metadata
  * Returns document information useful for markdown frontmatter
  */
-async function extractPdfMetadata(pdfContent: PdfContent): Promise<{
+function extractPdfMetadata(pdfContent: PdfContent): {
     title: string
     author: string
     subject: string
@@ -138,7 +138,7 @@ async function extractPdfMetadata(pdfContent: PdfContent): Promise<{
     pageCount: number
     extractedAt: string
     contentPreview: string
-}> {
+} {
     const metadata = {
         title: pdfContent.title ?? 'Untitled Document',
         author: pdfContent.author ?? 'Unknown Author',
@@ -448,20 +448,20 @@ Perfect for RAG indexing, documentation conversion, and content processing.
   `,
     inputSchema: PdfToMarkdownInputSchema,
     outputSchema: PdfToMarkdownOutputSchema,
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('pdfToMarkdownTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId }) => {
         log.info('pdfToMarkdownTool received input chunk', {
             toolCallId,
             inputTextDelta,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('pdfToMarkdownTool received input', {
             toolCallId,
             inputData: {
@@ -498,6 +498,11 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         const requestContext = context?.requestContext as
             | PdfDataConversionContext
             | undefined
+        const outputFormat = inputData.outputFormat ?? 'markdown'
+        const includeMetadata = inputData.includeMetadata ?? true
+        const includeTables = inputData.includeTables ?? true
+        const includeImages = inputData.includeImages ?? false
+        const shouldNormalize = inputData.normalizeText ?? true
 
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -507,16 +512,18 @@ Perfect for RAG indexing, documentation conversion, and content processing.
         })
 
         // Create root tracing span
-        const tracingContext = context?.tracingContext
         const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'pdf-to-markdown-tool',
             input: { pdfPath: inputData.pdfPath, maxPages: inputData.maxPages },
+            requestContext: context?.requestContext,
+            tracingContext: context?.tracingContext,
             metadata: {
                 'tool.id': 'pdfToMarkdown',
                 'tool.input.pdfPath': inputData.pdfPath,
                 normalization: inputData.normalizeText,
                 operation: 'pdf-to-markdown',
+                'user.id': requestContext?.userId,
             },
         })
         // Note: nested child spans will be created from tracingContext or rootSpan as needed
@@ -593,13 +600,13 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 metadata: { 'tool.id': 'extract-metadata' },
             })
 
-            const metadata = await extractPdfMetadata(pdfContent)
+            const metadata = extractPdfMetadata(pdfContent)
             metadataSpan?.update({ output: metadata })
             metadataSpan?.end()
 
             // Normalize text if requested
             let processedText = pdfContent.text
-            if (inputData.normalizeText) {
+            if (shouldNormalize) {
                 const normalizeSpan = rootSpan?.createChildSpan({
                     type: SpanType.TOOL_CALL,
                     name: 'normalize-text',
@@ -638,7 +645,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 tableCount: 0,
                 tables: [],
             }
-            if (inputData.includeTables) {
+            if (includeTables) {
                 const tableSpan = rootSpan?.createChildSpan({
                     type: SpanType.TOOL_CALL,
                     name: 'extract-tables',
@@ -658,7 +665,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 imageCount: 0,
                 images: [],
             }
-            if (inputData.includeImages) {
+            if (includeImages) {
                 const imageSpan = rootSpan?.createChildSpan({
                     type: SpanType.TOOL_CALL,
                     name: 'extract-images',
@@ -677,7 +684,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             let finalContent = ''
             const outputMetadata: Record<string, unknown> = {}
 
-            if (inputData.includeMetadata) {
+            if (includeMetadata) {
                 // Add YAML frontmatter
                 const frontmatter = {
                     title: metadata.title,
@@ -692,7 +699,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
                 outputMetadata['metadata'] = metadata
                 outputMetadata['frontmatter'] = frontmatter
 
-                if (inputData.outputFormat === 'markdown') {
+                if (outputFormat === 'markdown') {
                     finalContent = `---\n${Object.entries(frontmatter)
                         .map(
                             ([k, v]) =>
@@ -703,7 +710,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
             }
 
             // Add main content based on format
-            switch (inputData.outputFormat) {
+            switch (outputFormat) {
                 case 'html': {
                     // Convert markdown to HTML using marked
                     finalContent += await marked(markdownResult.markdown)
@@ -754,11 +761,9 @@ Perfect for RAG indexing, documentation conversion, and content processing.
 
             const output = {
                 success: true,
-                format: inputData.outputFormat,
+                format: outputFormat,
                 content: finalContent,
-                metadata: inputData.includeMetadata
-                    ? outputMetadata
-                    : undefined,
+                metadata: includeMetadata ? outputMetadata : undefined,
                 statistics: {
                     pageCount: pdfContent.numpages,
                     lineCount: markdownResult.lineCount,
@@ -802,7 +807,7 @@ Perfect for RAG indexing, documentation conversion, and content processing.
 
             return {
                 success: false,
-                format: inputData.outputFormat ?? 'markdown',
+                format: outputFormat,
                 content: '',
                 statistics: {
                     pageCount: 0,

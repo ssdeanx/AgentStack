@@ -1,3 +1,22 @@
+# 2026-03-16 Mastra evals hardening
+
+- Resolved all current `get_errors` issues under `src/mastra/evals`.
+- Reworked `agent-experiments.ts` away from the broken local `runEvals(agent, ...)` usage path and onto a typed helper that:
+  - executes the agent with `returnScorerData: true`
+  - feeds canonical `scoringData.input` / `scoringData.output` into `scorer.run(...)`
+- Removed unsafe `any`/member-access patterns from keyword coverage, financial scorer parsing, custom scorers, and scorer utility helpers.
+- Standardized judge-backed eval scorers on the explicit Mastra model string `google/gemini-3.1-flash-lite-preview`.
+- Added `type: 'agent'` to custom agent scorers so experiment helpers accept them without `any`/unsafe widening.
+- Removed `as any` scorer execution from eval tests by making the local test harness return agent-shaped scorer input/output.
+- Verified current installed `@mastra/core` typings directly from `node_modules`:
+  - `runEvals<TAgent extends Agent>(...)` is supported for datasets/manual batches
+  - `RunEvalsDataItem<TAgent>` expects `{ input, groundTruth?, requestContext?: RequestContext }`
+- Final convention pass: judge-backed eval scorers now use the inline literal model string exactly as requested, and `src/mastra/agents/seoAgent.ts` no longer has an unused Google model import.
+- Added the full frontend dataset/scorer/experiment API surface to both `lib/hooks/use-mastra-query.ts` and `lib/hooks/use-mastra.ts`, matching the installed `@mastra/client-js` methods exactly.
+- Validation:
+  - ✅ targeted `get_errors` on edited eval files clean
+  - ✅ final `get_errors` on `src/mastra/evals` returned **No errors found**
+
 ## 2026-02-17 Landing Components Full Pass
 
 - Completed landing-wide component polish across all `landing-*` sections:
@@ -46,6 +65,37 @@
 - Kept scope limited to dashboard strict typing and stability (no backend wiring changes to public pages in this step).
 
 # Progress
+
+## 2026-03-16 Mastra nested-agent type fix
+
+- Resolved folder-level `get_errors` failures in:
+  - `src/mastra/agents`
+  - `src/mastra/a2a`
+  - `src/mastra/networks`
+- Verified upstream cause in installed dependency typings rather than guessing:
+  - `node_modules/@mastra/core/dist/agent/types.d.ts`
+  - nested `agents` config is typed too narrowly for child agents with stricter runtime contexts.
+- Added a single local adapter:
+  - `src/mastra/agents/nestedAgents.ts`
+- Updated all affected parent agent/network registrations to use `asNestedAgents(...)`.
+- Removed obsolete `src/mastra/agents/agentRegistry.ts`.
+- Validation:
+  - ✅ targeted `get_errors` on edited files clean
+  - ✅ final `get_errors` on `src/mastra/agents`, `src/mastra/a2a`, and `src/mastra/networks` returned **No errors found**
+
+## 2026-03-16 Mastra tools strict-clean pass
+
+- Completed strict type/hook cleanup across the requested Mastra tool files and resolved additional concrete diagnostics surfaced by folder-wide validation.
+- Key fixes included:
+  - removed avoidable `any` usage in touched schemas/helpers
+  - tightened nullable booleans/strings for strict checks
+  - added/normalized output schemas so hook payloads are typed correctly
+  - normalized tool hook placement around schema definitions in touched tools
+  - repaired Excalidraw → SVG compatibility typing
+  - cleaned E2B/listing path regression and several leftover utility tool diagnostics
+- Validation:
+  - ✅ requested tool files clean under `get_errors`
+  - ✅ final `get_errors` on `src/mastra/tools` returned **No errors found**
 
 ## 2026-03-05 use-mastra-query error cleanup
 

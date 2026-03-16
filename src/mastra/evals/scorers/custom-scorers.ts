@@ -1,5 +1,5 @@
-import { createScorer, runEvals } from '@mastra/core/evals'
-import { googleAIFlashLite } from '../../config/google'
+import { createScorer } from '@mastra/core/evals'
+import { extractAgentResponseMessages } from './utils'
 
 // Typings for parsed outputs
 interface Source {
@@ -19,39 +19,31 @@ export const sourceDiversityScorer = createScorer({
     name: 'Source Diversity',
     description:
         'Evaluates if research sources come from diverse domains and avoid single-source bias',
+    type: 'agent',
     judge: {
-        model: googleAIFlashLite,
+        model: 'google/gemini-3.1-flash-lite-preview',
         instructions:
             'You are an expert research evaluator focused on source credibility and diversity.',
     },
 })
     .preprocess(({ run }) => {
-        const { output } = run
+        const outputText = extractAgentResponseMessages(run.output).join('\n')
         let sources: string[] = []
 
-        if (typeof output === 'string') {
-            try {
-                const parsed = JSON.parse(output) as { sources?: Source[] }
-                sources = parsed.sources?.map((s) => s.url) ?? []
-            } catch {
-                const urlRegex = /https?:\/\/[^\s]+/g
-                sources = output.match(urlRegex) ?? []
-            }
-        } else if (
-            output !== null &&
-            typeof output === 'object' &&
-            'sources' in (output as Record<string, unknown>)
-        ) {
-            const typed = output as { sources?: Source[] }
-            sources = typed.sources?.map((s) => s.url) ?? []
+        try {
+            const parsed = JSON.parse(outputText) as { sources?: Source[] }
+            sources = parsed.sources?.map((source) => source.url) ?? []
+        } catch {
+            const urlRegex = /https?:\/\/[^\s]+/g
+            sources = Array.from(outputText.matchAll(urlRegex), (match) => match[0])
         }
 
         return { sources }
     })
     .analyze(({ results }) => {
-        const { sources } = results.preprocessStepResult
+        const sources = results.preprocessStepResult.sources ?? []
 
-        if (Array.isArray(sources) && sources.length === 0) {
+        if (sources.length === 0) {
             return {
                 diversityScore: 0,
                 uniqueDomains: 0,
@@ -61,7 +53,7 @@ export const sourceDiversityScorer = createScorer({
             }
         }
 
-        const domains = (sources || [])
+        const domains = sources
             .map((url: string) => {
                 try {
                     const urlObj = new URL(url)
@@ -79,19 +71,18 @@ export const sourceDiversityScorer = createScorer({
             domainBreakdown[domain] = (domainBreakdown[domain] || 0) + 1
         })
 
-        const diversityScore =
-            uniqueDomains.size / Math.max((sources || []).length, 1)
+        const diversityScore = uniqueDomains.size / Math.max(sources.length, 1)
 
         const issues: string[] = []
         if (uniqueDomains.size < 2) {
             issues.push('Limited domain diversity - mostly single source')
         }
-        if ((sources || []).length < 3) {
+        if (sources.length < 3) {
             issues.push('Insufficient number of sources')
         }
         if (
             Object.values(domainBreakdown).some(
-                (count) => count > (sources || []).length * 0.6
+                (count) => count > sources.length * 0.6
             )
         ) {
             issues.push('Heavy reliance on single domain')
@@ -100,7 +91,7 @@ export const sourceDiversityScorer = createScorer({
         return {
             diversityScore,
             uniqueDomains: uniqueDomains.size,
-            totalSources: (sources || []).length,
+            totalSources: sources.length,
             domainBreakdown,
             issues,
         }
@@ -115,46 +106,38 @@ export const researchCompletenessScorer = createScorer({
     name: 'Research Completeness',
     description:
         'Evaluates if the research comprehensively covers the topic from multiple angles',
+    type: 'agent',
     judge: {
-        model: googleAIFlashLite,
+        model: 'google/gemini-3.1-flash-lite-preview',
         instructions:
             'You are an expert research evaluator focused on completeness and depth of analysis.',
     },
 })
     .preprocess(({ run }) => {
-        const { output } = run
+        const outputText = extractAgentResponseMessages(run.output).join('\n')
         let learnings: Learning[] = []
         let summary = ''
         let data = ''
 
-        if (typeof output === 'string') {
-            try {
-                const parsed = JSON.parse(output) as {
-                    learnings?: Learning[]
-                    summary?: string
-                    data?: string
-                }
-                learnings = parsed.learnings ?? []
-                summary = parsed.summary ?? ''
-                data = parsed.data ?? ''
-            } catch {
-                summary = output
-            }
-        } else if (output !== null && typeof output === 'object') {
-            const typed = output as {
+        try {
+            const parsed = JSON.parse(outputText) as {
                 learnings?: Learning[]
                 summary?: string
                 data?: string
             }
-            learnings = typed.learnings ?? []
-            summary = typed.summary ?? ''
-            data = typed.data ?? ''
+            learnings = parsed.learnings ?? []
+            summary = parsed.summary ?? ''
+            data = parsed.data ?? ''
+        } catch {
+            summary = outputText
         }
 
         return { learnings, summary, data }
     })
     .analyze(({ results }) => {
-        const { learnings, summary, data } = results.preprocessStepResult
+        const learnings = results.preprocessStepResult.learnings ?? []
+        const summary = results.preprocessStepResult.summary ?? ''
+        const data = results.preprocessStepResult.data ?? ''
 
         const totalContent = `${summary} ${data}`.toLowerCase()
         const learningCount = learnings.length

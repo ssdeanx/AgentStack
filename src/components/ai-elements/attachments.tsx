@@ -1,8 +1,5 @@
 "use client";
 
-import type { FileUIPart, SourceDocumentUIPart } from "ai";
-import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
-
 import { Button } from "@/ui/button";
 import {
   HoverCard,
@@ -10,6 +7,7 @@ import {
   HoverCardTrigger,
 } from "@/ui/hover-card";
 import { cn } from "@/lib/utils";
+import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import {
   FileTextIcon,
   GlobeIcon,
@@ -19,6 +17,7 @@ import {
   VideoIcon,
   XIcon,
 } from "lucide-react";
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 // ============================================================================
@@ -79,11 +78,11 @@ export const getMediaCategory = (
 
 export const getAttachmentLabel = (data: AttachmentData): string => {
   if (data.type === "source-document") {
-    return data.title ?? data.filename ?? "Source";
+    return data.title || data.filename || "Source";
   }
 
   const category = getMediaCategory(data);
-  return data.filename ?? (category === "image" ? "Image" : "Attachment");
+  return data.filename || (category === "image" ? "Image" : "Attachment");
 };
 
 const renderAttachmentImage = (
@@ -93,7 +92,7 @@ const renderAttachmentImage = (
 ) =>
   isGrid ? (
     <img
-      alt={filename ?? "Image"}
+      alt={filename || "Image"}
       className="size-full object-cover"
       height={96}
       src={url}
@@ -101,7 +100,7 @@ const renderAttachmentImage = (
     />
   ) : (
     <img
-      alt={filename ?? "Image"}
+      alt={filename || "Image"}
       className="size-full rounded object-cover"
       height={20}
       src={url}

@@ -256,9 +256,17 @@ See these docs for details and examples:
 - [ ] Add/verify `data-tool-progress` messages with `status` and `stage`
 - [ ] Add unit tests that mock `tracingContext.currentSpan.createChildSpan()` to assert spans are created/updated/ended
 
+## Tool Definition Conventions
+
+- Keep tool configuration fields grouped predictably: `id`, `description`, `inputSchema`, `outputSchema`, hook callbacks (`onInputStart`, `onInputDelta`, `onInputAvailable`, `onOutput`), then `execute`.
+- Prefer explicit schema constants plus `z.infer`-derived types when hook payloads or execute return values need additional local typing help.
+- Avoid `z.any()` unless there is a strong boundary reason; prefer `z.unknown()` or a narrowed union/object schema.
+- Default nullable booleans/strings/numbers explicitly inside `execute` even when schema defaults exist if strict analysis still sees nullable inputs.
+- When a tool returns structured output and hooks inspect that output, define an `outputSchema` so hook payloads are strongly typed.
+
 These rules help ensure consistent, filterable traces across Mastra and better integration with exporters and OTEL bridges.
 
-#### Migration: Replacing OpenTelemetry usage in tools
+### Migration: Replacing OpenTelemetry usage in tools
 
 If a tool currently imports and uses OpenTelemetry APIs directly (for example `trace.getTracer(...)`, `span.recordException(...)`, `span.setStatus(...)`), migrate it to the runtime `tracingContext` pattern above. Example migration:
 

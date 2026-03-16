@@ -10,7 +10,7 @@ import {
   MicSelectorList,
   MicSelectorTrigger,
   MicSelectorValue,
-} from "@/components/ai-elements/mic-selector";
+} from "@/src/components/ai-elements/mic-selector";
 
 const handleOpenChange = (open: boolean) => {
   console.log("MicSelector is open?", open);

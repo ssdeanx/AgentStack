@@ -13,7 +13,7 @@ describe('Completeness Scorer', () => {
                 { role: 'assistant', content: 'Apples, oranges, bananas' },
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })
@@ -31,7 +31,7 @@ describe('Completeness Scorer', () => {
             ],
             output: [{ role: 'assistant', content: 'I like pizza' }],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })

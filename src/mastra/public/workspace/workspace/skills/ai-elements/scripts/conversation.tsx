@@ -6,8 +6,8 @@ import {
   ConversationDownload,
   ConversationEmptyState,
   ConversationScrollButton,
-} from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+} from "@/src/components/ai-elements/conversation";
+import { Message, MessageContent } from "@/src/components/ai-elements/message";
 import { MessageSquareIcon } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";

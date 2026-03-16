@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { documentProcessingAgent } from '../agents/documentProcessingAgent'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
@@ -118,13 +119,13 @@ export const learningNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: {
+  agents: asNestedAgents({
     learningExtractionAgent,
     knowledgeIndexingAgent,
     researchAgent,
     documentProcessingAgent,
     evaluationAgent,
-  },
+  }),
   workflows: {
     learningExtractionWorkflow,
     researchSynthesisWorkflow,

@@ -130,7 +130,7 @@ export const a2aCoordinatorMcpServer = new MCPServer({
     agents: {
         a2aCoordinator: a2aCoordinatorAgent,
         codingCoordinator: codingA2ACoordinator,
-        knowledgeIndexing: knowledgeIndexingAgent,
+       // knowledgeIndexing: knowledgeIndexingAgent,
     },
     //  resources: {},
     prompts: {

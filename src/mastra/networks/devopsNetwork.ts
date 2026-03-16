@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   codeArchitectAgent,
   codeReviewerAgent,
@@ -159,7 +160,7 @@ export const devopsNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: {
+  agents: asNestedAgents({
     codeArchitectAgent,
     codeReviewerAgent,
     testEngineerAgent,
@@ -167,7 +168,7 @@ export const devopsNetwork = new Agent({
     danePackagePublisher,
     projectManagementAgent,
     evaluationAgent,
-  },
+  }),
   options: {},
   tools: { confirmationTool },
   outputProcessors: [

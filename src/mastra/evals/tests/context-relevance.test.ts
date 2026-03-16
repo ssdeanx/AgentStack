@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createContextRelevanceScorerLLM } from '../scorers/prebuilt'
+import { createAgentTestRun } from '../scorers/utils'
 
 describe('Context Relevance Scorer (heuristic)', () => {
     it('penalizes unused high relevance context', async () => {
@@ -11,13 +12,18 @@ describe('Context Relevance Scorer (heuristic)', () => {
             },
             context: ['Important fact', 'Other detail'],
         })
-        const run: any = {
-            input: { inputMessages: [{ role: 'user', content: 'Query' }] },
+        const run = createAgentTestRun({
+            inputMessages: [{ role: 'user', content: 'Query' }],
             output: [{ role: 'assistant', content: 'Other detail' }],
-        }
-        const res = await (scorer as any).run(run)
+        })
+        const res = await scorer.run(run)
         expect(res.score).toBeLessThan(1)
+        const analysis = res.analyzeStepResult
+        expect(analysis).toBeDefined()
+        if (!analysis) {
+            throw new Error('Expected analyzeStepResult to be defined')
+        }
         // ensure unused high context counted
-        expect(res.analyzeStepResult.unusedHigh).toBeGreaterThanOrEqual(0)
+        expect(analysis.unusedHigh).toBeGreaterThanOrEqual(0)
     })
 })

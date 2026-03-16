@@ -4,6 +4,7 @@ import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { calendarAgent } from './calendarAgent'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { reportAgent } from './reportAgent'
 import { evaluationAgent } from './evaluationAgent'
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
@@ -142,11 +143,11 @@ export const projectManagementAgent = new Agent({
 `,
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
-    agents: {
+    agents: asNestedAgents({
         calendarAgent,
         reportAgent,
         evaluationAgent,
-    },
+    }),
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

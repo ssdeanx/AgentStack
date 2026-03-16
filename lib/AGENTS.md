@@ -27,3 +27,12 @@ The `lib/` directory serves as the frontend client library layer for AgentStack,
   - Queries: `useWorkspaceInfo`, `useWorkspaceFiles`, `useWorkspaceReadFile`, `useWorkspaceStat`, `useWorkspaceSearch`, `useWorkspaceSkills`, `useWorkspaceSearchSkills`
   - Mutations: `useWorkspaceWriteFileMutation`, `useWorkspaceDeleteMutation`, `useWorkspaceMkdirMutation`, `useWorkspaceIndexMutation`
 - Added granular workspace query keys to support frontend cache invalidation after file/index mutations.
+
+## Recent Update (2026-03-16)
+
+- `hooks/use-mastra-query.ts` now exposes the full installed `@mastra/client-js` dataset/eval/scorer surface for frontend consumers:
+  - scorer/eval queries: `useScorers`, `useScorer`, `useScoresByRun`, `useScoresByScorer`, `useScoresByEntity`
+  - dataset queries: `useDatasets`, `useDataset`, `useDatasetItems`, `useDatasetItem`, `useDatasetItemHistory`, `useDatasetItemVersion`, `useDatasetVersions`
+  - experiment queries: `useDatasetExperiments`, `useDatasetExperiment`, `useDatasetExperimentResults`, `useCompareExperiments`
+  - dataset/eval mutations: create/update/delete dataset, add/update/delete item, batch item insert/delete, trigger experiment, save score
+- `hooks/use-mastra.ts` mirrors the same dataset/scorer/experiment API surface using the generic `useMastraFetch` pattern for non-React-Query consumers.
