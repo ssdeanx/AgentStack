@@ -1,3 +1,12 @@
+# 2026-03-16 use-mastra-query full client-js hook expansion
+
+- Completed the requested `@mastra/client-js` parity pass in `lib/hooks/use-mastra-query.ts` without replacing the file’s existing hook-factory pattern.
+- Added missing query families for provider/processors, advanced memory, stored resources, vectors/embedders, workspace skill resources, A2A streaming, and Agent Builder queries.
+- Added missing mutation families for workflow run lifecycle, advanced memory helpers, processor execution, stored resource CRUD/version flows, and Agent Builder execution flows.
+- Corrected the stale stored-agent list cast so `useStoredAgents` now returns the installed paginated SDK shape instead of a forced single-agent response.
+- Validation:
+  - ✅ targeted `get_errors` on `lib/hooks/use-mastra-query.ts` returned **No errors found**
+
 # 2026-03-16 Mastra evals hardening
 
 - Resolved all current `get_errors` issues under `src/mastra/evals`.

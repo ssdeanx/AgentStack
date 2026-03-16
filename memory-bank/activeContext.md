@@ -1,3 +1,23 @@
+## Active Context Update (2026-03-16 - use-mastra-query full client-js surface expansion)
+
+- Expanded `lib/hooks/use-mastra-query.ts` beyond dataset/eval coverage to expose the remaining installed `@mastra/client-js` surfaces needed by the frontend hook factory.
+- Added query coverage for:
+  - tool providers + provider toolkits/tools/schema
+  - processors + processor providers
+  - workflow schema
+  - memory thread detail, working memory, memory search, observational memory, await-buffer status
+  - stored prompt blocks/scorers/MCP clients/skills plus stored-agent version/compare queries
+  - vector/embedder discovery
+  - workspace skill detail/reference queries
+  - A2A streaming message + Agent Builder action/run queries
+- Added mutation coverage for:
+  - workflow delete/resume/cancel/restart/time-travel lifecycle
+  - save-message-to-memory, delete-thread-messages, clone-thread
+  - processor execute
+  - stored agent/prompt block/scorer/MCP client/skill CRUD + version lifecycle where supported
+  - Agent Builder create/start/resume/cancel mutations
+- Validation: targeted `get_errors` on `lib/hooks/use-mastra-query.ts` returned **No errors found**.
+
 ## Active Context Update (2026-03-16 - Mastra evals production-grade typing cleanup)
 
 - Cleaned `src/mastra/evals/**` to a targeted `get_errors` clean state.
