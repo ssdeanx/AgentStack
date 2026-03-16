@@ -5,7 +5,7 @@ import {
   AttachmentPreview,
   AttachmentRemove,
   Attachments,
-} from "@/components/ai-elements/attachments";
+} from "@/src/components/ai-elements/attachments";
 import {
   Message,
   MessageAction,
@@ -19,7 +19,7 @@ import {
   MessageContent,
   MessageResponse,
   MessageToolbar,
-} from "@/components/ai-elements/message";
+} from "@/src/components/ai-elements/message";
 import {
   CopyIcon,
   RefreshCcwIcon,

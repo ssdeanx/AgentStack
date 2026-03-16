@@ -13,7 +13,7 @@ describe('Tone Consistency Scorer', () => {
                 { role: 'assistant', content: 'I am very happy to help!' },
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })
@@ -28,7 +28,7 @@ describe('Tone Consistency Scorer', () => {
             ],
             output: [{ role: 'assistant', content: 'I love this product!' }],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })

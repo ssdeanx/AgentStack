@@ -236,7 +236,9 @@ export const googleScholarTool = createTool({
             const params: Record<string, string | number> = {
                 engine: 'google_scholar',
                 q: input.query,
-                num: input.numResults,
+            }
+            if (typeof input.numResults === 'number') {
+                params.num = input.numResults
             }
             if (
                 typeof input.yearStart === 'number' &&
@@ -248,7 +250,7 @@ export const googleScholarTool = createTool({
             if (input.sortBy === 'date') {
                 params.scisbd = '1'
             }
-            if (!input.includePatents) {
+            if (input.includePatents === false) {
                 params.as_sdt = '0,5'
             }
             const response = (await getJson(params)) as ScholarApiResponse
@@ -626,15 +628,20 @@ export const yelpSearchTool = createTool({
                 engine: 'yelp',
                 find_desc: input.query,
                 find_loc: input.location,
-                num: input.numResults,
             }
-            if (input.sortBy !== 'recommended') {
+            if (typeof input.numResults === 'number') {
+                params.num = input.numResults
+            }
+            if (
+                typeof input.sortBy === 'string' &&
+                input.sortBy !== 'recommended'
+            ) {
                 params.sortby = input.sortBy
             }
             if (input.priceRange) {
                 params.price = input.priceRange
             }
-            if (input.openNow) {
+            if (input.openNow === true) {
                 params.open_now = 'true'
             }
             const response = (await getJson(params)) as YelpApiResponse

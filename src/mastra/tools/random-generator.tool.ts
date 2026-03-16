@@ -78,6 +78,7 @@ export const randomGeneratorTool = createTool({
         const requestContext = context?.requestContext as RandomToolContext
         const locale =
             inputData.options?.locale ?? requestContext?.locale ?? 'en'
+        const count = inputData.count ?? 1
 
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
@@ -91,7 +92,7 @@ export const randomGeneratorTool = createTool({
             metadata: {
                 'tool.id': 'random-generator',
                 'tool.input.type': inputData.type,
-                'tool.input.count': inputData.count,
+                'tool.input.count': count,
             },
             requestContext: context?.requestContext,
             tracingContext,
@@ -101,7 +102,7 @@ export const randomGeneratorTool = createTool({
         const generationSpan = rootSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'random-generation-operation',
-            input: { type: inputData.type, count: inputData.count },
+            input: { type: inputData.type, count },
             metadata: {
                 'tool.id': 'random-generation',
                 'operation.type': inputData.type,
@@ -112,7 +113,7 @@ export const randomGeneratorTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `🎲 Generating ${inputData.count} random ${inputData.type}(s)...`,
+                message: `🎲 Generating ${count} random ${inputData.type}(s)...`,
                 stage: 'random-generator',
             },
             id: 'random-generator',
@@ -127,14 +128,14 @@ export const randomGeneratorTool = createTool({
                 | Record<string, unknown>
                 | null = null
 
-            if (inputData.count === 1) {
+            if (count === 1) {
                 result = generateRandomItem(inputData.type, {
                     ...inputData.options,
                     locale,
                 })
             } else {
                 const items: unknown[] = []
-                for (let i = 0; i < inputData.count; i++) {
+                for (let i = 0; i < count; i++) {
                     items.push(
                         generateRandomItem(inputData.type, {
                             ...inputData.options,
@@ -149,7 +150,7 @@ export const randomGeneratorTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Generated ${inputData.count} random ${inputData.type}(s)`,
+                    message: `✅ Generated ${count} random ${inputData.type}(s)`,
                     stage: 'random-generator',
                 },
                 id: 'random-generator',
@@ -157,7 +158,7 @@ export const randomGeneratorTool = createTool({
 
             // Update spans with successful result
             generationSpan?.update({
-                output: { success: true, count: inputData.count },
+                output: { success: true, count },
                 metadata: {
                     'operation.completed': true,
                 },
@@ -165,11 +166,11 @@ export const randomGeneratorTool = createTool({
             generationSpan?.end()
 
             rootSpan?.update({
-                output: { success: true, count: inputData.count },
+                output: { success: true, count },
                 metadata: {
                     'tool.output.success': true,
                     'tool.output.type': inputData.type,
-                    'tool.output.count': inputData.count,
+                    'tool.output.count': count,
                 },
             })
             rootSpan?.end()
@@ -178,7 +179,7 @@ export const randomGeneratorTool = createTool({
                 success: true,
                 data: result,
                 type: inputData.type,
-                count: inputData.count,
+                count,
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e)
@@ -198,7 +199,7 @@ export const randomGeneratorTool = createTool({
                 success: false,
                 data: null,
                 type: inputData.type,
-                count: inputData.count,
+                count,
                 message: errorMsg,
             }
         }

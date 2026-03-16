@@ -527,6 +527,10 @@ export const listFiles = createTool({
         path: z.string().describe('The path that was listed'),
     }),
     execute: async (inputData, context) => {
+        const listedPath =
+            typeof inputData.path === 'string' && inputData.path.length > 0
+                ? inputData.path
+                : '/'
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
         const span = getOrCreateSpan({
@@ -538,7 +542,7 @@ export const listFiles = createTool({
             metadata: {
                 'tool.id': 'listFiles',
                 'tool.input.sandboxId': inputData.sandboxId,
-                'tool.input.path': inputData.path,
+                'tool.input.path': listedPath,
             },
         })
         const startTime = Date.now()
@@ -547,13 +551,13 @@ export const listFiles = createTool({
             logToolStart('listFiles', inputData, context)
 
             const sandbox = await Sandbox.connect(inputData.sandboxId)
-            const fileList = await sandbox.files.list(inputData.path)
+            const fileList = await sandbox.files.list(listedPath)
 
             span?.update({
                 metadata: {
                     'operation.status': 'success',
                     'sandbox.id': inputData.sandboxId,
-                    'list.path': inputData.path,
+                    'list.path': listedPath,
                     'list.file_count': fileList.length,
                     'list.directory_count': fileList.filter(
                         (f) => f.type === FileType.DIR
@@ -568,7 +572,7 @@ export const listFiles = createTool({
                     path: file.path,
                     isDirectory: file.type === FileType.DIR,
                 })),
-                path: inputData.path,
+                path: listedPath,
             }
 
             logToolComplete(
@@ -1204,7 +1208,7 @@ export const getFileSize = createTool({
 
             let humanReadableSize: string | undefined
 
-            if (inputData.humanReadable) {
+            if (inputData.humanReadable === true) {
                 const bytes = info.size
                 const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
                 if (bytes === 0) {

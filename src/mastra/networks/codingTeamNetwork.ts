@@ -7,6 +7,7 @@ import type {
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   codeArchitectAgent,
   codeReviewerAgent,
@@ -92,11 +93,7 @@ async function evaluateQuality(text: string): Promise<number> {
     positives.reduce((acc, kw) => acc + (lower.includes(kw) ? 0.05 : 0), 0)
   )
 
-  const score = Math.max(
-    0,
-    Math.min(1, lengthScore * negativeScore + positiveBoost)
-  )
-  return score
+  return Math.max(0, Math.min(1, lengthScore * negativeScore + positiveBoost))
 }
 
 /**
@@ -175,12 +172,12 @@ Invoke these for structured, multi-phase processes:
   model: google3,
   memory: upstashMemory,
   options: {},
-  agents: {
+  agents: asNestedAgents({
     codeArchitectAgent,
     codeReviewerAgent,
     testEngineerAgent,
     refactoringAgent,
-  },
+  }),
   tools: {},
   workflows: {
     researchSynthesisWorkflow,

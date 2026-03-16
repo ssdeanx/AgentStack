@@ -4,8 +4,36 @@ import {
     extractInputMessages,
     extractAgentResponseMessages,
     getAssistantMessageFromRunOutput,
+    getUserMessageFromRunInput,
     extractToolCalls,
 } from './utils'
+
+interface GroundTruthCarrier {
+    groundTruth?: unknown
+}
+
+interface ContextPenalties {
+    unusedHighRelevanceContext?: number
+    missingContextPerItem?: number
+    maxMissingContextPenalty?: number
+}
+
+interface ContextScorerOptions {
+    penalties?: ContextPenalties
+    scale?: number
+    context?: string[]
+    contextExtractor?: (inputText: string, outputText: string) => string[]
+}
+
+interface ContextPrecisionOptions {
+    scale?: number
+    context?: string[]
+    contextExtractor?: (inputText: string, outputText: string) => string[]
+}
+
+function getGroundTruth(run: GroundTruthCarrier): string | undefined {
+    return typeof run.groundTruth === 'string' ? run.groundTruth : undefined
+}
 
 export function createCompletenessScorer() {
     return createScorer({
@@ -189,12 +217,7 @@ export function createNoiseSensitivityScorerLLM(
         type: 'agent',
     })
         .preprocess(({ run }) => {
-            const input =
-                (run.input &&
-                    (Array.isArray(run.input)
-                        ? run.input[0]?.content
-                        : run.input)) ??
-                ''
+            const input = getUserMessageFromRunInput(run.input) ?? ''
             const outputText =
                 getAssistantMessageFromRunOutput(run.output) ?? ''
             return { input, outputText, opts: options }
@@ -239,42 +262,29 @@ export function createTextualDifferenceScorer() {
         .preprocess(({ run }) => {
             const outputText =
                 getAssistantMessageFromRunOutput(run.output) ?? ''
-            const groundTruth =
-                (run as any).groundTruth ??
-                (Array.isArray(run.input) ? undefined : undefined)
-            // groundTruth may be passed via run.groundTruth when using runEvals
-            const gt = (run as any).groundTruth ?? undefined
-            return { outputText, groundTruth: gt }
+            return { outputText, groundTruth: getGroundTruth(run) ?? '' }
         })
         .analyze(({ results }) => {
             const outputText = results.preprocessStepResult.outputText ?? ''
             const groundTruth = results.preprocessStepResult.groundTruth ?? ''
-            const maxLen = Math.max(
-                outputText.length,
-                (groundTruth as string).length,
-                1
-            )
-            const distance = levenshtein(outputText, groundTruth as string)
+            const maxLen = Math.max(outputText.length, groundTruth.length, 1)
+            const distance = levenshtein(outputText, groundTruth)
             const ratio = 1 - distance / maxLen
             const confidence =
                 1 -
-                Math.abs(outputText.length - (groundTruth as string).length) /
-                    Math.max(
-                        outputText.length,
-                        (groundTruth as string).length,
-                        1
-                    )
+                Math.abs(outputText.length - groundTruth.length) /
+                    Math.max(outputText.length, groundTruth.length, 1)
             return {
                 confidence,
                 ratio,
                 changes: distance,
-                lengthDiff: outputText.length - (groundTruth as string).length,
+                lengthDiff: outputText.length - groundTruth.length,
             }
         })
         .generateScore(({ results }) => {
-            const analysis = results.analyzeStepResult || {
-                ratio: 0.0,
-                confidence: 0.0,
+            const analysis = results.analyzeStepResult
+            if (!analysis) {
+                return 0
             }
             const ratio = Math.max(0, Math.min(1, analysis.ratio ?? 0))
             const confidence = Math.max(
@@ -444,12 +454,7 @@ export function createToneScorer() {
 }
 
 export function createContextRelevanceScorerLLM(
-    opts: {
-        penalties?: any
-        scale?: number
-        context?: string[]
-        contextExtractor?: any
-    } = {}
+    opts: ContextScorerOptions = {}
 ) {
     // Lightweight heuristic implementation for local testing
     return createScorer({
@@ -497,7 +502,8 @@ export function createContextRelevanceScorerLLM(
             ).length
             const missing = details.filter((d) => d.relevance === 0.0).length
             const unusedPenalty =
-                (opts.penalties?.unusedHighRelevanceContext ?? 0.1) * unusedHigh
+                (opts.penalties?.unusedHighRelevanceContext ?? 0.1) *
+                unusedHigh
             const missingPenalty = Math.min(
                 opts.penalties?.maxMissingContextPenalty ?? 0.5,
                 (opts.penalties?.missingContextPerItem ?? 0.15) * missing
@@ -511,7 +517,7 @@ export function createContextRelevanceScorerLLM(
 }
 
 export function createContextPrecisionScorer(
-    opts: { scale?: number; context?: string[]; contextExtractor?: any } = {}
+    opts: ContextPrecisionOptions = {}
 ) {
     // MAP-based heuristic for local testing
     return createScorer({
@@ -525,8 +531,7 @@ export function createContextPrecisionScorer(
             const outputText = extractAgentResponseMessages(run.output).join(
                 '\n'
             )
-            const gt = (run as any).groundTruth ?? ''
-            return { ctx, outputText, groundTruth: gt }
+            return { ctx, outputText, groundTruth: getGroundTruth(run) ?? '' }
         })
         .analyze(({ results }) => {
             const ctx: string[] = results.preprocessStepResult.ctx ?? []

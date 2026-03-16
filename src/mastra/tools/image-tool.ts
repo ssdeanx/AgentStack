@@ -324,7 +324,12 @@ export const imageProcessorTool = createTool({
             await fs.access(input.inputPath)
 
             let pipeline = sharp(input.inputPath)
-            const ops = input.operations
+            const ops = input.operations ?? {
+                grayscale: false,
+                sharpen: false,
+                flip: false,
+                flop: false,
+            }
 
             if (ops.resize) {
                 pipeline = pipeline.resize({
@@ -511,6 +516,7 @@ export const imageToMarkdownTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
+        const headingLevel = input.headingLevel ?? 2
 
         if (abortSignal?.aborted ?? false) {
             throw new Error('Image to markdown conversion cancelled')
@@ -645,7 +651,7 @@ export const imageToMarkdownTool = createTool({
                     if (inList) {
                         inList = false
                     }
-                    const level = Math.min(input.headingLevel, 6)
+                    const level = Math.min(headingLevel, 6)
                     markdown += `${'#'.repeat(level)} ${trimmed}\n\n`
                     continue
                 }

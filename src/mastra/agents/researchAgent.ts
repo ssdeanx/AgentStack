@@ -5,7 +5,6 @@ import {
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
@@ -21,7 +20,7 @@ import {
   googleNewsLiteTool,
   googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
-import { htmlToMarkdownTool, webScraperTool } from '../tools/web-scraper-tool'
+import { htmlToMarkdownTool } from '../tools/web-scraper-tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
@@ -99,7 +98,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
   tools: {
     // Core Research Tools
     fetchTool,
-    webScraperTool,
+//    webScraperTool,
     googleScholarTool,
     googleNewsLiteTool,
     googleTrendsTool,

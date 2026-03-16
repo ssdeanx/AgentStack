@@ -8,8 +8,8 @@ import {
   ChainOfThoughtSearchResult,
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
-} from "@/components/ai-elements/chain-of-thought";
-import { Image } from "@/components/ai-elements/image";
+} from "@/src/components/ai-elements/chain-of-thought";
+import { Image } from "@/src/components/ai-elements/image";
 import { ImageIcon, SearchIcon } from "lucide-react";
 
 const exampleImage = {

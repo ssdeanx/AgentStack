@@ -16,6 +16,7 @@ import {
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   checkFileExists,
   createDirectory,
@@ -205,12 +206,12 @@ When a user's request requires prolonged, structured work across multiple subtas
   model: googleAIFlashLite,
   memory: pgMemory,
 
-  agents: {
+  agents: asNestedAgents({
     codeArchitectAgent,
     codeReviewerAgent,
     testEngineerAgent,
     refactoringAgent,
-  },
+  }),
   workflows: {
     researchSynthesisWorkflow,
     financialReportWorkflow,

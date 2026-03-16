@@ -14,7 +14,7 @@ import {
   CodeBlockLanguageSelectorTrigger,
   CodeBlockLanguageSelectorValue,
   CodeBlockTitle,
-} from "@/components/ai-elements/code-block";
+} from "@/src/components/ai-elements/code-block";
 import { FileIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 

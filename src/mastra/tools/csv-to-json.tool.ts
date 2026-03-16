@@ -261,11 +261,18 @@ export const csvToJsonTool = createTool({
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const recordsProcessed =
+            typeof output === 'object' &&
+            output !== null &&
+            'data' in output &&
+            Array.isArray((output as { data?: unknown }).data)
+                ? ((output as { data: unknown[] }).data).length
+                : 0
         log.info('CSV to JSON conversion completed', {
             toolCallId,
             toolName,
             abortSignal: abortSignal?.aborted,
-            recordsProcessed: output.data.length,
+            recordsProcessed,
             hook: 'onOutput',
         })
     },

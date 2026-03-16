@@ -244,6 +244,9 @@ Use this tool when you need advanced document processing with metadata extractio
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
+        const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
+        const chunkSize = inputData.chunkSize ?? 512
+        const chunkOverlap = inputData.chunkOverlap ?? 50
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
@@ -268,7 +271,7 @@ Use this tool when you need advanced document processing with metadata extractio
             input: {
                 documentLength: inputData.documentContent.length,
                 chunkingStrategy: inputData.chunkingStrategy,
-                chunkSize: inputData.chunkSize,
+                chunkSize,
                 extractTitle: inputData.extractTitle,
                 extractSummary: inputData.extractSummary,
                 extractKeywords: inputData.extractKeywords,
@@ -394,25 +397,25 @@ Use this tool when you need advanced document processing with metadata extractio
             ) {
                 Object.assign(extractParams, inputData.extract as ExtractParams)
             }
-            if (inputData.extractTitle) {
+            if (inputData.extractTitle ?? false) {
                 extractParams.title = true
             }
-            if (inputData.extractSummary) {
+            if (inputData.extractSummary ?? false) {
                 extractParams.summary = true
             }
-            if (inputData.extractKeywords) {
+            if (inputData.extractKeywords ?? false) {
                 extractParams.keywords = true
             }
-            if (inputData.extractQuestions) {
+            if (inputData.extractQuestions ?? false) {
                 extractParams.questions = true
             }
 
             // Execute chunking with metadata extraction
             const chunkingStartTime = Date.now()
             const chunkParams = buildChunkParams(
-                inputData.chunkingStrategy,
-                inputData.chunkSize,
-                inputData.chunkOverlap,
+                chunkingStrategy,
+                chunkSize,
+                chunkOverlap,
                 extractParams
             )
             const chunks = await document.chunk(chunkParams)
@@ -421,7 +424,7 @@ Use this tool when you need advanced document processing with metadata extractio
             logStepStart('mastra-chunking-completed', {
                 chunkCount: chunks.length,
                 chunkingTimeMs: chunkingTime,
-                strategy: inputData.chunkingStrategy,
+                strategy: chunkingStrategy,
                 extractOptions: Object.keys(extractParams),
             })
 
@@ -433,9 +436,9 @@ Use this tool when you need advanced document processing with metadata extractio
                     chunkIndex: index,
                     totalChunks: chunks.length,
                     documentId: `doc_${Date.now()}_${index}`,
-                    chunkingStrategy: inputData.chunkingStrategy,
-                    chunkSize: inputData.chunkSize,
-                    chunkOverlap: inputData.chunkOverlap,
+                    chunkingStrategy,
+                    chunkSize,
+                    chunkOverlap,
                 },
             }))
 
@@ -575,6 +578,13 @@ content indexing, or semantic search capabilities.
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
+        const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
+        const chunkSize = inputData.chunkSize ?? 512
+        const chunkOverlap = inputData.chunkOverlap ?? 50
+        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const embeddingModel =
+            inputData.embeddingModel ?? 'google/gemini-embedding-001'
+        const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
@@ -599,7 +609,7 @@ content indexing, or semantic search capabilities.
             input: {
                 documentLength: inputData.documentContent.length,
                 chunkingStrategy: inputData.chunkingStrategy,
-                chunkSize: inputData.chunkSize,
+                chunkSize,
                 generateEmbeddings: inputData.generateEmbeddings,
             },
             requestContext: context?.requestContext,
@@ -619,8 +629,8 @@ content indexing, or semantic search capabilities.
                         metadata: {
                             ...inputData.documentMetadata,
                             chunkingStrategy: inputData.chunkingStrategy,
-                            chunkSize: inputData.chunkSize,
-                            chunkOverlap: inputData.chunkOverlap,
+                            chunkSize,
+                            chunkOverlap,
                             processedAt: new Date().toISOString(),
                             source: 'mdocument-chunker',
                         },
@@ -714,9 +724,9 @@ content indexing, or semantic search capabilities.
             // Execute chunking using MDocument.chunk() method
             const chunkingStartTime = Date.now()
             const chunkParams = buildChunkParams(
-                inputData.chunkingStrategy,
-                inputData.chunkSize,
-                inputData.chunkOverlap
+                chunkingStrategy,
+                chunkSize,
+                chunkOverlap
             )
             const chunks = await document.chunk(chunkParams)
             const chunkingTime = Date.now() - chunkingStartTime
@@ -724,7 +734,7 @@ content indexing, or semantic search capabilities.
             logStepStart('custom-chunking-completed', {
                 chunkCount: chunks.length,
                 chunkingTimeMs: chunkingTime,
-                strategy: inputData.chunkingStrategy,
+                strategy: chunkingStrategy,
             })
 
             // Prepare chunks for embedding and storage
@@ -735,9 +745,9 @@ content indexing, or semantic search capabilities.
                     chunkIndex: index,
                     totalChunks: chunks.length,
                     documentId: `doc_${Date.now()}_${index}`,
-                    chunkingStrategy: inputData.chunkingStrategy,
-                    chunkSize: inputData.chunkSize,
-                    chunkOverlap: inputData.chunkOverlap,
+                    chunkingStrategy,
+                    chunkSize,
+                    chunkOverlap,
                 },
                 id: String(chunk.metadata?.id ?? `chunk_${Date.now()}_${randomUUID()}`),
             }))
@@ -746,10 +756,7 @@ content indexing, or semantic search capabilities.
             let embeddings: number[][] = []
 
             // Generate embeddings if requested
-            if (
-                inputData.generateEmbeddings &&
-                chunksForProcessing.length > 0
-            ) {
+            if ((inputData.generateEmbeddings ?? false) && chunksForProcessing.length > 0) {
                 await context?.writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -774,16 +781,16 @@ content indexing, or semantic search capabilities.
                     for (
                         let i = 0;
                         i < nonEmptyValues.length;
-                        i += inputData.embeddingBatchSize
+                        i += embeddingBatchSize
                     ) {
                         const batch = nonEmptyValues.slice(
                             i,
-                            i + inputData.embeddingBatchSize
+                            i + embeddingBatchSize
                         )
                         const result = await embedMany({
                             values: batch,
                             model: new ModelRouterEmbeddingModel(
-                                inputData.embeddingModel
+                                embeddingModel
                             ),
                             maxRetries: 3,
                             abortSignal: new AbortController().signal,
@@ -801,7 +808,7 @@ content indexing, or semantic search capabilities.
                     })
                 } catch (embedError) {
                     logError('mdocument-chunker-embeddings', embedError, {
-                        embeddingBatchSize: inputData.embeddingBatchSize,
+                        embeddingBatchSize,
                     })
                     // fall back to no embeddings so chunks are still returned
                     embeddings = []
@@ -825,7 +832,7 @@ content indexing, or semantic search capabilities.
                 // Ensure index exists with the same dimension as embeddings
                 try {
                     await pgVector.createIndex({
-                        indexName: inputData.indexName,
+                        indexName,
                         dimension: embeddings[0]?.length || 0,
                     })
                 } catch (idxErr) {
@@ -868,7 +875,7 @@ content indexing, or semantic search capabilities.
                 // Store vectors with metadata
                 if (finalVectors.length > 0) {
                     await pgVector.upsert({
-                        indexName: inputData.indexName,
+                        indexName,
                         vectors: finalVectors,
                         metadata: finalMetadata,
                         ids: finalIds,
@@ -881,7 +888,7 @@ content indexing, or semantic search capabilities.
 
                 const storageTime = Date.now() - storageStartTime
                 logStepStart('vectors-stored', {
-                    indexName: inputData.indexName,
+                    indexName,
                     vectorCount: embeddings.length,
                     storageTimeMs: storageTime,
                 })
@@ -1049,6 +1056,13 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         logToolExecution('document-reranker', {
             userQuery: inputData.userQuery,
         })
+        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const topK = inputData.topK ?? 10
+        const initialTopK = inputData.initialTopK ?? 20
+        const semanticWeight = inputData.semanticWeight ?? 0.5
+        const vectorWeight = inputData.vectorWeight ?? 0.3
+        const positionWeight = inputData.positionWeight ?? 0.2
+        const rerankModel = inputData.rerankModel ?? 'google/gemini-2.5-flash'
 
         // Use the existing tracing context if available to create a child span.
         const tracingContext = context?.tracingContext
@@ -1057,9 +1071,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             name: 'document-reranker',
             input: {
                 userQuery: inputData.userQuery,
-                indexName: inputData.indexName,
-                topK: inputData.topK,
-                initialTopK: inputData.initialTopK,
+                indexName,
+                topK,
+                initialTopK,
             },
             metadata: {
                 'tool.id': 'document:reranker',
@@ -1095,15 +1109,13 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
             // Normalize weights to sum to 1 (if user input deviates)
             const weights = normalizeWeights(
-                inputData.semanticWeight,
-                inputData.vectorWeight,
-                inputData.positionWeight
+                semanticWeight,
+                vectorWeight,
+                positionWeight
             )
             // Log if user-supplied weights did not sum to 1
             const origSum =
-                inputData.semanticWeight +
-                inputData.vectorWeight +
-                inputData.positionWeight
+                semanticWeight + vectorWeight + positionWeight
             if (Math.abs(origSum - 1) > 1e-6) {
                 log.info('Normalized reranker weights', {
                     originalSum: origSum,
@@ -1124,9 +1136,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             const searchStartTime = Date.now()
             // NOTE: PGVector query accepts Mongo/Sift-style filter at runtime
             const initialResults = await pgVector.query({
-                indexName: inputData.indexName,
+                indexName,
                 queryVector: queryEmbedding,
-                topK: inputData.initialTopK,
+                topK: initialTopK,
                 filter: inputData.filter,
                 includeVector: inputData.includeVector,
             })
@@ -1135,7 +1147,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             logStepStart('initial-search-completed', {
                 resultCount: initialResults.length,
                 searchTimeMs: searchTime,
-                indexName: inputData.indexName,
+                indexName,
             })
 
             if (initialResults.length === 0) {
@@ -1182,10 +1194,10 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 })),
                 inputData.userQuery,
                 // Use ModelRouterLanguageModel wrapper so the reranker receives a Mastra-compatible model
-                new ModelRouterLanguageModel(inputData.rerankModel),
+                new ModelRouterLanguageModel(rerankModel),
                 {
                     weights,
-                    topK: inputData.topK,
+                    topK,
                 }
             )
             const rerankerTime = Date.now() - rerankerStartTime
@@ -1196,8 +1208,8 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 rerankerTimeMs: rerankerTime,
                 weights: {
                     semantic: inputData.semanticWeight,
-                    vector: inputData.vectorWeight,
-                    position: inputData.positionWeight,
+                    vector: vectorWeight,
+                    position: positionWeight,
                 },
             })
 

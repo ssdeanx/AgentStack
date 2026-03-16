@@ -1,3 +1,60 @@
+## Active Context Update (2026-03-16 - Mastra evals production-grade typing cleanup)
+
+- Cleaned `src/mastra/evals/**` to a targeted `get_errors` clean state.
+- Verified current Mastra eval behavior against installed typings/docs:
+  - scorer authoring remains `createScorer` from `@mastra/core/evals`
+  - built-in/reference scorer packages live under `@mastra/evals`
+  - agents support live scorer attachment directly in agent config
+  - local eval experiments in this repo now use `agent.generate(..., { returnScorerData: true })` + `scorer.run(...)` instead of the previously failing `runEvals(...)` calls
+  - installed `runEvals` agent overload still exists and accepts dataset-style items shaped like `{ input, groundTruth?, requestContext?: RequestContext }`
+- Hardened eval utilities/scorers to remove unsafe `any` patterns and object-stringification lint issues:
+  - `src/mastra/evals/scorers/utils.ts`
+  - `src/mastra/evals/scorers/keyword-coverage.ts`
+  - `src/mastra/evals/scorers/prebuilt.ts`
+  - `src/mastra/evals/scorers/custom-scorers.ts`
+  - `src/mastra/evals/scorers/financial-scorers.ts`
+  - `src/mastra/evals/agent-experiments.ts`
+- Judge-backed eval scorers were normalized to the explicit model string `google/gemini-3.1-flash-lite-preview`.
+- Eval tests no longer rely on `(scorer as any).run(...)`; the local harness now returns agent-typed scorer payloads.
+- `seoAgent.ts` was aligned with the same convention by removing the stale unused `googleAI3` import while keeping the inline model string already present there.
+
+## Active Context Update (2026-03-16 - Frontend dataset/eval hook coverage)
+
+- Extended both frontend Mastra hook layers to expose installed dataset/eval APIs without touching `lib/mastra-client.ts`:
+  - `lib/hooks/use-mastra-query.ts`
+  - `lib/hooks/use-mastra.ts`
+- Added dataset CRUD, dataset item CRUD/history/version access, experiment listing/detail/results/compare, scorer listing/detail, score listing, trigger-experiment, and save-score hooks.
+- Validation: targeted `get_errors` on both hook files returned **No errors found**.
+
+## Active Context Update (2026-03-16 - Mastra nested agent typing cleanup)
+
+- Fixed `src/mastra/agents`, `src/mastra/a2a`, and `src/mastra/networks` folder errors using targeted VS Code `get_errors` validation only.
+- Root cause verified in installed Mastra types: `@mastra/core/dist/agent/types.d.ts` defines nested `agents?: DynamicArgument<Record<string, Agent>>`, which rejects valid child agents with narrower request-context generics.
+- Added `src/mastra/agents/nestedAgents.ts` as the single boundary adapter for nested sub-agent registration.
+- Updated all affected A2A/network/agent registries to use `asNestedAgents(...)` and removed the earlier `agentRegistry.ts` helper.
+- Cleaned adjacent issues found by `get_errors` during the same pass:
+  - removed unused imports in `researchAgent.ts` and `customerSupportAgent.ts`
+  - fixed markdown fence language in `src/mastra/networks/AGENTS.md`
+
+## Active Context Update (2026-03-16 - Tools production typing/hook hardening)
+
+- Hardened the Mastra tools layer using targeted `get_errors` validation and folder-level revalidation on `src/mastra/tools`.
+- Fixed strict typing and nullable handling in:
+  - `pdf-data-conversion.tool.ts`
+  - `url-tool.ts`
+  - `color-change-tool.ts`
+  - `chartjs.tool.ts`
+  - `data-processing-tools.ts`
+  - `image-tool.ts`
+- Also cleaned concrete folder diagnostics exposed during the pass in:
+  - `e2b.ts`
+  - `find-references.tool.ts`
+  - `extractLearningsTool.ts`
+  - `document-chunking.tool.ts`
+  - `technical-analysis.tool.ts`
+- Normalized hook placement in touched tool definitions so hook declarations sit alongside schema definitions before `execute` where appropriate.
+- Final verification: `get_errors` on `src/mastra/tools` returned **No errors found**.
+
 ## Active Context Update (2026-03-05 - Workspace/Sandbox Hook Expansion)
 
 - Mastra workspace docs were reviewed for frontend integration (`local-filesystem`, `local-sandbox`, `sandbox`, `workspace-class`, `workspace/search`).

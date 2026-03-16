@@ -70,10 +70,14 @@ const confirmationTool = createTool({
             })
             rootSpan?.end()
 
-            return suspend?.({
-                message: `Please confirm: ${action}`,
-                action,
-            })
+            if (typeof suspend === 'function') {
+                await suspend({
+                    message: `Please confirm: ${action}`,
+                    action,
+                })
+            }
+
+            return { confirmed: false, action }
         }
 
         const result = { confirmed: true, action }

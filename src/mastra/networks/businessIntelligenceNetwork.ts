@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { evaluationAgent } from '../agents/evaluationAgent'
@@ -171,7 +172,7 @@ export const businessIntelligenceNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: {
+  agents: asNestedAgents({
     dataIngestionAgent,
     dataTransformationAgent,
     reportAgent,
@@ -179,7 +180,7 @@ export const businessIntelligenceNetwork = new Agent({
     researchAgent,
     evaluationAgent,
     chartSupervisorAgent,
-  },
+  }),
   options: {},
   //  tools: { confirmationTool },
   outputProcessors: [

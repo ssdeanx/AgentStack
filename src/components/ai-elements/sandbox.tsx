@@ -1,8 +1,5 @@
 "use client";
 
-import type { ToolUIPart } from "ai";
-import type { ComponentProps } from "react";
-
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,7 +12,9 @@ import {
   TabsTrigger,
 } from "@/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { ToolUIPart } from "ai";
 import { ChevronDownIcon, Code } from "lucide-react";
+import type { ComponentProps } from "react";
 
 import { getStatusBadge } from "./tool";
 
@@ -68,7 +67,7 @@ export const SandboxContent = ({
 }: SandboxContentProps) => (
   <CollapsibleContent
     className={cn(
-      "closed:fade-out-0 closed:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none closed:animate-out data-[state=open]:animate-in",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
       className
     )}
     {...props}

@@ -7,7 +7,7 @@ import {
   CodeBlockFilename,
   CodeBlockHeader,
   CodeBlockTitle,
-} from "@/components/ai-elements/code-block";
+} from "@/src/components/ai-elements/code-block";
 import { FileIcon } from "lucide-react";
 
 const handleCopy = () => {

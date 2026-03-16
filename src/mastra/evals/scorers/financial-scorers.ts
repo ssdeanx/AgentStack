@@ -1,5 +1,57 @@
 import { createScorer } from '@mastra/core/evals'
-import { googleAIFlashLite } from '../../config/google'
+
+interface FinancialAnalysisSections {
+    technical?: unknown
+    fundamental?: unknown
+    sentiment?: unknown
+}
+
+interface FinancialAnalysisPayload {
+    symbol?: unknown
+    currentPrice?: unknown
+    analysis?: FinancialAnalysisSections
+    recommendation?: unknown
+    priceTarget?: unknown
+    risks?: unknown
+    sources?: unknown
+}
+
+function isFinancialAnalysisPayload(
+    value: unknown
+): value is FinancialAnalysisPayload {
+    return typeof value === 'object' && value !== null
+}
+
+function parseFinancialOutput(output: unknown): {
+    json: FinancialAnalysisPayload | null
+    text: string
+} {
+    if (typeof output === 'string') {
+        const text = output
+
+        try {
+            const match = /```json\s*([\s\S]*?)\s*```/.exec(output)
+            const rawJson = match?.[1] ?? output
+            const parsed: unknown = JSON.parse(rawJson)
+
+            return {
+                json: isFinancialAnalysisPayload(parsed) ? parsed : null,
+                text,
+            }
+        } catch {
+            return { json: null, text }
+        }
+    }
+
+    if (isFinancialAnalysisPayload(output)) {
+        return {
+            json: output,
+            text: JSON.stringify(output),
+        }
+    }
+
+    return { json: null, text: '' }
+}
 
 export const financialDataScorer = createScorer({
     id: 'financial-data-scorer',
@@ -7,39 +59,18 @@ export const financialDataScorer = createScorer({
     description:
         'Evaluates if the financial analysis output contains valid, complete, and sane data',
     judge: {
-        model: googleAIFlashLite,
+        model: 'google/gemini-3.1-flash-lite-preview',
         instructions: 'You are a financial data auditor.',
     },
     type: 'agent',
 })
     .preprocess(({ run }) => {
-        const { output } = run
-        let json: any = null
-        let text = ''
-
-        if (typeof output === 'string') {
-            text = output
-            try {
-                const match = /```json\s*([\s\S]*?)\s*```/.exec(output)
-                if (match) {
-                    json = JSON.parse(match[1])
-                } else {
-                    json = JSON.parse(output)
-                }
-            } catch (e) {
-                // invalid json
-            }
-        } else if (output && typeof output === 'object') {
-            json = output
-            text = JSON.stringify(output)
-        }
-
-        return { json, text }
+        return parseFinancialOutput(run.output)
     })
     .analyze(({ results }) => {
         const { json } = results.preprocessStepResult
 
-        if (!json) {
+        if (json === null) {
             return {
                 isValidJson: false,
                 hasRequiredFields: false,
@@ -86,14 +117,14 @@ export const financialDataScorer = createScorer({
             dataSanityCheck = false
         }
 
-        if (json.analysis) {
-            if (!json.analysis.technical) {
+        if (json.analysis !== undefined) {
+            if (json.analysis.technical === undefined) {
                 issues.push('Missing technical analysis')
             }
-            if (!json.analysis.fundamental) {
+            if (json.analysis.fundamental === undefined) {
                 issues.push('Missing fundamental analysis')
             }
-            if (!json.analysis.sentiment) {
+            if (json.analysis.sentiment === undefined) {
                 issues.push('Missing sentiment analysis')
             }
         }

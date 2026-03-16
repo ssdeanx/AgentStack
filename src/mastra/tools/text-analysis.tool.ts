@@ -66,6 +66,7 @@ export const textAnalysisTool = createTool({
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
+        const operations = inputData.operations ?? ['word-count']
         const requestCtx = context?.requestContext as
             | TextAnalysisToolContext
             | undefined
@@ -81,7 +82,7 @@ export const textAnalysisTool = createTool({
             metadata: {
                 'tool.id': 'text-analysis',
                 'tool.input.textLength': inputData.text.length,
-                'tool.input.operationsCount': inputData.operations.length,
+                'tool.input.operationsCount': operations.length,
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
@@ -119,7 +120,7 @@ export const textAnalysisTool = createTool({
             const language = inputData.language ?? defaultLanguage
             const includeAdvancedMetricsFlag = includeAdvancedMetrics ?? false
 
-            for (const operation of inputData.operations) {
+            for (const operation of operations) {
                 switch (operation) {
                     case 'word-count':
                         results[operation] = countWords(inputData.text)
@@ -161,7 +162,7 @@ export const textAnalysisTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Text analysis completed (${inputData.operations.length} operations)`,
+                    message: `✅ Text analysis completed (${operations.length} operations)`,
                     stage: 'text-analysis',
                 },
                 id: 'text-analysis',
@@ -171,7 +172,7 @@ export const textAnalysisTool = createTool({
             textAnalysisSpan?.update({
                 output: {
                     success: true,
-                    operationsCount: inputData.operations.length,
+                    operationsCount: operations.length,
                 },
                 metadata: {
                     'operation.completed': true,
@@ -182,11 +183,11 @@ export const textAnalysisTool = createTool({
             rootSpan?.update({
                 output: {
                     success: true,
-                    operationsCount: inputData.operations.length,
+                    operationsCount: operations.length,
                 },
                 metadata: {
                     'tool.output.success': true,
-                    'tool.output.operationsCount': inputData.operations.length,
+                    'tool.output.operationsCount': operations.length,
                 },
             })
             rootSpan?.end()
@@ -194,7 +195,7 @@ export const textAnalysisTool = createTool({
             return {
                 success: true,
                 results,
-                operations: inputData.operations,
+                operations,
                 textLength: inputData.text.length,
             }
         } catch (e) {
@@ -214,7 +215,7 @@ export const textAnalysisTool = createTool({
             return {
                 success: false,
                 results: {},
-                operations: inputData.operations,
+                operations,
                 textLength: inputData.text.length,
                 message: errorMsg,
             }

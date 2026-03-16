@@ -151,6 +151,8 @@ export const amazonSearchTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
+        const numResults = inputData.numResults ?? 10
+        const sortBy = inputData.sortBy ?? 'relevance'
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -171,8 +173,8 @@ export const amazonSearchTool = createTool({
             metadata: {
                 'tool.id': 'amazon-search',
                 'tool.input.query': inputData.query,
-                'tool.input.sortBy': inputData.sortBy,
-                'tool.input.numResults': inputData.numResults,
+                'tool.input.sortBy': sortBy,
+                'tool.input.numResults': numResults,
             },
         })
 
@@ -191,16 +193,16 @@ export const amazonSearchTool = createTool({
             const params: Record<string, string | number | boolean> = {
                 engine: 'amazon',
                 query: inputData.query,
-                num: inputData.numResults,
+                num: numResults,
             }
 
-            if (inputData.sortBy !== 'relevance') {
+            if (sortBy !== 'relevance') {
                 const sortMap: Record<string, string> = {
                     'price-asc': 'price-asc-rank',
                     'price-desc': 'price-desc-rank',
                     rating: 'review-rank',
                 }
-                const sortValue = sortMap[inputData.sortBy]
+                const sortValue = sortMap[sortBy]
                 if (sortValue) {
                     params.sort_by = sortValue
                 }
@@ -350,6 +352,8 @@ export const walmartSearchTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
+        const numResults = inputData.numResults ?? 10
+        const sortBy = inputData.sortBy ?? 'relevance'
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -370,8 +374,8 @@ export const walmartSearchTool = createTool({
             metadata: {
                 'tool.id': 'walmart-search',
                 'tool.input.query': inputData.query,
-                'tool.input.sortBy': inputData.sortBy,
-                'tool.input.numResults': inputData.numResults,
+                'tool.input.sortBy': sortBy,
+                'tool.input.numResults': numResults,
             },
         })
 
@@ -390,11 +394,11 @@ export const walmartSearchTool = createTool({
             const params: Record<string, string | number> = {
                 engine: 'walmart',
                 query: inputData.query,
-                num: inputData.numResults,
+                num: numResults,
             }
 
-            if (inputData.sortBy !== 'relevance') {
-                params.sort = inputData.sortBy
+            if (sortBy !== 'relevance') {
+                params.sort = sortBy
             }
             if (typeof inputData.minPrice === 'number') {
                 params.min_price = inputData.minPrice
@@ -543,6 +547,7 @@ export const ebaySearchTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
+        const numResults = inputData.numResults ?? 10
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -565,7 +570,7 @@ export const ebaySearchTool = createTool({
                 'tool.input.query': inputData.query,
                 'tool.input.condition': inputData.condition,
                 'tool.input.sortBy': inputData.sortBy,
-                'tool.input.numResults': inputData.numResults,
+                'tool.input.numResults': numResults,
             },
         })
 
@@ -584,7 +589,7 @@ export const ebaySearchTool = createTool({
             const params: Record<string, string | number | boolean> = {
                 engine: 'ebay',
                 _nkw: inputData.query,
-                _ipg: inputData.numResults,
+                _ipg: numResults,
             }
             if (inputData.condition) {
                 params.LH_ItemCondition =
@@ -740,6 +745,8 @@ export const homeDepotSearchTool = createTool({
     execute: async (inputData, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
+        const numResults = inputData.numResults ?? 10
+        const sortBy = inputData.sortBy ?? 'relevance'
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -762,8 +769,8 @@ export const homeDepotSearchTool = createTool({
             metadata: {
                 'tool.id': 'home-depot-search',
                 'tool.input.query': inputData.query,
-                'tool.input.sortBy': inputData.sortBy,
-                'tool.input.numResults': inputData.numResults,
+                'tool.input.sortBy': sortBy,
+                'tool.input.numResults': numResults,
             },
         })
 
@@ -782,10 +789,10 @@ export const homeDepotSearchTool = createTool({
             const params: Record<string, string | number | boolean> = {
                 engine: 'home_depot',
                 q: inputData.query,
-                num: inputData.numResults,
+                num: numResults,
             }
-            if (inputData.sortBy !== 'relevance') {
-                params.sort_by = inputData.sortBy
+            if (sortBy !== 'relevance') {
+                params.sort_by = sortBy
             }
             if (inputData.inStockOnly) {
                 params.in_stock = 'true'

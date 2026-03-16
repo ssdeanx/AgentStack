@@ -1,3 +1,8 @@
+import type {
+    ScorerRunInputForAgent,
+    ScorerRunOutputForAgent,
+} from '@mastra/core/evals'
+
 /* Utility helpers for scorers - minimal implementations used by prebuilt scorers and tests */
 
 export interface Message {
@@ -7,12 +12,55 @@ export interface Message {
     toolInvocations?: unknown[]
 }
 
+interface ContentWithReasoning {
+    reasoning?: string
+    parts?: unknown[]
+}
+
+interface ReasoningPart {
+    type?: string
+    details?: string
+}
+
+interface ToolInvocation {
+    toolName?: string
+    toolCallId?: string | number
+}
+
 export type RunInput =
     | string
     | Message[]
     | { inputMessages?: Message[]; systemMessages?: Array<Message | string> }
     | undefined
 export type RunOutput = string | Message | Message[] | undefined
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+}
+
+function toText(value: unknown): string {
+    if (typeof value === 'string') {
+        return value
+    }
+
+    if (
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint'
+    ) {
+        return String(value)
+    }
+
+    if (value === null || value === undefined) {
+        return ''
+    }
+
+    try {
+        return JSON.stringify(value)
+    } catch {
+        return ''
+    }
+}
 
 export function getAssistantMessageFromRunOutput(
     output: RunOutput
@@ -25,11 +73,12 @@ export function getAssistantMessageFromRunOutput(
     }
     if (Array.isArray(output)) {
         const assistantMsg = output.find((msg) => msg.role === 'assistant')
-        return assistantMsg?.content as string | undefined
+        const content = toText(assistantMsg?.content)
+        return content.length > 0 ? content : undefined
     }
     if (typeof output === 'object') {
-        // single message
-        return output.content as string | undefined
+        const content = toText(output.content)
+        return content.length > 0 ? content : undefined
     }
     return undefined
 }
@@ -37,7 +86,7 @@ export function getAssistantMessageFromRunOutput(
 export function getUserMessageFromRunInput(
     input: RunInput
 ): string | undefined {
-    if (!input) {
+    if (input === undefined) {
         return undefined
     }
     if (typeof input === 'string') {
@@ -45,99 +94,101 @@ export function getUserMessageFromRunInput(
     }
     if (Array.isArray(input)) {
         const userMsg = input.find((msg) => msg.role === 'user')
-        return userMsg?.content as string | undefined
+        const content = toText(userMsg?.content)
+        return content.length > 0 ? content : undefined
     }
     if (typeof input === 'object') {
-        const im = (input as { inputMessages?: Message[] }).inputMessages
-        return im?.[0]?.content as string | undefined
+        const content = toText(input.inputMessages?.[0]?.content)
+        return content.length > 0 ? content : undefined
     }
     return undefined
 }
 
 export function extractInputMessages(input: RunInput): string[] {
-    if (!input) {
+    if (input === undefined) {
         return []
     }
     if (typeof input === 'string') {
         return [input]
     }
     if (Array.isArray(input)) {
-        return input.map((m) => String(m.content ?? ''))
+        return input.map((m) => toText(m.content))
     }
-    if (
-        typeof input === 'object' &&
-        Array.isArray((input as { inputMessages?: Message[] }).inputMessages)
-    ) {
-        return (input as { inputMessages?: Message[] }).inputMessages!.map(
-            (m) => String(m.content ?? '')
-        )
+    if (typeof input === 'object' && Array.isArray(input.inputMessages)) {
+        return input.inputMessages.map((m) => toText(m.content))
     }
     return []
 }
 
 export function extractAgentResponseMessages(output: RunOutput): string[] {
-    if (!output) {
+    if (output === undefined) {
         return []
     }
     if (typeof output === 'string') {
         return [output]
     }
     if (Array.isArray(output)) {
-        return output.map((m) => String(m.content ?? ''))
+        return output.map((m) => toText(m.content))
     }
     if (typeof output === 'object') {
-        return [String(output.content ?? '')]
+        return [toText(output.content)]
     }
     return []
 }
 
 export function getReasoningFromRunOutput(output: unknown): string | undefined {
-    if (!output) {
+    if (output === undefined || output === null) {
         return undefined
     }
+
     const messages: unknown[] = Array.isArray(output) ? output : [output]
+
     for (const m of messages) {
-        if (typeof m === 'object' && m !== null) {
-            const { content } = m as Record<string, unknown>
-            if (typeof content === 'object' && content !== null) {
-                if ((content as Record<string, unknown>).reasoning) {
-                    return (content as Record<string, unknown>)
-                        .reasoning as string
-                }
-                if (Array.isArray((content as Record<string, unknown>).parts)) {
-                    const parts = (content as Record<string, unknown>)
-                        .parts as unknown[]
-                    const r = parts.find(
-                        (p) =>
-                            typeof p === 'object' &&
-                            p !== null &&
-                            (p as Record<string, unknown>).type === 'reasoning'
-                    ) as Record<string, unknown> | undefined
-                    if (r) {
-                        return r.details as string | undefined
-                    }
-                }
-            }
+        if (!isRecord(m)) {
+            continue
+        }
+
+        const { content } = m
+        if (!isRecord(content)) {
+            continue
+        }
+
+        const typedContent = content as ContentWithReasoning
+
+        if (typeof typedContent.reasoning === 'string') {
+            return typedContent.reasoning
+        }
+
+        if (!Array.isArray(typedContent.parts)) {
+            continue
+        }
+
+        const reasoningPart = typedContent.parts.find(
+            (part): part is ReasoningPart =>
+                isRecord(part) && part.type === 'reasoning'
+        )
+
+        if (typeof reasoningPart?.details === 'string') {
+            return reasoningPart.details
         }
     }
+
     return undefined
 }
 
 export function getSystemMessagesFromRunInput(input: RunInput): string[] {
-    if (!input) {
+    if (input === undefined) {
         return []
     }
     if (Array.isArray(input)) {
         return input
             .filter((m) => m.role === 'system')
-            .map((m) => String(m.content ?? ''))
+            .map((m) => toText(m.content))
     }
     if (typeof input === 'object') {
-        const sys =
-            (input as { systemMessages?: Array<Message | string> })
-                .systemMessages ?? []
+        const sys = input.systemMessages ?? []
         return sys.map((m) =>
-            typeof m === 'string' ? m : String(m.content ?? m)
+            typeof m === 'string' ? m : toText(m.content)
         )
     }
     return []
@@ -166,15 +217,23 @@ export function extractToolCalls(output: unknown): {
         invocationIndex: number
     }> = []
     messages.forEach((m: unknown, msgIdx: number) => {
-        const invs = (m as Record<string, unknown>)?.toolInvocations
+        if (!isRecord(m)) {
+            return
+        }
+
+        const invs = m.toolInvocations
         if (Array.isArray(invs)) {
             invs.forEach((t: unknown, invIdx: number) => {
-                const tt = t as Record<string, unknown>
-                const toolName = String(tt.toolName ?? '')
+                if (!isRecord(t)) {
+                    return
+                }
+
+                const tt = t as ToolInvocation
+                const toolName = typeof tt.toolName === 'string' ? tt.toolName : ''
                 tools.push(toolName)
                 toolCallInfos.push({
                     toolName,
-                    toolCallId: tt.toolCallId as string | number | undefined,
+                    toolCallId: tt.toolCallId,
                     messageIndex: msgIdx,
                     invocationIndex: invIdx,
                 })
@@ -202,6 +261,17 @@ export function createTestMessage(opts: {
 export function createAgentTestRun({
     inputMessages = [],
     output = [],
-}: { inputMessages?: Message[]; output?: unknown[] } = {}) {
-    return { input: { inputMessages }, output }
+}: { inputMessages?: Message[]; output?: Message[] } = {}): {
+    input: ScorerRunInputForAgent
+    output: ScorerRunOutputForAgent
+} {
+    return {
+        input: {
+            inputMessages: inputMessages as ScorerRunInputForAgent['inputMessages'],
+            rememberedMessages: [],
+            systemMessages: [],
+            taggedSystemMessages: {},
+        },
+        output: output as ScorerRunOutputForAgent,
+    }
 }

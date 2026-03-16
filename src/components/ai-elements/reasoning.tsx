@@ -1,7 +1,5 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
-
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
   Collapsible,
@@ -14,6 +12,7 @@ import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   createContext,
   memo,
@@ -31,7 +30,7 @@ import { Shimmer } from "./shimmer";
 interface ReasoningContextValue {
   isStreaming: boolean;
   isOpen: boolean;
-  setIsOpen: (this: void, open: boolean) => void;
+  setIsOpen: (open: boolean) => void;
   duration: number | undefined;
 }
 
@@ -45,11 +44,11 @@ export const useReasoning = () => {
   return context;
 };
 
-export type ReasoningProps = Omit<ComponentProps<typeof Collapsible>, "onOpenChange"> & {
+export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   isStreaming?: boolean;
   open?: boolean;
   defaultOpen?: boolean;
-  onOpenChange?: (this: void, open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   duration?: number;
 };
 
@@ -73,7 +72,7 @@ export const Reasoning = memo(
 
     const [isOpen, setIsOpen] = useControllableState<boolean>({
       defaultProp: resolvedDefaultOpen,
-      onChange: onOpenChange ? (nextOpen) => onOpenChange(nextOpen) : undefined,
+      onChange: onOpenChange,
       prop: open,
     });
     const [duration, setDuration] = useControllableState<number | undefined>({
@@ -150,10 +149,10 @@ export const Reasoning = memo(
 export type ReasoningTriggerProps = ComponentProps<
   typeof CollapsibleTrigger
 > & {
-  getThinkingMessage?: (this: void, isStreaming: boolean, duration?: number) => ReactNode;
+  getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode;
 };
 
-const defaultGetThinkingMessage: (this: void, isStreaming: boolean, duration?: number) => ReactNode = (isStreaming, duration) => {
+const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (isStreaming || duration === 0) {
     return <Shimmer duration={1}>Thinking...</Shimmer>;
   }
@@ -215,9 +214,7 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown plugins={streamdownPlugins} {...props}>
-        {children}
-      </Streamdown>
+      <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
     </CollapsibleContent>
   )
 );

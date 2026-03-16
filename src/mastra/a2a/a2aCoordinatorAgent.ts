@@ -10,6 +10,7 @@ import {
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
@@ -107,7 +108,7 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
   model: googleAI,
   memory: pgMemory,
   options: {},
-  agents: {
+  agents: asNestedAgents({
     researchAgent,
     knowledgeIndexingAgent,
     editorAgent,
@@ -118,7 +119,7 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
     refactoringAgent,
     contentStrategistAgent,
     projectManagementAgent,
-  },
+  }),
   workflows: {
     researchSynthesisWorkflow,
     repoIngestionWorkflow,

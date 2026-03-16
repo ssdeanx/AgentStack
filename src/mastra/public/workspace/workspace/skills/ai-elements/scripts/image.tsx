@@ -1,6 +1,6 @@
 "use client";
 
-import { Image } from "@/components/ai-elements/image";
+import { Image } from "@/src/components/ai-elements/image";
 
 const exampleImage = {
   base64:

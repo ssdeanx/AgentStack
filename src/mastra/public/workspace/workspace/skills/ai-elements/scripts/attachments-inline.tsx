@@ -11,7 +11,7 @@ import {
   Attachments,
   getAttachmentLabel,
   getMediaCategory,
-} from "@/components/ai-elements/attachments";
+} from "@/src/components/ai-elements/attachments";
 import { nanoid } from "nanoid";
 import { memo, useCallback, useState } from "react";
 

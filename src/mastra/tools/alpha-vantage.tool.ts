@@ -220,12 +220,13 @@ export const alphaVantageCryptoTool = createTool({
             (toolCallCounters.get('alpha-vantage-crypto') ?? 0) + 1
         )
         try {
-            const params = new URLSearchParams({
-                apikey: apiKey,
-                function: inputData.function,
-                symbol: inputData.symbol,
-                market: inputData.market,
-            })
+            const params = new URLSearchParams()
+            params.append('apikey', apiKey)
+            params.append('function', inputData.function)
+            params.append('symbol', inputData.symbol)
+            if (typeof inputData.market === 'string' && inputData.market !== '') {
+                params.append('market', inputData.market)
+            }
 
             // Add optional parameters
             if (inputData.interval !== undefined) {

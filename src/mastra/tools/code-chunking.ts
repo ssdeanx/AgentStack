@@ -45,11 +45,8 @@ export const codeChunkerTool = createTool({
         'Intelligently chunks code files based on syntax (functions, classes) for TS/JS and Python, falling back to recursive chunking for others.',
     inputSchema: codeChunkingInputSchema,
     outputSchema: codeChunkingOutputSchema,
-    execute: async (
-        input: z.infer<typeof codeChunkingInputSchema>,
-        context
-    ) => {
-        const { filePath, content, options } = input
+    execute: async (inputData, context) => {
+        const { filePath, content, options } = inputData
         const requestContext = context?.requestContext as
             | CodeChunkingRequestContext
             | undefined

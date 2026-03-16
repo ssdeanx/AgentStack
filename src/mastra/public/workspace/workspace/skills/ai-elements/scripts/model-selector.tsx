@@ -12,8 +12,8 @@ import {
   ModelSelectorLogoGroup,
   ModelSelectorName,
   ModelSelectorTrigger,
-} from "@/components/ai-elements/model-selector";
-import { Button } from "@/components/ui/button";
+} from "@/src/components/ai-elements/model-selector";
+import { Button } from "@/ui/button";
 import { CheckIcon } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 

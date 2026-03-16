@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
+import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { documentProcessingAgent } from '../agents/documentProcessingAgent'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
 import { researchAgent } from '../agents/researchAgent'
@@ -134,12 +135,12 @@ Use for: building research knowledge bases, literature reviews, indexing academi
   },
   model: googleAI3,
   memory: pgMemory,
-  agents: {
+  agents: asNestedAgents({
     researchPaperAgent,
     documentProcessingAgent,
     knowledgeIndexingAgent,
     researchAgent,
-  },
+  }),
   workflows: {
     documentProcessingWorkflow,
     contentReviewWorkflow,

@@ -123,16 +123,26 @@ export const findReferencesTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
+        const {
+            symbolName,
+            projectPath: rawProjectPath,
+            filePath,
+            line,
+        } = inputData
+        const trimmedProjectPath = rawProjectPath?.trim()
+        const projectPath =
+            trimmedProjectPath !== undefined && trimmedProjectPath.length > 0
+                ? trimmedProjectPath
+                : process.cwd()
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `🔎 Starting semantic find-references for '${inputData.symbolName}' at ${inputData.projectPath}`,
+                message: `🔎 Starting semantic find-references for '${symbolName}' at ${projectPath}`,
                 stage: 'semantic:find-references',
             },
             id: 'semantic:find-references',
         })
-        const { symbolName, projectPath, filePath, line } = inputData
 
         const requestContext = context?.requestContext
         const refContext = requestContext?.get('semanticAnalysisContext')

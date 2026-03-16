@@ -15,7 +15,7 @@ describe('Noise Sensitivity (heuristic)', () => {
                 }),
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })
@@ -31,7 +31,7 @@ describe('Noise Sensitivity (heuristic)', () => {
                 createTestMessage({ role: 'assistant', content: 'Berlin' }),
             ],
         })
-        const res = await (scorer as any).run({
+        const res = await scorer.run({
             input: run.input,
             output: run.output,
         })
