@@ -8,7 +8,6 @@ import type {
   MemoryStatus,
   MemoryThread,
   RequestContextValue,
-  StoredAgentResponse,
   Tool,
   TracesResponse,
   VectorIndex,
@@ -22,20 +21,34 @@ import type {
   CompareExperimentsParams,
   CompareExperimentsResponse,
   CloneAgentParams,
+  CloneMemoryThreadParams,
   CreateDatasetParams,
   CreateMemoryThreadParams,
+  CreateStoredAgentParams,
+  CreateStoredMCPClientParams,
+  CreateStoredPromptBlockParams,
+  CreateStoredScorerParams,
+  CreateStoredSkillParams,
   DatasetExperiment,
   DatasetExperimentResult,
   DatasetItem,
   DatasetItemVersionResponse,
   DatasetRecord,
   DatasetVersionResponse,
+  ExecuteProcessorParams,
   GetLogsParams,
   GetMemoryConfigParams,
+  GetSkillReferenceResponse,
   GetScorerResponse,
   ListSkillsResponse,
+  ListSkillReferencesResponse,
   ListScoresResponse,
   ListMemoryThreadMessagesParams,
+  ListStoredMCPClientsParams,
+  ListStoredPromptBlocksParams,
+  ListStoredScorersParams,
+  ListStoredSkillsParams,
+  ListToolProviderToolsParams,
   McpServerListResponse,
   McpServerToolListResponse,
   ListScoresByEntityIdParams,
@@ -43,14 +56,21 @@ import type {
   ListScoresByScorerIdParams,
   ListStoredAgentsParams,
   QueryVectorParams,
+  SaveMessageToMemoryParams,
   SearchSkillsParams,
   SearchSkillsResponse,
+  Skill,
   StreamParams,
   TriggerDatasetExperimentParams,
   UpdateDatasetItemParams,
   UpdateDatasetParams,
   UpdateMemoryThreadParams,
   UpdateModelParams,
+  UpdateStoredAgentParams,
+  UpdateStoredMCPClientParams,
+  UpdateStoredPromptBlockParams,
+  UpdateStoredScorerParams,
+  UpdateStoredSkillParams,
   WorkspaceFsDeleteResponse,
   WorkspaceFsListResponse,
   WorkspaceFsMkdirResponse,
@@ -68,6 +88,7 @@ import type {
   GetTaskResponse,
   MessageSendParams,
   SendMessageResponse,
+  SendStreamingMessageResponse,
   Task,
   TaskQueryParams,
 } from '@mastra/core/a2a'
@@ -93,13 +114,80 @@ interface MastraQueryHooks {
     agentId: string,
     requestContext?: RequestContext | RequestContextValue
   ) => UseQueryResult<Agent, Error>
+  useAgentModelProviders: () => UseQueryResult<ListAgentsModelProvidersResponse, Error>
+  useAgentSpeakers: (
+    agentId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgent>['voice']['getSpeakers']>>, Error>
+  useAgentListener: (
+    agentId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgent>['voice']['getListener']>>, Error>
   useTools: (
     requestContext?: RequestContext | RequestContextValue
   ) => UseQueryResult<Tool[], Error>
+  useTool: (
+    toolId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Tool, Error>
+  useToolProviders: () => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listToolProviders>>, Error>
+  useToolProvider: (
+    providerId: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getToolProvider>['listToolkits']>>, Error>
+  useToolProviderToolkits: (
+    providerId: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getToolProvider>['listToolkits']>>, Error>
+  useToolProviderTools: (
+    providerId: string,
+    params?: ListToolProviderToolsParams
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getToolProvider>['listTools']>>, Error>
+  useToolProviderToolSchema: (
+    providerId: string,
+    toolSlug: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getToolProvider>['getToolSchema']>>, Error>
+  useProcessors: (
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listProcessors>>, Error>
+  useProcessor: (
+    processorId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getProcessor>['details']>>, Error>
+  useProcessorProviders: () => UseQueryResult<Awaited<ReturnType<typeof mastraClient.getProcessorProviders>>, Error>
+  useProcessorProvider: (
+    providerId: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getProcessorProvider>['details']>>, Error>
   useWorkflows: (
     requestContext?: RequestContext | RequestContextValue,
     partial?: boolean
   ) => UseQueryResult<Workflow[], Error>
+  useWorkflow: (
+    workflowId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Workflow, Error>
+  useWorkflowRun: (
+    workflowId: string,
+    runId: string,
+    options?: {
+      requestContext?: RequestContext | Record<string, unknown>
+      fields?: string[]
+      withNestedWorkflows?: boolean
+    }
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['runById']>>, Error>
+  useWorkflowRuns: (
+    workflowId: string,
+    params?: {
+      fromDate?: Date
+      toDate?: Date
+      page?: number
+      perPage?: number
+      resourceId?: string
+      status?: unknown
+    },
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['runs']>>, Error>
+  useWorkflowSchema: (
+    workflowId: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['getSchema']>>, Error>
   useScorers: (
     requestContext?: RequestContext | RequestContextValue
   ) => UseQueryResult<Record<string, GetScorerResponse>, Error>
@@ -118,6 +206,40 @@ interface MastraQueryHooks {
     resourceId?: string
     agentId?: string
   }) => UseQueryResult<MemoryThread[], Error>
+  useThread: (
+    threadId: string,
+    agentId?: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getMemoryThread>['get']>>, Error>
+  useThreadMessages: (
+    threadId: string,
+    opts?: {
+      agentId?: string
+      networkId?: string
+      requestContext?: RequestContext | RequestContextValue
+    }
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listThreadMessages>>['messages'], Error>
+  useThreadMessagesPaginated: (
+    threadId: string,
+    opts?: ListMemoryThreadMessagesParams & {
+      agentId?: string
+      requestContext?: RequestContext | RequestContextValue
+    }
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getMemoryThread>['listMessages']>>['messages'], Error>
+  useWorkingMemory: (params: {
+    agentId: string
+    threadId: string
+    resourceId?: string
+    requestContext?: RequestContext | RequestContextValue
+  }) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.getWorkingMemory>>, Error>
+  useMemorySearch: (params: {
+    agentId: string
+    resourceId: string
+    threadId?: string
+    searchQuery: string
+    memoryConfig?: unknown
+    requestContext?: RequestContext | RequestContextValue
+  }) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.searchMemory>>, Error>
   useDatasets: (pagination?: {
     page?: number
     perPage?: number
@@ -273,6 +395,97 @@ interface MastraQueryHooks {
     requestContext?: RequestContext | RequestContextValue,
     opts?: { resourceId?: string; threadId?: string }
   ) => UseQueryResult<MemoryStatus, Error>
+  useMemoryConfig: (
+    params: GetMemoryConfigParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.getMemoryConfig>>, Error>
+  useObservationalMemory: (params: Parameters<typeof mastraClient.getObservationalMemory>[0]) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.getObservationalMemory>>, Error>
+  useAwaitBufferStatus: (params: Parameters<typeof mastraClient.awaitBufferStatus>[0]) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.awaitBufferStatus>>, Error>
+  useStoredAgents: (
+    params?: ListStoredAgentsParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listStoredAgents>>, Error>
+  useStoredAgent: (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['details']>>, Error>
+  useStoredAgentVersions: (
+    storedAgentId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredAgent>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['listVersions']>>, Error>
+  useStoredAgentVersion: (
+    storedAgentId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['getVersion']>>, Error>
+  useCompareStoredAgentVersions: (
+    storedAgentId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['compareVersions']>>, Error>
+  useStoredPromptBlocks: (
+    params?: ListStoredPromptBlocksParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listStoredPromptBlocks>>, Error>
+  useStoredPromptBlock: (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['details']>>, Error>
+  useStoredPromptBlockVersions: (
+    storedPromptBlockId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredPromptBlock>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['listVersions']>>, Error>
+  useStoredPromptBlockVersion: (
+    storedPromptBlockId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['getVersion']>>, Error>
+  useCompareStoredPromptBlockVersions: (
+    storedPromptBlockId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['compareVersions']>>, Error>
+  useStoredScorers: (
+    params?: ListStoredScorersParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listStoredScorers>>, Error>
+  useStoredScorer: (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['details']>>, Error>
+  useStoredScorerVersions: (
+    storedScorerId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredScorer>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['listVersions']>>, Error>
+  useStoredScorerVersion: (
+    storedScorerId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['getVersion']>>, Error>
+  useCompareStoredScorerVersions: (
+    storedScorerId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['compareVersions']>>, Error>
+  useStoredMcpClients: (
+    params?: ListStoredMCPClientsParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listStoredMCPClients>>, Error>
+  useStoredMcpClient: (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredMCPClient>['details']>>, Error>
+  useStoredSkills: (
+    params?: ListStoredSkillsParams
+  ) => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listStoredSkills>>, Error>
+  useStoredSkill: (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredSkill>['details']>>, Error>
   useAgentEnhanceInstructionsMutation: (
     agentId: string
   ) => UseMutationResult<
@@ -282,6 +495,8 @@ interface MastraQueryHooks {
     unknown
   >
   useWorkspaces: () => UseQueryResult<{ workspaces: WorkspaceItem[] }, Error>
+  useVectors: () => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listVectors>>, Error>
+  useEmbedders: () => UseQueryResult<Awaited<ReturnType<typeof mastraClient.listEmbedders>>, Error>
   useWorkspace: (id: string) => UseQueryResult<WorkspaceInfoResponse, Error>
   useWorkspaceInfo: (id: string) => UseQueryResult<WorkspaceInfoResponse, Error>
   useWorkspaceFiles: (
@@ -309,6 +524,19 @@ interface MastraQueryHooks {
     workspaceId: string,
     params: SearchSkillsParams
   ) => UseQueryResult<SearchSkillsResponse, Error>
+  useWorkspaceSkill: (
+    workspaceId: string,
+    skillName: string
+  ) => UseQueryResult<Skill, Error>
+  useWorkspaceSkillReferences: (
+    workspaceId: string,
+    skillName: string
+  ) => UseQueryResult<ListSkillReferencesResponse, Error>
+  useWorkspaceSkillReference: (
+    workspaceId: string,
+    skillName: string,
+    referencePath: string
+  ) => UseQueryResult<GetSkillReferenceResponse, Error>
   useWorkspaceWriteFileMutation: (
     workspaceId: string
   ) => UseMutationResult<
@@ -423,6 +651,9 @@ interface MastraQueryHooks {
   useA2ASendMessageMutation: (
     agentId: string
   ) => UseMutationResult<SendMessageResponse, Error, MessageSendParams, unknown>
+  useA2ASendStreamingMessageMutation: (
+    agentId: string
+  ) => UseMutationResult<AsyncIterable<SendStreamingMessageResponse>, Error, MessageSendParams, unknown>
   useA2AGetTask: (
     agentId: string,
     params: TaskQueryParams
@@ -430,6 +661,253 @@ interface MastraQueryHooks {
   useA2ACancelTaskMutation: (
     agentId: string
   ) => UseMutationResult<Task, Error, TaskQueryParams, unknown>
+  useAgentBuilderActions: () => UseQueryResult<Awaited<ReturnType<typeof mastraClient.getAgentBuilderActions>>, Error>
+  useAgentBuilderAction: (
+    actionId: string
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['details']>>, Error>
+  useAgentBuilderRuns: (
+    actionId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['runs']>[0]
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['runs']>>, Error>
+  useAgentBuilderRun: (
+    actionId: string,
+    runId: string,
+    options?: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['runById']>[1]
+  ) => UseQueryResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['runById']>>, Error>
+  useProcessorExecuteMutation: (
+    processorId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getProcessor>['execute']>>, Error, ExecuteProcessorParams, unknown>
+  useSaveMessageToMemoryMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.saveMessageToMemory>>, Error, SaveMessageToMemoryParams, unknown>
+  useDeleteThreadMessagesMutation: (
+    threadId: string,
+    agentId?: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<ReturnType<typeof mastraClient.getMemoryThread>['deleteMessages']>>,
+    Error,
+    {
+      messageIds: Parameters<ReturnType<typeof mastraClient.getMemoryThread>['deleteMessages']>[0]
+      requestContext?: RequestContext | RequestContextValue
+    },
+    unknown
+  >
+  useCloneThreadMutation: (
+    threadId: string,
+    agentId?: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getMemoryThread>['clone']>>, Error, CloneMemoryThreadParams | undefined, unknown>
+  useWorkflowDeleteRunMutation: (
+    workflowId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['deleteRunById']>>, Error, string, unknown>
+  useWorkflowResumeMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resume']>>,
+    Error,
+    {
+      runId: string
+      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resume']>[0]
+    },
+    unknown
+  >
+  useWorkflowResumeAsyncMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resumeAsync']>>,
+    Error,
+    {
+      runId: string
+      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resumeAsync']>[0]
+    },
+    unknown
+  >
+  useWorkflowCancelMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['cancel']>>,
+    Error,
+    { runId: string },
+    unknown
+  >
+  useWorkflowRestartMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restart']>>,
+    Error,
+    {
+      runId: string
+      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restart']>[0]
+    },
+    unknown
+  >
+  useWorkflowRestartAsyncMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restartAsync']>>,
+    Error,
+    {
+      runId: string
+      params?: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restartAsync']>[0]
+    },
+    unknown
+  >
+  useWorkflowTimeTravelMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravel']>>,
+    Error,
+    {
+      runId: string
+      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravel']>[0]
+    },
+    unknown
+  >
+  useWorkflowTimeTravelAsyncMutation: (
+    workflowId: string
+  ) => UseMutationResult<
+    Awaited<ReturnType<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravelAsync']>>,
+    Error,
+    {
+      runId: string
+      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravelAsync']>[0]
+    },
+    unknown
+  >
+  useCreateStoredAgentMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.createStoredAgent>>, Error, CreateStoredAgentParams, unknown>
+  useUpdateStoredAgentMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['update']>>, Error, UpdateStoredAgentParams, unknown>
+  useDeleteStoredAgentMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['delete']>>, Error, RequestContext | RequestContextValue | undefined, unknown>
+  useCreateStoredAgentVersionMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['createVersion']>>, Error, {
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredAgent>['createVersion']>[0]
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useActivateStoredAgentVersionMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['activateVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useRestoreStoredAgentVersionMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['restoreVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useDeleteStoredAgentVersionMutation: (
+    storedAgentId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredAgent>['deleteVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useCreateStoredPromptBlockMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.createStoredPromptBlock>>, Error, CreateStoredPromptBlockParams, unknown>
+  useUpdateStoredPromptBlockMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['update']>>, Error, UpdateStoredPromptBlockParams, unknown>
+  useDeleteStoredPromptBlockMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['delete']>>, Error, RequestContext | RequestContextValue | undefined, unknown>
+  useCreateStoredPromptBlockVersionMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['createVersion']>>, Error, {
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredPromptBlock>['createVersion']>[0]
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useActivateStoredPromptBlockVersionMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['activateVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useRestoreStoredPromptBlockVersionMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['restoreVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useDeleteStoredPromptBlockVersionMutation: (
+    storedPromptBlockId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredPromptBlock>['deleteVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useCreateStoredScorerMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.createStoredScorer>>, Error, CreateStoredScorerParams, unknown>
+  useUpdateStoredScorerMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['update']>>, Error, UpdateStoredScorerParams, unknown>
+  useDeleteStoredScorerMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['delete']>>, Error, RequestContext | RequestContextValue | undefined, unknown>
+  useCreateStoredScorerVersionMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['createVersion']>>, Error, {
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredScorer>['createVersion']>[0]
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useActivateStoredScorerVersionMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['activateVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useRestoreStoredScorerVersionMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['restoreVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useDeleteStoredScorerVersionMutation: (
+    storedScorerId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredScorer>['deleteVersion']>>, Error, {
+    versionId: string
+    requestContext?: RequestContext | RequestContextValue
+  }, unknown>
+  useCreateStoredMcpClientMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.createStoredMCPClient>>, Error, CreateStoredMCPClientParams, unknown>
+  useUpdateStoredMcpClientMutation: (
+    storedMcpClientId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredMCPClient>['update']>>, Error, UpdateStoredMCPClientParams, unknown>
+  useDeleteStoredMcpClientMutation: (
+    storedMcpClientId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredMCPClient>['delete']>>, Error, RequestContext | RequestContextValue | undefined, unknown>
+  useCreateStoredSkillMutation: () => UseMutationResult<Awaited<ReturnType<typeof mastraClient.createStoredSkill>>, Error, CreateStoredSkillParams, unknown>
+  useUpdateStoredSkillMutation: (
+    storedSkillId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredSkill>['update']>>, Error, UpdateStoredSkillParams, unknown>
+  useDeleteStoredSkillMutation: (
+    storedSkillId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getStoredSkill>['delete']>>, Error, RequestContext | RequestContextValue | undefined, unknown>
+  useAgentBuilderCreateRunMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['createRun']>>, Error, Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['createRun']>[0] | undefined, unknown>
+  useAgentBuilderStartAsyncMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['startAsync']>>, Error, {
+    params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['startAsync']>[0]
+    runId?: string
+  }, unknown>
+  useAgentBuilderStartRunMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['startActionRun']>>, Error, {
+    params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['startActionRun']>[0]
+    runId: string
+  }, unknown>
+  useAgentBuilderResumeMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['resume']>>, Error, {
+    params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['resume']>[0]
+    runId: string
+  }, unknown>
+  useAgentBuilderResumeAsyncMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['resumeAsync']>>, Error, {
+    params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['resumeAsync']>[0]
+    runId: string
+  }, unknown>
+  useAgentBuilderCancelRunMutation: (
+    actionId: string
+  ) => UseMutationResult<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgentBuilderAction>['cancelRun']>>, Error, string, unknown>
 }
 
 /**
@@ -482,6 +960,34 @@ export const mastraQueryKeys = {
     details: (id: string) =>
       [...mastraQueryKeys.storedAgents.all, 'details', id] as const,
   },
+  storedPromptBlocks: {
+    all: ['mastra', 'storedPromptBlocks'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.storedPromptBlocks.all, 'list', params] as const,
+    details: (id: string, params?: unknown) =>
+      [...mastraQueryKeys.storedPromptBlocks.all, 'details', id, params] as const,
+  },
+  storedScorers: {
+    all: ['mastra', 'storedScorers'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.storedScorers.all, 'list', params] as const,
+    details: (id: string, params?: unknown) =>
+      [...mastraQueryKeys.storedScorers.all, 'details', id, params] as const,
+  },
+  storedMcpClients: {
+    all: ['mastra', 'storedMcpClients'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.storedMcpClients.all, 'list', params] as const,
+    details: (id: string, params?: unknown) =>
+      [...mastraQueryKeys.storedMcpClients.all, 'details', id, params] as const,
+  },
+  storedSkills: {
+    all: ['mastra', 'storedSkills'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.storedSkills.all, 'list', params] as const,
+    details: (id: string, params?: unknown) =>
+      [...mastraQueryKeys.storedSkills.all, 'details', id, params] as const,
+  },
   workflows: {
     all: ['mastra', 'workflows'] as const,
     list: (params?: unknown) =>
@@ -507,6 +1013,29 @@ export const mastraQueryKeys = {
     details: (id: string, params?: unknown) =>
       [...mastraQueryKeys.tools.all, 'details', id, params] as const,
     providers: () => [...mastraQueryKeys.tools.all, 'providers'] as const,
+    provider: (providerId: string) =>
+      [...mastraQueryKeys.tools.all, 'provider', providerId] as const,
+    providerToolkits: (providerId: string) =>
+      [...mastraQueryKeys.tools.all, 'providerToolkits', providerId] as const,
+    providerTools: (providerId: string, params?: unknown) =>
+      [...mastraQueryKeys.tools.all, 'providerTools', providerId, params] as const,
+    providerToolSchema: (providerId: string, toolSlug: string) =>
+      [
+        ...mastraQueryKeys.tools.all,
+        'providerToolSchema',
+        providerId,
+        toolSlug,
+      ] as const,
+  },
+  processors: {
+    all: ['mastra', 'processors'] as const,
+    list: (params?: unknown) =>
+      [...mastraQueryKeys.processors.all, 'list', params] as const,
+    details: (id: string, params?: unknown) =>
+      [...mastraQueryKeys.processors.all, 'details', id, params] as const,
+    providers: () => [...mastraQueryKeys.processors.all, 'providers'] as const,
+    provider: (providerId: string) =>
+      [...mastraQueryKeys.processors.all, 'provider', providerId] as const,
   },
   memory: {
     all: ['mastra', 'memory'] as const,
@@ -531,6 +1060,8 @@ export const mastraQueryKeys = {
       [...mastraQueryKeys.memory.all, 'om', params] as const,
     buffer: (params: unknown) =>
       [...mastraQueryKeys.memory.all, 'buffer', params] as const,
+    search: (params: unknown) =>
+      [...mastraQueryKeys.memory.all, 'search', params] as const,
   },
   observability: {
     all: ['mastra', 'observability'] as const,
@@ -560,6 +1091,10 @@ export const mastraQueryKeys = {
         'details',
         { vectorName, indexName },
       ] as const,
+  },
+  embedders: {
+    all: ['mastra', 'embedders'] as const,
+    list: () => [...mastraQueryKeys.embedders.all, 'list'] as const,
   },
   datasets: {
     all: ['mastra', 'datasets'] as const,
@@ -635,6 +1170,27 @@ export const mastraQueryKeys = {
         'searchSkills',
         workspaceId,
         params,
+      ] as const,
+    skill: (workspaceId: string, skillName: string) =>
+      [...mastraQueryKeys.workspaces.all, 'skill', workspaceId, skillName] as const,
+    skillReferences: (workspaceId: string, skillName: string) =>
+      [
+        ...mastraQueryKeys.workspaces.all,
+        'skillReferences',
+        workspaceId,
+        skillName,
+      ] as const,
+    skillReference: (
+      workspaceId: string,
+      skillName: string,
+      referencePath: string
+    ) =>
+      [
+        ...mastraQueryKeys.workspaces.all,
+        'skillReference',
+        workspaceId,
+        skillName,
+        referencePath,
       ] as const,
   },
   sandbox: {
@@ -772,19 +1328,227 @@ export function useMastraQuery(): MastraQueryHooks {
   const useStoredAgents = (params?: ListStoredAgentsParams) =>
     useQuery({
       queryKey: mastraQueryKeys.storedAgents.list(params),
-      queryFn: () =>
-        mastraClient.listStoredAgents(
-          params
-        ) as unknown as Promise<StoredAgentResponse>,
+      queryFn: () => mastraClient.listStoredAgents(params),
     })
 
-  const useStoredAgent = (id: string) =>
+  const useStoredAgent = (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) =>
     useQuery({
       queryKey: mastraQueryKeys.storedAgents.details(id),
       queryFn: () =>
         mastraClient
           .getStoredAgent(id)
-          .details(),
+          .details(requestContext as RequestContext, options),
+      enabled: !!id,
+    })
+
+  const useStoredAgentVersions = (
+    storedAgentId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredAgent>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedAgents.all, 'versions', storedAgentId, params, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .listVersions(params, requestContext as RequestContext),
+      enabled: !!storedAgentId,
+    })
+
+  const useStoredAgentVersion = (
+    storedAgentId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedAgents.all, 'version', storedAgentId, versionId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .getVersion(versionId, requestContext as RequestContext),
+      enabled: !!storedAgentId && !!versionId,
+    })
+
+  const useCompareStoredAgentVersions = (
+    storedAgentId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedAgents.all, 'compare', storedAgentId, fromId, toId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .compareVersions(fromId, toId, requestContext as RequestContext),
+      enabled: !!storedAgentId && !!fromId && !!toId,
+    })
+
+  const useStoredPromptBlocks = (params?: ListStoredPromptBlocksParams) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedPromptBlocks.list(params),
+      queryFn: () => mastraClient.listStoredPromptBlocks(params),
+    })
+
+  const useStoredPromptBlock = (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedPromptBlocks.details(id, { requestContext, options }),
+      queryFn: () =>
+        mastraClient
+          .getStoredPromptBlock(id)
+          .details(requestContext as RequestContext, options),
+      enabled: !!id,
+    })
+
+  const useStoredPromptBlockVersions = (
+    storedPromptBlockId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredPromptBlock>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedPromptBlocks.all, 'versions', storedPromptBlockId, params, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .listVersions(params, requestContext as RequestContext),
+      enabled: !!storedPromptBlockId,
+    })
+
+  const useStoredPromptBlockVersion = (
+    storedPromptBlockId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedPromptBlocks.all, 'version', storedPromptBlockId, versionId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .getVersion(versionId, requestContext as RequestContext),
+      enabled: !!storedPromptBlockId && !!versionId,
+    })
+
+  const useCompareStoredPromptBlockVersions = (
+    storedPromptBlockId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedPromptBlocks.all, 'compare', storedPromptBlockId, fromId, toId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .compareVersions(fromId, toId, requestContext as RequestContext),
+      enabled: !!storedPromptBlockId && !!fromId && !!toId,
+    })
+
+  const useStoredScorers = (params?: ListStoredScorersParams) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedScorers.list(params),
+      queryFn: () => mastraClient.listStoredScorers(params),
+    })
+
+  const useStoredScorer = (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue,
+    options?: { status?: 'draft' | 'published' | 'archived' }
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedScorers.details(id, { requestContext, options }),
+      queryFn: () =>
+        mastraClient
+          .getStoredScorer(id)
+          .details(requestContext as RequestContext, options),
+      enabled: !!id,
+    })
+
+  const useStoredScorerVersions = (
+    storedScorerId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getStoredScorer>['listVersions']>[0],
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedScorers.all, 'versions', storedScorerId, params, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .listVersions(params, requestContext as RequestContext),
+      enabled: !!storedScorerId,
+    })
+
+  const useStoredScorerVersion = (
+    storedScorerId: string,
+    versionId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedScorers.all, 'version', storedScorerId, versionId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .getVersion(versionId, requestContext as RequestContext),
+      enabled: !!storedScorerId && !!versionId,
+    })
+
+  const useCompareStoredScorerVersions = (
+    storedScorerId: string,
+    fromId: string,
+    toId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.storedScorers.all, 'compare', storedScorerId, fromId, toId, requestContext] as const,
+      queryFn: () =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .compareVersions(fromId, toId, requestContext as RequestContext),
+      enabled: !!storedScorerId && !!fromId && !!toId,
+    })
+
+  const useStoredMcpClients = (params?: ListStoredMCPClientsParams) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedMcpClients.list(params),
+      queryFn: () => mastraClient.listStoredMCPClients(params),
+    })
+
+  const useStoredMcpClient = (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedMcpClients.details(id, requestContext),
+      queryFn: () =>
+        mastraClient
+          .getStoredMCPClient(id)
+          .details(requestContext as RequestContext),
+      enabled: !!id,
+    })
+
+  const useStoredSkills = (params?: ListStoredSkillsParams) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedSkills.list(params),
+      queryFn: () => mastraClient.listStoredSkills(params),
+    })
+
+  const useStoredSkill = (
+    id: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.storedSkills.details(id, requestContext),
+      queryFn: () =>
+        mastraClient
+          .getStoredSkill(id)
+          .details(requestContext as RequestContext),
       enabled: !!id,
     })
 
@@ -888,6 +1652,13 @@ export function useMastraQuery(): MastraQueryHooks {
       enabled: !!workflowId,
     })
 
+  const useWorkflowSchema = (workflowId: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.workflows.schema(workflowId),
+      queryFn: () => mastraClient.getWorkflow(workflowId).getSchema(),
+      enabled: !!workflowId,
+    })
+
   // --- TOOLS ---
 
   const useTools: (
@@ -927,6 +1698,77 @@ export function useMastraQuery(): MastraQueryHooks {
       enabled: !!toolId,
     })
 
+  const useToolProviders = () =>
+    useQuery({
+      queryKey: mastraQueryKeys.tools.providers(),
+      queryFn: () => mastraClient.listToolProviders(),
+    })
+
+  const useToolProvider = (providerId: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.tools.provider(providerId),
+      queryFn: () => mastraClient.getToolProvider(providerId).listToolkits(),
+      enabled: !!providerId,
+    })
+
+  const useToolProviderToolkits = (providerId: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.tools.providerToolkits(providerId),
+      queryFn: () => mastraClient.getToolProvider(providerId).listToolkits(),
+      enabled: !!providerId,
+    })
+
+  const useToolProviderTools = (
+    providerId: string,
+    params?: ListToolProviderToolsParams
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.tools.providerTools(providerId, params),
+      queryFn: () => mastraClient.getToolProvider(providerId).listTools(params),
+      enabled: !!providerId,
+    })
+
+  const useToolProviderToolSchema = (providerId: string, toolSlug: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.tools.providerToolSchema(providerId, toolSlug),
+      queryFn: () => mastraClient.getToolProvider(providerId).getToolSchema(toolSlug),
+      enabled: !!providerId && !!toolSlug,
+    })
+
+  const useProcessors = (
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.processors.list(requestContext),
+      queryFn: () => mastraClient.listProcessors(requestContext as RequestContext),
+    })
+
+  const useProcessor = (
+    processorId: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.processors.details(processorId, requestContext),
+      queryFn: () =>
+        mastraClient
+          .getProcessor(processorId)
+          .details(requestContext as RequestContext),
+      enabled: !!processorId,
+    })
+
+  const useProcessorProviders = () =>
+    useQuery({
+      queryKey: mastraQueryKeys.processors.providers(),
+      queryFn: () => mastraClient.getProcessorProviders(),
+    })
+
+  const useProcessorProvider = (providerId: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.processors.provider(providerId),
+      queryFn: () => mastraClient.getProcessorProvider(providerId).details(),
+      enabled: !!providerId,
+    })
+
   // --- MEMORY ---
 
   const useThreads: (params?: {
@@ -944,6 +1786,20 @@ export function useMastraQuery(): MastraQueryHooks {
         const res = await mastraClient.listMemoryThreads(params)
         return res.threads
       },
+    })
+
+  const useThread = (
+    threadId: string,
+    agentId?: string,
+    requestContext?: RequestContext | RequestContextValue
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.memory.thread(threadId),
+      queryFn: () =>
+        mastraClient
+          .getMemoryThread({ threadId, agentId })
+          .get(requestContext as RequestContext),
+      enabled: !!threadId,
     })
 
   const useThreadMessages = (
@@ -1019,6 +1875,50 @@ export function useMastraQuery(): MastraQueryHooks {
         mastraClient.getMemoryConfig(
           params
         ),
+      enabled: !!params.agentId,
+    })
+
+  const useWorkingMemory = (params: {
+    agentId: string
+    threadId: string
+    resourceId?: string
+    requestContext?: RequestContext | RequestContextValue
+  }) =>
+    useQuery({
+      queryKey: mastraQueryKeys.memory.working(params),
+      queryFn: () => mastraClient.getWorkingMemory(params),
+      enabled: !!params.agentId && !!params.threadId,
+    })
+
+  const useMemorySearch = (params: {
+    agentId: string
+    resourceId: string
+    threadId?: string
+    searchQuery: string
+    memoryConfig?: unknown
+    requestContext?: RequestContext | RequestContextValue
+  }) =>
+    useQuery({
+      queryKey: mastraQueryKeys.memory.search(params),
+      queryFn: () => mastraClient.searchMemory(params),
+      enabled: !!params.agentId && !!params.resourceId && !!params.searchQuery,
+    })
+
+  const useObservationalMemory = (
+    params: Parameters<typeof mastraClient.getObservationalMemory>[0]
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.memory.om(params),
+      queryFn: () => mastraClient.getObservationalMemory(params),
+      enabled: !!params.agentId,
+    })
+
+  const useAwaitBufferStatus = (
+    params: Parameters<typeof mastraClient.awaitBufferStatus>[0]
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.memory.buffer(params),
+      queryFn: () => mastraClient.awaitBufferStatus(params),
       enabled: !!params.agentId,
     })
 
@@ -1220,6 +2120,18 @@ export function useMastraQuery(): MastraQueryHooks {
       enabled: !!vectorName && !!indexName,
     })
 
+  const useVectors = () =>
+    useQuery({
+      queryKey: mastraQueryKeys.vectors.list(),
+      queryFn: () => mastraClient.listVectors(),
+    })
+
+  const useEmbedders = () =>
+    useQuery({
+      queryKey: mastraQueryKeys.embedders.list(),
+      queryFn: () => mastraClient.listEmbedders(),
+    })
+
   // --- WORKSPACES ---
 
   const useWorkspaces = () =>
@@ -1296,6 +2208,40 @@ export function useMastraQuery(): MastraQueryHooks {
       queryKey: mastraQueryKeys.workspaces.searchSkills(workspaceId, params),
       queryFn: () => mastraClient.getWorkspace(workspaceId).searchSkills(params),
       enabled: !!workspaceId,
+    })
+
+  const useWorkspaceSkill = (workspaceId: string, skillName: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.workspaces.skill(workspaceId, skillName),
+      queryFn: () => mastraClient.getWorkspace(workspaceId).getSkill(skillName).details(),
+      enabled: !!workspaceId && !!skillName,
+    })
+
+  const useWorkspaceSkillReferences = (workspaceId: string, skillName: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.workspaces.skillReferences(workspaceId, skillName),
+      queryFn: () =>
+        mastraClient.getWorkspace(workspaceId).getSkill(skillName).listReferences(),
+      enabled: !!workspaceId && !!skillName,
+    })
+
+  const useWorkspaceSkillReference = (
+    workspaceId: string,
+    skillName: string,
+    referencePath: string
+  ) =>
+    useQuery({
+      queryKey: mastraQueryKeys.workspaces.skillReference(
+        workspaceId,
+        skillName,
+        referencePath
+      ),
+      queryFn: () =>
+        mastraClient
+          .getWorkspace(workspaceId)
+          .getSkill(skillName)
+          .getReference(referencePath),
+      enabled: !!workspaceId && !!skillName && !!referencePath,
     })
 
   // Workspace Mutations
@@ -1518,6 +2464,12 @@ export function useMastraQuery(): MastraQueryHooks {
         mastraClient.getA2A(agentId).sendMessage(params),
     })
 
+  const useA2ASendStreamingMessageMutation = (agentId: string) =>
+    useMutation<AsyncIterable<SendStreamingMessageResponse>, Error, MessageSendParams>({
+      mutationFn: (params: MessageSendParams) =>
+        mastraClient.getA2A(agentId).sendStreamingMessage(params),
+    })
+
   const useA2AGetTask = (agentId: string, params: TaskQueryParams) =>
     useQuery<GetTaskResponse, Error>({
       queryKey: mastraQueryKeys.a2a.task(agentId, params),
@@ -1529,6 +2481,40 @@ export function useMastraQuery(): MastraQueryHooks {
     useMutation<Task, Error, TaskQueryParams>({
       mutationFn: (params: TaskQueryParams) =>
         mastraClient.getA2A(agentId).cancelTask(params),
+    })
+
+  const useAgentBuilderActions = () =>
+    useQuery({
+      queryKey: mastraQueryKeys.agents.builder.actions(),
+      queryFn: () => mastraClient.getAgentBuilderActions(),
+    })
+
+  const useAgentBuilderAction = (actionId: string) =>
+    useQuery({
+      queryKey: mastraQueryKeys.agents.builder.action(actionId),
+      queryFn: () => mastraClient.getAgentBuilderAction(actionId).details(),
+      enabled: !!actionId,
+    })
+
+  const useAgentBuilderRuns = (
+    actionId: string,
+    params?: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['runs']>[0]
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.agents.builder.action(actionId), 'runs', params] as const,
+      queryFn: () => mastraClient.getAgentBuilderAction(actionId).runs(params),
+      enabled: !!actionId,
+    })
+
+  const useAgentBuilderRun = (
+    actionId: string,
+    runId: string,
+    options?: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['runById']>[1]
+  ) =>
+    useQuery({
+      queryKey: [...mastraQueryKeys.agents.builder.action(actionId), 'run', runId, options] as const,
+      queryFn: () => mastraClient.getAgentBuilderAction(actionId).runById(runId, options),
+      enabled: !!actionId && !!runId,
     })
 
   // --- SYSTEM ---
@@ -1678,6 +2664,109 @@ export function useMastraQuery(): MastraQueryHooks {
       },
     })
 
+  const useWorkflowDeleteRunMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: (runId: string) =>
+        mastraClient.getWorkflow(workflowId).deleteRunById(runId),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.workflows.all,
+        })
+      },
+    })
+
+  const useWorkflowResumeMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resume']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.resume(params)
+      },
+    })
+
+  const useWorkflowResumeAsyncMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resumeAsync']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.resumeAsync(params)
+      },
+    })
+
+  const useWorkflowCancelMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({ runId }: { runId: string }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.cancel()
+      },
+    })
+
+  const useWorkflowRestartMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restart']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.restart(params)
+      },
+    })
+
+  const useWorkflowRestartAsyncMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params?: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restartAsync']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.restartAsync(params)
+      },
+    })
+
+  const useWorkflowTimeTravelMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravel']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.timeTravel(params)
+      },
+    })
+
+  const useWorkflowTimeTravelAsyncMutation = (workflowId: string) =>
+    useMutation({
+      mutationFn: async ({
+        runId,
+        params,
+      }: {
+        runId: string
+        params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravelAsync']>[0]
+      }) => {
+        const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
+        return run.timeTravelAsync(params)
+      },
+    })
+
   // Memory Mutations
   const useCreateThreadMutation = () =>
     useMutation({
@@ -1732,6 +2821,49 @@ export function useMastraQuery(): MastraQueryHooks {
             agentId: variables.agentId,
             threadId: variables.threadId,
           }),
+        })
+      },
+    })
+
+  const useSaveMessageToMemoryMutation = () =>
+    useMutation({
+      mutationFn: (params: SaveMessageToMemoryParams) =>
+        mastraClient.saveMessageToMemory(params),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.memory.all,
+        })
+      },
+    })
+
+  const useDeleteThreadMessagesMutation = (
+    threadId: string,
+    agentId?: string
+  ) =>
+    useMutation({
+      mutationFn: (params: {
+        messageIds: Parameters<ReturnType<typeof mastraClient.getMemoryThread>['deleteMessages']>[0]
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getMemoryThread({ threadId, agentId })
+          .deleteMessages(params.messageIds, params.requestContext as RequestContext),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.memory.messages(threadId),
+        })
+      },
+    })
+
+  const useCloneThreadMutation = (threadId: string, agentId?: string) =>
+    useMutation({
+      mutationFn: (params?: CloneMemoryThreadParams) =>
+        mastraClient
+          .getMemoryThread({ threadId, agentId })
+          .clone(params),
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: mastraQueryKeys.memory.all,
         })
       },
     })
@@ -1831,6 +2963,12 @@ export function useMastraQuery(): MastraQueryHooks {
       }) => mastraClient.getVector(vectorName).upsert(params),
     })
 
+  const useProcessorExecuteMutation = (processorId: string) =>
+    useMutation({
+      mutationFn: (params: ExecuteProcessorParams) =>
+        mastraClient.getProcessor(processorId).execute(params),
+    })
+
   // Observability Mutations
   const useScoreMutation = () =>
     useMutation({
@@ -1846,6 +2984,289 @@ export function useMastraQuery(): MastraQueryHooks {
         mastraClient.saveScore(params),
     })
 
+  const useCreateStoredAgentMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateStoredAgentParams) =>
+        mastraClient.createStoredAgent(params),
+    })
+
+  const useUpdateStoredAgentMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (params: UpdateStoredAgentParams) =>
+        mastraClient.getStoredAgent(storedAgentId).update(params),
+    })
+
+  const useDeleteStoredAgentMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (requestContext?: RequestContext | RequestContextValue) =>
+        mastraClient.getStoredAgent(storedAgentId).delete(requestContext as RequestContext),
+    })
+
+  const useCreateStoredAgentVersionMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        params?: Parameters<ReturnType<typeof mastraClient.getStoredAgent>['createVersion']>[0]
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .createVersion(variables.params, variables.requestContext as RequestContext),
+    })
+
+  const useActivateStoredAgentVersionMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .activateVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useRestoreStoredAgentVersionMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .restoreVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useDeleteStoredAgentVersionMutation = (storedAgentId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredAgent(storedAgentId)
+          .deleteVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useCreateStoredPromptBlockMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateStoredPromptBlockParams) =>
+        mastraClient.createStoredPromptBlock(params),
+    })
+
+  const useUpdateStoredPromptBlockMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (params: UpdateStoredPromptBlockParams) =>
+        mastraClient.getStoredPromptBlock(storedPromptBlockId).update(params),
+    })
+
+  const useDeleteStoredPromptBlockMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (requestContext?: RequestContext | RequestContextValue) =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .delete(requestContext as RequestContext),
+    })
+
+  const useCreateStoredPromptBlockVersionMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        params?: Parameters<ReturnType<typeof mastraClient.getStoredPromptBlock>['createVersion']>[0]
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .createVersion(variables.params, variables.requestContext as RequestContext),
+    })
+
+  const useActivateStoredPromptBlockVersionMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .activateVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useRestoreStoredPromptBlockVersionMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .restoreVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useDeleteStoredPromptBlockVersionMutation = (storedPromptBlockId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredPromptBlock(storedPromptBlockId)
+          .deleteVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useCreateStoredScorerMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateStoredScorerParams) =>
+        mastraClient.createStoredScorer(params),
+    })
+
+  const useUpdateStoredScorerMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (params: UpdateStoredScorerParams) =>
+        mastraClient.getStoredScorer(storedScorerId).update(params),
+    })
+
+  const useDeleteStoredScorerMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (requestContext?: RequestContext | RequestContextValue) =>
+        mastraClient.getStoredScorer(storedScorerId).delete(requestContext as RequestContext),
+    })
+
+  const useCreateStoredScorerVersionMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        params?: Parameters<ReturnType<typeof mastraClient.getStoredScorer>['createVersion']>[0]
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .createVersion(variables.params, variables.requestContext as RequestContext),
+    })
+
+  const useActivateStoredScorerVersionMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .activateVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useRestoreStoredScorerVersionMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .restoreVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useDeleteStoredScorerVersionMutation = (storedScorerId: string) =>
+    useMutation({
+      mutationFn: (variables: {
+        versionId: string
+        requestContext?: RequestContext | RequestContextValue
+      }) =>
+        mastraClient
+          .getStoredScorer(storedScorerId)
+          .deleteVersion(variables.versionId, variables.requestContext as RequestContext),
+    })
+
+  const useCreateStoredMcpClientMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateStoredMCPClientParams) =>
+        mastraClient.createStoredMCPClient(params),
+    })
+
+  const useUpdateStoredMcpClientMutation = (storedMcpClientId: string) =>
+    useMutation({
+      mutationFn: (params: UpdateStoredMCPClientParams) =>
+        mastraClient.getStoredMCPClient(storedMcpClientId).update(params),
+    })
+
+  const useDeleteStoredMcpClientMutation = (storedMcpClientId: string) =>
+    useMutation({
+      mutationFn: (requestContext?: RequestContext | RequestContextValue) =>
+        mastraClient
+          .getStoredMCPClient(storedMcpClientId)
+          .delete(requestContext as RequestContext),
+    })
+
+  const useCreateStoredSkillMutation = () =>
+    useMutation({
+      mutationFn: (params: CreateStoredSkillParams) =>
+        mastraClient.createStoredSkill(params),
+    })
+
+  const useUpdateStoredSkillMutation = (storedSkillId: string) =>
+    useMutation({
+      mutationFn: (params: UpdateStoredSkillParams) =>
+        mastraClient.getStoredSkill(storedSkillId).update(params),
+    })
+
+  const useDeleteStoredSkillMutation = (storedSkillId: string) =>
+    useMutation({
+      mutationFn: (requestContext?: RequestContext | RequestContextValue) =>
+        mastraClient.getStoredSkill(storedSkillId).delete(requestContext as RequestContext),
+    })
+
+  const useAgentBuilderCreateRunMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: (
+        params?: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['createRun']>[0]
+      ) => mastraClient.getAgentBuilderAction(actionId).createRun(params),
+    })
+
+  const useAgentBuilderStartAsyncMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: ({
+        params,
+        runId,
+      }: {
+        params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['startAsync']>[0]
+        runId?: string
+      }) => mastraClient.getAgentBuilderAction(actionId).startAsync(params, runId),
+    })
+
+  const useAgentBuilderStartRunMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: ({
+        params,
+        runId,
+      }: {
+        params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['startActionRun']>[0]
+        runId: string
+      }) => mastraClient.getAgentBuilderAction(actionId).startActionRun(params, runId),
+    })
+
+  const useAgentBuilderResumeMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: ({
+        params,
+        runId,
+      }: {
+        params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['resume']>[0]
+        runId: string
+      }) => mastraClient.getAgentBuilderAction(actionId).resume(params, runId),
+    })
+
+  const useAgentBuilderResumeAsyncMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: ({
+        params,
+        runId,
+      }: {
+        params: Parameters<ReturnType<typeof mastraClient.getAgentBuilderAction>['resumeAsync']>[0]
+        runId: string
+      }) => mastraClient.getAgentBuilderAction(actionId).resumeAsync(params, runId),
+    })
+
+  const useAgentBuilderCancelRunMutation = (actionId: string) =>
+    useMutation({
+      mutationFn: (runId: string) =>
+        mastraClient.getAgentBuilderAction(actionId).cancelRun(runId),
+    })
+
   const hooks = {
     // Queries
     useAgents,
@@ -1853,21 +3274,53 @@ export function useMastraQuery(): MastraQueryHooks {
     useAgentModelProviders,
     useAgentSpeakers,
     useAgentListener,
+    useToolProviders,
+    useToolProvider,
+    useToolProviderToolkits,
+    useToolProviderTools,
+    useToolProviderToolSchema,
+    useProcessors,
+    useProcessor,
+    useProcessorProviders,
+    useProcessorProvider,
     useStoredAgents,
     useStoredAgent,
+    useStoredAgentVersions,
+    useStoredAgentVersion,
+    useCompareStoredAgentVersions,
+    useStoredPromptBlocks,
+    useStoredPromptBlock,
+    useStoredPromptBlockVersions,
+    useStoredPromptBlockVersion,
+    useCompareStoredPromptBlockVersions,
+    useStoredScorers,
+    useStoredScorer,
+    useStoredScorerVersions,
+    useStoredScorerVersion,
+    useCompareStoredScorerVersions,
+    useStoredMcpClients,
+    useStoredMcpClient,
+    useStoredSkills,
+    useStoredSkill,
     useWorkflows,
     useWorkflow,
     useWorkflowRun,
     useWorkflowRuns,
+    useWorkflowSchema,
     useScorers,
     useScorer,
     useTools,
     useTool,
     useThreads,
+    useThread,
     useThreadMessages,
     useThreadMessagesPaginated,
+    useWorkingMemory,
+    useMemorySearch,
     useMemoryStatus,
     useMemoryConfig,
+    useObservationalMemory,
+    useAwaitBufferStatus,
     useScoresByRun,
     useScoresByScorer,
     useScoresByEntity,
@@ -1889,6 +3342,8 @@ export function useMastraQuery(): MastraQueryHooks {
     useLogTransports,
     useVectorIndexes,
     useVectorDetails,
+    useVectors,
+    useEmbedders,
     useWorkspaces,
     useWorkspace,
     useWorkspaceInfo,
@@ -1898,6 +3353,9 @@ export function useMastraQuery(): MastraQueryHooks {
     useWorkspaceSearch,
     useWorkspaceSkills,
     useWorkspaceSearchSkills,
+    useWorkspaceSkill,
+    useWorkspaceSkillReferences,
+    useWorkspaceSkillReference,
     useSandboxInfo,
     useSandboxFiles,
     useSandboxReadFile,
@@ -1908,6 +3366,10 @@ export function useMastraQuery(): MastraQueryHooks {
     useMcpServerTools,
     useMcpToolDetails,
     useA2ACard,
+    useAgentBuilderActions,
+    useAgentBuilderAction,
+    useAgentBuilderRuns,
+    useAgentBuilderRun,
     useA2AGetTask,
     useSystemPackages,
 
@@ -1924,10 +3386,21 @@ export function useMastraQuery(): MastraQueryHooks {
     useExecuteToolMutation,
     useWorkflowStartMutation,
     useWorkflowStartAsyncMutation,
+    useWorkflowDeleteRunMutation,
+    useWorkflowResumeMutation,
+    useWorkflowResumeAsyncMutation,
+    useWorkflowCancelMutation,
+    useWorkflowRestartMutation,
+    useWorkflowRestartAsyncMutation,
+    useWorkflowTimeTravelMutation,
+    useWorkflowTimeTravelAsyncMutation,
     useCreateThreadMutation,
     useDeleteThreadMutation,
     useUpdateMemoryThreadMutation,
     useUpdateWorkingMemoryMutation,
+    useSaveMessageToMemoryMutation,
+    useDeleteThreadMessagesMutation,
+    useCloneThreadMutation,
     useCreateDatasetMutation,
     useUpdateDatasetMutation,
     useDeleteDatasetMutation,
@@ -1939,6 +3412,7 @@ export function useMastraQuery(): MastraQueryHooks {
     useTriggerDatasetExperimentMutation,
     useVectorQueryMutation,
     useVectorUpsertMutation,
+    useProcessorExecuteMutation,
     useWorkspaceWriteFileMutation,
     useWorkspaceDeleteMutation,
     useWorkspaceMkdirMutation,
@@ -1949,9 +3423,43 @@ export function useMastraQuery(): MastraQueryHooks {
     useSandboxIndexMutation,
     useMcpToolExecuteMutation,
     useA2ASendMessageMutation,
+    useA2ASendStreamingMessageMutation,
     useA2ACancelTaskMutation,
     useScoreMutation,
     useSaveScoreMutation,
+    useCreateStoredAgentMutation,
+    useUpdateStoredAgentMutation,
+    useDeleteStoredAgentMutation,
+    useCreateStoredAgentVersionMutation,
+    useActivateStoredAgentVersionMutation,
+    useRestoreStoredAgentVersionMutation,
+    useDeleteStoredAgentVersionMutation,
+    useCreateStoredPromptBlockMutation,
+    useUpdateStoredPromptBlockMutation,
+    useDeleteStoredPromptBlockMutation,
+    useCreateStoredPromptBlockVersionMutation,
+    useActivateStoredPromptBlockVersionMutation,
+    useRestoreStoredPromptBlockVersionMutation,
+    useDeleteStoredPromptBlockVersionMutation,
+    useCreateStoredScorerMutation,
+    useUpdateStoredScorerMutation,
+    useDeleteStoredScorerMutation,
+    useCreateStoredScorerVersionMutation,
+    useActivateStoredScorerVersionMutation,
+    useRestoreStoredScorerVersionMutation,
+    useDeleteStoredScorerVersionMutation,
+    useCreateStoredMcpClientMutation,
+    useUpdateStoredMcpClientMutation,
+    useDeleteStoredMcpClientMutation,
+    useCreateStoredSkillMutation,
+    useUpdateStoredSkillMutation,
+    useDeleteStoredSkillMutation,
+    useAgentBuilderCreateRunMutation,
+    useAgentBuilderStartAsyncMutation,
+    useAgentBuilderStartRunMutation,
+    useAgentBuilderResumeMutation,
+    useAgentBuilderResumeAsyncMutation,
+    useAgentBuilderCancelRunMutation,
   }
 
   return hooks as MastraQueryHooks
