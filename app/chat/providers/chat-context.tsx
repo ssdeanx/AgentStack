@@ -163,7 +163,7 @@ export function ChatProvider({
                             id: selectedAgent,
                             messages: outgoingMessages,
                             parts: outgoingMessages.flatMap(
-                                (m) => (m.parts ?? []) as UIMessage['parts']
+                                (m) => (m.parts ?? [])
                             ),
                             trigger,
                             messageId,

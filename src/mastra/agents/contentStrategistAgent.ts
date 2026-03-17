@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { google3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import {
   scrapingSchedulerTool,
@@ -9,21 +8,80 @@ import {
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
+import {
+  getUserTierFromContext,
+  USER_ID_CONTEXT_KEY,
+  type AgentRequestContext,
+} from './request-context'
 import {
   createCompletenessScorer,
   createTextualDifferenceScorer,
   createToneScorer,
 } from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ContentAgentContext {
-  userId?: string
-  'user-tier': UserTier
-  staggeredOutput?: boolean
-  sectionCount?: number
-  strategy?: 'iceberg' | 'blue-ocean' | 'structured' | 'hybrid' | 'custom'
-  backupDataTools?: string[]
+
+const STAGGERED_OUTPUT_CONTEXT_KEY = 'staggeredOutput' as const
+const SECTION_COUNT_CONTEXT_KEY = 'sectionCount' as const
+const STRATEGY_CONTEXT_KEY = 'strategy' as const
+const BACKUP_DATA_TOOLS_CONTEXT_KEY = 'backupDataTools' as const
+
+export type ContentAgentContext = AgentRequestContext<{
+  [STAGGERED_OUTPUT_CONTEXT_KEY]?: boolean
+  [SECTION_COUNT_CONTEXT_KEY]?: number
+  [STRATEGY_CONTEXT_KEY]?:
+    | 'iceberg'
+    | 'blue-ocean'
+    | 'structured'
+    | 'hybrid'
+    | 'custom'
+  [BACKUP_DATA_TOOLS_CONTEXT_KEY]?: string[]
+}>
+
+function getBooleanFromContext(
+  requestContext: { get: (key: string) => unknown },
+  key: string,
+  fallback: boolean
+): boolean {
+  const value = requestContext.get(key)
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function getNumberFromContext(
+  requestContext: { get: (key: string) => unknown },
+  key: string,
+  fallback: number
+): number {
+  const value = requestContext.get(key)
+  return typeof value === 'number' ? value : fallback
+}
+
+function getStrategyFromContext(requestContext: {
+  get: (key: string) => unknown
+}): NonNullable<ContentAgentContext[typeof STRATEGY_CONTEXT_KEY]> {
+  const strategy = requestContext.get(STRATEGY_CONTEXT_KEY)
+
+  return strategy === 'blue-ocean' ||
+    strategy === 'structured' ||
+    strategy === 'hybrid' ||
+    strategy === 'custom'
+    ? strategy
+    : 'iceberg'
+}
+
+function getBackupDataToolsFromContext(requestContext: {
+  get: (key: string) => unknown
+}): string[] {
+  const backupDataTools = requestContext.get(BACKUP_DATA_TOOLS_CONTEXT_KEY)
+
+  return Array.isArray(backupDataTools) && backupDataTools.every((tool) => typeof tool === 'string')
+    ? backupDataTools
+    : ['chartSupervisorTool']
+}
+
+const contentStrategistTools = {
+  webScraperTool,
+  chartSupervisorTool,
+  scrapingSchedulerTool,
 }
 
 export const contentStrategistAgent = new Agent({
@@ -31,19 +89,22 @@ export const contentStrategistAgent = new Agent({
   name: 'Content Strategist',
   description:
     'Elite content strategist specializing in high-impact, data-driven content planning.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ContentAgentContext>
-  }) => {
-    const userId = requestContext.get('userId') ?? 'anonymous'
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const staggeredOutput = requestContext.get('staggeredOutput') ?? false
-    const sectionCount = requestContext.get('sectionCount') ?? 5
-    const strategy = requestContext.get('strategy') ?? 'iceberg'
-    const backupDataTools = requestContext.get('backupDataTools') ?? [
-      'chartSupervisorTool',
-    ]
+  instructions: ({ requestContext }) => {
+    const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
+    const userId = typeof rawUserId === 'string' ? rawUserId : 'anonymous'
+    const userTier = getUserTierFromContext(requestContext)
+    const staggeredOutput = getBooleanFromContext(
+      requestContext,
+      STAGGERED_OUTPUT_CONTEXT_KEY,
+      false
+    )
+    const sectionCount = getNumberFromContext(
+      requestContext,
+      SECTION_COUNT_CONTEXT_KEY,
+      5
+    )
+    const strategy = getStrategyFromContext(requestContext)
+    const backupDataTools = getBackupDataToolsFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -80,11 +141,7 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
   },
   model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
-  tools: {
-    webScraperTool,
-    chartSupervisorTool,
-    scrapingSchedulerTool,
-  },
+  tools: contentStrategistTools,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

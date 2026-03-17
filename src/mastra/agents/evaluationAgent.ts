@@ -1,18 +1,13 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import { getUserTierFromContext, type AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface EvaluationContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+export type EvaluationContext = AgentRequestContext
 
 log.info('Initializing Evaluation Agent...')
 
@@ -21,18 +16,14 @@ export const evaluationAgent = new Agent({
     name: 'Evaluation Agent',
     description:
         'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<EvaluationContext>
-    }) => {
-        const UserTier = requestContext.get('user-tier')
+    instructions: ({ requestContext }) => {
+        const userTier = getUserTierFromContext(requestContext)
 
         return {
             role: 'system',
             content: `
 # Evaluation Agent
-User: ${UserTier ?? 'anonymous'}
+User: ${userTier}
 
 ## Task
 Evaluate search result relevance to a research query.
@@ -65,6 +56,7 @@ Evaluate search result relevance to a research query.
     },
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
+    tools: {},
     scorers: {},
     options: {
         tracingPolicy: {

@@ -4,6 +4,7 @@ import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { googleAIFlashLite, pgMemory } from '../config'
+import type { AgentRequestContext } from './request-context'
 import {
   findFreeSlots,
   getTodayEvents,
@@ -11,9 +12,7 @@ import {
   listEvents,
 } from '../tools/calendar-tool'
 
-export interface CalendarContext {
-  userId?: string
-}
+export type CalendarContext = AgentRequestContext
 
 export const calendarAgent = new Agent({
   id: 'calendarAgent',

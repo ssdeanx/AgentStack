@@ -10,7 +10,6 @@ import {
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
@@ -40,7 +39,7 @@ export const a2aCoordinatorAgent = new Agent({
   name: 'a2aCoordinator',
   description:
     'A2A Coordinator that orchestrates multiple specialized agents in parallel. Routes tasks dynamically, coordinates workflows, and synthesizes results using the A2A protocol.',
-  instructions: ({ requestContext }) => {
+  instructions: () => {
    // const userId = requestContext.get('userId')
     return {
       role: 'system',
@@ -108,7 +107,7 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
   model: googleAI,
   memory: pgMemory,
   options: {},
-  agents: asNestedAgents({
+  agents: {
     researchAgent,
     knowledgeIndexingAgent,
     editorAgent,
@@ -119,7 +118,7 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
     refactoringAgent,
     contentStrategistAgent,
     projectManagementAgent,
-  }),
+  },
   workflows: {
     researchSynthesisWorkflow,
     repoIngestionWorkflow,

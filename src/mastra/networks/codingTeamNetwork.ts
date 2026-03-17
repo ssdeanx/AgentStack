@@ -7,7 +7,6 @@ import type {
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   codeArchitectAgent,
   codeReviewerAgent,
@@ -37,22 +36,19 @@ export class QualityChecker implements Processor {
       return []
     }
 
-    // evaluateQuality may be asynchronous; return the promise directly to match the expected return type
-    return evaluateQuality(text).then((score) => {
-      if (score < 0.7 && (retryCount ?? 0) < 3) {
-        // Request retry with feedback for the LLM
-        abort('Response quality too low. Please be more specific.', {
-          retry: true,
-          metadata: { score },
-        })
-      }
+    const score = evaluateQuality(text)
+    if (score < 0.7 && (retryCount ?? 0) < 3) {
+      abort('Response quality too low. Please be more specific.', {
+        retry: true,
+        metadata: { score },
+      })
+    }
 
-      return []
-    })
+    return []
   }
 }
 
-async function evaluateQuality(text: string): Promise<number> {
+function evaluateQuality(text: string): number {
   // Basic heuristic to score output quality between 0 and 1.
   if (typeof text !== 'string' || text.length === 0) {
     return 0
@@ -172,12 +168,12 @@ Invoke these for structured, multi-phase processes:
   model: google3,
   memory: upstashMemory,
   options: {},
-  agents: asNestedAgents({
+  agents: {
     codeArchitectAgent,
     codeReviewerAgent,
     testEngineerAgent,
     refactoringAgent,
-  }),
+  },
   tools: {},
   workflows: {
     researchSynthesisWorkflow,

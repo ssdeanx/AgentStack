@@ -3,15 +3,18 @@ import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { webScraperTool } from '../tools/web-scraper-tool'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ScriptWriterRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+export type ScriptWriterRuntimeContext = AgentRequestContext
+
+const scriptWriterTools = {
+  webScraperTool,
 }
 
 export const scriptWriterAgent = new Agent({
@@ -19,13 +22,9 @@ export const scriptWriterAgent = new Agent({
   name: 'Script Writer',
   description:
     'Master scriptwriter focused on retention, pacing, and psychological engagement.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ScriptWriterRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -75,9 +74,7 @@ User: ${userTier} | Lang: ${language}
     },
   },
   scorers: {},
-  tools: {
-    webScraperTool,
-  },
+  tools: scriptWriterTools,
   outputProcessors: [new TokenLimiterProcessor(1048576)],
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,

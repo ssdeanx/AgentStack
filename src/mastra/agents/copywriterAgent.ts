@@ -14,34 +14,40 @@ import {
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
+import {
+  USER_ID_CONTEXT_KEY,
+  USER_TIER_CONTEXT_KEY,
+  type AgentRequestContext,
+} from './request-context'
 //import {
  // createCompletenessScorer,
  // createTextualDifferenceScorer,
  // createToneScorer,
 //} from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
-import { convexMemory } from '../config/convex'
 
 // Define runtime context for this agent
-export interface CopywriterAgentContext {
-  userId?: string
+export type CopywriterAgentContext = AgentRequestContext<{
   contentType?: string
-}
+}>
 
 log.info('Initializing Copywriter Agent...')
+
+const copywriterTools = {
+  webScraperTool,
+  scrapingSchedulerTool,
+  htmlToMarkdownTool,
+  contentCleanerTool,
+  chartSupervisorTool,
+}
 
 export const copywriterAgent = new Agent({
   id: 'copywriterAgent',
   name: 'copywriter-agent',
   description:
     'An expert copywriter agent that creates engaging, high-quality content across multiple formats including blog posts, marketing copy, social media content, technical writing, and business communications.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CopywriterAgentContext>
-  }) => {
-    const userId = requestContext.get('userId')
+  instructions: ({ requestContext }) => {
+    const userId = requestContext.get(USER_ID_CONTEXT_KEY)
     return {
       role: 'system',
       content: `
@@ -75,16 +81,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
   },
   model: 'google/gemini-3.1-flash-lite-preview',
   memory: pgMemory,
-  tools: {
-    webScraperTool,
-    //    batchWebScraperTool,
-    //   siteMapExtractorTool,
-    //    linkExtractorTool,
-    scrapingSchedulerTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
-    chartSupervisorTool,
-  },
+  tools: copywriterTools,
   scorers: {
    // toneConsistency: { scorer: createToneScorer() },
    // textualDifference: { scorer: createTextualDifferenceScorer() },

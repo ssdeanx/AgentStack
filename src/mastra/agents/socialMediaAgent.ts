@@ -1,10 +1,8 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { calendarAgent } from './calendarAgent'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { copywriterAgent } from './copywriterAgent'
@@ -95,12 +93,12 @@ export const socialMediaAgent = new Agent({
 `,
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
-  agents: asNestedAgents({
+  agents: {
     copywriterAgent,
     contentStrategistAgent,
     researchAgent,
     calendarAgent,
-  }),
+  } as Record<string, Agent>,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

@@ -1,19 +1,21 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
 import { InternalSpans } from '@mastra/core/observability'
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface LearningExtractionAgentContext {
-    userId?: string
+import {
+    getUserTierFromContext,
+    USER_ID_CONTEXT_KEY,
+    type AgentRequestContext,
+} from './request-context'
+
+export type LearningExtractionAgentContext = AgentRequestContext<{
     researchPhase?: string
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+}>
+
+const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
 
 log.info('Initializing Learning Extraction Agent...')
 
@@ -22,15 +24,14 @@ export const learningExtractionAgent = new Agent({
     name: 'Learning Extraction Agent',
     description:
         'An expert at analyzing search results and extracting key insights to deepen research understanding.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<LearningExtractionAgentContext>
-    }) => {
-        const userId = requestContext.get('userId')
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
-        const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+    instructions: ({ requestContext }) => {
+        const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
+        const rawResearchPhase = requestContext.get(RESEARCH_PHASE_CONTEXT_KEY)
+
+        const userId = typeof rawUserId === 'string' ? rawUserId : undefined
+        const userTier = getUserTierFromContext(requestContext)
+        const researchPhase =
+            typeof rawResearchPhase === 'string' ? rawResearchPhase : 'initial'
 
         return {
             role: 'system',
@@ -58,6 +59,7 @@ Extract the single most important learning and create one relevant follow-up que
     },
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
+    tools: {},
     scorers: {},
     options: {
         tracingPolicy: {

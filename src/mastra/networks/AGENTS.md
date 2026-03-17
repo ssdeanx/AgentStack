@@ -195,7 +195,8 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 - Chain agents for complex multi-step workflows
 - Preserve context when passing between agents
 - Log routing decisions for debugging
-- Use `@/src/mastra/agents/nestedAgents` when assigning child agents to a network's `agents` field; this is the repo's standard boundary for the current Mastra nested-agent typing limitation.
+- Do **not** rely on `nestedAgents` adapters or broad parent-side casts when wiring child agents.
+- Preferred approach: fix child agents at the source so their public request-context generic is `unknown`, and keep any narrower runtime-context parsing internal to the agent.
 
 ---
 
@@ -203,6 +204,7 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 
 | Version | Date (UTC) | Changes                                                       |
 | ------- | ---------- | ------------------------------------------------------------- |
+| 2.0.2   | 2026-03-17 | Replaced adapter guidance with the current source-level child-agent typing standard (`unknown` public request context, internal runtime parsing). |
 | 2.0.1   | 2026-03-16 | Added standard guidance for `nestedAgents` when wiring child agents into networks. |
 | 2.0.0   | 2025-11-26 | Major update: 4 networks with workflows, architecture diagram |
 | 1.0.0   | 2025-11-14 | Initial version with agentNetwork                             |

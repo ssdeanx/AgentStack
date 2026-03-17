@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { google3, googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
@@ -7,39 +6,46 @@ import {
     documentRerankerTool,
     mdocumentChunker,
 } from '../tools/document-chunking.tool'
-import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface KnowledgeIndexingContext {
-    userId?: string
-    indexName?: string
+const INDEX_NAME_CONTEXT_KEY = 'indexName' as const
+const CHUNKING_STRATEGY_CONTEXT_KEY = 'chunkingStrategy' as const
+
+export type KnowledgeIndexingContext = AgentRequestContext<{
+    [INDEX_NAME_CONTEXT_KEY]?: string
     chunkSize?: number
     chunkOverlap?: number
-    chunkingStrategy?: string
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+    [CHUNKING_STRATEGY_CONTEXT_KEY]?: string
+}>
 
 log.info('Initializing Knowledge Indexing Agent...')
+
+const knowledgeIndexingTools = {
+    mdocumentChunker,
+    documentRerankerTool,
+    readDataFileTool,
+    listDataDirTool,
+}
 
 export const knowledgeIndexingAgent = new Agent({
     id: 'knowledgeIndexingAgent',
     name: 'Knowledge Indexing Agent',
     description:
         'Indexes documents into PgVector for semantic search and RAG. Use for building knowledge bases, indexing content with embeddings, semantic search, and document retrieval with reranking.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<KnowledgeIndexingContext>
-    }) => {
-        const userId = requestContext.get('userId') ?? 'default'
-        const indexName = requestContext.get('indexName') ?? 'governed_rag'
-        const chunkSize = requestContext.get('chunkSize') ?? 512
-        const chunkOverlap = requestContext.get('chunkOverlap') ?? 50
+    instructions: ({ requestContext }) => {
+        const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
+        const rawIndexName = requestContext.get(INDEX_NAME_CONTEXT_KEY)
+        const rawChunkingStrategy = requestContext.get(CHUNKING_STRATEGY_CONTEXT_KEY)
+
+        const userId = typeof rawUserId === 'string' ? rawUserId : 'default'
+        const indexName =
+            typeof rawIndexName === 'string' ? rawIndexName : 'governed_rag'
         const chunkingStrategy =
-            requestContext.get('chunkingStrategy') ?? 'recursive'
+            typeof rawChunkingStrategy === 'string'
+                ? rawChunkingStrategy
+                : 'recursive'
 
         return `
 # Knowledge Indexing Specialist
@@ -62,12 +68,7 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
     },
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
-    tools: {
-        mdocumentChunker,
-        documentRerankerTool,
-        readDataFileTool,
-        listDataDirTool,
-    },
+    tools: knowledgeIndexingTools,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

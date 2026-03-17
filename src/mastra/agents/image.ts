@@ -4,15 +4,13 @@ import { googleAINanoBanana, pgMemory } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
+import type { AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ImageRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+export type ImageRuntimeContext = AgentRequestContext<{
     aspectratio: '16:9' | '4:3' | '1:1'
     resolution: '2K' | '1K'
     numberOfImages: 1 | 2 | 4
-}
+}>
 
 log.info('Initializing Financial Chart Agents...')
 

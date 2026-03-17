@@ -5,7 +5,6 @@ import {
   TokenLimiterProcessor,
   UnicodeNormalizer
 } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
 import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
 import { log } from '../config/logger'
@@ -29,13 +28,58 @@ import {
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ChartRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+export type ChartRuntimeContext = AgentRequestContext<{
   chartStyle: 'detailed' | 'concise'
   colorScheme: 'dark' | 'light'
+}>
+
+const CHART_STYLE_CONTEXT_KEY = 'chartStyle' as const
+const COLOR_SCHEME_CONTEXT_KEY = 'colorScheme' as const
+
+function getChartStyleFromContext(
+  requestContext: { get: (key: string) => unknown }
+): ChartRuntimeContext['chartStyle'] {
+  const chartStyle = requestContext.get(CHART_STYLE_CONTEXT_KEY)
+  return chartStyle === 'concise' ? chartStyle : 'detailed'
+}
+
+function getColorSchemeFromContext(
+  requestContext: { get: (key: string) => unknown }
+): ChartRuntimeContext['colorScheme'] {
+  const colorScheme = requestContext.get(COLOR_SCHEME_CONTEXT_KEY)
+  return colorScheme === 'light' ? colorScheme : 'dark'
+}
+
+const chartDataProcessorTools = {
+  polygonStockQuotesTool,
+  polygonStockAggregatesTool,
+  finnhubQuotesTool,
+  finnhubTechnicalTool,
+  alphaVantageStockTool,
+}
+
+const chartSupervisorTools = {
+  polygonStockQuotesTool,
+  polygonStockAggregatesTool,
+  polygonStockFundamentalsTool,
+  finnhubQuotesTool,
+  finnhubCompanyTool,
+  finnhubFinancialsTool,
+  finnhubAnalysisTool,
+  finnhubTechnicalTool,
+  alphaVantageStockTool,
+  googleFinanceTool,
+  chartGeneratorTool,
+  chartDataProcessorTool,
+  chartTypeAdvisorTool,
+  pgQueryTool,
+  scrapingSchedulerTool,
 }
 
 log.info('Initializing Financial Chart Agents...')
@@ -49,15 +93,11 @@ export const chartTypeAdvisorAgent = new Agent({
   name: 'Chart Type Advisor',
   description:
     'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ChartRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const chartStyle = getChartStyleFromContext(requestContext)
+    const colorScheme = getColorSchemeFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -101,6 +141,7 @@ You are a Financial Data Visualization Specialist focused on recommending optima
   },
   model: googleAIFlashLite,
   memory: pgMemory,
+  tools: {},
   maxRetries: 3,
   options: {
     tracingPolicy: {
@@ -119,15 +160,11 @@ export const chartDataProcessorAgent = new Agent({
   name: 'Chart Data Processor',
   description:
     'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ChartRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const chartStyle = getChartStyleFromContext(requestContext)
+    const colorScheme = getColorSchemeFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -162,13 +199,7 @@ You are a Financial Data Processing Specialist that transforms raw API data into
     }
   },
   model: googleAIFlashLite,
-  tools: {
-    polygonStockQuotesTool,
-    polygonStockAggregatesTool,
-    finnhubQuotesTool,
-    finnhubTechnicalTool,
-    alphaVantageStockTool,
-  },
+  tools: chartDataProcessorTools,
   memory: pgMemory,
   options: {
     tracingPolicy: {
@@ -188,15 +219,11 @@ export const chartGeneratorAgent = new Agent({
   name: 'Chart Generator',
   description:
     'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ChartRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const chartStyle = getChartStyleFromContext(requestContext)
+    const colorScheme = getColorSchemeFromContext(requestContext)
 
     return {
       role: 'system',
@@ -233,6 +260,7 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
   },
   model: googleAI,
   memory: pgMemory,
+  tools: {},
   maxRetries: 3,
   options: {
     tracingPolicy: {
@@ -251,15 +279,11 @@ export const chartSupervisorAgent = new Agent({
   name: 'Chart Supervisor',
   description:
     'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ChartRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const chartStyle = requestContext.get('chartStyle') ?? 'detailed'
-    const colorScheme = requestContext.get('colorScheme') ?? 'dark'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const chartStyle = getChartStyleFromContext(requestContext)
+    const colorScheme = getColorSchemeFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -302,23 +326,7 @@ ${PGVECTOR_PROMPT}
     }
   },
   model: googleAI,
-  tools: {
-    polygonStockQuotesTool,
-    polygonStockAggregatesTool,
-    polygonStockFundamentalsTool,
-    finnhubQuotesTool,
-    finnhubCompanyTool,
-    finnhubFinancialsTool,
-    finnhubAnalysisTool,
-    finnhubTechnicalTool,
-    alphaVantageStockTool,
-    googleFinanceTool,
-    chartGeneratorTool,
-    chartDataProcessorTool,
-    chartTypeAdvisorTool,
-    pgQueryTool,
-    scrapingSchedulerTool,
-  },
+  tools: chartSupervisorTools,
   memory: pgMemory,
   options: {
     tracingPolicy: {

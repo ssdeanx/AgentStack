@@ -3,7 +3,6 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
 import { log } from '../config/logger'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
@@ -26,32 +25,56 @@ import { htmlToMarkdownTool } from '../tools/web-scraper-tool'
 import { InternalSpans } from '@mastra/core/observability'
 import { mainWorkspace } from '../workspaces'
 import { convexMemory } from '../config/convex'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
 type ResearchPhase = 'initial' | 'followup' | 'validation'
-export interface ResearchRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-  // Optional runtime fields the server middleware may populate
-  userId?: string
-  researchPhase?: ResearchPhase
+const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
+
+export type ResearchRuntimeContext = AgentRequestContext<{
+  [RESEARCH_PHASE_CONTEXT_KEY]?: ResearchPhase
+}>
+
+function getResearchPhaseFromContext(requestContext: {
+  get: (key: string) => unknown
+}): ResearchPhase {
+  const researchPhase = requestContext.get(RESEARCH_PHASE_CONTEXT_KEY)
+
+  return researchPhase === 'followup' || researchPhase === 'validation'
+    ? researchPhase
+    : 'initial'
 }
+
 log.info('Initializing Research Agent...')
+
+const researchAgentTools = {
+  fetchTool,
+  googleScholarTool,
+  googleNewsLiteTool,
+  googleTrendsTool,
+  mdocumentChunker,
+  extractLearningsTool,
+  evaluateResultTool,
+  polygonStockQuotesTool,
+  finnhubQuotesTool,
+  googleFinanceTool,
+  pdfToMarkdownTool,
+  htmlToMarkdownTool,
+}
 
 export const researchAgent = new Agent({
   id: 'researchAgent',
   name: 'Research Agent',
   description:
     'An expert research agent that conducts thorough research using web search and analysis tools.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ResearchRuntimeContext>
-  }) => {
+  instructions: ({ requestContext }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const researchPhase = requestContext.get('researchPhase') ?? 'initial'
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const researchPhase = getResearchPhaseFromContext(requestContext)
 
     return {
       role: 'system',
@@ -95,28 +118,7 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     id: "opencode/minimax-m2.5-free",
     apiKey: process.env.OPENCODE_API_KEY,
   },
-  tools: {
-    // Core Research Tools
-    fetchTool,
-//    webScraperTool,
-    googleScholarTool,
-    googleNewsLiteTool,
-    googleTrendsTool,
-
-    // Data Processing
-    mdocumentChunker,
-    extractLearningsTool,
-    evaluateResultTool,
-
-    // Financial (limited to reduce tool confusion)
-    polygonStockQuotesTool,
-    finnhubQuotesTool,
-    googleFinanceTool,
-
-    // Document Processing
-    pdfToMarkdownTool,
-    htmlToMarkdownTool,
-  },
+  tools: researchAgentTools,
   memory: convexMemory,
   scorers: {
     //  toneConsistency: { scorer: createToneScorer() },

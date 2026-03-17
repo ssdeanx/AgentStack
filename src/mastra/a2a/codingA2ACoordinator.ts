@@ -16,7 +16,6 @@ import {
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   checkFileExists,
   createDirectory,
@@ -59,8 +58,7 @@ export const codingA2ACoordinator = new Agent({
   name: 'Coding A2A Coordinator',
   description:
     'A2A Coordinator that orchestrates multiple coding agents in parallel for complex development tasks like full feature development, comprehensive reviews, and refactoring with tests.',
-  instructions: ({ requestContext }) => {
-    const userId = requestContext.get('userId')
+  instructions: () => {
     return {
       role: 'system',
       content: `You are a Coding A2A (Agent-to-Agent) Coordinator that orchestrates multi-agent coding workflows.
@@ -206,12 +204,12 @@ When a user's request requires prolonged, structured work across multiple subtas
   model: googleAIFlashLite,
   memory: pgMemory,
 
-  agents: asNestedAgents({
+  agents: {
     codeArchitectAgent,
     codeReviewerAgent,
     testEngineerAgent,
     refactoringAgent,
-  }),
+  },
   workflows: {
     researchSynthesisWorkflow,
     financialReportWorkflow,

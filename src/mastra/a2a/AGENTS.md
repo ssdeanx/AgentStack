@@ -100,8 +100,8 @@ coordinate_a2a_task({
 
 ## Typing Note
 
-- Parent coordinators that register child agents should use `@/src/mastra/agents/nestedAgents` for the `agents` config.
-- This keeps the current Mastra nested-agent typing workaround isolated to one boundary while upstream typings remain restrictive.
+- Do **not** rely on parent-side adapter helpers or `as Record<string, Agent>` casts for child-agent registration.
+- Fix child agents at the source by exposing the public `Agent<..., unknown>` request-context generic and keeping any specialized runtime-context parsing inside the agent implementation.
 
 ---
 
@@ -109,6 +109,7 @@ coordinate_a2a_task({
 
 | Version | Date (UTC) | Changes                                         |
 | ------- | ---------- | ----------------------------------------------- |
+| 2.0.2   | 2026-03-17 | Updated guidance to use source-level public `unknown` request-context generics for child agents instead of adapter-based registration. |
 | 2.0.1   | 2026-03-16 | Added note about `nestedAgents` boundary adapter for child-agent registration typing. |
 | 2.0.0   | 2025-11-26 | Major update: documented all coordinated agents |
 | 1.0.0   | 2025-11-14 | Initial A2A coordinator implementation          |

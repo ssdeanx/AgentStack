@@ -1,6 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -13,11 +11,18 @@ import {
   arxivPdfParserTool,
   arxivTool,
 } from '../tools/arxiv.tool'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ResearchPaperAgentRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+export type ResearchPaperAgentRuntimeContext = AgentRequestContext
+
+const researchPaperTools = {
+  arxivTool,
+  arxivPdfParserTool,
+  arxivPaperDownloaderTool,
 }
 
 log.info('Initializing Research Paper Agent...')
@@ -27,13 +32,9 @@ export const researchPaperAgent = new Agent({
   name: 'Research Paper Agent',
   description:
     'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ResearchPaperAgentRuntimeContext>
-  }) => {
-    const userTier = requestContext?.get('user-tier') ?? 'free'
-    const language = requestContext?.get('language') ?? 'en'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
     return `
 # Research Paper Specialist
 User: ${userTier} | Lang: ${language}
@@ -66,11 +67,7 @@ User: ${userTier} | Lang: ${language}
     return "google/gemini-3.1-flash-lite-preview"
   },
   memory: pgMemory,
-  tools: {
-    arxivTool,
-    arxivPdfParserTool,
-    arxivPaperDownloaderTool,
-  },
+  tools: researchPaperTools,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

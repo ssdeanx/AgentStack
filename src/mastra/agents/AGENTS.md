@@ -90,7 +90,8 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 - **Logging**: Use the provided logger for consistent logging
 - **Testing**: Write unit tests for all agent functionality
 - **Documentation**: Document your agent's purpose, inputs, and outputs
-- **Nested Agent Registration**: When an agent exposes child agents via the `agents` config, use `@/src/mastra/agents/nestedAgents` to adapt Mastra's current nested-agent typing without spreading one-off workarounds across files.
+- **Nested Agent Registration**: Prefer fixing child-agent public generics at the source. If a child agent needs specialized runtime context internally, keep that parsing inside its instruction/helpers while pinning the public `Agent<..., unknown>` request-context generic so parent `agents` registration remains directly assignable.
+- **Tool Typing**: Avoid adding `ToolsInput` annotations to agent definitions unless they are truly required. Prefer inferred tool maps (`const tools = { ... }`) with `typeof tools`, or `Record<string, never>` for tool-less agents.
 
 ## Execution & Testing
 
@@ -121,6 +122,9 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | 2.2.0   | 2025-12-15 | Added 5 new specialized agents: socialMediaAgent, seoAgent, translationAgent, customerSupportAgent, projectManagementAgent.          |
+| 2.2.4   | 2026-03-17 | Normalized `codingAgents.ts` by restoring concrete per-agent tool maps and removing the last explicit `new Agent<...>` tool generic; `src/mastra/agents` now validates clean. |
+| 2.2.3   | 2026-03-17 | Removed unnecessary `ToolsInput` usage from touched agents and completed the source-level `unknown` request-context fix for all remaining network/A2A child-agent registrations. |
+| 2.2.2   | 2026-03-17 | Fixed direct nested-agent registration typing by centralizing request-context keys and pinning touched child agents to public `unknown` request-context generics instead of using an adapter in parent registrations. |
 | 2.2.1   | 2026-03-16 | Added `nestedAgents.ts` boundary adapter for Mastra nested sub-agent typing and cleaned folder-level agent errors.                  |
 | 2.1.0   | 2025-11-28 | Added 4 Financial Chart agents: chartTypeAdvisorAgent, chartDataProcessorAgent, chartGeneratorAgent, chartSupervisorAgent.           |
 | 2.0.0   | 2025-11-26 | Major update: 22 agents documented. Added data pipeline, research paper, document processing, knowledge indexing agents.             |

@@ -1,11 +1,14 @@
 import { Agent } from '@mastra/core/agent'
 
-import { googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 import {
     activeDistTag,
     pnpmBuild,
@@ -14,10 +17,13 @@ import {
 } from '../tools/pnpm-tool'
 import { InternalSpans } from '@mastra/core/observability'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface PackagePublisherRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+export type PackagePublisherRuntimeContext = AgentRequestContext
+
+const packagePublisherTools = {
+  pnpmChangesetStatus,
+  pnpmBuild,
+  pnpmChangesetPublish,
+  activeDistTag,
 }
 
 const packages_llm_text = `
@@ -127,13 +133,9 @@ export const PUBLISH_PACKAGES_PROMPT = `
 export const danePackagePublisher = new Agent({
     id: 'danePackagePublisher',
     name: 'DanePackagePublisher',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<PackagePublisherRuntimeContext>
-    }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
+    instructions: ({ requestContext }) => {
+      const userTier = getUserTierFromContext(requestContext)
+      const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
             content: `
@@ -171,12 +173,7 @@ export const danePackagePublisher = new Agent({
     },
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
-    tools: {
-        pnpmChangesetStatus,
-        pnpmBuild,
-        pnpmChangesetPublish,
-        activeDistTag,
-    },
+    tools: packagePublisherTools,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

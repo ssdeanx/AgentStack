@@ -1,7 +1,5 @@
 import { Agent } from '@mastra/core/agent'
 
-import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -22,11 +20,25 @@ import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import {
+    getLanguageFromContext,
+    getUserTierFromContext,
+    type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface StockRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+export type StockRuntimeContext = AgentRequestContext
+
+const stockAnalysisTools = {
+    alphaVantageStockTool,
+    polygonStockQuotesTool,
+    polygonStockAggregatesTool,
+    polygonStockFundamentalsTool,
+    finnhubQuotesTool,
+    finnhubCompanyTool,
+    finnhubFinancialsTool,
+    finnhubAnalysisTool,
+    finnhubTechnicalTool,
+    googleFinanceTool,
 }
 
 log.info('Initializing Stock Analysis Agent...')
@@ -36,14 +48,10 @@ export const stockAnalysisAgent = new Agent({
     name: 'Stock Analysis Agent',
     description:
         'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<StockRuntimeContext>
-    }) => {
+    instructions: ({ requestContext }) => {
         // runtimeContext is read at invocation time
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
+        const userTier = getUserTierFromContext(requestContext)
+        const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
             content: `
@@ -106,18 +114,7 @@ export const stockAnalysisAgent = new Agent({
         // cheaper/faster model for free tier
         return "google/gemini-3.1-flash-lite-preview"
     },
-    tools: {
-        alphaVantageStockTool,
-        polygonStockQuotesTool,
-        polygonStockAggregatesTool,
-        polygonStockFundamentalsTool,
-        finnhubQuotesTool,
-        finnhubCompanyTool,
-        finnhubFinancialsTool,
-        finnhubAnalysisTool,
-        finnhubTechnicalTool,
-        googleFinanceTool,
-    },
+    tools: stockAnalysisTools,
     memory: pgMemory,
     options: {
         tracingPolicy: {

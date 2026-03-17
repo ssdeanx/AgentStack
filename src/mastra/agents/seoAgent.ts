@@ -3,7 +3,6 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { evaluationAgent } from './evaluationAgent'
 import { researchAgent } from './researchAgent'
@@ -102,11 +101,11 @@ export const seoAgent = new Agent({
 `,
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
-  agents: asNestedAgents({
+  agents: {
     researchAgent,
     contentStrategistAgent,
     evaluationAgent,
-  }),
+  },
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
