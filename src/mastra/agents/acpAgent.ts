@@ -38,11 +38,11 @@ import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import type { AgentRequestContext } from './request-context'
 
-export interface ACPContext {
-    userId?: string
+export type ACPContext = AgentRequestContext<{
     userRole?: string
-}
+}>
 
 export const acpAgent = new Agent({
     id: 'acpAgent',

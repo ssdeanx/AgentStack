@@ -1,6 +1,7 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { AgentRequestContext } from './request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
@@ -15,14 +16,9 @@ import {
   technicalAnalysisTool,
 } from '../tools'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-
-export interface FinancialAnalysisRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-  userId?: string
+export type FinancialAnalysisRuntimeContext = AgentRequestContext<{
   analysisDepth?: 'basic' | 'detailed' | 'comprehensive'
-}
+}>
 
 log.info('Initializing Financial Analysis Agent...')
 

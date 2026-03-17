@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { google3, googleAIFlashLite, googleAIPro } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
@@ -8,13 +7,13 @@ import { InternalSpans } from '@mastra/core/observability'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
+import {
+  getLanguageFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ReportRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
-}
+export type ReportRuntimeContext = AgentRequestContext
 log.info('Initializing Report Agent...')
 
 export const reportAgent = new Agent({
@@ -22,14 +21,10 @@ export const reportAgent = new Agent({
   name: 'Report Agent',
   description:
     'An expert researcher agent that generates comprehensive reports based on research data.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<ReportRuntimeContext>
-  }) => {
+  instructions: ({ requestContext }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
     return {
       role: 'system',
       content: `
@@ -77,13 +72,13 @@ export const reportAgent = new Agent({
     return "google/gemini-3.1-flash-lite-preview"
   },
   memory: pgMemory,
+  tools: {},
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
     },
   },
   scorers: {},
-  tools: {},
   workflows: {},
   maxRetries: 5,
   outputProcessors: [

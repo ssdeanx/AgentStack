@@ -3,7 +3,6 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { evaluationAgent } from './evaluationAgent'
 import { reportAgent } from './reportAgent'
 import { researchAgent } from './researchAgent'
@@ -126,11 +125,11 @@ export const customerSupportAgent = new Agent({
 `,
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
-  agents: asNestedAgents({
+  agents: {
     researchAgent,
     evaluationAgent,
     reportAgent,
-  }),
+  } as Record<string, Agent>,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

@@ -1,13 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { calendarAgent } from './calendarAgent'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { reportAgent } from './reportAgent'
 import { evaluationAgent } from './evaluationAgent'
-import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
 import { InternalSpans } from '@mastra/core/observability'
 
 log.info('Initializing Project Management Agent...')
@@ -143,11 +140,11 @@ export const projectManagementAgent = new Agent({
 `,
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
-    agents: asNestedAgents({
+    agents: {
         calendarAgent,
         reportAgent,
         evaluationAgent,
-    }),
+    } as Record<string, Agent>,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

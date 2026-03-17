@@ -4,7 +4,13 @@ import type {
 } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
-import type { RequestContext } from '@mastra/core/request-context'
+import {
+    LANGUAGE_CONTEXT_KEY,
+    USER_TIER_CONTEXT_KEY,
+    getLanguageFromContext,
+    getUserTierFromContext,
+    type AgentRequestContext,
+} from './request-context'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
@@ -12,11 +18,7 @@ import { pgMemory } from '../config/pg-storage'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface EditorRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+export type EditorRuntimeContext = AgentRequestContext
 log.info('Initializing Editor Agent...')
 
 export const editorAgent = new Agent({
@@ -24,14 +26,10 @@ export const editorAgent = new Agent({
     name: 'Editor',
     description:
         'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<EditorRuntimeContext>
-    }) => {
+    instructions: ({ requestContext }) => {
         // runtimeContext is read at invocation time
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        const language = requestContext.get('language') ?? 'en'
+        const userTier = getUserTierFromContext(requestContext)
+        const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
             content: `
@@ -68,7 +66,10 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
         }
     },
     model: ({ requestContext }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const userTier =
+            typeof requestContext.get(USER_TIER_CONTEXT_KEY) === 'string'
+                ? requestContext.get(USER_TIER_CONTEXT_KEY)
+                : 'free'
         if (userTier === 'enterprise') {
             // higher quality (chat style) for enterprise
             return google.chat('gemini-3.1-pro-preview')
@@ -80,7 +81,7 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
         return google.chat('gemini-3.1-flash-lite-preview')
     },
     memory: pgMemory,
-    //  tools: [],
+    tools: {},
     scorers: {},
     options: {
         tracingPolicy: {

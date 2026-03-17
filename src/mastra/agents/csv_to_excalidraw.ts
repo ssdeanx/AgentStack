@@ -4,10 +4,9 @@ import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import { googleAI, pgMemory } from '../config'
+import type { AgentRequestContext } from './request-context'
 
-export interface CsvToExcalidrawRuntimeContext {
-  userId?: string
-}
+export type CsvToExcalidrawRuntimeContext = AgentRequestContext
 
 export const csvToExcalidrawAgent = new Agent({
   id: 'csvToExcalidrawAgent',

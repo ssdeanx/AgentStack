@@ -1,3 +1,61 @@
+## Active Context Update (2026-03-17 - codingAgents explicit tool-generic cleanup)
+
+- User flagged that `codingAgents.ts` still contained an explicit `new Agent<...>` constructor and that the per-agent tool objects had been disturbed.
+- Fixed `src/mastra/agents/codingAgents.ts` by:
+  - removing the remaining explicit generic constructor from `codeReviewerAgent`
+  - restoring the local per-agent tool objects (`codeArchitectTools`, `codeReviewerTools`, `testEngineerTools`, `refactoringTools`) with concrete tool names
+  - normalizing `codeArchitectAgent` model selection back to shared request-context helper usage rather than raw string access
+  - removing the stray unused `scrapingSchedulerTool` import
+- Validation:
+  - targeted `get_errors` on `src/mastra/agents/codingAgents.ts` returned **No errors found**
+  - folder-level `get_errors` on `src/mastra/agents` returned **No errors found**
+
+## Active Context Update (2026-03-17 - networks/a2a nested-agent cleanup completed without ToolsInput adaptering)
+
+- Completed the follow-up fix pass for the remaining `src/mastra/networks` and `src/mastra/a2a` nested child-agent assignment failures.
+- User direction was explicit: do **not** rely on any shared adapter or `as Record<string, Agent>` cast, and do **not** introduce gratuitous `ToolsInput` typing into agents.
+- Source-level fix applied across the remaining child agents by:
+  - removing narrowed `RequestContext<SpecificContext>` instruction callback annotations from public agent surfaces
+  - pinning affected child agents to public `new Agent<..., unknown>(...)` request-context generics
+  - keeping specialized runtime-context parsing local inside instruction bodies via explicit narrowing/constants
+  - removing the extra `ToolsInput` usage introduced in the touched agents; tool maps now use direct inferred object types (`typeof toolMap`) or `Record<string, never>` for tool-less agents
+- Additional cleanup included:
+  - `codingAgents.ts` refactoring-tool typing cleanup
+  - `codingA2ACoordinator.ts` / `a2aCoordinatorAgent.ts` unused-parameter cleanup
+  - `codingTeamNetwork.ts` synchronous quality gate fix
+- Source agents updated in this pass:
+  - `dataExportAgent.ts`
+  - `dataIngestionAgent.ts`
+  - `dataTransformationAgent.ts`
+  - `reportAgent.ts`
+  - `stockAnalysisAgent.ts`
+  - `recharts.ts`
+  - `researchPaperAgent.ts`
+  - `documentProcessingAgent.ts`
+  - `learningExtractionAgent.ts`
+  - `scriptWriterAgent.ts`
+  - `package-publisher.ts`
+  - plus cleanup in previously touched `editorAgent.ts`, `copywriterAgent.ts`, `knowledgeIndexingAgent.ts`, `researchAgent.ts`, `contentStrategistAgent.ts`, `evaluationAgent.ts`, and `codingAgents.ts`
+- Validation result:
+  - targeted `get_errors` returned clean for all edited agent files
+  - targeted `get_errors` for `src/mastra/a2a` and `src/mastra/networks` no longer surfaced the earlier nested-agent assignment failures
+
+## Active Context Update (2026-03-17 - nested agent typing without adapter)
+
+- Resolved the `seoAgent.ts` nested child-agent type errors without using a shared adapter or local cast.
+- Root cause: Mastra inferred narrower child `Agent<..., TRequestContext>` generics from `researchAgent`, `contentStrategistAgent`, and `evaluationAgent`, which made them fail assignment to parent `agents: Record<string, Agent<..., unknown>>` slots.
+- Fix applied:
+  - centralized shared request-context keys in `src/mastra/agents/request-context.ts`
+  - replaced raw string usage in touched agents with declared constants/helpers
+  - explicitly pinned the public child-agent generic to `unknown` via `new Agent<..., unknown>(...)`
+  - kept runtime-safe parsing of specialized context values inside the agent instruction bodies
+- Files updated:
+  - `src/mastra/agents/request-context.ts`
+  - `src/mastra/agents/researchAgent.ts`
+  - `src/mastra/agents/contentStrategistAgent.ts`
+  - `src/mastra/agents/evaluationAgent.ts`
+- Validation: targeted `get_errors` is clean for all edited files and `src/mastra/agents/seoAgent.ts`.
+
 ## Active Context Update (2026-03-16 - use-mastra-query full client-js surface expansion)
 
 - Expanded `lib/hooks/use-mastra-query.ts` beyond dataset/eval coverage to expose the remaining installed `@mastra/client-js` surfaces needed by the frontend hook factory.

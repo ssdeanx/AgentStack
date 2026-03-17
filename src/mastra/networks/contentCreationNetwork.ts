@@ -2,7 +2,6 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
@@ -110,13 +109,13 @@ export const contentCreationNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: asNestedAgents({
+  agents: {
     copywriterAgent,
     editorAgent,
     contentStrategistAgent,
     scriptWriterAgent,
     evaluationAgent,
-  }),
+  },
   workflows: {
     contentStudioWorkflow,
     contentReviewWorkflow,

@@ -4,12 +4,9 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ExcalidrawValidatorRuntimeContext {
-    userId?: string
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+import type { AgentRequestContext } from './request-context'
+
+export type ExcalidrawValidatorRuntimeContext = AgentRequestContext
 
 export const excalidrawValidatorAgent = new Agent({
     id: 'excalidrawValidatorAgent',

@@ -9,12 +9,9 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import { mainWorkspace } from '../workspaces'
+import type { AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface WeatherRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-}
+export type WeatherRuntimeContext = AgentRequestContext
 
 export const weatherAgent = new Agent({
     name: 'Weather Agent',

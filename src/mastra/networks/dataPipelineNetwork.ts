@@ -2,7 +2,6 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { dataExportAgent } from '../agents/dataExportAgent'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
@@ -85,12 +84,12 @@ For complex requests requiring multiple agents:
   model: googleAI,
   memory: pgMemory,
   options: {},
-  agents: asNestedAgents({
+  agents: {
     dataExportAgent,
     dataIngestionAgent,
     dataTransformationAgent,
     reportAgent,
-  }),
+  },
   tools: { confirmationTool },
   workflows: {
     stockAnalysisWorkflow,

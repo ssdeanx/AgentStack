@@ -6,6 +6,7 @@ import {
   UnicodeNormalizer,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { AgentRequestContext } from './request-context'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer,
@@ -46,10 +47,7 @@ type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
 
 type AnalysisConfig = 'summary' | 'detailed' | 'extensive' | 'full'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface BusinessRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+export type BusinessRuntimeContext = AgentRequestContext<{
   responseFormat: 'json' | 'markdown'
   research: {
     depth: Research
@@ -59,7 +57,7 @@ export interface BusinessRuntimeContext {
     depth: Research
     scope: AnalysisConfig
   }
-}
+}>
 
 const isResearchConfig = (value: unknown): value is BusinessRuntimeContext['research'] => {
   if (typeof value !== 'object' || value === null) {

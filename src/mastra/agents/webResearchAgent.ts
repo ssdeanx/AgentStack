@@ -22,16 +22,11 @@ import {
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { InternalSpans } from '@mastra/core/observability'
+import type { AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-
-export interface WebResearchRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    // Optional runtime fields server middleware may populate
-    userId?: string
+export type WebResearchRuntimeContext = AgentRequestContext<{
     researchPhase?: string
-}
+}>
 
 log.info('Initializing Web Research Agent...')
 

@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
 
-import { googleAI3 } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
@@ -13,33 +12,50 @@ import {
     //   processXMLTool,
 } from '../tools/data-processing-tools'
 import { readDataFileTool, writeDataFileTool } from '../tools/data-file-manager'
-import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import type { AgentRequestContext } from './request-context'
+import { USER_ID_CONTEXT_KEY } from './request-context'
 
-export interface DataTransformationContext {
-    userId?: string
+export type DataTransformationContext = AgentRequestContext<{
     preserveTypes?: boolean
     flattenNested?: boolean
     xmlRootElement?: string
-}
+}>
 
 log.info('Initializing Data Transformation Agent...')
+
+const PRESERVE_TYPES_CONTEXT_KEY = 'preserveTypes' as const
+const FLATTEN_NESTED_CONTEXT_KEY = 'flattenNested' as const
+const XML_ROOT_ELEMENT_CONTEXT_KEY = 'xmlRootElement' as const
+
+const dataTransformationTools = {
+    csvToJsonTool,
+    jsonToCsvTool,
+    dataValidatorToolJSON,
+    validateDataTool,
+    readDataFileTool,
+    writeDataFileTool,
+}
 
 export const dataTransformationAgent = new Agent({
     id: 'dataTransformationAgent',
     name: 'Data Transformation Agent',
     description:
         'Performs complex format transformations between CSV, JSON, and XML. Use for converting data between formats, transforming nested structures, flattening hierarchical data, and batch format conversions.',
-    instructions: ({
-        requestContext,
-    }: {
-        requestContext: RequestContext<DataTransformationContext>
-    }) => {
-        const userId = requestContext.get('userId') ?? 'default'
-        const preserveTypes = requestContext.get('preserveTypes') ?? true
-        const flattenNested = requestContext.get('flattenNested') ?? false
-        const xmlRootElement = requestContext.get('xmlRootElement') ?? 'data'
+    instructions: ({ requestContext }) => {
+        const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
+        const rawPreserveTypes = requestContext.get(PRESERVE_TYPES_CONTEXT_KEY)
+        const rawFlattenNested = requestContext.get(FLATTEN_NESTED_CONTEXT_KEY)
+        const rawXmlRootElement = requestContext.get(XML_ROOT_ELEMENT_CONTEXT_KEY)
+
+        const userId = typeof rawUserId === 'string' ? rawUserId : 'default'
+        const preserveTypes =
+            typeof rawPreserveTypes === 'boolean' ? rawPreserveTypes : true
+        const flattenNested =
+            typeof rawFlattenNested === 'boolean' ? rawFlattenNested : false
+        const xmlRootElement =
+            typeof rawXmlRootElement === 'string' ? rawXmlRootElement : 'data'
 
         return `You are a Data Transformation Expert. Your role is to convert data between different formats while preserving data integrity.
 
@@ -115,16 +131,7 @@ export const dataTransformationAgent = new Agent({
     },
     model: "google/gemini-3.1-flash-lite-preview",
     memory: pgMemory,
-    tools: {
-        csvToJsonTool,
-        jsonToCsvTool,
-        dataValidatorToolJSON,
-        //   convertDataFormatTool,
-        validateDataTool,
-        //  processXMLTool,
-        readDataFileTool,
-        writeDataFileTool,
-    },
+    tools: dataTransformationTools,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

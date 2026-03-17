@@ -6,6 +6,7 @@ import {
   UnicodeNormalizer,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { AgentRequestContext } from './request-context'
 import { googleAI, googleAIFlashLite, pgMemory } from '../config'
 import { log } from '../config/logger'
 
@@ -52,10 +53,7 @@ import {
   volumeAnalysisTool,
 } from '../tools/technical-analysis.tool'
 
-export interface GraphingRuntimeContext extends RequestContext {
-  language?: 'en' | 'es' | 'fr' | 'ja'
-  userTier?: 'free' | 'pro' | 'enterprise'
-}
+export type GraphingRuntimeContext = AgentRequestContext
 
 log.info('Initializing Graphing Agents...')
 
@@ -74,7 +72,7 @@ export const graphSupervisorAgent = new Agent({
     requestContext: RequestContext<GraphingRuntimeContext>
   }) => {
     const lang = requestContext.get('language') ?? 'en'
-    const tier = requestContext.get('userTier') ?? 'free'
+    const tier = requestContext.get('user-tier') ?? 'free'
     return {
       role: 'system',
       content: `

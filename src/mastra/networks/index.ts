@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { editorAgent } from '../agents/editorAgent'
 import { reportAgent } from '../agents/reportAgent'
@@ -90,7 +89,7 @@ export const agentNetwork = new Agent({
   model: googleAI,
   memory: pgMemory, // Required for network capabilities
   options: {},
-  agents: asNestedAgents({
+  agents: {
     researchAgent,
     stockAnalysisAgent,
     weatherAgent,
@@ -102,7 +101,7 @@ export const agentNetwork = new Agent({
     translationAgent,
     customerSupportAgent,
     projectManagementAgent,
-  }),
+  },
   //  tools: { confirmationTool },
   scorers: {},
   workflows: { weatherWorkflow },

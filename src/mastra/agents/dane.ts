@@ -5,15 +5,14 @@ import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAIFlashLite, pgMemory } from '../config'
+import { pgMemory } from '../config'
+import type { AgentRequestContext } from './request-context'
 import { scrapingSchedulerTool, webScraperTool } from '../tools'
 import { browserTool } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
 import { execaTool } from '../tools/execa-tool'
 
-export interface DaneContext {
-  userId?: string
-}
+export type DaneContext = AgentRequestContext
 
 export const daneCommitMessage = new Agent({
   id: 'daneCommitMessage',

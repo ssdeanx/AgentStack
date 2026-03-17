@@ -5,15 +5,12 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
+import type { AgentRequestContext } from './request-context'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface ImageToCsvRuntimeContext {
-    userId?: string
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
+export type ImageToCsvRuntimeContext = AgentRequestContext<{
     identityOutputSchema: 'excalidraw' | 'csv'
     chalkboardOutputSchema: 'excalidraw' | 'csv'
-}
+}>
 
 export const imageToCsvAgent = new Agent({
     id: 'imageToCsvAgent',

@@ -1,6 +1,7 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { AgentRequestContext } from './request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
@@ -18,14 +19,9 @@ import {
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { InternalSpans } from '@mastra/core/observability'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-
-export interface AcademicResearchRuntimeContext {
-    'user-tier': UserTier
-    language: 'en' | 'es' | 'ja' | 'fr'
-    userId?: string
+export type AcademicResearchRuntimeContext = AgentRequestContext<{
     researchType?: 'quick' | 'deep' | 'systematic'
-}
+}>
 
 log.info('Initializing Academic Research Agent...')
 

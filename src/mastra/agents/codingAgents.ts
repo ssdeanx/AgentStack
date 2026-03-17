@@ -4,14 +4,12 @@ import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer,
 } from '@mastra/evals/scorers/prebuilt'
 import {
   google3,
-  googleAI,
   googleAI3,
   googleAIFlashLite,
 } from '../config/google'
@@ -49,15 +47,80 @@ import {
 } from '../tools/github'
 import { multiStringEditTool } from '../tools/multi-string-edit.tool'
 import { testGeneratorTool } from '../tools/test-generator.tool'
-import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
-type UserTier = 'free' | 'pro' | 'enterprise'
-export interface CodingRuntimeContext {
-  'user-tier': UserTier
-  language: 'en' | 'es' | 'ja' | 'fr'
+import {
+  getLanguageFromContext,
+  resolveTieredModelFromContext,
+  getUserTierFromContext,
+  type AgentRequestContext,
+} from './request-context'
+
+export type CodingRuntimeContext = AgentRequestContext<{
   projectRoot: string
-}
+}>
 
 log.info('Initializing Coding Team Agents...')
+
+const CODE_PROJECT_ROOT_CONTEXT_KEY = 'projectRoot' as const
+
+const codeArchitectTools = {
+  codeAnalysisTool,
+  codeSearchTool,
+  findSymbolTool,
+  findReferencesTool,
+  getRepositoryInfo,
+  getFileContent,
+  searchCode,
+  listRepositories,
+  listPullRequests,
+  listIssues,
+}
+
+const codeReviewerTools = {
+  codeAnalysisTool,
+  diffReviewTool,
+  findReferencesTool,
+  findSymbolTool,
+  getRepositoryInfo,
+  getFileContent,
+  searchCode,
+}
+
+const testEngineerTools = {
+  codeAnalysisTool,
+  testGeneratorTool,
+  execaTool,
+  createSandbox,
+  runCommand,
+  runCode,
+  writeFile,
+  writeFiles,
+  deleteFile,
+  listFiles,
+  getFileInfo,
+  getFileSize,
+  checkFileExists,
+}
+
+const refactoringTools = {
+  codeAnalysisTool,
+  diffReviewTool,
+  multiStringEditTool,
+  createSandbox,
+  runCode,
+  runCommand,
+  writeFile,
+  writeFiles,
+  deleteFile,
+  listFiles,
+  getFileInfo,
+  getFileSize,
+  checkFileExists,
+  createDirectory,
+  watchDirectory,
+  searchCode,
+  getFileContent,
+  getRepositoryInfo,
+}
 
 /**
  * Code Architect Agent
@@ -68,13 +131,9 @@ export const codeArchitectAgent = new Agent({
   name: 'Code Architect Agent',
   description:
     'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
     // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
     return {
@@ -126,23 +185,10 @@ Always consider maintainability, scalability, and testability in your recommenda
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const userTier = getUserTierFromContext(requestContext)
     return userTier === 'enterprise' ? googleAI3 : google3
   },
-  tools: {
-    codeAnalysisTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    listRepositories,
-    listIssues,
-    listPullRequests,
-    getRepositoryInfo,
-    searchCode,
-    getFileContent,
-    scrapingSchedulerTool,
-    //    ...githubMCP.getTools(),
-  },
+  tools: codeArchitectTools,
   memory: pgMemory,
   scorers: {
     relevancy: {
@@ -178,13 +224,9 @@ export const codeReviewerAgent = new Agent({
   name: 'Code Reviewer Agent',
   description:
     'Expert code reviewer focusing on quality, security, performance, and best practices.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
 
     return {
       role: 'system',
@@ -250,22 +292,12 @@ Be constructive and educational in feedback.`,
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
+    return resolveTieredModelFromContext(requestContext, {
+      free: 'google/gemini-3.1-flash-lite-preview',
+      enterprise: 'google/gemini-3.1-flash-preview',
+    })
   },
-  tools: {
-    codeAnalysisTool,
-    diffReviewTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    listRepositories,
-    listIssues,
-    listPullRequests,
-    getRepositoryInfo,
-    searchCode,
-    getFileContent,
-  },
+  tools: codeReviewerTools,
   memory: pgMemory,
   options: {
     tracingPolicy: {
@@ -303,13 +335,9 @@ export const testEngineerAgent = new Agent({
   name: 'Test Engineer Agent',
   description:
     'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
 
     return {
       role: 'system',
@@ -387,28 +415,12 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
+    return resolveTieredModelFromContext(requestContext, {
+      free: 'google/gemini-3.1-flash-lite-preview',
+      enterprise: 'google/gemini-3.1-flash-preview',
+    })
   },
-  tools: {
-    codeAnalysisTool,
-    testGeneratorTool,
-    codeSearchTool,
-    execaTool,
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
-    //    ...githubMCP.getTools(),
-  },
+  tools: testEngineerTools,
   memory: pgMemory,
   options: {
     tracingPolicy: {
@@ -444,14 +456,12 @@ export const refactoringAgent = new Agent({
   name: 'Refactoring Agent',
   description:
     'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<CodingRuntimeContext>
-  }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    const language = requestContext.get('language') ?? 'en'
-    const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
+  instructions: ({ requestContext }) => {
+    const userTier = getUserTierFromContext(requestContext)
+    const language = getLanguageFromContext(requestContext)
+    const rawProjectRoot = requestContext.get(CODE_PROJECT_ROOT_CONTEXT_KEY)
+    const projectRoot =
+      typeof rawProjectRoot === 'string' ? rawProjectRoot : process.cwd()
 
     return {
       role: 'system',
@@ -532,30 +542,12 @@ For each refactoring:
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    return userTier === 'enterprise' ? "google/gemini-3.1-flash-preview" : "google/gemini-3.1-flash-lite-preview"
+    return resolveTieredModelFromContext(requestContext, {
+      free: 'google/gemini-3.1-flash-lite-preview',
+      enterprise: 'google/gemini-3.1-flash-preview',
+    })
   },
-  tools: {
-    multiStringEditTool,
-    codeAnalysisTool,
-    diffReviewTool,
-    codeSearchTool,
-    findReferencesTool,
-    findSymbolTool,
-    execaTool,
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
-  },
+  tools: refactoringTools,
   memory: pgMemory,
   options: {
     tracingPolicy: {

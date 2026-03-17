@@ -1,12 +1,11 @@
 import { Agent } from '@mastra/core/agent'
 
-import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
-import type { RequestContext } from '@mastra/core/request-context'
+import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
 import {
   backupDataTool,
   listDataDirTool,
@@ -15,31 +14,43 @@ import {
 import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 
-export interface DataExportContext {
-  userId?: string
+export type DataExportContext = AgentRequestContext<{
   outputDirectory?: string
   overwriteExisting?: boolean
   delimiter?: string
-}
+}>
 
 log.info('Initializing Data Export Agent...')
+
+const OUTPUT_DIRECTORY_CONTEXT_KEY = 'outputDirectory' as const
+const OVERWRITE_EXISTING_CONTEXT_KEY = 'overwriteExisting' as const
+const DELIMITER_CONTEXT_KEY = 'delimiter' as const
+
+const dataExportTools = {
+  jsonToCsvTool,
+  dataValidatorToolJSON,
+  writeDataFileTool,
+  backupDataTool,
+  listDataDirTool,
+}
 
 export const dataExportAgent = new Agent({
   id: 'dataExportAgent',
   name: 'Data Export Agent',
   description:
     'Converts structured data to CSV format and manages file output. Use for creating CSV exports, formatting data tables, saving structured data to files, and backing up existing data.',
-  instructions: ({
-    requestContext,
-  }: {
-    requestContext: RequestContext<DataExportContext>
-  }) => {
-    const userId = requestContext.get('userId') ?? 'default'
+  instructions: ({ requestContext }) => {
+    const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
+    const rawOutputDirectory = requestContext.get(OUTPUT_DIRECTORY_CONTEXT_KEY)
+    const rawOverwriteExisting = requestContext.get(OVERWRITE_EXISTING_CONTEXT_KEY)
+    const rawDelimiter = requestContext.get(DELIMITER_CONTEXT_KEY)
+
+    const userId = typeof rawUserId === 'string' ? rawUserId : 'default'
     const outputDirectory =
-      requestContext.get('outputDirectory') ?? './data'
+      typeof rawOutputDirectory === 'string' ? rawOutputDirectory : './data'
     const overwriteExisting =
-      requestContext.get('overwriteExisting') ?? false
-    const delimiter = requestContext.get('delimiter') ?? ','
+      typeof rawOverwriteExisting === 'boolean' ? rawOverwriteExisting : false
+    const delimiter = typeof rawDelimiter === 'string' ? rawDelimiter : ','
 
     return `
 # Data Export Specialist
@@ -58,13 +69,7 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
   },
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
-  tools: {
-    jsonToCsvTool,
-    dataValidatorToolJSON,
-    writeDataFileTool,
-    backupDataTool,
-    listDataDirTool,
-  },
+  tools: dataExportTools,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

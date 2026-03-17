@@ -1,3 +1,41 @@
+# 2026-03-17 codingAgents normalization
+
+- Restored `codingAgents.ts` after a bad intermediate state:
+  - local tool objects are back in place by concrete tool name
+  - no explicit `new Agent<...>` tool generic remains in that file
+  - targeted validation for `codingAgents.ts` is clean
+- Rechecked `src/mastra/agents` after the fix:
+  - ✅ **No errors found**
+
+# 2026-03-17 full nested-agent source fix for networks/a2a
+
+- Completed the remaining nested-agent typing cleanup the user requested across `src/mastra/networks` and `src/mastra/a2a`.
+- Removed the bad `ToolsInput` additions from the touched agent implementations.
+- Reworked the remaining child agents so parent registration compiles by source design rather than parent-side casting/adaptering.
+- Fixed adjacent diagnostics encountered during the pass:
+  - invalid `unknown` template interpolation in `knowledgeIndexingAgent.ts`
+  - `codingAgents.ts` unused import + `projectRoot` stringification issue
+  - unused `requestContext` / `userId` in A2A coordinators
+  - `codingTeamNetwork.ts` async/no-await quality-gate bug
+- Validation:
+  - ✅ edited agent files clean
+  - ✅ `src/mastra/a2a` clean
+  - ✅ `src/mastra/networks` clean
+
+# 2026-03-17 nested-agent typing fix without adapter
+
+- Fixed the reported `seoAgent.ts` nested child-agent assignment failures for:
+  - `researchAgent`
+  - `contentStrategistAgent`
+  - `evaluationAgent`
+- Kept the solution at the source rather than adding a parent-side adapter:
+  - shared request-context keys now come from `src/mastra/agents/request-context.ts`
+  - touched child agents parse specialized runtime context internally
+  - touched child agents now expose `unknown` as their public `Agent` request-context generic so direct parent registration compiles cleanly
+- Validation:
+  - ✅ targeted `get_errors` on `request-context.ts`, `researchAgent.ts`, `contentStrategistAgent.ts`, `evaluationAgent.ts`, and `seoAgent.ts` returned clean
+  - ⚠️ folder-wide `get_errors` on `src/mastra/agents` still shows unrelated pre-existing diagnostics in `knowledgeIndexingAgent.ts`
+
 # 2026-03-16 use-mastra-query full client-js hook expansion
 
 - Completed the requested `@mastra/client-js` parity pass in `lib/hooks/use-mastra-query.ts` without replacing the file’s existing hook-factory pattern.

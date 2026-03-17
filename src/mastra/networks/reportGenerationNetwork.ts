@@ -3,7 +3,6 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import { dataIngestionAgent } from '../agents/dataIngestionAgent'
 import { dataTransformationAgent } from '../agents/dataTransformationAgent'
 import { reportAgent } from '../agents/reportAgent'
@@ -122,12 +121,12 @@ export const reportGenerationNetwork = new Agent({
   //    options: {
   //        tracingPolicy: { internal: InternalSpans.ALL },
   //   },
-  agents: asNestedAgents({
+  agents: {
     dataIngestionAgent,
     dataTransformationAgent,
     researchAgent,
     reportAgent,
-  }),
+  },
   //  tools: { confirmationTool },
   workflows: {
     weatherWorkflow,

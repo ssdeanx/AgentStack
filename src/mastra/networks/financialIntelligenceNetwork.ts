@@ -2,7 +2,6 @@ import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
-import { asNestedAgents } from '@/src/mastra/agents/nestedAgents'
 import {
   chartDataProcessorAgent,
   chartGeneratorAgent,
@@ -135,7 +134,7 @@ export const financialIntelligenceNetwork = new Agent({
 `,
   model: googleAI3,
   memory: pgMemory,
-  agents: asNestedAgents({
+  agents: {
     stockAnalysisAgent,
     researchAgent,
     chartSupervisorAgent,
@@ -143,7 +142,7 @@ export const financialIntelligenceNetwork = new Agent({
     chartGeneratorAgent,
     chartTypeAdvisorAgent,
     reportAgent,
-  }),
+  },
   workflows: {
     financialReportWorkflow,
     stockAnalysisWorkflow,
