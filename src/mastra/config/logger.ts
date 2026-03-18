@@ -164,7 +164,7 @@ export const logAgentActivity = (
 
 export const logError = (
     component: string,
-    error: unknown,
+    error: Error | string,
     context?: Record<string, unknown>
 ) => {
     const message = `❌ Error in ${component}`
