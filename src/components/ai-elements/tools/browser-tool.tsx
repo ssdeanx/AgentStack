@@ -1,467 +1,799 @@
 'use client'
 
-import type {
-  BrowserUITool,
-  ClickAndExtractUITool,
-  FillFormUITool,
-  GoogleSearchUITool,
-  MonitorPageUITool,
-  PdfGeneratorUITool,
-  ScreenshotUITool,
-} from './types'
-
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Input } from '@/ui/input'
 import { ScrollArea } from '@/ui/scroll-area'
 import {
-  AlertCircle,
-  CheckCircle,
-  Clipboard,
-  Download,
-  ExternalLink,
-  FileText,
-  Globe,
-  Image as ImageIcon,
-  Loader2,
-  Search,
+    WebPreview,
+    WebPreviewBody,
+    WebPreviewNavigation,
+    WebPreviewUrl,
+} from '../web-preview'
+import { Image as AIImage } from '../image'
+import {
+    AlertCircle,
+    CheckCircle,
+    Clipboard,
+    Download,
+    ExternalLink,
+    FileText,
+    Globe,
+    Image as ImageIcon,
+    Loader2,
+    Search,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { CodeBlock, CodeBlockCopyButton } from '../code-block'
 
-/* Helpers */
-function formatBytes(bytes?: number) {
-  if (bytes == null) {return 'N/A'}
-  if (bytes === 0) {return '0 B'}
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-  let num = bytes
-  while (num >= 1024 && i < units.length - 1) {
-    num /= 1024
-    i++
-  }
-  return `${num >= 10 ? Math.round(num) : num.toFixed(2)} ${units[i]}`
+interface SearchResult {
+    title: string
+    url: string
+    snippet?: string
 }
 
-function downloadFileFromBase64(filename: string, base64: string, mime = 'application/octet-stream') {
-  try {
-    const byteCharacters = atob(base64)
-    const byteNumbers = new Array(byteCharacters.length)
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i)
+interface UrlInput {
+    url: string
+}
+
+interface ClickAndExtractInput extends UrlInput {
+    clickSelector?: string
+}
+
+interface GoogleSearchInput {
+    query: string
+}
+
+interface CardProps<TInput> {
+    toolCallId: string
+    input: TInput
+    output?: unknown
+    errorText?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function hasText(value: string | undefined | null): value is string {
+    return typeof value === 'string' && value.trim().length > 0
+}
+
+function readString(
+    record: Record<string, unknown>,
+    key: string
+): string | undefined {
+    const value = record[key]
+    return typeof value === 'string' ? value : undefined
+}
+
+function readBoolean(
+    record: Record<string, unknown>,
+    key: string
+): boolean | undefined {
+    const value = record[key]
+    return typeof value === 'boolean' ? value : undefined
+}
+
+function readNumber(
+    record: Record<string, unknown>,
+    key: string
+): number | undefined {
+    const value = record[key]
+    return typeof value === 'number' ? value : undefined
+}
+
+function readSearchResults(record: Record<string, unknown>): SearchResult[] {
+    const rawResults = record.results
+    if (!Array.isArray(rawResults)) {
+        return []
     }
-    const byteArray = new Uint8Array(byteNumbers)
-    const blob = new Blob([byteArray], { type: mime })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  } catch {
-    // ignore
-  }
+
+    return rawResults
+        .filter(isRecord)
+        .map((result) => {
+            const title = readString(result, 'title') ?? 'Untitled result'
+            const url = readString(result, 'url') ?? ''
+            const snippet = readString(result, 'snippet')
+            return { title, url, snippet }
+        })
+        .filter((result) => hasText(result.url))
+}
+
+function readSections(
+    record: Record<string, unknown>
+): Array<{ title: string; summary: string }> {
+    const rawSections = record.sections
+    if (!Array.isArray(rawSections)) {
+        return []
+    }
+
+    return rawSections
+        .filter(isRecord)
+        .map((section, index) => ({
+            title: readString(section, 'title') ?? `Section ${index + 1}`,
+            summary: readString(section, 'summary') ?? '',
+        }))
+        .filter((section) => hasText(section.summary))
+}
+
+function formatBytes(bytes?: number) {
+    if (bytes === undefined) {
+        return 'N/A'
+    }
+    if (bytes === 0) {
+        return '0 B'
+    }
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
+    let num = bytes
+    while (num >= 1024 && i < units.length - 1) {
+        num /= 1024
+        i++
+    }
+    return `${num >= 10 ? Math.round(num) : num.toFixed(2)} ${units[i]}`
+}
+
+function downloadFileFromBase64(
+    filename: string,
+    base64: string,
+    mime = 'application/octet-stream'
+) {
+    try {
+        const byteCharacters = atob(base64)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: mime })
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = filename
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(url)
+    } catch {
+        // ignore
+    }
+}
+
+function createHtmlPreviewUrl(html?: string) {
+    if (!hasText(html)) {
+        return undefined
+    }
+
+    return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+}
+
+function openInNewTab(url?: string) {
+    if (!hasText(url)) {
+        return
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 function ErrorCard({ title, message }: { title: string; message: string }) {
-  return (
-    <Card className="border-destructive/50">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <AlertCircle className="size-4 text-destructive" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-destructive">{message}</div>
-      </CardContent>
-    </Card>
-  )
+    return (
+        <Card className="border-destructive/50">
+            <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                    <AlertCircle className="size-4 text-destructive" />
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-sm text-destructive">{message}</div>
+            </CardContent>
+        </Card>
+    )
 }
 
-function LoadingCard({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          {icon}
-          {title}
-        </CardTitle>
-      </CardHeader>
-      {subtitle && (
-        <CardContent>
-          <div className="text-sm text-muted-foreground">{subtitle}</div>
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
-/* Screenshot tool UI */
-interface ScreenshotCardProps {
-  toolCallId: string
-  input: ScreenshotUITool['input']
-  output?: ScreenshotUITool['output']
-  errorText?: string
-}
-
-export function ScreenshotCard({ input, output, errorText }: ScreenshotCardProps) {
-  const [copied, setCopied] = useState(false)
-
-  if (errorText) {return <ErrorCard title="Screenshot Failed" message={errorText} />}
-  if (!output) {
-    return <LoadingCard title={`Taking screenshot of ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  }
-  if ('error' in (output as any)) {
-    return <ErrorCard title="Screenshot Failed" message={(output as any).error ?? 'Unknown error'} />
-  }
-
-  const base64 = ((output as any).screenshot as string) ?? ''
-  const dataUrl = `data:image/png;base64,${base64}`
-
-  const copyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(dataUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // ignore
-    }
-  }
-
-  const download = () => downloadFileFromBase64('screenshot.png', base64, 'image/png')
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3 flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <ImageIcon className="size-4 text-primary" />
-            Screenshot
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
-              {(output as any).success ? 'Success' : 'Done'}
-            </Badge>
-            <Button size="sm" variant="ghost" onClick={copyUrl}>
-              <Clipboard className="size-4 mr-2" />
-              {copied ? 'Copied' : 'Copy Data URL'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={download}>
-              <Download className="size-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {base64 ? (
-            <div className="flex flex-col gap-3">
-              <img src={dataUrl} alt={`screenshot-${(input as any).url}`} className="rounded border max-h-[400px] object-contain w-full" />
-              <div className="text-xs text-muted-foreground">Content length: {base64.length} chars</div>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">No screenshot data</div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-/* PDF generator UI */
-interface PdfGeneratorCardProps {
-  toolCallId: string
-  input: PdfGeneratorUITool['input']
-  output?: PdfGeneratorUITool['output']
-  errorText?: string
-}
-
-export function PdfGeneratorCard({ input, output, errorText }: PdfGeneratorCardProps) {
-  if (errorText) {return <ErrorCard title="PDF Generation Failed" message={errorText} />}
-  if (!output) {
-    return <LoadingCard title={`Generating PDF from ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />
-  }
-  if ('error' in (output as any)) {
-    return <ErrorCard title="PDF Generation Failed" message={(output as any).error ?? 'Unknown error'} />
-  }
-
-  const base64 = ((output as any).pdf as string) ?? ''
-  const downloadPdf = () => downloadFileFromBase64('page.pdf', base64, 'application/pdf')
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <FileText className="size-4 text-primary" />
-          PDF Generated
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            {(output as any).success ? 'Success' : 'Ready'}
-          </Badge>
-          {base64 && (
-            <Button size="sm" variant="ghost" onClick={downloadPdf}>
-              <Download className="size-4" />
-            </Button>
-          )}
-          {(output as any).message && (
-            <Badge variant="outline" className="text-xs">
-              {(output as any).message}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {base64 ? (
-          <div className="space-y-3">
-            <a href={`data:application/pdf;base64,${base64}`} target="_blank" rel="noreferrer noopener" className="text-sm text-blue-600 hover:underline inline-flex items-center gap-2">
-              <ExternalLink className="size-4" />
-              View PDF
-            </a>
-            <div className="text-xs text-muted-foreground">Size: {formatBytes((base64.length * 3) / 4)}</div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">No PDF content</div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/* Browser summary (generic) */
-interface BrowserToolCardProps {
-  toolCallId: string
-  input: BrowserUITool['input']
-  output?: BrowserUITool['output']
-  errorText?: string
-}
-
-export function BrowserToolCard({ input, output, errorText }: BrowserToolCardProps) {
-  if (errorText) {return <ErrorCard title="Browser Tool Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Browsing ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
-  if (output && typeof output === 'object' && 'error' in output) {
-    return <ErrorCard title="Browser Tool Failed" message={(output as any).error ?? 'Unknown error'} />
-  }
-
-  const contentLength = (output as any).contentLength ?? (output as any).message?.length
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Globe className="size-4 text-primary" />
-          Browser Result
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{formatBytes(contentLength)}</Badge>
-          {output && (output as any).message && <Badge variant="outline" className="text-xs">message</Badge>}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm space-y-2">
-          {((output as any).sections && Array.isArray((output as any).sections)) ? (
-            <div>
-              <div className="text-xs text-muted-foreground">Sections:</div>
-              <ScrollArea className="h-36">
-                <div className="space-y-2">
-                  {((output as any).sections as any[]).map((s, i) => (
-                    <div key={i} className="p-2 border rounded text-sm">
-                      <div className="font-medium">{s.title ?? `Section ${i + 1}`}</div>
-                      {s.summary && <div className="text-xs text-muted-foreground">{s.summary}</div>}
+function LoadingCard({ title, subtitle }: { title: string; subtitle?: string }) {
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                    <Loader2 className="size-4 animate-spin" />
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            {hasText(subtitle) ? (
+                <CardContent>
+                    <div className="text-sm text-muted-foreground">
+                        {subtitle}
                     </div>
-                  ))}
+                </CardContent>
+            ) : null}
+        </Card>
+    )
+}
+
+function UrlMeta({
+    sourceUrl,
+    finalUrl,
+}: {
+    sourceUrl?: string
+    finalUrl?: string
+}) {
+    const showSourceUrl = hasText(sourceUrl)
+    const showFinalUrl = hasText(finalUrl) && finalUrl !== sourceUrl
+
+    if (!showSourceUrl && !showFinalUrl) {
+        return null
+    }
+
+    return (
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            {showSourceUrl ? (
+                <span className="rounded bg-muted px-2 py-1">
+                    Source: {sourceUrl}
+                </span>
+            ) : null}
+            {showFinalUrl ? (
+                <span className="rounded bg-muted px-2 py-1">
+                    Final: {finalUrl}
+                </span>
+            ) : null}
+        </div>
+    )
+}
+
+function InlinePreview({ src }: { src?: string }) {
+    if (!hasText(src)) {
+        return null
+    }
+
+    return (
+        <div className="overflow-hidden rounded-md border">
+            <WebPreview defaultUrl={src} className="h-80 rounded-none border-0">
+                <WebPreviewNavigation className="gap-2 px-2 py-2">
+                    <Globe className="size-4 text-muted-foreground" />
+                    <WebPreviewUrl readOnly />
+                </WebPreviewNavigation>
+                <div className="min-h-0 flex-1">
+                    <WebPreviewBody className="h-full w-full" />
                 </div>
-              </ScrollArea>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">{(output as any).message ?? 'No readable content'}</div>
-          )}
+            </WebPreview>
         </div>
-      </CardContent>
-    </Card>
-  )
+    )
 }
 
-/* Click & Extract */
-interface ClickAndExtractCardProps {
-  toolCallId: string
-  input: ClickAndExtractUITool['input']
-  output?: ClickAndExtractUITool['output']
-  errorText?: string
-}
+export function ScreenshotCard({
+    input,
+    output,
+    errorText,
+}: CardProps<UrlInput>) {
+    const [copied, setCopied] = useState(false)
 
-export function ClickAndExtractCard({ input, output, errorText }: ClickAndExtractCardProps) {
-  if (errorText) {return <ErrorCard title="Click & Extract Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Clicking ${(input as any).clickSelector} on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
-  if (output && typeof output === 'object' && 'error' in output) {return <ErrorCard title="Click & Extract Failed" message={(output as any).error ?? 'Unknown error'} />}
+    if (hasText(errorText)) {
+        return <ErrorCard title="Screenshot Failed" message={errorText} />
+    }
 
-  const content = (output as any).content ?? (output as any).message ?? ''
+    if (!isRecord(output)) {
+        return <LoadingCard title={`Taking screenshot of ${input.url}...`} />
+    }
 
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <FileText className="size-4 text-primary" />
-          Extracted Content
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{(output as any).contentLength ?? content.length} chars</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {content ? (
-          <CodeBlock code={content} language="html">
-            <CodeBlockCopyButton />
-            <Button size="icon" variant="ghost" onClick={() => {
-              const bytes = new TextEncoder().encode(content)
-              const binaryString = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
-              const base64 = btoa(binaryString)
-              downloadFileFromBase64('extracted.html', base64, 'text/html')
-            }}>
-              <Download className="size-4" />
-            </Button>
-          </CodeBlock>
-        ) : (
-          <div className="text-sm text-muted-foreground">No content</div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
+    const base64 = readString(output, 'screenshot') ?? ''
+    const mediaType = readString(output, 'mediaType') ?? 'image/png'
+    const finalUrl = readString(output, 'finalUrl')
+    const outputUrl = readString(output, 'url') ?? input.url
+    const width = readNumber(output, 'width')
+    const height = readNumber(output, 'height')
+    const success = readBoolean(output, 'success') === true
+    const hasScreenshot = base64.length > 0
+    const dataUrl = hasScreenshot
+        ? `data:${mediaType};base64,${base64}`
+        : undefined
 
-/* Fill Form */
-interface FillFormCardProps {
-  toolCallId: string
-  input: FillFormUITool['input']
-  output?: FillFormUITool['output']
-  errorText?: string
-}
+    const copyUrl = () => {
+        if (!hasText(dataUrl)) {
+            return
+        }
 
-export function FillFormCard({ input, output, errorText }: FillFormCardProps) {
-  if (errorText) {return <ErrorCard title="Fill Form Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Filling form on ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
-  if ('error' in (output as any)) {return <ErrorCard title="Fill Form Failed" message={(output as any).error ?? 'Unknown error'} />}
+        void navigator.clipboard.writeText(dataUrl).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1500)
+        })
+    }
 
-  const finalUrl = (output as any).finalUrl ?? (output as any).message
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <CheckCircle className="size-4 text-primary" />
-          Fill Form
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{(output as any).success ? 'Success' : 'Result'}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {finalUrl ? (
-          <div className="text-sm">
-            <a href={String(finalUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
-              <ExternalLink className="size-4" />
-              {String(finalUrl)}
-            </a>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">{(output as any).message ?? 'No result available'}</div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/* Google Search */
-interface GoogleSearchCardProps {
-  toolCallId: string
-  input: GoogleSearchUITool['input']
-  output?: GoogleSearchUITool['output']
-  errorText?: string
-}
-
-export function GoogleSearchCard({ input, output, errorText }: GoogleSearchCardProps) {
-  const [query, setQuery] = useState('')
-  if (errorText) {return <ErrorCard title="Search Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Searching for ${(input as any).query}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
-  if (output && typeof output === 'object' && 'error' in output) {return <ErrorCard title="Search Failed" message={(output as any).error ?? 'Unknown error'} />}
-
-  // Some tools put results in different fields; try common ones
-  const results = (output as any).organic_results || (output as any).results || (output as any).data || []
-
-  const filtered = query ? results.filter((r: any) => JSON.stringify(r).toLowerCase().includes(query.toLowerCase())) : results
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Search className="size-4 text-primary" />
-          Search Results
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{(results?.length ?? 0)} results</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2 mb-3">
-          <Input value={query} onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="Filter results..." className="w-56 text-sm" />
-          <Button size="sm" variant="ghost" onClick={() => setQuery('')}>Clear</Button>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No results</div>
-        ) : (
-          <ScrollArea className="h-[300px] pr-4">
-            <div className="space-y-3">
-              {filtered.map((r: any, idx: number) => (
-                <div key={idx} className="p-3 border rounded hover:bg-muted/30">
-                  <div className="text-sm font-medium text-blue-600">{r.title ?? r.title}</div>
-                  <div className="text-xs text-muted-foreground truncate">{r.link ?? r.url ?? r.displayed_link}</div>
-                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.snippet ?? r.description ?? r.snippet}</div>
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <ImageIcon className="size-4 text-primary" />
+                        Screenshot
+                    </CardTitle>
+                    <UrlMeta sourceUrl={outputUrl} finalUrl={finalUrl} />
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        )}
-      </CardContent>
-    </Card>
-  )
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={success ? 'secondary' : 'destructive'}>
+                        {success ? 'Success' : 'Error'}
+                    </Badge>
+                    <Button size="sm" variant="ghost" onClick={copyUrl}>
+                        <Clipboard className="mr-2 size-4" />
+                        {copied ? 'Copied' : 'Copy Data URL'}
+                    </Button>
+                    {hasScreenshot ? (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                                downloadFileFromBase64(
+                                    'screenshot.png',
+                                    base64,
+                                    mediaType
+                                )
+                            }
+                        >
+                            <Download className="size-4" />
+                        </Button>
+                    ) : null}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {hasScreenshot ? (
+                    <>
+                        <AIImage
+                            alt={`screenshot-${input.url}`}
+                            base64={base64}
+                            mediaType={mediaType}
+                            uint8Array={new Uint8Array()}
+                            className="max-h-100 w-full border object-contain"
+                        />
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <span>Content length: {base64.length} chars</span>
+                            {width !== undefined && height !== undefined ? (
+                                <span>
+                                    Viewport: {width}×{height}
+                                </span>
+                            ) : null}
+                        </div>
+                    </>
+                ) : (
+                    <div className="text-sm text-muted-foreground">
+                        No screenshot data
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    )
 }
 
-/* Monitor Page Card (basic) */
-interface MonitorPageCardProps {
-  toolCallId: string
-  input: MonitorPageUITool['input']
-  output?: MonitorPageUITool['output']
-  errorText?: string
+export function PdfGeneratorCard({ output, errorText }: CardProps<UrlInput>) {
+    if (hasText(errorText)) {
+        return <ErrorCard title="PDF Generation Failed" message={errorText} />
+    }
+
+    if (!isRecord(output)) {
+        return <LoadingCard title="Generating PDF..." />
+    }
+
+    const base64 = readString(output, 'pdf') ?? ''
+    const mediaType = readString(output, 'mediaType') ?? 'application/pdf'
+    const pdfUrl =
+        base64.length > 0 ? `data:${mediaType};base64,${base64}` : undefined
+    const finalUrl = readString(output, 'finalUrl')
+    const outputUrl = readString(output, 'url')
+    const byteLength = readNumber(output, 'byteLength')
+    const success = readBoolean(output, 'success') === true
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <FileText className="size-4 text-primary" />
+                        PDF Generated
+                    </CardTitle>
+                    <UrlMeta sourceUrl={outputUrl} finalUrl={finalUrl} />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge variant={success ? 'secondary' : 'destructive'}>
+                        {success ? 'Success' : 'Error'}
+                    </Badge>
+                    {base64.length > 0 ? (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                                downloadFileFromBase64('page.pdf', base64, mediaType)
+                            }
+                        >
+                            <Download className="size-4" />
+                        </Button>
+                    ) : null}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {hasText(pdfUrl) ? (
+                    <>
+                        <Button
+                            variant="outline"
+                            className="inline-flex"
+                            onClick={() => openInNewTab(pdfUrl)}
+                        >
+                            <ExternalLink className="mr-2 size-4" />
+                            View PDF
+                        </Button>
+                        <div className="text-xs text-muted-foreground">
+                            Size: {formatBytes(byteLength)}
+                        </div>
+                    </>
+                ) : (
+                    <div className="text-sm text-muted-foreground">
+                        No PDF content
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    )
 }
 
-export function MonitorPageCard({ input, output, errorText }: MonitorPageCardProps) {
-  if (errorText) {return <ErrorCard title="Monitor Page Failed" message={errorText} />}
-  if (!output) {return <LoadingCard title={`Monitoring ${(input as any).url}...`} icon={<Loader2 className="size-4 animate-spin" />} />}
-  if ('error' in (output as any)) {return <ErrorCard title="Monitor Page Failed" message={(output as any).error ?? 'Unknown error'} />}
+export function BrowserToolCard({
+    input,
+    output,
+    errorText,
+}: CardProps<UrlInput>) {
+    if (hasText(errorText)) {
+        return <ErrorCard title="Browser Tool Failed" message={errorText} />
+    }
 
-  const hasChanged = Boolean((output as any).changed)
+    if (!isRecord(output)) {
+        return <LoadingCard title={`Browsing ${input.url}...`} />
+    }
 
-  return (
-    <Card>
-      <CardHeader className="pb-3 flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Globe className="size-4 text-primary" />
-          Monitor Page
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className={`text-xs ${hasChanged ? 'text-destructive' : 'text-green-700'}`}>
-            {hasChanged ? 'Changed' : 'No Change'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground">
-          {hasChanged ? 'Page changed. Check the latest diffs or logs.' : 'Page is stable.'}
-        </div>
-      </CardContent>
-    </Card>
-  )
+    const previewUrl =
+        readString(output, 'previewUrl') ??
+        createHtmlPreviewUrl(readString(output, 'html'))
+    const outputUrl = readString(output, 'url') ?? input.url
+    const finalUrl = readString(output, 'finalUrl')
+    const title = readString(output, 'title')
+    const contentLength = readNumber(output, 'contentLength')
+    const success = readBoolean(output, 'success') === true
+    const sections = readSections(output)
+    const message = readString(output, 'message') ?? 'No readable content'
+    const displayTitle = hasText(title) ? title : 'Browser Result'
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div className="space-y-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <Globe className="size-4 text-primary" />
+                        {displayTitle}
+                    </CardTitle>
+                    <UrlMeta sourceUrl={outputUrl} finalUrl={finalUrl} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={success ? 'secondary' : 'destructive'}>
+                        {success ? 'Loaded' : 'Error'}
+                    </Badge>
+                    {contentLength !== undefined ? (
+                        <Badge variant="outline">{formatBytes(contentLength)}</Badge>
+                    ) : null}
+                    {hasText(previewUrl) ? (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openInNewTab(previewUrl)}
+                        >
+                            <ExternalLink className="size-4" />
+                        </Button>
+                    ) : null}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <InlinePreview src={previewUrl} />
+                {sections.length > 0 ? (
+                    <div className="space-y-2">
+                        <div className="text-xs font-medium uppercase text-muted-foreground">
+                            Extracted sections
+                        </div>
+                        <div className="grid gap-2">
+                            {sections.map((section, index) => (
+                                <div
+                                    key={`${section.title}-${index}`}
+                                    className="rounded-md border p-3 text-sm"
+                                >
+                                    <div className="font-medium">{section.title}</div>
+                                    <div className="mt-1 text-muted-foreground">
+                                        {section.summary}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-sm text-muted-foreground">{message}</div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+export function ClickAndExtractCard({
+    input,
+    output,
+    errorText,
+}: CardProps<ClickAndExtractInput>) {
+    if (hasText(errorText)) {
+        return <ErrorCard title="Click & Extract Failed" message={errorText} />
+    }
+
+    if (!isRecord(output)) {
+        return (
+            <LoadingCard
+                title={`Clicking ${input.clickSelector ?? 'target'} on ${input.url}...`}
+            />
+        )
+    }
+
+    const previewUrl =
+        readString(output, 'previewUrl') ??
+        createHtmlPreviewUrl(readString(output, 'html'))
+    const sourceUrl = readString(output, 'sourceUrl') ?? input.url
+    const finalUrl = readString(output, 'finalUrl')
+    const success = readBoolean(output, 'success') === true
+    const content =
+        readString(output, 'content') ?? readString(output, 'message') ?? ''
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <FileText className="size-4 text-primary" />
+                        Extracted Content
+                    </CardTitle>
+                    <UrlMeta sourceUrl={sourceUrl} finalUrl={finalUrl} />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Badge variant={success ? 'secondary' : 'destructive'}>
+                        {success ? 'Success' : 'Error'}
+                    </Badge>
+                    {hasText(previewUrl) ? (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openInNewTab(previewUrl)}
+                        >
+                            <ExternalLink className="size-4" />
+                        </Button>
+                    ) : null}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <InlinePreview src={previewUrl} />
+                {content.length > 0 ? (
+                    <CodeBlock code={content} language="html">
+                        <CodeBlockCopyButton />
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                                const bytes = new TextEncoder().encode(content)
+                                const binaryString = Array.from(bytes, (byte) =>
+                                    String.fromCharCode(byte)
+                                ).join('')
+                                const base64 = btoa(binaryString)
+                                downloadFileFromBase64(
+                                    'extracted.html',
+                                    base64,
+                                    'text/html'
+                                )
+                            }}
+                        >
+                            <Download className="size-4" />
+                        </Button>
+                    </CodeBlock>
+                ) : (
+                    <div className="text-sm text-muted-foreground">No content</div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+export function FillFormCard({
+    input,
+    output,
+    errorText,
+}: CardProps<UrlInput>) {
+    if (hasText(errorText)) {
+        return <ErrorCard title="Fill Form Failed" message={errorText} />
+    }
+
+    if (!isRecord(output)) {
+        return <LoadingCard title={`Filling form on ${input.url}...`} />
+    }
+
+    const sourceUrl = readString(output, 'sourceUrl') ?? input.url
+    const finalUrl = readString(output, 'finalUrl')
+    const previewUrl = readString(output, 'previewUrl') ?? finalUrl
+    const message = readString(output, 'message') ?? 'No result available'
+    const success = readBoolean(output, 'success') === true
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="size-4 text-primary" />
+                        Fill Form
+                    </CardTitle>
+                    <UrlMeta sourceUrl={sourceUrl} finalUrl={finalUrl} />
+                </div>
+                <Badge variant={success ? 'secondary' : 'destructive'}>
+                    {success ? 'Submitted' : 'Error'}
+                </Badge>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {hasText(previewUrl) ? (
+                    <Button
+                        variant="outline"
+                        className="inline-flex"
+                        onClick={() => openInNewTab(previewUrl)}
+                    >
+                        <ExternalLink className="mr-2 size-4" />
+                        Open result page
+                    </Button>
+                ) : (
+                    <div className="text-sm text-muted-foreground">{message}</div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+export function GoogleSearchCard({
+    input,
+    output,
+    errorText,
+}: CardProps<GoogleSearchInput>) {
+    const [query, setQuery] = useState('')
+
+    if (hasText(errorText)) {
+        return <ErrorCard title="Search Failed" message={errorText} />
+    }
+
+    if (!isRecord(output)) {
+        return <LoadingCard title={`Searching for ${input.query}...`} />
+    }
+
+    const outputQuery = readString(output, 'query') ?? input.query
+    const success = readBoolean(output, 'success') === true
+    const results = readSearchResults(output)
+    const filtered = hasText(query)
+        ? results.filter((result) =>
+              `${result.title} ${result.url} ${result.snippet ?? ''}`
+                  .toLowerCase()
+                  .includes(query.toLowerCase())
+          )
+        : results
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <Search className="size-4 text-primary" />
+                        Search Results
+                    </CardTitle>
+                    <div className="text-xs text-muted-foreground">
+                        Query: {outputQuery}
+                    </div>
+                </div>
+                <Badge variant={success ? 'secondary' : 'destructive'}>
+                    {filtered.length} results
+                </Badge>
+            </CardHeader>
+            <CardContent>
+                <div className="mb-3 flex items-center gap-2">
+                    <Input
+                        value={query}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            setQuery(e.target.value)
+                        }
+                        placeholder="Filter results..."
+                        className="w-56 text-sm"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => setQuery('')}>
+                        Clear
+                    </Button>
+                </div>
+
+                {filtered.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No results</div>
+                ) : (
+                    <ScrollArea className="h-75 pr-4">
+                        <div className="space-y-3">
+                            {filtered.map((result, idx) => (
+                                <button
+                                    type="button"
+                                    key={`${result.url}-${idx}`}
+                                    className="w-full rounded border p-3 text-left transition-colors hover:bg-muted/30"
+                                    onClick={() => openInNewTab(result.url)}
+                                >
+                                    <div className="text-sm font-medium text-blue-600">
+                                        {result.title}
+                                    </div>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                        {result.url}
+                                    </div>
+                                    {hasText(result.snippet) ? (
+                                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                            {result.snippet}
+                                        </div>
+                                    ) : null}
+                                </button>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+export function MonitorPageCard({
+    input,
+    output,
+    errorText,
+}: CardProps<UrlInput>) {
+    if (hasText(errorText)) {
+        return <ErrorCard title="Monitor Page Failed" message={errorText} />
+    }
+
+    if (!isRecord(output)) {
+        return <LoadingCard title={`Monitoring ${input.url}...`} />
+    }
+
+    const outputUrl = readString(output, 'url') ?? input.url
+    const finalUrl = readString(output, 'finalUrl')
+    const success = readBoolean(output, 'success') === true
+    const changed = readBoolean(output, 'changed') === true
+    const checkCount = readNumber(output, 'checkCount') ?? 0
+
+    return (
+        <Card>
+            <CardHeader className="flex items-center justify-between gap-3 pb-3 sm:flex-row">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                        <Globe className="size-4 text-primary" />
+                        Monitor Page
+                    </CardTitle>
+                    <UrlMeta sourceUrl={outputUrl} finalUrl={finalUrl} />
+                </div>
+                <Badge
+                    variant={changed || !success ? 'destructive' : 'secondary'}
+                    className="text-xs"
+                >
+                    {changed ? 'Changed' : success ? 'No Change' : 'Error'}
+                </Badge>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <div>
+                    {changed
+                        ? `Page changed after ${checkCount} checks.`
+                        : `Page remained stable for ${checkCount} checks.`}
+                </div>
+                {hasText(finalUrl) ? (
+                    <Button
+                        variant="outline"
+                        className="inline-flex"
+                        onClick={() => openInNewTab(finalUrl)}
+                    >
+                        <ExternalLink className="mr-2 size-4" />
+                        Open monitored page
+                    </Button>
+                ) : null}
+            </CardContent>
+        </Card>
+    )
 }

@@ -1,4 +1,4 @@
-<!-- AGENTS-META {"title":"AgentStack README","version":"1.2.1","applies_to":"/","last_updated":"2026-02-27","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"1.3.1","applies_to":"/","last_updated":"2026-03-17","status":"stable"} -->
 
 <div align="center">
 
@@ -1232,10 +1232,10 @@ export function AgentsList() {
 
 - `lib/mastra-client.ts` - MastraClient configuration for frontend
 - `lib/hooks/` - TanStack Query hooks for data fetching (15+ hooks)
-  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-  - `use-mastra.ts` - Generic fetch hook with loading/error states
+    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+    - `use-mastra.ts` - Generic fetch hook with loading/error states
 - `lib/types/` - Zod schemas and TypeScript types
-  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - `lib/utils.ts` - Shared utilities (cn, formatDate, etc.)
 - `lib/a2a.ts` - Agent-to-agent coordination utilities
 - `lib/auth.ts` - Authentication utilities
@@ -2319,10 +2319,10 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 **Shared Libraries:**
 
 - **[lib/hooks](lib/hooks/)**: TanStack Query hooks for data fetching (15+ hooks)
-  - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-  - `use-mastra.ts` - Generic fetch hook with loading/error states
+    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
+    - `use-mastra.ts` - Generic fetch hook with loading/error states
 - **[lib/types](lib/types/)**: Zod schemas and TypeScript types
-  - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
 - **[lib/](lib/)**: Client SDK, utilities, auth, A2A coordination
 
 **Core Components:**
@@ -2362,7 +2362,7 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 🐦 **Follow [@ssdeanx](https://x.com/ssdeanx)**
 📘 **[Docs](https://agentstack.ai)** (Coming Q1 2026)
 
-_Last updated: 2026-02-16 | v3.4.0_
+_Last updated: 2026-03-17 | v1.3.1_
 
 ## 🧠 **Chat**
 

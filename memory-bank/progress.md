@@ -1,3 +1,43 @@
+# 2026-03-18 landing GSAP/SVG runtime fix
+
+- Fixed a React SVG DOM-property issue in `app/components/gsap/svg-suite/animated-quantum-lattice.tsx` by removing the unsupported JSX transform-origin prop from `<g>` nodes.
+- Fixed `ReferenceError: gsap is not defined` in `app/components/network-background.tsx` by importing `gsap` explicitly.
+- Validation:
+  - ✅ targeted `get_errors` clean for `animated-quantum-lattice.tsx`, `network-background.tsx`, `landing-hero.tsx`, `landing-svg-lab.tsx`, and `app/page.tsx`
+
+# 2026-03-18 embedding model migration + PostgresStore singleton fix
+
+- Migrated the active `src/mastra/**` embedding model references from `gemini-embedding-001` to `gemini-embedding-2-preview`.
+- Reused the shared `pgStore` singleton inside `src/mastra/index.ts` instead of creating a second `new PostgresStore(...)` for the same schema.
+- This directly addresses the Mastra PG init failure caused by concurrent schema migration attempts on `mastra_dataset_items.requestContext`.
+- Cleaned touched-file diagnostics introduced/exposed during the pass:
+  - `src/mastra/index.ts`
+  - `src/mastra/config/libsql.ts`
+  - `src/mastra/config/qdrant.ts`
+  - `src/mastra/workflows/repo-ingestion-workflow.ts`
+- Validation:
+  - ✅ no remaining `gemini-embedding-001` matches under `src/**`
+  - ✅ targeted `get_errors` clean for all edited files
+
+# 2026-03-17 browser tool preview integration
+
+- Implemented the browser-first tool upgrade requested for chat rendering.
+- Backend browser-family tools now expose structured outputs for previewable resources instead of only text blobs.
+- Frontend browser-family cards were rewritten to use:
+  - `Image` for screenshots
+  - `WebPreview` for live/inline page previews
+  - guarded unknown-output parsing for resilient rendering
+- `app/chat/components/agent-tools.tsx` now directly routes browser-family tool ids (`browserTool`, `screenshotTool`, `pdfGeneratorTool`, `clickAndExtractTool`, `fillFormTool`, `googleSearch`, `monitorPageTool`) to their custom cards.
+- `web-preview.tsx` animation utility classes were normalized during the same pass.
+- Validation:
+  - ✅ `src/mastra/tools/browser-tool.ts`
+  - ✅ `src/components/ai-elements/tools/browser-tool.tsx`
+  - ✅ `app/chat/components/agent-tools.tsx`
+  - ✅ `src/components/ai-elements/tools/index.ts`
+  - ✅ `app/chat/components/chat-messages.tsx`
+  - ✅ `src/components/ai-elements/web-preview.tsx`
+  - ✅ `src/components/ai-elements/image.tsx`
+
 # 2026-03-17 codingAgents normalization
 
 - Restored `codingAgents.ts` after a bad intermediate state:

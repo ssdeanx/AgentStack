@@ -14,12 +14,12 @@ import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
 const LANCE_CONFIG = {
     dbPath: process.env.LANCE_DB_PATH ?? '/tmp/lance_db',
     tableName: process.env.LANCE_TABLE_NAME ?? 'mastra_vectors',
-    // Google Gemini gemini-embedding-001 supports flexible dimensions: 128-3072
+    // Google Gemini gemini-embedding-2-preview supports flexible dimensions: 128-3072
     // Recommended: 768, 1536, 3072
     embeddingDimension: parseInt(
         process.env.LANCE_EMBEDDING_DIMENSION ?? '3072'
     ),
-    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
 } as const
 
 // LanceDB Storage configuration constants
@@ -50,7 +50,7 @@ const vectorStore = await LanceVectorStore.create('/path/to/db')
 export const lanceMemory = new Memory({
     storage: lanceStorage,
     vector: vectorStore,
-    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     options: {
         generateTitle: process.env.LANCE_THREAD_GENERATE_TITLE !== 'false',
         // Message management
@@ -223,7 +223,7 @@ export async function generateEmbeddings(
         log.info('Embeddings generated successfully', {
             textCount: texts.length,
             embeddingDimension: embeddings[0]?.length,
-            model: options.model ?? 'gemini-embedding-001',
+            model: options.model ?? 'gemini-embedding-2-preview',
         })
 
         return embeddings

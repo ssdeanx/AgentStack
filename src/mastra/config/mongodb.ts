@@ -18,12 +18,12 @@ const MONGODB_CONFIG = {
     uri: process.env.MONGODB_URI ?? 'mongodb://localhost:27017',
     dbName: process.env.MONGODB_DATABASE ?? 'AgentStack',
     collectionName: process.env.MONGODB_COLLECTION ?? 'mastra_vectors',
-    // Google Gemini gemini-embedding-001 supports flexible dimensions: 128-3072
+    // Google Gemini gemini-embedding-2-preview supports flexible dimensions: 128-3072
     // Recommended: 768, 1536, 3072
     embeddingDimension: parseInt(
         process.env.MONGODB_EMBEDDING_DIMENSION ?? '1536'
     ),
-    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    embeddingModel: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
 } as const
 
 /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
@@ -66,8 +66,8 @@ await mongoVector.createIndex({
  */
 export const mongoMemory = new Memory({
     storage: mongoStore,
-    vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
-    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     options: {
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
@@ -216,7 +216,7 @@ export async function processDocument(
             contentLength: content.length,
             chunkSize,
             chunkOverlap,
-            model: 'gemini-embedding-001',
+            model: 'gemini-embedding-2-preview',
             component: 'mongodb',
             operationType: 'document-processing',
         },
@@ -263,7 +263,7 @@ export async function processDocument(
         span?.setAttribute('embeddingDimension', embeddings[0]?.length || 0)
         span?.setAttribute('processingTimeMs', processingTime)
         span?.setAttribute('success', true)
-        span?.setAttribute('model', 'gemini-embedding-001')
+        span?.setAttribute('model', 'gemini-embedding-2-preview')
         span?.setAttribute('operation', 'document-processing')
         span?.end()
 
@@ -279,7 +279,7 @@ export async function processDocument(
             error instanceof Error ? error : new Error(String(error))
         )
         span?.setAttribute('processingTimeMs', processingTime)
-        span?.setAttribute('model', 'gemini-embedding-001')
+        span?.setAttribute('model', 'gemini-embedding-2-preview')
         span?.setAttribute('operation', 'document-processing')
         span?.setStatus({
             code: SpanStatusCode.ERROR,
@@ -399,7 +399,7 @@ export async function querySimilarDocuments(
             collectionName: MONGODB_CONFIG.collectionName,
             component: 'mongodb',
             operationType: 'vector-query',
-            model: 'gemini-embedding-001',
+            model: 'gemini-embedding-2-preview',
         },
     })
 
@@ -432,7 +432,7 @@ export async function querySimilarDocuments(
         span?.setAttribute('resultsCount', results.length)
         span?.setAttribute('processingTimeMs', processingTime)
         span?.setAttribute('success', true)
-        span?.setAttribute('model', 'gemini-embedding-001')
+        span?.setAttribute('model', 'gemini-embedding-2-preview')
         span?.setAttribute('operation', 'vector-query')
         span?.end()
 
@@ -452,7 +452,7 @@ export async function querySimilarDocuments(
             error instanceof Error ? error : new Error(String(error))
         )
         span?.setAttribute('processingTimeMs', processingTime)
-        span?.setAttribute('model', 'gemini-embedding-001')
+        span?.setAttribute('model', 'gemini-embedding-2-preview')
         span?.setAttribute('operation', 'vector-query')
         span?.setStatus({
             code: SpanStatusCode.ERROR,

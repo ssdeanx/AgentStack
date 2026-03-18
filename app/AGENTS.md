@@ -64,6 +64,10 @@ From `components.json`:
 
 ## Recent Updates
 
+- 2026-03-18: Landing motion/runtime fix:
+  - `app/components/network-background.tsx` must import `gsap` explicitly before calling it inside `useGSAP` callbacks.
+  - For SVG groups in React/Next (`<g>`), avoid JSX props like `transform-origin` / `transformOrigin`; prefer GSAP runtime `transformOrigin` settings or `style` when needed.
+
 - 2026-02-16: Public subpages upgraded for premium consistency:
   - Migrated major subpage content components to shared `PublicPageHero` with GSAP SVG accents (`blog`, `changelog`, `examples`, `api-reference`, `pricing`, `contact`).
   - Added focus-visible accessibility polish and explicit empty-state handling for list/search-heavy pages.

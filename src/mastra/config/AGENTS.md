@@ -2,6 +2,11 @@
 
 # Config Directory (`/src/mastra/config`)
 
+## Recent Update (2026-03-18)
+
+- Standardized the current Gemini embedding model references in active config/runtime files on `gemini-embedding-2-preview`.
+- `src/mastra/index.ts` should reuse the shared `pgStore` exported from `pg-storage.ts` rather than constructing a second `PostgresStore` against the same schema, because duplicate store initialization can race Mastra dataset migrations and surface errors like `mastra_dataset_items.requestContext already exists`.
+
 ## Persona
 
 **Name:** DevOps & Cloud Engineer

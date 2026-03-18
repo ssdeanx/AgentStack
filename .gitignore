@@ -180,3 +180,6 @@ src/mastra/tracing.ts
 src/mastra/public/storage/key_value_stores/default/SDK_CRAWLER_STATISTICS_0.json
 src/mastra/public/storage/key_value_stores/default/SDK_SESSION_POOL_STATE.json
 src/mastra/public/workspace/workspace/iran-war-report.md
+.env.local.bak
+thoughts/ledgers/CONTINUITY_ses_303c.md
+thoughts/ledgers/CONTINUITY_ses_303d.md

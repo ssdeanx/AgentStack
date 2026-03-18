@@ -19,6 +19,136 @@ export interface BrowserRequestContext extends RequestContext {
 // Browser instance cache for reuse
 let browserInstance: Browser | null = null
 
+const waitUntilSchema = z.enum([
+    'commit',
+    'domcontentloaded',
+    'load',
+    'networkidle',
+])
+
+const browserPageOptionsSchema = z.object({
+    width: z.number().int().positive().default(1280),
+    height: z.number().int().positive().default(720),
+    waitUntil: waitUntilSchema.default('domcontentloaded'),
+    timeout: z.number().int().nonnegative().default(30000),
+})
+
+const sectionSummarySchema = z.object({
+    title: z.string(),
+    summary: z.string(),
+})
+
+const browserToolOutputSchema = z.object({
+    success: z.boolean(),
+    url: z.string(),
+    finalUrl: z.string().optional(),
+    previewUrl: z.string().optional(),
+    title: z.string().optional(),
+    text: z.string().optional(),
+    html: z.string().optional(),
+    sections: z.array(sectionSummarySchema).optional(),
+    contentLength: z.number().optional(),
+    message: z.string(),
+})
+
+const screenshotToolOutputSchema = z.object({
+    success: z.boolean(),
+    url: z.string(),
+    finalUrl: z.string().optional(),
+    title: z.string().optional(),
+    screenshot: z.string().optional(),
+    mediaType: z.string().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    message: z.string().optional(),
+})
+
+const pdfToolOutputSchema = z.object({
+    success: z.boolean(),
+    url: z.string(),
+    finalUrl: z.string().optional(),
+    title: z.string().optional(),
+    pdf: z.string().optional(),
+    mediaType: z.string().optional(),
+    byteLength: z.number().optional(),
+    message: z.string().optional(),
+})
+
+const clickAndExtractOutputSchema = z.object({
+    success: z.boolean(),
+    sourceUrl: z.string(),
+    finalUrl: z.string().optional(),
+    previewUrl: z.string().optional(),
+    extractedSelector: z.string().optional(),
+    content: z.string().optional(),
+    html: z.string().optional(),
+    contentLength: z.number().optional(),
+    message: z.string().optional(),
+})
+
+const fillFormOutputSchema = z.object({
+    success: z.boolean(),
+    sourceUrl: z.string(),
+    finalUrl: z.string().optional(),
+    previewUrl: z.string().optional(),
+    submitted: z.boolean().optional(),
+    message: z.string().optional(),
+})
+
+const googleSearchResultSchema = z.object({
+    title: z.string(),
+    url: z.string(),
+    snippet: z.string().optional(),
+})
+
+const googleSearchOutputSchema = z.object({
+    success: z.boolean(),
+    query: z.string(),
+    results: z.array(googleSearchResultSchema),
+    message: z.string(),
+})
+
+const monitorPageOutputSchema = z.object({
+    success: z.boolean(),
+    url: z.string(),
+    finalUrl: z.string().optional(),
+    changed: z.boolean(),
+    previousContent: z.string().optional(),
+    currentContent: z.string().optional(),
+    checkCount: z.number(),
+    message: z.string().optional(),
+})
+
+interface BrowserPageOptions {
+    width?: number
+    height?: number
+    waitUntil?: z.infer<typeof waitUntilSchema>
+    timeout?: number
+}
+
+function buildSectionSummaries(chunks: string[]): Array<z.infer<typeof sectionSummarySchema>> {
+    return chunks
+        .map((chunk) => chunk.trim())
+        .filter((chunk) => chunk.length > 0)
+        .slice(0, 6)
+        .map((chunk, index) => ({
+            title: `Section ${index + 1}`,
+            summary: chunk.slice(0, 280),
+        }))
+}
+
+async function createConfiguredPage(
+    browser: Browser,
+    options: BrowserPageOptions
+) {
+    const page = await browser.newPage()
+    await page.setViewportSize({
+        width: options.width ?? 1280,
+        height: options.height ?? 720,
+    })
+    return page
+}
+
 async function getBrowser(): Promise<Browser> {
     if (!(browserInstance?.isConnected() ?? false)) {
         if (browserInstance) {
@@ -38,33 +168,35 @@ export const browserTool = createTool({
         'Browser Tool, opens a browser and navigates to a url capturing the content',
     inputSchema: z.object({
         url: z.string(),
+        ...browserPageOptionsSchema.shape,
     }),
-    outputSchema: z.object({
-        message: z.string(),
-    }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    outputSchema: browserToolOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Browser tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
             abortSignal: abortSignal?.aborted,
+            experimental_context,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Browser tool received input chunk', {
             toolCallId,
             inputTextDelta,
             abortSignal: abortSignal?.aborted,
             messageCount: messages.length,
+            experimental_context,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal, experimental_context }) => {
         log.info('Browser tool received input', {
             toolCallId,
             messageCount: messages.length,
             url: input.url,
             abortSignal: abortSignal?.aborted,
+            experimental_context,
             hook: 'onInputAvailable',
         })
     },
@@ -110,11 +242,20 @@ export const browserTool = createTool({
             }
 
             const browser = await getBrowser()
-            const page = await browser.newPage()
+            const page = await createConfiguredPage(browser, {
+                width: inputData.width ?? 1280,
+                height: inputData.height ?? 720,
+                waitUntil: inputData.waitUntil ?? 'domcontentloaded',
+                timeout: inputData.timeout ?? 30000,
+            })
 
-            await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
+            await page.goto(inputData.url, {
+                waitUntil: inputData.waitUntil,
+                timeout: inputData.timeout,
+            })
 
-            const docs = MDocument.fromHTML(await page.content())
+            const html = await page.content()
+            const docs = MDocument.fromHTML(html)
 
             await docs.chunk({
                 strategy: 'html',
@@ -130,6 +271,8 @@ export const browserTool = createTool({
                 ],
             })
 
+            const finalUrl = page.url()
+            const title = await page.title().catch(() => '')
             await page.close()
 
             if (!docs.getText().length) {
@@ -138,17 +281,27 @@ export const browserTool = createTool({
                     data: { message: '⚠️ No content found' },
                 })
                 span?.update({
-                    output: { message: 'No content' },
+                    output: { message: 'No content', url: inputData.url },
                     metadata: {
                         'tool.output.success': false,
                         'tool.output.reason': 'No content',
                     },
                 })
                 span?.end()
-                return { message: 'No content' }
+                return {
+                    success: false,
+                    url: inputData.url,
+                    finalUrl,
+                    previewUrl: finalUrl,
+                    title,
+                    html,
+                    message: 'No content',
+                }
             }
 
-            const result = docs.getText().join('\n')
+            const textChunks = docs.getText()
+            const result = textChunks.join('\n').trim()
+            const sections = buildSectionSummaries(textChunks)
             await context?.writer?.custom({
                 type: 'data-tool-progress',
                 data: { message: '✅ Content extracted successfully' },
@@ -161,7 +314,18 @@ export const browserTool = createTool({
                 },
             })
             span?.end()
-            return { message: result }
+            return {
+                success: true,
+                url: inputData.url,
+                finalUrl,
+                previewUrl: finalUrl,
+                title,
+                text: result,
+                html,
+                sections,
+                contentLength: result.length,
+                message: result,
+            }
         } catch (e) {
             // Handle AbortError specifically
             if (e instanceof Error && e.name === 'AbortError') {
@@ -185,7 +349,11 @@ export const browserTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                return { message: `Error: ${cancelMessage}` }
+                return {
+                    success: false,
+                    url: inputData.url,
+                    message: `Error: ${cancelMessage}`,
+                }
             }
 
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
@@ -194,13 +362,15 @@ export const browserTool = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { message: `Error: ${errorMsg}` }
+            return {
+                success: false,
+                url: inputData.url,
+                message: `Error: ${errorMsg}`,
+            }
         }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const isSuccess =
-            !output.message.includes('Error:') &&
-            !output.message.includes('Failed')
+        const isSuccess = output.success
         log[isSuccess ? 'info' : 'warn']('Browser tool completed', {
             toolCallId,
             toolName,
@@ -225,12 +395,10 @@ export const screenshotTool = createTool({
             .describe('Capture full page or viewport only'),
         width: z.number().optional().default(1280).describe('Viewport width'),
         height: z.number().optional().default(720).describe('Viewport height'),
+        waitUntil: waitUntilSchema.optional().default('load'),
+        timeout: z.number().int().nonnegative().optional().default(30000),
     }),
-    outputSchema: z.object({
-        success: z.boolean(),
-        screenshot: z.string().optional(),
-        message: z.string().optional(),
-    }),
+    outputSchema: screenshotToolOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -264,18 +432,24 @@ export const screenshotTool = createTool({
                 throw new Error('Screenshot operation cancelled')
             }
             const browser = await getBrowser()
-            const page = await browser.newPage()
-            await page.setViewportSize({
+            const page = await createConfiguredPage(browser, {
                 width: inputData.width ?? 1280,
                 height: inputData.height ?? 720,
+                waitUntil: inputData.waitUntil ?? 'load',
+                timeout: inputData.timeout ?? 30000,
             })
-            await page.goto(inputData.url, { waitUntil: 'networkidle' })
+            await page.goto(inputData.url, {
+                waitUntil: inputData.waitUntil ?? 'load',
+                timeout: inputData.timeout ?? 30000,
+            })
 
             const screenshot = await page.screenshot({
                 fullPage: inputData.fullPage ?? false,
                 type: 'png',
             })
 
+            const finalUrl = page.url()
+            const title = await page.title().catch(() => '')
             await page.close()
 
             const base64 = screenshot.toString('base64')
@@ -292,7 +466,17 @@ export const screenshotTool = createTool({
             })
             span?.end()
 
-            return { success: true, screenshot: base64 }
+            return {
+                success: true,
+                url: inputData.url,
+                finalUrl,
+                title,
+                screenshot: base64,
+                mediaType: 'image/png',
+                width: inputData.width ?? 1280,
+                height: inputData.height ?? 720,
+                message: 'Screenshot captured',
+            }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Screenshot failed: ${errorMsg}`)
@@ -300,7 +484,7 @@ export const screenshotTool = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { success: false, message: errorMsg }
+            return { success: false, url: inputData.url, message: errorMsg }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -348,12 +532,10 @@ export const pdfGeneratorTool = createTool({
         format: z.enum(['A4', 'Letter', 'Legal']).optional().default('A4'),
         landscape: z.boolean().optional().default(false),
         printBackground: z.boolean().optional().default(true),
+        waitUntil: waitUntilSchema.optional().default('load'),
+        timeout: z.number().int().nonnegative().optional().default(30000),
     }),
-    outputSchema: z.object({
-        success: z.boolean(),
-        pdf: z.string().optional(),
-        message: z.string().optional(),
-    }),
+    outputSchema: pdfToolOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -388,8 +570,16 @@ export const pdfGeneratorTool = createTool({
                 throw new Error('PDF generation operation cancelled')
             }
             const browser = await getBrowser()
-            const page = await browser.newPage()
-            await page.goto(inputData.url, { waitUntil: 'networkidle' })
+            const page = await createConfiguredPage(browser, {
+                width: 1280,
+                height: 720,
+                waitUntil: inputData.waitUntil ?? 'load',
+                timeout: inputData.timeout ?? 30000,
+            })
+            await page.goto(inputData.url, {
+                waitUntil: inputData.waitUntil ?? 'load',
+                timeout: inputData.timeout ?? 30000,
+            })
 
             const pdf = await page.pdf({
                 format: inputData.format ?? 'A4',
@@ -397,6 +587,8 @@ export const pdfGeneratorTool = createTool({
                 printBackground: inputData.printBackground ?? true,
             })
 
+            const finalUrl = page.url()
+            const title = await page.title().catch(() => '')
             await page.close()
 
             const base64 = pdf.toString('base64')
@@ -413,7 +605,16 @@ export const pdfGeneratorTool = createTool({
             })
             span?.end()
 
-            return { success: true, pdf: base64 }
+            return {
+                success: true,
+                url: inputData.url,
+                finalUrl,
+                title,
+                pdf: base64,
+                mediaType: 'application/pdf',
+                byteLength: pdf.length,
+                message: 'PDF generated',
+            }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`PDF generation failed: ${errorMsg}`)
@@ -421,7 +622,7 @@ export const pdfGeneratorTool = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { success: false, message: errorMsg }
+            return { success: false, url: inputData.url, message: errorMsg }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -486,12 +687,11 @@ export const clickAndExtractTool = createTool({
             .optional()
             .default(10000)
             .describe('Timeout in milliseconds'),
+        width: z.number().int().positive().optional().default(1280),
+        height: z.number().int().positive().optional().default(720),
+        waitUntil: waitUntilSchema.optional().default('domcontentloaded'),
     }),
-    outputSchema: z.object({
-        success: z.boolean(),
-        content: z.string().optional(),
-        message: z.string().optional(),
-    }),
+    outputSchema: clickAndExtractOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -526,8 +726,16 @@ export const clickAndExtractTool = createTool({
                 throw new Error('Click and extract operation cancelled')
             }
             const browser = await getBrowser()
-            const page = await browser.newPage()
-            await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
+            const page = await createConfiguredPage(browser, {
+                width: inputData.width ?? 1280,
+                height: inputData.height ?? 720,
+                waitUntil: inputData.waitUntil ?? 'domcontentloaded',
+                timeout: inputData.timeout ?? 10000,
+            })
+            await page.goto(inputData.url, {
+                waitUntil: inputData.waitUntil ?? 'domcontentloaded',
+                timeout: inputData.timeout,
+            })
 
             if (
                 inputData.clickSelector !== undefined &&
@@ -537,7 +745,7 @@ export const clickAndExtractTool = createTool({
                     type: 'data-tool-progress',
                     data: { message: `🖱️ Clicking ${inputData.clickSelector}` },
                 })
-                await page.click(inputData.clickSelector, {
+                await page.locator(inputData.clickSelector).first().click({
                     timeout: inputData.timeout,
                 })
             }
@@ -552,16 +760,16 @@ export const clickAndExtractTool = createTool({
                         message: `⏳ Waiting for ${inputData.waitForSelector}`,
                     },
                 })
-                await page.waitForSelector(inputData.waitForSelector, {
+                await page.locator(inputData.waitForSelector).first().waitFor({
                     timeout: inputData.timeout,
                 })
             }
 
             const selector = inputData.extractSelector ?? 'body'
-            const content = await page.$eval(
-                selector,
-                (el) => el.textContent ?? ''
-            )
+            const target = page.locator(selector).first()
+            const content = ((await target.textContent()) ?? '').trim()
+            const html = await target.innerHTML().catch(() => '')
+            const finalUrl = page.url()
 
             await page.close()
 
@@ -578,7 +786,17 @@ export const clickAndExtractTool = createTool({
             })
             span?.end()
 
-            return { success: true, content: content.trim() }
+            return {
+                success: true,
+                sourceUrl: inputData.url,
+                finalUrl,
+                previewUrl: finalUrl,
+                extractedSelector: selector,
+                content,
+                html,
+                contentLength: content.length,
+                message: content,
+            }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Click and extract failed: ${errorMsg}`)
@@ -586,7 +804,11 @@ export const clickAndExtractTool = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { success: false, message: errorMsg }
+            return {
+                success: false,
+                sourceUrl: inputData.url,
+                message: errorMsg,
+            }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -650,11 +872,7 @@ export const fillFormTool = createTool({
             .describe('CSS selector for submit button'),
         waitForNavigation: z.boolean().optional().default(false),
     }),
-    outputSchema: z.object({
-        success: z.boolean(),
-        finalUrl: z.string().optional(),
-        message: z.string().optional(),
-    }),
+    outputSchema: fillFormOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -688,11 +906,16 @@ export const fillFormTool = createTool({
                 throw new Error('Fill form operation cancelled')
             }
             const browser = await getBrowser()
-            const page = await browser.newPage()
+            const page = await createConfiguredPage(browser, {
+                width: 1280,
+                height: 720,
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+            })
             await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
 
             for (const field of inputData.fields) {
-                await page.fill(field.selector, field.value)
+                await page.locator(field.selector).first().fill(field.value)
             }
 
             if (
@@ -703,13 +926,15 @@ export const fillFormTool = createTool({
                     type: 'data-tool-progress',
                     data: { message: '📤 Submitting form...' },
                 })
-                if (inputData.waitForNavigation) {
+                const shouldWaitForNavigation =
+                    inputData.waitForNavigation === true
+                if (shouldWaitForNavigation) {
                     await Promise.all([
-                        page.waitForURL(inputData.url),
-                        page.click(inputData.submitSelector),
+                        page.waitForURL((url) => url.href !== inputData.url),
+                        page.locator(inputData.submitSelector).first().click(),
                     ])
                 } else {
-                    await page.click(inputData.submitSelector)
+                    await page.locator(inputData.submitSelector).first().click()
                 }
             }
 
@@ -729,7 +954,14 @@ export const fillFormTool = createTool({
             })
             span?.end()
 
-            return { success: true, finalUrl }
+            return {
+                success: true,
+                sourceUrl: inputData.url,
+                finalUrl,
+                previewUrl: finalUrl,
+                submitted: inputData.submitSelector !== undefined,
+                message: 'Form submitted',
+            }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Form fill failed: ${errorMsg}`)
@@ -737,7 +969,11 @@ export const fillFormTool = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { success: false, message: errorMsg }
+            return {
+                success: false,
+                sourceUrl: inputData.url,
+                message: errorMsg,
+            }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -784,9 +1020,7 @@ export const googleSearch = createTool({
     inputSchema: z.object({
         query: z.string(),
     }),
-    outputSchema: z.object({
-        message: z.string(),
-    }),
+    outputSchema: googleSearchOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -841,25 +1075,29 @@ export const googleSearch = createTool({
                 // Cookie dialog didn't appear, continue
             }
 
-            await page.waitForSelector('#search')
+            await page.locator('#search').waitFor()
 
-            const text = await page.evaluate(() => {
-                const links: string[] = []
-                const searchResults = document.querySelectorAll('div.g a')
+            const results = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('div.g'))
+                    .map((result) => {
+                        const anchor = result.querySelector('a')
+                        const title =
+                            result.querySelector('h3')?.textContent?.trim() ??
+                            anchor?.textContent?.trim() ??
+                            ''
+                        const url = anchor?.getAttribute('href') ?? ''
+                        const snippet =
+                            result.querySelector('.VwiC3b, .yXK7lf, .s3v9rd')?.textContent?.trim() ??
+                            ''
 
-                searchResults.forEach((link) => {
-                    const href = link.getAttribute('href')
-                    if (href?.startsWith('http') === true) {
-                        links.push(href)
-                    }
-                })
-
-                return links
+                        return { title, url, snippet }
+                    })
+                    .filter((result) => result.url.startsWith('http'))
             })
 
             await page.close()
 
-            if (!text.length) {
+            if (!results.length) {
                 await context?.writer?.custom({
                     type: 'data-tool-progress',
                     data: { message: '⚠️ No results found' },
@@ -872,22 +1110,32 @@ export const googleSearch = createTool({
                     },
                 })
                 span?.end()
-                return { message: 'No results' }
+                return {
+                    success: false,
+                    query: inputData.query,
+                    results: [],
+                    message: 'No results',
+                }
             }
 
             await context?.writer?.custom({
                 type: 'data-tool-progress',
-                data: { message: '✅ Found ' + text.length + ' results' },
+                data: { message: '✅ Found ' + results.length + ' results' },
             })
             span?.update({
-                output: { resultCount: text.length },
+                output: { resultCount: results.length },
                 metadata: {
                     'tool.output.success': true,
-                    'tool.output.resultCount': text.length,
+                    'tool.output.resultCount': results.length,
                 },
             })
             span?.end()
-            return { message: text.join('\n') }
+            return {
+                success: true,
+                query: inputData.query,
+                results,
+                message: results.map((result) => result.url).join('\n'),
+            }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
             log.error(`Google search failed: ${errorMsg}`)
@@ -895,7 +1143,12 @@ export const googleSearch = createTool({
                 error: e instanceof Error ? e : new Error(errorMsg),
                 endSpan: true,
             })
-            return { message: `Error: ${errorMsg}` }
+            return {
+                success: false,
+                query: inputData.query,
+                results: [],
+                message: `Error: ${errorMsg}`,
+            }
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -925,9 +1178,7 @@ export const googleSearch = createTool({
         })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        const isSuccess =
-            !output.message.includes('Error:') &&
-            !output.message.includes('Failed')
+        const isSuccess = output.success
         log[isSuccess ? 'info' : 'warn']('Google search tool completed', {
             toolCallId,
             toolName,
@@ -1120,14 +1371,7 @@ export const monitorPageTool = createTool({
             .default(10)
             .describe('Maximum number of checks before stopping'),
     }),
-    outputSchema: z.object({
-        success: z.boolean(),
-        changed: z.boolean(),
-        previousContent: z.string().optional(),
-        currentContent: z.string().optional(),
-        checkCount: z.number(),
-        message: z.string().optional(),
-    }),
+    outputSchema: monitorPageOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
         const requestCtx = context?.requestContext as
@@ -1161,14 +1405,17 @@ export const monitorPageTool = createTool({
                 throw new Error('Page monitor operation cancelled')
             }
             const browser = await getBrowser()
-            const page = await browser.newPage()
+            const page = await createConfiguredPage(browser, {
+                width: 1280,
+                height: 720,
+                waitUntil: 'domcontentloaded',
+                timeout: 30000,
+            })
             const selector = inputData.selector ?? 'body'
 
             await page.goto(inputData.url, { waitUntil: 'domcontentloaded' })
-            const previousContent = await page.$eval(
-                selector,
-                (el) => el.textContent ?? ''
-            )
+            const target = page.locator(selector).first()
+            const previousContent = (await target.textContent()) ?? ''
 
             let checkCount = 0
             let changed = false
@@ -1180,10 +1427,7 @@ export const monitorPageTool = createTool({
                 )
                 await page.reload({ waitUntil: 'domcontentloaded' })
 
-                currentContent = await page.$eval(
-                    selector,
-                    (el) => el.textContent ?? ''
-                )
+                currentContent = (await target.textContent()) ?? ''
                 checkCount++
 
                 if (currentContent !== previousContent) {
@@ -1197,6 +1441,7 @@ export const monitorPageTool = createTool({
                 }
             }
 
+            const finalUrl = page.url()
             await page.close()
 
             span?.update({
@@ -1210,10 +1455,13 @@ export const monitorPageTool = createTool({
             span?.end()
             return {
                 success: true,
+                url: inputData.url,
+                finalUrl,
                 changed,
                 previousContent,
                 currentContent,
                 checkCount,
+                message: changed ? 'Page changed' : 'No changes detected',
             }
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : 'Unknown error'
@@ -1224,6 +1472,7 @@ export const monitorPageTool = createTool({
             })
             return {
                 success: false,
+                url: inputData.url,
                 changed: false,
                 checkCount: 0,
                 message: errorMsg,

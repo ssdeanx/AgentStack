@@ -88,8 +88,8 @@ const CustomDocumentChunkingInputSchema = z.object({
     chunkOverlap: z.number().min(0).max(500).default(50),
     chunkSeparator: z.string().default('\n'),
     indexName: z.string().default('memory_messages_3072'),
-    // Embedding model name for ModelRouterEmbeddingModel (e.g. 'google/gemini-embedding-001')
-    embeddingModel: z.string().default('google/gemini-embedding-001'),
+    // Embedding model name for ModelRouterEmbeddingModel (e.g. 'google/gemini-embedding-2-preview')
+    embeddingModel: z.string().default('google/gemini-embedding-2-preview'),
     // Number of texts to embed per batch
     embeddingBatchSize: z.number().min(1).max(500).default(50),
     generateEmbeddings: z.boolean().default(true),
@@ -520,7 +520,7 @@ This tool processes document content by:
 
 Features:
 - Multiple chunking strategies with customizable parameters
-- Automatic embedding generation (3072 dimensions for gemini-embedding-001)
+- Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
 - PgVector storage with metadata support
 - Comprehensive error handling and logging
 - Performance monitoring and metrics
@@ -583,7 +583,7 @@ content indexing, or semantic search capabilities.
         const chunkOverlap = inputData.chunkOverlap ?? 50
         const indexName = inputData.indexName ?? 'memory_messages_3072'
         const embeddingModel =
-            inputData.embeddingModel ?? 'google/gemini-embedding-001'
+            inputData.embeddingModel ?? 'google/gemini-embedding-2-preview'
         const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
 
         // Check if operation was already cancelled
@@ -1096,7 +1096,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             const { embedding: queryEmbedding } = await embed({
                 value: inputData.userQuery,
                 model: new ModelRouterEmbeddingModel(
-                    'google/gemini-embedding-001)'
+                    'google/gemini-embedding-2-preview'
                 ),
             })
             const embeddingTime = Date.now() - embeddingStartTime

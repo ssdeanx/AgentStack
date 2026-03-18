@@ -23,7 +23,7 @@ export class ChunkingService {
         // We need to provide an embedder even though we won't use it for embedding
         this.memory = new Memory({
             embedder: new ModelRouterEmbeddingModel(
-                'google/gemini-embedding-001)'
+                'google/gemini-embedding-2-preview'
             ),
         })
     }

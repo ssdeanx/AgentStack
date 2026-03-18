@@ -1,5 +1,11 @@
 <!-- AGENTS-META {"title":"Agent Tools UI Components","version":"1.0.0","last_updated":"2025-01-09T12:00:00Z","applies_to":"/src/components/ai-elements/tools","tags":["layer:frontend","domain:ui","type:components","status:stable"],"status":"stable"} -->
 
+## Recent Update (2026-03-17)
+
+- `browser-tool.tsx` now uses AI Elements primitives directly for browser-family results:`Image` for screenshots and `WebPreview` for inline browser/html previews.
+- Browser-family cards now accept guarded `unknown` outputs and parse structured backend payloads safely instead of depending on brittle direct property access.
+- When adding future tool cards, prefer resilient output guards plus explicit preview components over raw JSON dumps.
+
 # Tools Directory (`/src/components/ai-elements/tools`)
 
 ## Overview

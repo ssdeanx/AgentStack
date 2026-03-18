@@ -12,37 +12,63 @@ import type { DynamicToolUIPart } from 'ai'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 import type { AgentToolsProps } from './chat.types'
+import {
+    BrowserToolCard,
+    ScreenshotCard,
+    PdfGeneratorCard,
+    ClickAndExtractCard,
+    FillFormCard,
+    GoogleSearchCard,
+    MonitorPageCard,
+} from '@/src/components/ai-elements/tools/browser-tool'
 
 // Import custom tool components
 import {
     WebScraperTool,
-    BatchWebScraperTool,
-    SiteMapExtractorTool,
-    LinkExtractorTool,
+} from '@/src/components/ai-elements/tools/web-scraper-tool'
+import { BatchWebScraperTool } from '@/src/components/ai-elements/tools/batch-web-scraper-tool'
+import { SiteMapExtractorTool } from '@/src/components/ai-elements/tools/site-map-extractor-tool'
+import { LinkExtractorTool } from '@/src/components/ai-elements/tools/link-extractor-tool'
+import {
     FinancialQuoteCard,
     FinancialChart,
     CompanyProfileCard,
+} from '@/src/components/ai-elements/tools/financial-tools'
+import {
     RepositoryCard,
     PullRequestList,
     IssueCard,
     CommitHistoryList,
-    WeatherCard,
-    ForecastView,
-    ArxivPaperCard,
-    type WebScraperUITool,
-    type BatchWebScraperUITool,
-    type SiteMapExtractorUITool,
-    type LinkExtractorUITool,
-    type FinnhubQuotesUITool,
-    type PolygonStockQuotesUITool,
-    type ChartSupervisorUITool,
-    type ListRepositoriesUITool,
-    type ListPullRequestsUITool,
-    type GetIssueUITool,
-    type ListCommitsUITool,
-    type WeatherUITool, // Assuming this exists for WeatherCard and ForecastView
-    type ArxivUITool,
-} from '@/src/components/ai-elements/tools'
+} from '@/src/components/ai-elements/tools/github-tools'
+import { WeatherCard, ForecastView } from '@/src/components/ai-elements/tools/weather-tool'
+import { ArxivPaperCard } from '@/src/components/ai-elements/tools/research-tools'
+import type {
+    WebScraperUITool,
+    BatchWebScraperUITool,
+    SiteMapExtractorUITool,
+    LinkExtractorUITool,
+    FinnhubQuotesUITool,
+    PolygonStockQuotesUITool,
+    ChartSupervisorUITool,
+    ListRepositoriesUITool,
+    ListPullRequestsUITool,
+    GetIssueUITool,
+    ListCommitsUITool,
+    WeatherUITool,
+    ArxivUITool,
+} from '@/src/components/ai-elements/tools/types'
+
+interface BrowserToolInput {
+    url: string
+}
+
+interface BrowserClickAndExtractInput extends BrowserToolInput {
+    clickSelector?: string
+}
+
+interface BrowserSearchInput {
+    query: string
+}
 
 function getProgressMessage(
     tool: ToolInvocationState | DynamicToolUIPart
@@ -190,6 +216,100 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                             output={
                                 latest.output as LinkExtractorUITool['output']
                             }
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (
+                    (toolName === 'browserTool' || toolName === 'browser') &&
+                    hasOutput
+                ) {
+                    return (
+                        <BrowserToolCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserToolInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (
+                    (toolName === 'screenshotTool' ||
+                        toolName === 'screenshot') &&
+                    hasOutput
+                ) {
+                    return (
+                        <ScreenshotCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserToolInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (
+                    (toolName === 'pdfGeneratorTool' || toolName === 'pdf') &&
+                    hasOutput
+                ) {
+                    return (
+                        <PdfGeneratorCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserToolInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (toolName === 'clickAndExtractTool' && hasOutput) {
+                    return (
+                        <ClickAndExtractCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserClickAndExtractInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (toolName === 'fillFormTool' && hasOutput) {
+                    return (
+                        <FillFormCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserToolInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (toolName === 'googleSearch' && hasOutput) {
+                    return (
+                        <GoogleSearchCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserSearchInput}
+                            output={latest.output}
+                            errorText={errorText}
+                        />
+                    )
+                }
+
+                if (toolName === 'monitorPageTool' && hasOutput) {
+                    return (
+                        <MonitorPageCard
+                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
+                            toolCallId={id}
+                            input={latest.input as BrowserToolInput}
+                            output={latest.output}
                             errorText={errorText}
                         />
                     )

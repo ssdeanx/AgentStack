@@ -69,7 +69,7 @@ export async function initializeUpstashVector() {
 export const upstashMemory = new Memory({
     storage: upstashStorage,
     vector: upstashVector,
-    embedder: google.embedding('gemini-embedding-001'),
+    embedder: google.embedding('gemini-embedding-2-preview'),
     options: {
         lastMessages: 500, // Enhanced for better context retention
         generateTitle: true, // Auto-generate thread titles
@@ -119,13 +119,13 @@ export const graphupstashQueryTool = createGraphRAGTool({
     // Supported vector store and index options
     vectorStoreName: 'pgVector',
     indexName: 'vector_messages',
-    model: google.embedding('gemini-embedding-001'),
-    // Supported graph options (updated for 1568 dimensions)
+    model: google.embedding('gemini-embedding-2-preview'),
+    // Supported graph options (updated for 1536 dimensions)
     providerOptions: {
         google: { dimensions: 1536 },
     },
     graphOptions: {
-        dimension: 1536, // gemini-embedding-001 dimension (1568)
+        dimension: 1536, // gemini-embedding-2-preview dimension (1536)
         threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
         randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
         restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
@@ -144,7 +144,7 @@ export const upstashQueryTool = createVectorQueryTool({
     // Supported vector store and index options
     vectorStoreName: 'vector_messages',
     indexName: 'vector_messages',
-    model: google.embedding('gemini-embedding-001'),
+    model: google.embedding('gemini-embedding-2-preview'),
     // Supported database configuration for PgVector
     providerOptions: {
         google: { retrievalConfig: { dimensions: 1536 } },

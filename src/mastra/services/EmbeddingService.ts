@@ -45,7 +45,9 @@ export class EmbeddingService {
         this.defaultOptions = {
             batchSize: 200,
             maxRetries: 3,
-            model: process.env.EMBEDDING_MODEL ?? 'gemini-embedding-001',
+            model:
+                process.env.EMBEDDING_MODEL ??
+                'google/gemini-embedding-2-preview',
             useCache: true,
             ...options,
         }
@@ -53,7 +55,7 @@ export class EmbeddingService {
         // Initialize Memory instance for native embedding with caching
         this.memory = new Memory({
             embedder: new ModelRouterEmbeddingModel(
-                'google/gemini-embedding-001)'
+                'google/gemini-embedding-2-preview'
             ),
         })
     }
@@ -73,7 +75,7 @@ export class EmbeddingService {
 
         const typedEmbeddings = embeddings
         const dimension =
-            typedEmbeddings.length > 0 ? typedEmbeddings[0].length : 3072 // Updated fallback for text-embedding-3-large
+            typedEmbeddings.length > 0 ? typedEmbeddings[0].length : 3072
 
         return {
             embeddings: typedEmbeddings,
@@ -123,7 +125,7 @@ export class EmbeddingService {
         // The Memory instance requires more complex setup that we don't need for just chunking
         const { embeddings } = await embedMany({
             model: new ModelRouterEmbeddingModel(
-                'google/gemini-embedding-001)'
+                'google/gemini-embedding-2-preview'
             ),
             values: chunks,
             maxRetries: this.defaultOptions.maxRetries,
@@ -176,7 +178,7 @@ export class EmbeddingService {
             try {
                 const { embeddings } = await embedMany({
                     model: new ModelRouterEmbeddingModel(
-                        'google/gemini-embedding-001)'
+                        'google/gemini-embedding-2-preview'
                     ),
                     values: batch,
                     maxRetries,

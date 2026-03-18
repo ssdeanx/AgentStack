@@ -1,5 +1,11 @@
 <!-- AGENTS-META {"title":"Mastra Tools","version":"2.15.0","last_updated":"2025-12-15T00:00:00Z","applies_to":"/src/mastra/tools","tags":["layer:backend","domain:rag","type:tools","status":"stable"]} -->
 
+## Recent Update (2026-03-17)
+
+- `browser-tool.ts` was upgraded to emit structured browser-family outputs for richer chat rendering.
+- Prefer returning preview-friendly metadata (`url`, `finalUrl`, `previewUrl`, `title`, `html`, `text`, typed result arrays) instead of text-only `message` payloads when the frontend can visualize the result.
+- Browser-family tools should keep `data-tool-progress` events intact while exposing UI-ready output schemas.
+
 # 🔧 Tools Directory (`/src/mastra/tools`)
 
 [![stable](https://img.shields.io/badge/status-stable-green?style=flat&logo=appwrite)]

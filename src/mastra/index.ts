@@ -1,23 +1,19 @@
 import { chatRoute, networkRoute, workflowRoute } from '@mastra/ai-sdk'
 import { Mastra } from '@mastra/core'
 import {
-    CloudExporter,
     Observability,
     SamplingStrategyType,
     SensitiveDataFilter,
 } from '@mastra/observability'
 
-import { PostgresStore } from '@mastra/pg'
 // Config
 import { log } from './config/logger'
-import { pgVector } from './config/pg-storage'
-import { mainWorkspace } from './workspaces'
+import { pgStore, pgVector } from './config/pg-storage'
 
 // Scorers
 // Scorers are attached to agents where appropriate (see src/mastra/evals/AGENTS.md for mapping)
 
 // MCP
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { a2aCoordinatorMcpServer, codingA2AMcpServer } from './mcp'
 import { notesMCP } from './mcp/server'
 // A2A Coordinator
@@ -145,12 +141,12 @@ import { DefaultExporter } from '@mastra/observability'
 import { keywordCoverageScorer } from './evals/scorers/keyword-coverage'
 import { createCompletenessScorer } from './evals/scorers/prebuilt'
 //import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt'
-import type { OpenAIResponsesProviderOptions } from '@ai-sdk/openai'
 import {
     researchCompletenessScorer,
     sourceDiversityScorer,
 } from './evals/scorers/custom-scorers'
-
+// Harness
+import { mainHarness } from './harness'
 export const mastra = new Mastra({
    // workspace: mainWorkspace,
     workflows: {
@@ -274,15 +270,7 @@ export const mastra = new Mastra({
         codingA2A: codingA2AMcpServer,
     },
 
-    storage: new PostgresStore({
-        id: 'main-storage',
-        // Connection configuration
-        connectionString:
-            process.env.SUPABASE ??
-            'postgresql://user:password@localhost:5432/mydb',
-        // Schema management
-        schemaName: process.env.DB_SCHEMA ?? 'mastra',
-    }),
+    storage: pgStore,
     vectors: { pgVector },
     logger: log,
     observability: new Observability({
@@ -442,7 +430,7 @@ export const mastra = new Mastra({
                     // userId: prefer explicit header, otherwise try to parse from a bearer token (format: "Bearer user:<id>")
                     let userId = headerUserId
                     if (
-                        !userId &&
+                        (userId === null || userId === '') &&
                         authHeader !== null &&
                         authHeader !== '' &&
                         authHeader.startsWith('Bearer ')
@@ -460,7 +448,7 @@ export const mastra = new Mastra({
                     // user-tier: prefer explicit header, otherwise derive from token hints
                     let userTier = headerUserTier
                     if (
-                        !userTier &&
+                        (userTier === null || userTier === '') &&
                         authHeader !== null &&
                         authHeader !== '' &&
                         authHeader.startsWith('Bearer ')
@@ -509,5 +497,7 @@ export const mastra = new Mastra({
         ],
     },
 })
+
+await mainHarness.init()
 
 log.info('Mastra instance created')

@@ -17,6 +17,10 @@ const libsqlvector = new LibSQLVector({
     url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
     // Optional: for Turso cloud databases
     authToken: process.env.TURSO_AUTH_TOKEN,
+    syncInterval: 10000, // Sync every 10 seconds (optional)
+    syncUrl: process.env.TURSO_SYNC_URL, // Optional sync URL for distributed setups
+    maxRetries: 5, // Optional retry configuration for transient errors
+    initialBackoffMs: 50, // Initial backoff for retries
 })
 
 // Create an index
@@ -51,12 +55,18 @@ const results = await libsqlvector.query({
     filter: { category: 'A' }, // optional metadata filter
 })
 
+log.info('LibSQL sample vector query completed', {
+    resultCount: results.length,
+})
+
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: google.embedding('gemini-embedding-001'),
+    embedder: google.embedding('gemini-embedding-2-preview'),
     options: {
         // Message management
+        readOnly: false,
+        observationalMemory: true,
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: true,
         // Advanced semantic recall with HNSW index configuration
