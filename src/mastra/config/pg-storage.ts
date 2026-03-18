@@ -50,7 +50,7 @@ export const pgStore = new PostgresStore({
 
 //await pgStore.init();
 
-// PgVector configuration for 3072 dimension embeddings (gemini-embedding-001)
+// PgVector configuration for 3072 dimension embeddings (gemini-embedding-2-preview)
 /* FIXME(mastra): Add a unique `id` parameter. See: https://mastra.ai/guides/v1/migrations/upgrade-to-v1/mastra#required-id-parameter-for-all-mastra-primitives */
 export const pgVector = new PgVector({
     id: 'pg:vector',
@@ -61,11 +61,11 @@ export const pgVector = new PgVector({
     // Additional index options can be configured here if needed
 })
 
-// Memory configuration using PgVector with flat index for gemini-embedding-001
+// Memory configuration using PgVector with flat index for gemini-embedding-2-preview
 export const pgMemory = new Memory({
     storage: pgStore,
-    vector: pgVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
-    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    vector: pgVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     options: {
         // Message management
          observationalMemory: {
@@ -165,10 +165,10 @@ export const graphQueryTool = createGraphRAGTool({
     // Supported vector store and index options
     vectorStoreName: 'pgVector',
     indexName: 'memory_messages_3072',
-    model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     // Supported graph options (updated for 3072 dimensions)
     graphOptions: {
-        dimension: 3072, // gemini-embedding-001 dimension (3072)
+        dimension: 3072, // gemini-embedding-2-preview dimension (3072)
         threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
         randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
         restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
@@ -187,7 +187,7 @@ export const pgQueryTool = createVectorQueryTool({
     // Supported vector store and index options
     vectorStoreName: 'pgVector',
     indexName: 'memory_messages_3072',
-    model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     // Supported database configuration for PgVector
     databaseConfig: {
         pgVector: {
@@ -247,7 +247,7 @@ export async function generateEmbeddings(
         tracingContext: options?.tracingContext,
         metadata: {
             'tool.id': 'generateEmbeddings',
-            'tool.model': 'gemini-embedding-001',
+            'tool.model': 'gemini-embedding-2-preview',
         },
     })
 
@@ -257,13 +257,13 @@ export async function generateEmbeddings(
             (sum, chunk) => sum + (chunk.text?.length ?? 0),
             0
         ),
-        model: 'gemini-embedding-001',
+        model: 'gemini-embedding-2-preview',
     })
 
     try {
         const { embeddings } = await embedMany({
             values: chunks.map((chunk) => chunk.text),
-            model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+            model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
             maxRetries: parseInt(process.env.EMBEDDING_MAX_RETRIES ?? '3'),
             abortSignal: new AbortController().signal,
             maxParallelCalls: 20,
@@ -275,7 +275,7 @@ export async function generateEmbeddings(
                 metadata: {
                     component: 'pg-storage',
                     operationType: 'embedding',
-                    model: 'gemini-embedding-001',
+                    model: 'gemini-embedding-2-preview',
                 },
             },
         })
@@ -297,7 +297,7 @@ export async function generateEmbeddings(
             embeddingCount: embeddings.length,
             embeddingDimension: embeddings[0]?.length || 0,
             processingTimeMs: processingTime,
-            model: 'gemini-embedding-001',
+            model: 'gemini-embedding-2-preview',
         })
 
         // No tracing performed here; callers can create spans if desired.
@@ -317,7 +317,7 @@ export async function generateEmbeddings(
             error: errorMessage,
             chunkCount: chunks.length,
             processingTimeMs: processingTime,
-            model: 'gemini-embedding-001',
+            model: 'gemini-embedding-2-preview',
         })
 
         throw error

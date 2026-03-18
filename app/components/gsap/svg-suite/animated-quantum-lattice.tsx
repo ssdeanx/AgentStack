@@ -97,7 +97,7 @@ export function AnimatedQuantumLattice({
                 [80, 80], [80, 40], [80, 120], [40, 80], [120, 80]
             ].map(([x, y], i) => (
                 <g key={i} transform={`translate(${x}, ${y})`}>
-                    <g data-node-core transform-origin="center">
+                    <g data-node-core>
                         <rect x="-6" y="-6" width="12" height="12" rx="2" fill="currentColor" fillOpacity="0.03" stroke="currentColor" strokeOpacity="0.1" />
                         <line x1="-8" y1="0" x2="8" y2="0" strokeOpacity="0.05" />
                     </g>

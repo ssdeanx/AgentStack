@@ -114,7 +114,7 @@ const scanStep = createStep({
                 url?: string
             }
 
-            const scanResultRaw = await getRepoFileTree.execute(
+            const scanResultRaw = await getRepoFileTree.execute!(
                 { owner, repo, branch: githubBranch, recursive: true },
                 { mastra, requestContext }
             )
@@ -295,7 +295,7 @@ const ingestStep = createStep({
 
                         if (githubRepoValue.length > 0) {
                             const [owner, repo] = githubRepoValue.split('/')
-                            const result = await getFileContent.execute(
+                            const result = await getFileContent.execute!(
                                 {
                                     owner,
                                     repo,
@@ -345,7 +345,7 @@ const ingestStep = createStep({
                             strategy = 'json'
                         }
 
-                        const result = await mdocumentChunker.execute(
+                        const result = await mdocumentChunker.execute!(
                             {
                                 documentContent: content,
                                 documentMetadata: {
@@ -358,7 +358,7 @@ const ingestStep = createStep({
                                 chunkingStrategy: strategy,
                                 indexName: 'memory_messages_3072',
                                 generateEmbeddings: true,
-                                embeddingModel: 'google/gemini-embedding-001',
+                                embeddingModel: 'google/gemini-embedding-2-preview',
                                 embeddingBatchSize: 50,
                                 chunkSize: 512,
                                 chunkOverlap: 50,

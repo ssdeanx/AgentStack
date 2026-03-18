@@ -6,21 +6,15 @@ import { createTool } from '@mastra/core/tools'
 import * as cheerio from 'cheerio'
 import { XMLParser } from 'fast-xml-parser'
 import { JSDOM } from 'jsdom'
-import * as RE2Module from 're2'
+import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch } from '../lib/http-client'
 
-const RE2Ctor = RE2Module as unknown as new (
-    pattern: string,
-    flags?: string
-) => {
-    test: (input: string) => boolean
-}
 
 const DEFAULT_USER_AGENT =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 AgentStackFetch/1.0'
-const TRACKING_PARAM_RE = new RE2Ctor(
+const TRACKING_PARAM_RE = new RE2(
     '^(utm_[a-z0-9_]+|gclid|fbclid|yclid|mc_eid|mc_cid|igshid|ref|ref_src)$',
     'i'
 )
@@ -177,11 +171,11 @@ const DEFAULT_CONTENT_WINDOW: ContentWindowConfig = {
 }
 
 function compileRe2Patterns(patterns?: string[]) {
-    const compiled: Array<InstanceType<typeof RE2Ctor>> = []
+    const compiled: RE2[] = []
     for (const pattern of patterns ?? []) {
         try {
             if (typeof pattern === 'string' && pattern.trim().length > 0) {
-                compiled.push(new RE2Ctor(pattern))
+                compiled.push(new RE2(pattern))
             }
         } catch (error) {
             log.warn('Invalid RE2 pattern ignored', {
@@ -195,8 +189,8 @@ function compileRe2Patterns(patterns?: string[]) {
 
 function passesRe2Filters(
     value: string,
-    include: Array<InstanceType<typeof RE2Ctor>>,
-    exclude: Array<InstanceType<typeof RE2Ctor>>
+    include: RE2[],
+    exclude: RE2[]
 ): boolean {
     const includePass = include.length === 0 || include.some((re) => re.test(value))
     if (!includePass) {

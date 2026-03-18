@@ -49,7 +49,7 @@ export const googleImageModels = {
 
 // Embedding Models
 export const googleEmbeddingModels = {
-    geminiEmbedding001: google.embedding('gemini-embedding-001'),
+    geminiEmbedding2Preview: google.embedding('gemini-embedding-2-preview'),
 }
 
 // Model selector functions
@@ -72,7 +72,7 @@ export const googleAI = googleChatModels.gemini25Flash // Main Gemini 2.5 Flash
 export const googleAIPro = googleChatModels.gemini3Pro // Gemini 3 Pro
 export const google3 = googleChatModels.gemini3Flash // Gemini 3 Flash
 export const googleAIFlashLite = googleChatModels.gemini25FlashLite // Gemini 2.5 Flash Lite
-export const googleAIEmbedding = googleEmbeddingModels.geminiEmbedding001 // Embedding
+export const googleAIEmbedding = googleEmbeddingModels.geminiEmbedding2Preview // Embedding
 export const googleAIComputerUse = googleChatModels.gemini25ComputerUse // Computer Use
 export const googleAI3 = googleChatModels.gemini25FlashAlt // Alternative Flash
 export const googleAINanoBanana = googleImageModels.gemini25FlashImage // Low-cost image

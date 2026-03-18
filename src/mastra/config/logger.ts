@@ -15,7 +15,7 @@ if (!fs.existsSync(logsDir)) {
 
 export const log = new PinoLogger({
     name: 'MastraLogger',
-    level: 'debug',
+    level: 'info',
     // Enable pretty printing in development
     ...(process.env.NODE_ENV === 'development' && {
         transport: {
@@ -27,12 +27,6 @@ export const log = new PinoLogger({
             },
         },
     }),
-    formatters: {
-        // Add custom formatter to include trace and baggage info
-        //        log(object) {
-        //            return attachTraceAndBaggage(object)
-        //        },
-    },
 })
 
 // Create a simple file logger wrapper
@@ -170,7 +164,7 @@ export const logAgentActivity = (
 
 export const logError = (
     component: string,
-    error: Error | unknown,
+    error: unknown,
     context?: Record<string, unknown>
 ) => {
     const message = `❌ Error in ${component}`

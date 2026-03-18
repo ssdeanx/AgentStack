@@ -71,15 +71,15 @@ const indexDocumentsStep = createStep({
             const indexName: string =
                 process.env.QDRANT_COLLECTION ?? 'governed_rag'
 
-            // Ensure the index exists with proper dimension for gemini-embedding-001 (1568)
+            // Ensure the index exists with a supported Gemini embedding dimension.
             // HNSW index type is used automatically to support high-dimensional embeddings
             try {
                 await vectorStore.createIndex({
                     indexName,
-                    dimension: 1568, // gemini-embedding-001 dimension (1568)
+                    dimension: 1536, // gemini-embedding-2-preview dimension (1536)
                 })
                 logProgress(
-                    `PgVector index ${indexName} created or already exists with 1568 dimensions`,
+                    `PgVector index ${indexName} created or already exists with 1536 dimensions`,
                     0,
                     totalDocs
                 )
@@ -88,7 +88,7 @@ const indexDocumentsStep = createStep({
                     type: 'data-tool-progress',
                     data: {
                         status: 'in-progress',
-                        message: `PgVector index ${indexName} created or already exists with 1568 dimensions`,
+                        message: `PgVector index ${indexName} created or already exists with 1536 dimensions`,
                         stage: 'index-documents',
                     },
                     id: 'index-documents',

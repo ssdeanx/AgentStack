@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { cn } from '@/lib/utils'
 

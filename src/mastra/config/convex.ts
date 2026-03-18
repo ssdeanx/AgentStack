@@ -17,8 +17,8 @@ const vectorCon = new ConvexVector({
 
 export const convexMemory = new Memory({
     storage: storageCon,
-    vector: vectorCon, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-001)
-    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+    vector: vectorCon, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     embedderOptions: {
         providerOptions: {
              google: {

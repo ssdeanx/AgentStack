@@ -1,5 +1,10 @@
 <!-- AGENTS-META {"title":"Chat Components","version":"3.0.0","applies_to":"app/chat/components/","last_updated":"2026-02-17T00:00:00Z","status":"stable"} -->
 
+## Recent Update (2026-03-17)
+
+- `agent-tools.tsx` now explicitly routes browser-family backend tool ids to custom UI cards instead of relying on generic fallback rendering.
+- For new tool integrations, prefer direct file-level imports for the card implementation when barrel/index resolution becomes unstable during refactors.
+
 # Chat Components
 
 ## Overview

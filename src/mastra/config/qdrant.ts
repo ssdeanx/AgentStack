@@ -42,12 +42,12 @@ const QDRANT_CONFIG = {
     url: process.env.QDRANT_URL,
     apiKey: process.env.QDRANT_API_KEY,
     indexName: 'governed-rag',
-    // Google Gemini gemini-embedding-001 supports flexible dimensions: 128-3072
+    // Google Gemini gemini-embedding-2-preview supports flexible dimensions: 128-3072
     // Recommended: 768, 1536, 3072
     embeddingDimension: parseInt(
         process.env.QDRANT_EMBEDDING_DIMENSION ?? '1536'
     ),
-    embeddingModel: google.textEmbedding('gemini-embedding-001'),
+    embeddingModel: google.embedding('gemini-embedding-2-preview'),
 } as const
 
 /**
@@ -138,7 +138,7 @@ export async function processDocument(
         // Generate embeddings for all chunks
         const { embeddings } = await embedMany({
             values: chunks.map((chunk) => chunk.text),
-            model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+            model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
         })
 
         log.info('Document processed successfully', {
@@ -260,7 +260,7 @@ export async function querySimilarDocuments(
             embeddings: [queryEmbedding],
         } = await embedMany({
             values: [queryText],
-            model: new ModelRouterEmbeddingModel('google/gemini-embedding-001'),
+            model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
         })
 
         // Query similar vectors
@@ -279,10 +279,20 @@ export async function querySimilarDocuments(
             hasFilter: !!filter,
         })
 
-        return results.map((result: any) => ({
+        const typedResults: Array<{
+            id: string
+            score?: number
+            metadata?: Record<string, unknown>
+        }> = results as Array<{
+            id: string
+            score?: number
+            metadata?: Record<string, unknown>
+        }>
+
+        return typedResults.map((result) => ({
             id: result.id,
-            score: result.score,
-            text: (result.metadata?.text as string) || '',
+            score: result.score ?? 0,
+            text: typeof result.metadata?.text === 'string' ? result.metadata.text : '',
             metadata: includeMetadata ? result.metadata : undefined,
         }))
     } catch (error) {

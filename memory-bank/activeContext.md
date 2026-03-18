@@ -1,3 +1,64 @@
+## Active Context Update (2026-03-18 - landing GSAP/SVG runtime fix)
+
+- Fixed two landing-page runtime issues surfaced from `app/page.tsx`:
+  - `app/components/gsap/svg-suite/animated-quantum-lattice.tsx`
+  - `app/components/network-background.tsx`
+- Fixes applied:
+  - removed unsupported SVG JSX prop usage (`transform-origin` / `transformOrigin` on `<g>`) and relied on GSAP's runtime `transformOrigin` config instead
+  - imported `gsap` explicitly in `network-background.tsx` before calling it inside `useGSAP`
+- Validation:
+  - targeted `get_errors` returned **No errors found** for:
+    - `app/components/gsap/svg-suite/animated-quantum-lattice.tsx`
+    - `app/components/network-background.tsx`
+    - `app/components/landing-hero.tsx`
+    - `app/components/landing-svg-lab.tsx`
+    - `app/page.tsx`
+
+## Active Context Update (2026-03-18 - embedding model migration + PostgresStore init race fix)
+
+- Updated the active Mastra embedding model references under `src/mastra/**` from `gemini-embedding-001` to `gemini-embedding-2-preview`.
+- Touched primary runtime/config paths:
+  - `src/mastra/config/google.ts`
+  - `src/mastra/config/pg-storage.ts`
+  - `src/mastra/tools/document-chunking.tool.ts`
+  - `src/mastra/services/EmbeddingService.ts`
+  - `src/mastra/services/ChunkingService.ts`
+  - `src/mastra/services/VectorQueryService.ts`
+  - alternative vector configs under `src/mastra/config/{libsql,upstash,mongodb,lance,qdrant,convex}.ts`
+  - `src/mastra/workflows/repo-ingestion-workflow.ts`
+  - `src/mastra/workflows/governed-rag-index.workflow.ts`
+- Fixed the startup error `column "requestContext" of relation "mastra_dataset_items" already exists` by removing the duplicate `PostgresStore` construction in `src/mastra/index.ts` and reusing the shared singleton `pgStore` from `src/mastra/config/pg-storage.ts`.
+- This avoids concurrent Mastra PG dataset migrations against the same schema during boot.
+- Additional cleanup completed in touched files:
+  - removed now-unused imports / strict-null checks in `src/mastra/index.ts`
+  - corrected the governed RAG workflow index dimension messaging from the old `1568` typo to `1536`
+  - fixed touched-file validation issues in `qdrant.ts`, `libsql.ts`, and `repo-ingestion-workflow.ts`
+- Validation:
+  - targeted `get_errors` returned **No errors found** for all edited files in this pass.
+
+## Active Context Update (2026-03-17 - browser tool preview integration)
+
+- Completed a browser-tool UX/backend hardening pass across the chat tool rendering path:
+  - `src/mastra/tools/browser-tool.ts`
+  - `src/components/ai-elements/tools/browser-tool.tsx`
+  - `app/chat/components/agent-tools.tsx`
+  - `src/components/ai-elements/web-preview.tsx`
+- Browser-family Mastra tools now emit richer structured outputs for frontend rendering:
+  - `browserTool` returns success/url/finalUrl/title/text/html/sections/contentLength/previewUrl/message
+  - `screenshotTool` returns url/finalUrl/title/media metadata plus base64 screenshot
+  - `pdfGeneratorTool` returns url/finalUrl/title/media metadata plus base64 PDF
+  - `clickAndExtractTool` returns source/final URL, preview URL, extracted selector, html/text content
+  - `fillFormTool` returns source/final URL and preview URL metadata
+  - `googleSearch` now returns structured `results[]`
+  - `monitorPageTool` now returns source/final URL metadata
+- Chat UI routing now explicitly maps browser-family tool ids in `app/chat/components/agent-tools.tsx` instead of falling back to generic tool JSON rendering.
+- Browser-family tool cards now:
+  - use `src/components/ai-elements/image.tsx` for screenshots
+  - use `src/components/ai-elements/web-preview.tsx` for inline browser/html previews
+  - use safer record guards instead of brittle inferred output access in `browser-tool.tsx`
+- Validation:
+  - targeted `get_errors` returned **No errors found** for all touched browser/chat preview files.
+
 ## Active Context Update (2026-03-17 - codingAgents explicit tool-generic cleanup)
 
 - User flagged that `codingAgents.ts` still contained an explicit `new Agent<...>` constructor and that the per-agent tool objects had been disturbed.
