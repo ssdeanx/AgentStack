@@ -1,7 +1,6 @@
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
-    BatchPartsProcessor,
     TokenLimiterProcessor,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
@@ -11,18 +10,13 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import {
-    webScraperTool,
-    siteMapExtractorTool,
-    linkExtractorTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
-    batchWebScraperTool,
     scrapingSchedulerTool,
 } from '../tools/web-scraper-tool'
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
+import { fetchTool } from '../tools'
 
 export type WebResearchRuntimeContext = AgentRequestContext<{
     researchPhase?: string
@@ -92,7 +86,7 @@ Provide structured results with:
                         includeThoughts: true,
                         thinkingLevel: 'medium',
                     },
-                } satisfies GoogleGenerativeAIProviderOptions,
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },
@@ -106,14 +100,12 @@ Provide structured results with:
         return google.chat('gemini-3.1-flash-lite-previeww')
     },
     tools: {
-        webScraperTool,
-        siteMapExtractorTool,
-        linkExtractorTool,
-        htmlToMarkdownTool,
-        contentCleanerTool,
-        batchWebScraperTool,
+        fetchTool,
         scrapingSchedulerTool,
         extractLearningsTool,
+        google_search: google.tools.googleSearch({}),
+        url_context: google.tools.urlContext({}),
+        code_execution: google.tools.codeExecution({}),
     },
     memory: pgMemory,
     maxRetries: 5,

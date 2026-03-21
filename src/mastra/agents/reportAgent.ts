@@ -2,7 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import {
   TokenLimiterProcessor
@@ -51,11 +51,11 @@ export const reportAgent = new Agent({
         google: {
           thinkingConfig: {
             includeThoughts: true,
-            thinkingBudget: -1,
+            thinkingLevel: 'medium',
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT'],
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },

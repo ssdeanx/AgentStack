@@ -16,6 +16,7 @@ import {
   getUserTierFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { google } from '../config'
 
 export type ResearchPaperAgentRuntimeContext = AgentRequestContext
 
@@ -23,6 +24,8 @@ const researchPaperTools = {
   arxivTool,
   arxivPdfParserTool,
   arxivPaperDownloaderTool,
+  google_search: google.tools.googleSearch({}),
+  url_context: google.tools.urlContext({}),
 }
 
 log.info('Initializing Research Paper Agent...')

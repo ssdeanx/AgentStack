@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
@@ -17,7 +18,7 @@ import {
     polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+//import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import {
@@ -42,7 +43,6 @@ const stockAnalysisTools = {
 }
 
 log.info('Initializing Stock Analysis Agent...')
-
 export const stockAnalysisAgent = new Agent({
     id: 'stockAnalysisAgent',
     name: 'Stock Analysis Agent',
@@ -96,9 +96,10 @@ export const stockAnalysisAgent = new Agent({
                 google: {
                     thinkingConfig: {
                         includeThoughts: true,
-                        thinkingBudget: -1,
+                        thinkingLevel: 'medium',
                     },
-                } satisfies GoogleGenerativeAIProviderOptions,
+                    mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },

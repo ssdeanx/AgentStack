@@ -3,7 +3,7 @@ import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { calendarAgent } from './calendarAgent'
+//import { calendarAgent } from './calendarAgent'
 import { contentStrategistAgent } from './contentStrategistAgent'
 import { copywriterAgent } from './copywriterAgent'
 import { researchAgent } from './researchAgent'
@@ -97,8 +97,8 @@ export const socialMediaAgent = new Agent({
     copywriterAgent,
     contentStrategistAgent,
     researchAgent,
-    calendarAgent,
-  } as Record<string, Agent>,
+   // calendarAgent,
+  },
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,

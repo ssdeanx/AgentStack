@@ -3,14 +3,6 @@ import { pgMemory, pgQueryTool } from '../config'
 import { arxivTool } from '../tools/arxiv.tool'
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import {
-    createDataDirTool,
-    getDataFileInfoTool,
-    listDataDirTool,
-    moveDataFileTool,
-    searchDataFilesTool,
-    writeDataFileTool,
-} from '../tools/data-file-manager'
-import {
     csvToExcalidrawTool,
     readCSVDataTool,
 } from '../tools/data-processing-tools'
@@ -25,7 +17,7 @@ import {
 } from '../tools/github'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
@@ -74,10 +66,10 @@ User: ${userId} | Role: ${roleConstraint}
                 google: {
                     thinkingConfig: {
                         includeThoughts: true,
-                        thinkingBudget: -1,
+                        thinkingLevel: 'medium',
                     },
                     responseModalities: ['TEXT'],
-                } satisfies GoogleGenerativeAIProviderOptions,
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },
@@ -96,12 +88,6 @@ User: ${userId} | Role: ${roleConstraint}
         csvToExcalidrawTool,
         readCSVDataTool,
         //  convertDataFormatTool,
-        writeDataFileTool,
-        listDataDirTool,
-        searchDataFilesTool,
-        moveDataFileTool,
-        getDataFileInfoTool,
-        createDataDirTool,
         searchCode,
         getFileContent,
         getRepositoryInfo,

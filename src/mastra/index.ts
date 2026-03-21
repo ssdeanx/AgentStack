@@ -171,7 +171,7 @@ export const mastra = new Mastra({
     agents: {
         // Core Agents
         weatherAgent,
-     //   supervisorAgent,
+        supervisorAgent,
         csvToExcalidrawAgent,
         imageToCsvAgent,
         copywriterAgent,

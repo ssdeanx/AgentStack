@@ -1,22 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-import {
-  contentCleanerTool,
-  //  batchWebScraperTool,
-  //  siteMapExtractorTool,
-  //  linkExtractorTool,
-  htmlToMarkdownTool,
-  scrapingSchedulerTool,
-  webScraperTool,
-} from '../tools/web-scraper-tool'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
   USER_ID_CONTEXT_KEY,
-  USER_TIER_CONTEXT_KEY,
+//  USER_TIER_CONTEXT_KEY,
   type AgentRequestContext,
 } from './request-context'
 //import {
@@ -25,6 +16,8 @@ import {
  // createToneScorer,
 //} from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import { fetchTool } from '../tools'
+import { google } from '../config'
 
 // Define runtime context for this agent
 export type CopywriterAgentContext = AgentRequestContext<{
@@ -34,11 +27,10 @@ export type CopywriterAgentContext = AgentRequestContext<{
 log.info('Initializing Copywriter Agent...')
 
 const copywriterTools = {
-  webScraperTool,
-  scrapingSchedulerTool,
-  htmlToMarkdownTool,
-  contentCleanerTool,
+  fetchTool,
   chartSupervisorTool,
+  google_search: google.tools.googleSearch({}),
+  url_context: google.tools.urlContext({}),
 }
 
 export const copywriterAgent = new Agent({
@@ -71,7 +63,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
         google: {
           thinkingConfig: {
             includeThoughts: true,
-            thinkingBudget: -1,
+            thinkingLevel: 'medium',
           },
           responseModalities: ['TEXT'],
           mediaResolution: 'MEDIA_RESOLUTION_LOW',

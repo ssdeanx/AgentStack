@@ -1,11 +1,12 @@
 import type {
     GoogleGenerativeAIProviderMetadata,
-    GoogleGenerativeAIProviderOptions,
+//    GoogleGenerativeAIProviderOptions,
+    GoogleLanguageModelOptions,
 } from '@ai-sdk/google'
 import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
-    LANGUAGE_CONTEXT_KEY,
+ //   LANGUAGE_CONTEXT_KEY,
     USER_TIER_CONTEXT_KEY,
     getLanguageFromContext,
     getUserTierFromContext,
@@ -14,8 +15,6 @@ import {
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
-
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 
 export type EditorRuntimeContext = AgentRequestContext
@@ -58,10 +57,10 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
                 google: {
                     thinkingConfig: {
                         includeThoughts: true,
-                        thinkingBudget: -1,
+                        thinkingLevel: 'medium',
                     },
                     responseModalities: ['TEXT'],
-                } satisfies GoogleGenerativeAIProviderOptions,
+                } satisfies GoogleLanguageModelOptions,
             },
         }
     },
@@ -90,7 +89,7 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
     },
     workflows: {},
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+//    outputProcessors: [new TokenLimiterProcessor(1048576)],
  //   defaultOptions: {
   //      autoResumeSuspendedTools: true,
  //   },
@@ -105,6 +104,6 @@ export type ProviderMetadataMap = {
 
 export const providerMetadata: ProviderMetadataMap | undefined =
     (googleAI as unknown as { providerMetadata?: ProviderMetadataMap })
-        ?.providerMetadata ??
+        .providerMetadata ??
     (google as unknown as { providerMetadata?: ProviderMetadataMap })
-        ?.providerMetadata
+        .providerMetadata
