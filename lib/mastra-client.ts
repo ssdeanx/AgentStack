@@ -10,7 +10,7 @@ export const mastraAbortController = new AbortController()
  * For server-side streaming in API routes, import createAgentStreamResponse
  * directly from "@/lib/client-stream-to-ai-sdk" instead.
  */
-export const mastraClient: MastraClient = new MastraClient({
+export const mastraClient = new MastraClient({
     baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL ?? 'http://localhost:4111',
     retries: 3,
     backoffMs: 300,

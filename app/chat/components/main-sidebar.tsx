@@ -1,207 +1,103 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
-import type {
-    Agent,
-    Tool,
-    TracesResponse,
-    Workflow,
-} from '@/lib/types/mastra-api'
+import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { generateId } from 'ai'
-import type { UseQueryResult } from '@tanstack/react-query'
+import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
+import { useAgents, useThreads } from '@/lib/hooks/use-mastra-query'
 import {
     Sidebar,
     SidebarContent,
     SidebarGroup,
-    SidebarGroupLabel,
     SidebarGroupContent,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
-    SidebarMenuSub,
-    SidebarMenuSubItem,
-    SidebarMenuSubButton,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarFooter,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
 } from '@/ui/sidebar'
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/ui/collapsible'
-import {
-    BotIcon,
-    ChevronRightIcon,
-    WorkflowIcon,
-    CpuIcon,
-    ActivityIcon,
-    FolderTreeIcon,
-    NetworkIcon,
-    Loader2Icon,
-    PlusIcon,
-    WrenchIcon,
-    DatabaseIcon,
-    EyeIcon,
-    ScrollTextIcon,
-} from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
+import { Loader2Icon, BotIcon, MessageSquareIcon, PlusIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+interface SidebarAgent {
+    id: string
+    name: string
+    description?: string
+    provider?: string
+    modelId?: string
+}
+
+interface SidebarThread {
+    id?: string
+    threadId?: string
+    name?: string
+    title?: string
+    messageCount?: number
+    updatedAt?: string | Date
+    createdAt?: string | Date
+}
+
+const getThreadId = (thread: SidebarThread) => thread.threadId ?? thread.id ?? ''
+
+const getThreadLabel = (thread: SidebarThread) =>
+    thread.title ?? thread.name ?? (getThreadId(thread) || 'Untitled thread')
+
+const formatThreadMeta = (thread: SidebarThread) => {
+    const parts: string[] = []
+    if (typeof thread.messageCount === 'number') {
+        parts.push(
+            `${String(thread.messageCount)} message${thread.messageCount === 1 ? '' : 's'}`
+        )
+    }
+    const updatedAt = thread.updatedAt ?? thread.createdAt
+    if (typeof updatedAt === 'string' && updatedAt.trim().length > 0) {
+        try {
+            parts.push(new Date(updatedAt).toLocaleDateString())
+        } catch {
+            parts.push(updatedAt)
+        }
+    } else if (updatedAt instanceof Date) {
+        parts.push(updatedAt.toLocaleDateString())
+    }
+    return parts.join(' • ')
+}
 
 export function MainSidebar() {
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const { selectAgent, selectedAgent, setThreadId } = useChatContext()
-    const [openSection, setOpenSection] = useState<string | null>(null)
+    const { selectAgent, selectedAgent, setThreadId, threadId } = useChatContext()
+    const agentsResult = useAgents()
+    const threadsResult = useThreads({ agentId: selectedAgent })
 
-    const activeAgentFromUrl = searchParams.get('agent')
-
-    const toggleSection = (section: string) => {
-        setOpenSection(openSection === section ? null : section)
-    }
-
-    // Use hooks for data fetching - useMastraQuery is a factory that returns hook functions
-    const {
-        useAgents,
-        useTools,
-        useWorkflows,
-        useTraces,
-        useThreads,
-        useVectorIndexes,
-    } = useMastraQuery()
-
-    // Call each hook to get query results
-    const agentsResult: UseQueryResult<Agent[], Error> = useAgents()
-    const toolsResult: UseQueryResult<Tool[], Error> = useTools()
-    const workflowsResult: UseQueryResult<Workflow[], Error> = useWorkflows()
-    const tracesResult: UseQueryResult<TracesResponse, Error> = useTraces()
-    const threadsResult = useThreads()
-    const vectorsResult = useVectorIndexes()
-
-    interface TraceListItem {
-        id: string
-        name: string
-    }
-
-    const toTraceList = (value: unknown): TraceListItem[] => {
-        if (value === null || value === undefined) {
-            return []
-        }
-        if (typeof value !== 'object') {
-            return []
-        }
-
-        const { spans } = value as { spans?: unknown }
-        if (!Array.isArray(spans)) {
-            return []
-        }
-
-        return spans
-            .filter((span: unknown) => {
-                if (typeof span !== 'object' || span === null) {
-                    return false
-                }
-                const rec = span as Record<string, unknown>
-                return (
-                    typeof rec.spanId === 'string' &&
-                    typeof rec.name === 'string'
-                )
-            })
-            .map((span: unknown) => {
-                const rec = span as Record<string, unknown>
-                return {
-                    id: rec.spanId as string,
-                    name: rec.name as string,
-                }
-            })
-    }
-
-    // Extract data with proper typing
-    const agentsData: Agent[] = agentsResult.data ?? []
-    const toolsData: Tool[] = toolsResult.data ?? []
-    const workflowsData: Array<{ id?: string; name: string }> =
-        workflowsResult.data ?? []
-
-    const tracesUnknown: unknown = tracesResult.data
-    const traces = toTraceList(tracesUnknown)
-    const threadsData = threadsResult.data ?? []
-    const vectorsData = vectorsResult.data ?? []
-
-    // Combine loading and error states
-    const loading =
-        agentsResult.isLoading ||
-        toolsResult.isLoading ||
-        workflowsResult.isLoading ||
-        tracesResult.isLoading ||
-        threadsResult.isLoading ||
-        vectorsResult.isLoading
-    const error =
-        agentsResult.error ??
-        toolsResult.error ??
-        workflowsResult.error ??
-        tracesResult.error ??
-        threadsResult.error ??
-        vectorsResult.error
-
-    // List of resources for rendering
-    const tools: Array<{ id: string; name: string }> = toolsData.map(
-        (tool) => ({
-            id: tool.id,
-            name: tool.id,
-        })
-    )
-
-    const workflows: Array<{ id: string; name: string }> = workflowsData.map(
-        (wf) => {
-            const id = wf.id ?? wf.name
-            return {
-                id,
-                name: wf.name,
-            }
-        }
-    )
-
-    const threads = threadsData
-    const vectors = vectorsData
-    const threadsCount = threads.length
-    const vectorsCount = vectors.length
+    const agents = (agentsResult.data ?? []) as SidebarAgent[]
+    const threads = (threadsResult.data ?? []) as unknown as SidebarThread[]
 
     const handleAgentClick = useCallback(
         (agentId: string) => {
-            // Generate a fresh thread ID when creating a new chat with an agent
             const newThreadId = generateId()
-
-            // First select the agent to reset context
             selectAgent(agentId)
-
-            // Explicitly set the new thread ID
             setThreadId(newThreadId)
-
-            // Navigate to dynamic route
             router.push(`/chat/${agentId}`)
         },
-        [selectAgent, setThreadId, router]
+        [router, selectAgent, setThreadId]
     )
 
-    const handleNavClick = useCallback(
-        (href: string) => {
-            router.push(href)
+    const handleThreadClick = useCallback(
+        (nextThreadId: string) => {
+            if (!nextThreadId) {
+                return
+            }
+            setThreadId(nextThreadId)
+            router.push(`/chat/${selectedAgent}`)
         },
-        [router]
+        [router, selectedAgent, setThreadId]
     )
-
-    const handleLogoClick = useCallback(() => {
-        handleNavClick('/chat')
-    }, [handleNavClick])
 
     return (
         <Sidebar
             className="border-r bg-background/95 backdrop-blur-xl"
-            data-threads-count={threadsCount}
-            data-vectors-count={vectorsCount}
-            data-active-agent={activeAgentFromUrl ?? ''}
+            data-active-agent={selectedAgent}
+            data-thread-count={threads.length}
         >
             <SidebarHeader className="border-b border-border/50 px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -211,374 +107,138 @@ export function MainSidebar() {
                     <h2 className="text-base font-bold tracking-tight text-foreground/90">
                         <button
                             type="button"
-                            onClick={handleLogoClick}
-                            className="hover:text-primary transition-colors"
+                            onClick={() => {
+                                router.push('/chat')
+                            }}
+                            className="transition-colors hover:text-primary"
                         >
                             AgentStack
                         </button>
                     </h2>
                 </div>
             </SidebarHeader>
+
             <SidebarContent className="px-2">
                 <SidebarGroup>
                     <SidebarGroupLabel className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
-                        Navigation
+                        Agents
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/mcp-a2a')
-                                    }
-                                >
-                                    <NetworkIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        MCP / A2A
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
+                        {agentsResult.isLoading ? (
+                            <div className="flex items-center justify-center py-6">
+                                <Loader2Icon className="size-4 animate-spin text-muted-foreground/40" />
+                            </div>
+                        ) : agents.length === 0 ? (
+                            <div className="px-4 py-3 text-xs text-muted-foreground/50 italic">
+                                No agents found
+                            </div>
+                        ) : (
+                            <SidebarMenu className="space-y-0.5">
+                                {agents.map((agent) => (
+                                    <SidebarMenuItem key={agent.id}>
+                                        {(() => {
+                                            const provider =
+                                                typeof agent.provider === 'string'
+                                                    ? agent.provider
+                                                    : ''
+                                            const modelId =
+                                                typeof agent.modelId === 'string'
+                                                    ? agent.modelId
+                                                    : ''
+                                            const subtitle =
+                                                provider.length > 0 &&
+                                                modelId.length > 0
+                                                    ? `${provider} • ${modelId}`
+                                                    : agent.description ??
+                                                      'Agent ready'
 
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/build')
-                                    }
-                                >
-                                    <WrenchIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Agent Builder
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/build')
-                                    }
-                                >
-                                    <WrenchIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Agent Builder
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/dataset')
-                                    }
-                                >
-                                    <DatabaseIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Dataset Manager
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/observability')
-                                    }
-                                >
-                                    <EyeIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Observability
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/logs')
-                                    }
-                                >
-                                    <ScrollTextIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Logs
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <SidebarMenuItem>
-                                <SidebarMenuButton
-                                    className="hover:bg-muted/50 transition-all duration-200"
-                                    onClick={() =>
-                                        handleNavClick('/chat/workspaces')
-                                    }
-                                >
-                                    <FolderTreeIcon className="mr-2 size-4 text-primary/70" />
-                                    <span className="font-medium">
-                                        Workspaces
-                                    </span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-
-                            <Collapsible
-                                open={openSection === 'agents'}
-                                onOpenChange={() => toggleSection('agents')}
-                                className="group/collapsible"
-                            >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton className="hover:bg-muted/50 transition-all duration-200">
-                                            <BotIcon className="mr-2 size-4 text-primary/70" />
-                                            <span className="font-medium">
-                                                All Agents
-                                            </span>
-                                            <ChevronRightIcon className="ml-auto size-3.5 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub className="border-l border-border/50 ml-6 mt-1 space-y-0.5">
-                                            {loading ? (
-                                                <div className="flex items-center justify-center py-4">
-                                                    <Loader2Icon className="size-4 animate-spin text-muted-foreground/40" />
-                                                </div>
-                                            ) : error ? (
-                                                <div className="px-2 py-2 text-xs text-destructive/80">
-                                                    {error?.message}
-                                                </div>
-                                            ) : agentsData.length === 0 ? (
-                                                <div className="px-2 py-2 text-xs text-muted-foreground/50 italic">
-                                                    No agents found
-                                                </div>
-                                            ) : (
-                                                agentsData.map(
-                                                    (agent: Agent) => (
-                                                        <SidebarMenuSubItem
-                                                            key={agent.id}
-                                                        >
-                                                            <Tooltip>
-                                                                <TooltipTrigger
-                                                                    asChild
-                                                                >
-                                                                    <SidebarMenuSubButton
-                                                                        isActive={
-                                                                            selectedAgent ===
-                                                                            agent.id
-                                                                        }
-                                                                        onClick={() =>
-                                                                            handleAgentClick(
-                                                                                agent.id
-                                                                            )
-                                                                        }
-                                                                        className={cn(
-                                                                            'w-full text-xs cursor-pointer transition-all duration-200',
-                                                                            selectedAgent ===
-                                                                                agent.id
-                                                                                ? 'bg-primary/10 text-primary font-medium'
-                                                                                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                                                                        )}
-                                                                    >
-                                                                        <span className="truncate">
-                                                                            {
-                                                                                agent.name
-                                                                            }
-                                                                        </span>
-                                                                    </SidebarMenuSubButton>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent
-                                                                    side="right"
-                                                                    align="start"
-                                                                    sideOffset={
-                                                                        15
-                                                                    }
-                                                                    className="w-72 p-0 bg-popover/95 backdrop-blur-md border border-border/50 shadow-2xl rounded-2xl overflow-hidden"
-                                                                >
-                                                                    <div className="flex flex-col">
-                                                                        {/* Header section with brand-like feel */}
-                                                                        <div className="bg-muted/50 p-4 border-b border-border/50">
-                                                                            <h3 className="font-bold text-sm tracking-tight text-foreground">
-                                                                                {
-                                                                                    agent.name
-                                                                                }
-                                                                            </h3>
-                                                                            {!!(
-                                                                                agent.provider ??
-                                                                                agent.modelId
-                                                                            ) && (
-                                                                                <div className="mt-1.5 flex items-center gap-2">
-                                                                                    <div className="flex h-5 items-center rounded-md border border-primary/20 bg-primary/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-primary">
-                                                                                        <CpuIcon className="mr-1 size-3" />
-                                                                                        <span>
-                                                                                            {Boolean(
-                                                                                                agent.provider
-                                                                                            ) &&
-                                                                                                `${agent.provider} • `}
-                                                                                            {
-                                                                                                agent.modelId
-                                                                                            }
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-
-                                                                        {/* Description section */}
-                                                                        <div className="p-4 pt-3">
-                                                                            {agent.description ? (
-                                                                                <div className="space-y-2">
-                                                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
-                                                                                        Capabilities
-                                                                                    </span>
-                                                                                    <p className="text-xs leading-relaxed text-muted-foreground">
-                                                                                        {
-                                                                                            agent.description
-                                                                                        }
-                                                                                    </p>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <p className="text-xs italic text-muted-foreground/60 leading-relaxed">
-                                                                                    Specialized
-                                                                                    AI
-                                                                                    assistant
-                                                                                    ready
-                                                                                    to
-                                                                                    help
-                                                                                    with
-                                                                                    your
-                                                                                    task.
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </SidebarMenuSubItem>
-                                                    )
-                                                )
+                                            return (
+                                        <SidebarMenuButton
+                                            isActive={selectedAgent === agent.id}
+                                            onClick={() => {
+                                                handleAgentClick(agent.id)
+                                            }}
+                                            className={cn(
+                                                'w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
+                                                selectedAgent === agent.id
+                                                    ? 'bg-primary/10 text-primary font-medium'
+                                                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
                                             )}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        </SidebarMenu>
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-primary/10 p-1 text-primary/80">
+                                                <BotIcon className="size-3.5" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="truncate text-sm font-medium">
+                                                    {agent.name}
+                                                </div>
+                                                <div className="truncate text-[11px] text-muted-foreground/70">
+                                                    {subtitle}
+                                                </div>
+                                            </div>
+                                        </SidebarMenuButton>
+                                            )
+                                        })()}
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        )}
                     </SidebarGroupContent>
                 </SidebarGroup>
 
                 <SidebarGroup>
                     <SidebarGroupLabel className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
-                        Resources
+                        Current Threads
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
-                        <SidebarMenu>
-                            <Collapsible
-                                open={openSection === 'workflows'}
-                                onOpenChange={() => toggleSection('workflows')}
-                                className="group/collapsible"
-                            >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton className="hover:bg-muted/50 transition-all duration-200">
-                                            <WorkflowIcon className="mr-2 size-4 text-primary/70" />
-                                            <span className="font-medium">
-                                                Workflows
-                                            </span>
-                                            <ChevronRightIcon className="ml-auto size-3.5 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub className="border-l border-border/50 ml-6 mt-1 space-y-0.5">
-                                            {workflows.map((wf) => (
-                                                <SidebarMenuSubItem key={wf.id}>
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-pointer hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200">
-                                                        <span className="truncate">
-                                                            {wf.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
+                        {threadsResult.isLoading ? (
+                            <div className="flex items-center justify-center py-6">
+                                <Loader2Icon className="size-4 animate-spin text-muted-foreground/40" />
+                            </div>
+                        ) : threads.length === 0 ? (
+                            <div className="px-4 py-3 text-xs text-muted-foreground/50 italic">
+                                No threads for this agent yet
+                            </div>
+                        ) : (
+                            <SidebarMenu className="space-y-0.5">
+                                {threads.map((thread) => {
+                                    const currentThreadId = getThreadId(thread)
+                                    if (!currentThreadId) {
+                                        return null
+                                    }
 
-                            <Collapsible
-                                open={openSection === 'tools'}
-                                onOpenChange={() => toggleSection('tools')}
-                                className="group/collapsible"
-                            >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton className="hover:bg-muted/50 transition-all duration-200">
-                                            <CpuIcon className="mr-2 size-4 text-primary/70" />
-                                            <span className="font-medium">
-                                                Tools
-                                            </span>
-                                            <ChevronRightIcon className="ml-auto size-3.5 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub className="border-l border-border/50 ml-6 mt-1 space-y-0.5">
-                                            {tools.map((tool) => (
-                                                <SidebarMenuSubItem
-                                                    key={tool.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-pointer hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200">
-                                                        <span className="truncate">
-                                                            {tool.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                                    const label = getThreadLabel(thread)
+                                    const meta = formatThreadMeta(thread)
 
-                <SidebarGroup>
-                    <SidebarGroupLabel className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">
-                        Observability
-                    </SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            <Collapsible
-                                open={openSection === 'traces'}
-                                onOpenChange={() => toggleSection('traces')}
-                                className="group/collapsible"
-                            >
-                                <SidebarMenuItem>
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton className="hover:bg-muted/50 transition-all duration-200">
-                                            <ActivityIcon className="mr-2 size-4 text-primary/70" />
-                                            <span className="font-medium">
-                                                Recent Traces
-                                            </span>
-                                            <ChevronRightIcon className="ml-auto size-3.5 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub className="border-l border-border/50 ml-6 mt-1 space-y-0.5">
-                                            {traces.map((trace) => (
-                                                <SidebarMenuSubItem
-                                                    key={trace.id}
-                                                >
-                                                    <SidebarMenuSubButton className="w-full text-xs cursor-pointer hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200">
-                                                        <span className="truncate">
-                                                            {trace.name}
-                                                        </span>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
-                        </SidebarMenu>
+                                    return (
+                                        <SidebarMenuItem key={currentThreadId}>
+                                            <SidebarMenuButton
+                                                isActive={threadId === currentThreadId}
+                                                onClick={() => {
+                                                    handleThreadClick(currentThreadId)
+                                                }}
+                                                className={cn(
+                                                    'w-full cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
+                                                    'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                                                )}
+                                            >
+                                                <div className="mt-0.5 rounded-md bg-primary/10 p-1 text-primary/80">
+                                                    <MessageSquareIcon className="size-3.5" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="truncate text-sm font-medium">
+                                                        {label}
+                                                    </div>
+                                                    <div className="truncate text-[11px] text-muted-foreground/70">
+                                                        {meta || currentThreadId}
+                                                    </div>
+                                                </div>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    )
+                                })}
+                            </SidebarMenu>
+                        )}
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
@@ -588,16 +248,15 @@ export function MainSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             variant="default"
-                            className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all duration-300 active:scale-[0.98] font-semibold h-10 rounded-xl"
+                            className="h-10 w-full justify-center rounded-xl bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 active:scale-[0.98]"
                             onClick={() => {
-                                const agentId =
-                                    selectedAgent ?? agentsData[0]?.id
+                                const agentId = selectedAgent || agents[0]?.id
                                 if (!agentId) {
                                     return
                                 }
                                 handleAgentClick(agentId)
                             }}
-                            disabled={!selectedAgent && agentsData.length === 0}
+                            disabled={!selectedAgent && agents.length === 0}
                         >
                             <PlusIcon className="mr-2 size-4" />
                             New Thread

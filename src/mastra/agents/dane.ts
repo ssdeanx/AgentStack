@@ -7,10 +7,9 @@ import {
 import type { RequestContext } from '@mastra/core/request-context'
 import { pgMemory } from '../config'
 import type { AgentRequestContext } from './request-context'
-import { scrapingSchedulerTool, webScraperTool } from '../tools'
+import { fetchTool, scrapingSchedulerTool } from '../tools'
 import { browserTool } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
-import { execaTool } from '../tools/execa-tool'
 
 export type DaneContext = AgentRequestContext
 
@@ -246,8 +245,8 @@ export const dane = new Agent({
     Makes you a powerful agent capable of listing events on a calendar. When using this tool ONLY RETURN RELEVANT EVENTS.
     DO NOT ATTEMPT TO DO ANYTHING MORE.
 
-    ## webScraperTool
-    Makes you a powerful agent capable of scraping web pages. Use this tool to get information from web pages.
+    ## fetchTool
+    Makes you a powerful agent capable of fetching data from web pages. Use this tool to get information from web pages.
 
     ## scrapingSchedulerTool
     Makes you a powerful agent capable of scheduling web scraping tasks. Use this tool to schedule scraping jobs for later execution.
@@ -272,9 +271,8 @@ export const dane = new Agent({
   model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
   tools: {
-    execaTool,
     browserTool,
-    webScraperTool,
+    fetchTool,
     listEvents,
     scrapingSchedulerTool,
   },

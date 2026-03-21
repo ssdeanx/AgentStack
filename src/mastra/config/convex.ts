@@ -5,14 +5,14 @@ import { Memory } from '@mastra/memory'
 
 const storageCon = new ConvexStore({
     id: 'convex-storage',
-    deploymentUrl: process.env.CONVEX_URL!,
-    adminAuthToken: process.env.CONVEX_ADMIN_KEY!,
+    deploymentUrl: process.env.CONVEX_URL ?? '',
+    adminAuthToken: process.env.CONVEX_ADMIN_KEY ?? '',
 })
 
 const vectorCon = new ConvexVector({
     id: 'convex-vectors',
-    deploymentUrl: process.env.CONVEX_URL!,
-    adminAuthToken: process.env.CONVEX_ADMIN_KEY!,
+    deploymentUrl: process.env.CONVEX_URL ?? '',
+    adminAuthToken: process.env.CONVEX_ADMIN_KEY ?? '',
 })
 
 export const convexMemory = new Memory({

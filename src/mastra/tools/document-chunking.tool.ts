@@ -204,8 +204,8 @@ Use this tool when you need advanced document processing with metadata extractio
     }) => {
         log.info('Mastra chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted ?? false,
+            messageCount: messages.length,
+            aborted: abortSignal.aborted,
             hook: 'onInputStart',
         })
     },
@@ -218,8 +218,8 @@ Use this tool when you need advanced document processing with metadata extractio
         log.info('Mastra chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted ?? false,
+            messageCount: messages.length,
+            aborted: abortSignal.aborted,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
@@ -234,22 +234,21 @@ Use this tool when you need advanced document processing with metadata extractio
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
-            messageCount: messages?.length ?? 0,
-            aborted: abortSignal?.aborted ?? false,
+            messageCount: messages.length,
+            aborted: abortSignal.aborted,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const tracingContext: TracingContext | undefined = context.tracingContext
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal.aborted) {
             throw new Error('Mastra chunker cancelled')
         }
 
@@ -277,7 +276,7 @@ Use this tool when you need advanced document processing with metadata extractio
                 extractKeywords: inputData.extractKeywords,
                 extractQuestions: inputData.extractQuestions,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'mastra-chunker',
@@ -340,20 +339,6 @@ Use this tool when you need advanced document processing with metadata extractio
                                 ['##', 'section'],
                             ] as Array<[string, string]>,
                         }
-                    case 'html':
-                        return {
-                            strategy: 'html' as const,
-                            ...baseParams,
-                            headers: [
-                                ['h1', 'title'],
-                                ['h2', 'section'],
-                            ] as Array<[string, string]>,
-                        }
-                    case 'json':
-                        return {
-                            strategy: 'json' as const,
-                            ...baseParams,
-                        }
                     case 'latex':
                         return {
                             strategy: 'latex' as const,
@@ -397,16 +382,16 @@ Use this tool when you need advanced document processing with metadata extractio
             ) {
                 Object.assign(extractParams, inputData.extract as ExtractParams)
             }
-            if (inputData.extractTitle ?? false) {
+            if (inputData.extractTitle === true) {
                 extractParams.title = true
             }
-            if (inputData.extractSummary ?? false) {
+            if (inputData.extractSummary === true) {
                 extractParams.summary = true
             }
-            if (inputData.extractKeywords ?? false) {
+            if (inputData.extractKeywords === true) {
                 extractParams.keywords = true
             }
-            if (inputData.extractQuestions ?? false) {
+            if (inputData.extractQuestions === true) {
                 extractParams.questions = true
             }
 
@@ -430,12 +415,12 @@ Use this tool when you need advanced document processing with metadata extractio
 
             // Prepare output chunks
             const outputChunks = chunks.map((chunk, index) => ({
-                text: chunk.text ?? '',
+                text: chunk.text,
                 metadata: {
                     ...chunk.metadata,
                     chunkIndex: index,
                     totalChunks: chunks.length,
-                    documentId: `doc_${Date.now()}_${index}`,
+                    documentId: `doc_${String(Date.now())}_${String(index)}`,
                     chunkingStrategy,
                     chunkSize,
                     chunkOverlap,
@@ -457,23 +442,23 @@ Use this tool when you need advanced document processing with metadata extractio
             return output
         } catch (error) {
             const processingTime = Date.now() - startTime
-            const errorMessage =
+            const safeError =
                 error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+                    ? error
+                    : new Error('Unknown error occurred')
 
-            logError('mastra-chunker', error, {
+            logError('mastra-chunker', safeError, {
                 inputData,
                 processingTimeMs: processingTime,
             })
 
             // Record error in tracing span
             span?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: safeError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw safeError
         } finally {
             span?.end()
         }
@@ -537,7 +522,7 @@ content indexing, or semantic search capabilities.
     }) => {
         log.info('MDocument chunker tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messageCount: messages.length,
             aborted: abortSignal?.aborted ?? false,
             hook: 'onInputStart',
         })
@@ -551,7 +536,7 @@ content indexing, or semantic search capabilities.
         log.info('MDocument chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages?.length ?? 0,
+            messageCount: messages.length,
             aborted: abortSignal?.aborted ?? false,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
@@ -568,16 +553,15 @@ content indexing, or semantic search capabilities.
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             generateEmbeddings: input.generateEmbeddings,
-            messageCount: messages?.length ?? 0,
+            messageCount: messages.length,
             aborted: abortSignal?.aborted ?? false,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const tracingContext: TracingContext | undefined = context.tracingContext
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
@@ -612,7 +596,7 @@ content indexing, or semantic search capabilities.
                 chunkSize,
                 generateEmbeddings: inputData.generateEmbeddings,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'mdocument-chunker',
@@ -744,12 +728,15 @@ content indexing, or semantic search capabilities.
                     ...chunk.metadata,
                     chunkIndex: index,
                     totalChunks: chunks.length,
-                    documentId: `doc_${Date.now()}_${index}`,
+                    documentId: `doc_${String(Date.now())}_${String(index)}`,
                     chunkingStrategy,
                     chunkSize,
                     chunkOverlap,
                 },
-                id: String(chunk.metadata?.id ?? `chunk_${Date.now()}_${randomUUID()}`),
+                id:
+                    typeof chunk.metadata.id === 'string'
+                        ? chunk.metadata.id
+                        : `chunk_${String(Date.now())}_${randomUUID()}`,
             }))
 
             let embeddingGenerated = false
@@ -757,7 +744,7 @@ content indexing, or semantic search capabilities.
 
             // Generate embeddings if requested
             if ((inputData.generateEmbeddings ?? false) && chunksForProcessing.length > 0) {
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'in-progress',
@@ -804,10 +791,14 @@ content indexing, or semantic search capabilities.
                     logStepStart('embeddings-generated', {
                         embeddingCount: embeddings.length,
                         embeddingTimeMs: embeddingTime,
-                        dimension: embeddings[0]?.length || 0,
+                        dimension: embeddings[0].length,
                     })
                 } catch (embedError) {
-                    logError('mdocument-chunker-embeddings', embedError, {
+                    const safeError =
+                        embedError instanceof Error
+                            ? embedError
+                            : new Error('Unknown error occurred')
+                    logError('mdocument-chunker-embeddings', safeError, {
                         embeddingBatchSize,
                     })
                     // fall back to no embeddings so chunks are still returned
@@ -818,7 +809,7 @@ content indexing, or semantic search capabilities.
 
             // Store chunks in PgVector if embeddings were generated
             if (embeddingGenerated && embeddings.length > 0) {
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'in-progress',
@@ -833,19 +824,20 @@ content indexing, or semantic search capabilities.
                 try {
                     await pgVector.createIndex({
                         indexName,
-                        dimension: embeddings[0]?.length || 0,
+                        dimension: embeddings[0].length,
                     })
                 } catch (idxErr) {
                     log.info('createIndex skipped or failed', {
-                        error: (idxErr as Error)?.message ?? idxErr,
+                        error:
+                            idxErr instanceof Error
+                                ? idxErr.message
+                                : String(idxErr),
                     })
                 }
 
                 // Ensure chunk ids are stable and unique
                 // Ensure ids are present and sanitize metadata
-                const allIds = chunksForProcessing.map(
-                    (chunk) => String(chunk.id ?? `chunk_${Date.now()}_${randomUUID()}`)
-                )
+                const allIds = chunksForProcessing.map((chunk) => chunk.id)
                 const sanitizedMetadata = chunksForProcessing.map((chunk) => ({
                     ...sanitizeMetadata(chunk.metadata),
                     text: chunk.text,
@@ -902,7 +894,7 @@ content indexing, or semantic search capabilities.
                 chunkCount: chunks.length,
                 totalTextLength: inputData.documentContent.length,
                 chunks: chunksForProcessing.map((chunk) => ({
-                    id: String(chunk.id),
+                    id: chunk.id,
                     text: chunk.text,
                     metadata: chunk.metadata,
                     embeddingGenerated,
@@ -912,11 +904,11 @@ content indexing, or semantic search capabilities.
 
             logStepEnd('mdocument-chunker', output, totalProcessingTime)
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Processed ${chunks.length} chunks successfully`,
+                    message: `✅ Processed ${String(chunks.length)} chunks successfully`,
                     stage: 'mdocument:chunker',
                 },
                 id: 'mdocument:chunker',
@@ -924,23 +916,23 @@ content indexing, or semantic search capabilities.
             return output
         } catch (error) {
             const processingTime = Date.now() - startTime
-            const errorMessage =
+            const safeError =
                 error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+                    ? error
+                    : new Error('Unknown error occurred')
 
-            logError('mdocument-chunker', error, {
+            logError('mdocument-chunker', safeError, {
                 inputData,
                 processingTimeMs: processingTime,
             })
 
             // Record error in tracing span
             span?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: safeError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw safeError
         } finally {
             span?.end()
         }
@@ -997,7 +989,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         // Optional metadata filter (MongoDB/Sift-style)
         filter: z.record(z.string(), z.any()).optional(),
         includeVector: z.boolean().default(false),
-        rerankModel: z.string().default('google/gemini-2.5-flash'),
+        rerankModel: z.string().default('google/gemini-3.1-flash-lite'),
     }),
     outputSchema: z.object({
         success: z.boolean(),
@@ -1016,7 +1008,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Document reranker tool input streaming started', {
             toolCallId,
-            messageCount: messages?.length ?? 0,
+            messageCount: messages.length,
             aborted: abortSignal?.aborted ?? false,
             hook: 'onInputStart',
         })
@@ -1027,7 +1019,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             userQuery: input.userQuery,
             indexName: input.indexName,
             topK: input.topK,
-            messageCount: messages?.length ?? 0,
+            messageCount: messages.length,
             aborted: abortSignal?.aborted ?? false,
             hook: 'onInputAvailable',
         })
@@ -1043,7 +1035,10 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         })
     },
     execute: async (inputData, context) => {
-        await context?.writer?.custom({
+        const writer = context.writer
+        const tracingContext = context.tracingContext
+
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
@@ -1062,10 +1057,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         const semanticWeight = inputData.semanticWeight ?? 0.5
         const vectorWeight = inputData.vectorWeight ?? 0.3
         const positionWeight = inputData.positionWeight ?? 0.2
-        const rerankModel = inputData.rerankModel ?? 'google/gemini-2.5-flash'
+        const rerankModel = inputData.rerankModel ?? 'google/gemini-3.1-flash-lite'
 
         // Use the existing tracing context if available to create a child span.
-        const tracingContext = context?.tracingContext
         const span = tracingContext?.currentSpan?.createChildSpan({
             type: SpanType.TOOL_CALL,
             name: 'document-reranker',
@@ -1083,7 +1077,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
         try {
             // Step 1: Generate embedding for user query
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -1124,7 +1118,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             }
 
             // Step 2: Retrieve initial results from PgVector (supports metadata filters)
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
@@ -1152,7 +1146,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
             if (initialResults.length === 0) {
                 const processingTime = Date.now() - startTime
-                await context?.writer?.custom({
+                await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         status: 'done',
@@ -1171,11 +1165,11 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             // Create a relevance scorer
 
             // Step 3: Re-rank results using semantic relevance scorer
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'in-progress',
-                    message: `⚖️ Reranking ${initialResults.length} documents`,
+                    message: `⚖️ Reranking ${String(initialResults.length)} documents`,
                     stage: 'document:reranker',
                 },
                 id: 'document:reranker',
@@ -1185,10 +1179,9 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 initialResults.map((result) => ({
                     id: result.id,
                     text:
-                        (result.metadata?.text as string) ??
-                        (typeof result.metadata?.text === 'undefined'
-                            ? ''
-                            : String(result.metadata?.text)),
+                        typeof result.metadata?.text === 'string'
+                            ? result.metadata.text
+                            : '',
                     metadata: result.metadata,
                     score: result.score || 0,
                 })),
@@ -1216,18 +1209,15 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             // Step 4: Format output with ranking information
             const rerankedDocuments = rerankedResults.map((r, index) => ({
                 // RerankResult contains a nested `result` object; use that id when available
-                id: r.result?.id ?? `rerank_${index}`,
+                id: r.result.id,
                 // The returned document text may be in `result.document` or inside metadata.text
                 text:
-                    (typeof r.result?.document === 'string'
+                    typeof r.result.document === 'string'
                         ? r.result.document
-                        : undefined) ??
-                    (typeof (r.result as { text?: unknown })?.text === 'string'
-                        ? (r.result as unknown as { text: string }).text
-                        : undefined) ??
-                    (r.result?.metadata?.text as string) ??
-                    '',
-                metadata: r.result?.metadata ?? {},
+                        : typeof r.result.metadata?.text === 'string'
+                          ? r.result.metadata.text
+                          : '',
+                metadata: r.result.metadata ?? {},
                 // Use the top-level score returned by the reranker
                 relevanceScore: r.score,
                 rank: index + 1,
@@ -1244,11 +1234,11 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
 
             logStepEnd('document-reranker', output, totalProcessingTime)
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Reranking complete. Returning top ${rerankedDocuments.length} results`,
+                    message: `✅ Reranking complete. Returning top ${String(rerankedDocuments.length)} results`,
                     stage: 'document:reranker',
                 },
                 id: 'document:reranker',
@@ -1256,22 +1246,22 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
             return output
         } catch (error) {
             const processingTime = Date.now() - startTime
-            const errorMessage =
+            const safeError =
                 error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+                    ? error
+                    : new Error('Unknown error occurred')
 
-            logError('document-reranker', error, {
+            logError('document-reranker', safeError, {
                 userQuery: inputData.userQuery,
                 processingTimeMs: processingTime,
             })
 
             span?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: safeError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw safeError
         } finally {
             span?.end()
         }

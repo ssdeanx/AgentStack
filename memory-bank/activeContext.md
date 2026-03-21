@@ -1,3 +1,66 @@
+## Active Context Update (2026-03-20 - chat sidebar trace drawer + hook cleanup)
+
+- `app/chat/components/chat-sidebar.tsx`
+  - replaced the minimal trace list with clickable, professional-looking trace cards
+  - added a right-side detail drawer for traces that shows status, duration, timestamps, lineage, attributes, and all events
+  - trace detail content is modeled after the existing observability sheet so the UI feels consistent across chat and observability views
+- `app/components/networks-list.tsx`
+  - removed the deprecated `useMastraQuery` wrapper import and switched to direct `useAgents`
+- `app/components/tools-list.tsx`
+  - removed the deprecated `useMastraQuery` wrapper import and switched to direct `useTools`
+- `app/components/workflows-list.tsx`
+  - removed the deprecated `useMastraQuery` wrapper import and switched to direct `useWorkflows`
+- Validation:
+  - `get_errors` is clean for `chat-sidebar.tsx`, `networks-list.tsx`, `tools-list.tsx`, and `workflows-list.tsx`
+
+## Active Context Update (2026-03-20 - Mastra supervisor/fetch/doc-chunker lint cleanup)
+
+- `src/mastra/agents/supervisor-agent.ts`
+  - async callbacks now include real awaits
+  - `onDelegationStart` / `onDelegationComplete` use structured logging and keep delegation behavior intact
+  - `context.bail()` is called as a standalone statement before an awaited boundary
+- `src/mastra/tools/fetch.tool.ts`
+  - replaced the static `ValidationUtils` class with a top-level `validateUrl` helper
+  - removed redundant `String(...)` coercions and unnecessary optional chaining on guaranteed values
+  - converted numeric template literals and `catch` callbacks to lint-safe forms
+- `src/mastra/tools/document-chunking.tool.ts`
+  - normalized `unknown` errors before `logError(...)`, span recording, and rethrowing
+  - fixed unsafe context access and template-literal diagnostics in chunking/reranking progress paths
+  - removed the remaining lint-triggering type assertions in the reranker text extraction flow
+- Validation:
+  - `npx eslint "src/mastra/agents/supervisor-agent.ts" "src/mastra/tools/document-chunking.tool.ts" "src/mastra/tools/fetch.tool.ts" --max-warnings=0` passed with exit code `0`
+
+## Active Context Update (2026-03-20 - chat sidebar / route hook cleanup)
+
+- `app/chat/components/main-sidebar.tsx` now only lists agents plus the current agent's threads.
+- `app/chat/components/chat-sidebar.tsx` now imports direct Mastra hooks instead of the removed `useMastraQuery` factory.
+- Updated chat route pages to use direct hook imports:
+  - `app/chat/dataset/page.tsx`
+  - `app/chat/build/page.tsx`
+  - `app/chat/logs/page.tsx`
+  - `app/chat/observability/page.tsx`
+  - `app/chat/mcp-a2a/page.tsx`
+  - `app/chat/workspaces/page.tsx`
+- Added new chat route pages:
+  - `app/chat/tools/page.tsx`
+  - `app/chat/workflows/page.tsx`
+- Validation:
+  - `get_errors` clean for the edited sidebar files and the new route pages.
+
+## Active Context Update (2026-03-19 - ESLint strict config recovery)
+
+- Repaired the broken ESLint refactor by reverting to a production-safe flat config that matches the installed package shapes.
+- Current lint stack now uses:
+  - `eslint-config-next/core-web-vitals` for Next.js/React/Next plugin rules
+  - `typescript-eslint` strict type-checked + stylistic type-checked configs for TypeScript source
+  - `eslint-config-prettier/flat` to keep formatting out of ESLint
+  - `includeIgnoreFile(.gitignore)` plus explicit global ignores for docs, memory-bank, hidden AI folders, markdown, and other non-source content
+- Removed the earlier over-broad lint surface that caused markdown / hidden-folder diagnostics.
+- Added workspace-level VS Code ESLint settings to restrict validation/probing to JS/TS only and silence ignored-file warnings.
+- Validation:
+  - `npx eslint eslint.config.js --max-warnings=0` passed
+  - `.vscode/settings.json` JSON parsed successfully
+
 ## Active Context Update (2026-03-18 - landing GSAP/SVG runtime fix)
 
 - Fixed two landing-page runtime issues surfaced from `app/page.tsx`:

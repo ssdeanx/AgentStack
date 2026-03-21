@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import {
+    useLogTransports,
+    useLogs,
+} from '@/lib/hooks/use-mastra-query'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Card, CardContent } from '@/ui/card'
@@ -113,8 +116,6 @@ function safeStr(value: unknown, fallback = ''): string {
 }
 
 export default function LogsPage() {
-    const { useLogs, useLogTransports } = useMastraQuery()
-
     const [selectedTransport, setSelectedTransport] = useState<string>('')
     const [activeLevels, setActiveLevels] = useState<Set<LogLevel>>(
         new Set(LOG_LEVELS)
@@ -136,7 +137,7 @@ export default function LogsPage() {
         ...(activeLevels.size < LOG_LEVELS.length
             ? { level: Array.from(activeLevels).join(',') }
             : {}),
-    } as Parameters<ReturnType<typeof useMastraQuery>['useLogs']>[0])
+    } as Parameters<typeof useLogs>[0])
 
     const rawLogs = useMemo<LogRecord[]>(() => {
         const data: unknown = logsResult.data

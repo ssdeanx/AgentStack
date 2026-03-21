@@ -1,5 +1,5 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
+import { pgMemory, pgQueryTool } from '../config'
 import { arxivTool } from '../tools/arxiv.tool'
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import {
@@ -16,7 +16,6 @@ import {
 } from '../tools/data-processing-tools'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
-import { execaTool } from '../tools/execa-tool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import {
     getFileContent,
@@ -26,19 +25,13 @@ import {
 } from '../tools/github'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
 import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import {
-    batchWebScraperTool,
-    contentCleanerTool,
-    htmlToMarkdownTool,
-    linkExtractorTool,
-    webScraperTool,
-} from '../tools/web-scraper-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
+import { fetchTool } from '../tools'
 
 export type ACPContext = AgentRequestContext<{
     userRole?: string
@@ -92,11 +85,7 @@ User: ${userId} | Role: ${roleConstraint}
     memory: pgMemory,
     tools: {
         pgQueryTool,
-        webScraperTool,
-        linkExtractorTool,
-        htmlToMarkdownTool,
-        contentCleanerTool,
-        batchWebScraperTool,
+        fetchTool,
         mdocumentChunker,
         evaluateResultTool,
         extractLearningsTool,
@@ -113,7 +102,6 @@ User: ${userId} | Role: ${roleConstraint}
         moveDataFileTool,
         getDataFileInfoTool,
         createDataDirTool,
-        execaTool,
         searchCode,
         getFileContent,
         getRepositoryInfo,

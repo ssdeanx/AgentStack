@@ -1,7 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import {
+    useSandboxFiles,
+    useSandboxReadFile,
+    useWorkspaceSearch,
+    useWorkspaceSkills,
+    useWorkspaces,
+} from '@/lib/hooks/use-mastra-query'
 import {
     FileTree,
     FileTreeFile,
@@ -78,14 +84,6 @@ const splitNodes = (files: WorkspaceFileNode[]) => {
 }
 
 export default function WorkspacesPage() {
-    const {
-        useWorkspaces,
-        useSandboxFiles,
-        useSandboxReadFile,
-        useWorkspaceSkills,
-        useWorkspaceSearch,
-    } = useMastraQuery()
-
     const workspacesResult = useWorkspaces()
     const workspaces = workspacesResult.data?.workspaces ?? []
 
@@ -107,9 +105,9 @@ export default function WorkspacesPage() {
 
         const recordPayload = payload as Record<string, unknown>
         const candidate =
-            (recordPayload.entries as unknown[]) ??
-            (recordPayload.items as unknown[]) ??
-            (recordPayload.files as unknown[]) ??
+            (Array.isArray(recordPayload.entries) ? recordPayload.entries : undefined) ??
+            (Array.isArray(recordPayload.items) ? recordPayload.items : undefined) ??
+            (Array.isArray(recordPayload.files) ? recordPayload.files : undefined) ??
             []
 
         if (!Array.isArray(candidate)) {
@@ -212,7 +210,7 @@ export default function WorkspacesPage() {
                             setSelectedFilePath('')
                         }}
                     >
-                        <SelectTrigger className="w-[200px] h-9 text-sm bg-card/50 border-white/10">
+                        <SelectTrigger className="w-50 h-9 text-sm bg-card/50 border-white/10">
                             <SelectValue placeholder="Select workspace" />
                         </SelectTrigger>
                         <SelectContent>
@@ -311,7 +309,7 @@ export default function WorkspacesPage() {
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); }}
                     placeholder="Search files..."
                     className="pl-9 h-9 text-sm bg-card/50 border-white/10"
                 />
@@ -372,7 +370,7 @@ export default function WorkspacesPage() {
                                             {Array.from({ length: 8 }).map(
                                                 (_, i) => (
                                                     <Skeleton
-                                                        key={`skel-${i}`}
+                                                        key={`skel-${String(i)}`}
                                                         className="h-6 w-full"
                                                     />
                                                 )
@@ -429,7 +427,7 @@ export default function WorkspacesPage() {
                                                 <BreadcrumbLink
                                                     className="text-xs cursor-pointer"
                                                     onClick={() =>
-                                                        setSelectedFilePath('')
+                                                        { setSelectedFilePath(''); }
                                                     }
                                                 >
                                                     {activeWorkspaceName}
@@ -473,7 +471,7 @@ export default function WorkspacesPage() {
                                         {Array.from({ length: 12 }).map(
                                             (_, i) => (
                                                 <Skeleton
-                                                    key={`code-skel-${i}`}
+                                                    key={`code-skel-${String(i)}`}
                                                     className="h-4 w-full"
                                                 />
                                             )
@@ -529,7 +527,7 @@ export default function WorkspacesPage() {
                                             {Array.from({ length: 4 }).map(
                                                 (_, i) => (
                                                     <Skeleton
-                                                        key={`skill-skel-${i}`}
+                                                        key={`skill-skel-${String(i)}`}
                                                         className="h-16 w-full"
                                                     />
                                                 )
@@ -549,15 +547,15 @@ export default function WorkspacesPage() {
                                     ) : (
                                         skills.map((skill, idx) => (
                                             <Card
-                                                key={`${skill.name ?? 'skill'}-${idx}`}
+                                                key={`${skill.name || 'skill'}-${String(idx)}`}
                                                 className="border-white/5 bg-card/30 hover:bg-white/5 transition-colors duration-200"
                                             >
                                                 <CardContent className="p-3">
                                                     <div className="flex items-start justify-between">
                                                         <div className="min-w-0 flex-1">
                                                             <p className="text-sm font-medium truncate">
-                                                                {skill.name ??
-                                                                    `Skill ${idx + 1}`}
+                                                                {skill.name ||
+                                                                    `Skill ${String(idx + 1)}`}
                                                             </p>
                                                             {typeof skill.description ===
                                                                 'string' &&

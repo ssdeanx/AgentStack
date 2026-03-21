@@ -7,15 +7,14 @@ import {
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { AgentRequestContext } from './request-context'
-import { googleAI, googleAIFlashLite, pgMemory } from '../config'
+import { pgMemory } from '../config'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { scrapingSchedulerTool, webScraperTool } from '../tools'
+import { fetchTool, scrapingSchedulerTool } from '../tools'
 import { chartJsTool } from '../tools/chartjs.tool'
 import { cytoscapeTool } from '../tools/cytoscape.tool'
 import { downsampleTool } from '../tools/downsample.tool'
-import { execaTool } from '../tools/execa-tool'
 import {
   chartDataProcessorTool,
   chartGeneratorTool,
@@ -38,7 +37,6 @@ import {
   searchCode,
 } from '../tools/github'
 import { leafletTool } from '../tools/leaflet.tool'
-import { resilientFetchTool } from '../tools/resilient-fetch.tool'
 import {
   candlestickPatternTool,
   fibonacciTool,
@@ -124,13 +122,11 @@ Rules and best practices:
     chartTypeAdvisorTool,
     chartJsTool,
     downsampleTool,
-    resilientFetchTool,
     // Spatial & network visualization
     leafletTool,
     cytoscapeTool,
     // Repo & system helpers
-    execaTool,
-    webScraperTool,
+    fetchTool,
     scrapingSchedulerTool,
     // Market data
     finnhubQuotesTool,
@@ -282,7 +278,7 @@ export const fetchAgent = new Agent({
   }),
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
-  tools: { resilientFetchTool },
+  tools: { fetchTool },
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
@@ -375,9 +371,7 @@ Rules:
   memory: pgMemory,
   tools: {
     cytoscapeTool,
-    resilientFetchTool,
-    execaTool,
-    webScraperTool,
+    fetchTool,
     scrapingSchedulerTool,
     // GitHub tools
     listRepositories,
@@ -438,8 +432,7 @@ Rules:
   model: "google/gemini-3.1-flash-lite-preview",
   memory: pgMemory,
   tools: {
-    resilientFetchTool,
-    execaTool,
+    fetchTool,
     // GitHub tools
     listRepositories,
     getRepoFileTree,
@@ -456,14 +449,3 @@ Rules:
   //     autoResumeSuspendedTools: true,
   //  },
 })
-
-export default {
-  graphSupervisorAgent,
-  technicalAnalysisAgent,
-  chartJsAgent,
-  mappingAgent,
-  fetchAgent,
-  finnhubAgent,
-  codeGraphAgent,
-  codeMetricsAgent,
-}

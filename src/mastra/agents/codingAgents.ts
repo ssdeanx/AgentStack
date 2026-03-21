@@ -34,7 +34,6 @@ import {
   writeFile,
   writeFiles,
 } from '../tools/e2b'
-import { execaTool } from '../tools/execa-tool'
 import { findReferencesTool } from '../tools/find-references.tool'
 import { findSymbolTool } from '../tools/find-symbol.tool'
 import {
@@ -88,7 +87,6 @@ const codeReviewerTools = {
 const testEngineerTools = {
   codeAnalysisTool,
   testGeneratorTool,
-  execaTool,
   createSandbox,
   runCommand,
   runCode,

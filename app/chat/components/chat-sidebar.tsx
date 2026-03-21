@@ -1,12 +1,36 @@
 'use client'
 
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import {
+    useAgent,
+    useAgentEnhanceInstructionsMutation,
+    useAgents,
+    useMemoryStatus,
+    useThreads,
+    useTools,
+    useTraces,
+    useVectorIndexes,
+    useWorkflows,
+    useProcessors,
+    useScorers,
+    useStoredSkills,
+    useWorkspaceSkills,
+    useWorkspaces,
+} from '@/lib/hooks/use-mastra-query'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
 import { ScrollArea, ScrollBar } from '@/ui/scroll-area'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/ui/sheet'
+import { Separator } from '@/ui/separator'
+import {
+    CodeBlock,
+    CodeBlockActions,
+    CodeBlockCopyButton,
+    CodeBlockHeader,
+    CodeBlockTitle,
+} from '@/src/components/ai-elements/code-block'
 import {
     BotIcon,
     CpuIcon,
@@ -26,9 +50,8 @@ import {
     ActivityIcon,
     LayersIcon,
     Loader2Icon,
-    ScrollTextIcon,
 } from 'lucide-react'
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { CATEGORY_LABELS } from '../config/agents'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +64,147 @@ type TabKey =
     | 'vectors'
     | 'memory'
     | 'config'
+
+type TraceRecord = Record<string, unknown>
+
+const TRACE_STATUS_COLORS: Record<string, string> = {
+    ok: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    error: 'bg-red-500/15 text-red-400 border-red-500/20',
+    unset: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/20',
+}
+
+function normalizeCollection(value: unknown): string[] {
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => {
+                if (typeof item === 'string') {
+                    return item
+                }
+
+                if (isRecord(item)) {
+                    return safeString(
+                        item.name ??
+                            item.id ??
+                            item.label ??
+                            item.title ??
+                            item.key,
+                        ''
+                    )
+                }
+
+                return ''
+            })
+            .filter((item) => item.length > 0)
+    }
+
+    if (isRecord(value)) {
+        return Object.values(value)
+            .map((item) => {
+                if (typeof item === 'string') {
+                    return item
+                }
+
+                if (isRecord(item)) {
+                    return safeString(
+                        item.name ??
+                            item.id ??
+                            item.label ??
+                            item.title ??
+                            item.key,
+                        ''
+                    )
+                }
+
+                return ''
+            })
+            .filter((item) => item.length > 0)
+    }
+
+    return []
+}
+
+function isRecord(value: unknown): value is TraceRecord {
+    return typeof value === 'object' && value !== null
+}
+
+function safeString(value: unknown, fallback = '—'): string {
+    if (typeof value === 'string' && value.trim().length > 0) {
+        return value
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value)
+    }
+    if (typeof value === 'boolean') {
+        return value ? 'true' : 'false'
+    }
+    if (value === null || value === undefined) {
+        return fallback
+    }
+    if (isRecord(value)) {
+        try {
+            return JSON.stringify(value)
+        } catch {
+            return fallback
+        }
+    }
+    return fallback
+}
+
+function formatTimestamp(value: unknown): string {
+    if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value)
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            })
+        }
+    }
+    return '—'
+}
+
+function formatDuration(startValue: unknown, endValue: unknown): string {
+    if (typeof startValue === 'number' && typeof endValue === 'number') {
+        const diffMs = (endValue - startValue) / 1e6
+        if (diffMs < 1000) {
+            return `${String(Math.round(diffMs))}ms`
+        }
+        return (diffMs / 1000).toFixed(2) + 's'
+    }
+
+    if (
+        (typeof startValue === 'string' || typeof startValue === 'number') &&
+        (typeof endValue === 'string' || typeof endValue === 'number')
+    ) {
+        const startMs = new Date(startValue).getTime()
+        const endMs = new Date(endValue).getTime()
+        if (!Number.isNaN(startMs) && !Number.isNaN(endMs)) {
+            const diffMs = endMs - startMs
+            if (diffMs < 1000) {
+                return `${String(diffMs)}ms`
+            }
+            return (diffMs / 1000).toFixed(2) + 's'
+        }
+    }
+
+    return '—'
+}
+
+function traceStatusClass(status: unknown): string {
+    return TRACE_STATUS_COLORS[safeString(status, 'unset').toLowerCase()] ??
+        TRACE_STATUS_COLORS.unset
+}
+
+function getTraceEvents(trace: TraceRecord): TraceRecord[] {
+    if (!Array.isArray(trace.events)) {
+        return []
+    }
+
+    return trace.events.filter(isRecord)
+}
 
 export function ChatSidebar() {
     const {
@@ -59,19 +223,9 @@ export function ChatSidebar() {
     const [memorySearchQuery, setMemorySearchQuery] = useState('')
     const [instructions, setInstructions] = useState('')
     const [isEditingInstructions, setIsEditingInstructions] = useState(false)
+    const [selectedTrace, setSelectedTrace] = useState<TraceRecord | null>(null)
+    const [traceSheetOpen, setTraceSheetOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<TabKey>('threads')
-
-    const {
-        useAgents,
-        useTools,
-        useWorkflows,
-        useTraces,
-        useThreads,
-        useVectorIndexes,
-        useMemoryStatus,
-        useAgent,
-        useAgentEnhanceInstructionsMutation,
-    } = useMastraQuery()
 
     // Queries (avoid unsafe destructuring of error-typed values)
     const agentsQuery = useAgents()
@@ -111,20 +265,59 @@ export function ChatSidebar() {
     const agents = agentsQuery.data ?? []
     const loadingAgents = agentsQuery.isLoading
 
-    const tools = toolsQuery.data ?? []
+    const tools = useMemo(() => toolsQuery.data ?? [], [toolsQuery.data])
     const loadingTools = toolsQuery.isLoading
 
-    const workflows = workflowsQuery.data ?? []
+    const workflows = useMemo(
+        () => workflowsQuery.data ?? [],
+        [workflowsQuery.data]
+    )
     const loadingWorkflows = workflowsQuery.isLoading
 
     const tracesRes: unknown = tracesQuery.data
     const loadingTraces = tracesQuery.isLoading
+    const traceError = tracesQuery.error
 
     const threads = threadsQuery.data ?? []
     const loadingThreads = threadsQuery.isLoading
 
     const vectors = vectorsQuery.data ?? []
     const loadingVectors = vectorsQuery.isLoading
+
+    const workspacesQuery = useWorkspaces()
+    const workspaceSkillsQuery = useWorkspaceSkills(resourceId)
+    const storedSkillsQuery = useStoredSkills()
+    const processorsQuery = useProcessors()
+    const scorersQuery = useScorers()
+
+    const workspaceLabels = useMemo(
+        () => normalizeCollection(workspacesQuery.data),
+        [workspacesQuery.data]
+    )
+    const workspaceSkillLabels = useMemo(
+        () => normalizeCollection(workspaceSkillsQuery.data),
+        [workspaceSkillsQuery.data]
+    )
+    const storedSkillLabels = useMemo(
+        () => normalizeCollection(storedSkillsQuery.data),
+        [storedSkillsQuery.data]
+    )
+    const processorLabels = useMemo(
+        () => normalizeCollection(processorsQuery.data),
+        [processorsQuery.data]
+    )
+    const scorerLabels = useMemo(
+        () => normalizeCollection(scorersQuery.data),
+        [scorersQuery.data]
+    )
+    const toolLabels = useMemo(() => normalizeCollection(tools), [tools])
+    const workflowLabels = useMemo(
+        () => normalizeCollection(workflows),
+        [workflows]
+    )
+
+    const workspaceName =
+        workspaceLabels[0] ?? safeString(resourceId, 'Current workspace')
 
 
     const memoryStatusRes = memoryStatusQuery.data
@@ -136,27 +329,35 @@ export function ChatSidebar() {
     const { mutate: enhanceInstructions, isPending: isEnhancing } =
         useAgentEnhanceInstructionsMutation(selectedAgent)
 
-    useEffect(() => {
+    const agentInstructions = useMemo(() => {
         if (
-            typeof agentDetails === 'object' &&
-            agentDetails !== null &&
-            'instructions' in agentDetails
+            typeof agentDetails !== 'object' ||
+            agentDetails === null ||
+            !('instructions' in agentDetails)
         ) {
-            const instructionsValue = (agentDetails as { instructions?: unknown })
-                .instructions
-            const content =
-                typeof instructionsValue === 'string'
-                    ? instructionsValue
-                    : typeof instructionsValue === 'object' &&
-                        instructionsValue !== null &&
-                        'content' in instructionsValue &&
-                        typeof (instructionsValue as { content?: unknown })
-                            .content === 'string'
-                      ? (instructionsValue as { content: string }).content
-                      : ''
-            setInstructions(content)
+            return ''
         }
+
+        const instructionsValue = (agentDetails as { instructions?: unknown })
+            .instructions
+        if (typeof instructionsValue === 'string') {
+            return instructionsValue
+        }
+        if (
+            typeof instructionsValue === 'object' &&
+            instructionsValue !== null &&
+            'content' in instructionsValue &&
+            typeof (instructionsValue as { content?: unknown }).content === 'string'
+        ) {
+            return (instructionsValue as { content: string }).content
+        }
+        return ''
     }, [agentDetails])
+
+    const openInstructionsEditor = useCallback(() => {
+        setInstructions(agentInstructions)
+        setIsEditingInstructions(true)
+    }, [agentInstructions])
 
     const handleUpdateInstructions = () => {
         enhanceInstructions(
@@ -170,14 +371,21 @@ export function ChatSidebar() {
         )
     }
 
-    const traces = useMemo<unknown[]>(() => {
+    const traces = useMemo<TraceRecord[]>(() => {
         const raw: unknown = tracesRes
-        if (raw === null || raw === undefined || typeof raw !== 'object') {
+        if (!isRecord(raw)) {
             return []
         }
-        const {spans} = raw as { spans?: unknown }
-        return Array.isArray(spans) ? (spans as unknown[]) : []
+        const spans = raw.spans
+        return Array.isArray(spans)
+            ? spans.filter(isRecord)
+            : []
     }, [tracesRes])
+
+    const openTraceDrawer = useCallback((trace: TraceRecord) => {
+        setSelectedTrace(trace)
+        setTraceSheetOpen(true)
+    }, [])
 
     const memoryStatus = useMemo(() => memoryStatusRes, [memoryStatusRes])
 
@@ -186,7 +394,7 @@ export function ChatSidebar() {
         setResourceId(tempResourceId)
     }, [tempThreadId, tempResourceId, setThreadId, setResourceId])
 
-    if (agentConfig === null || agentConfig === undefined) {
+    if (!agentConfig) {
         return null
     }
 
@@ -217,19 +425,6 @@ export function ChatSidebar() {
         },
     ]
 
-    const levelColor = (level: string) => {
-        switch (level.toLowerCase()) {
-            case 'error':
-                return 'text-red-400'
-            case 'warn':
-                return 'text-amber-400'
-            case 'debug':
-                return 'text-blue-400'
-            default:
-                return 'text-emerald-400'
-        }
-    }
-
     return (
         <aside className="group relative flex h-full w-full flex-col overflow-hidden border-l bg-card/30 shadow-2xl transition-all duration-300 backdrop-blur-3xl">
             {/* Glossy top highlight */}
@@ -238,7 +433,7 @@ export function ChatSidebar() {
 
             <Tabs
                 value={activeTab}
-                onValueChange={(v) => setActiveTab(v as TabKey)}
+                onValueChange={(v) => { setActiveTab(v as TabKey); }}
                 className="flex flex-col flex-1 overflow-hidden"
             >
                 <div className="px-4 py-3 border-b border-white/5 bg-white/5 backdrop-blur-xl shrink-0">
@@ -309,144 +504,290 @@ export function ChatSidebar() {
                         value="threads"
                         className="flex flex-col m-0 data-[state=inactive]:hidden"
                     >
-                        <div className="p-4 border-b border-white/5 bg-white/5">
-                            <div className="flex items-center gap-2 mb-2">
-                                <BotIcon className="size-4 text-primary" />
-                                <h3 className="font-semibold text-sm text-foreground">
-                                    Agent Details
-                                </h3>
-                            </div>
-                            <div className="space-y-3">
-                                <div>
-                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
-                                        Name
-                                    </div>
-                                    <div className="text-sm font-medium text-foreground">
-                                        {agentConfig?.name}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
-                                        Category
+                        <div className="space-y-4 p-4">
+                            <div className="rounded-2xl border border-white/5 bg-linear-to-br from-primary/10 via-card to-transparent p-4 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <BotIcon className="size-4 text-primary" />
+                                            <h3 className="truncate text-sm font-semibold text-foreground">
+                                                {agentConfig.name}
+                                            </h3>
+                                        </div>
+                                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                                            {agentConfig.description}
+                                        </p>
                                     </div>
                                     <Badge
                                         variant="outline"
-                                        className="text-[10px] uppercase tracking-wider border-primary/20 bg-primary/5 text-primary"
+                                        className="font-mono text-[10px] text-muted-foreground"
+                                    >
+                                        {safeString(agentConfig.id, 'agent')}
+                                    </Badge>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Badge
+                                        variant="outline"
+                                        className="border-primary/20 bg-primary/5 text-[10px] uppercase tracking-wider text-primary"
                                     >
                                         {CATEGORY_LABELS[agentConfig.category]}
                                     </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {memoryStatusRes ? 'Memory On' : 'Memory Off'}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {threads.length} Threads
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {toolLabels.length} Tools
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                                        {workflowLabels.length} Workflows
+                                    </Badge>
                                 </div>
-                                <div>
-                                    <div className="text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-tight opacity-70">
-                                        Description
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <InfoIcon className="size-3.5 text-primary" />
+                                        Workspace
                                     </div>
-                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                        {agentConfig?.description}
+                                    <div className="space-y-1 text-xs">
+                                        <div className="font-medium text-foreground">{workspaceName}</div>
+                                        <div className="text-muted-foreground">Resource: {resourceId || '—'}</div>
+                                        <div className="text-muted-foreground">Workspaces: {workspaceLabels.length}</div>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-1.5">
+                                        {workspaceLabels.slice(0, 4).map((label) => (
+                                            <Badge key={label} variant="secondary" className="text-[10px]">
+                                                {label}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <BrainIcon className="size-3.5 text-primary" />
+                                        Skills
+                                    </div>
+                                    <div className="space-y-2 text-xs">
+                                        <div>
+                                            <div className="text-muted-foreground">Workspace skills</div>
+                                            <div className="mt-1 flex flex-wrap gap-1.5">
+                                                {workspaceSkillLabels.length > 0 ? (
+                                                    workspaceSkillLabels.slice(0, 5).map((label) => (
+                                                        <Badge key={label} variant="secondary" className="text-[10px]">
+                                                            {label}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-muted-foreground">No workspace skills</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted-foreground">Stored skills</div>
+                                            <div className="mt-1 flex flex-wrap gap-1.5">
+                                                {storedSkillLabels.length > 0 ? (
+                                                    storedSkillLabels.slice(0, 5).map((label) => (
+                                                        <Badge key={label} variant="secondary" className="text-[10px]">
+                                                            {label}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-muted-foreground">No stored skills</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <CpuIcon className="size-3.5 text-primary" />
+                                        Tools
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {toolLabels.length > 0 ? (
+                                            toolLabels.slice(0, 10).map((label) => (
+                                                <Badge key={label} variant="secondary" className="text-[10px]">
+                                                    {label}
+                                                </Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">No tools available</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <WorkflowIcon className="size-3.5 text-primary" />
+                                        Workflows
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {workflowLabels.length > 0 ? (
+                                            workflowLabels.slice(0, 10).map((label) => (
+                                                <Badge key={label} variant="secondary" className="text-[10px]">
+                                                    {label}
+                                                </Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">No workflows available</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <SettingsIcon className="size-3.5 text-primary" />
+                                        Processors
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {processorLabels.length > 0 ? (
+                                            processorLabels.slice(0, 8).map((label) => (
+                                                <Badge key={label} variant="secondary" className="text-[10px]">
+                                                    {label}
+                                                </Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">No processors available</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <ActivityIcon className="size-3.5 text-primary" />
+                                        Scorers
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {scorerLabels.length > 0 ? (
+                                            scorerLabels.slice(0, 8).map((label) => (
+                                                <Badge key={label} variant="secondary" className="text-[10px]">
+                                                    {label}
+                                                </Badge>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">No scorers available</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3 md:col-span-2 xl:col-span-1">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <InfoIcon className="size-3.5 text-primary" />
+                                        Capabilities
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {features.map((feature) => (
+                                            <div
+                                                key={feature.id}
+                                                className={cn(
+                                                    'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium transition-all duration-300',
+                                                    feature.enabled
+                                                        ? 'border-primary/20 bg-primary/5 text-primary'
+                                                        : 'border-transparent bg-muted/50 text-muted-foreground opacity-60'
+                                                )}
+                                            >
+                                                {feature.enabled ? (
+                                                    <CheckCircle2Icon className="size-3" />
+                                                ) : (
+                                                    <CircleIcon className="size-3" />
+                                                )}
+                                                {feature.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-white/5 bg-card/50 p-3 md:col-span-2 xl:col-span-3">
+                                    <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                                        <HistoryIcon className="size-3.5 text-primary" />
+                                        System Prompt
+                                    </div>
+                                    <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border border-white/5 bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                                        {instructions || 'No agent instructions configured yet.'}
+                                    </pre>
+                                </div>
+                            </div>
+
+                            </div>
+
+                        <div className="p-4 border-b flex-1 overflow-y-auto">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <HistoryIcon className="size-4 text-primary" />
+                                    <h3 className="font-semibold text-sm">
+                                        History
+                                    </h3>
+                                </div>
+                                <Badge
+                                    variant="secondary"
+                                    className="h-5 px-1.5 text-[10px]"
+                                >
+                                    {checkpoints.length}
+                                </Badge>
+                            </div>
+                            {checkpoints.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                    <BookmarkIcon className="size-8 text-muted/20 mb-2" />
+                                    <p className="text-xs text-muted-foreground">
+                                        No checkpoints yet
                                     </p>
                                 </div>
-                            </div>
-                        </div>
-
-                    <div className="p-4 border-b">
-                        <div className="flex items-center gap-2 mb-3">
-                            <InfoIcon className="size-4 text-primary" />
-                            <h3 className="font-semibold text-sm">
-                                Capabilities
-                            </h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            {features.map((feature) => (
-                                <div
-                                    key={feature.id}
-                                    className={cn(
-                                        'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium transition-all duration-300 bento-item p-2',
-                                        feature.enabled
-                                            ? 'bg-primary/5 border-primary/20 text-primary'
-                                            : 'bg-muted/50 border-transparent text-muted-foreground opacity-60'
-                                    )}
-                                >
-                                    {feature.enabled ? (
-                                        <CheckCircle2Icon className="size-3" />
-                                    ) : (
-                                        <CircleIcon className="size-3" />
-                                    )}
-                                    {feature.label}
+                            ) : (
+                                <div className="space-y-2">
+                                    {checkpoints.map((checkpoint) => (
+                                        <button
+                                            key={checkpoint.id}
+                                            onClick={() => {
+                                                restoreCheckpoint(checkpoint.id)
+                                            }}
+                                            className="group flex w-full flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-all hover:border-primary/50 hover:shadow-sm"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-medium truncate">
+                                                    {checkpoint.label ??
+                                                        `Checkpoint ${String(checkpoint.messageCount)}`}
+                                                </span>
+                                                <HistoryIcon className="size-3 text-muted-foreground group-hover:text-primary" />
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                                <span>
+                                                    {checkpoint.timestamp.toLocaleTimeString()}
+                                                </span>
+                                                <span>
+                                                    {checkpoint.messageCount} msgs
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            )}
 
-                    <div className="p-4 border-b flex-1 overflow-y-auto">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <HistoryIcon className="size-4 text-primary" />
-                                <h3 className="font-semibold text-sm">
-                                    History
-                                </h3>
+                            <div className="mb-2 flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">
+                                    Threads: {threads.length}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={onRefreshThreads}
+                                    className="h-7 text-xs"
+                                    disabled={loadingThreads}
+                                >
+                                    {loadingThreads ? (
+                                        <Loader2Icon className="size-3 animate-spin" />
+                                    ) : (
+                                        'Refresh Threads'
+                                    )}
+                                </Button>
                             </div>
-                            <Badge
-                                variant="secondary"
-                                className="h-5 px-1.5 text-[10px]"
-                            >
-                                {checkpoints.length}
-                            </Badge>
                         </div>
-                        {checkpoints.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-center">
-                                <BookmarkIcon className="size-8 text-muted/20 mb-2" />
-                                <p className="text-xs text-muted-foreground">
-                                    No checkpoints yet
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {checkpoints.map((checkpoint) => (
-                                    <button
-                                        key={checkpoint.id}
-                                        onClick={() =>
-                                            restoreCheckpoint(checkpoint.id)
-                                        }
-                                        className="group flex w-full flex-col gap-1 rounded-lg border bg-card p-2 text-left transition-all hover:border-primary/50 hover:shadow-sm"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-medium truncate">
-                                                {checkpoint.label ??
-                                                    `Checkpoint ${checkpoint.messageCount}`}
-                                            </span>
-                                            <HistoryIcon className="size-3 text-muted-foreground group-hover:text-primary" />
-                                        </div>
-                                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                            <span>
-                                                {checkpoint.timestamp.toLocaleTimeString()}
-                                            </span>
-                                            <span>
-                                                {checkpoint.messageCount} msgs
-                                            </span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="mb-2 flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                                Threads: {threads.length}
-                            </span>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onRefreshThreads}
-                                className="h-7 text-xs"
-                                disabled={loadingThreads}
-                            >
-                                {loadingThreads ? (
-                                    <Loader2Icon className="size-3 animate-spin" />
-                                ) : (
-                                    'Refresh Threads'
-                                )}
-                            </Button>
-                        </div>
-                    </div>
                 </TabsContent>
 
                 {/* ──── Agents Tab ──── */}
@@ -494,8 +835,7 @@ export function ChatSidebar() {
                                             <span className="text-xs font-medium">
                                                 {agent.name}
                                             </span>
-                                            {agent.modelId !== null &&
-                                                agent.modelId !== undefined &&
+                                            {typeof agent.modelId === 'string' &&
                                                 agent.modelId !== '' && (
                                                 <Badge
                                                     variant="secondary"
@@ -505,8 +845,7 @@ export function ChatSidebar() {
                                                 </Badge>
                                             )}
                                         </div>
-                                        {agent.description !== null &&
-                                            agent.description !== undefined &&
+                                        {typeof agent.description === 'string' &&
                                             agent.description !== '' && (
                                             <p className="text-[10px] text-muted-foreground line-clamp-2">
                                                 {agent.description}
@@ -621,8 +960,7 @@ export function ChatSidebar() {
                                                 {workflow.name}
                                             </span>
                                         </div>
-                                        {workflow.description !== null &&
-                                            workflow.description !== undefined &&
+                                        {typeof workflow.description === 'string' &&
                                             workflow.description !== '' && (
                                             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
                                                 {workflow.description}
@@ -665,45 +1003,87 @@ export function ChatSidebar() {
                             <div className="flex items-center justify-center py-8">
                                 <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
                             </div>
+                        ) : traceError ? (
+                            <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+                                Unable to load traces: {safeString(traceError.message)}
+                            </div>
                         ) : traces.length === 0 ? (
                             <p className="text-xs text-muted-foreground">
                                 No traces available
                             </p>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {traces.map((trace, idx) => (
-                                    <div
+                                    <button
                                         key={
-                                            typeof (trace as { spanId?: unknown })
-                                                .spanId === 'string'
-                                                ? ((trace as { spanId: string })
-                                                      .spanId)
-                                                : String(idx)
+                                            safeString(
+                                                trace.spanId ?? trace.id ?? idx,
+                                                String(idx)
+                                            )
                                         }
-                                        className="rounded-md border bg-card p-2"
+                                        type="button"
+                                        onClick={() => {
+                                            openTraceDrawer(trace)
+                                        }}
+                                        className="group w-full rounded-xl border border-white/5 bg-card/50 p-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:shadow-lg"
                                     >
-                                        <div className="text-xs font-medium truncate">
-                                            {typeof (trace as { name?: unknown }).name ===
-                                            'string'
-                                                ? ((trace as { name: string }).name)
-                                                : ''}
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <ActivityIcon className="size-3.5 text-primary" />
+                                                    <div className="truncate text-xs font-semibold text-foreground">
+                                                        {safeString(trace.name, 'Trace')}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground/80">
+                                                    {safeString(
+                                                        trace.spanId ?? trace.id ?? idx,
+                                                        `trace-${String(idx + 1)}`
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'text-[10px] uppercase tracking-widest',
+                                                    traceStatusClass(trace.status)
+                                                )}
+                                            >
+                                                {safeString(trace.status, 'unset')}
+                                            </Badge>
                                         </div>
-                                        <div className="flex items-center justify-between mt-1">
-                                            <span className="text-[10px] text-muted-foreground">
-                                                {typeof (
-                                                    trace as {
-                                                        startedAt?: unknown
-                                                    }
-                                                ).startedAt === 'string'
-                                                    ? new Date(
-                                                          (trace as {
-                                                              startedAt: string
-                                                          }).startedAt
-                                                      ).toLocaleString()
-                                                    : ''}
-                                            </span>
+                                        <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
+                                            <div>
+                                                <div className="uppercase tracking-widest text-muted-foreground/60">
+                                                    Duration
+                                                </div>
+                                                <div className="mt-0.5 font-medium text-foreground">
+                                                    {formatDuration(
+                                                        trace.startTime ?? trace.startedAt,
+                                                        trace.endTime ?? trace.endedAt
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="uppercase tracking-widest text-muted-foreground/60">
+                                                    Events
+                                                </div>
+                                                <div className="mt-0.5 font-medium text-foreground">
+                                                    {getTraceEvents(trace).length}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="uppercase tracking-widest text-muted-foreground/60">
+                                                    Started
+                                                </div>
+                                                <div className="mt-0.5 font-medium text-foreground">
+                                                    {formatTimestamp(
+                                                        trace.startTime ?? trace.startedAt
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         )}
@@ -760,7 +1140,7 @@ export function ChatSidebar() {
                                                     {vector.dimension}D
                                                 </span>
                                             )}
-                                            {vector.count !== undefined && (
+                                            {typeof vector.count === 'number' && (
                                                 <span className="text-[10px] text-muted-foreground">
                                                     {vector.count} vectors
                                                 </span>
@@ -814,7 +1194,7 @@ export function ChatSidebar() {
                             <Input
                                 value={memorySearchQuery}
                                 onChange={(e) =>
-                                    setMemorySearchQuery(e.target.value)
+                                    { setMemorySearchQuery(e.target.value); }
                                 }
                                 placeholder="Search memories..."
                                 className="pl-8 h-9 text-xs"
@@ -854,7 +1234,7 @@ export function ChatSidebar() {
                                 <Input
                                     value={tempThreadId}
                                     onChange={(e) =>
-                                        setTempThreadId(e.target.value)
+                                        { setTempThreadId(e.target.value); }
                                     }
                                     className="h-8 text-xs"
                                     placeholder="thread-123"
@@ -867,7 +1247,7 @@ export function ChatSidebar() {
                                 <Input
                                     value={tempResourceId}
                                     onChange={(e) =>
-                                        setTempResourceId(e.target.value)
+                                        { setTempResourceId(e.target.value); }
                                     }
                                     className="h-8 text-xs"
                                     placeholder="user-456"
@@ -911,7 +1291,7 @@ export function ChatSidebar() {
                                     <textarea
                                         value={instructions}
                                         onChange={(e) =>
-                                            setInstructions(e.target.value)
+                                            { setInstructions(e.target.value); }
                                         }
                                         disabled={!isEditingInstructions}
                                         className={cn(
@@ -926,9 +1306,7 @@ export function ChatSidebar() {
                                             size="sm"
                                             variant="secondary"
                                             className="absolute top-2 right-2 h-7 text-[10px]"
-                                            onClick={() =>
-                                                setIsEditingInstructions(true)
-                                            }
+                                            onClick={openInstructionsEditor}
                                         >
                                             Edit
                                         </Button>
@@ -1002,6 +1380,224 @@ export function ChatSidebar() {
                     </div>
                     <ScrollBar orientation="vertical" />
                 </ScrollArea>
+
+                <Sheet
+                    open={traceSheetOpen}
+                    onOpenChange={(open) => {
+                        setTraceSheetOpen(open)
+                        if (!open) {
+                            setSelectedTrace(null)
+                        }
+                    }}
+                >
+                    <SheetContent
+                        side="right"
+                        className="w-full sm:max-w-xl border-white/5 bg-background/95 backdrop-blur-2xl"
+                    >
+                        {selectedTrace && (
+                            <>
+                                <SheetHeader>
+                                    <SheetTitle className="text-base font-bold">
+                                        {safeString(selectedTrace.name, 'Trace Detail')}
+                                    </SheetTitle>
+                                    <SheetDescription className="text-xs text-muted-foreground">
+                                        Span ID:{' '}
+                                        <span className="font-mono">
+                                            {safeString(
+                                                selectedTrace.spanId ?? selectedTrace.id
+                                            )}
+                                        </span>
+                                    </SheetDescription>
+                                </SheetHeader>
+
+                                <ScrollArea className="mt-4 h-[calc(100vh-120px)]">
+                                    <div className="space-y-6 pr-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="rounded-lg border border-white/5 bg-card/30 p-3">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Status
+                                                </span>
+                                                <div className="mt-1">
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'text-xs font-bold',
+                                                            traceStatusClass(
+                                                                selectedTrace.status
+                                                            )
+                                                        )}
+                                                    >
+                                                        {safeString(
+                                                            selectedTrace.status,
+                                                            'unset'
+                                                        )}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg border border-white/5 bg-card/30 p-3">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Duration
+                                                </span>
+                                                <div className="mt-1 text-sm font-bold tabular-nums">
+                                                    {formatDuration(
+                                                        selectedTrace.startTime ??
+                                                            selectedTrace.startedAt,
+                                                        selectedTrace.endTime ??
+                                                            selectedTrace.endedAt
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg border border-white/5 bg-card/30 p-3">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Started
+                                                </span>
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    {formatTimestamp(
+                                                        selectedTrace.startTime ??
+                                                            selectedTrace.startedAt
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg border border-white/5 bg-card/30 p-3">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Ended
+                                                </span>
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    {formatTimestamp(
+                                                        selectedTrace.endTime ??
+                                                            selectedTrace.endedAt
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {(safeString(selectedTrace.traceId).length > 0 ||
+                                            safeString(selectedTrace.parentSpanId).length > 0) && (
+                                            <div className="space-y-2">
+                                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Lineage
+                                                </h4>
+                                                <div className="space-y-1 text-xs">
+                                                    {safeString(selectedTrace.traceId).length > 0 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-muted-foreground">
+                                                                Trace:
+                                                            </span>
+                                                            <span className="font-mono text-foreground/80">
+                                                                {safeString(selectedTrace.traceId)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {safeString(selectedTrace.parentSpanId).length > 0 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-muted-foreground">
+                                                                Parent:
+                                                            </span>
+                                                            <span className="font-mono text-foreground/80">
+                                                                {safeString(
+                                                                    selectedTrace.parentSpanId
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <Separator className="bg-white/5" />
+
+                                        <div>
+                                            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                Attributes
+                                            </h4>
+                                            <CodeBlock
+                                                code={JSON.stringify(
+                                                    selectedTrace.attributes ??
+                                                        selectedTrace,
+                                                    null,
+                                                    2
+                                                )}
+                                                language="json"
+                                                showLineNumbers
+                                            >
+                                                <CodeBlockHeader>
+                                                    <CodeBlockTitle>
+                                                        attributes.json
+                                                    </CodeBlockTitle>
+                                                    <CodeBlockActions>
+                                                        <CodeBlockCopyButton />
+                                                    </CodeBlockActions>
+                                                </CodeBlockHeader>
+                                            </CodeBlock>
+                                        </div>
+
+                                        {getTraceEvents(selectedTrace).length > 0 && (
+                                            <div className="space-y-3">
+                                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                                                    Events ({getTraceEvents(selectedTrace).length})
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    {getTraceEvents(selectedTrace).map((event, index) => (
+                                                        <div
+                                                            key={safeString(
+                                                                event.name ?? event.type ?? index,
+                                                                `event-${String(index)}`
+                                                            )}
+                                                            className="rounded-lg border border-white/5 bg-card/30 p-3"
+                                                        >
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-foreground">
+                                                                        {safeString(
+                                                                            event.name ??
+                                                                                event.type ??
+                                                                                `Event ${String(index + 1)}`,
+                                                                                `Event ${String(index + 1)}`
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="mt-1 text-[10px] text-muted-foreground">
+                                                                        {formatTimestamp(
+                                                                            event.timestamp ??
+                                                                                event.time ??
+                                                                                event.at
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
+                                                                    {safeString(
+                                                                        event.type ?? event.kind,
+                                                                        'event'
+                                                                    )}
+                                                                </Badge>
+                                                            </div>
+
+                                                            <div className="mt-3 overflow-hidden rounded-md border border-white/5">
+                                                                <CodeBlock
+                                                                    code={JSON.stringify(event, null, 2)}
+                                                                    language="json"
+                                                                    showLineNumbers
+                                                                >
+                                                                    <CodeBlockHeader>
+                                                                        <CodeBlockTitle>
+                                                                            event-{index + 1}.json
+                                                                        </CodeBlockTitle>
+                                                                        <CodeBlockActions>
+                                                                            <CodeBlockCopyButton />
+                                                                        </CodeBlockActions>
+                                                                    </CodeBlockHeader>
+                                                                </CodeBlock>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </ScrollArea>
+                            </>
+                        )}
+                    </SheetContent>
+                </Sheet>
             </Tabs>
         </aside>
     )

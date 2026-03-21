@@ -66,6 +66,14 @@ export const pgMemory = new Memory({
     storage: pgStore,
     vector: pgVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
+    embedderOptions: {
+        providerOptions: {
+             google: {
+                outputDimensions: 3072,
+                taskType: 'RETRIEVAL_DOCUMENT',
+            }
+        },
+    },
     options: {
         // Message management
          observationalMemory: {
@@ -202,7 +210,7 @@ export const pgQueryTool = createVectorQueryTool({
     enableFilter: true,
     includeSources: true,
      reranker: {
-      model: new ModelRouterLanguageModel('google/gemini-2.5-flash-lite-preview-09-2025'),
+      model: new ModelRouterLanguageModel('google/gemini-3.1-flash-lite-preview'),
       options: {
         weights: {
           semantic: 0.5, // Semantic relevance weight

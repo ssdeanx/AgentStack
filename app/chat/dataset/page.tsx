@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import {
+    useCreateDatasetMutation,
+    useDatasetExperimentResults,
+    useDatasetExperiments,
+    useDatasetItems,
+    useDatasets,
+    useDeleteDatasetMutation,
+} from '@/lib/hooks/use-mastra-query'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
@@ -98,15 +105,6 @@ function truncateJson(value: unknown, maxLen = 100): string {
 }
 
 export default function DatasetPage() {
-    const {
-        useDatasets,
-        useDatasetItems,
-        useDatasetExperiments,
-        useDatasetExperimentResults,
-        useCreateDatasetMutation,
-        useDeleteDatasetMutation,
-    } = useMastraQuery()
-
     const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(
         null
     )
@@ -263,10 +261,10 @@ export default function DatasetPage() {
     return (
         <div className="flex h-full min-h-0 gap-0">
             {/* Left Panel: Dataset List */}
-            <div className="w-[320px] min-w-[280px] flex flex-col border-r border-white/5 bg-card/20">
+            <div className="w-[320px] min-w-70 flex flex-col border-r border-white/5 bg-card/20">
                 <div className="p-4 border-b border-white/5">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <DatabaseIcon className="size-5" />
                         </div>
                         <div>
@@ -334,7 +332,7 @@ export default function DatasetPage() {
                                                 )
                                             }
                                             placeholder="Dataset description..."
-                                            className="min-h-[80px]"
+                                            className="min-h-20"
                                         />
                                     </div>
                                 </div>
@@ -575,14 +573,14 @@ export default function DatasetPage() {
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow className="border-white/5 hover:bg-transparent">
-                                                        <TableHead className="w-[40px]" />
+                                                        <TableHead className="w-10" />
                                                         <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
                                                             Input
                                                         </TableHead>
                                                         <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
                                                             Expected Output
                                                         </TableHead>
-                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-[120px]">
+                                                        <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-30">
                                                             Created
                                                         </TableHead>
                                                     </TableRow>
@@ -627,13 +625,13 @@ export default function DatasetPage() {
                                                                                         )}
                                                                                     />
                                                                                 </TableCell>
-                                                                                <TableCell className="text-xs max-w-[300px] truncate font-mono text-muted-foreground">
+                                                                                <TableCell className="text-xs max-w-75 truncate font-mono text-muted-foreground">
                                                                                     {truncateJson(
                                                                                         item.input,
                                                                                         80
                                                                                     )}
                                                                                 </TableCell>
-                                                                                <TableCell className="text-xs max-w-[300px] truncate font-mono text-muted-foreground">
+                                                                                <TableCell className="text-xs max-w-75 truncate font-mono text-muted-foreground">
                                                                                     {truncateJson(
                                                                                         item.expectedOutput ??
                                                                                             item.expected,
@@ -923,7 +921,7 @@ export default function DatasetPage() {
                                         <p className="text-sm text-muted-foreground">
                                             Version history
                                         </p>
-                                        <p className="text-xs text-muted-foreground/60 mt-1 max-w-[300px]">
+                                        <p className="text-xs text-muted-foreground/60 mt-1 max-w-75">
                                             Dataset snapshots and item change
                                             history will be displayed here when
                                             version tracking is enabled

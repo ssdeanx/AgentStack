@@ -7,7 +7,7 @@ import { Badge } from '@/ui/badge'
 import { Input } from '@/ui/input'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedRadarScan } from '@/app/components/gsap/svg-suite'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import { useAgents } from '@/lib/hooks/use-mastra-query'
 import type { Agent } from '@/lib/types/mastra-api'
 import {
     SearchIcon,
@@ -52,7 +52,6 @@ function selectNetworkIcon(id: string): typeof NetworkIcon {
 }
 
 export function NetworksList() {
-    const { useAgents } = useMastraQuery()
     const { data, isLoading: loading, error } = useAgents()
     const [search, setSearch] = useState('')
 
@@ -79,7 +78,7 @@ export function NetworksList() {
         <section className="container mx-auto px-4 py-24">
             <div className="mb-16">
                 <PublicPageHero
-                    badge={`${networks.length} Network Configurations`}
+                    badge={String(networks.length) + ' Network Configurations'}
                     title="Agent Networks"
                     description="Pre-configured networks for orchestrating multiple agents in complex workflows."
                     accent={AnimatedRadarScan}
@@ -94,7 +93,9 @@ export function NetworksList() {
                         placeholder="Search networks..."
                         className="h-12 pl-12 text-base"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value)
+                        }}
                     />
                 </div>
             </div>
@@ -142,7 +143,7 @@ export function NetworksList() {
                 ))}
             </div>
 
-            {Boolean(!loading && !error && filteredNetworks.length === 0) && (
+            {!loading && !error && filteredNetworks.length === 0 && (
                 <div className="mt-8 text-center text-sm text-muted-foreground">
                     No networks found.
                 </div>

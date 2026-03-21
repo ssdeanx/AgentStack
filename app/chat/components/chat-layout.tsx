@@ -30,7 +30,7 @@ export function ChatLayout() {
                         </div>
 
                         {!isFocusMode && (
-                            <div className="w-[380px] h-full border-l bg-card/30 backdrop-blur-xl overflow-hidden min-w-[380px] shrink-0">
+                            <div className="w-95 h-full border-l bg-card/30 backdrop-blur-xl overflow-hidden min-w-95 shrink-0">
                                 <ChatSidebar />
                             </div>
                         )}

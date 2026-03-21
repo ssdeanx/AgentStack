@@ -8,8 +8,7 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedHelixDna } from '@/app/components/gsap/svg-suite'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
-import type { Workflow as WorkflowType } from '@/lib/types/mastra-api'
+import { useWorkflows } from '@/lib/hooks/use-mastra-query'
 import {
     SearchIcon,
     PlayIcon,
@@ -49,24 +48,24 @@ function classifyWorkflowCategory(id: string): string {
     return 'General'
 }
 
-function workflowStepsCount(workflow: WorkflowType): number {
-    if (Array.isArray(workflow.steps)) {
-        return workflow.steps.length
+function workflowStepsCount(workflow: { steps?: unknown }): number {
+    const steps = workflow.steps
+    if (Array.isArray(steps)) {
+        return steps.length
     }
-    if (typeof workflow.steps === 'object') {
-        return Object.keys(workflow.steps).length
+
+    if (steps !== null && typeof steps === 'object') {
+        return Object.keys(steps).length
     }
     return 0
 }
 
 export function WorkflowsList() {
-    const { useWorkflows } = useMastraQuery()
     const { data, isLoading: loading, error } = useWorkflows()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
 
-    const workflows: WorkflowCard[] = (data ?? []).map(
-        (workflow: WorkflowType) => ({
+    const workflows: WorkflowCard[] = (data ?? []).map((workflow) => ({
             id: workflow.name,
             name: workflow.name,
             description:
@@ -94,7 +93,7 @@ export function WorkflowsList() {
         <section className="container mx-auto px-4 py-24">
             <div className="mb-16">
                 <PublicPageHero
-                    badge={`${workflows.length} Workflow Templates`}
+                    badge={String(workflows.length) + ' Workflow Templates'}
                     title="Workflows"
                     description="Pre-built workflow templates for common AI automation tasks. Customize and deploy in minutes."
                     accent={AnimatedHelixDna}
@@ -109,7 +108,9 @@ export function WorkflowsList() {
                         placeholder="Search workflows..."
                         className="h-14 pl-12 text-lg"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value)
+                        }}
                     />
                 </div>
 
@@ -123,7 +124,9 @@ export function WorkflowsList() {
                                     : 'outline'
                             }
                             className="cursor-pointer px-4 py-2 text-sm transition-all hover:scale-105"
-                            onClick={() => setSelectedCategory(category)}
+                            onClick={() => {
+                                setSelectedCategory(category)
+                            }}
                         >
                             {category}
                         </Badge>
@@ -243,7 +246,7 @@ export function WorkflowsList() {
                 ))}
             </div>
 
-            {Boolean(!loading && !error && filteredWorkflows.length === 0) && (
+            {!loading && !error && filteredWorkflows.length === 0 && (
                 <div className="py-24 text-center">
                     <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
                         <SearchIcon className="size-8 text-muted-foreground" />
@@ -257,11 +260,11 @@ export function WorkflowsList() {
                 </div>
             )}
 
-            {Boolean(error) && (
+            {error && (
                 <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                     <div className="flex items-center gap-2">
                         <AlertCircleIcon className="size-4" />
-                        Failed to load workflows from backend: {error?.message}
+                        Failed to load workflows from backend: {error.message}
                     </div>
                 </div>
             )}

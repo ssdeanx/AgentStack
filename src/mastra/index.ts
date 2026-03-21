@@ -147,6 +147,7 @@ import {
 } from './evals/scorers/custom-scorers'
 // Harness
 import { mainHarness } from './harness'
+import { supervisorAgent } from './agents/supervisor-agent'
 export const mastra = new Mastra({
    // workspace: mainWorkspace,
     workflows: {
@@ -170,6 +171,7 @@ export const mastra = new Mastra({
     agents: {
         // Core Agents
         weatherAgent,
+     //   supervisorAgent,
         csvToExcalidrawAgent,
         imageToCsvAgent,
         copywriterAgent,
