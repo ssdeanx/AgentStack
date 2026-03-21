@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions, GoogleLanguageModelOptions } from '@ai-sdk/google'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
@@ -8,11 +8,6 @@ import {
   createAnswerRelevancyScorer,
   createToxicityScorer,
 } from '@mastra/evals/scorers/prebuilt'
-import {
-  google3,
-  googleAI3,
-  googleAIFlashLite,
-} from '../config/google'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
@@ -20,20 +15,6 @@ import { pgMemory } from '../config/pg-storage'
 import { codeAnalysisTool } from '../tools/code-analysis.tool'
 import { codeSearchTool } from '../tools/code-search.tool'
 import { diffReviewTool } from '../tools/diff-review.tool'
-import {
-  checkFileExists,
-  createDirectory,
-  createSandbox,
-  deleteFile,
-  getFileInfo,
-  getFileSize,
-  listFiles,
-  runCode,
-  runCommand,
-  watchDirectory,
-  writeFile,
-  writeFiles,
-} from '../tools/e2b'
 import { findReferencesTool } from '../tools/find-references.tool'
 import { findSymbolTool } from '../tools/find-symbol.tool'
 import {
@@ -87,34 +68,13 @@ const codeReviewerTools = {
 const testEngineerTools = {
   codeAnalysisTool,
   testGeneratorTool,
-  createSandbox,
-  runCommand,
-  runCode,
-  writeFile,
-  writeFiles,
-  deleteFile,
-  listFiles,
-  getFileInfo,
-  getFileSize,
-  checkFileExists,
+
 }
 
 const refactoringTools = {
   codeAnalysisTool,
   diffReviewTool,
   multiStringEditTool,
-  createSandbox,
-  runCode,
-  runCommand,
-  writeFile,
-  writeFiles,
-  deleteFile,
-  listFiles,
-  getFileInfo,
-  getFileSize,
-  checkFileExists,
-  createDirectory,
-  watchDirectory,
   searchCode,
   getFileContent,
   getRepositoryInfo,
@@ -178,19 +138,19 @@ Always consider maintainability, scalability, and testability in your recommenda
           responseModalities: ['TEXT'],
           cachedContent:
             'Repo Name, Description, Key Modules, Recent Commits',
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
   model: ({ requestContext }) => {
     const userTier = getUserTierFromContext(requestContext)
-    return userTier === 'enterprise' ? googleAI3 : google3
+    return userTier === 'enterprise' ? 'google/gemini-3.1-flash-preview' : 'google/gemini-3.1-flash-lite-preview'
   },
   tools: codeArchitectTools,
   memory: pgMemory,
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.5 },
     },
   },
@@ -304,11 +264,11 @@ Be constructive and educational in feedback.`,
   },
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.5 },
     },
     safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
+      scorer: createToxicityScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.3 },
     },
   },
@@ -427,7 +387,7 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
   },
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.5 },
     },
   },
@@ -554,7 +514,7 @@ For each refactoring:
   },
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.5 },
     },
   },

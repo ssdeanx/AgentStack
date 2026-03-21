@@ -1,4 +1,4 @@
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
   createAnswerRelevancyScorer,
@@ -16,7 +16,6 @@ import { editorAgent } from '../agents/editorAgent'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
 import { projectManagementAgent } from '../agents/projectManagementAgent'
 import { researchAgent } from '../agents/researchAgent'
-import { googleAI, googleAIFlashLite } from '../config/google'
 import { pgMemory } from '../config/pg-storage'
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
@@ -96,15 +95,14 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
           thinkingConfig: {
             thinkingLevel: 'high',
             includeThoughts: true,
-            thinkingBudget: -1,
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
-  model: googleAI,
+  model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
   options: {},
   agents: {
@@ -128,11 +126,13 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
   tools: {},
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model:
+        'google/gemini-3.1-flash-lite-preview'
+       }),
       sampling: { type: 'ratio', rate: 0.4 },
     },
     safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
+      scorer: createToxicityScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.3 },
     },
   },

@@ -8,6 +8,8 @@ import { log } from '../config/logger'
 import { AgentFSFilesystem } from '@mastra/agentfs'
 //import { AgentFS } from 'agentfs-sdk'
 import { Workspace, LocalSandbox } from '@mastra/core/workspace';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
+import { google } from '../config'
 
 const workspace = new Workspace({
   filesystem: new AgentFSFilesystem({
@@ -49,7 +51,10 @@ Success criteria:
 - Final output is well-formatted and complete
 - If anything is missing or uncertain, continue gathering information`,
   model: 'opencode/minimax-m2.5-free',
-  tools: {libsqlgraphQueryTool, libsqlQueryTool},
+  tools: {libsqlgraphQueryTool, libsqlQueryTool,
+    google_search: google.tools.googleSearch({}),
+    url_context: google.tools.urlContext({}),
+  },
   agents: {
     researchAgent,
     copywriterAgent,
@@ -65,12 +70,21 @@ Success criteria:
     maxSteps: 25,
     providerOptions: {
       anthropic: {
+        sendReasoning: true,
+        thinking: {
+          type: 'adaptive',
+        },
       },
       google: {
-        temperature: 0.2,
-      },
+        thinkingConfig: {
+          includeThoughts: true,
+          thinkingLevel: 'medium',
+        },
+        mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+      } satisfies GoogleLanguageModelOptions,
       openai: {
-        temperature: 0.2,
+        parallelToolCalls: true,
+        reasoningEffort: 'medium',
       },
       xai: {
         temperature: 0.2,
@@ -132,7 +146,7 @@ Success criteria:
     // Validate task completion
     isTaskComplete: {
       scorers: [taskCompleteScorer],
-      strategy: 'all',
+      strategy: 'any', // Mark as complete if any scorer indicates completion
       parallel: true,
       onComplete: async result => {
         log.info('Completion check', {

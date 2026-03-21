@@ -4,11 +4,10 @@ import {
   createToxicityScorer,
 } from '@mastra/evals/scorers/prebuilt'
 
-import { googleAIFlashLite } from '../config/google'
 import { log } from '../config/logger'
 import { pgMemory } from '../config/pg-storage'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import {
   codeArchitectAgent,
@@ -16,20 +15,6 @@ import {
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
-import {
-  checkFileExists,
-  createDirectory,
-  createSandbox,
-  deleteFile,
-  getFileInfo,
-  getFileSize,
-  listFiles,
-  runCode,
-  runCommand,
-  watchDirectory,
-  writeFile,
-  writeFiles,
-} from '../tools/e2b'
 import { automatedReportingWorkflow } from '../workflows/automated-reporting-workflow'
 import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
@@ -197,11 +182,11 @@ When a user's request requires prolonged, structured work across multiple subtas
           },
           mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
           responseModalities: ['TEXT', 'IMAGE'],
-        } satisfies GoogleGenerativeAIProviderOptions,
+        } satisfies GoogleLanguageModelOptions,
       },
     }
   },
-  model: googleAIFlashLite,
+  model: 'google/gemini-3.1-flash-preview',
   memory: pgMemory,
 
   agents: {
@@ -222,18 +207,9 @@ When a user's request requires prolonged, structured work across multiple subtas
     automatedReportingWorkflow,
   },
   tools: {
-    createSandbox,
-    writeFile,
-    writeFiles,
-    listFiles,
-    deleteFile,
-    createDirectory,
-    getFileInfo,
-    checkFileExists,
-    getFileSize,
-    watchDirectory,
-    runCommand,
-    runCode,
+    google_search: google.tools.googleSearch({}),
+    url_context: google.tools.urlContext({}),
+    code_execution: google.tools.codeExecution({}),
   },
   maxRetries: 5,
   options: {
@@ -244,11 +220,11 @@ When a user's request requires prolonged, structured work across multiple subtas
 
   scorers: {
     relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
+      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.4 },
     },
     safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
+      scorer: createToxicityScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
       sampling: { type: 'ratio', rate: 0.3 },
     },
   },

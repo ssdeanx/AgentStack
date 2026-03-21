@@ -2,10 +2,9 @@ import { Agent } from '@mastra/core/agent'
 import { pgMemory } from '../config/pg-storage'
 import {
   scrapingSchedulerTool,
-  webScraperTool,
 } from '../tools/web-scraper-tool'
 
-import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
@@ -19,6 +18,7 @@ import {
   createToneScorer,
 } from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import { fetchTool } from '../tools/fetch.tool'
 
 const STAGGERED_OUTPUT_CONTEXT_KEY = 'staggeredOutput' as const
 const SECTION_COUNT_CONTEXT_KEY = 'sectionCount' as const
@@ -79,9 +79,11 @@ function getBackupDataToolsFromContext(requestContext: {
 }
 
 const contentStrategistTools = {
-  webScraperTool,
+  fetchTool,
   chartSupervisorTool,
   scrapingSchedulerTool,
+  google_search: google.tools.googleSearch({}),
+  url_context: google.tools.urlContext({}),
 }
 
 export const contentStrategistAgent = new Agent({
