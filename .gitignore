@@ -13,6 +13,17 @@ assets/
 assets/*png
 assets/*jpg
 
+.trunk/
+.trunk/**/*
+.mastra/
+.windsurf/
+.github/-/*.md
+.github/agents/*.md
+.github/workflows/*.yml
+.agent/doc/*md
+.agent/rules/*.md
+.agent/workflows/*.md
+
 .vercel/_build_output/
 .vercel/output/
 # Production

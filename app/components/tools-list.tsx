@@ -8,8 +8,7 @@ import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedQuantumLattice } from '@/app/components/gsap/svg-suite'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
-import type { Tool } from '@/lib/types/mastra-api'
+import { useTools } from '@/lib/hooks/use-mastra-query'
 import {
     SearchIcon,
     WrenchIcon,
@@ -132,13 +131,12 @@ function chooseToolIcon(id: string): typeof WrenchIcon {
 }
 
 export function ToolsList() {
-    const { useTools } = useMastraQuery()
     const { data, isLoading: loading, error } = useTools()
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [showAll, setShowAll] = useState(false)
 
-    const tools: ToolCard[] = (data ?? []).map((tool: Tool) => ({
+    const tools: ToolCard[] = (data ?? []).map((tool) => ({
         id: tool.id,
         name: tool.id,
         description: tool.description,
@@ -176,7 +174,7 @@ export function ToolsList() {
                     transition={{ duration: 0.5 }}
                 >
                     <PublicPageHero
-                        badge={`${tools.length}+ Tools Available`}
+                        badge={String(tools.length) + '+ Tools Available'}
                         title="Tools Library"
                         description="Production-ready tools for your AI agents. Connect to APIs, process data, and automate workflows."
                         accent={AnimatedQuantumLattice}
@@ -241,7 +239,9 @@ export function ToolsList() {
                         placeholder="Search tools by name or description..."
                         className="h-14 pl-12 text-lg"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value)
+                        }}
                     />
                 </div>
 
@@ -330,7 +330,7 @@ export function ToolsList() {
             </div>
 
             {/* Empty state */}
-            {Boolean(!loading && !error && filteredTools.length === 0) && (
+            {!loading && !error && filteredTools.length === 0 && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -357,11 +357,11 @@ export function ToolsList() {
                 </motion.div>
             )}
 
-            {Boolean(error) && (
+            {error && (
                 <div className="mx-auto mt-8 max-w-3xl rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                     <div className="flex items-center gap-2">
                         <AlertCircleIcon className="size-4" />
-                        Failed to load tools from backend: {error?.message}
+                        Failed to load tools from backend: {error.message}
                     </div>
                 </div>
             )}
@@ -378,11 +378,13 @@ export function ToolsList() {
                     <Button
                         variant="outline"
                         size="lg"
-                        onClick={() => setShowAll(!showAll)}
+                        onClick={() => {
+                            setShowAll(!showAll)
+                        }}
                     >
                         {showAll
                             ? 'Show Less'
-                            : `Show All ${filteredTools.length} Tools`}
+                            : 'Show All ' + String(filteredTools.length) + ' Tools'}
                         <ArrowRightIcon
                             className={`ml-2 size-4 transition-transform ${showAll ? 'rotate-90' : ''}`}
                         />

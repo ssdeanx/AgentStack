@@ -1,6 +1,24 @@
 import { createGitHubCopilotOpenAICompatible } from '@opeoginni/github-copilot-openai-compatible'
 import { logError } from './logger'
 import * as dotenv from 'dotenv'
+import { approveAll, CopilotClient } from "@github/copilot-sdk";
+
+// Token is read from environment variable automatically
+const client = new CopilotClient(
+    {
+        useStdio: true,
+        isChildProcess: true,
+        cliPath: process.env.COPILOT_CLI_PATH ?? '~/copilot-cli', // Optional: specify path to copilot-cli if not in PATH
+    }
+);
+
+const session = await client.createSession({
+    onPermissionRequest: approveAll,
+    model: "gpt-5-mini",
+    streaming: true,
+    workingDirectory: process.cwd(),
+
+});
 
 // Load environment variables
 dotenv.config()
@@ -17,11 +35,11 @@ export const githubCopilotConfig: {
         'Copilot-Integration-Id':
             process.env.COPILOT_INTEGRATION_ID ?? 'vscode-chat',
         'User-Agent':
-            process.env.COPILOT_USER_AGENT ?? 'GitHubCopilotChat/0.26.7',
+            process.env.COPILOT_USER_AGENT ?? 'GitHubCopilotChat/0.40.2026031802',
         'Editor-Version':
-            process.env.COPILOT_EDITOR_VERSION ?? 'vscode/1.104.1',
+            process.env.COPILOT_EDITOR_VERSION ?? 'vscode/1.112.0-insider',
         'Editor-Plugin-Version':
-            process.env.COPILOT_EDITOR_PLUGIN_VERSION ?? 'copilot-chat/0.26.7',
+            process.env.COPILOT_EDITOR_PLUGIN_VERSION ?? 'copilot-chat/0.40.2026031802',
     },
     apiKey: process.env.COPILOT_TOKEN,
 }
@@ -58,6 +76,9 @@ export const githubCopilotModels = {
     gpt5Mini: githubCopilotProvider.chatModel('gpt-5-mini'),
     gpt51Codex: githubCopilotProvider.chatModel('gpt-5.1-codex'),
     gpt51CodexMini: githubCopilotProvider.chatModel('gpt-5.1-codex-mini'),
+    gpt54: githubCopilotProvider.chatModel('gpt-5.4'),
+    gpt54Mini: githubCopilotProvider.chatModel('gpt-5.4-mini'),
+    
     gpt35Turbo: githubCopilotProvider.chatModel('gpt-3.5-turbo'),
     // Grok models
     grokCodeFast1: githubCopilotProvider.chatModel('grok-code-fast-1'),

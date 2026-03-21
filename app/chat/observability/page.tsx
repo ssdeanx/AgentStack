@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import { useTraces } from '@/lib/hooks/use-mastra-query'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
 import { Card, CardContent } from '@/ui/card'
@@ -120,8 +120,6 @@ function safeString(value: unknown, fallback = '—'): string {
 }
 
 export default function ObservabilityPage() {
-    const { useTraces } = useMastraQuery()
-
     const [page, setPage] = useState(1)
     const [perPage] = useState(25)
     const [nameFilter, setNameFilter] = useState('')
@@ -334,7 +332,7 @@ export default function ObservabilityPage() {
                         setPage(1)
                     }}
                 >
-                    <SelectTrigger className="w-[140px] h-9 text-sm bg-card/50 border-white/10">
+                    <SelectTrigger className="w-35 h-9 text-sm bg-card/50 border-white/10">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -353,7 +351,7 @@ export default function ObservabilityPage() {
                         <div className="p-6 space-y-3">
                             {Array.from({ length: 8 }).map((_, i) => (
                                 <Skeleton
-                                    key={`skel-${i}`}
+                                    key={`skel-${String(i)}`}
                                     className="h-10 w-full"
                                 />
                             ))}
@@ -417,7 +415,7 @@ export default function ObservabilityPage() {
                                                 openTraceDetail(span)
                                             }
                                         >
-                                            <TableCell className="font-medium text-sm max-w-[200px] truncate">
+                                            <TableCell className="font-medium text-sm max-w-50 truncate">
                                                 {name}
                                             </TableCell>
                                             <TableCell>
@@ -437,7 +435,7 @@ export default function ObservabilityPage() {
                                             <TableCell className="text-xs text-muted-foreground">
                                                 {started}
                                             </TableCell>
-                                            <TableCell className="text-xs text-muted-foreground/50 font-mono max-w-[120px] truncate">
+                                            <TableCell className="text-xs text-muted-foreground/50 font-mono max-w-30 truncate">
                                                 {spanId.slice(0, 12)}…
                                             </TableCell>
                                         </TableRow>

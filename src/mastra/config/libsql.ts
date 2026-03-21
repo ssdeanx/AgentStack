@@ -1,7 +1,9 @@
-import { google } from '@ai-sdk/google'
+//import { google } from '@ai-sdk/google'
 import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
 import { Memory } from '@mastra/memory'
 import { log } from './logger'
+import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from '@mastra/core/llm'
+import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 
 const libsqlstorage = new LibSQLStore({
     id: 'libsql-storage',
@@ -25,44 +27,31 @@ const libsqlvector = new LibSQLVector({
 
 // Create an index
 await libsqlvector.createIndex({
-    indexName: 'memory_messages',
+    indexName: 'memory_messages_3072',
     dimension: 3072,
     metric: 'cosine',
-})
-
-// Add vectors with metadata
-const vectors = [
-    [0.1, 0.2],
-    [0.3, 0.4],
-]
-const metadata = [
-    { text: 'first document', category: 'A' },
-    { text: 'second document', category: 'B' },
-]
-await libsqlvector.upsert({
-    indexName: 'memory_messages',
-    vectors,
-    metadata,
-})
-
-// Query similar vectors
-const queryVector = [0.1, 0.2] // Your query vector
-
-const results = await libsqlvector.query({
-    indexName: 'memory_messages',
-    queryVector,
-    topK: 10, // top K results
-    filter: { category: 'A' }, // optional metadata filter
-})
-
-log.info('LibSQL sample vector query completed', {
-    resultCount: results.length,
 })
 
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: google.embedding('gemini-embedding-2-preview'),
+    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
+    embedderOptions: {
+        telemetry: {
+            request: {
+                log: true,
+                logInputs: true,
+                logOutputs: true,
+            },
+        },
+        maxParallelCalls: 5, // Limit parallel embedding calls to avoid rate limits
+        providerOptions: {
+            google: {
+                outputDimensions: 3072,
+                taskType: 'RETRIEVAL_DOCUMENT',
+            }
+        },
+    },
     options: {
         // Message management
         readOnly: false,
@@ -78,9 +67,8 @@ export const LibsqlMemory = new Memory({
             },
             scope: 'resource', // 'resource' | 'thread'
             // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
-            indexConfig: {},
             threshold: 0.75, // Similarity threshold for semantic recall
-            indexName: 'memory_messages', // Index name for semantic recall
+            indexName: 'memory_messages_3072', // Index name for semantic recall
         },
         // Enhanced working memory with supported template
         workingMemory: {
@@ -104,9 +92,9 @@ export const LibsqlMemory = new Memory({
     },
 })
 
-log.info('PG Store and Memory initialized with PgVector support', {
-    schema: process.env.DB_SCHEMA ?? 'mastra',
-    maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
+log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
+   // schema: process.env.DB_SCHEMA ?? 'mastra',
+   // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
 
     memoryOptions: {
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
@@ -128,4 +116,65 @@ log.info('PG Store and Memory initialized with PgVector support', {
             version: 'vnext',
         },
     },
+})
+
+export const libsqlgraphQueryTool = createGraphRAGTool({
+    id: 'libsql-graph-rag',
+    description:
+        'Graph-based retrieval augmented generation using PostgreSQL and PgVector for advanced semantic search and context retrieval.',
+    // Supported vector store and index options
+    vectorStore: libsqlvector,
+    vectorStoreName: 'libsql-vector',
+    indexName: 'memory_messages_3072',
+    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
+    providerOptions: {
+             google: {
+                outputDimensions: 3072,
+                taskType: 'RETRIEVAL_DOCUMENT',
+            }
+    },
+    // Supported graph options (updated for 3072 dimensions)
+    graphOptions: {
+        dimension: 3072, // gemini-embedding-2-preview dimension (3072)
+        threshold: parseFloat(process.env.GRAPH_THRESHOLD ?? '0.7'),
+        randomWalkSteps: parseInt(process.env.GRAPH_RANDOM_WALK_STEPS ?? '10'),
+        restartProb: parseFloat(process.env.GRAPH_RESTART_PROB ?? '0.15'),
+    },
+    includeSources: true,
+    // Filtering and ranking
+    enableFilter: true,
+})
+// Helper to rerank results — accepts the initial results and query instead of relying on an undefined variable
+
+// PostgreSQL vector query tool using PgVector
+export const libsqlQueryTool = createVectorQueryTool({
+    id: 'vector-query',
+    description:
+        'PostgreSQL vector similarity search using PgVector for semantic content retrieval and question answering.',
+    // Supported vector store and index options
+    vectorStore: libsqlvector,
+    vectorStoreName: 'libsql-vector',
+    indexName: 'memory_messages_3072',
+    model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
+    providerOptions: {
+             google: {
+                outputDimensions: 3072,
+                taskType: 'RETRIEVAL_DOCUMENT',
+            }
+    },
+    includeVectors: true,
+    // Advanced filtering
+    enableFilter: true,
+    includeSources: true,
+     reranker: {
+      model: new ModelRouterLanguageModel('google/gemini-3.1-flash-lite-preview'),
+      options: {
+        weights: {
+          semantic: 0.5, // Semantic relevance weight
+      vector: 0.3, // Vector similarity weight
+          position: 0.2, // Original position weight
+        },
+        topK: 5,
+      },
+     },
 })

@@ -1,16 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useMastraQuery } from '@/lib/hooks/use-mastra-query'
+import {
+  useA2ACard,
+  useAgents,
+  useMcpServerTools,
+  useMcpServers,
+} from '@/lib/hooks/use-mastra-query'
 
 export default function McpA2APage() {
-  const {
-    useMcpServers,
-    useMcpServerTools,
-    useAgents,
-    useA2ACard,
-  } = useMastraQuery()
-
   const serversResult = useMcpServers({ page: 0, perPage: 50 })
   const servers = serversResult.data?.servers ?? []
 

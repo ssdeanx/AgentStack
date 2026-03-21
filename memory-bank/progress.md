@@ -1,3 +1,48 @@
+# 2026-03-20 chat sidebar trace drawer + hook cleanup
+
+- Upgraded `app/chat/components/chat-sidebar.tsx` so traces are now clickable, more polished cards that open a drawer for full trace inspection.
+- The drawer now shows trace overview data, lineage, attributes, and all events in a style that matches the observability page.
+- Removed the deprecated `useMastraQuery` wrapper from the list pages and switched them to direct Mastra hooks:
+  - `app/components/networks-list.tsx`
+  - `app/components/tools-list.tsx`
+  - `app/components/workflows-list.tsx`
+- Validation:
+  - ✅ `get_errors` clean for `chat-sidebar.tsx`, `networks-list.tsx`, `tools-list.tsx`, and `workflows-list.tsx`
+
+# 2026-03-20 Mastra supervisor/fetch/doc-chunker lint cleanup
+
+- Updated `src/mastra/agents/supervisor-agent.ts` so the async delegation/completion callbacks now include real awaits and avoid void-expression wrapping around `bail()`.
+- Cleaned `src/mastra/tools/fetch.tool.ts` by replacing the static validation class with a top-level helper, removing redundant coercions/optional chains, and tightening catch typing.
+- Cleaned `src/mastra/tools/document-chunking.tool.ts` by normalizing error logging, removing unsafe/duplicated optional chains, and fixing progress/template-literal diagnostics across the chunker and reranker paths.
+- Validation:
+  - ✅ `npx eslint "src/mastra/agents/supervisor-agent.ts" "src/mastra/tools/document-chunking.tool.ts" "src/mastra/tools/fetch.tool.ts" --max-warnings=0` → exit code `0`
+
+# 2026-03-20 chat sidebar / route hook cleanup
+
+- Reworked `app/chat/components/main-sidebar.tsx` so it now only lists agents and the current agent's threads.
+- Swapped `app/chat/components/chat-sidebar.tsx` off the removed `useMastraQuery` factory and onto direct named hooks.
+- Updated chat route pages to import concrete hooks directly instead of destructuring from `useMastraQuery`:
+  - `app/chat/dataset/page.tsx`
+  - `app/chat/build/page.tsx`
+  - `app/chat/logs/page.tsx`
+  - `app/chat/observability/page.tsx`
+  - `app/chat/mcp-a2a/page.tsx`
+  - `app/chat/workspaces/page.tsx`
+- Added new direct-hook route pages for the empty chat routes:
+  - `app/chat/tools/page.tsx`
+  - `app/chat/workflows/page.tsx`
+- Validation:
+  - ✅ `get_errors` clean for `main-sidebar.tsx`, `chat-sidebar.tsx`, `chat/tools/page.tsx`, `chat/workflows/page.tsx`, `chat/build/page.tsx`, and `chat/workspaces/page.tsx`
+
+# 2026-03-19 ESLint strict config recovery
+
+- Restored `eslint.config.js` to a strict production-grade flat config that uses the installed Next and typescript-eslint packages correctly.
+- Added explicit non-source ignores so ESLint stops traversing markdown, docs, memory-bank, hidden AI tool folders, and other generated/content paths.
+- Added `.vscode/settings.json` to constrain VS Code ESLint validation/probing to JavaScript/TypeScript only and suppress ignored-file noise.
+- Validation:
+  - ✅ `npx eslint eslint.config.js --max-warnings=0`
+  - ✅ `.vscode/settings.json` JSON parse check
+
 # 2026-03-18 landing GSAP/SVG runtime fix
 
 - Fixed a React SVG DOM-property issue in `app/components/gsap/svg-suite/animated-quantum-lattice.tsx` by removing the unsupported JSX transform-origin prop from `<g>` nodes.

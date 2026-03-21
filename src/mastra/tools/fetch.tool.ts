@@ -40,14 +40,12 @@ class FetchToolError extends Error {
     }
 }
 
-class ValidationUtils {
-    static validateUrl(url: string): boolean {
-        try {
-            const parsed = new URL(url)
-            return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-        } catch {
-            return false
-        }
+function validateUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    } catch {
+        return false
     }
 }
 
@@ -63,7 +61,7 @@ function buildRequestHeaders(userAgent?: string): Record<string, string> {
 }
 
 function sanitizeHtml(html: string): string {
-    const dom = new JSDOM(String(html), {
+    const dom = new JSDOM(html, {
         contentType: 'text/html',
         includeNodeLocations: false,
     })
@@ -85,7 +83,9 @@ function sanitizeHtml(html: string): string {
     ]
 
     dangerousTags.forEach((tag) => {
-        document.querySelectorAll(tag).forEach((el) => el.remove())
+        document.querySelectorAll(tag).forEach((el) => {
+            el.remove()
+        })
     })
 
     document.querySelectorAll('*').forEach((el) => {
@@ -243,7 +243,7 @@ function applyContentWindow(
     markdown: string,
     window: ContentWindowConfig
 ): { markdown: string; originalChars: number; outputChars: number; truncated: boolean } {
-    const source = String(markdown)
+    const source = markdown
     const originalChars = source.length
 
     if (originalChars <= window.maxChars) {
@@ -335,7 +335,7 @@ function extractDuckDuckGoResults(html: string): SearchResult[] {
             anchor.closest('.result').find('.result__snippet').text().trim() ||
             undefined
 
-        if (ValidationUtils.validateUrl(resolvedUrl)) {
+        if (validateUrl(resolvedUrl)) {
             out.push({ title, url: resolvedUrl, snippet })
         }
     })
@@ -358,7 +358,7 @@ function extractGoogleResults(html: string): SearchResult[] {
         try {
             const parsed = new URL(`https://www.google.com${href}`)
             const target = parsed.searchParams.get('q') ?? ''
-            if (!ValidationUtils.validateUrl(target)) {
+            if (!validateUrl(target)) {
                 return
             }
 
@@ -392,7 +392,7 @@ function extractBingResults(html: string): SearchResult[] {
         const node = $(el)
         const linkEl = node.find('h2 a').first()
         const url = linkEl.attr('href') ?? ''
-        if (!ValidationUtils.validateUrl(url)) {
+        if (!validateUrl(url)) {
             return
         }
 
@@ -424,7 +424,7 @@ async function searchDuckDuckGo(options: {
 
     if (!response.ok) {
         throw new FetchToolError(
-            `DuckDuckGo search failed: HTTP ${response.status}`,
+            `DuckDuckGo search failed: HTTP ${String(response.status)}`,
             'SEARCH_DDG_HTTP_ERROR',
             response.status,
             'https://duckduckgo.com/html/'
@@ -454,7 +454,7 @@ async function searchGoogle(options: {
 
     if (!response.ok) {
         throw new FetchToolError(
-            `Google search failed: HTTP ${response.status}`,
+            `Google search failed: HTTP ${String(response.status)}`,
             'SEARCH_GOOGLE_HTTP_ERROR',
             response.status,
             'https://www.google.com/search'
@@ -479,7 +479,7 @@ async function searchBing(options: {
 
     if (!response.ok) {
         throw new FetchToolError(
-            `Bing search failed: HTTP ${response.status}`,
+            `Bing search failed: HTTP ${String(response.status)}`,
             'SEARCH_BING_HTTP_ERROR',
             response.status,
             'https://www.bing.com/search'
@@ -510,7 +510,7 @@ async function searchGoogleNewsRss(options: {
 
     if (!response.ok) {
         throw new FetchToolError(
-            `Google News RSS search failed: HTTP ${response.status}`,
+            `Google News RSS search failed: HTTP ${String(response.status)}`,
             'SEARCH_GOOGLE_NEWS_RSS_HTTP_ERROR',
             response.status,
             'https://news.google.com/rss/search'
@@ -548,7 +548,7 @@ async function searchGoogleNewsRss(options: {
     return items
         .map((item): SearchResult | null => {
             const link = typeof item.link === 'string' ? item.link.trim() : ''
-            if (!ValidationUtils.validateUrl(link)) {
+            if (!validateUrl(link)) {
                 return null
             }
 
@@ -602,7 +602,7 @@ async function fetchPageAsMarkdown(options: {
 
     if (!response.ok) {
         throw new FetchToolError(
-            `HTTP ${response.status}: ${response.statusText}`,
+            `HTTP ${String(response.status)}: ${response.statusText}`,
             'HTTP_ERROR',
             response.status,
             options.url
@@ -759,11 +759,10 @@ export const fetchTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const requestContext = context?.requestContext as FetchToolContext
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as FetchToolContext
+        const tracingContext: TracingContext | undefined = context.tracingContext
 
         if (abortSignal?.aborted ?? false) {
             throw new Error('Fetch tool cancelled')
@@ -783,7 +782,7 @@ export const fetchTool = createTool({
             type: SpanType.TOOL_CALL,
             name: 'fetch',
             input: inputData,
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'fetch',
@@ -795,13 +794,13 @@ export const fetchTool = createTool({
                     typeof inputData.contentContext === 'object'
                         ? JSON.stringify(inputData.contentContext)
                         : undefined,
-                'user.id': requestContext?.userId,
-                'workspace.id': requestContext?.workspaceId,
+                    'user.id': requestContext.userId,
+                    'workspace.id': requestContext.workspaceId,
             },
         })
 
-        const timeout = inputData.timeout ?? requestContext?.timeout ?? 30000
-        const userAgent = inputData.userAgent ?? requestContext?.userAgent
+            const timeout = inputData.timeout ?? requestContext.timeout ?? 30000
+            const userAgent = inputData.userAgent ?? requestContext.userAgent
         const contentWindow = resolveContentWindow(inputData.contentContext)
         const includePatterns = compileRe2Patterns(inputData.includeUrlPatterns)
         const excludePatterns = compileRe2Patterns(inputData.excludeUrlPatterns)
@@ -910,7 +909,7 @@ export const fetchTool = createTool({
                             providerDiagnostics.duckduckgo = 'ok'
                             return results
                         })
-                        .catch((error) => {
+                        .catch((error: unknown) => {
                             providerDiagnostics.duckduckgo =
                                 error instanceof Error ? error.message : String(error)
                             return []
@@ -925,7 +924,7 @@ export const fetchTool = createTool({
                             providerDiagnostics.google = 'ok'
                             return results
                         })
-                        .catch((error) => {
+                        .catch((error: unknown) => {
                             providerDiagnostics.google =
                                 error instanceof Error ? error.message : String(error)
                             return []
@@ -935,7 +934,7 @@ export const fetchTool = createTool({
                             providerDiagnostics.bing = 'ok'
                             return results
                         })
-                        .catch((error) => {
+                        .catch((error: unknown) => {
                             providerDiagnostics.bing =
                                 error instanceof Error ? error.message : String(error)
                             return []
@@ -1027,7 +1026,7 @@ export const fetchTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `✅ Search complete: ${results.length} result(s)`,
+                    message: `✅ Search complete: ${String(results.length)} result(s)`,
                     stage: 'fetch',
                 },
                 id: 'fetch',

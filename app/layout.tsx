@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Suspense } from 'react'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Navbar } from '@/app/components/navbar'
@@ -123,10 +124,21 @@ export default function RootLayout({
                         <TooltipProvider>
                             <div className="relative flex min-h-screen flex-col">
                                 <div className="hide-on-focus">
-                                    <Navbar />
+                                    <Suspense
+                                        fallback={
+                                            <div
+                                                aria-hidden="true"
+                                                className="fixed top-0 z-50 h-16 w-full border-b border-transparent bg-transparent"
+                                            />
+                                        }
+                                    >
+                                        <Navbar />
+                                    </Suspense>
                                 </div>
                                 <div className="flex-1 view-transition-fade">
-                                    <PublicPageReveal>{children}</PublicPageReveal>
+                                    <Suspense fallback={children}>
+                                        <PublicPageReveal>{children}</PublicPageReveal>
+                                    </Suspense>
                                 </div>
                             </div>
                         </TooltipProvider>
