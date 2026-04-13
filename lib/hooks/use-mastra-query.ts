@@ -32,6 +32,7 @@ import type {
   DatasetItem,
   DatasetItemVersionResponse,
   DatasetRecord,
+  GenerateDatasetItemsParams,
   ExecuteProcessorParams,
   ExecuteProcessorResponse,
   GetAgentResponse,
@@ -48,10 +49,13 @@ import type {
   GetToolProviderToolSchemaResponse,
   GetVectorIndexResponse,
   GetWorkflowResponse,
+  GetWorkflowRunByIdResponse,
   ListSkillsResponse,
+  ListMemoryThreadsParams,
   ListMemoryThreadMessagesParams,
   ListAgentVersionsParams,
   ListAgentVersionsResponse,
+  ListWorkflowRunsResponse,
   ListStoredMCPClientsParams,
   ListStoredPromptBlocksParams,
   ListStoredScorersParams,
@@ -73,6 +77,7 @@ import type {
   ResponsesDeleteResponse,
   ResponsesResponse,
   ResponsesStreamEvent,
+  StreamVNextChunkType,
   SaveMessageToMemoryParams,
   SearchSkillsParams,
   SearchSkillsResponse,
@@ -102,7 +107,53 @@ import type {
   WorkspaceInfoResponse,
   WorkspaceSearchParams,
   WorkspaceSearchResponse,
+  WorkflowRunResult,
+  UpdateExperimentResultParams,
+  AwaitBufferStatusParams,
+  GetObservationalMemoryParams,
+  SaveScoreParams,
 } from '@mastra/client-js'
+import type {
+  AgentCard as CoreAgentCard,
+  GetTaskResponse as CoreGetTaskResponse,
+  MessageSendParams as CoreMessageSendParams,
+  SendMessageResponse as CoreSendMessageResponse,
+  SendStreamingMessageResponse as CoreSendStreamingMessageResponse,
+  Task as CoreTask,
+  TaskQueryParams as CoreTaskQueryParams,
+} from '@mastra/core/a2a'
+import type { Trajectory } from '@mastra/core/evals'
+import type { BaseLogMessage } from '@mastra/core/logger'
+import type { ServerDetailInfo } from '@mastra/core/mcp'
+import type { StorageThreadType } from '@mastra/core/memory'
+import type { TracingOptions } from '@mastra/core/observability'
+import type {
+  ListLogsResponse as CoreListLogsResponse,
+  ListLogsArgs as CoreListLogsArgs,
+  ListScoresArgs as CoreListScoresArgs,
+  ListTracesArgs as CoreListTracesArgs,
+  ListTracesResponse as CoreListTracesResponse,
+  CreateFeedbackBody,
+  CreateScoreBody,
+  GetEntityNamesArgs,
+  GetFeedbackAggregateArgs,
+  GetFeedbackBreakdownArgs,
+  GetFeedbackPercentilesArgs,
+  GetFeedbackTimeSeriesArgs,
+  GetMetricAggregateArgs,
+  GetMetricBreakdownArgs,
+  GetMetricLabelKeysArgs,
+  GetMetricLabelValuesArgs,
+  GetMetricNamesArgs,
+  GetMetricPercentilesArgs,
+  GetMetricTimeSeriesArgs,
+  GetScoreAggregateArgs,
+  GetScoreBreakdownArgs,
+  GetScorePercentilesArgs,
+  GetScoreTimeSeriesArgs,
+  GetTagsArgs,
+  ListFeedbackArgs,
+} from '@mastra/core/storage'
 import type { RequestContext } from '@mastra/core/request-context'
 import {
   useMutation,
@@ -115,12 +166,12 @@ import type { UseQueryResult } from '@tanstack/react-query'
 type Agent = GetAgentResponse
 type Tool = GetToolResponse
 type Workflow = GetWorkflowResponse
-type MemoryThread = Awaited<ReturnType<typeof mastraClient.listMemoryThreads>>['threads'][number]
+type MemoryThread = StorageThreadType
 type MemoryStatus = GetMemoryStatusResponse
-type LogEntry = Awaited<ReturnType<typeof mastraClient.listLogs>>['logs'][number]
-type TracesResponse = Awaited<ReturnType<typeof mastraClient.listTraces>>
-type TraceTrajectoryResponse = Awaited<ReturnType<typeof mastraClient.getTraceTrajectory>>
-type ObservabilityLogsResponse = Awaited<ReturnType<typeof mastraClient.listLogsVNext>>
+type LogEntry = BaseLogMessage
+type TracesResponse = CoreListTracesResponse
+type TraceTrajectoryResponse = Trajectory
+type ObservabilityLogsResponse = CoreListLogsResponse
 type VectorIndex = GetVectorIndexResponse & { name: string }
 type McpToolExecuteArgs = Parameters<
   ReturnType<typeof mastraClient.getMcpServerTool>['execute']
@@ -128,10 +179,7 @@ type McpToolExecuteArgs = Parameters<
 type McpToolRequestContext = McpToolExecuteArgs['requestContext']
 type ToolExecuteArgs = Parameters<ReturnType<typeof mastraClient.getTool>['execute']>[0]
 type ToolRequestContext = ToolExecuteArgs['requestContext']
-type WorkflowRun = Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>
-type WorkflowRunStartParams = Parameters<WorkflowRun['start']>[0]
-type WorkflowRunStartAsyncParams = Parameters<WorkflowRun['startAsync']>[0]
-type QueryRequestContext = RequestContext | Record<string, any>
+type QueryRequestContext = RequestContext | Record<string, unknown>
 type RequestContextValue = QueryRequestContext
 type AgentListQueryKeyParams = { requestContext?: QueryRequestContext; partial?: boolean }
 type ResourceRequestContextQueryKey = QueryRequestContext
@@ -142,12 +190,17 @@ type StoredDetailsQueryKeyParams =
       options?: { status?: 'draft' | 'published' | 'archived' }
     }
 type WorkflowRunsQueryKeyParams = ListWorkflowRunsParams
-type MemoryThreadsQueryKeyParams = Parameters<typeof mastraClient.listMemoryThreads>[0]
+type MemoryThreadsQueryKeyParams = ListMemoryThreadsParams
 type MemoryThreadMessagesQueryKeyParams = ListMemoryThreadMessagesParams & {
   requestContext?: QueryRequestContext
   paginated?: boolean
 }
-type MemoryWorkingQueryKeyParams = Parameters<typeof mastraClient.getWorkingMemory>[0]
+type MemoryWorkingQueryKeyParams = {
+  agentId: string
+  threadId: string
+  resourceId?: string
+  requestContext?: QueryRequestContext
+}
 type MemorySearchQueryKeyParams = {
   agentId: string
   resourceId: string
@@ -156,32 +209,118 @@ type MemorySearchQueryKeyParams = {
   memoryConfig?: SerializedMemoryConfig
   requestContext?: QueryRequestContext
 }
-type TraceQueryParams = ListTracesArgs
-type ScoreQueryParams = Parameters<typeof mastraClient.listScores>[0]
+type TraceQueryParams = CoreListTracesArgs
+type ScoreQueryParams = CoreListScoresArgs
 type ScoreBySpanQueryParams = Parameters<typeof mastraClient.listScoresBySpan>[0]
-type DatasetListQueryParams = Parameters<typeof mastraClient.listDatasets>[0]
-type DatasetItemsQueryParams = Parameters<typeof mastraClient.listDatasetItems>[1]
-type DatasetVersionsQueryParams = Parameters<typeof mastraClient.listDatasetVersions>[1]
-type DatasetExperimentsQueryParams = Parameters<typeof mastraClient.listDatasetExperiments>[1]
-type DatasetExperimentResultsQueryParams = Parameters<typeof mastraClient.listDatasetExperimentResults>[2]
+type ObservationalMemoryQueryParams = GetObservationalMemoryParams
+type AwaitBufferStatusQueryParams = AwaitBufferStatusParams
+type ScoreAggregateQueryParams = GetScoreAggregateArgs
+type ScoreBreakdownQueryParams = GetScoreBreakdownArgs
+type ScoreTimeSeriesQueryParams = GetScoreTimeSeriesArgs
+type ScorePercentilesQueryParams = GetScorePercentilesArgs
+type FeedbackQueryParams = ListFeedbackArgs
+type FeedbackAggregateQueryParams = GetFeedbackAggregateArgs
+type FeedbackBreakdownQueryParams = GetFeedbackBreakdownArgs
+type FeedbackTimeSeriesQueryParams = GetFeedbackTimeSeriesArgs
+type FeedbackPercentilesQueryParams = GetFeedbackPercentilesArgs
+type MetricAggregateQueryParams = GetMetricAggregateArgs
+type MetricBreakdownQueryParams = GetMetricBreakdownArgs
+type MetricTimeSeriesQueryParams = GetMetricTimeSeriesArgs
+type MetricPercentilesQueryParams = GetMetricPercentilesArgs
+type MetricNamesQueryParams = GetMetricNamesArgs
+type MetricLabelKeysQueryParams = GetMetricLabelKeysArgs
+type MetricLabelValuesQueryParams = GetMetricLabelValuesArgs
+type EntityNamesQueryParams = GetEntityNamesArgs
+type TagQueryParams = GetTagsArgs
+type DatasetListQueryParams = { page?: number; perPage?: number }
+type DatasetItemsQueryParams = { page?: number; perPage?: number; search?: string }
+type DatasetVersionsQueryParams = { page?: number; perPage?: number }
+type DatasetExperimentsQueryParams = { page?: number; perPage?: number }
+type DatasetExperimentResultsQueryParams = { page?: number; perPage?: number }
 type DatasetCompareQueryParams = CompareExperimentsParams
-type DatasetGenerateQueryParams = Parameters<typeof mastraClient.generateDatasetItems>[0]
-type DatasetClusterQueryParams = Parameters<typeof mastraClient.clusterFailures>[0]
-type McpServersQueryParams = Parameters<typeof mastraClient.getMcpServers>[0]
-type McpServerDetailsQueryParams = Parameters<typeof mastraClient.getMcpServerDetails>[1]
+type DatasetGenerateQueryParams = GenerateDatasetItemsParams
+type DatasetClusterQueryParams = {
+  modelId: string
+  items: Array<{
+    id: string
+    input: unknown
+    output?: unknown
+    error?: string
+    scores?: Record<string, number>
+    existingTags?: string[]
+  }>
+  availableTags?: string[]
+  prompt?: string
+}
+type McpServersQueryParams = { page?: number; perPage?: number; offset?: number; limit?: number }
+type McpServerDetailsQueryParams = { version?: string }
 type McpToolDetailsQueryParams = QueryRequestContext
 type A2ATaskQueryKeyParams = TaskQueryParams
-type ListTracesArgs = Parameters<typeof mastraClient.listTraces>[0]
-type ServerDetailInfo = Awaited<ReturnType<typeof mastraClient.getMcpServerDetails>>
-type AgentCard = Awaited<ReturnType<ReturnType<typeof mastraClient.getA2A>['getCard']>>
-type GetTaskResponse = Awaited<ReturnType<ReturnType<typeof mastraClient.getA2A>['getTask']>>
-type MessageSendParams = Parameters<ReturnType<typeof mastraClient.getA2A>['sendMessage']>[0]
-type SendMessageResponse = Awaited<ReturnType<ReturnType<typeof mastraClient.getA2A>['sendMessage']>>
-type Task = Awaited<ReturnType<ReturnType<typeof mastraClient.getA2A>['cancelTask']>>
-type TaskQueryParams = Parameters<ReturnType<typeof mastraClient.getA2A>['getTask']>[0]
-type A2AStreamingResponseStream = Awaited<ReturnType<ReturnType<typeof mastraClient.getA2A>['sendStreamingMessage']>>
-type SendStreamingMessageResponse =
-  A2AStreamingResponseStream extends AsyncIterable<infer T> ? T : never
+type AgentCard = CoreAgentCard
+type GetTaskResponse = CoreGetTaskResponse
+type MessageSendParams = CoreMessageSendParams
+type SendMessageResponse = CoreSendMessageResponse
+type Task = CoreTask
+type TaskQueryParams = CoreTaskQueryParams
+type SendStreamingMessageResponse = CoreSendStreamingMessageResponse
+
+type WorkflowCreateRunParams = {
+  runId?: string
+  resourceId?: string
+  disableScorers?: boolean
+}
+
+type WorkflowRunStartParams = {
+  inputData: Record<string, unknown>
+  initialState?: Record<string, unknown>
+  requestContext?: QueryRequestContext
+  tracingOptions?: TracingOptions
+  perStep?: boolean
+}
+
+type WorkflowRunStartAsyncParams = WorkflowRunStartParams & {
+  resourceId?: string
+}
+
+type WorkflowRunResumeParams = {
+  step?: string | string[]
+  resumeData?: Record<string, unknown>
+  requestContext?: QueryRequestContext
+  tracingOptions?: TracingOptions
+  perStep?: boolean
+}
+
+type WorkflowRunRestartParams = {
+  requestContext?: QueryRequestContext
+  tracingOptions?: TracingOptions
+}
+
+type WorkflowRunStreamParams = WorkflowRunStartAsyncParams & {
+  closeOnSuspend?: boolean
+}
+
+type WorkflowRunHandle = {
+  start(params: WorkflowRunStartParams): Promise<{ message: string }>
+  startAsync(params: WorkflowRunStartAsyncParams): Promise<WorkflowRunResult>
+  resume(params: WorkflowRunResumeParams): Promise<{ message: string }>
+  resumeAsync(params: WorkflowRunResumeParams): Promise<WorkflowRunResult>
+  restart(params: WorkflowRunRestartParams): Promise<{ message: string }>
+  restartAsync(params?: WorkflowRunRestartParams): Promise<WorkflowRunResult>
+  timeTravel(params: TimeTravelParams): Promise<{ message: string }>
+  timeTravelAsync(params: TimeTravelParams): Promise<WorkflowRunResult>
+  stream(params: WorkflowRunStreamParams): Promise<ReadableStream<StreamVNextChunkType>>
+  observeStream(): Promise<ReadableStream<StreamVNextChunkType>>
+  resumeStream(params: WorkflowRunResumeParams): Promise<ReadableStream<StreamVNextChunkType>>
+  timeTravelStream(params: TimeTravelParams): Promise<ReadableStream<StreamVNextChunkType>>
+}
+
+type AgentProcessStreamResult = Awaited<
+  ReturnType<ReturnType<typeof mastraClient.getAgent>['stream']>
+>
+
+type NetworkProcessStreamResult = Awaited<
+  ReturnType<ReturnType<typeof mastraClient.getAgent>['network']>
+>
 
 /**
  * Centralized query keys for Mastra resources
@@ -329,9 +468,9 @@ export const mastraQueryKeys = {
       [...mastraQueryKeys.memory.all, 'status', agentId, params] as const,
     config: (params: GetMemoryConfigParams) =>
       [...mastraQueryKeys.memory.all, 'config', params] as const,
-    om: (params: Parameters<typeof mastraClient.getObservationalMemory>[0]) =>
+    om: (params: ObservationalMemoryQueryParams) =>
       [...mastraQueryKeys.memory.all, 'om', params] as const,
-    buffer: (params: Parameters<typeof mastraClient.awaitBufferStatus>[0]) =>
+    buffer: (params: AwaitBufferStatusQueryParams) =>
       [...mastraQueryKeys.memory.all, 'buffer', params] as const,
     search: (params: MemorySearchQueryKeyParams) =>
       [...mastraQueryKeys.memory.all, 'search', params] as const,
@@ -344,58 +483,58 @@ export const mastraQueryKeys = {
       [...mastraQueryKeys.observability.all, 'trace', traceId] as const,
     traceTrajectory: (traceId: string) =>
       [...mastraQueryKeys.observability.all, 'traceTrajectory', traceId] as const,
-    scores: (params: ScoreQueryParams) =>
+    scores: (params?: ScoreQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scores', params] as const,
     scoresBySpan: (params: ScoreBySpanQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scoresBySpan', params] as const,
-    scoreAggregate: (params: Parameters<typeof mastraClient.getScoreAggregate>[0]) =>
+    scoreAggregate: (params: ScoreAggregateQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scoreAggregate', params] as const,
-    scoreBreakdown: (params: Parameters<typeof mastraClient.getScoreBreakdown>[0]) =>
+    scoreBreakdown: (params: ScoreBreakdownQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scoreBreakdown', params] as const,
-    scoreTimeSeries: (params: Parameters<typeof mastraClient.getScoreTimeSeries>[0]) =>
+    scoreTimeSeries: (params: ScoreTimeSeriesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scoreTimeSeries', params] as const,
-    scorePercentiles: (params: Parameters<typeof mastraClient.getScorePercentiles>[0]) =>
+    scorePercentiles: (params: ScorePercentilesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'scorePercentiles', params] as const,
-    feedbacks: (params: Parameters<typeof mastraClient.listFeedback>[0]) =>
+    feedbacks: (params?: FeedbackQueryParams) =>
       [...mastraQueryKeys.observability.all, 'feedbacks', params] as const,
-    feedbackAggregate: (params: Parameters<typeof mastraClient.getFeedbackAggregate>[0]) =>
+    feedbackAggregate: (params: FeedbackAggregateQueryParams) =>
       [...mastraQueryKeys.observability.all, 'feedbackAggregate', params] as const,
-    feedbackBreakdown: (params: Parameters<typeof mastraClient.getFeedbackBreakdown>[0]) =>
+    feedbackBreakdown: (params: FeedbackBreakdownQueryParams) =>
       [...mastraQueryKeys.observability.all, 'feedbackBreakdown', params] as const,
-    feedbackTimeSeries: (params: Parameters<typeof mastraClient.getFeedbackTimeSeries>[0]) =>
+    feedbackTimeSeries: (params: FeedbackTimeSeriesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'feedbackTimeSeries', params] as const,
-    feedbackPercentiles: (params: Parameters<typeof mastraClient.getFeedbackPercentiles>[0]) =>
+    feedbackPercentiles: (params: FeedbackPercentilesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'feedbackPercentiles', params] as const,
-    metricAggregate: (params: Parameters<typeof mastraClient.getMetricAggregate>[0]) =>
+    metricAggregate: (params: MetricAggregateQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricAggregate', params] as const,
-    metricBreakdown: (params: Parameters<typeof mastraClient.getMetricBreakdown>[0]) =>
+    metricBreakdown: (params: MetricBreakdownQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricBreakdown', params] as const,
-    metricTimeSeries: (params: Parameters<typeof mastraClient.getMetricTimeSeries>[0]) =>
+    metricTimeSeries: (params: MetricTimeSeriesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricTimeSeries', params] as const,
-    metricPercentiles: (params: Parameters<typeof mastraClient.getMetricPercentiles>[0]) =>
+    metricPercentiles: (params: MetricPercentilesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricPercentiles', params] as const,
-    metricNames: (params: Parameters<typeof mastraClient.getMetricNames>[0]) =>
+    metricNames: (params?: MetricNamesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricNames', params] as const,
-    metricLabelKeys: (params: Parameters<typeof mastraClient.getMetricLabelKeys>[0]) =>
+    metricLabelKeys: (params: MetricLabelKeysQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricLabelKeys', params] as const,
-    metricLabelValues: (params: Parameters<typeof mastraClient.getMetricLabelValues>[0]) =>
+    metricLabelValues: (params: MetricLabelValuesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'metricLabelValues', params] as const,
     entityTypes: () =>
       [...mastraQueryKeys.observability.all, 'entityTypes'] as const,
-    entityNames: (params: Parameters<typeof mastraClient.getEntityNames>[0]) =>
+    entityNames: (params: EntityNamesQueryParams) =>
       [...mastraQueryKeys.observability.all, 'entityNames', params] as const,
     serviceNames: () =>
       [...mastraQueryKeys.observability.all, 'serviceNames'] as const,
     environments: () =>
       [...mastraQueryKeys.observability.all, 'environments'] as const,
-    tags: (params: Parameters<typeof mastraClient.getTags>[0]) =>
+    tags: (params?: TagQueryParams) =>
       [...mastraQueryKeys.observability.all, 'tags', params] as const,
   },
   logs: {
     all: ['mastra', 'logs'] as const,
     list: (params?: GetLogsParams) =>
       [...mastraQueryKeys.logs.all, 'list', params] as const,
-    observability: (params?: Parameters<typeof mastraClient.listLogsVNext>[0]) =>
+    observability: (params?: CoreListLogsArgs) =>
       [...mastraQueryKeys.logs.all, 'observability', params] as const,
     transports: () => [...mastraQueryKeys.logs.all, 'transports'] as const,
     run: (params: GetLogParams) =>
@@ -1014,7 +1153,7 @@ export const useWorkflowRun = (
     withNestedWorkflows?: boolean
   }
 ) =>
-  useQuery({
+  useQuery<GetWorkflowRunByIdResponse>({
     queryKey: mastraQueryKeys.workflows.runDetails(runId),
     queryFn: () =>
       mastraClient
@@ -1028,7 +1167,7 @@ export const useWorkflowRuns = (
   params?: WorkflowRunsQueryKeyParams,
   requestContext?: RequestContext | RequestContextValue
 ) =>
-  useQuery({
+  useQuery<ListWorkflowRunsResponse>({
     queryKey: mastraQueryKeys.workflows.runs(workflowId, params),
     queryFn: () =>
       mastraClient.getWorkflow(workflowId).runs(params, requestContext),
@@ -1036,7 +1175,7 @@ export const useWorkflowRuns = (
   })
 
 export const useWorkflowSchema = (workflowId: string) =>
-  useQuery({
+  useQuery<{ inputSchema: Record<string, unknown> | null; outputSchema: Record<string, unknown> | null }>({
     queryKey: mastraQueryKeys.workflows.schema(workflowId),
     queryFn: () => mastraClient.getWorkflow(workflowId).getSchema(),
     enabled: !!workflowId,
@@ -1288,7 +1427,7 @@ export const useMemorySearch = (params: {
   })
 
 export const useObservationalMemory = (
-  params: Parameters<typeof mastraClient.getObservationalMemory>[0]
+  params: ObservationalMemoryQueryParams
 ) =>
   useQuery({
     queryKey: mastraQueryKeys.memory.om(params),
@@ -1297,7 +1436,7 @@ export const useObservationalMemory = (
   })
 
 export const useAwaitBufferStatus = (
-  params: Parameters<typeof mastraClient.awaitBufferStatus>[0]
+  params: AwaitBufferStatusQueryParams
 ) =>
   useQuery({
     queryKey: mastraQueryKeys.memory.buffer(params),
@@ -1308,8 +1447,8 @@ export const useAwaitBufferStatus = (
 // --- OBSERVABILITY ---
 
 export const useTraces: (
-  params?: ListTracesArgs
-) => UseQueryResult<TracesResponse> = (params?: ListTracesArgs) =>
+  params?: CoreListTracesArgs
+) => UseQueryResult<TracesResponse> = (params?: CoreListTracesArgs) =>
   useQuery<TracesResponse>({
     queryKey: mastraQueryKeys.observability.traces(params),
     queryFn: () => mastraClient.listTraces(params),
@@ -1374,157 +1513,123 @@ export const useScoresByEntity = (params?: ListScoresByEntityIdParams) =>
     enabled: !!params,
   })
 
-export const useScores = (params?: Parameters<typeof mastraClient.listScores>[0]) =>
+export const useScores = (params?: ScoreQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scores(params),
     queryFn: () => mastraClient.listScores(params),
   })
 
-export const useScoresBySpan = (
-  params: Parameters<typeof mastraClient.listScoresBySpan>[0]
-) =>
+export const useScoresBySpan = (params: ScoreBySpanQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scoresBySpan(params),
     queryFn: () => mastraClient.listScoresBySpan(params),
     enabled: !!params,
   })
 
-export const useScoreAggregate = (
-  params: Parameters<typeof mastraClient.getScoreAggregate>[0]
-) =>
+export const useScoreAggregate = (params: ScoreAggregateQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scoreAggregate(params),
     queryFn: () => mastraClient.getScoreAggregate(params),
     enabled: !!params,
   })
 
-export const useScoreBreakdown = (
-  params: Parameters<typeof mastraClient.getScoreBreakdown>[0]
-) =>
+export const useScoreBreakdown = (params: ScoreBreakdownQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scoreBreakdown(params),
     queryFn: () => mastraClient.getScoreBreakdown(params),
     enabled: !!params,
   })
 
-export const useScoreTimeSeries = (
-  params: Parameters<typeof mastraClient.getScoreTimeSeries>[0]
-) =>
+export const useScoreTimeSeries = (params: ScoreTimeSeriesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scoreTimeSeries(params),
     queryFn: () => mastraClient.getScoreTimeSeries(params),
     enabled: !!params,
   })
 
-export const useScorePercentiles = (
-  params: Parameters<typeof mastraClient.getScorePercentiles>[0]
-) =>
+export const useScorePercentiles = (params: ScorePercentilesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.scorePercentiles(params),
     queryFn: () => mastraClient.getScorePercentiles(params),
     enabled: !!params,
   })
 
-export const useFeedbacks = (
-  params?: Parameters<typeof mastraClient.listFeedback>[0]
-) =>
+export const useFeedbacks = (params?: FeedbackQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.feedbacks(params),
     queryFn: () => mastraClient.listFeedback(params),
   })
 
-export const useFeedbackAggregate = (
-  params: Parameters<typeof mastraClient.getFeedbackAggregate>[0]
-) =>
+export const useFeedbackAggregate = (params: FeedbackAggregateQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.feedbackAggregate(params),
     queryFn: () => mastraClient.getFeedbackAggregate(params),
     enabled: !!params,
   })
 
-export const useFeedbackBreakdown = (
-  params: Parameters<typeof mastraClient.getFeedbackBreakdown>[0]
-) =>
+export const useFeedbackBreakdown = (params: FeedbackBreakdownQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.feedbackBreakdown(params),
     queryFn: () => mastraClient.getFeedbackBreakdown(params),
     enabled: !!params,
   })
 
-export const useFeedbackTimeSeries = (
-  params: Parameters<typeof mastraClient.getFeedbackTimeSeries>[0]
-) =>
+export const useFeedbackTimeSeries = (params: FeedbackTimeSeriesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.feedbackTimeSeries(params),
     queryFn: () => mastraClient.getFeedbackTimeSeries(params),
     enabled: !!params,
   })
 
-export const useFeedbackPercentiles = (
-  params: Parameters<typeof mastraClient.getFeedbackPercentiles>[0]
-) =>
+export const useFeedbackPercentiles = (params: FeedbackPercentilesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.feedbackPercentiles(params),
     queryFn: () => mastraClient.getFeedbackPercentiles(params),
     enabled: !!params,
   })
 
-export const useMetricAggregate = (
-  params: Parameters<typeof mastraClient.getMetricAggregate>[0]
-) =>
+export const useMetricAggregate = (params: MetricAggregateQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricAggregate(params),
     queryFn: () => mastraClient.getMetricAggregate(params),
     enabled: !!params,
   })
 
-export const useMetricBreakdown = (
-  params: Parameters<typeof mastraClient.getMetricBreakdown>[0]
-) =>
+export const useMetricBreakdown = (params: MetricBreakdownQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricBreakdown(params),
     queryFn: () => mastraClient.getMetricBreakdown(params),
     enabled: !!params,
   })
 
-export const useMetricTimeSeries = (
-  params: Parameters<typeof mastraClient.getMetricTimeSeries>[0]
-) =>
+export const useMetricTimeSeries = (params: MetricTimeSeriesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricTimeSeries(params),
     queryFn: () => mastraClient.getMetricTimeSeries(params),
     enabled: !!params,
   })
 
-export const useMetricPercentiles = (
-  params: Parameters<typeof mastraClient.getMetricPercentiles>[0]
-) =>
+export const useMetricPercentiles = (params: MetricPercentilesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricPercentiles(params),
     queryFn: () => mastraClient.getMetricPercentiles(params),
     enabled: !!params,
   })
 
-export const useMetricNames = (
-  params?: Parameters<typeof mastraClient.getMetricNames>[0]
-) =>
+export const useMetricNames = (params?: MetricNamesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricNames(params),
     queryFn: () => mastraClient.getMetricNames(params),
   })
 
-export const useMetricLabelKeys = (
-  params: Parameters<typeof mastraClient.getMetricLabelKeys>[0]
-) =>
+export const useMetricLabelKeys = (params: MetricLabelKeysQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricLabelKeys(params),
     queryFn: () => mastraClient.getMetricLabelKeys(params),
     enabled: !!params,
   })
 
-export const useMetricLabelValues = (
-  params: Parameters<typeof mastraClient.getMetricLabelValues>[0]
-) =>
+export const useMetricLabelValues = (params: MetricLabelValuesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.metricLabelValues(params),
     queryFn: () => mastraClient.getMetricLabelValues(params),
@@ -1537,9 +1642,7 @@ export const useEntityTypes = () =>
     queryFn: () => mastraClient.getEntityTypes(),
   })
 
-export const useEntityNames = (
-  params?: Parameters<typeof mastraClient.getEntityNames>[0]
-) =>
+export const useEntityNames = (params: EntityNamesQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.entityNames(params),
     queryFn: () => mastraClient.getEntityNames(params),
@@ -1557,7 +1660,7 @@ export const useEnvironments = () =>
     queryFn: () => mastraClient.getEnvironments(),
   })
 
-export const useTags = (params?: Parameters<typeof mastraClient.getTags>[0]) =>
+export const useTags = (params?: TagQueryParams) =>
   useQuery({
     queryKey: mastraQueryKeys.observability.tags(params),
     queryFn: () => mastraClient.getTags(params),
@@ -1708,7 +1811,7 @@ export const useLogs: (params: GetLogsParams & { enabled?: boolean }) =>
  * @param params - Optional log filtering and pagination parameters.
  */
 export const useObservabilityLogs = (
-  params?: Parameters<typeof mastraClient.listLogsVNext>[0]
+  params?: CoreListLogsArgs
 ) =>
   useQuery<ObservabilityLogsResponse>({
     queryKey: mastraQueryKeys.logs.observability(params),
@@ -2298,7 +2401,7 @@ export const useWorkflowStartMutation = (workflowId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (params: {
-      runOptions?: Parameters<ReturnType<typeof mastraClient.getWorkflow>['createRun']>[0]
+      runOptions?: WorkflowCreateRunParams
       startParams: WorkflowRunStartParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun(params.runOptions)
@@ -2313,7 +2416,7 @@ export const useWorkflowStartMutation = (workflowId: string) => {
 }
 
 export const useWorkflowCreateRunMutation = (workflowId: string) =>
-  useMutation<WorkflowRun, Error, Parameters<ReturnType<typeof mastraClient.getWorkflow>['createRun']>[0] | undefined>({
+  useMutation<WorkflowRunHandle, Error, WorkflowCreateRunParams | undefined>({
     mutationFn: (params) => mastraClient.getWorkflow(workflowId).createRun(params),
   })
 
@@ -2321,7 +2424,7 @@ export const useWorkflowStartAsyncMutation = (workflowId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (params: {
-      runOptions?: Parameters<ReturnType<typeof mastraClient.getWorkflow>['createRun']>[0]
+      runOptions?: WorkflowCreateRunParams
       startParams: WorkflowRunStartAsyncParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun(params.runOptions)
@@ -2355,7 +2458,7 @@ export const useWorkflowResumeMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resume']>[0]
+      params: WorkflowRunResumeParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.resume(params)
@@ -2369,7 +2472,7 @@ export const useWorkflowResumeAsyncMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['resumeAsync']>[0]
+      params: WorkflowRunResumeParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.resumeAsync(params)
@@ -2391,7 +2494,7 @@ export const useWorkflowRestartMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restart']>[0]
+      params: WorkflowRunRestartParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.restart(params)
@@ -2405,7 +2508,7 @@ export const useWorkflowRestartAsyncMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params?: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['restartAsync']>[0]
+      params?: WorkflowRunRestartParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.restartAsync(params)
@@ -2419,7 +2522,7 @@ export const useWorkflowTimeTravelMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravel']>[0]
+      params: TimeTravelParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.timeTravel(params)
@@ -2433,7 +2536,7 @@ export const useWorkflowTimeTravelAsyncMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<Awaited<ReturnType<ReturnType<typeof mastraClient.getWorkflow>['createRun']>>['timeTravelAsync']>[0]
+      params: TimeTravelParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.timeTravelAsync(params)
@@ -2655,14 +2758,13 @@ export const useTriggerDatasetExperimentMutation = () => {
 
 export const useGenerateDatasetItemsMutation = () =>
   useMutation({
-    mutationFn: (
-      params: Parameters<typeof mastraClient.generateDatasetItems>[0]
-    ) => mastraClient.generateDatasetItems(params),
+    mutationFn: (params: DatasetGenerateQueryParams) =>
+      mastraClient.generateDatasetItems(params),
   })
 
 export const useClusterFailuresMutation = () =>
   useMutation({
-    mutationFn: (params: Parameters<typeof mastraClient.clusterFailures>[0]) =>
+    mutationFn: (params: DatasetClusterQueryParams) =>
       mastraClient.clusterFailures(params),
   })
 
@@ -2670,9 +2772,8 @@ export const useUpdateDatasetExperimentResultMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (
-      params: Parameters<typeof mastraClient.updateDatasetExperimentResult>[0]
-    ) => mastraClient.updateDatasetExperimentResult(params),
+    mutationFn: (params: UpdateExperimentResultParams) =>
+      mastraClient.updateDatasetExperimentResult(params),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.all })
     },
@@ -2683,7 +2784,7 @@ export const useUpdateExperimentResultMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (params: Parameters<typeof mastraClient.updateExperimentResult>[0]) =>
+    mutationFn: (params: UpdateExperimentResultParams) =>
       mastraClient.updateExperimentResult(params),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: mastraQueryKeys.datasets.all })
@@ -2725,19 +2826,19 @@ export const useScoreMutation = () =>
 
 export const useSaveScoreMutation = () =>
   useMutation({
-    mutationFn: (params: Parameters<typeof mastraClient.saveScore>[0]) =>
+    mutationFn: (params: SaveScoreParams) =>
       mastraClient.saveScore(params),
   })
 
 export const useCreateScoreMutation = () =>
   useMutation({
-    mutationFn: (params: Parameters<typeof mastraClient.createScore>[0]) =>
+    mutationFn: (params: CreateScoreBody) =>
       mastraClient.createScore(params),
   })
 
 export const useCreateFeedbackMutation = () =>
   useMutation({
-    mutationFn: (params: Parameters<typeof mastraClient.createFeedback>[0]) =>
+    mutationFn: (params: CreateFeedbackBody) =>
       mastraClient.createFeedback(params),
   })
 
@@ -3051,13 +3152,13 @@ export const useAgentBuilderResumeStreamMutation = (actionId: string) =>
   })
 
 export const useAgentStreamMutation = <OUTPUT = undefined>(agentId: string) =>
-  useMutation<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgent>['stream']>>, Error, StreamParams<OUTPUT>>({
+  useMutation<AgentProcessStreamResult, Error, StreamParams<OUTPUT>>({
     mutationFn: (params: StreamParams<OUTPUT>) =>
       mastraClient.getAgent(agentId).stream(params.messages, params),
   })
 
 export const useAgentNetworkMutation = <OUTPUT = undefined>(agentId: string) =>
-  useMutation<Awaited<ReturnType<ReturnType<typeof mastraClient.getAgent>['network']>>, Error, NetworkStreamParams<OUTPUT>>({
+  useMutation<NetworkProcessStreamResult, Error, NetworkStreamParams<OUTPUT>>({
     mutationFn: (params: NetworkStreamParams<OUTPUT>) =>
       mastraClient.getAgent(agentId).network(params.messages, params),
   })
@@ -3164,8 +3265,8 @@ export const useWorkflowStreamMutation = (workflowId: string) =>
       runOptions,
       params,
     }: {
-      runOptions?: Parameters<ReturnType<typeof mastraClient.getWorkflow>['createRun']>[0]
-      params: Parameters<WorkflowRun['stream']>[0]
+      runOptions?: WorkflowCreateRunParams
+      params: WorkflowRunStreamParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun(runOptions)
       return run.stream(params)
@@ -3187,7 +3288,7 @@ export const useWorkflowResumeStreamMutation = (workflowId: string) =>
       params,
     }: {
       runId: string
-      params: Parameters<WorkflowRun['resumeStream']>[0]
+      params: WorkflowRunResumeParams
     }) => {
       const run = await mastraClient.getWorkflow(workflowId).createRun({ runId })
       return run.resumeStream(params)
