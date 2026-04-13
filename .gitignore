@@ -13,12 +13,26 @@ assets/
 assets/*png
 assets/*jpg
 
+.kilocode/skills/**/*.md
+.windsurf/skills/**/*.md
+.agents/skills/**/*.md
+.agents/skills/**/*.ts
+.agents/skills/**/*.tsx
+.kilocode/skills/**/**/*.md
+.kilocode/skills/**/*.ts
+.kilocode/skills/**/*.tsx
+.windsurf/skills/**/*.ts
+.windsurf/skills/**/*.tsx
+.agent/skills/**/*.md
+.agent/skills/**/*.ts
+.agent/skills/**/*.tsx
+
 .trunk/
 .trunk/**/*
 .mastra/
 .windsurf/
 .github/-/*.md
-.github/agents/*.md
+
 .github/workflows/*.yml
 .agent/doc/*md
 .agent/rules/*.md

@@ -1,9 +1,32 @@
+
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { ExecaError as ExecaErrorType } from 'execa'
-import execa from 'execa'
+import { simpleGit } from 'simple-git'
+import type {
+    GitConfigScope,
+    GitConstructError,
+    GitError,
+    GitGrepQuery,
+    GitPluginError,
+    GitResponseError,
+    PullDetail,
+    PullDetailFileChanges,
+    PullDetailSummary,
+    PullFailedResult,
+    PullResult,
+    RemoteMessageResult,
+    Response,
+    SimpleGitBase,
+    SimpleGitFactory,
+    SimpleGitOptions,
+    SimpleGitProgressEvent,
+    SimpleGitTaskCallback,
+    TagResult,
+    TaskConfigurationError,
+    TaskOptions,
+} from 'simple-git'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -65,15 +88,213 @@ function formatGitError(e: unknown): {
     exitCode: number | undefined
     stderr: string | undefined
 } {
-    const execaErr = e as ExecaErrorType
-    const message =
-        execaErr.message ?? (e instanceof Error ? e.message : String(e))
-    const exitCode =
-        typeof execaErr.exitCode === 'number' ? execaErr.exitCode : undefined
-    const stderr =
-        typeof execaErr.stderr === 'string' ? execaErr.stderr : undefined
+    const gitError = e as {
+        message?: string
+        exitCode?: number
+        stderr?: unknown
+    }
+
+    const message = gitError.message ?? (e instanceof Error ? e.message : String(e))
+    const exitCode = typeof gitError.exitCode === 'number' ? gitError.exitCode : undefined
+    const stderr = typeof gitError.stderr === 'string' ? gitError.stderr : undefined
     return { message, exitCode, stderr }
 }
+
+type GitCommandResult = {
+    stdout: string
+    stderr: string
+    exitCode: number
+}
+
+type GitCommandOptions = {
+    cwd?: string
+    timeout?: number
+    stdio?: string
+}
+
+export type SimpleGitTypeSurface = {
+    taskOptions: TaskOptions
+    taskConfigurationError: TaskConfigurationError
+    tagResult: TagResult
+    remoteMessageResult: RemoteMessageResult
+    response: Response<unknown>
+    pullResult: PullResult
+    pullFailedResult: PullFailedResult
+    pullDetailSummary: PullDetailSummary
+    simpleGitOptions: SimpleGitOptions
+    simpleGitFactory: SimpleGitFactory
+    simpleGitProgressEvent: SimpleGitProgressEvent
+    simpleGitTaskCallback: SimpleGitTaskCallback
+    simpleGitBase: SimpleGitBase
+    gitError: GitError
+    gitResponseError: GitResponseError
+    gitConfigScope: GitConfigScope
+    gitGrepQuery: GitGrepQuery
+    gitConstructError: GitConstructError
+    pullDetail: PullDetail
+    pullDetailFileChanges: PullDetailFileChanges
+    gitPluginError: GitPluginError
+}
+
+type GitClient = ReturnType<SimpleGitFactory>
+
+type PorcelainFile = {
+    index?: string
+    working_dir?: string
+    path?: string
+}
+
+const createGitClient = (cwd?: string): GitClient =>
+    simpleGit({ baseDir: cwd ?? process.cwd() })
+
+const withTimeout = async <T>(promise: Promise<T>, timeout?: number): Promise<T> => {
+    if (typeof timeout !== 'number' || timeout <= 0) {
+        return promise
+    }
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+
+    try {
+        const timeoutPromise = new Promise<T>((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+                const timeoutError = new Error(
+                    `Git command timed out after ${timeout}ms`,
+                ) as Error & { exitCode?: number; stderr?: string }
+                timeoutError.exitCode = 1
+                timeoutError.stderr = 'Git command timed out'
+                reject(timeoutError)
+            }, timeout)
+        })
+
+        return await Promise.race([promise, timeoutPromise])
+    } finally {
+        if (timeoutHandle !== undefined) {
+            clearTimeout(timeoutHandle)
+        }
+    }
+}
+
+const formatPorcelainStatus = (files: Array<PorcelainFile>): string =>
+    files
+        .map((file) => `${file.index ?? ' '}${file.working_dir ?? ' '} ${file.path ?? ''}`)
+        .join('\n')
+
+const formatBranchList = async (git: GitClient): Promise<string> => {
+    const summary = await git.branch()
+    return summary.all
+        .map((branchName) => {
+            const branch = summary.branches[branchName]
+            if (!branch) {
+                return `${branchName}| | |`
+            }
+
+            const current = branch.current ? '*' : ' '
+            const label = branch.label ?? ''
+            const lastCommit = branch.commit ?? ''
+            return `${branch.name}|${current}|${label}|${lastCommit}`
+        })
+        .join('\n')
+}
+
+const formatStashList = async (git: GitClient): Promise<string> => {
+    const stashes = await git.stashList()
+    return stashes.all
+        .map((stash) => {
+            const refs = stash.refs ?? ''
+            const author = stash.author_name ?? ''
+            return `${stash.hash}|${stash.message}|${stash.date}|${author}|${refs}`
+        })
+        .join('\n')
+}
+
+const formatConfigList = async (git: GitClient): Promise<string> => {
+    const config = await git.listConfig()
+    return Object.entries(config.all)
+        .flatMap(([key, values]) =>
+            (Array.isArray(values) ? values : [values]).map((value: string) => `${key}=${value}`),
+        )
+        .join('\n')
+}
+
+const runGitCommand = async (
+    command: string,
+    args: string[],
+    options: GitCommandOptions = {},
+): Promise<GitCommandResult> => {
+    if (command !== 'git') {
+        throw new Error(`Unsupported command: ${command}`)
+    }
+
+    const git = createGitClient(options.cwd)
+    const [subcommand = '', ...rest] = args
+
+    const stdout = await withTimeout(
+        (async () => {
+            switch (subcommand) {
+                case 'status': {
+                    const status = await git.status()
+                    return formatPorcelainStatus(status.files as Array<PorcelainFile>)
+                }
+                case 'rev-parse': {
+                    if (rest[0] === '--abbrev-ref' && rest[1] === 'HEAD') {
+                        const status = await git.status()
+                        return status.current ?? 'HEAD'
+                    }
+
+                    return git.raw(args)
+                }
+                case 'rev-list': {
+                    const status = await git.status()
+                    return `${status.behind ?? 0}\t${status.ahead ?? 0}`
+                }
+                case 'diff': {
+                    return git.diff(rest)
+                }
+                case 'commit': {
+                    return git.commit(rest.join(' ')) as unknown as string
+                }
+                case 'log': {
+                    return git.raw(args)
+                }
+                case 'branch': {
+                    return await formatBranchList(git)
+                }
+                case 'stash': {
+                    if (rest[0] === 'list') {
+                        return await formatStashList(git)
+                    }
+
+                    return git.raw(args)
+                }
+                case 'config': {
+                    if (rest[0] === '--list') {
+                        return await formatConfigList(git)
+                    }
+
+                    return git.raw(args)
+                }
+                case 'show':
+                case 'merge':
+                case 'checkout':
+                case 'clean':
+                case 'reset':
+                case 'pull':
+                case 'push':
+                case 'fetch':
+                case 'tag':
+                case 'rebase':
+                case 'remote':
+                default:
+                    return git.raw(args)
+            }
+        })(),
+        options.timeout,
+    )
+
+    return { stdout, stderr: '', exitCode: 0 }
+}
+
+const execa = runGitCommand
 
 // Enhanced Git Status Tool with more detailed information
 export const gitStatusTool = createTool({

@@ -113,15 +113,12 @@ export const jsonToCsvTool = createTool({
                 if (value === null || value === undefined) {
                     return ''
                 }
-                let stringValue = ''
-                if (typeof value === 'object') {
-                    stringValue = JSON.stringify(value)
-                } else {
-                    stringValue =
-                        typeof value === 'string'
-                            ? value
-                            : String(value as number | boolean | bigint)
-                }
+                const stringValue =
+                    typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : typeof value === 'string'
+                          ? value
+                          : String(value as number | boolean | bigint)
 
                 // If value contains delimiter, quote, or newline, escape it
                 if (
@@ -199,7 +196,7 @@ export const jsonToCsvTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, { cause: error })
             }
 
             // Record error in both spans
@@ -211,7 +208,7 @@ export const jsonToCsvTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })
-            throw new Error(errorMessage)
+            throw new Error(errorMessage, { cause: error })
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {

@@ -5,7 +5,7 @@ import {
     Suggestion,
 } from '@/src/components/ai-elements/suggestion'
 import { cn } from '@/lib/utils'
-import type { AgentSuggestionsProps } from './chat.types'
+import type { AgentSuggestionsProps } from '../providers/chat-context-types'
 
 export function AgentSuggestions({
     suggestions,

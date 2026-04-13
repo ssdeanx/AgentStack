@@ -1,21 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
-import { dataValidatorToolJSON } from '../tools/data-validator.tool'
-import {
-    //   convertDataFormatTool,
-    validateDataTool,
-    //   processXMLTool,
-} from '../tools/data-processing-tools'
-import { readDataFileTool, writeDataFileTool } from '../tools/data-file-manager'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { USER_ID_CONTEXT_KEY } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type DataTransformationContext = AgentRequestContext<{
     preserveTypes?: boolean
@@ -32,10 +24,6 @@ const XML_ROOT_ELEMENT_CONTEXT_KEY = 'xmlRootElement' as const
 const dataTransformationTools = {
     csvToJsonTool,
     jsonToCsvTool,
-    dataValidatorToolJSON,
-    validateDataTool,
-    readDataFileTool,
-    writeDataFileTool,
 }
 
 export const dataTransformationAgent = new Agent({
@@ -83,7 +71,7 @@ export const dataTransformationAgent = new Agent({
    - Check for nested structures or special characters
 
 2. **Validate Source Data**
-   - Use validateDataTool or dataValidatorTool to verify structure
+    - Use workspace search/read tools and sandbox diagnostics to verify structure
    - Report any issues before transformation
 
 3. **Apply Transformation**
@@ -130,14 +118,14 @@ export const dataTransformationAgent = new Agent({
 `
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: dataTransformationTools,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,
         },
     },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+//    outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 log.info('Data Transformation Agent initialized')

@@ -7,24 +7,16 @@ import {
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { AgentRequestContext } from './request-context'
-import {
-  createAnswerRelevancyScorer,
-  createToxicityScorer,
-} from '@mastra/evals/scorers/prebuilt'
 import { PGVECTOR_PROMPT } from '@mastra/pg'
 import {
-  googleAI,
   googleAI3,
-  googleAIFlashLite
 } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory, pgQueryTool } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { mdocumentChunker } from '../tools/document-chunking.tool'
+import { libsqlChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import {
   googleFinanceTool,
   googleScholarTool,
@@ -34,14 +26,9 @@ import {
   googleNewsTool,
   googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
-import {
-  batchWebScraperTool,
-  contentCleanerTool,
-  htmlToMarkdownTool,
-  linkExtractorTool,
-  siteMapExtractorTool,
-  webScraperTool,
-} from '../tools/web-scraper-tool'
+import { fetchTool } from '../tools'
+import { LibsqlMemory, libsqlQueryTool } from '../config/libsql'
+
 
 type Research = 'simple' | 'deep' | 'extensive' | 'extreme' | 'ultra' | 'insane'
 
@@ -81,8 +68,8 @@ export const legalResearchAgent = new Agent({
     requestContext: RequestContext<BusinessRuntimeContext>
   }) => {
     // runtimeContext is read at invocation time
-    const userTierValue = requestContext.get('user-tier')
-    const userTier = typeof userTierValue === 'string' ? userTierValue : 'free'
+    const roleValue = requestContext.get('role')
+    const role = typeof roleValue === 'string' ? roleValue : 'user'
     const languageValue = requestContext.get('language')
     const language = typeof languageValue === 'string' ? languageValue : 'en'
     const researchValue = requestContext.get('research')
@@ -99,7 +86,7 @@ export const legalResearchAgent = new Agent({
       role: 'system',
       content: `You are a Senior Legal Research Analyst. Your goal is to research legal topics thoroughly using authoritative sources.
                               Your working with:
-                              - User: ${userTier}
+                              - Role: ${role}
                               - Language: ${language}
                               - Research: Depth ${research.depth}, Scope ${research.scope}
                               - Analysis: Depth ${analysis.depth}, Scope ${analysis.scope}
@@ -142,50 +129,32 @@ export const legalResearchAgent = new Agent({
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
+      // higher quality (chat style) for admin
       return "google/gemini-3.1-pro-preview"
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return "google/gemini-3.1-flash-preview"
     }
-    // cheaper/faster model for free tier
+    // cheaper/faster model for user tier
     return "google/gemini-3.1-flash-lite-preview"
   },
 
   tools: {
-    webScraperTool,
-    siteMapExtractorTool,
-    linkExtractorTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
-    //  pgQueryTool,
-    batchWebScraperTool,
-    mdocumentChunker,
+    fetchTool,
+    libsqlChunker,
     evaluateResultTool,
     extractLearningsTool,
     googleScholarTool,
     googleTrendsTool,
     googleNewsLiteTool,
     googleNewsTool,
-    pdfToMarkdownTool,
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
     },
   },
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
   },
   maxRetries: 5,
   inputProcessors: [
@@ -194,7 +163,7 @@ export const legalResearchAgent = new Agent({
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(128000)],
+  //outputProcessors: [new TokenLimiterProcessor(128000)],
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
@@ -211,14 +180,14 @@ export const contractAnalysisAgent = new Agent({
     requestContext: RequestContext<BusinessRuntimeContext>
   }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
       content: `
 You are a Senior Contract Analyst. Analyze legal documents for risks, obligations, and compliance.
 
-**User Tier:** ${userTier}
+**Role:** ${role}
 **Language:** ${language}
 
 **Analysis Framework:**
@@ -258,27 +227,17 @@ You are a Senior Contract Analyst. Analyze legal documents for risks, obligation
   },
   model: googleAI3,
   tools: {
-    pdfToMarkdownTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
-    mdocumentChunker,
+    fetchTool,
+    libsqlChunker,
     evaluateResultTool,
     extractLearningsTool,
-    pgQueryTool,
-    webScraperTool,
+    libsqlQueryTool,
+
     googleScholarTool,
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
 
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
   },
   maxRetries: 5,
   inputProcessors: [
@@ -304,7 +263,7 @@ export const complianceMonitoringAgent = new Agent({
     requestContext: RequestContext<BusinessRuntimeContext>
   }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
@@ -312,7 +271,7 @@ export const complianceMonitoringAgent = new Agent({
 You are a Compliance Officer. Monitor regulatory compliance and identify risks across business operations.
 
 **User Information:**
-- User Tier: ${userTier}
+- Role: ${role}
 - Language: ${language}
 
 **Monitoring Process:**
@@ -354,28 +313,17 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
   },
   model: googleAI3,
   tools: {
-    webScraperTool,
     googleNewsTool,
     googleTrendsTool,
-    pgQueryTool,
+    libsqlQueryTool,
     evaluateResultTool,
     extractLearningsTool,
-    pdfToMarkdownTool,
-    htmlToMarkdownTool,
-    contentCleanerTool,
+    fetchTool,
     googleScholarTool,
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
 
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
   },
   maxRetries: 5,
   inputProcessors: [
@@ -384,7 +332,7 @@ You are a Compliance Officer. Monitor regulatory compliance and identify risks a
       collapseWhitespace: true,
     }),
   ],
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+//  outputProcessors: [new TokenLimiterProcessor(1048576)],
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
@@ -401,7 +349,7 @@ export const businessStrategyAgent = new Agent({
     requestContext: RequestContext<BusinessRuntimeContext>
   }) => {
     // runtimeContext is read at invocation time
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     const language = requestContext.get('language') ?? 'en'
     return {
       role: 'system',
@@ -409,7 +357,7 @@ export const businessStrategyAgent = new Agent({
 You are a Chief Strategy Officer with legal expertise. Align business strategy with legal requirements and coordinate the legal team.
 
 **Business Context:**
-- User Tier: ${userTier}
+- Role: ${role}
 - Language: ${language}
 
 **Strategy Framework:**
@@ -450,23 +398,19 @@ You are a Chief Strategy Officer with legal expertise. Align business strategy w
   },
   model: googleAI3,
   tools: {
-    pgQueryTool,
+    libsqlQueryTool,
     evaluateResultTool,
     extractLearningsTool,
     googleNewsTool,
     googleTrendsTool,
     googleFinanceTool,
     googleScholarTool,
-    webScraperTool,
+    fetchTool,
     // Integration tools for coordinating other agents would be added here
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
 
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: googleAIFlashLite }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
   },
   maxRetries: 5,
   inputProcessors: [

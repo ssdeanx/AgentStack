@@ -2,8 +2,8 @@ import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { testEngineerAgent } from '../agents/codingAgents'
-import { createSandbox, runCommand, writeFile } from '../tools/e2b'
 import { logStepEnd, logStepStart, logError } from '../config/logger'
+import { mainWorkspace } from '../workspaces'
 
 const testGenInputSchema = z.object({
     code: z.string().describe('The source code to test'),
@@ -115,7 +115,7 @@ const generateTestsStep = createStep({
 
             return finalResult
         } catch (error) {
-            logError('generate-tests', error)
+            logError('generate-tests', error instanceof Error ? error : new Error(String(error)))
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -153,6 +153,16 @@ const runTestsStep = createStep({
         logStepStart('run-tests', { testFilePath: inputData.testFilePath })
 
         try {
+            const filesystem = mainWorkspace.filesystem
+            if (!filesystem?.writeFile) {
+                throw new Error('Workspace filesystem is not available.')
+            }
+
+            const sandbox = mainWorkspace.sandbox
+            if (!sandbox?.executeCommand) {
+                throw new Error('Workspace sandbox executeCommand is not available.')
+            }
+
             await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
@@ -163,63 +173,26 @@ const runTestsStep = createStep({
                 id: 'run-tests',
             })
 
-            // 1. Create Sandbox
-            const sandbox = await createSandbox.execute(
-                {
-                    timeoutMS: 300_000,
-                },
-                { mastra, requestContext }
-            )
+            await filesystem.writeFile(inputData.filePath, inputData.code)
+            await filesystem.writeFile(inputData.testFilePath, inputData.testCode)
 
-            if ('error' in sandbox) {
-                throw sandbox.error
-            }
-
-            const { sandboxId } = sandbox
-
-            // 2. Write source file
-            await writeFile.execute(
-                {
-                    sandboxId,
-                    path: inputData.filePath,
-                    content: inputData.code,
-                },
-                { mastra, requestContext }
-            )
-
-            // 3. Write test file
-            await writeFile.execute(
-                {
-                    sandboxId,
-                    path: inputData.testFilePath,
-                    content: inputData.testCode,
-                },
-                { mastra, requestContext }
-            )
-
-            // 4. Run tests
             let testCommand = ''
+            let testArgs: string[] = []
             if (inputData.language === 'ts' || inputData.language === 'js') {
-                // Install vitest if needed, but for speed we'll assume npx works
-                // We might need a package.json or just run npx vitest directly
-                testCommand = `npx -y vitest run ${inputData.testFilePath}`
+                testCommand = 'npx'
+                testArgs = ['-y', 'vitest', 'run', inputData.testFilePath]
             } else if (inputData.language === 'python') {
-                testCommand = `pip install pytest && pytest ${inputData.testFilePath}`
+                testCommand = 'pytest'
+                testArgs = [inputData.testFilePath]
             }
 
-            const execution = await runCommand.execute(
+            const execution = await sandbox.executeCommand(
+                testCommand,
+                testArgs,
                 {
-                    sandboxId,
-                    command: testCommand,
-                    timeoutMs: 120000,
-                    captureOutput: true,
-                },
-                { mastra, requestContext }
+                    timeout: 120_000,
+                }
             )
-
-            if ('error' in execution) {
-                throw execution.error
-            }
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -257,7 +230,7 @@ const runTestsStep = createStep({
 
             return finalResult
         } catch (error) {
-            logError('run-tests', error)
+            logError('run-tests', error instanceof Error ? error : new Error(String(error)))
             const errorResult = {
                 testCode: inputData.testCode,
                 testFilePath: inputData.testFilePath,
@@ -290,3 +263,4 @@ export const testGenerationWorkflow = createWorkflow({
     .then(runTestsStep)
 
 testGenerationWorkflow.commit()
+

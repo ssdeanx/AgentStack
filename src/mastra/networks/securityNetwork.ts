@@ -1,16 +1,211 @@
 import { Agent } from '@mastra/core/agent'
+import { createScorer } from '@mastra/core/evals'
 import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
+  extractAgentResponseMessages,
+  extractInputMessages,
+  extractToolCalls,
+  getAssistantMessageFromRunOutput,
+  getCombinedSystemPrompt,
+  getReasoningFromRunOutput,
+  getSystemMessagesFromRunInput,
+  getUserMessageFromRunInput,
+} from '@mastra/evals/scorers/utils'
 import { codeReviewerAgent } from '../agents/codingAgents'
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { reportAgent } from '../agents/reportAgent'
 import { researchAgent } from '../agents/researchAgent'
 import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
+import { LibsqlMemory } from '../config/libsql'
 
 log.info('Initializing Security Network...')
+
+/**
+ * Checks that the security network returns a concrete assessment, mitigation,
+ * or reporting outcome instead of only generic security posture language.
+ */
+const securityNetworkTaskCompleteScorer = createScorer({
+  id: 'security-network-task-complete',
+  name: 'Security Network Task Completeness',
+  description:
+    'Checks whether the security network returned actionable security findings or mitigation guidance.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasSecurityLanguage:
+        /security|vulnerability|risk|mitigation|compliance|incident|control|assessment|finding/i.test(
+          responseText
+        ),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 80) score += 0.2
+    if (analysis.responseLength >= 160) score += 0.1
+    if (analysis.hasSecurityLanguage) score += 0.4
+    if (analysis.hasStructure) score += 0.15
+    if (analysis.hasReasoning) score += 0.05
+    if (analysis.toolCount > 0) score += 0.05
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable security response was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasSecurityLanguage) parts.push('it includes security or risk language')
+    if (analysis.hasStructure) parts.push('it is structured for handoff')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This security response is strong because ${parts.join(', ')}.` : 'The response is present but still needs mitigation detail.'}`
+  })
+
+/**
+ * Checks that the security answer is remediation-ready with priority, impact,
+ * and next mitigation actions.
+ */
+const securityNetworkRemediationScorer = createScorer({
+  id: 'security-network-remediation-readiness',
+  name: 'Security Network Remediation Readiness',
+  description:
+    'Checks whether the security response includes severity, mitigation, and follow-up guidance.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasSeverity:
+        /critical|high|medium|low|severity|priority/i.test(responseText),
+      hasMitigation:
+        /mitigation|fix|control|remediation|contain/i.test(responseText),
+      hasFollowUp:
+        /next step|owner|monitor|validate|follow-up/i.test(responseText),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 160) score += 0.2
+    if (analysis.responseLength >= 280) score += 0.1
+    if (analysis.hasSeverity) score += 0.2
+    if (analysis.hasMitigation) score += 0.25
+    if (analysis.hasFollowUp) score += 0.2
+    if (analysis.hasStructure) score += 0.05
+    if (analysis.hasReasoning) score += 0.03
+    if (analysis.toolCount > 0) score += 0.02
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable security remediation response was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasSeverity) parts.push('it classifies severity or priority')
+    if (analysis.hasMitigation) parts.push('it includes mitigation or remediation guidance')
+    if (analysis.hasFollowUp) parts.push('it includes follow-up or monitoring steps')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This remediation response is strong because ${parts.join(', ')}.` : 'The response is present but still needs concrete remediation detail.'}`
+  })
 
 export const securityNetwork = new Agent({
   id: 'security-network',
@@ -162,9 +357,15 @@ export const securityNetwork = new Agent({
 - Provide compliance mapping and regulatory guidance
 - Recommend security metrics and monitoring approaches
 - Include incident response planning and testing procedures
+
+## Final Answer Contract
+
+- Start with the most important security finding or posture conclusion.
+- Present severity, business impact, and remediation options clearly.
+- End with the next mitigation step, validation action, or residual-risk note.
 `,
   model: googleAI3,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   agents: {
     codeReviewerAgent,
     evaluationAgent,
@@ -176,13 +377,94 @@ export const securityNetwork = new Agent({
   options: {},
   //  defaultNetworkOptions: { autoResumeSuspendedTools: true } as unknown as any,
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+ //   new TokenLimiterProcessor(128000),
     //  new BatchPartsProcessor({
     //      batchSize: 20,
     //      maxWaitTime: 100,
     //      emitOnNonText: true,
     //  }),
   ],
+  defaultOptions: {
+    maxSteps: 18,
+    delegation: {
+      onDelegationStart: async context => {
+        log.info('Security network delegating', {
+          primitiveId: context.primitiveId,
+          iteration: context.iteration,
+        })
+
+        await Promise.resolve()
+
+        if (context.primitiveId === 'codeReviewerAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nPrioritize exploitable security findings, severity, impact, and concrete remediation steps over stylistic observations.`,
+          }
+        }
+
+        if (context.primitiveId === 'evaluationAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nEvaluate the security posture for completeness, control coverage, residual risk, and compliance gaps with explicit rationale.`,
+          }
+        }
+
+        if (context.primitiveId === 'researchAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nGather security-relevant advisories, standards, and threat context that materially affect the recommendation.`,
+          }
+        }
+
+        if (context.primitiveId === 'reportAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nProduce an executive-ready security report with prioritized findings, impact, mitigation timeline, and residual risk notes.`,
+          }
+        }
+
+        return { proceed: true }
+      },
+      onDelegationComplete: async context => {
+        log.info('Security delegation complete', {
+          primitiveId: context.primitiveId,
+          success: context.success,
+          duration: context.duration,
+        })
+
+        if (context.error) {
+          context.bail()
+          await Promise.resolve()
+          return {
+            feedback: `Delegation to ${context.primitiveId} failed: ${String(context.error)}. Continue with the validated findings and clearly note the remaining security uncertainty.`,
+          }
+        }
+
+        await Promise.resolve()
+      },
+      messageFilter: ({ messages }) => {
+        return messages
+          .filter(
+            message =>
+              !message.content.parts.some(part => part.type === 'tool-invocation')
+          )
+          .slice(-6)
+      },
+    },
+    isTaskComplete: {
+      scorers: [securityNetworkTaskCompleteScorer, securityNetworkRemediationScorer],
+      strategy: 'any',
+      parallel: true,
+      onComplete: async result => {
+        log.info('Security completion check', {
+          complete: result.complete,
+          score: result.scorers[0]?.score,
+        })
+        await Promise.resolve()
+      },
+      suppressFeedback: false,
+    },
+  },
 })
 
 log.info('Security Network initialized')

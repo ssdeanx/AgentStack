@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ChangeEvent, type SubmitEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/ui/button'
 import { Input } from '@/ui/input'
@@ -140,7 +140,7 @@ export function ContactForm() {
     }
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { id, value } = e.target
         setFormData((prev) => ({ ...prev, [id]: value }))
@@ -150,7 +150,7 @@ export function ContactForm() {
         }
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
 
         if (!validateForm()) {
@@ -183,8 +183,7 @@ export function ContactForm() {
                 message: '',
             })
         } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error('Contact form error:', error)
+            void error
             setStatus('error')
             setTimeout(() => setStatus('idle'), 3000)
         }
@@ -320,7 +319,7 @@ export function ContactForm() {
                                         Message Sent!
                                     </h3>
                                     <p className="max-w-sm text-muted-foreground">
-                                        Thank you for reaching out. We've
+                                        Thank you for reaching out. We&apos;ve
                                         received your message and will get back
                                         to you within 24 hours.
                                     </p>

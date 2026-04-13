@@ -1,7 +1,7 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
-
 import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
@@ -17,13 +17,12 @@ import { httpFetch } from '../lib/http-client'
  *
  * Requires ALPHA_VANTAGE_API_KEY environment variable
  */
-export type UserTier = 'free' | 'pro' | 'enterprise'
+
 /**
- * Base Request Context for Alpha Vantage
+ * Base Request Context for Alpha Vantage Extra
  */
-export interface AlphaVantageRequestContext extends RequestContext {
-    apiKey?: string
-    'user-tier': UserTier
+export interface AlphaVantageContextExtra extends BaseToolRequestContext {
+    // Additional context properties can be added here if needed
 }
 
 // In-memory counter to track tool calls per request
@@ -146,22 +145,25 @@ export const alphaVantageCryptoTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
-        const requestContext =
-            context?.requestContext as AlphaVantageRequestContext
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const tracingContext: TracingContext | undefined = context.tracingContext
+        const requestContext = context.requestContext as RequestContext<AlphaVantageContextExtra>
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
+        const cryptoTarget = [inputData.symbol, inputData.market]
+            .filter((value): value is string => Boolean(value))
+            .join('/')
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal?.aborted === true) {
             throw new Error('Alpha Vantage crypto lookup cancelled')
         }
 
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
-                message: `📈 Fetching Alpha Vantage crypto data for ${inputData.symbol}/${inputData.market}`,
+                message: `📈 Fetching Alpha Vantage crypto data for ${cryptoTarget}`,
                 status: 'in-progress',
                 stage: 'alpha-vantage-crypto',
             },
@@ -178,9 +180,10 @@ export const alphaVantageCryptoTool = createTool({
                 'tool.input.symbol': inputData.symbol,
                 'tool.input.market': inputData.market,
                 'tool.input.function': inputData.function,
-                'user.tier': requestContext?.['user-tier'] ?? 'free',
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -195,14 +198,13 @@ export const alphaVantageCryptoTool = createTool({
                 'tool.input.market': inputData.market,
             },
             entityId: inputData.symbol,
-            entityName: `${inputData.symbol}/${inputData.market}`,
+            entityName: cryptoTarget,
         })
 
-        const apiKey =
-            requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
+        const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
         if (typeof apiKey !== 'string' || apiKey.trim() === '') {
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: '❌ Missing ALPHA_VANTAGE_API_KEY',
@@ -241,7 +243,7 @@ export const alphaVantageCryptoTool = createTool({
 
             const url = `https://www.alphavantage.co/query?${params.toString()}`
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: '📡 Querying Alpha Vantage API...',
@@ -263,7 +265,10 @@ export const alphaVantageCryptoTool = createTool({
                 resp.status >= 300
             ) {
                 throw new Error(
-                    `Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`
+                    'Alpha Vantage API error: ' +
+                        resp.status.toString() +
+                        ' ' +
+                        resp.statusText
                 )
             }
 
@@ -293,7 +298,7 @@ export const alphaVantageCryptoTool = createTool({
                 dataObj !== null &&
                 'Note' in (dataObj as Record<string, unknown>)
             ) {
-                const note = (dataObj as Record<string, unknown>)['Note']
+                const note = (dataObj as Record<string, unknown>).Note
                 const noteText = normalizeApiMessage(note).trim()
                 if (noteText !== '') {
                     throw new Error(noteText) // API limit reached
@@ -311,7 +316,7 @@ export const alphaVantageCryptoTool = createTool({
                 if ('Meta Data' in dataRecord) {
                     metadata = dataRecord['Meta Data']
                 } else if ('meta' in dataRecord) {
-                    metadata = dataRecord['meta']
+                    metadata = dataRecord.meta
                 }
             }
 
@@ -335,7 +340,7 @@ export const alphaVantageCryptoTool = createTool({
                 return null
             }
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: `✅ Crypto data ready for ${inputData.symbol}`,
@@ -379,7 +384,7 @@ export const alphaVantageCryptoTool = createTool({
                 error instanceof Error
                     ? error.message
                     : 'Unknown error occurred'
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: `❌ Crypto fetch error: ${errMsg}`,
@@ -526,15 +531,17 @@ export const alphaVantageStockTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const writer = context.writer
+        const abortSignal = context.abortSignal
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+            context.tracingContext
         const requestContext =
-            context?.requestContext as AlphaVantageRequestContext
+            context.requestContext as RequestContext<AlphaVantageContextExtra>
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal?.aborted === true) {
             throw new Error('Alpha Vantage stock lookup cancelled')
         }
 
@@ -557,8 +564,10 @@ export const alphaVantageStockTool = createTool({
                 'tool.id': 'alpha-vantage-stock',
                 'tool.input.symbol': inputData.symbol,
                 'tool.input.function': inputData.function,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -574,11 +583,10 @@ export const alphaVantageStockTool = createTool({
             },
         })
 
-        const apiKey =
-            requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
+        const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
         if (typeof apiKey !== 'string' || apiKey.trim() === '') {
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: '❌ Missing ALPHA_VANTAGE_API_KEY',
@@ -619,14 +627,12 @@ export const alphaVantageStockTool = createTool({
 
             // Technical indicator parameters
             if (
-                inputData.indicator !== undefined &&
-                inputData.indicator !== null
+                inputData.indicator !== undefined
             ) {
                 params.append('indicator', inputData.indicator)
             }
             if (
-                inputData.time_period !== undefined &&
-                inputData.time_period !== null
+                inputData.time_period !== undefined
             ) {
                 params.append('time_period', inputData.time_period.toString())
             }
@@ -648,7 +654,10 @@ export const alphaVantageStockTool = createTool({
                 resp.status >= 300
             ) {
                 throw new Error(
-                    `Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`
+                    'Alpha Vantage API error: ' +
+                        resp.status.toString() +
+                        ' ' +
+                        resp.statusText
                 )
             }
 
@@ -676,7 +685,7 @@ export const alphaVantageStockTool = createTool({
                 dataObj !== null &&
                 'Note' in (dataObj as Record<string, unknown>)
             ) {
-                const note = (dataObj as Record<string, unknown>)['Note']
+                const note = (dataObj as Record<string, unknown>).Note
                 const noteText = normalizeApiMessage(note).trim()
                 if (noteText !== '') {
                     throw new Error(noteText) // API limit reached
@@ -695,7 +704,7 @@ export const alphaVantageStockTool = createTool({
                 typeof dataObj === 'object' &&
                 dataObj !== null &&
                 'meta' in dataObj
-                    ? (dataObj as Record<string, unknown>)['meta']
+                    ? (dataObj as Record<string, unknown>).meta
                     : null) ??
                 {}
 
@@ -979,15 +988,17 @@ export const alphaVantageTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const writer = context.writer
+        const abortSignal = context.abortSignal
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+            context.tracingContext
         const requestContext =
-            context?.requestContext as AlphaVantageRequestContext
+            context.requestContext as RequestContext<AlphaVantageContextExtra>
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal?.aborted === true) {
             throw new Error('Alpha Vantage general lookup cancelled')
         }
 
@@ -1010,8 +1021,10 @@ export const alphaVantageTool = createTool({
                 'tool.id': 'alpha-vantage',
                 'tool.input.function': inputData.function,
                 'tool.input.symbol': inputData.symbol,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -1029,11 +1042,10 @@ export const alphaVantageTool = createTool({
 
         // Create child span for general data fetch
 
-        const apiKey =
-            requestContext?.apiKey ?? process.env.ALPHA_VANTAGE_API_KEY
+        const apiKey = process.env.ALPHA_VANTAGE_API_KEY
 
         if (typeof apiKey !== 'string' || apiKey.trim() === '') {
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: '❌ Missing ALPHA_VANTAGE_API_KEY',
@@ -1057,10 +1069,10 @@ export const alphaVantageTool = createTool({
             })
 
             // Add function-specific parameters
-            if (inputData.symbol !== undefined && inputData.symbol !== null) {
+            if (inputData.symbol !== undefined) {
                 params.append('symbol', inputData.symbol)
             }
-            if (inputData.market !== undefined && inputData.market !== null) {
+            if (inputData.market !== undefined) {
                 params.append('market', inputData.market)
             }
             if (inputData.interval !== undefined) {
@@ -1075,14 +1087,12 @@ export const alphaVantageTool = createTool({
 
             // Technical indicator parameters
             if (
-                inputData.indicator !== undefined &&
-                inputData.indicator !== null
+                inputData.indicator !== undefined
             ) {
                 params.append('indicator', inputData.indicator)
             }
             if (
-                inputData.time_period !== undefined &&
-                inputData.time_period !== null
+                inputData.time_period !== undefined
             ) {
                 params.append('time_period', inputData.time_period.toString())
             }
@@ -1095,7 +1105,7 @@ export const alphaVantageTool = createTool({
                 params.append('function', inputData.economic_indicator)
             }
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: '📡 Querying Alpha Vantage API...',
@@ -1119,7 +1129,7 @@ export const alphaVantageTool = createTool({
                 resp.status >= 300
             ) {
                 throw new Error(
-                    `Alpha Vantage API error: ${resp.status} ${resp.statusText ?? ''}`
+                    `Alpha Vantage API error: ${String(resp.status)} ${resp.statusText}`
                 )
             }
 
@@ -1147,7 +1157,7 @@ export const alphaVantageTool = createTool({
                 dataObj !== null &&
                 'Note' in (dataObj as Record<string, unknown>)
             ) {
-                const apiNote = (dataObj as Record<string, unknown>)['Note']
+                const apiNote = (dataObj as Record<string, unknown>).Note
                 const apiNoteText = normalizeApiMessage(apiNote).trim()
                 if (apiNoteText !== '') {
                     throw new Error(apiNoteText) // API limit reached
@@ -1166,13 +1176,13 @@ export const alphaVantageTool = createTool({
                 typeof dataObj === 'object' &&
                 dataObj !== null &&
                 'meta' in dataObj
-                    ? (dataObj as Record<string, unknown>)['meta']
+                    ? (dataObj as Record<string, unknown>).meta
                     : null) ??
                 {}
 
             const metadataObj = metadata as unknown
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     message: `✅ General data ready for ${inputData.function}`,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
     Queue,
     QueueSection,
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-import type { QueuedTask } from './chat.types'
+import type { QueuedTask } from '../providers/chat-context-types'
 
 interface AgentQueueProps {
     tasks: QueuedTask[]
@@ -64,7 +64,7 @@ function formatRelativeTime(date: Date): string {
 interface TaskSectionProps {
     title: string
     tasks: QueuedTask[]
-    icon?: React.ReactNode
+    icon?: ReactNode
     defaultOpen?: boolean
     variant?: 'default' | 'success' | 'error'
     onView?: (taskId: string) => void

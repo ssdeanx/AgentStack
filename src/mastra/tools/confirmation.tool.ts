@@ -1,7 +1,9 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import type { RequestContext } from '@mastra/core/request-context'
 import type { TracingContext } from '@mastra/core/observability'
+import type { BaseToolRequestContext } from './request-context.utils'
 import { log } from '../config/logger'
 
 const confirmationTool = createTool({
@@ -21,10 +23,51 @@ const confirmationTool = createTool({
     resumeSchema: z.object({
         confirmed: z.boolean(),
     }),
+        onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Confirmation tool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { action: input.action },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Confirmation tool completed', {
+            toolCallId,
+            toolName,
+            outputData: output && 'confirmed' in output ? { confirmed: output.confirmed } : {},
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
     execute: async ({ action }, context) => {
-        const writer = context?.writer
+        const writer = context.writer
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+            context.tracingContext
+        const requestContext = context.requestContext as
+            | RequestContext<BaseToolRequestContext>
+            | undefined
+
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         // Create root span using getOrCreateSpan (creates root OR attaches to parent)
         const rootSpan = getOrCreateSpan({
@@ -34,8 +77,10 @@ const confirmationTool = createTool({
             metadata: {
                 'tool.id': 'confirmation-tool',
                 'tool.input.action': action,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -103,42 +148,7 @@ const confirmationTool = createTool({
         })
 
         return result
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('Confirmation tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('Confirmation tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('Confirmation tool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { action: input.action },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Confirmation tool completed', {
-            toolCallId,
-            toolName,
-            outputData: output && 'confirmed' in output ? { confirmed: output.confirmed } : {},
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+    }
 })
 
 export { confirmationTool }

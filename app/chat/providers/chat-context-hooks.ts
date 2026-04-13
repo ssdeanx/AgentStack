@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { ChatContextValue } from './chat-context-types'
+import type { ChatContextValue } from './chat-context'
 
 export const ChatContext = createContext<ChatContextValue | null>(null)
 

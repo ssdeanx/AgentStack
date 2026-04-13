@@ -1,7 +1,7 @@
 'use client'
 
-import type {
-    PromptInputMessage} from '@/src/components/ai-elements/prompt-input';
+import type { LanguageModelUsage } from 'ai'
+import type { PromptInputMessage } from '@/src/components/ai-elements/prompt-input'
 import {
     PromptInput,
     PromptInputTextarea,
@@ -26,6 +26,8 @@ import {
     ModelSelectorEmpty,
     ModelSelectorGroup,
     ModelSelectorItem,
+    ModelSelectorLogo,
+    ModelSelectorName,
 } from '@/src/components/ai-elements/model-selector'
 import {
     Context,
@@ -44,21 +46,20 @@ import { Badge } from '@/ui/badge'
 import {
     PaperclipIcon,
     SquareIcon,
-    BotIcon,
     CpuIcon,
     SparklesIcon,
     ListTodoIcon,
     XIcon,
 } from 'lucide-react'
-import type { JSX } from 'react';
-import { useMemo, useState, useRef } from 'react'
-import { MODEL_CONFIGS } from '../config/models'
-import {
-    getAgentsByCategory,
-    CATEGORY_ORDER,
-    CATEGORY_LABELS,
-} from '../config/agents'
+import type { JSX } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+
+function getTotalTokens(
+    usage: LanguageModelUsage | null | undefined
+): number {
+    return usage?.totalTokens ?? 0
+}
 
 function SelectedAttachments(): JSX.Element | null {
     type AttachmentLike =
@@ -126,27 +127,28 @@ export function ChatInput() {
         agentConfig,
         selectedAgent,
         selectedModel,
+        modelProviders,
+        selectedProviderModels,
+        selectedProviderLabel,
+        selectProvider,
         selectModel,
-        selectAgent,
         messages,
         usage,
         createCheckpoint,
     } = useChatContext()
 
     const [input, setInput] = useState('')
-    const [isSpeaking, setIsSpeaking] = useState(false)
+    const [isSpeaking, _setIsSpeaking] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const supportsFiles = agentConfig?.features.fileUpload ?? false
     const showSuggestions = messages.length === 0 && !isLoading
-    const totalTokens = usage ? usage.inputTokens + usage.outputTokens : 0
+    const totalTokens = getTotalTokens(usage as LanguageModelUsage | null | undefined)
 
     const suggestions = useMemo(
         () => getSuggestionsForAgent(selectedAgent),
         [selectedAgent]
     )
-
-    const agentsByCategory = useMemo(() => getAgentsByCategory(), [])
 
     const handleSubmit = (message: PromptInputMessage) => {
         const text = message.text?.trim()
@@ -199,11 +201,15 @@ export function ChatInput() {
                 <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
                     <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1.5">
-                            <BotIcon className="size-3" />
+                            <CpuIcon className="size-3" />
                             {agentConfig?.name ?? selectedAgent}
                         </span>
                         <span className="flex items-center gap-1.5">
                             <CpuIcon className="size-3" />
+                            {selectedProviderLabel}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                            <SparklesIcon className="size-3" />
                             {selectedModel.name}
                         </span>
                     </div>
@@ -281,58 +287,52 @@ export function ChatInput() {
                                 <ListTodoIcon className="size-4" />
                             </PromptInputButton>
 
-                            {/* Agent Selector */}
+                            {/* Provider Selector */}
                             <ModelSelector>
                                 <ModelSelectorTrigger asChild>
-                                    <PromptInputButton title="Select agent">
-                                        <BotIcon className="size-4" />
+                                    <PromptInputButton title="Select provider">
+                                        <CpuIcon className="size-4" />
                                         <span className="hidden sm:inline ml-1 text-xs">
-                                            {agentConfig?.name ?? selectedAgent}
+                                            {selectedProviderLabel}
                                         </span>
                                     </PromptInputButton>
                                 </ModelSelectorTrigger>
-                                <ModelSelectorContent>
-                                    <ModelSelectorInput placeholder="Search agents..." />
+                                <ModelSelectorContent className="w-80">
+                                    <ModelSelectorInput placeholder="Search providers..." />
                                     <ModelSelectorList>
                                         <ModelSelectorEmpty>
-                                            No agents found.
+                                            No providers found.
                                         </ModelSelectorEmpty>
-                                        {CATEGORY_ORDER.map((category) => {
-                                            const agents =
-                                                agentsByCategory[category]
-                                            if (agents.length === 0) {
-                                                return null
-                                            }
-
-                                            return (
-                                                <ModelSelectorGroup
-                                                    key={category}
-                                                    heading={
-                                                        CATEGORY_LABELS[
-                                                            category
-                                                        ]
-                                                    }
+                                        <ModelSelectorGroup heading="Available Providers">
+                                            {modelProviders.map((provider) => (
+                                                <ModelSelectorItem
+                                                    key={provider.id}
+                                                    onSelect={() => {
+                                                        selectProvider(provider.id)
+                                                    }}
+                                                    className={cn(
+                                                        selectedModel.provider ===
+                                                            provider.id &&
+                                                            'bg-accent'
+                                                    )}
                                                 >
-                                                    {agents.map((agent) => (
-                                                        <ModelSelectorItem
-                                                            key={agent.id}
-                                                            onSelect={() =>
-                                                                selectAgent(
-                                                                    agent.id
-                                                                )
-                                                            }
-                                                            className={cn(
-                                                                selectedAgent ===
-                                                                    agent.id &&
-                                                                    'bg-accent'
-                                                            )}
-                                                        >
-                                                            {agent.name}
-                                                        </ModelSelectorItem>
-                                                    ))}
-                                                </ModelSelectorGroup>
-                                            )
-                                        })}
+                                                    <div className="flex items-center gap-2">
+                                                        <ModelSelectorLogo
+                                                            provider={provider.id}
+                                                            className="size-3"
+                                                        />
+                                                        <ModelSelectorName>
+                                                            {provider.name}
+                                                        </ModelSelectorName>
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {provider.connected
+                                                            ? `${provider.models.length} model${provider.models.length === 1 ? '' : 's'}`
+                                                            : 'disconnected'}
+                                                    </span>
+                                                </ModelSelectorItem>
+                                            ))}
+                                        </ModelSelectorGroup>
                                     </ModelSelectorList>
                                 </ModelSelectorContent>
                             </ModelSelector>
@@ -343,31 +343,28 @@ export function ChatInput() {
                                     <PromptInputButton title="Select model">
                                         <SparklesIcon className="size-4" />
                                         <span className="hidden sm:inline ml-1 text-xs">
-                                            {selectedModel.name.split(' ')[0]}
+                                            {selectedModel.name}
                                         </span>
                                     </PromptInputButton>
                                 </ModelSelectorTrigger>
-                                <ModelSelectorContent>
+                                <ModelSelectorContent className="w-85">
                                     <ModelSelectorInput placeholder="Search models..." />
                                     <ModelSelectorList>
                                         <ModelSelectorEmpty>
                                             No models found.
                                         </ModelSelectorEmpty>
-                                        <ModelSelectorGroup heading="Available Models">
-                                            {MODEL_CONFIGS.map((model) => (
+                                        <ModelSelectorGroup heading={selectedProviderLabel}>
+                                            {selectedProviderModels.map((modelId) => (
                                                 <ModelSelectorItem
-                                                    key={model.id}
-                                                    onSelect={() =>
-                                                        selectModel(model.id)
-                                                    }
+                                                    key={modelId}
+                                                    onSelect={() => selectModel(modelId)}
                                                     className={cn(
                                                         selectedModel.id ===
-                                                            model.id &&
+                                                            modelId &&
                                                             'bg-accent'
                                                     )}
                                                 >
-                                                    {model.name} (
-                                                    {model.provider})
+                                                    {modelId}
                                                 </ModelSelectorItem>
                                             ))}
                                         </ModelSelectorGroup>
@@ -376,19 +373,21 @@ export function ChatInput() {
                             </ModelSelector>
 
                             {/* Context/Token Usage */}
-                            <Context
-                                usedTokens={totalTokens}
-                                maxTokens={selectedModel.contextWindow}
-                            >
-                                <ContextTrigger className="liquid-progress" />
-                                <ContextContent>
-                                    <ContextContentHeader />
-                                    <ContextContentBody>
-                                        <ContextInputUsage />
-                                        <ContextOutputUsage />
-                                    </ContextContentBody>
-                                </ContextContent>
-                            </Context>
+                            {selectedModel.contextWindow !== undefined && (
+                                <Context
+                                    usedTokens={totalTokens}
+                                    maxTokens={selectedModel.contextWindow}
+                                >
+                                    <ContextTrigger className="liquid-progress" />
+                                    <ContextContent>
+                                        <ContextContentHeader />
+                                        <ContextContentBody>
+                                            <ContextInputUsage />
+                                            <ContextOutputUsage />
+                                        </ContextContentBody>
+                                    </ContextContent>
+                                </Context>
+                            )}
 
                             {isLoading && (
                                 <PromptInputButton

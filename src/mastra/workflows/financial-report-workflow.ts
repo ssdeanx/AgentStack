@@ -288,7 +288,7 @@ const fetchPriceDataStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('fetch-price-data', error, { symbols: inputData.symbols })
+            logError('fetch-price-data', error instanceof Error ? error : new Error(String(error)), { symbols: inputData.symbols })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -448,7 +448,7 @@ const fetchCompanyMetricsStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('fetch-company-metrics', error, {
+            logError('fetch-company-metrics', error instanceof Error ? error : new Error(String(error)), {
                 symbols: inputData.symbols,
             })
 
@@ -669,7 +669,7 @@ const fetchNewsSentimentStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('fetch-news-sentiment', error, {
+            logError('fetch-news-sentiment', error instanceof Error ? error : new Error(String(error)), {
                 symbols: inputData.symbols,
             })
 
@@ -777,7 +777,7 @@ const mergeDataStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('merge-data', error)
+            logError('merge-data', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -966,7 +966,7 @@ const analyzeDataStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('analyze-data', error)
+            logError('analyze-data', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1134,7 +1134,7 @@ Provide a concise summary and detailed report.`
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('generate-report', error)
+            logError('generate-report', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1244,3 +1244,4 @@ export const financialReportWorkflow = createWorkflow({
     .then(generateReportStep)
 
 financialReportWorkflow.commit()
+

@@ -69,6 +69,7 @@ export const mongoMemory = new Memory({
     vector: mongoVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     options: {
+        observationalMemory: true,
         // Message management
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: process.env.THREAD_GENERATE_TITLE !== 'true',

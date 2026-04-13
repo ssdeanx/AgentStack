@@ -153,16 +153,6 @@ export const googleNewsTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google News search completed', {
-            toolCallId,
-            toolName,
-            articlesFound: output.newsArticles.length,
-            totalResults: output.totalResults,
-            aborted: abortSignal?.aborted === true,
-            hook: 'onOutput',
-        })
-    },
     execute: async (input, context) => {
         const writer = context?.writer
         const requestContext = context?.requestContext as
@@ -288,8 +278,18 @@ export const googleNewsTool = createTool({
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google News search failed: ${errorMessage}`)
+            throw new Error(`Google News search failed: ${errorMessage}`, { cause: error })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google News search completed', {
+            toolCallId,
+            toolName,
+            articlesFound: output.newsArticles.length,
+            totalResults: output.totalResults,
+            aborted: abortSignal?.aborted === true,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -319,6 +319,19 @@ export const googleNewsLiteTool = createTool({
             )
             .describe('Array of news articles with minimal details'),
     }),
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('Google News Lite received input', {
+            toolCallId,
+            inputData: {
+                query: input.query,
+                location: input.location,
+                numResults: input.numResults,
+            },
+            messageCount: messages?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const tracingContext = context?.tracingContext
@@ -414,17 +427,26 @@ export const googleNewsLiteTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             newsLiteSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Google News Lite search failed', {
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google News Lite search failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Google News Lite search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
+    
 })
 
 /**
@@ -636,7 +658,7 @@ export const googleTrendsTool = createTool({
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google Trends search failed: ${errorMessage}`)
+            throw new Error(`Google Trends search failed: ${errorMessage}`, { cause: error })
         }
     },
 })
@@ -766,15 +788,24 @@ export const googleAutocompleteTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             autocompleteSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Google Autocomplete failed', {
                 query: input.query,
+                location: input.location,
                 error: errorMessage,
             })
-            throw new Error(`Google Autocomplete failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Google Autocomplete failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
 })

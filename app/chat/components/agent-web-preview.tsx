@@ -14,7 +14,6 @@ import {
 } from '@/src/components/ai-elements/code-block'
 import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
 import { Textarea } from '@/ui/textarea'
 import { Badge } from '@/ui/badge'
 import {
@@ -27,7 +26,6 @@ import {
     ExternalLinkIcon,
     XIcon,
     CodeIcon,
-    MonitorIcon,
     RefreshCwIcon,
     MaximizeIcon,
     MinimizeIcon,
@@ -37,7 +35,6 @@ import {
     PlayIcon,
     RotateCcwIcon,
 
-    Edit3Icon,
     EyeIcon,
     SplitIcon,
     WrapTextIcon,
@@ -46,7 +43,7 @@ import {
 } from 'lucide-react'
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { BundledLanguage } from 'shiki'
-import type { WebPreviewData } from './chat.types'
+import type { WebPreviewData } from '../providers/chat-context-types'
 
 type EditorMode = 'preview' | 'code' | 'split'
 type PreviewStatus = 'idle' | 'running' | 'success' | 'error'
@@ -71,6 +68,9 @@ export function AgentWebPreview({
     showConsole = false,
     editable = true,
 }: AgentWebPreviewProps) {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const editorRef = useRef<HTMLTextAreaElement>(null)
+    const iframeRef = useRef<HTMLIFrameElement>(null)
     const [mode, setMode] = useState<EditorMode>(
         defaultTab === 'code' ? 'code' : 'preview'
     )
@@ -95,6 +95,7 @@ export function AgentWebPreview({
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [wordWrap, setWordWrap] = useState(true)
     const [autoRun, setAutoRun] = useState(false)
+
     const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
     const hasCode = Boolean(preview.code ?? preview.html)
@@ -108,7 +109,7 @@ export function AgentWebPreview({
         setIframeKey((prev) => prev + 1)
         setConsoleLogs([])
 
-        // Simulate a brief loading state
+
         setTimeout(() => {
             setPreviewStatus('success')
         }, 500)
@@ -153,7 +154,9 @@ export function AgentWebPreview({
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
         } catch (err) {
-            console.error('Failed to copy:', err)
+            setErrorMessage(
+                err instanceof Error ? err.message : 'Failed to copy code'
+            )
         }
     }, [editedCode])
 
@@ -219,6 +222,28 @@ export function AgentWebPreview({
         }
         return typeof height === 'number' ? `${height - 50}px` : height
     }, [height, isFullscreen])
+
+    useEffect(() => {
+        const container = containerRef.current
+        if (container) {
+            container.style.setProperty('--preview-container-height', containerHeight)
+        }
+    }, [containerHeight])
+
+    useEffect(() => {
+        const editor = editorRef.current
+        if (editor) {
+            editor.style.setProperty('--preview-editor-height', editorHeight)
+            editor.style.whiteSpace = wordWrap ? 'pre-wrap' : 'pre'
+        }
+    }, [editorHeight, wordWrap])
+
+    useEffect(() => {
+        const iframe = iframeRef.current
+        if (iframe) {
+            iframe.style.setProperty('--preview-iframe-height', `${height}px`)
+        }
+    }, [height])
 
     return (
         <Card
@@ -348,8 +373,8 @@ export function AgentWebPreview({
 
             <CardContent className="p-0">
                 <div
-                    className={`flex ${mode === 'split' ? 'flex-row' : 'flex-col'}`}
-                    style={{ height: containerHeight }}
+                    ref={containerRef}
+                    className={`flex h-(--preview-container-height) ${mode === 'split' ? 'flex-row' : 'flex-col'}`}
                 >
                     {/* Code Editor Panel */}
                     {(mode === 'code' || mode === 'split') && (
@@ -473,21 +498,14 @@ export function AgentWebPreview({
                             <div className="relative flex-1 overflow-hidden">
                                 {editable ? (
                                     <Textarea
+                                        ref={editorRef}
                                         value={editedCode}
                                         onChange={(e) =>
                                             handleCodeChange(e.target.value)
                                         }
                                         className={`h-full w-full resize-none rounded-none border-0 bg-zinc-950 p-4 font-mono text-sm text-zinc-100 focus-visible:ring-0 ${
-                                            wordWrap
-                                                ? ''
-                                                : 'whitespace-pre overflow-x-auto'
+                                            wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre overflow-x-auto'
                                         }`}
-                                        style={{
-                                            height: editorHeight,
-                                            whiteSpace: wordWrap
-                                                ? 'pre-wrap'
-                                                : 'pre',
-                                        }}
                                         spellCheck={false}
                                     />
                                 ) : (
@@ -739,8 +757,20 @@ export function AgentWebPreviewInline({
     height = 200,
     onExpand,
 }: AgentWebPreviewInlineProps) {
+    const wrapperRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const wrapper = wrapperRef.current
+        if (wrapper) {
+            wrapper.style.setProperty('--preview-iframe-height', `${height}px`)
+        }
+    }, [height])
+
     return (
-        <div className="my-2 overflow-hidden rounded-lg border bg-background">
+        <div
+            ref={wrapperRef}
+            className="my-2 overflow-hidden rounded-lg border bg-background"
+        >
             <div className="flex items-center justify-between border-b bg-muted/50 px-3 py-1.5">
                 <span className="text-xs font-medium text-muted-foreground">
                     {title ?? 'Preview'}
@@ -771,8 +801,7 @@ export function AgentWebPreviewInline({
             <iframe
                 src={url}
                 title={title ?? 'Preview'}
-                className="w-full border-0"
-                style={{ height }}
+                className="h-(--preview-iframe-height) w-full border-0"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
             />
         </div>
@@ -795,7 +824,7 @@ export function AgentCodeSandbox({
     code,
     language = 'tsx',
     title,
-    dependencies = {},
+    dependencies: _dependencies = {},
     onClose,
     onCodeChange,
     editable = true,

@@ -8,12 +8,15 @@ import { z, ZodError } from 'zod'
 import { log } from '../config/logger'
 import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { getFileContent, getRepoFileTree } from '../tools/github'
+import { mainFilesystem } from '../workspaces'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
 
 export interface IngestionRuntimeContext {
-    'user-tier': UserTier
+    'subscription-tier': SubscriptionTier
 }
+
+const resolveRepoPath = (repoPath?: string) => path.resolve(mainFilesystem.basePath, repoPath ?? '.')
 
 // --- Schemas ---
 
@@ -69,6 +72,7 @@ const scanStep = createStep({
 
         const githubRepoValue = typeof githubRepo === 'string' ? githubRepo : ''
         const repoPathValue = typeof repoPath === 'string' ? repoPath : ''
+        const resolvedRepoPath = repoPathValue.length > 0 ? resolveRepoPath(repoPathValue) : ''
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -84,19 +88,19 @@ const scanStep = createStep({
         const context = requestContext as
             | RequestContext<IngestionRuntimeContext>
             | undefined
-        const userTier = context?.get?.('user-tier') ?? 'free'
+        const subscriptionTier = context?.get?.('subscription-tier') ?? 'free'
 
-        const TIER_LIMITS: Record<UserTier, number> = {
+        const TIER_LIMITS: Record<SubscriptionTier, number> = {
             free: 50,
             pro: 500,
             enterprise: 10000,
         }
 
-        if (limit > TIER_LIMITS[userTier]) {
+        if (limit > TIER_LIMITS[subscriptionTier]) {
             log.info(
-                `Limiting file scan to ${TIER_LIMITS[userTier]} for ${userTier} tier`
+                `Limiting file scan to ${TIER_LIMITS[subscriptionTier]} for ${subscriptionTier} tier`
             )
-            limit = TIER_LIMITS[userTier]
+            limit = TIER_LIMITS[subscriptionTier]
         }
 
         if (githubRepoValue.length > 0) {
@@ -266,7 +270,7 @@ const ingestStep = createStep({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `Starting ingestion (source: ${githubRepoValue.length > 0 ? `github:${githubRepoValue}@${githubBranch}` : `local:${repoPathValue.length > 0 ? repoPathValue : 'unknown'}`}, files: ${files.length})...`,
+                message: `Starting ingestion (source: ${githubRepoValue.length > 0 ? `github:${githubRepoValue}@${githubBranch}` : `local:${repoPathValue.length > 0 ? resolveRepoPath(repoPathValue) : 'unknown'}`}, files: ${files.length})...`,
                 stage: 'ingest-files',
             },
             id: 'ingest-files',

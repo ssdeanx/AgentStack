@@ -1,0 +1,6 @@
+ruleDirs:
+- C:\Users\ssdsk\AgentStack\rules
+testConfigs:
+- testDir: C:\Users\ssdsk\AgentStack\rule-tests
+utilDirs:
+- C:\Users\ssdsk\AgentStack\utils

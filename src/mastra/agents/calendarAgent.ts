@@ -1,9 +1,7 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAIFlashLite, pgMemory } from '../config'
 import type { AgentRequestContext } from './request-context'
 import {
   findFreeSlots,
@@ -11,6 +9,7 @@ import {
   getUpcomingEvents,
   listEvents,
 } from '../tools/calendar-tool'
+import { LibsqlMemory } from '../config/libsql'
 
 export type CalendarContext = AgentRequestContext
 
@@ -58,7 +57,7 @@ Current user: ${userId ?? 'anonymous'}`,
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     listEvents,
     getTodayEvents,
@@ -67,10 +66,10 @@ Current user: ${userId ?? 'anonymous'}`,
   },
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT | InternalSpans.TOOL | InternalSpans.WORKFLOW,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(128000)],
+  //outputProcessors: [new TokenLimiterProcessor(128000)],
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

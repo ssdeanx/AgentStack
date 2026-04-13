@@ -65,7 +65,7 @@ export async function getAvailableModels() {
     try {
         return await aiGateway.getAvailableModels()
     } catch (error) {
-        logError('Failed to fetch available AI Gateway models', error)
+        logError('Failed to fetch available AI Gateway models', `${error}`)
         return { models: [] }
     }
 }
@@ -74,7 +74,7 @@ export async function getCredits() {
     try {
         return await aiGateway.getCredits()
     } catch (error) {
-        logError('Failed to fetch AI Gateway credits', error)
+        logError('Failed to fetch AI Gateway credits', `${error}`)
         return { balance: 0, total_used: 0 }
     }
 }

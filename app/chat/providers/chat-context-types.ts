@@ -1,44 +1,13 @@
 // AI SDK v6 types - All types imported for use across chat module
 import type {
     UIMessage,
-    UIDataTypes,
-    UIMessageStreamOnStepFinishCallback,
-    UIMessageStreamError,
-    UIMessageStreamOnFinishCallback,
-    UIMessageStreamWriter,
-    UIMessageStreamOptions,
     DynamicToolUIPart,
     TextUIPart,
     ReasoningUIPart,
     ToolUIPart,
-    TextStreamPart,
-    TextPart,
-    ToolResultPart,
-    ReasoningOutput,
-    UIDataPartSchemas,
-    UIMessageChunk,
-    UIMessagePart,
-    DataContent,
     FinishReason,
-    FileUIPart,
-    Tool,
-    DataUIPart,
-    SourceDocumentUIPart,
-    SourceUrlUIPart,
-    StepResult,
-    PrepareStepResult,
-    StepStartUIPart,
-    InferSchema,
-    InferUIDataParts,
-    InferAgentUIMessage,
-    InferToolInput,
-    InferUIMessageChunk,
-    InferToolOutput,
-    InferUITool,
-    InferUITools,
-    InferGenerateOutput,
-    InferStreamOutput,
 } from 'ai'
+import type { ReactNode } from 'react'
 
 import type { getAgentConfig } from '../config/agents'
 import type { ModelConfig } from '../config/models'
@@ -47,46 +16,7 @@ import type { ModelConfig } from '../config/models'
 // AI SDK v6 Type Aliases - Re-exported for convenient access
 // ============================================================================
 
-export type {
-    UIMessage,
-    UIDataTypes,
-    UIMessageStreamOnStepFinishCallback,
-    UIMessageStreamError,
-    UIMessageStreamOnFinishCallback,
-    UIMessageStreamWriter,
-    UIMessageStreamOptions,
-    DynamicToolUIPart,
-    TextUIPart,
-    ReasoningUIPart,
-    ToolUIPart,
-    TextStreamPart,
-    TextPart,
-    ToolResultPart,
-    ReasoningOutput,
-    UIDataPartSchemas,
-    UIMessageChunk,
-    UIMessagePart,
-    DataContent,
-    FinishReason,
-    FileUIPart,
-    Tool,
-    DataUIPart,
-    SourceDocumentUIPart,
-    SourceUrlUIPart,
-    StepResult,
-    PrepareStepResult,
-    StepStartUIPart,
-    InferSchema,
-    InferUIDataParts,
-    InferAgentUIMessage,
-    InferToolInput,
-    InferUIMessageChunk,
-    InferToolOutput,
-    InferUITool,
-    InferUITools,
-    InferGenerateOutput,
-    InferStreamOutput,
-}
+
 
 // ============================================================================
 // Custom Chat Types - Built on AI SDK v6 types
@@ -127,11 +57,19 @@ export type ChatStatus = 'ready' | 'submitted' | 'streaming' | 'error'
 
 export type ToolInvocationState = ToolUIPart | DynamicToolUIPart
 
+export interface AgentToolsProps {
+    tools: Array<ToolInvocationState | DynamicToolUIPart>
+    className?: string
+}
+
 export interface QueuedTask {
     id: string
     title: string
     description?: string
     status: 'pending' | 'running' | 'completed' | 'failed'
+    createdAt?: Date
+    completedAt?: Date
+    error?: string
 }
 
 export interface PendingConfirmation {
@@ -156,7 +94,102 @@ export interface WebPreviewData {
     title?: string
     code?: string
     language?: string
+    html?: string
+    editable?: boolean
+    showConsole?: boolean
+    height?: number
 }
+
+export interface ChatCompletionState {
+    messageId: string
+    message: UIMessage
+    messages: UIMessage[]
+    finishReason: FinishReason | null
+    isAbort: boolean
+    isDisconnect: boolean
+    isError: boolean
+}
+
+export interface Citation {
+    id: string
+    number: string
+    title: string
+    url: string
+    description?: string
+    quote?: string
+}
+
+export type TaskStepStatus = 'pending' | 'running' | 'completed' | 'error'
+
+export interface TaskStep {
+    id: string
+    text: string
+    status: TaskStepStatus
+    file?: {
+        name: string
+        icon?: string
+    }
+}
+
+export interface AgentTaskData {
+    title: string
+    steps: TaskStep[]
+}
+
+export interface ArtifactData {
+    id: string
+    title: string
+    description?: string
+    type: 'code' | 'markdown' | 'json' | 'text' | 'html' | 'react'
+    language?: string
+    content: string
+}
+
+export interface PlanStep {
+    text: string
+    completed?: boolean
+}
+
+export interface AgentPlanData {
+    title: string
+    description: string
+    steps: PlanStep[] | string[]
+    isStreaming?: boolean
+    currentStep?: number
+}
+
+export interface ReasoningStep {
+    id: string
+    label: string
+    description?: string
+    status: 'complete' | 'active' | 'pending'
+    searchResults?: string[]
+    duration?: number
+}
+
+export interface AgentSuggestionsProps {
+    suggestions: string[]
+    onSelect: (suggestion: string) => void
+    disabled?: boolean
+    className?: string
+}
+
+export interface AgentSourcesProps {
+    sources: Array<{ url: string; title: string }>
+    className?: string
+    maxVisible?: number
+}
+
+export interface AgentReasoningProps {
+    reasoning: string
+    isStreaming: boolean
+    duration?: number
+    className?: string
+}
+
+export type ConfirmationSeverity = 'info' | 'warning' | 'danger'
+
+export type InlineCitationRender = ReactNode[]
 
 export interface ChatContextValue {
     // Core state
@@ -182,6 +215,9 @@ export interface ChatContextValue {
 
     // Web Preview
     webPreview: WebPreviewData | null
+
+    // Completion metadata
+    lastCompletion: ChatCompletionState | null
 
     // Memory settings
     threadId: string

@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import type { ChunkType } from '@mastra/core/stream'
 import { z } from 'zod'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { reportAgent } from '../agents/reportAgent'
@@ -23,6 +24,11 @@ const reportOutputSchema = z.object({
         generatedAt: z.string(),
         sectionsCount: z.number(),
     }),
+})
+
+const reportContentSchema = reportOutputSchema.omit({
+    reportId: true,
+    metadata: true,
 })
 
 const researchTopicStep = createStep({
@@ -81,10 +87,17 @@ const researchTopicStep = createStep({
                 const prompt = `Research the following aspect of "${inputData.topic}": ${section}. 
       Provide a ${inputData.depth} summary of key facts, trends, and data points.`
 
-                const result = await researchAgent.generate(prompt)
+                const stream = await researchAgent.stream(prompt)
+
+                if (writer !== undefined && writer !== null) {
+                    for await (const chunk of stream.fullStream as AsyncIterable<ChunkType>) {
+                        await writer.write(chunk)
+                    }
+                }
+
                 researchedSections.push({
                     name: section,
-                    data: result.text,
+                    data: await stream.text,
                 })
             }
 
@@ -116,7 +129,7 @@ const researchTopicStep = createStep({
 
             return output
         } catch (error) {
-            logError('research-topic', error)
+            logError('research-topic', error instanceof Error ? error : new Error(String(error)))
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -190,18 +203,19 @@ const synthesizeReportStep = createStep({
     - "fullReport": The complete markdown report.
     `
 
-            const result = await reportAgent.generate(prompt)
+            const result = await reportAgent.stream(prompt, {
+                structuredOutput: {
+                    schema: reportContentSchema,
+                },
+            })
 
-            let output
-            try {
-                output = JSON.parse(result.text)
-            } catch {
-                output = {
-                    title: inputData.topic,
-                    executiveSummary: '',
-                    fullReport: sectionsContent,
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of result.fullStream as AsyncIterable<ChunkType<z.infer<typeof reportContentSchema>>>) {
+                    await writer.write(chunk)
                 }
             }
+
+            const output = await result.object
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -234,7 +248,7 @@ const synthesizeReportStep = createStep({
 
             return finalResult
         } catch (error) {
-            logError('synthesize-report', error)
+            logError('synthesize-report', error instanceof Error ? error : new Error(String(error)))
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -256,3 +270,4 @@ export const automatedReportingWorkflow = createWorkflow({
     .then(synthesizeReportStep)
 
 automatedReportingWorkflow.commit()
+

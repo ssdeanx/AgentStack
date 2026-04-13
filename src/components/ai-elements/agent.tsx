@@ -1,8 +1,5 @@
 "use client";
 
-import type { Tool } from "ai";
-import type { ComponentProps } from "react";
-
 import {
   Accordion,
   AccordionContent,
@@ -11,7 +8,9 @@ import {
 } from "@/ui/accordion";
 import { Badge } from "@/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Tool } from "ai";
 import { BotIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import { memo } from "react";
 
 import { CodeBlock } from "./code-block";
@@ -42,7 +41,7 @@ export const AgentHeader = memo(
       <div className="flex items-center gap-2">
         <BotIcon className="size-4 text-muted-foreground" />
         <span className="font-medium text-sm">{name}</span>
-        {(Boolean(model)) && (
+        {model && (
           <Badge className="font-mono text-xs" variant="secondary">
             {model}
           </Badge>
@@ -93,7 +92,7 @@ export type AgentToolProps = ComponentProps<typeof AccordionItem> & {
 export const AgentTool = memo(
   ({ className, tool, value, ...props }: AgentToolProps) => {
     const schema =
-      "jsonSchema" in tool && (Boolean(tool.jsonSchema))
+      "jsonSchema" in tool && tool.jsonSchema
         ? tool.jsonSchema
         : tool.inputSchema;
 

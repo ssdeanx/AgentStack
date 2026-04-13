@@ -1,18 +1,18 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { log } from '../config/logger'
 import { httpFetch, type HttpFetchResponse } from '../lib/http-client'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-
-export interface ArxivRequestContext extends RequestContext {
-    'user-tier': UserTier
-    userId?: string
-}
+/**
+ * ArXiv Tool
+ *
+ * Provides access to academic papers from arXiv.org
+ */
 
 // In-memory counter to track tool calls per request
 // Add this line at the beginning of each tool's execute function to track usage:
@@ -72,13 +72,14 @@ async function extractPdfText(
         })
 
         return {
-            text: text ?? '',
-            numpages: Math.min(totalPages ?? 1, maxPages),
+            text,
+            numpages: Math.min(totalPages, maxPages),
             metadata: undefined,
         }
     } catch (error) {
         throw new Error(
-            `PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { cause: error }
         )
     }
 }
@@ -112,7 +113,7 @@ function convertPdfTextToMarkdown(
         const frontmatter = [
             '---',
             hasTitle
-                ? `title: "${String(metadata?.title).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+                ? `title: "${(metadata.title ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
                 : null,
             hasAuthors ? `authors: ${JSON.stringify(metadata.authors)}` : null,
             'source: "arxiv-pdf"',
@@ -276,31 +277,31 @@ export const arxivTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const abortSignal = context?.abortSignal
-        const writer = context?.writer
-        const requestCtx = context?.requestContext as
-            | ArxivRequestContext
-            | undefined
+        const abortSignal = context.abortSignal
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
             throw new Error('ArXiv search cancelled')
         }
 
-        if (requestCtx) {
+        if (requestContext) {
             log.debug('ArXiv search request context available', {
                 tool: 'arxiv',
             })
         }
 
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+            context.tracingContext
 
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'arxiv-search',
             input: inputData,
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'arxiv',
@@ -308,6 +309,8 @@ export const arxivTool = createTool({
                 'tool.input.id': inputData.id,
                 'tool.input.category': inputData.category,
                 'tool.input.maxResults': inputData.max_results,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
 
@@ -327,15 +330,15 @@ export const arxivTool = createTool({
             // Build search query
             const searchTerms: string[] = []
 
-            if (inputData.query !== undefined && inputData.query !== null) {
+            if (inputData.query !== undefined) {
                 searchTerms.push(inputData.query)
             }
 
-            if (inputData.author !== undefined && inputData.author !== null) {
+            if (inputData.author !== undefined) {
                 searchTerms.push(`au:${inputData.author}`)
             }
 
-            if (inputData.title !== undefined && inputData.title !== null) {
+            if (inputData.title !== undefined) {
                 searchTerms.push(`ti:${inputData.title}`)
             }
 
@@ -343,7 +346,7 @@ export const arxivTool = createTool({
                 searchTerms.push(`cat:${inputData.category}`)
             }
 
-            if (inputData.id !== undefined && inputData.id !== null) {
+            if (inputData.id !== undefined) {
                 // If specific ID is provided, use it directly
                 params.append('id_list', inputData.id)
             } else if (searchTerms.length > 0) {
@@ -385,13 +388,13 @@ export const arxivTool = createTool({
             const url = `http://export.arxiv.org/api/query?${params.toString()}`
 
             // Check for cancellation before API call
-            if (abortSignal?.aborted ?? false) {
+            if (abortSignal?.aborted) {
                 // Record cancellation and end span
-                span?.error({
-                    error: new Error('Operation cancelled during API call'),
-                    endSpan: true,
-                })
-                throw new Error('ArXiv search cancelled during API call')
+                const cancelError = new Error(
+                    'Operation cancelled during API call'
+                )
+                span?.error({ error: cancelError, endSpan: true })
+                throw cancelError
             }
 
             await writer?.custom({
@@ -411,10 +414,12 @@ export const arxivTool = createTool({
                     responseType: 'text',
                     signal: abortSignal,
                 })
-                // resp already has status/statusText/data from httpFetch
+            // resp already has status/statusText/data from httpFetch
             } catch (err: unknown) {
                 if (isErrCanceled(err)) {
-                    throw new Error('ArXiv search cancelled during API call')
+                    throw new Error('ArXiv search cancelled during API call', {
+                        cause: err,
+                    })
                 }
                 throw err
             }
@@ -425,7 +430,10 @@ export const arxivTool = createTool({
                 resp.status >= 300
             ) {
                 throw new Error(
-                    `ArXiv API error: ${resp.status} ${resp.statusText ?? ''}`
+                    'ArXiv API error: ' +
+                        resp.status.toString() +
+                        ' ' +
+                        resp.statusText
                 )
             }
 
@@ -485,7 +493,7 @@ export const arxivTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, { cause: error })
             }
 
             const errorMessage =
@@ -504,7 +512,7 @@ export const arxivTool = createTool({
         log.info('ArXiv search completed', {
             toolCallId,
             toolName,
-            entryCount: output.papers?.length ?? 0,
+            entryCount: output.papers.length,
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
@@ -592,23 +600,24 @@ export const arxivPdfParserTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const requestCtx = context?.requestContext as
-            | ArxivRequestContext
-            | undefined
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'arxiv-pdf-parser',
             input: inputData,
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             metadata: {
                 'tool.id': 'arxiv-pdf-parser',
                 'tool.input.arxivId': inputData.arxivId,
                 'tool.input.maxPages': inputData.maxPages,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
-        const abortSignal = context?.abortSignal
+        const abortSignal = context.abortSignal
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -627,7 +636,7 @@ export const arxivPdfParserTool = createTool({
         const startTime = Date.now()
 
         try {
-            if (requestCtx) {
+            if (requestContext) {
                 log.debug('Arxiv PDF parser request context available', {
                     tool: 'arxiv-pdf-parser',
                 })
@@ -637,7 +646,7 @@ export const arxivPdfParserTool = createTool({
             const pdfUrl = `https://arxiv.org/pdf/${inputData.arxivId}`
 
             // Abort early if requested
-            if (abortSignal?.aborted ?? false) {
+            if (abortSignal?.aborted === true) {
                 const cancelMessage = `ArXiv PDF parsing cancelled for ${inputData.arxivId}`
                 span?.error({ error: new Error(cancelMessage), endSpan: true })
                 await writer?.custom({
@@ -650,7 +659,9 @@ export const arxivPdfParserTool = createTool({
                     id: 'arxiv-pdf-parser',
                 })
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, {
+                    cause: new Error(cancelMessage),
+                })
             }
 
             // Download PDF
@@ -685,7 +696,7 @@ export const arxivPdfParserTool = createTool({
                         id: 'arxiv-pdf-parser',
                     })
                     log.warn(cancelMessage)
-                    throw new Error(cancelMessage)
+                    throw new Error(cancelMessage, { cause: err })
                 }
                 throw err
             }
@@ -708,7 +719,10 @@ export const arxivPdfParserTool = createTool({
                     throw new Error(`Paper not found: ${inputData.arxivId}`)
                 }
                 throw new Error(
-                    `Failed to download PDF: ${pdfResp.status} ${pdfResp.statusText ?? ''}`
+                    'Failed to download PDF: ' +
+                        pdfResp.status.toString() +
+                        ' ' +
+                        pdfResp.statusText
                 )
             }
 
@@ -724,8 +738,8 @@ export const arxivPdfParserTool = createTool({
                 // Buffer.from does not accept the generic ArrayBufferView type in some TS configs,
                 // so explicitly create a Uint8Array view over the underlying ArrayBuffer slice.
                 const view = pdfData as ArrayBufferView & { byteOffset?: number; byteLength?: number }
-                const offset = view.byteOffset ?? 0
-                const length = view.byteLength ?? view.buffer.byteLength - offset
+                const offset = view.byteOffset
+                const length = view.byteLength
                 pdfBuffer = Buffer.from(view.buffer.slice(offset, offset + length))
             } else if (typeof pdfData === 'string') {
                 pdfBuffer = Buffer.from(pdfData, 'utf-8')
@@ -743,7 +757,7 @@ export const arxivPdfParserTool = createTool({
             let paperMetadata:
                 | { title?: string; authors?: string[] }
                 | undefined
-            if (inputData.includeMetadata) {
+            if (inputData.includeMetadata === true) {
                 try {
                     const apiUrl = `http://export.arxiv.org/api/query?id_list=${inputData.arxivId}&max_results=1`
                     let apiResp: HttpFetchResponse | undefined
@@ -788,12 +802,7 @@ export const arxivPdfParserTool = createTool({
                             authors.push(authorMatch[1])
                         }
 
-                        if (
-                            (title !== undefined &&
-                                title !== null &&
-                                title.length > 0) ||
-                            authors.length > 0
-                        ) {
+                        if ((title !== undefined && title.length > 0) || authors.length > 0) {
                             paperMetadata = {
                                 title,
                                 authors:
@@ -809,9 +818,9 @@ export const arxivPdfParserTool = createTool({
             // Convert to markdown
             let markdown = pdfContent.text
 
-            if (inputData.normalizeText) {
+            if (inputData.normalizeText === true) {
                 markdown = convertPdfTextToMarkdown(markdown, paperMetadata)
-            } else if (paperMetadata && inputData.includeMetadata) {
+            } else if (paperMetadata && inputData.includeMetadata === true) {
                 // Add basic frontmatter even without normalization
                 const frontmatter = [
                     '---',
@@ -838,9 +847,7 @@ export const arxivPdfParserTool = createTool({
                 data: {
                     status: 'done',
                     message:
-                        '✅ PDF parsing complete: ' +
-                        pdfContent.numpages +
-                        ' pages',
+                        '✅ PDF parsing complete: ' + String(pdfContent.numpages) + ' pages',
                     stage: 'arxiv-pdf-parser',
                 },
                 id: 'arxiv-pdf-parser',
@@ -851,7 +858,7 @@ export const arxivPdfParserTool = createTool({
                 success: true,
                 arxivId: inputData.arxivId,
                 markdown,
-                metadata: inputData.includeMetadata
+                metadata: inputData.includeMetadata === true
                     ? {
                           title: paperMetadata?.title,
                           authors: paperMetadata?.authors,
@@ -907,7 +914,7 @@ export const arxivPdfParserTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, { cause: error })
             }
 
             const errorMessage =
@@ -1029,23 +1036,23 @@ export const arxivPaperDownloaderTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | ArxivRequestContext
-            | undefined
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'arxiv-paper-downloader',
             input: inputData,
-            requestContext: context?.requestContext,
-
+            requestContext: context.requestContext,
             metadata: {
                 'tool.id': 'arxiv-paper-downloader',
                 'tool.input.arxivId': inputData.arxivId,
                 'tool.input.includePdfContent': inputData.includePdfContent,
                 'tool.input.format': inputData.format,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
 
@@ -1065,9 +1072,9 @@ export const arxivPaperDownloaderTool = createTool({
             (toolCallCounters.get('arxiv-paper-downloader') ?? 0) + 1
         )
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing arXiv paper downloader for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             await writer?.custom({
@@ -1092,7 +1099,8 @@ export const arxivPaperDownloaderTool = createTool({
             } catch (err: unknown) {
                 if (isErrCanceled(err)) {
                     throw new Error(
-                        `ArXiv metadata fetch cancelled for ${inputData.arxivId}`
+                        `ArXiv metadata fetch cancelled for ${inputData.arxivId}`,
+                        { cause: err }
                     )
                 }
                 throw err
@@ -1104,7 +1112,10 @@ export const arxivPaperDownloaderTool = createTool({
                 apiResp.status >= 300
             ) {
                 throw new Error(
-                    `Failed to fetch paper metadata: ${apiResp.status} ${apiResp.statusText ?? ''}`
+                    'Failed to fetch paper metadata: ' +
+                        apiResp.status.toString() +
+                        ' ' +
+                        apiResp.statusText
                 )
             }
 
@@ -1112,7 +1123,7 @@ export const arxivPaperDownloaderTool = createTool({
 
             const papers = parseArxivXml(xmlText, true)
 
-            if (papers?.length === 0) {
+            if (papers.length === 0) {
                 throw new Error(`Paper not found: ${inputData.arxivId}`)
             }
 
@@ -1132,7 +1143,7 @@ export const arxivPaperDownloaderTool = createTool({
                 id: 'arxiv-paper-downloader',
             })
             // Download and parse PDF if requested
-            if (inputData.includePdfContent) {
+            if (inputData.includePdfContent === true) {
                 await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -1181,7 +1192,12 @@ export const arxivPaperDownloaderTool = createTool({
                             id: 'arxiv-paper-downloader',
                         })
                         log.warn(
-                            `PDF download failed for ${inputData.arxivId}: ${pdfResponse.status} ${pdfResponse.statusText}`
+                            'PDF download failed for ' +
+                                inputData.arxivId +
+                                ': ' +
+                                pdfResponse.status.toString() +
+                                ' ' +
+                                pdfResponse.statusText
                         )
                     }
                 } catch (err) {

@@ -3,6 +3,8 @@ import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { BollingerBands, EMA, MACD, RSI, SMA } from 'technicalindicators'
 import { z } from 'zod'
+import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
 import { log, logToolExecution } from '../config/logger'
 import { downsampleTool } from './downsample.tool'
 
@@ -127,20 +129,23 @@ export const chartJsTool = createTool({
         const { data, title } = input
         const indicators = input.indicators ?? []
         const chartType = input.chartType ?? 'line'
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
-        await context?.writer?.custom({
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `Generating ${chartType} chart with ${indicators.length} indicators`,
+                message: `Generating ${chartType} chart with ${String(indicators.length)} indicators`,
                 stage: 'chartjs-generator',
             },
             id: 'chartjs-generator',
         })
 
         // Tracing: create a TOOL_CALL span for this tool execution
-        const abortSignal = context?.abortSignal
-
         if (abortSignal?.aborted === true) {
             throw new Error('Tool call cancelled')
         }
@@ -153,12 +158,14 @@ export const chartJsTool = createTool({
                 indicatorsCount: indicators.length,
                 chartType,
             },
-            requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            requestContext: context.requestContext,
+            tracingContext: context.tracingContext,
             metadata: {
                 'tool.id': 'chartjs-generator',
                 'tool.input.dataCount': data.length,
                 'tool.input.indicatorsCount': indicators.length,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
         const startTime = Date.now()
@@ -185,8 +192,6 @@ export const chartJsTool = createTool({
             order: 1,
         })
 
-                let config: ChartJsToolOutput['config'] | null = null
-
         try {
             // Calculate indicators
             for (const ind of indicators) {
@@ -197,11 +202,11 @@ export const chartJsTool = createTool({
                 try {
                     switch (ind.type) {
                         case 'SMA': {
-                            const sma = (SMA.calculate({
+                            const sma = SMA.calculate({
                                 period: ind.period ?? 14,
                                 values: closePrices,
-                            })) ?? []
-                            label = `SMA (${ind.period})`
+                            })
+                            label = `SMA (${String(ind.period ?? 14)})`
                             // Pad beginning with nulls to match length
                             indicatorData = (Array(
                                 closePrices.length - sma.length
@@ -221,8 +226,8 @@ export const chartJsTool = createTool({
                             const ema = EMA.calculate({
                                 period: ind.period ?? 14,
                                 values: closePrices,
-                            }) ?? []
-                            label = `EMA (${ind.period})`
+                            })
+                            label = `EMA (${String(ind.period ?? 14)})`
                             indicatorData = (Array(closePrices.length - ema.length).fill(null) as Array<number | null>).concat(ema)
                             datasets.push({
                                 label,
@@ -236,11 +241,11 @@ export const chartJsTool = createTool({
                             break
                         }
                         case 'RSI': {
-                            const rsiValues = (RSI.calculate({
+                            const rsiValues = RSI.calculate({
                                 period: ind.period ?? 14,
                                 values: closePrices,
-                            }) ?? [])
-                            label = `RSI (${ind.period})`
+                            })
+                            label = `RSI (${String(ind.period ?? 14)})`
                             indicatorData = Array(
                                 closePrices.length - rsiValues.length
                             )
@@ -259,19 +264,19 @@ export const chartJsTool = createTool({
                             break
                         }
                         case 'MACD': {
-                            const macdResult = (MACD.calculate({
+                            const macdResult = MACD.calculate({
                                 fastPeriod: ind.fastPeriod ?? 12,
                                 slowPeriod: ind.slowPeriod ?? 26,
                                 signalPeriod: ind.signalPeriod ?? 9,
                                 values: closePrices,
                                 SimpleMAOscillator: false,
                                 SimpleMASignal: false,
-                            }) ?? []) as MacdPoint[]
+                            }) as MacdPoint[]
 
                             // Ensure the mapped series are typed as numbers to avoid `any[]` assignments
-                            const macd = macdResult.map((m) => Number(m.MACD))
-                            const signal = macdResult.map((m) => Number(m.signal))
-                            const histogram = macdResult.map((m) => Number(m.histogram))
+                            const macd = macdResult.map((m) => m.MACD)
+                            const signal = macdResult.map((m) => m.signal)
+                            const histogram = macdResult.map((m) => m.histogram)
 
                             const padding = Array(
                                 closePrices.length - macd.length
@@ -306,19 +311,19 @@ export const chartJsTool = createTool({
                         }
                         case 'BollingerBands':
                             {
-                                const bb = (BollingerBands.calculate({
+                                const bb = BollingerBands.calculate({
                                     period: ind.period ?? 14,
                                     stdDev: ind.stdDev ?? 2,
                                     values: closePrices,
-                                }) ?? []) as Array<{
+                                }) as Array<{
                                     upper: number
                                     middle: number
                                     lower: number
                                 }>
 
-                                const upper: number[] = bb.map((b) => Number(b.upper))
-                                const middle: number[] = bb.map((b) => Number(b.middle))
-                                const lower: number[] = bb.map((b) => Number(b.lower))
+                                const upper: number[] = bb.map((b) => b.upper)
+                                const middle: number[] = bb.map((b) => b.middle)
+                                const lower: number[] = bb.map((b) => b.lower)
                                 const padding: Array<number | null> = new Array<number | null>(
                                     closePrices.length - bb.length
                                 ).fill(null)
@@ -371,27 +376,29 @@ export const chartJsTool = createTool({
             if (labels.length > DECIMATE_THRESHOLD) {
                 try {
                     // Use price series (first dataset) indices to decimate all datasets consistently
-                    const baseSeries = datasets[0]?.data ?? closePrices
+                    const baseSeries = datasets[0].data
                     const baseSeriesArr = Array.isArray(baseSeries)
                         ? (baseSeries as Array<number | null | undefined>)
                         : closePrices
-                    const valuesForDownsample = baseSeriesArr.map((v) =>
-                        v === null || v === undefined ? NaN : Number(v)
-                    )
+                    const valuesForDownsample = baseSeriesArr.map((v) => v ?? NaN)
 
                     // Use downsample tool (server-side) to decimate according to algorithm
-                    const dec = (await downsampleTool?.execute?.(
+                    if (!downsampleTool.execute) {
+                        throw new Error('downsampleTool is not available')
+                    }
+                    const dec = await downsampleTool.execute(
                         {
                             values: valuesForDownsample,
                             target: DECIMATED_POINTS,
                             algorithm: 'lttb',
                         },
                         context
-                    )) as {
-                        indices: number[]
-                        values: number[]
-                        originalLength: number
-                        target: number
+                    )
+                    if ('issues' in dec) {
+                        throw new Error('downsampleTool validation failed')
+                    }
+                    if (!('indices' in dec) || !Array.isArray(dec.indices)) {
+                        throw new Error('downsampleTool did not return indices')
                     }
                     const indices: number[] = dec.indices
 
@@ -411,7 +418,7 @@ export const chartJsTool = createTool({
                 }
             }
 
-            config = {
+            const config: ChartJsToolOutput['config'] = {
                 type: chartType, // Base type from request
                 data: {
                     labels: finalLabels,
@@ -472,10 +479,6 @@ export const chartJsTool = createTool({
             toolSpan?.end()
 
             // Log tool execution success
-            if (config === null) {
-                throw new Error('Chart configuration generation failed')
-            }
-
             logToolExecution(
                 'chartjs-generator',
                 { dataCount: data.length, indicatorsCount: indicators.length },
@@ -485,6 +488,18 @@ export const chartJsTool = createTool({
                     durationMs: duration,
                 }
             )
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Chart configuration generated`,
+                    stage: 'chartjs-generator',
+                },
+                id: 'chartjs-generator',
+            })
+
+            return { config }
         } catch (error) {
             const err =
                 error instanceof Error ? error : new Error(String(error))
@@ -499,18 +514,6 @@ export const chartJsTool = createTool({
             )
             throw err
         }
-
-        await context?.writer?.custom({
-            type: 'data-tool-progress',
-            data: {
-                status: 'done',
-                message: `Chart configuration generated`,
-                stage: 'chartjs-generator',
-            },
-            id: 'chartjs-generator',
-        })
-
-        return { config }
     },
 })
 

@@ -1,10 +1,9 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI, pgMemory } from '../config'
 import type { AgentRequestContext } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type CsvToExcalidrawRuntimeContext = AgentRequestContext
 
@@ -177,17 +176,17 @@ Structure:
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {},
   scorers: {},
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+  //outputProcessors: [new TokenLimiterProcessor(1048576)],
   //  defaultOptions: {
   //     autoResumeSuspendedTools: true,
   // },

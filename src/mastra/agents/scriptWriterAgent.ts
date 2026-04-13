@@ -4,17 +4,18 @@ import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { pgMemory } from '../config/pg-storage'
-import { webScraperTool } from '../tools/web-scraper-tool'
+import { fetchTool } from '../tools/fetch.tool'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ScriptWriterRuntimeContext = AgentRequestContext
 
 const scriptWriterTools = {
-  webScraperTool,
+  fetchTool,
 }
 
 export const scriptWriterAgent = new Agent({
@@ -23,7 +24,7 @@ export const scriptWriterAgent = new Agent({
   description:
     'Master scriptwriter focused on retention, pacing, and psychological engagement.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const userTier = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     return {
       role: 'system',
@@ -56,21 +57,18 @@ User: ${userTier} | Lang: ${language}
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
+      // higher quality (chat style) for admin
       return google.chat('gemini-3.1-pro-preview')
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return google.chat('gemini-3.1-flash-preview')
     }
-    // cheaper/faster model for free tier
+    // cheaper/faster model for user tier
     return google.chat('gemini-3.1-flash-lite-preview')
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {},

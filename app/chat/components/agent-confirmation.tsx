@@ -19,7 +19,7 @@ import {
     InfoIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ConfirmationSeverity } from './chat.types'
+import type { ConfirmationSeverity } from '../providers/chat-context-types'
 
 interface AgentConfirmationProps {
     toolName: string

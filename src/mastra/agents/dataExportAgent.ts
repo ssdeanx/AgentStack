@@ -1,18 +1,12 @@
 import { Agent } from '@mastra/core/agent'
 
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
-import {
-  backupDataTool,
-  listDataDirTool,
-  writeDataFileTool,
-} from '../tools/data-file-manager'
-import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
+import { LibsqlMemory } from '../config/libsql'
 
 export type DataExportContext = AgentRequestContext<{
   outputDirectory?: string
@@ -28,10 +22,6 @@ const DELIMITER_CONTEXT_KEY = 'delimiter' as const
 
 const dataExportTools = {
   jsonToCsvTool,
-  dataValidatorToolJSON,
-  writeDataFileTool,
-  backupDataTool,
-  listDataDirTool,
 }
 
 export const dataExportAgent = new Agent({
@@ -68,7 +58,7 @@ User: ${userId} | Out: ${outputDirectory} | Overwrite: ${overwriteExisting}
 `
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: dataExportTools,
   options: {
     tracingPolicy: {

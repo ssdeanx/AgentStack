@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
     useLogTransports,
     useLogs,
@@ -33,6 +33,13 @@ import { ScrollArea } from '@/ui/scroll-area'
 import { Skeleton } from '@/ui/skeleton'
 import { Switch } from '@/ui/switch'
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/ui/tooltip'
+import { Panel } from '@/src/components/ai-elements/panel'
+import {
     CodeBlock,
     CodeBlockHeader,
     CodeBlockTitle,
@@ -51,6 +58,8 @@ import {
     AlertTriangleIcon,
     InfoIcon,
     BugIcon,
+    CircleHelpIcon,
+    PanelRightCloseIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -124,6 +133,7 @@ export default function LogsPage() {
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
     const [autoRefresh, setAutoRefresh] = useState(false)
     const [page, setPage] = useState(1)
+    const [showHelpPanel, setShowHelpPanel] = useState(true)
     const perPage = 50
 
     const transportsResult = useLogTransports()
@@ -137,7 +147,21 @@ export default function LogsPage() {
         ...(activeLevels.size < LOG_LEVELS.length
             ? { level: Array.from(activeLevels).join(',') }
             : {}),
-    } as Parameters<typeof useLogs>[0])
+        enabled: activeTransport.trim().length > 0,
+    })
+    const refetchLogs = logsResult.refetch
+
+    useEffect(() => {
+        if (!autoRefresh) {
+            return
+        }
+
+        const interval = window.setInterval(() => {
+            void refetchLogs()
+        }, 5000)
+
+        return () => window.clearInterval(interval)
+    }, [autoRefresh, refetchLogs])
 
     const rawLogs = useMemo<LogRecord[]>(() => {
         const data: unknown = logsResult.data
@@ -219,6 +243,7 @@ export default function LogsPage() {
     }, [rawLogs])
 
     return (
+        <TooltipProvider delayDuration={150}>
         <div className="flex h-full min-h-0 flex-col gap-6 p-6">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -237,31 +262,92 @@ export default function LogsPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                            Auto-refresh
-                        </span>
-                        <Switch
-                            checked={autoRefresh}
-                            onCheckedChange={setAutoRefresh}
-                        />
-                    </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => logsResult.refetch()}
-                        disabled={logsResult.isFetching}
-                        className="gap-1.5"
-                    >
-                        {logsResult.isFetching ? (
-                            <Loader2Icon className="size-3.5 animate-spin" />
-                        ) : (
-                            <RefreshCwIcon className="size-3.5" />
-                        )}
-                        Refresh
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                    Auto-refresh
+                                </span>
+                                <Switch
+                                    checked={autoRefresh}
+                                    onCheckedChange={setAutoRefresh}
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            When enabled, the page refetches logs every five seconds.
+                        </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => refetchLogs()}
+                                disabled={logsResult.isFetching}
+                                className="gap-1.5"
+                            >
+                                {logsResult.isFetching ? (
+                                    <Loader2Icon className="size-3.5 animate-spin" />
+                                ) : (
+                                    <RefreshCwIcon className="size-3.5" />
+                                )}
+                                Refresh
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Refetch the latest logs from the selected transport.</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowHelpPanel((current) => !current)}
+                                aria-label={showHelpPanel ? 'Hide logs help panel' : 'Show logs help panel'}
+                            >
+                                {showHelpPanel ? (
+                                    <PanelRightCloseIcon className="size-4" />
+                                ) : (
+                                    <CircleHelpIcon className="size-4" />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            {showHelpPanel ? 'Hide the logs help panel.' : 'Show the logs help panel.'}
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             </div>
+
+            {showHelpPanel ? (
+                <Panel position="top-right" className="pointer-events-auto z-20 w-88">
+                    <div className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-xl backdrop-blur">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-sm font-semibold text-foreground">Logs help</div>
+                                <div className="text-xs text-muted-foreground">
+                                    Search, filter, and expand structured logs from the live transport stream.
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowHelpPanel(false)}
+                                aria-label="Close logs help panel"
+                            >
+                                <PanelRightCloseIcon className="size-4" />
+                            </Button>
+                        </div>
+
+                        <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                            <p>Turn on auto-refresh when you want the page to stay current without manual polling.</p>
+                            <p>Use the severity cards to filter quickly, then expand a row to see metadata.</p>
+                        </div>
+                    </div>
+                </Panel>
+            ) : null}
 
             {/* Level KPI Badges */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -328,12 +414,12 @@ export default function LogsPage() {
                         setPage(1)
                     }}
                 >
-                    <SelectTrigger className="w-[180px] h-9 text-sm bg-card/50 border-white/10">
+                    <SelectTrigger className="w-45 h-9 text-sm bg-card/50 border-white/10">
                         <SelectValue placeholder="Transport" />
                     </SelectTrigger>
                     <SelectContent>
                         {transports.length === 0 ? (
-                            <SelectItem value="" disabled>
+                            <SelectItem value="__no-transport__" disabled>
                                 No transports
                             </SelectItem>
                         ) : (
@@ -374,17 +460,17 @@ export default function LogsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-white/5 hover:bg-transparent">
-                                    <TableHead className="w-[40px]" />
-                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-[180px]">
+                                    <TableHead className="w-10" />
+                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-45">
                                         Timestamp
                                     </TableHead>
-                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-[80px]">
+                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-20">
                                         Level
                                     </TableHead>
                                     <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
                                         Message
                                     </TableHead>
-                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-[120px]">
+                                    <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 w-30">
                                         Source
                                     </TableHead>
                                 </TableRow>
@@ -458,10 +544,10 @@ export default function LogsPage() {
                                                                 {level}
                                                             </Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-sm max-w-[400px] truncate">
+                                                        <TableCell className="text-sm max-w-100 truncate">
                                                             {message}
                                                         </TableCell>
-                                                        <TableCell className="text-xs text-muted-foreground/60 font-mono truncate max-w-[120px]">
+                                                        <TableCell className="text-xs text-muted-foreground/60 font-mono truncate max-w-30">
                                                             {source}
                                                         </TableCell>
                                                     </TableRow>
@@ -543,5 +629,6 @@ export default function LogsPage() {
                 </div>
             </div>
         </div>
+        </TooltipProvider>
     )
 }

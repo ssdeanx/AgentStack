@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import lttb from 'downsample-lttb'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
 
 export const downsampleTool = createTool({
     id: 'downsample',
@@ -22,8 +21,6 @@ export const downsampleTool = createTool({
     }),
     execute: async (input, context) => {
         const writer = context?.writer
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
 
         // Create root span using getOrCreateSpan (creates root OR attaches to parent)
         const rootSpan = getOrCreateSpan({

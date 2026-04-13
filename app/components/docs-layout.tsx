@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type * as React from 'react'
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/ui/button'
@@ -14,7 +14,7 @@ interface TocItem {
 }
 
 interface DocsLayoutProps {
-    children: ReactNode
+    children: React.ReactNode
     title: string
     description?: string
     section?: string
@@ -32,7 +32,7 @@ export function DocsLayout({
     nextPage,
     showToc = true,
 }: DocsLayoutProps) {
-    const ld = useMemo(() => {
+    const _ld = useMemo(() => {
         const url =
             typeof window !== 'undefined'
                 ? window.location.href
@@ -75,7 +75,9 @@ export function DocsLayout({
             })
         })
 
-        setToc(items)
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- the TOC is derived from mounted DOM headings.
+        const frame = window.requestAnimationFrame(() => setToc(items))
+        return () => window.cancelAnimationFrame(frame)
     }, [children])
 
     useEffect(() => {
@@ -101,7 +103,12 @@ export function DocsLayout({
     }, [toc])
 
     return (
-        <div className="container mx-auto px-4 py-12">
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(_ld) }}
+            />
+            <div className="container mx-auto px-4 py-12">
             <div className="mx-auto max-w-6xl">
                 <div className="mb-8 flex items-center gap-2 text-sm text-muted-foreground">
                     <Link
@@ -195,6 +202,7 @@ export function DocsLayout({
                     )}
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     )
 }

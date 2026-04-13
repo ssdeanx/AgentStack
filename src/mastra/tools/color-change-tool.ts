@@ -1,14 +1,13 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils.js'
 import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 import z from 'zod'
 import { log } from '../config/logger'
 
-export interface ColorChangeRequestContext extends RequestContext {
+export interface ColorChangeRequestContext {
     theme?: string
-    userId?: string
-    workspaceId?: string
 }
 
 export function changeBgColor(color: string) {
@@ -69,15 +68,12 @@ export const colorChangeTool = createTool({
     },
     execute: async (input, context) => {
         const { color } = input
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const writer = context.writer
+        const abortSignal = context.abortSignal
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
-        const requestCtx = context?.requestContext as
-            | ColorChangeRequestContext
-            | undefined
-        const userId = requestCtx?.userId
-        const workspaceId = requestCtx?.workspaceId
+            context.tracingContext
+        const userId = (context.requestContext as RequestContext<BaseToolRequestContext> | undefined)?.all.userId
+        const workspaceId = (context.requestContext as RequestContext<BaseToolRequestContext> | undefined)?.all.workspaceId
 
         // Respect cancellation early
         if (abortSignal?.aborted ?? false) {
@@ -98,7 +94,7 @@ export const colorChangeTool = createTool({
             type: SpanType.TOOL_CALL,
             name: 'change-color',
             input: { color },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'changeColor',

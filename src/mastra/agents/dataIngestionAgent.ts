@@ -1,21 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import type { AgentRequestContext } from './request-context'
 import { USER_ID_CONTEXT_KEY } from './request-context'
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
-import {
-  getDataFileInfoTool,
-  listDataDirTool,
-  readDataFileTool,
-} from '../tools/data-file-manager'
-import { readCSVDataTool } from '../tools/data-processing-tools'
-import { dataValidatorToolJSON } from '../tools/data-validator.tool'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
+import { LibsqlMemory } from '../config/libsql'
 
 export type DataIngestionContext = AgentRequestContext<{
   sourceDirectory?: string
@@ -30,11 +22,8 @@ const MAX_ROWS_CONTEXT_KEY = 'maxRows' as const
 
 const dataIngestionTools = {
   csvToJsonTool,
-  readCSVDataTool,
-  readDataFileTool,
-  dataValidatorToolJSON,
-  listDataDirTool,
-  getDataFileInfoTool,
+
+
   chartSupervisorTool,
 }
 
@@ -59,15 +48,14 @@ User: ${userId} | Dir: ${sourceDirectory} | Max Rows: ${maxRows}
 
 ## Tools
 - **csvToJsonTool**: Parse CSV to JSON array.
-- **readCSVDataTool**: Read CSV with header detection.
-- **dataValidatorTool**: Validate against schema.
+- **Workspace file tools**: Read and inspect CSV/data files.
 - **File Tools**: list, info, and read data files.
 
 ## Workflow
 1. **Locate**: Find file via 'listDataDirTool' and verify with 'getDataFileInfoTool'.
-2. **Read**: Use 'readDataFileTool' or 'readCSVDataTool'.
+2. **Read**: Use workspace file tools to read the input data file.
 3. **Parse**: Convert to JSON via 'csvToJsonTool'.
-4. **Validate**: Check against schema via 'dataValidatorTool'.
+4. **Validate**: Check against schema using workspace diagnostics and prompt-guided validation.
 5. **Return**: Validated JSON with metadata (rows, cols).
 
 ## Rules
@@ -76,14 +64,13 @@ User: ${userId} | Dir: ${sourceDirectory} | Max Rows: ${maxRows}
 `
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: dataIngestionTools,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
   // defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

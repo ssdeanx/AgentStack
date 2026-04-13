@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
 import {
@@ -13,10 +12,11 @@ import {
 } from '../tools/arxiv.tool'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
 import { google } from '../config'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ResearchPaperAgentRuntimeContext = AgentRequestContext
 
@@ -30,17 +30,22 @@ const researchPaperTools = {
 
 log.info('Initializing Research Paper Agent...')
 
+/**
+ * Research Paper Agent.
+ *
+ * Finds academic papers, downloads PDFs, and extracts paper content for analysis.
+ */
 export const researchPaperAgent = new Agent({
   id: 'researchPaperAgent',
   name: 'Research Paper Agent',
   description:
     'Searches, retrieves, and parses academic papers from arXiv. Use for finding research papers, downloading PDFs, extracting paper content to markdown, and analyzing academic literature across AI, ML, physics, math, and other scientific domains.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     return `
 # Research Paper Specialist
-User: ${userTier} | Lang: ${language}
+User: ${role} | Lang: ${language}
 
 ## Tools
 1. **arxivTool**: Search arXiv by keywords, authors, or categories.
@@ -58,18 +63,15 @@ User: ${userTier} | Lang: ${language}
 `
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
-      // higher quality (chat style) for enterprise
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
+      // higher quality (chat style) for admin
       return "google/gemini-3.1-flash-preview"
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
-      return "google/gemini-3.1-flash-lite-preview"
     }
-    // cheaper/faster model for free tier
+    // cheaper/faster model for user tier
     return "google/gemini-3.1-flash-lite-preview"
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: researchPaperTools,
   options: {
     tracingPolicy: {

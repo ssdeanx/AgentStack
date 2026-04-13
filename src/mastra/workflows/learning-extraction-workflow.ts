@@ -1,3 +1,4 @@
+import type { ChunkType } from '@mastra/core/workflows';
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
@@ -214,36 +215,23 @@ For each learning, provide:
 Also provide an overall summary.`
 
                 const stream = await agent.stream(prompt, {
-                    output: z.object({
-                        learnings: z.array(extractedLearningSchema),
-                        summary: z.string(),
-                    }),
-                } as any)
+                    structuredOutput: {
+                        schema: z.object({
+                            learnings: z.array(extractedLearningSchema),
+                            summary: z.string(),
+                        }),
+                    },
+                })
 
-                // Pipe streaming partial output to the workflow writer for progress (if present)
-                await stream.textStream?.pipeTo?.(writer)
-
-                // Wait for final text and attempt to parse as JSON; fallback to no-op if parse fails
-                const finalText = await stream.text
-                let parsed: {
-                    learnings: Array<z.infer<typeof extractedLearningSchema>>
-                    summary: string
-                } | null = null
-                try {
-                    parsed = JSON.parse(finalText) as {
-                        learnings: Array<
-                            z.infer<typeof extractedLearningSchema>
-                        >
-                        summary: string
+                if (writer !== undefined && writer !== null) {
+                    for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<{ learnings: Array<z.infer<typeof extractedLearningSchema>>; summary: string }>>) {
+                        await writer.write(chunk)
                     }
-                } catch {
-                    parsed = null
                 }
 
-                if (parsed) {
-                    learnings = parsed.learnings
-                    summary = parsed.summary
-                }
+                const parsed = await stream.object
+                learnings = parsed.learnings
+                summary = parsed.summary
             } else {
                 learnings = [
                     {
@@ -338,7 +326,7 @@ Also provide an overall summary.`
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('extract-learnings', error, {
+            logError('extract-learnings', error instanceof Error ? error : new Error(String(error)), {
                 contentType: inputData.contentType,
             })
 
@@ -587,7 +575,7 @@ const humanApprovalStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('human-approval', error)
+            logError('human-approval', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -667,38 +655,26 @@ const validateLearningsStep = createStep({
 
               Rate quality 0-100 and note any issues.`,
                         {
-                            output: z.object({
-                                qualityScore: z.number().min(0).max(100),
-                                validated: z.boolean(),
-                                notes: z.string().optional(),
-                            }),
-                        } as any
+                            structuredOutput: {
+                                schema: z.object({
+                                    qualityScore: z.number().min(0).max(100),
+                                    validated: z.boolean(),
+                                    notes: z.string().optional(),
+                                }),
+                            },
+                        }
                     )
 
-                    // Stream deltas to the workflow writer if available
-                    await stream.textStream?.pipeTo?.(writer)
-
-                    const finalText = await stream.text
-                    let parsed: {
-                        validated: boolean
-                        qualityScore: number
-                        notes?: string
-                    } | null = null
-                    try {
-                        parsed = JSON.parse(finalText) as {
-                            validated: boolean
-                            qualityScore: number
-                            notes?: string
+                    if (writer !== undefined && writer !== null) {
+                        for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<{ validated: boolean; qualityScore: number; notes?: string }>>) {
+                            await writer.write(chunk)
                         }
-                    } catch {
-                        parsed = null
                     }
 
-                    if (parsed) {
-                        validated = parsed.validated
-                        qualityScore = parsed.qualityScore
-                        validationNotes = parsed.notes ?? ''
-                    }
+                    const parsed = await stream.object
+                    validated = parsed.validated
+                    qualityScore = parsed.qualityScore
+                    validationNotes = parsed.notes ?? ''
                 } else {
                     qualityScore = 70 + Math.floor(Math.random() * 25)
                     validated = qualityScore >= 60
@@ -779,7 +755,7 @@ const validateLearningsStep = createStep({
                 endSpan: true,
             })
 
-            logError('validate-learnings', error)
+            logError('validate-learnings', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -982,7 +958,7 @@ const generateLearningReportStep = createStep({
                 endSpan: true,
             })
 
-            logError('generate-learning-report', error)
+            logError('generate-learning-report', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -1012,3 +988,4 @@ export const learningExtractionWorkflow = createWorkflow({
     .then(generateLearningReportStep)
 
 learningExtractionWorkflow.commit()
+

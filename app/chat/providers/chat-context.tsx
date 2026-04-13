@@ -3,42 +3,283 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { getAgentConfig, DEFAULT_AGENT_ID } from '../config/agents'
-import {
-    getDefaultModel,
-    getModelConfig,
-    MODEL_CONFIGS,
-    type ModelConfig,
-} from '../config/models'
-// AI SDK v6 types imported from local types file
 import type {
     UIMessage,
-    DynamicToolUIPart,
+    UIDataTypes,
+    LanguageModelUsage,
+//    UIMessageStreamOnStepFinishCallback,
+//    UIMessageStreamOnFinishCallback,
+//    UIMessageStreamWriter,
+//    UIMessageStreamOptions,
+//    UIToolInvocation,
     TextUIPart,
-    ReasoningUIPart,
     ToolUIPart,
-} from './chat-context-types'
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+    UITools,
+//   TextPart,
+//   ToolResultPart,
+//    DeepPartial,
+//    FilePart,
+//    UIDataPartSchemas,
+//    TextStreamPart,
+    UIMessagePart,
+//    ContentPart,
+    ReasoningOutput,
+    UIMessageChunk,
+    DataContent,
+    FinishReason,
+    DynamicToolUIPart,
+    FileUIPart,
+    SourceDocumentUIPart,
+    SourceUrlUIPart,
+    StepResult,
+    PrepareStepResult,
+    StepStartUIPart,
+    ReasoningUIPart,
+    DataUIPart,
+    ProviderMetadata,
+    ToolSet,
+} from 'ai'
 import {
-    getClientIdentity,
-    getOrCreateLocalStorageId,
-} from '@/lib/client-identity'
-import type {
-    Source,
-    TokenUsage,
-    ChatStatus,
-    ToolInvocationState,
-    QueuedTask,
-    PendingConfirmation,
-    Checkpoint,
-    WebPreviewData,
-    ChatContextValue,
-} from './chat-context-types'
-import { ChatContext } from './chat-context-hooks'
+    safeValidateUIMessages,
+    getTextFromDataUrl,
+    isDataUIPart,
+    isFileUIPart,
+    isReasoningUIPart,
+    isTextUIPart,
+    isToolUIPart,
+    isDeepEqualData,
+    getToolName,
+    lastAssistantMessageIsCompleteWithToolCalls,
+    InvalidResponseDataError,
+    InvalidMessageRoleError,
+    InvalidArgumentError,
+    UIMessageStreamError,
+ //   createUIMessageStream,
+ //   CreateUIMessage,
+ //   createUIMessageStreamResponse,
+ //   UITool,
+ //   generateId,
+} from 'ai'
 import {
     RequestContext,
     MASTRA_RESOURCE_ID_KEY,
     MASTRA_THREAD_ID_KEY,
 } from '@mastra/core/request-context'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useAuthQuery } from '@/lib/hooks/use-auth-query'
+import { useAgent, useAgentModelProviders } from '@/lib/hooks/use-mastra-query'
+import { ChatContext } from './chat-context-hooks'
+
+const CHAT_PROVIDER_ID_CONTEXT_KEY = 'provider-id' as const
+const CHAT_MODEL_ID_CONTEXT_KEY = 'model-id' as const
+
+type ChatRequestContext = Record<
+    | 'agentId'
+    | 'userId'
+    | typeof MASTRA_RESOURCE_ID_KEY
+    | typeof MASTRA_THREAD_ID_KEY
+    | typeof CHAT_PROVIDER_ID_CONTEXT_KEY
+    | typeof CHAT_MODEL_ID_CONTEXT_KEY,
+    string
+>
+
+type ChatMessagePart = UIMessagePart<UIDataTypes, UITools>
+
+type ModelProvider = NonNullable<
+    NonNullable<ReturnType<typeof useAgentModelProviders>['data']>
+>['providers'][number]
+
+type ChatModel = {
+    id: string
+    name: string
+    provider: string
+    contextWindow?: number
+}
+
+export type ChatRuntimeTypes = {
+    chunk: UIMessageChunk
+    dataContent: DataContent
+    finishReason: FinishReason
+    reasoningOutput: ReasoningOutput
+    stepResult: StepResult<ToolSet>
+    prepareStepResult: PrepareStepResult<ToolSet>
+    stepStartPart: StepStartUIPart
+    dataPart: DataUIPart<UIDataTypes>
+    toolSet: ToolSet
+}
+
+type ChatStatus = 'ready' | 'submitted' | 'streaming' | 'error'
+
+interface Source {
+    url: string
+    title: string
+}
+
+export type ToolInvocationState = ToolUIPart | DynamicToolUIPart
+
+export interface QueuedTask {
+    id: string
+    title: string
+    description?: string
+    status: 'pending' | 'running' | 'completed' | 'failed'
+    createdAt?: Date
+    completedAt?: Date
+    error?: string
+}
+
+interface PendingConfirmation {
+    id: string
+    toolName: string
+    description: string
+    approval: ToolUIPart['approval']
+    state: ToolUIPart['state']
+}
+
+export interface Checkpoint {
+    id: string
+    messageIndex: number
+    timestamp: Date
+    messageCount: number
+    label?: string
+}
+
+interface WebPreviewData {
+    id: string
+    url: string
+    title?: string
+    code?: string
+    language?: string
+    html?: string
+    editable?: boolean
+    showConsole?: boolean
+    height?: number
+}
+
+let taskIdCounter = 0
+let checkpointIdCounter = 0
+
+interface ChatCompletionState {
+    messageId: string
+    message: UIMessage
+    messages: UIMessage[]
+    finishReason: FinishReason | null
+    isAbort: boolean
+    isDisconnect: boolean
+    isError: boolean
+}
+
+export interface ChatContextValue {
+    messages: UIMessage[]
+    isLoading: boolean
+    status: ChatStatus
+    selectedAgent: string
+    streamingContent: string
+    streamingReasoning: string
+    toolInvocations: ToolInvocationState[]
+    sources: Source[]
+    usage: LanguageModelUsage | null
+    lastCompletion: ChatCompletionState | null
+    error: string | null
+    agentConfig: ReturnType<typeof getAgentConfig>
+    modelProviders: ModelProvider[]
+    selectedProvider: ModelProvider | null
+    selectedProviderModels: string[]
+    selectedProviderLabel: string
+    selectedModel: ChatModel
+    queuedTasks: QueuedTask[]
+    pendingConfirmations: PendingConfirmation[]
+    checkpoints: Checkpoint[]
+    webPreview: WebPreviewData | null
+    threadId: string
+    resourceId: string
+    isFocusMode: boolean
+    availableModels: ChatModel[]
+    sendMessage: (text: string, files?: File[]) => void
+    stopGeneration: () => void
+    clearMessages: () => void
+    selectAgent: (agentId: string) => void
+    selectProvider: (providerId: string) => void
+    selectModel: (modelId: string) => void
+    dismissError: () => void
+    setFocusMode: (enabled: boolean) => void
+    addTask: (task: Omit<QueuedTask, 'id'>) => string
+    updateTask: (taskId: string, updates: Partial<QueuedTask>) => void
+    removeTask: (taskId: string) => void
+    approveConfirmation: (confirmationId: string) => void
+    rejectConfirmation: (confirmationId: string, reason?: string) => void
+    createCheckpoint: (messageIndex: number, label?: string) => string
+    restoreCheckpoint: (checkpointId: string) => void
+    removeCheckpoint: (checkpointId: string) => void
+    setWebPreview: (preview: WebPreviewData | null) => void
+    setThreadId: (threadId: string) => void
+    setResourceId: (resourceId: string) => void
+}
+
+function normalizeChatError(error: unknown): string {
+    if (error instanceof InvalidArgumentError) {
+        return error.message
+    }
+    if (error instanceof InvalidMessageRoleError) {
+        return error.message
+    }
+    if (error instanceof InvalidResponseDataError) {
+        return error.message
+    }
+    if (error instanceof UIMessageStreamError) {
+        return error.message
+    }
+    return error instanceof Error ? error.message : String(error)
+}
+
+function isSourceDocumentPart(part: ChatMessagePart): part is SourceDocumentUIPart {
+    return part.type === 'source-document'
+}
+
+function isSourceUrlPart(part: ChatMessagePart): part is SourceUrlUIPart {
+    return part.type === 'source-url'
+}
+
+function getSourcesFromParts(parts: ChatMessagePart[]): Source[] {
+    const sources: Source[] = []
+
+    for (const part of parts) {
+        if (isSourceUrlPart(part)) {
+            sources.push({
+                url: part.url,
+                title: part.title ?? part.url,
+            })
+            continue
+        }
+
+        if (isSourceDocumentPart(part)) {
+            sources.push({
+                url: part.sourceId,
+                title: part.filename ? `${part.title} (${part.filename})` : part.title,
+            })
+            continue
+        }
+
+        if (isFileUIPart(part)) {
+            const filePart = part as FileUIPart
+            sources.push({
+                url: filePart.url,
+                title: filePart.filename
+                    ? `${filePart.filename} (${filePart.mediaType})`
+                    : `${filePart.url} (${filePart.mediaType})`,
+            })
+        }
+    }
+
+    return sources
+}
+
+function dataUrlToDataContent(url: string): DataContent | null {
+    try {
+        return getTextFromDataUrl(url) as DataContent
+    } catch {
+        return null
+    }
+}
 
 export interface ChatProviderProps {
     children: ReactNode
@@ -50,48 +291,14 @@ export interface ChatProviderProps {
 const MASTRA_API_URL =
     process.env.NEXT_PUBLIC_MASTRA_API_URL ?? 'http://localhost:4111'
 
-function extractThoughtSummaryFromParts(
-    parts: UIMessage['parts'] | undefined
-): string {
-    if (!parts || parts.length === 0) {
-        return ''
-    }
-
-    for (const part of parts) {
-        const pm = (part as { providerMetadata?: unknown }).providerMetadata
-        if (pm === null || typeof pm !== 'object') {
-            continue
-        }
-
-        const googleMeta = (pm as Record<string, unknown>).google
-        if (googleMeta === null || typeof googleMeta !== 'object') {
-            continue
-        }
-
-        // Different SDKs/versions surface this under slightly different keys.
-        const candidates = [
-            (googleMeta as Record<string, unknown>).thoughtSummary,
-            (googleMeta as Record<string, unknown>).thoughts,
-            (googleMeta as Record<string, unknown>).thinkingSummary,
-        ]
-
-        for (const c of candidates) {
-            if (typeof c === 'string' && c.trim().length > 0) {
-                return c
-            }
-        }
-    }
-
-    return ''
-}
-
 export function ChatProvider({
     children,
     defaultAgent = DEFAULT_AGENT_ID,
     defaultThreadId,
     defaultResourceId,
 }: ChatProviderProps) {
-    const identity = useMemo(() => getClientIdentity(), [])
+    const authQuery = useAuthQuery()
+    const userId = authQuery.data?.user.id ?? ''
 
     const [selectedAgent, setSelectedAgent] = useState(defaultAgent)
     // sourcesState is nullable to allow falling back to derived sources from messages.
@@ -102,38 +309,132 @@ export function ChatProvider({
         PendingConfirmation[]
     >([])
     const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([])
+    const [lastCompletion, setLastCompletion] = useState<
+        ChatCompletionState | null
+    >(null)
     const [webPreview, setWebPreviewState] = useState<WebPreviewData | null>(
         null
     )
 
-    const [resourceId, setResourceIdState] = useState(() => {
-        return defaultResourceId ?? identity.resourceId
-    })
-
-    const threadStorageKey = useCallback(
-        (agentId: string) => `agentstack.chat.threadId.${agentId}`,
-        []
+    const [resourceId, setResourceIdState] = useState(
+        defaultResourceId ?? ''
     )
 
-    const [threadId, setThreadIdState] = useState(() => {
+    const [threadId, setThreadIdState] = useState(
+        defaultThreadId ?? ''
+    )
+
+    const [selectedModelId, setSelectedModelId] = useState('')
+    const [isFocusMode, setFocusMode] = useState(false)
+
+    const selectedAgentDetails = useAgent(selectedAgent)
+    const modelProvidersQuery = useAgentModelProviders()
+
+    const modelProviders = useMemo<ModelProvider[]>(
+        () => modelProvidersQuery.data?.providers ?? [],
+        [modelProvidersQuery.data]
+    )
+
+    useEffect(() => {
+        if (defaultResourceId !== undefined && defaultResourceId.trim().length > 0) {
+            queueMicrotask(() => {
+                setResourceIdState(defaultResourceId)
+            })
+            return
+        }
+
+        if (userId.length > 0) {
+            queueMicrotask(() => {
+                setResourceIdState(userId)
+            })
+        }
+    }, [defaultResourceId, userId])
+
+    useEffect(() => {
         if (
             defaultThreadId !== undefined &&
             defaultThreadId.trim().length > 0
         ) {
-            return defaultThreadId
+            queueMicrotask(() => {
+                setThreadIdState(defaultThreadId)
+            })
+            return
         }
-        return getOrCreateLocalStorageId(
-            threadStorageKey(defaultAgent),
-            `thread:${identity.userId}:${defaultAgent}`
-        )
-    })
 
-    const [selectedModel, setSelectedModel] =
-        useState<ModelConfig>(getDefaultModel())
-    const [isFocusMode, setFocusMode] = useState(false)
+        if (userId.length > 0) {
+            queueMicrotask(() => {
+                setThreadIdState(`thread:${userId}:${defaultAgent}`)
+            })
+        }
+    }, [defaultAgent, defaultThreadId, userId])
 
     // Ref to track message snapshots for checkpoint restore
     const messageSnapshotsRef = useRef<Map<string, UIMessage[]>>(new Map())
+
+    const availableModels = useMemo<ChatModel[]>(() => {
+        const modelsById = new Map<string, ChatModel>()
+
+        for (const entry of selectedAgentDetails.data?.modelList ?? []) {
+            const modelId = entry.model.modelId
+            if (!modelsById.has(modelId)) {
+                modelsById.set(modelId, {
+                    id: modelId,
+                    name: modelId,
+                    provider: entry.model.provider,
+                })
+            }
+        }
+
+        return Array.from(modelsById.values())
+    }, [selectedAgentDetails.data])
+
+    const selectedModel = useMemo<ChatModel>(() => {
+        const selectedFromState =
+            availableModels.find((model) => model.id === selectedModelId) ??
+            availableModels.find(
+                (model) => model.id === selectedAgentDetails.data?.modelId
+            )
+
+        if (selectedFromState) {
+            return selectedFromState
+        }
+
+        if (selectedAgentDetails.data) {
+            return {
+                id: selectedAgentDetails.data.modelId,
+                name: selectedAgentDetails.data.modelId,
+                provider: selectedAgentDetails.data.provider,
+            }
+        }
+
+        return {
+            id: '',
+            name: '',
+            provider: '',
+        }
+    }, [availableModels, selectedAgentDetails.data, selectedModelId])
+
+    const selectedProvider = useMemo(
+        () => {
+            const providerId =
+                availableModels.find((model) => model.id === selectedModelId)?.provider ??
+                selectedAgentDetails.data?.provider ??
+                ''
+
+            return modelProviders.find((provider) => provider.id === providerId) ?? null
+        },
+        [availableModels, modelProviders, selectedAgentDetails.data?.provider, selectedModelId]
+    )
+
+    const selectedProviderModels = useMemo(
+        () => selectedProvider?.models ?? [],
+        [selectedProvider]
+    )
+
+    const selectedProviderLabel = useMemo(
+        () => selectedProvider?.name ?? selectedAgentDetails.data?.provider ?? '',
+        [selectedAgentDetails.data?.provider, selectedProvider]
+    )
 
     const transport = useMemo(
         () =>
@@ -147,24 +448,24 @@ export function ChatProvider({
                     messageId,
                 }) {
                     const last = outgoingMessages[outgoingMessages.length - 1]
-                    const textPart = last?.parts?.find(
-                        (p): p is TextUIPart => p.type === 'text'
-                    )
+                    const textPart = last.parts.find(isTextUIPart)
 
                     // Create RequestContext for multi-tenancy isolation
-                    const requestContext = new RequestContext()
+                    const requestContext = new RequestContext<ChatRequestContext>()
                     requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
                     requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
+                    requestContext.set('agentId', selectedAgent)
+                    requestContext.set('userId', userId)
+                    requestContext.set(CHAT_PROVIDER_ID_CONTEXT_KEY, selectedModel.provider)
+                    requestContext.set(CHAT_MODEL_ID_CONTEXT_KEY, selectedModel.id)
 
-                    const runtimeContext = requestContext.toJSON()
+                    const runtimeContext = requestContext.all
 
                     return {
                         body: {
                             id: selectedAgent,
                             messages: outgoingMessages,
-                            parts: outgoingMessages.flatMap(
-                                (m) => (m.parts ?? [])
-                            ),
+                            parts: outgoingMessages.flatMap((m) => m.parts),
                             trigger,
                             messageId,
                             memory: {
@@ -186,7 +487,7 @@ export function ChatProvider({
                     }
                 },
             }),
-        [selectedAgent, threadId, resourceId]
+        [selectedAgent, threadId, resourceId, userId, selectedModel.provider, selectedModel.id]
     )
 
     const {
@@ -198,10 +499,46 @@ export function ChatProvider({
         stop,
     } = useChat({
         transport,
+        onFinish({ message, finishReason, isAbort, isDisconnect, isError }) {
+            setLastCompletion({
+                messageId: message.id,
+                message,
+                messages,
+                finishReason: finishReason ?? null,
+                isAbort,
+                isDisconnect,
+                isError,
+            })
+        },
     })
 
+    useEffect(() => {
+        let cancelled = false
+
+        void safeValidateUIMessages<UIMessage>({ messages }).then((result) => {
+            if (cancelled) {
+                return
+            }
+
+            if (!result.success) {
+                setChatError(normalizeChatError(result.error))
+            } else {
+                setChatError(null)
+            }
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [messages])
+
+    const aiErrorMessage = useMemo(
+        () => (aiError ? normalizeChatError(aiError) : null),
+        [aiError]
+    )
+
     const status: ChatStatus = useMemo(() => {
-        if (aiError || Boolean(chatError)) {
+        if (aiErrorMessage || Boolean(chatError)) {
             return 'error'
         }
         if (aiStatus === 'streaming') {
@@ -211,15 +548,19 @@ export function ChatProvider({
             return 'submitted'
         }
         return 'ready'
-    }, [aiStatus, aiError, chatError])
+    }, [aiStatus, aiErrorMessage, chatError])
 
     const isLoading = status === 'streaming' || status === 'submitted'
 
     const streamingContent = useMemo(() => {
         const lastMessage = messages[messages.length - 1]
-        if (lastMessage?.role === 'assistant' && aiStatus === 'streaming') {
-            const textPart = lastMessage.parts?.find(
-                (p): p is TextUIPart => p.type === 'text'
+        if (
+            lastMessage &&
+            lastMessage.role === 'assistant' &&
+            aiStatus === 'streaming'
+        ) {
+            const textPart: TextUIPart | undefined = lastMessage.parts.find(
+                isTextUIPart
             )
             return textPart?.text ?? ''
         }
@@ -228,43 +569,61 @@ export function ChatProvider({
 
     const streamingReasoning = useMemo(() => {
         const lastMessage = messages[messages.length - 1]
-        if (lastMessage?.role === 'assistant') {
-            const reasoningPart = lastMessage.parts?.find(
-                (p): p is ReasoningUIPart => p.type === 'reasoning'
-            )
+        if (lastMessage && lastMessage.role === 'assistant') {
+            const reasoningPart: ReasoningUIPart | undefined =
+                lastMessage.parts.find(isReasoningUIPart)
 
             const direct = reasoningPart?.text
             if (typeof direct === 'string' && direct.trim().length > 0) {
                 return direct
             }
 
-            return extractThoughtSummaryFromParts(lastMessage.parts)
+            for (const part of lastMessage.parts) {
+                const providerMetadata =
+                    'providerMetadata' in part
+                        ? (part.providerMetadata as ProviderMetadata)
+                        : 'callProviderMetadata' in part
+                          ? (part.callProviderMetadata as ProviderMetadata)
+                          : undefined
+
+                const googleMeta = providerMetadata?.google as
+                    | Record<string, unknown>
+                    | undefined
+
+                if (googleMeta === undefined) {
+                    continue
+                }
+
+                // Different SDKs/versions surface this under slightly different keys.
+                const candidates = [
+                    googleMeta.thoughtSummary,
+                    googleMeta.thoughts,
+                    googleMeta.thinkingSummary,
+                ]
+
+                for (const candidate of candidates) {
+                    if (
+                        typeof candidate === 'string' &&
+                        candidate.trim().length > 0
+                    ) {
+                        return candidate
+                    }
+                }
+            }
         }
         return ''
     }, [messages])
 
     const toolInvocations = useMemo((): ToolInvocationState[] => {
         const lastMessage = messages[messages.length - 1]
-        if (lastMessage?.role !== 'assistant') {
+        if (!lastMessage || lastMessage.role !== 'assistant') {
             return []
         }
 
         // Collect native AI SDK tool parts (tool-*) and dynamic-tool parts.
-        const { parts } = lastMessage
-        const result: ToolInvocationState[] = []
-
-        for (const p of parts) {
-            if (p.type === 'dynamic-tool') {
-                result.push(p as DynamicToolUIPart)
-            } else if (
-                typeof p.type === 'string' &&
-                p.type.startsWith('tool-')
-            ) {
-                result.push(p as ToolUIPart)
-            }
-        }
-
-        return result
+        return lastMessage.parts.filter(
+            (part): part is ToolInvocationState => isToolUIPart(part)
+        )
     }, [messages])
 
     // Derive sources from assistant messages (no synchronous setState in effect).
@@ -272,15 +631,9 @@ export function ChatProvider({
         const allSources: Source[] = []
         for (const message of messages) {
             if (message.role === 'assistant') {
-                for (const part of message.parts) {
-                    if (part.type === 'source-url') {
-                        const src = part as { url: string; title?: string }
-                        allSources.push({
-                            url: src.url,
-                            title: src.title ?? src.url,
-                        })
-                    }
-                }
+                allSources.push(
+                    ...getSourcesFromParts(message.parts as ChatMessagePart[])
+                )
             }
         }
         return allSources
@@ -289,35 +642,29 @@ export function ChatProvider({
     // Derive web preview data from tool outputs (for chart/diagram agents)
     const derivedWebPreview = useMemo<WebPreviewData | null>(() => {
         const lastMessage = messages[messages.length - 1]
-        if (lastMessage?.role !== 'assistant') {
+        if (!lastMessage || lastMessage.role !== 'assistant') {
             return null
         }
 
-        const part = lastMessage.parts.find((p) => {
-            if (p.type === 'dynamic-tool') {
-                return true
-            }
-            if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
-                return true
-            }
-            return false
-        })
+        if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) {
+            return null
+        }
+
+        const part = lastMessage.parts.find(
+            (p) => isToolUIPart(p) || isDataUIPart(p)
+        )
 
         if (!part) {
             return null
         }
 
-        let output: Record<string, unknown> | undefined
+        const toolPart = lastMessage.parts.find(isToolUIPart)
 
-        if (part.type === 'dynamic-tool') {
-            output = (part as DynamicToolUIPart).output as Record<
-                string,
-                unknown
-            >
-        } else {
-            output = (part as ToolUIPart as unknown as { output?: unknown })
-                .output as Record<string, unknown>
-        }
+        const output = isDataUIPart(part)
+            ? (part.data as Record<string, unknown> | undefined)
+            : (part as ToolUIPart | DynamicToolUIPart).output as
+                  | Record<string, unknown>
+                  | undefined
 
         const isPlainObject = (v: unknown): v is Record<string, unknown> =>
             v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -332,7 +679,10 @@ export function ChatProvider({
             return {
                 id: 'web-preview',
                 url: out.previewUrl,
-                title: (out.title as string) || 'Generated Preview',
+                title:
+                    (out.title as string) ||
+                    (toolPart ? getToolName(toolPart) : undefined) ||
+                    'Generated Preview',
             }
         } else if (typeof out.code === 'string') {
             const language = (out.language as string) || 'tsx'
@@ -341,10 +691,19 @@ export function ChatProvider({
                 const htmlContent =
                     typeof htmlCandidate === 'string' ? htmlCandidate : out.code
                 const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+                const verifiedContent = dataUrlToDataContent(dataUrl)
+
+                if (verifiedContent === null) {
+                    return null
+                }
+
                 return {
                     id: 'web-preview',
                     url: dataUrl,
-                    title: (out.title as string) || 'Generated UI',
+                    title:
+                        (out.title as string) ||
+                        (toolPart ? getToolName(toolPart) : undefined) ||
+                        'Generated UI',
                     code: out.code,
                     language,
                 }
@@ -360,6 +719,7 @@ export function ChatProvider({
                 return
             }
             setChatError(null)
+            setLastCompletion(null)
 
             const fileList: FileList | undefined = (() => {
                 if (!files || files.length === 0) {
@@ -389,6 +749,7 @@ export function ChatProvider({
         setMessages([])
         setSourcesState([])
         setChatError(null)
+        setLastCompletion(null)
         setQueuedTasks([])
         setPendingConfirmations([])
         setCheckpoints([])
@@ -412,33 +773,49 @@ export function ChatProvider({
                     defaultThreadId.trim().length > 0
                 )
             ) {
-                setThreadIdState(
-                    getOrCreateLocalStorageId(
-                        threadStorageKey(normalizedAgentId),
-                        `thread:${identity.userId}:${normalizedAgentId}`
-                    )
-                )
+                setThreadIdState(`thread:${userId || 'guest'}:${normalizedAgentId}`)
             }
 
             // Clear messages and state when switching agents
             setMessages([])
             setSourcesState([])
             setChatError(null)
+            setLastCompletion(null)
             setWebPreviewState(null)
             setQueuedTasks([])
             setPendingConfirmations([])
             setCheckpoints([])
+            setSelectedModelId('')
             messageSnapshotsRef.current.clear()
         },
-        [defaultThreadId, identity.userId, threadStorageKey, setMessages]
+        [defaultThreadId, setMessages, userId]
     )
 
     const selectModel = useCallback((modelId: string) => {
-        const model = getModelConfig(modelId)
+        const model = availableModels.find((item) => item.id === modelId)
         if (model) {
-            setSelectedModel(model)
+            setSelectedModelId(model.id)
         }
-    }, [])
+    }, [availableModels])
+
+    const selectProvider = useCallback(
+        (providerId: string) => {
+            const providerModels = availableModels.filter(
+                (model) => model.provider === providerId
+            )
+
+            if (providerModels.length === 0) {
+                return
+            }
+
+            const nextModel =
+                providerModels.find((model) => model.id === selectedModel.id) ??
+                providerModels[0]
+
+            setSelectedModelId(nextModel.id)
+        },
+        [availableModels, selectedModel.id]
+    )
 
     const dismissError = useCallback(() => {
         setChatError(null)
@@ -446,7 +823,8 @@ export function ChatProvider({
 
     // Task management
     const addTask = useCallback((task: Omit<QueuedTask, 'id'>): string => {
-        const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+        taskIdCounter += 1
+        const id = `task-${taskIdCounter}`
         setQueuedTasks((prev) => [...prev, { ...task, id }])
         return id
     }, [])
@@ -471,7 +849,14 @@ export function ChatProvider({
         setPendingConfirmations((prev) =>
             prev.map((c) =>
                 c.id === confirmationId
-                    ? { ...c, approval: { ...c.approval, approved: true } }
+                    ? {
+                          ...c,
+                          approval: {
+                              ...c.approval,
+                              id: c.approval?.id ?? confirmationId,
+                              approved: true,
+                          },
+                      }
                     : c
             )
         )
@@ -483,13 +868,14 @@ export function ChatProvider({
                 prev.map((c) =>
                     c.id === confirmationId
                         ? {
-                            ...c,
-                            approval: {
-                                ...c.approval,
-                                approved: false,
-                                reason,
-                            },
-                        }
+                              ...c,
+                              approval: {
+                                  ...c.approval,
+                                  id: c.approval?.id ?? confirmationId,
+                                  approved: false,
+                                  reason,
+                              },
+                          }
                         : c
                 )
             )
@@ -500,7 +886,8 @@ export function ChatProvider({
     // Checkpoint management
     const createCheckpoint = useCallback(
         (messageIndex: number, label?: string): string => {
-            const id = `checkpoint-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+            checkpointIdCounter += 1
+            const id = `checkpoint-${checkpointIdCounter}`
             const checkpoint: Checkpoint = {
                 id,
                 messageIndex,
@@ -570,32 +957,21 @@ export function ChatProvider({
 
     // Web Preview management
     const setWebPreview = useCallback((preview: WebPreviewData | null) => {
-        setWebPreviewState(preview)
+        setWebPreviewState((current) =>
+            isDeepEqualData(current, preview) ? current : preview
+        )
     }, [])
 
     // Memory management
     const setThreadId = useCallback(
         (newThreadId: string) => {
             setThreadIdState(newThreadId)
-            try {
-                window.localStorage.setItem(
-                    threadStorageKey(selectedAgent),
-                    newThreadId
-                )
-            } catch {
-                // ignore
-            }
         },
-        [selectedAgent, threadStorageKey]
+        []
     )
 
     const setResourceId = useCallback((newResourceId: string) => {
         setResourceIdState(newResourceId)
-        try {
-            window.localStorage.setItem('agentstack.resourceId', newResourceId)
-        } catch {
-            // ignore
-        }
     }, [])
 
     const agentConfig = useMemo(
@@ -608,9 +984,13 @@ export function ChatProvider({
     const value = useMemo<ChatContextValue>(() => {
         // Derive usage data from the last completed assistant message.
         // Avoid calling setState inside an effect to prevent cascading renders.
-        const usage: TokenUsage | null = (() => {
+        const usage: LanguageModelUsage | null = (() => {
             const lastMessage = messages[messages.length - 1]
-            if (lastMessage?.role === 'assistant' && aiStatus === 'ready') {
+            if (
+                lastMessage &&
+                lastMessage.role === 'assistant' &&
+                aiStatus === 'ready'
+            ) {
                 for (const part of lastMessage.parts) {
                     const partAny = part as Record<string, unknown>
                     if (
@@ -619,58 +999,58 @@ export function ChatProvider({
                     ) {
                         const usageData = partAny.usage as
                             | {
-                                promptTokens?: number
-                                inputTokens?: number
-                                completionTokens?: number
-                                outputTokens?: number
-                                totalTokens?: number
-                                inputTokenDetails?: {
-                                    cacheCreation?: number
-                                    cacheRead?: number
-                                }
-                                outputTokenDetails?: {
-                                    reasoning?: number
-                                }
-                            }
+                                  promptTokens?: number
+                                  inputTokens?: number
+                                  completionTokens?: number
+                                  outputTokens?: number
+                                  totalTokens?: number
+                                  inputTokenDetails?: {
+                                      cacheCreation?: number
+                                      cacheRead?: number
+                                  }
+                                  outputTokenDetails?: {
+                                      reasoning?: number
+                                  }
+                              }
                             | undefined
                         if (usageData) {
+                            const inputTokens =
+                                usageData.promptTokens ??
+                                usageData.inputTokens ??
+                                0
+                            const outputTokens =
+                                usageData.completionTokens ??
+                                usageData.outputTokens ??
+                                0
+                            const cacheReadTokens =
+                                usageData.inputTokenDetails?.cacheRead ?? 0
+                            const cacheWriteTokens =
+                                usageData.inputTokenDetails?.cacheCreation ?? 0
+                            const reasoningTokens =
+                                usageData.outputTokenDetails?.reasoning ?? 0
+
                             return {
-                                inputTokens:
-                                    usageData.promptTokens ??
-                                    usageData.inputTokens ??
-                                    0,
-                                outputTokens:
-                                    usageData.completionTokens ??
-                                    usageData.outputTokens ??
-                                    0,
-                                totalTokens: usageData.totalTokens ?? 0,
+                                inputTokens,
+                                outputTokens,
+                                totalTokens:
+                                    usageData.totalTokens ??
+                                    inputTokens + outputTokens,
                                 inputTokenDetails: {
-                                    cacheReadTokens:
-                                        usageData.inputTokenDetails
-                                            ?.cacheRead ?? 0,
-                                    cacheWriteTokens:
-                                        usageData.inputTokenDetails
-                                            ?.cacheCreation ?? 0,
+                                    cacheReadTokens,
+                                    cacheWriteTokens,
                                     noCacheTokens: Math.max(
                                         0,
-                                        (usageData.promptTokens ??
-                                            usageData.inputTokens ??
-                                            0) -
-                                            ((usageData.inputTokenDetails
-                                                ?.cacheCreation ?? 0) +
-                                                (usageData.inputTokenDetails
-                                                    ?.cacheRead ?? 0))
+                                        inputTokens -
+                                            cacheReadTokens -
+                                            cacheWriteTokens
                                     ),
                                 },
                                 outputTokenDetails: {
-                                    textTokens:
-                                        usageData.completionTokens ??
-                                        usageData.outputTokens ??
-                                        0,
-                                    reasoningTokens:
-                                        usageData.outputTokenDetails
-                                            ?.reasoning ?? 0,
+                                    textTokens: outputTokens,
+                                    reasoningTokens,
                                 },
+                                reasoningTokens,
+                                cachedInputTokens: cacheReadTokens,
                             }
                         }
                     }
@@ -688,11 +1068,16 @@ export function ChatProvider({
             streamingReasoning,
             toolInvocations,
             sources: sourcesState ?? derivedSources,
-            usage,
+            usage: usage as ChatContextValue['usage'],
+            lastCompletion,
             error,
             agentConfig,
+            modelProviders,
+            selectedProvider,
+            selectedProviderModels,
+            selectedProviderLabel,
             selectedModel,
-            availableModels: MODEL_CONFIGS,
+            availableModels,
             queuedTasks,
             pendingConfirmations,
             checkpoints,
@@ -704,6 +1089,7 @@ export function ChatProvider({
             stopGeneration,
             clearMessages,
             selectAgent,
+            selectProvider,
             selectModel,
             dismissError,
             addTask,
@@ -718,7 +1104,7 @@ export function ChatProvider({
             setThreadId,
             setResourceId,
             setFocusMode,
-        }
+        } as ChatContextValue
     }, [
         messages,
         isLoading,
@@ -731,10 +1117,16 @@ export function ChatProvider({
         derivedSources,
         error,
         agentConfig,
+        modelProviders,
+        selectedProvider,
+        selectedProviderModels,
+        selectedProviderLabel,
         selectedModel,
+        availableModels,
         queuedTasks,
         pendingConfirmations,
         checkpoints,
+        lastCompletion,
         webPreview,
         derivedWebPreview,
         threadId,
@@ -744,6 +1136,7 @@ export function ChatProvider({
         stopGeneration,
         clearMessages,
         selectAgent,
+        selectProvider,
         selectModel,
         dismissError,
         addTask,

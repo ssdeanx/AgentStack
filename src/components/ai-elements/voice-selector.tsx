@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
+import type * as React from 'react'
 
 interface VoiceSelectorContextValue {
   value: string | undefined;

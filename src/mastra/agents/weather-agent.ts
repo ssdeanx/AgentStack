@@ -1,15 +1,15 @@
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAI, googleAIFlashLite, googleAIPro } from '../config/google'
-import { pgMemory } from '../config/pg-storage'
-import { mdocumentChunker } from '../tools/document-chunking.tool'
+
+import { libsqlChunker,} from '../tools/document-chunking.tool'
 import { weatherTool } from '../tools/weather-tool'
-import { webScraperTool } from '../tools/web-scraper-tool'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import { mainWorkspace } from '../workspaces'
 import type { AgentRequestContext } from './request-context'
+import { fetchTool } from '../tools/fetch.tool'
+import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 
 export type WeatherRuntimeContext = AgentRequestContext
 
@@ -53,21 +53,18 @@ export const weatherAgent = new Agent({
         }
     },
     model: ({ requestContext }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
+        const role = requestContext.get('role') ?? 'user'
+        if (role === 'admin') {
+            // higher quality (chat style) for admin
             return "google/gemini-3.1-pro-preview"
-        } else if (userTier === 'pro') {
-            // Chat bison for pro as well
-            return "google/gemini-3.1-flash-preview"
         }
-        // cheaper/faster model for free tier
+        // cheaper/faster model for user tier
         return "google/gemini-3.1-flash-lite-preview"
     },
-    tools: { weatherTool, webScraperTool, mdocumentChunker },
+    tools: { weatherTool, fetchTool, libsqlChunker, libsqlgraphQueryTool, libsqlQueryTool },
     scorers: {},
-    outputProcessors: [new TokenLimiterProcessor(128000)],
-    memory: pgMemory,
+
+    memory: LibsqlMemory,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

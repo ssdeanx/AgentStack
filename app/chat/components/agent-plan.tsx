@@ -15,7 +15,7 @@ import { Button } from '@/ui/button'
 import { PlayIcon, XIcon, CheckIcon, CircleIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
-import type { AgentPlanData, PlanStep } from './chat.types'
+import type { AgentPlanData, PlanStep } from '../providers/chat-context-types'
 
 interface AgentPlanProps {
     plan: AgentPlanData
@@ -100,12 +100,21 @@ export function AgentPlan({
                     })}
                 </ol>
                 {progress > 0 && progress < 100 && (
-                    <div className="mt-3 h-1 bg-muted rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ width: `${progress}%` }}
+                    <svg
+                        className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted"
+                        viewBox="0 0 100 1"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                    >
+                        <rect x="0" y="0" width="100" height="1" className="fill-muted" />
+                        <rect
+                            x="0"
+                            y="0"
+                            width={progress}
+                            height="1"
+                            className="fill-primary transition-all duration-300"
                         />
-                    </div>
+                    </svg>
                 )}
             </PlanContent>
             {(onExecute ?? onDismiss) && (

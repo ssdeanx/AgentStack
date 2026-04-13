@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import { Button } from '@/ui/button'
 import { ShareIcon } from 'lucide-react'
 
@@ -22,7 +21,7 @@ export default function BlogShare() {
                     /* empty */
                 }
             }
-        } catch (err) {
+        } catch {
             // ignore
         }
     }

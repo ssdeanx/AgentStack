@@ -125,17 +125,6 @@ export const googleSearchTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google search completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            organicResults: output.organicResults.length,
-            hasKnowledgeGraph: !!output.knowledgeGraph,
-            relatedSearches: output.relatedSearches?.length ?? 0,
-            hook: 'onOutput',
-        })
-    },
     execute: async (input, context) => {
         // Validate API key
         validateSerpApiKey()
@@ -332,7 +321,7 @@ export const googleSearchTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw error
             }
 
             await writer?.custom({
@@ -354,6 +343,17 @@ export const googleSearchTool = createTool({
             })
             throw error
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google search completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            organicResults: output.organicResults.length,
+            hasKnowledgeGraph: !!output.knowledgeGraph,
+            relatedSearches: output.relatedSearches?.length ?? 0,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -432,19 +432,6 @@ export const googleAiOverviewTool = createTool({
             location: input.location,
             includeScrapedContent: input.includeScrapedContent,
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('AI overview completed', {
-            toolCallId,
-            toolName,
-            abortSignal: abortSignal?.aborted,
-            available: output.available,
-            sourcesCount: output.sources.length,
-            hasAiOverview:
-                    output.aiOverview !== undefined &&
-                    output.aiOverview !== '',
-            hook: 'onOutput',
         })
     },
     execute: async (input, context) => {
@@ -586,7 +573,26 @@ export const googleAiOverviewTool = createTool({
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google AI Overview failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Google AI Overview failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('AI overview completed', {
+            toolCallId,
+            toolName,
+            abortSignal: abortSignal?.aborted,
+            available: output.available,
+            sourcesCount: output.sources.length,
+            hasAiOverview:
+                    output.aiOverview !== undefined &&
+                    output.aiOverview !== '',
+            hook: 'onOutput',
+        })
     },
 })

@@ -9,13 +9,27 @@ export function useLocalStorage<T>(
     const [storedValue, setStoredValue] = useState<T>(initialValue)
 
     useEffect(() => {
+        let cancelled = false
         try {
             const item = window.localStorage.getItem(key)
             if (item) {
-                setStoredValue(JSON.parse(item))
+                const parsed = JSON.parse(item) as T
+                // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from persisted browser storage after mount.
+                const frame = window.requestAnimationFrame(() => {
+                    if (!cancelled) {
+                        setStoredValue(parsed)
+                    }
+                })
+                return () => {
+                    cancelled = true
+                    window.cancelAnimationFrame(frame)
+                }
             }
         } catch (error) {
-            console.warn(`Error reading localStorage key "${key}":`, error)
+            void error
+        }
+        return () => {
+            cancelled = true
         }
     }, [key])
 
@@ -27,7 +41,7 @@ export function useLocalStorage<T>(
                 setStoredValue(valueToStore)
                 window.localStorage.setItem(key, JSON.stringify(valueToStore))
             } catch (error) {
-                console.warn(`Error setting localStorage key "${key}":`, error)
+                void error
             }
         },
         [key, storedValue]
@@ -38,7 +52,7 @@ export function useLocalStorage<T>(
             window.localStorage.removeItem(key)
             setStoredValue(initialValue)
         } catch (error) {
-            console.warn(`Error removing localStorage key "${key}":`, error)
+            void error
         }
     }, [key, initialValue])
 

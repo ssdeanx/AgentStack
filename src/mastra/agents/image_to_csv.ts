@@ -1,11 +1,12 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI, pgMemory } from '../config'
+import { googleAI } from '../config'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ImageToCsvRuntimeContext = AgentRequestContext<{
     identityOutputSchema: 'excalidraw' | 'csv'
@@ -22,7 +23,7 @@ export const imageToCsvAgent = new Agent({
         requestContext: RequestContext<ImageToCsvRuntimeContext>
     }) => {
         const userId = requestContext.get('userId') ?? 'default'
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const role = requestContext.get('role') ?? 'user'
         const language = requestContext.get('language') ?? 'en'
         const identityOutputSchema =
             requestContext.get('identityOutputSchema') ?? 'csv'
@@ -34,7 +35,7 @@ export const imageToCsvAgent = new Agent({
             content: `You are an expert at analyzing images and converting them into structured CSV data. Your task is to identify visual elements and their relationships in images and represent them in a CSV format that can be used to recreate the diagram.
 
 User: ${userId}
-Tier: ${userTier}
+Role: ${role}
 Language: ${language}
 Identity Output Schema: ${identityOutputSchema}
 Chalkboard Output Schema: ${chalkboardOutputSchema}
@@ -146,7 +147,7 @@ IMPORTANT: Only return the CSV string including the header row. Do not include a
         }
     },
     model: googleAI,
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {},
     scorers: {},
     options: {

@@ -1,4 +1,4 @@
-import type { AgentPlanData, ReasoningStep } from './chat.types'
+import type { AgentPlanData, ReasoningStep } from '../providers/chat-context-types'
 
 export function extractPlanFromText(text: string): AgentPlanData | null {
     const planPatterns = [

@@ -1,14 +1,13 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
-import { listDataDirTool, readDataFileTool } from '../tools/data-file-manager'
+
 import {
     documentRerankerTool,
-    mdocumentChunker,
+    libsqlChunker,
 } from '../tools/document-chunking.tool'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import { USER_ID_CONTEXT_KEY, type AgentRequestContext } from './request-context'
+import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 
 const INDEX_NAME_CONTEXT_KEY = 'indexName' as const
 const CHUNKING_STRATEGY_CONTEXT_KEY = 'chunkingStrategy' as const
@@ -23,10 +22,10 @@ export type KnowledgeIndexingContext = AgentRequestContext<{
 log.info('Initializing Knowledge Indexing Agent...')
 
 const knowledgeIndexingTools = {
-    mdocumentChunker,
     documentRerankerTool,
-    readDataFileTool,
-    listDataDirTool,
+    libsqlChunker,
+    libsqlQueryTool,
+    libsqlgraphQueryTool
 }
 
 export const knowledgeIndexingAgent = new Agent({
@@ -52,9 +51,17 @@ export const knowledgeIndexingAgent = new Agent({
 User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
 
 ## Tools
-1. **mdocumentChunker**: Index docs into PgVector with Gemini embeddings (3072d).
+1. **libsqlChunker**: Index docs into PgVector with Gemini embeddings (3072d).
 2. **documentRerankerTool**: Semantic search with reranking (semantic, vector, position weights).
-3. **File Tools**: read and list data files.
+3. **libsqlQueryTool**: Execute SQL queries against the knowledge base.
+4. **libsqlgraphQueryTool**: Execute graph queries for relationship exploration.
+
+## Use Cases
+- **Knowledge Bases**: Index and query organizational knowledge.
+- **Content Indexing**: Embed and index documents for semantic retrieval.
+- **Semantic Search**: Retrieve relevant info with vector search and reranking.
+- **Document Retrieval**: Fetch and rerank relevant documents based on queries.
+
 
 ## Guidelines
 - **Indexing**: Read → Chunk & Embed → Return IDs.
@@ -64,17 +71,18 @@ User: ${userId} | Index: ${indexName} | Strategy: ${chunkingStrategy}
 
 ## Rules
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
+
 `
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: knowledgeIndexingTools,
     options: {
         tracingPolicy: {
-            internal: InternalSpans.ALL,
+            internal: InternalSpans.AGENT,
         },
     },
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+    //outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 log.info('Knowledge Indexing Agent initialized')

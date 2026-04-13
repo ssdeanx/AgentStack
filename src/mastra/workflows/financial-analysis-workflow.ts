@@ -117,7 +117,7 @@ const fetchFinancialDataStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('fetch-financial-data', error, {
+            logError('fetch-financial-data', error instanceof Error ? error : new Error(String(error)), {
                 symbol: inputData.symbol,
             })
 
@@ -210,7 +210,7 @@ const performTechnicalAnalysisStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('perform-technical-analysis', error, {
+            logError('perform-technical-analysis', error instanceof Error ? error : new Error(String(error)), {
                 symbol: inputData.symbol,
             })
 
@@ -299,7 +299,7 @@ const generateFinancialReportStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('generate-financial-report', error, { symbol })
+            logError('generate-financial-report', error instanceof Error ? error : new Error(String(error)), { symbol })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -329,3 +329,4 @@ export const financialAnalysisWorkflow = createWorkflow({
 })
 
 financialAnalysisWorkflow.commit()
+

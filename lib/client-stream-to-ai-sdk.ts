@@ -94,7 +94,7 @@ export async function createAgentStreamResponse(
     const stream = (await agent.stream(messages, streamOptions)) as StreamResult
     // Convert Mastra MessageListInput to UIMessage array expected by createUIMessageStream
     const originalMessages:
-        | Array<UIMessage<unknown, UIDataTypes, UITools>>
+        | UIMessage[]
         | undefined = Array.isArray(messages)
         ? messages.map((m, i) => {
               // Mastra message shape may be a string or an object with 'role' and 'content'
@@ -110,11 +110,7 @@ export async function createAgentStreamResponse(
                   (msg.role as 'user' | 'assistant' | 'system') ?? 'user'
               const text = msg.content ?? msg.text ?? ''
               const id = `original-${i}-${Date.now()}`
-              return { id, role, parts: [{ type: 'text', text }] } as UIMessage<
-                  unknown,
-                  UIDataTypes,
-                  UITools
-              >
+              return { id, role, parts: [{ type: 'text', text }] } as UIMessage
           })
         : undefined
 

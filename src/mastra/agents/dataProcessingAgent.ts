@@ -5,7 +5,6 @@ import type { AgentRequestContext } from './request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import {
   calculatorTool,
@@ -22,6 +21,7 @@ import {
 
 import { InternalSpans } from '@mastra/core/observability'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
+import { LibsqlMemory } from '../config/libsql'
 
 export type DataProcessingRuntimeContext = AgentRequestContext<{
   processingMode?: 'fast' | 'accurate' | 'balanced'
@@ -39,7 +39,7 @@ export const dataProcessingAgent = new Agent({
   }: {
     requestContext: RequestContext<DataProcessingRuntimeContext>
   }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     const language = requestContext.get('language') ?? 'en'
     const processingMode =
       requestContext.get('processingMode') ?? 'balanced'
@@ -48,7 +48,7 @@ export const dataProcessingAgent = new Agent({
       role: 'system',
       content: `
 # Data Processing Specialist
-Tier: ${userTier} | Lang: ${language} | Mode: ${processingMode}
+Role: ${role} | Lang: ${language} | Mode: ${processingMode}
 
 ## Expertise
 - Document and code chunking for RAG systems
@@ -121,11 +121,9 @@ ${processingMode === 'accurate'
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
       return google.chat('gemini-3.1-pro-preview')
-    } else if (userTier === 'pro') {
-      return 'google/gemini-3.1-flash-preview'
     }
     return google.chat('gemini-3.1-flash-lite-preview')
   },
@@ -142,11 +140,11 @@ ${processingMode === 'accurate'
     calculatorTool,
     evaluateResultTool,
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   maxRetries: 3,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   //  defaultOptions: {

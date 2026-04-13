@@ -1,15 +1,14 @@
+import { mdocumentChunker } from './../tools/document-chunking.tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
   TokenLimiterProcessor
 } from '@mastra/core/processors'
 import { log } from '../config/logger'
-import { mdocumentChunker } from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { fetchTool } from '../tools/fetch.tool'
 import { finnhubQuotesTool } from '../tools/finnhub-tools'
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import { polygonStockQuotesTool } from '../tools/polygon-tools'
 import {
   googleFinanceTool,
@@ -19,17 +18,18 @@ import {
   googleNewsLiteTool,
   googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
-import { htmlToMarkdownTool } from '../tools/web-scraper-tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
 import { mainWorkspace } from '../workspaces'
-import { convexMemory } from '../config/convex'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { researchArxivDownloadWorkflow } from '../workflows/research/research-arxiv-download.workflow'
+import { researchArxivSearchWorkflow } from '../workflows/research/research-arxiv-search.workflow'
+import { LibsqlMemory } from '../config/libsql'
 
 type ResearchPhase = 'initial' | 'followup' | 'validation'
 const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
@@ -56,15 +56,18 @@ const researchAgentTools = {
   googleNewsLiteTool,
   googleTrendsTool,
   mdocumentChunker,
-  extractLearningsTool,
-  evaluateResultTool,
+//  extractLearningsTool,
+//  evaluateResultTool,
   polygonStockQuotesTool,
   finnhubQuotesTool,
   googleFinanceTool,
-  pdfToMarkdownTool,
-  htmlToMarkdownTool,
 }
 
+/**
+ * Research Agent.
+ *
+ * Conducts multi-step web research, synthesis, and citation-backed analysis.
+ */
 export const researchAgent = new Agent({
   id: 'researchAgent',
   name: 'Research Agent',
@@ -72,7 +75,7 @@ export const researchAgent = new Agent({
     'An expert research agent that conducts thorough research using web search and analysis tools.',
   instructions: ({ requestContext }) => {
     // runtimeContext is read at invocation time
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const researchPhase = getResearchPhaseFromContext(requestContext)
 
@@ -80,7 +83,7 @@ export const researchAgent = new Agent({
       role: 'system',
       content: `
 # Senior Research Analyst
-Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
+Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 
 ## Research Protocol
 1. **Plan**: Deconstruct topic into 2-3 specific queries.
@@ -90,12 +93,12 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
 5. **Synthesize**: Provide final answer with citations and confidence levels. STOP after Phase 2.
 
 ## Tool Selection Guide
-- **Web**: Prefer 'fetchTool' for reliable URL fetch/search to markdown. Use 'webScraperTool' for selector-based extraction.
+- **Web**: Prefer 'fetchTool' for reliable URL fetch/search to markdown.
 - **News/Trends**: 'googleNewsTool', 'googleTrendsTool', 'googleFinanceTool'.
 - **Academic**: 'googleScholarTool'.
-- **Financial**: Use 'polygon*', 'finnhub*', or 'alphaVantage*' for stocks/crypto.
-- **Internal**: 'pgQueryTool' for previously indexed knowledge.
-- **Processing**: 'pdfToMarkdownTool' for PDFs; 'evaluateResultTool' for quality checks.
+- **Financial**: Use 'polygon*' for stocks/crypto.
+- **Internal**: 'mdocumentChunker' for embedding any information
+- **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
 
 ## Rules
 - **Efficiency**: No repetitive or back-to-back tool calls for the same query.
@@ -114,12 +117,14 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
     }
   },
   model: {
-    url: "https://opencode.ai/zen/v1",
-    id: "opencode/minimax-m2.5-free",
-    apiKey: process.env.OPENCODE_API_KEY,
+    url: "https://api.kilo.ai/api/gateway",
+    id:'kilo/x-ai/grok-code-fast-1:optimized:free',
+    apiKey: process.env.KILO_API_KEY,
+    provider: 'kilo',
   },
   tools: researchAgentTools,
-  memory: convexMemory,
+  workflows: { researchArxivDownloadWorkflow, researchArxivSearchWorkflow },
+  memory: LibsqlMemory,
   scorers: {
     //  toneConsistency: { scorer: createToneScorer() },
     //  textualDifference: { scorer: createTextualDifferenceScorer() },
@@ -128,12 +133,12 @@ Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
   maxRetries: 5,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   //voice: gvoice,
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+  //  new TokenLimiterProcessor(128000),
     //     new BatchPartsProcessor({
     //         batchSize: 10,
     //        maxWaitTime: 75,

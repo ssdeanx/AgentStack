@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "ai-elements": {
+      "source": "vercel/ai-elements",
+      "sourceType": "github",
+      "computedHash": "aee43f238ee8a8f0caa04286b4a803b87f429a5d38ec4f821456755cd4b69ff4"
+    },
     "mastra": {
       "source": "mastra-ai/skills",
       "sourceType": "github",

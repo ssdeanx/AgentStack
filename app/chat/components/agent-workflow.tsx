@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, type ReactNode } from 'react'
 import {
     Canvas,
 } from '@/src/components/ai-elements/canvas'
@@ -46,7 +46,7 @@ interface AgentWorkflowProps {
     title?: string
     className?: string
     showPanel?: boolean
-    panelContent?: React.ReactNode
+    panelContent?: ReactNode
 }
 
 const nodeTypes = {

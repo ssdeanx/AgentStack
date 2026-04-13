@@ -17,7 +17,7 @@ import {
     LoaderIcon,
     ClockIcon,
 } from 'lucide-react'
-import type { ReasoningStep } from './chat.types'
+import type { ReasoningStep } from '../providers/chat-context-types'
 
 interface AgentChainOfThoughtProps {
     steps: ReasoningStep[]

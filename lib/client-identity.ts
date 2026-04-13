@@ -1,49 +1,55 @@
-/* eslint-disable no-console */
-
 export interface ClientIdentity {
     userId: string
     resourceId: string
 }
 
-function randomId(): string {
-    try {
-        if (
-            typeof crypto !== 'undefined' &&
-            typeof crypto.randomUUID === 'function'
-        ) {
-            return crypto.randomUUID()
-        }
-    } catch (err) {
-        console.warn('Failed to generate random UUID:', err)
-    }
+const LOCAL_STORAGE_USER_ID_KEY = 'agentstack.client.userId'
+const LOCAL_STORAGE_RESOURCE_ID_KEY = 'agentstack.client.resourceId'
 
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-export function getOrCreateLocalStorageId(key: string, prefix: string): string {
+function getBrowserWindow() {
     if (typeof window === 'undefined') {
-        return `${prefix}-${randomId()}`
+        return null
     }
 
-    try {
-        const existing = window.localStorage.getItem(key)
-        if (typeof existing === 'string' && existing.trim().length > 0) {
-            return existing
-        }
-
-        const created = `${prefix}-${randomId()}`
-        window.localStorage.setItem(key, created)
-        return created
-    } catch (err) {
-        console.warn(`Failed to access localStorage for key '${key}':`, err)
-        return `${prefix}-${randomId()}`
-    }
+    return window
 }
 
+function getOrCreateStoredValue(key: string, fallback: string) {
+    const browserWindow = getBrowserWindow()
+
+    if (browserWindow === null) {
+        return fallback
+    }
+
+    const existingValue = browserWindow.localStorage.getItem(key)
+
+    if (existingValue !== null && existingValue.trim().length > 0) {
+        return existingValue
+    }
+
+    browserWindow.localStorage.setItem(key, fallback)
+    return fallback
+}
+
+/**
+ * Returns the current browser-scoped identity values used by legacy chat and workflow contexts.
+ */
 export function getClientIdentity(): ClientIdentity {
-    const userId = getOrCreateLocalStorageId('agentstack.userId', 'user')
+    const userId = getOrCreateStoredValue(LOCAL_STORAGE_USER_ID_KEY, crypto.randomUUID())
+    const resourceId = getOrCreateStoredValue(
+        LOCAL_STORAGE_RESOURCE_ID_KEY,
+        crypto.randomUUID(),
+    )
+
     return {
         userId,
-        resourceId: `user:${userId}`,
+        resourceId,
     }
+}
+
+/**
+ * Returns a persisted browser storage value for the provided key.
+ */
+export function getOrCreateLocalStorageId(key: string, fallbackValue: string) {
+    return getOrCreateStoredValue(key, fallbackValue)
 }

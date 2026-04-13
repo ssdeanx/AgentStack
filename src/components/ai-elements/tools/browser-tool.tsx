@@ -112,7 +112,7 @@ function readSections(
     return rawSections
         .filter(isRecord)
         .map((section, index) => ({
-            title: readString(section, 'title') ?? `Section ${index + 1}`,
+            title: readString(section, 'title') ?? `Section ${String(index + 1)}`,
             summary: readString(section, 'summary') ?? '',
         }))
         .filter((section) => hasText(section.summary))
@@ -132,7 +132,8 @@ function formatBytes(bytes?: number) {
         num /= 1024
         i++
     }
-    return `${num >= 10 ? Math.round(num) : num.toFixed(2)} ${units[i]}`
+    const formattedValue = num >= 10 ? String(Math.round(num)) : num.toFixed(2)
+    return `${formattedValue} ${units[i]}`
 }
 
 function downloadFileFromBase64(
@@ -297,7 +298,7 @@ export function ScreenshotCard({
 
         void navigator.clipboard.writeText(dataUrl).then(() => {
             setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
+            setTimeout(() => { setCopied(false); }, 1500)
         })
     }
 
@@ -324,11 +325,11 @@ export function ScreenshotCard({
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                                downloadFileFromBase64(
+                                { downloadFileFromBase64(
                                     'screenshot.png',
                                     base64,
                                     mediaType
-                                )
+                                ); }
                             }
                         >
                             <Download className="size-4" />
@@ -402,7 +403,7 @@ export function PdfGeneratorCard({ output, errorText }: CardProps<UrlInput>) {
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                                downloadFileFromBase64('page.pdf', base64, mediaType)
+                                { downloadFileFromBase64('page.pdf', base64, mediaType); }
                             }
                         >
                             <Download className="size-4" />
@@ -416,7 +417,7 @@ export function PdfGeneratorCard({ output, errorText }: CardProps<UrlInput>) {
                         <Button
                             variant="outline"
                             className="inline-flex"
-                            onClick={() => openInNewTab(pdfUrl)}
+                            onClick={() => { openInNewTab(pdfUrl); }}
                         >
                             <ExternalLink className="mr-2 size-4" />
                             View PDF
@@ -481,7 +482,7 @@ export function BrowserToolCard({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => openInNewTab(previewUrl)}
+                            onClick={() => { openInNewTab(previewUrl); }}
                         >
                             <ExternalLink className="size-4" />
                         </Button>
@@ -498,7 +499,7 @@ export function BrowserToolCard({
                         <div className="grid gap-2">
                             {sections.map((section, index) => (
                                 <div
-                                    key={`${section.title}-${index}`}
+                                    key={`${section.title}-${String(index)}`}
                                     className="rounded-md border p-3 text-sm"
                                 >
                                     <div className="font-medium">{section.title}</div>
@@ -561,7 +562,7 @@ export function ClickAndExtractCard({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => openInNewTab(previewUrl)}
+                            onClick={() => { openInNewTab(previewUrl); }}
                         >
                             <ExternalLink className="size-4" />
                         </Button>
@@ -638,7 +639,7 @@ export function FillFormCard({
                     <Button
                         variant="outline"
                         className="inline-flex"
-                        onClick={() => openInNewTab(previewUrl)}
+                        onClick={() => { openInNewTab(previewUrl); }}
                     >
                         <ExternalLink className="mr-2 size-4" />
                         Open result page
@@ -698,12 +699,12 @@ export function GoogleSearchCard({
                     <Input
                         value={query}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setQuery(e.target.value)
+                            { setQuery(e.target.value); }
                         }
                         placeholder="Filter results..."
                         className="w-56 text-sm"
                     />
-                    <Button size="sm" variant="ghost" onClick={() => setQuery('')}>
+                    <Button size="sm" variant="ghost" onClick={() => { setQuery(''); }}>
                         Clear
                     </Button>
                 </div>
@@ -716,9 +717,9 @@ export function GoogleSearchCard({
                             {filtered.map((result, idx) => (
                                 <button
                                     type="button"
-                                    key={`${result.url}-${idx}`}
+                                    key={`${result.url}-${String(idx)}`}
                                     className="w-full rounded border p-3 text-left transition-colors hover:bg-muted/30"
-                                    onClick={() => openInNewTab(result.url)}
+                                    onClick={() => { openInNewTab(result.url); }}
                                 >
                                     <div className="text-sm font-medium text-blue-600">
                                         {result.title}
@@ -780,14 +781,14 @@ export function MonitorPageCard({
             <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <div>
                     {changed
-                        ? `Page changed after ${checkCount} checks.`
-                        : `Page remained stable for ${checkCount} checks.`}
+                        ? `Page changed after ${String(checkCount)} checks.`
+                        : `Page remained stable for ${String(checkCount)} checks.`}
                 </div>
                 {hasText(finalUrl) ? (
                     <Button
                         variant="outline"
                         className="inline-flex"
-                        onClick={() => openInNewTab(finalUrl)}
+                        onClick={() => { openInNewTab(finalUrl); }}
                     >
                         <ExternalLink className="mr-2 size-4" />
                         Open monitored page

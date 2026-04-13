@@ -1,5 +1,6 @@
 "use client";
 
+
 import { Button } from "@/ui/button";
 import {
   Select,
@@ -28,7 +29,7 @@ import type {
   ThemedToken,
 } from "shiki";
 import { createHighlighter } from "shiki";
-
+import type * as React from 'react'
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
 // oxlint-disable-next-line eslint(no-bitwise)
 const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1;
@@ -60,7 +61,7 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
 // Token rendering component
 const TokenSpan = ({ token }: { token: ThemedToken }) => (
   <span
-    className="dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)]"
+    className="dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!"
     style={
       {
         backgroundColor: token.bgColor,
@@ -271,7 +272,7 @@ const CodeBlockBody = memo(
     return (
       <pre
         className={cn(
-          "dark:!bg-[var(--shiki-dark-bg)] dark:!text-[var(--shiki-dark)] m-0 p-4 text-sm",
+          "dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)! m-0 p-4 text-sm",
           className
         )}
         style={preStyle}

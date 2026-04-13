@@ -15,6 +15,7 @@ import {
 } from "react";
 import type { TProps as JsxParserProps } from "react-jsx-parser";
 import JsxParser from "react-jsx-parser";
+import type * as React from 'react'
 
 interface JSXPreviewContextValue {
   jsx: string;

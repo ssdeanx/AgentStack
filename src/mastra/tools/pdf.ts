@@ -1,9 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import chalk from 'chalk'
-import { existsSync, readFileSync } from 'node:fs'
-import * as path from 'node:path'
 import { z } from 'zod'
+import { mainFilesystem } from '../workspaces'
 import { log } from '../config/logger'
 import type { RequestContext } from '@mastra/core/request-context'
 
@@ -22,20 +21,20 @@ export const readPDF = createTool({
     outputSchema: z.object({
         content: z.string(),
     }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('readPDF tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId }) => {
         log.info('readPDF received input chunk', {
             toolCallId,
             inputTextDelta,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('readPDF received input', {
             toolCallId,
             inputData: {
@@ -44,7 +43,7 @@ export const readPDF = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('readPDF completed', {
             toolCallId,
             toolName,
@@ -56,11 +55,6 @@ export const readPDF = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const requestContext = context?.requestContext as
-            | PdfToolContext
-            | undefined
-
-        const tracingContext = context?.tracingContext
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'read-pdf',
@@ -83,21 +77,11 @@ export const readPDF = createTool({
             id: 'readPDF',
         })
         try {
-            // Check if file exists
-            if (!existsSync(pdfPath)) {
-                throw new Error('PDF file not found')
-            }
-
-            // Check if file is a PDF
-            if (path.extname(pdfPath).toLowerCase() !== '.pdf') {
-                throw new Error('File is not a PDF')
-            }
-
-            // Read the PDF file
-            const dataBuffer = readFileSync(pdfPath)
+            // Read the PDF file using mainFilesystem
+            const dataBuffer = await mainFilesystem.readFile(pdfPath)
 
             // Parse PDF content using unpdf
-            const pdf = await getDocumentProxy(new Uint8Array(dataBuffer))
+            const pdf = await getDocumentProxy(new Uint8Array(dataBuffer as Buffer))
             const { totalPages, text } = await extractText(pdf, {
                 mergePages: true,
             })

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { createContext, useContext, useMemo } from "react";
+import type * as React from 'react'
 
 type TestStatus = "passed" | "failed" | "skipped" | "running";
 

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import type { MCPServerResources, Resource } from '@mastra/mcp'
+import { log } from '../config/logger'
 
 const NOTES_DIR = path.join(process.cwd(), 'notes')
 
@@ -20,9 +21,20 @@ const listNoteFiles = async (): Promise<Resource[]> => {
                 }
             })
     } catch (error) {
-        console.error('Error listing note resources:', error)
+        log.error('Error listing note resources', {
+            error: error instanceof Error ? error.message : String(error),
+        })
         return []
     }
+}
+
+function isNodeErrorWithCode(error: unknown): error is NodeJS.ErrnoException {
+    return (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code?: unknown }).code === 'string'
+    )
 }
 
 const readNoteFile = async (uri: string): Promise<string | null> => {
@@ -31,8 +43,10 @@ const readNoteFile = async (uri: string): Promise<string | null> => {
     try {
         return await fs.readFile(notePath, 'utf-8')
     } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-            console.error(`Error reading resource ${uri}:`, error)
+        if (!isNodeErrorWithCode(error) || error.code !== 'ENOENT') {
+            log.error(`Error reading resource ${uri}`, {
+                error: error instanceof Error ? error.message : String(error),
+            })
         }
         return null
     }

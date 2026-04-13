@@ -1,30 +1,18 @@
 import { Agent } from '@mastra/core/agent'
 
-import { pgMemory } from '../config/pg-storage'
-
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
-import {
-    activeDistTag,
-    pnpmBuild,
-    pnpmChangesetPublish,
-    pnpmChangesetStatus,
-} from '../tools/pnpm-tool'
 import { InternalSpans } from '@mastra/core/observability'
+import { LibsqlMemory } from '../config/libsql'
 
 export type PackagePublisherRuntimeContext = AgentRequestContext
 
-const packagePublisherTools = {
-  pnpmChangesetStatus,
-  pnpmBuild,
-  pnpmChangesetPublish,
-  activeDistTag,
-}
+const packagePublisherTools = {}
 
 const packages_llm_text = `
 # Package Location Rules
@@ -47,7 +35,7 @@ export const PACKAGES_LIST_PROMPT = `
         - EXCLUDE @mastra/dane from consideration
 
         Please list all packages that need building grouped by their directory.
-        DO NOT NOT USE the 'pnpmBuild' tool during this step.
+        DO NOT build anything during this step. Use workspace search/read tools and sandbox inspection only.
     `
 
 export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
@@ -59,16 +47,16 @@ export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
         <execution_plan>
           <phase order="1">
             <!-- Core packages must be built one at a time in this exact order -->
-            <step>Use pnpmBuild to build @mastra/core</step>
-            <step>Wait for completion, then use pnpmBuild to build @mastra/deployer</step>
-            <step>Wait for completion, then use pnpmBuild to build mastra</step>
+            <step>Use workspace execution to build @mastra/core</step>
+            <step>Wait for completion, then use workspace execution to build @mastra/deployer</step>
+            <step>Wait for completion, then use workspace execution to build mastra</step>
           </phase>
 
           <phase order="2">
             <!-- After core packages, build remaining packages by directory -->
             <parallel_phase name="packages">
               <description>Build remaining packages/ directory packages</description>
-              <action>Use pnpmBuild for each remaining package:
+              <action>Use workspace execution for each remaining package:
                 - All @mastra/* packages
                 - create-mastra package (in packages/create-mastra)
               </action>
@@ -76,23 +64,23 @@ export const BUILD_PACKAGES_PROMPT = (packages: string[]) => `
 
             <parallel_phase name="integrations">
               <description>Build integrations/ directory packages</description>
-              <action>Use pnpmBuild for each @mastra/integration-* package</action>
+              <action>Use workspace execution for each @mastra/integration-* package</action>
             </parallel_phase>
 
             <parallel_phase name="deployers">
               <description>Build deployers/ directory packages</description>
-              <action>Use pnpmBuild for each @mastra/deployer-* package</action>
+              <action>Use workspace execution for each @mastra/deployer-* package</action>
             </parallel_phase>
 
             <parallel_phase name="stores">
               <description>Build stores/ directory packages</description>
-              <action>Use pnpmBuild for each @mastra/* package in stores/</action>
+              <action>Use workspace execution for each @mastra/* package in stores/</action>
             </parallel_phase>
           </phase>
         </execution_plan>
 
         <critical_rules>
-          <rule>Use pnpmBuild tool for each package</rule>
+          <rule>Use workspace execution for each package</rule>
           <rule>Wait for each core package to complete before starting the next</rule>
           <rule>Only start parallel builds after ALL core packages are built</rule>
           <rule>Verify each build succeeds before proceeding</rule>
@@ -112,7 +100,7 @@ export const PUBLISH_PACKAGES_PROMPT = `
 
         <execution_steps>
           <step order="1">
-            <action>Use pnpmChangesetPublish to publish all verified packages</action>
+            <action>Use workspace execution to publish all verified packages</action>
             <verification>Ensure the publish command completes successfully</verification>
           </step>
         </execution_steps>
@@ -134,7 +122,7 @@ export const danePackagePublisher = new Agent({
     id: 'danePackagePublisher',
     name: 'DanePackagePublisher',
     instructions: ({ requestContext }) => {
-      const userTier = getUserTierFromContext(requestContext)
+      const userTier = getRoleFromContext(requestContext)
       const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
@@ -172,7 +160,7 @@ export const danePackagePublisher = new Agent({
         }
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: packagePublisherTools,
     options: {
         tracingPolicy: {

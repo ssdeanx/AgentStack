@@ -1,11 +1,11 @@
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { TracingContext } from '@mastra/core/observability'
-import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import * as cheerio from 'cheerio'
 import { XMLParser } from 'fast-xml-parser'
 import { JSDOM } from 'jsdom'
+import { schedule } from 'node-cron'
 import RE2 from 're2'
 import { z } from 'zod'
 import { log } from '../config/logger'
@@ -19,11 +19,20 @@ const TRACKING_PARAM_RE = new RE2(
     'i'
 )
 
-export interface FetchToolContext extends RequestContext {
-    userAgent?: string
-    timeout?: number
-    userId?: string
-    workspaceId?: string
+import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
+
+type FetchUserAgent = {
+    'user-agent': string
+}
+
+type FetchTimeout = {
+    timeout: number
+}
+
+export interface FetchToolContext extends BaseToolRequestContext {
+    'user-agent'?: FetchUserAgent['user-agent']
+    timeout?: FetchTimeout['timeout']
 }
 
 class FetchToolError extends Error {
@@ -761,7 +770,9 @@ export const fetchTool = createTool({
     execute: async (inputData, context) => {
         const writer = context.writer
         const abortSignal = context.abortSignal
-        const requestContext = context.requestContext as FetchToolContext
+        const requestContext = context.requestContext as RequestContext<FetchToolContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const tracingContext: TracingContext | undefined = context.tracingContext
 
         if (abortSignal?.aborted ?? false) {
@@ -790,17 +801,17 @@ export const fetchTool = createTool({
                 'tool.input.query': inputData.query,
                 'tool.input.searchProvider': inputData.searchProvider,
                 'tool.input.searchVertical': inputData.searchVertical,
-                'tool.input.contentContext':
+                    'tool.input.contentContext':
                     typeof inputData.contentContext === 'object'
                         ? JSON.stringify(inputData.contentContext)
                         : undefined,
-                    'user.id': requestContext.userId,
-                    'workspace.id': requestContext.workspaceId,
+                    'user.id': userId,
+                    'workspace.id': workspaceId,
             },
         })
 
-            const timeout = inputData.timeout ?? requestContext.timeout ?? 30000
-            const userAgent = inputData.userAgent ?? requestContext.userAgent
+        const timeout = inputData.timeout ?? requestContext?.get('timeout') ?? 30000
+        const userAgent = inputData.userAgent ?? requestContext?.get('user-agent') ?? 'Mastra/1.0'
         const contentWindow = resolveContentWindow(inputData.contentContext)
         const includePatterns = compileRe2Patterns(inputData.includeUrlPatterns)
         const excludePatterns = compileRe2Patterns(inputData.excludeUrlPatterns)
@@ -1054,3 +1065,113 @@ export const fetchTool = createTool({
 })
 
 export type FetchUITool = InferUITool<typeof fetchTool>
+
+interface ScheduledFetchJob {
+    jobId: string
+    cronExpression: string
+    task: ReturnType<typeof schedule>
+    input: z.infer<typeof fetchToolInputSchema>
+}
+
+const scheduledFetchJobs = new Map<string, ScheduledFetchJob>()
+
+export const scheduledFetchToolInputSchema = z
+    .object({
+        jobId: z.string().optional(),
+        cronExpression: z.string().min(1),
+        input: fetchToolInputSchema,
+    })
+    .strict()
+
+export const scheduledFetchToolOutputSchema = z
+    .object({
+        jobId: z.string(),
+        cronExpression: z.string(),
+        scheduled: z.boolean(),
+    })
+    .strict()
+
+export function scheduleFetchJob({
+    jobId,
+    cronExpression,
+    input,
+}: z.infer<typeof scheduledFetchToolInputSchema>): ScheduledFetchJob {
+    const resolvedJobId = jobId ?? 'scheduled-fetch-' + Date.now().toString()
+
+    void scheduledFetchJobs.get(resolvedJobId)?.task.stop()
+
+    const task = schedule(cronExpression, async () => {
+        log.info('Scheduled fetch started', {
+            jobId: resolvedJobId,
+            cronExpression,
+            hook: 'scheduleFetchJob',
+        })
+
+        try {
+            const execute = fetchTool.execute
+
+            if (!execute) {
+                throw new Error('Fetch tool execute handler is unavailable')
+            }
+
+            await execute(input, undefined as never)
+
+            log.info('Scheduled fetch completed', {
+                jobId: resolvedJobId,
+                cronExpression,
+                hook: 'scheduleFetchJob',
+            })
+        } catch (error) {
+            log.error('Scheduled fetch failed', {
+                jobId: resolvedJobId,
+                cronExpression,
+                hook: 'scheduleFetchJob',
+                error: error instanceof Error ? error.message : String(error),
+            })
+        }
+    })
+
+    const job: ScheduledFetchJob = {
+        jobId: resolvedJobId,
+        cronExpression,
+        task,
+        input,
+    }
+
+    scheduledFetchJobs.set(resolvedJobId, job)
+
+    return job
+}
+
+export const scheduledFetchTool = createTool({
+    id: 'scheduled-fetch',
+    description: 'Schedule the fetch tool to run on a cron expression.',
+    inputSchema: scheduledFetchToolInputSchema,
+    outputSchema: scheduledFetchToolOutputSchema,
+    execute: async (inputData) => {
+        const job = await Promise.resolve(scheduleFetchJob(inputData))
+
+        return {
+            jobId: job.jobId,
+            cronExpression: job.cronExpression,
+            scheduled: true,
+        }
+    },
+})
+
+export function stopScheduledFetchJob(jobId: string): boolean {
+    const job = scheduledFetchJobs.get(jobId)
+
+    if (!job) {
+        return false
+    }
+
+    void job.task.stop()
+    scheduledFetchJobs.delete(jobId)
+
+    return true
+}
+
+export function listScheduledFetchJobs(): ScheduledFetchJob[] {
+    return Array.from(scheduledFetchJobs.values())
+}

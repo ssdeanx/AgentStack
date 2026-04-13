@@ -14,7 +14,7 @@ export interface HttpClientOptions {
     maxConcurrent?: number // Bottleneck max concurrent
     retries?: number
 
-    retryDelay?: (retryCount: number, error: any) => number
+    retryDelay?: (retryCount: number, error: unknown) => number
     timeout?: number
     headers?: Record<string, string>
     baseURL?: string
@@ -68,12 +68,14 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
 
     axiosRetry(client, {
         retries: typeof opts?.retries === 'number' ? opts.retries : 3,
-        retryDelay: opts?.retryDelay ?? axiosRetry.exponentialDelay,
-        retryCondition: (error) =>
-            axiosRetry.isNetworkOrIdempotentRequestError(error) ||
-            error.response?.status === 429,
+        retryDelay:
+            opts?.retryDelay ??
+            ((retryCount, error) => axiosRetry.exponentialDelay(retryCount, error)),
+        retryCondition: (error: unknown) =>
+            axios.isAxiosError(error) &&
+            (axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+                error.response?.status === 429),
     })
-
     const fetch = async (
         url: string,
         init?: HttpFetchInit
@@ -100,11 +102,11 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
             })
         )
 
-        const { data } = resp
+        const data = resp.data as unknown
 
         const headers: Record<string, string> = {}
-        Object.entries(resp.headers ?? {}).forEach(([k, v]) => {
-            headers[String(k).toLowerCase()] = Array.isArray(v)
+        Object.entries(resp.headers).forEach(([k, v]) => {
+            headers[k.toLowerCase()] = Array.isArray(v)
                 ? v.join(',')
                 : String(v ?? '')
         })
@@ -112,13 +114,12 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
         return {
             ok: resp.status >= 200 && resp.status < 300,
             status: resp.status,
-            statusText: resp.statusText ?? '',
+            statusText: resp.statusText,
             data,
             headers,
-            json: async <T = unknown>() => data as T,
-            text: async () =>
-                typeof data === 'string' ? data : JSON.stringify(data),
-            arrayBuffer: async () => {
+            json: <T = unknown>() => Promise.resolve(data as T),
+            text: () => Promise.resolve(typeof data === 'string' ? data : JSON.stringify(data)),
+            arrayBuffer: () => {
                 const toArrayBuffer = (input: unknown): ArrayBuffer => {
                     if (
                         typeof ArrayBuffer !== 'undefined' &&
@@ -149,10 +150,10 @@ export function createHttpClient(opts?: HttpClientOptions): ClientBundle {
                 }
 
                 if (responseType === 'arraybuffer' && resp.data !== undefined) {
-                    return toArrayBuffer(resp.data)
+                    return Promise.resolve(toArrayBuffer(resp.data))
                 }
 
-                return toArrayBuffer(data)
+                return Promise.resolve(toArrayBuffer(data))
             },
         }
     }

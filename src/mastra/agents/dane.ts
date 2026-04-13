@@ -1,15 +1,14 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import { InternalSpans } from '@mastra/core/observability'
-import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
+
 import type { RequestContext } from '@mastra/core/request-context'
-import { pgMemory } from '../config'
+
 import type { AgentRequestContext } from './request-context'
-import { fetchTool, scrapingSchedulerTool } from '../tools'
+import { fetchTool } from '../tools'
 import { browserTool } from '../tools/browser-tool'
 import { listEvents } from '../tools/calendar-tool'
+import { LibsqlMemory } from '../config/libsql'
 
 export type DaneContext = AgentRequestContext
 
@@ -45,14 +44,14 @@ export const daneCommitMessage = new Agent({
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   outputProcessors: [
-    new TokenLimiterProcessor(128576),
+   // new TokenLimiterProcessor(128576),
     //   new BatchPartsProcessor({
     //       batchSize: 10,
     //       maxWaitTime: 75,
@@ -90,9 +89,9 @@ export const daneIssueLabeler = new Agent({
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   outputProcessors: [
-    new TokenLimiterProcessor(128576),
+   // new TokenLimiterProcessor(128576),
     //   new BatchPartsProcessor({
     //      batchSize: 10,
     //       maxWaitTime: 75,
@@ -101,7 +100,7 @@ export const daneIssueLabeler = new Agent({
   ],
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   //   defaultOptions: {
@@ -143,14 +142,14 @@ export const daneLinkChecker = new Agent({
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   outputProcessors: [
-    new TokenLimiterProcessor(128576),
+    //new TokenLimiterProcessor(128576),
     //  new BatchPartsProcessor({
     //       batchSize: 10,
     //      maxWaitTime: 75,
@@ -195,17 +194,17 @@ export const daneChangeLog = new Agent({
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   defaultOptions: {
     autoResumeSuspendedTools: true,
   },
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   outputProcessors: [
-    new TokenLimiterProcessor(128576),
+   // new TokenLimiterProcessor(128576),
     //  new BatchPartsProcessor({
     //     batchSize: 10,
     //      maxWaitTime: 75,
@@ -235,8 +234,6 @@ export const dane = new Agent({
 
     # Our tools:
 
-    ## execaTool
-    Makes you a powerful agent capabale of executing files on the local system.
 
     ## browserTool
     Makes you a powerful agent capable of scraping the web. Pass the url as a JS object.
@@ -248,8 +245,6 @@ export const dane = new Agent({
     ## fetchTool
     Makes you a powerful agent capable of fetching data from web pages. Use this tool to get information from web pages.
 
-    ## scrapingSchedulerTool
-    Makes you a powerful agent capable of scheduling web scraping tasks. Use this tool to schedule scraping jobs for later execution.
 
     # Rules
     * **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
@@ -269,15 +264,13 @@ export const dane = new Agent({
     }
   },
   model: 'google/gemini-3.1-flash-preview',
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     browserTool,
     fetchTool,
     listEvents,
-    scrapingSchedulerTool,
   },
   outputProcessors: [
-    new TokenLimiterProcessor(128576),
     //    new BatchPartsProcessor({
     //        batchSize: 25,
     //       maxWaitTime: 100,
@@ -286,7 +279,7 @@ export const dane = new Agent({
   ],
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   defaultOptions: {

@@ -92,6 +92,11 @@ This directory contains 22+ agent definitions that map use-case intents to seque
 - **Documentation**: Document your agent's purpose, inputs, and outputs
 - **Nested Agent Registration**: Prefer fixing child-agent public generics at the source. If a child agent needs specialized runtime context internally, keep that parsing inside its instruction/helpers while pinning the public `Agent<..., unknown>` request-context generic so parent `agents` registration remains directly assignable.
 - **Tool Typing**: Avoid adding `ToolsInput` annotations to agent definitions unless they are truly required. Prefer inferred tool maps (`const tools = { ... }`) with `typeof tools`, or `Record<string, never>` for tool-less agents.
+- **Supervisor Delegation**: For agents that define `agents: { ... }`, keep delegation hooks and completion scorers local to that agent so domain-specific routing prompts, failure feedback, and completion checks stay easy to audit.
+- **Completion Scoring**: Prefer more than one local scorer for supervisor-style agents when a task can be "complete" in different valid ways (for example, a comprehensive answer scorer plus an execution-readiness scorer).
+- **Child Agent Boundaries**: Do not mutate unrelated child-agent public generics just to satisfy one parent registration. If a supervisor relationship becomes awkward, prefer changing the parent composition instead of forcing a type-shape change into the child agent.
+- **Request Context**: Prefer dynamic `instructions: ({ requestContext }) => ...` plus `requestContextSchema` for user-facing supervisor agents so tier, language, user identity, and workspace hints can shape the final output contract safely.
+- **Supported Hook Surface**: For the current Mastra version in this repo, the main supervisor-style execution hooks are `onDelegationStart`, `onDelegationComplete`, `messageFilter`, `onIterationComplete`, and `isTaskComplete`. Prefer using these directly rather than inventing extra abstraction layers.
 
 ## Execution & Testing
 
@@ -121,6 +126,9 @@ npm test src/mastra/__tests__/agents/your-agent.test.ts
 
 | Version | Date (UTC) | Changes                                                                                                                              |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 2.2.7   | 2026-03-28 | Made the active supervisor-style agents request-context-aware, added request-context schema validation, and expanded them to use the full supported execution-hook surface from the installed Mastra types. |
+| 2.2.6   | 2026-03-28 | Added dual completion scorers and explicit final-answer contracts to the active supervisor-style agents; restored `calendarAgent` shape and removed nested PM registration instead of changing the child agent public generic. |
+| 2.2.5   | 2026-03-27 | Added per-agent delegation hooks and local completion scorers for the active supervisor-style agents (`supervisor-agent`, customer support, project management, SEO, social media, translation) instead of introducing a shared helper layer. |
 | 2.2.0   | 2025-12-15 | Added 5 new specialized agents: socialMediaAgent, seoAgent, translationAgent, customerSupportAgent, projectManagementAgent.          |
 | 2.2.4   | 2026-03-17 | Normalized `codingAgents.ts` by restoring concrete per-agent tool maps and removing the last explicit `new Agent<...>` tool generic; `src/mastra/agents` now validates clean. |
 | 2.2.3   | 2026-03-17 | Removed unnecessary `ToolsInput` usage from touched agents and completed the source-level `unknown` request-context fix for all remaining network/A2A child-agent registrations. |

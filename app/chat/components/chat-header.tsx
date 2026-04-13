@@ -68,8 +68,6 @@ import { useMemo, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-const DEFAULT_MAX_TOKENS = 128000
-
 export function ChatHeader() {
     const {
         selectedAgent,
@@ -123,7 +121,9 @@ export function ChatHeader() {
 
     const { isFocusMode, setFocusMode } = useChatContext()
 
-    const usedTokens = usage ? usage.inputTokens + usage.outputTokens : 0
+    const inputTokens = usage?.inputTokens ?? 0
+    const outputTokens = usage?.outputTokens ?? 0
+    const usedTokens = inputTokens + outputTokens
 
     return (
         <header className="flex items-center justify-between border-b border-border px-4 py-3 mt-16">
@@ -172,7 +172,7 @@ export function ChatHeader() {
                                         <button
                                             key={checkpoint.id}
                                             onClick={() =>
-                                                restoreCheckpoint(checkpoint.id)
+                                                { restoreCheckpoint(checkpoint.id); }
                                             }
                                             className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted"
                                         >
@@ -196,13 +196,11 @@ export function ChatHeader() {
                     </Popover>
                 )}
 
-                {/* Token Usage */}
-                {usage && usedTokens > 0 && (
+                {/* Live token usage */}
+                {usage && usedTokens > 0 && selectedModel.contextWindow !== undefined && (
                     <Context
                         usedTokens={usedTokens}
-                        maxTokens={
-                            selectedModel.contextWindow ?? DEFAULT_MAX_TOKENS
-                        }
+                        maxTokens={selectedModel.contextWindow}
                         modelId={selectedModel.id}
                         usage={{
                             inputTokens: usage.inputTokens,
@@ -223,7 +221,6 @@ export function ChatHeader() {
                         </ContextContent>
                     </Context>
                 )}
-
                 {/* Model Selector */}
                 <ModelSelector
                     open={modelSelectorOpen}
@@ -275,7 +272,7 @@ export function ChatHeader() {
                                                 key={model.id}
                                                 value={model.id}
                                                 onSelect={() =>
-                                                    handleSelectModel(model)
+                                                    { handleSelectModel(model); }
                                                 }
                                                 className="flex items-center justify-between"
                                             >
@@ -342,7 +339,7 @@ export function ChatHeader() {
                                                 key={agent.id}
                                                 value={agent.name}
                                                 onSelect={() =>
-                                                    handleSelectAgent(agent)
+                                                    { handleSelectAgent(agent); }
                                                 }
                                                 className="flex items-center justify-between"
                                             >
@@ -370,7 +367,7 @@ export function ChatHeader() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setFocusMode(!isFocusMode)}
+                    onClick={() => { setFocusMode(!isFocusMode); }}
                     title={isFocusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
                     className={cn(isFocusMode && 'text-primary')}
                 >
@@ -416,7 +413,7 @@ export function ChatHeader() {
                                     id="threadId"
                                     value={tempThreadId}
                                     onChange={(e) =>
-                                        setTempThreadId(e.target.value)
+                                        { setTempThreadId(e.target.value); }
                                     }
                                     placeholder="Enter thread ID..."
                                 />
@@ -437,7 +434,7 @@ export function ChatHeader() {
                                     id="resourceId"
                                     value={tempResourceId}
                                     onChange={(e) =>
-                                        setTempResourceId(e.target.value)
+                                        { setTempResourceId(e.target.value); }
                                     }
                                     placeholder="Enter resource ID..."
                                 />
@@ -450,7 +447,7 @@ export function ChatHeader() {
                         <DialogFooter>
                             <Button
                                 variant="outline"
-                                onClick={() => setSettingsOpen(false)}
+                                onClick={() => { setSettingsOpen(false); }}
                             >
                                 Cancel
                             </Button>

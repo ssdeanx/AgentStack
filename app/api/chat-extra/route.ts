@@ -7,62 +7,117 @@ import {
 import { toAISdkStream } from '@mastra/ai-sdk'
 import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
 import type { UIMessage } from 'ai'
+import type { MessageListInput } from '@mastra/core/agent/message-list'
+
+interface ChatExtraRequestBody {
+    messages: unknown[]
+    data?: Record<string, unknown>
+    id?: string
+    threadId?: string
+    resourceId?: string
+    memory?: unknown
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+}
+
+function isReadableStream<T>(value: unknown): value is ReadableStream<T> {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        typeof (value as ReadableStream<T>).getReader === 'function'
+    )
+}
+
+async function* asyncIterableFromReadableStream<T>(
+    stream: ReadableStream<T>
+): AsyncIterable<T> {
+    const reader = stream.getReader()
+    try {
+        for (;;) {
+            const { done, value } = await reader.read()
+            if (done) {
+                break
+            }
+
+            yield value
+        }
+    } finally {
+        reader.releaseLock()
+    }
+}
+
+function getNonEmptyString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+        ? value
+        : undefined
+}
+
+function parseChatExtraRequestBody(value: unknown): ChatExtraRequestBody {
+    const record: Record<string, unknown> = isRecord(value) ? value : {}
+    const data = isRecord(record.data) ? record.data : undefined
+    const messages = Array.isArray(record.messages)
+        ? (record.messages as unknown[])
+        : []
+
+    return {
+        messages,
+        data,
+        id: getNonEmptyString(record.id),
+        threadId:
+            getNonEmptyString(record.threadId) ??
+            getNonEmptyString(data?.threadId),
+        resourceId:
+            getNonEmptyString(record.resourceId) ??
+            getNonEmptyString(data?.resourceId),
+        memory: record.memory ?? data?.memory,
+    }
+}
 
 export async function POST(req: Request) {
-    const body = await req.json()
+    const body = parseChatExtraRequestBody(await req.json())
     const { messages, data, id } = body
 
-    // Dynamic agent selection - prioritize data.agentId, fallback to id, then weatherAgent
     const agentId =
-        (typeof data?.agentId === 'string' && data.agentId.length > 0
-            ? data.agentId
-            : undefined) ??
-        (typeof id === 'string' && id.length > 0 ? id : undefined) ??
-        'weatherAgent'
+        getNonEmptyString(data?.agentId) ?? id ?? 'weatherAgent'
 
     const agent = mastra.getAgent(agentId)
 
-    if (!agent) {
-        return Response.json(
-            { error: `Agent "${agentId}" not found` },
-            { status: 404 }
-        )
+    const threadId = body.threadId
+    const resourceId = body.resourceId
+
+    const requestContext = new RequestContext()
+    if (resourceId) {
+        requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)
+    }
+    if (threadId) {
+        requestContext.set(MASTRA_THREAD_ID_KEY, threadId)
     }
 
-    // Extract multi-tenancy IDs
-    const threadId = body.threadId ?? data?.threadId
-    const resourceId = body.resourceId ?? data?.resourceId
-
-    // Create RequestContext for multi-tenancy isolation
-    const requestContext = new RequestContext()
-    if (resourceId) {requestContext.set(MASTRA_RESOURCE_ID_KEY, resourceId)}
-    if (threadId) {requestContext.set(MASTRA_THREAD_ID_KEY, threadId)}
-
-    // Merge other data into context if present
-    if (data && typeof data === 'object') {
+    if (data) {
         for (const [key, value] of Object.entries(data)) {
-            if (
-                key !== 'agentId' &&
-                key !== 'threadId' &&
-                key !== 'resourceId'
-            ) {
-                requestContext.set(key, value)
+            if (key === 'agentId' || key === 'threadId' || key === 'resourceId') {
+                continue
             }
+
+            requestContext.set(key, value)
         }
     }
 
-    // Prepare stream options
     const streamOptions = {
         threadId,
         resourceId,
-        memory: body.memory ?? data?.memory,
+        memory: body.memory,
         requestContext,
     }
 
-    const stream = await agent.stream(messages, streamOptions)
+    const stream = await agent.stream(messages as MessageListInput, streamOptions)
 
     const uiStream = createUIMessageStream({
-        originalMessages: messages as UIMessage[],
+        originalMessages: Array.isArray(messages)
+            ? (messages as UIMessage[])
+            : undefined,
         execute: async ({ writer }) => {
             const aiStream = toAISdkStream(stream, {
                 from: 'agent',
@@ -70,21 +125,12 @@ export async function POST(req: Request) {
                 sendSources: true,
             })
 
-            if (aiStream && typeof (aiStream as any).getReader === 'function') {
-                const reader = (aiStream as ReadableStream<any>).getReader()
-                try {
-                    while (true) {
-                        const { value, done } = await reader.read()
-                        if (done) {break}
-                        await writer.write(value)
-                    }
-                } finally {
-                    reader.releaseLock?.()
-                }
-            } else if (aiStream && Symbol.asyncIterator in aiStream) {
-                for await (const part of aiStream as AsyncIterable<any>) {
-                    await writer.write(part)
-                }
+            const iterable = isReadableStream(aiStream)
+                ? asyncIterableFromReadableStream(aiStream)
+                : (aiStream as AsyncIterable<unknown>)
+
+            for await (const value of iterable) {
+                writer.write(value as Parameters<typeof writer.write>[0])
             }
         },
     })

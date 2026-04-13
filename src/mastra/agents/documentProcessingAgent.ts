@@ -1,20 +1,15 @@
 import { Agent } from '@mastra/core/agent'
 
-import { pgMemory } from '../config/pg-storage'
 import { log } from '../config/logger'
 
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
-import { mastraChunker } from '../tools/document-chunking.tool'
-import {
-    readDataFileTool,
-    writeDataFileTool,
-    listDataDirTool,
-    getDataFileInfoTool,
-} from '../tools/data-file-manager'
+import { libsqlChunker, mastraChunker } from '../tools/document-chunking.tool'
+
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { USER_ID_CONTEXT_KEY } from './request-context'
+import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
+import { fetchTool } from '../tools'
 
 export type DocumentProcessingContext = AgentRequestContext<{
     inputDirectory?: string
@@ -29,12 +24,11 @@ const INPUT_DIRECTORY_CONTEXT_KEY = 'inputDirectory' as const
 const OUTPUT_DIRECTORY_CONTEXT_KEY = 'outputDirectory' as const
 
 const documentProcessingTools = {
-    pdfToMarkdownTool,
     mastraChunker,
-    readDataFileTool,
-    writeDataFileTool,
-    listDataDirTool,
-    getDataFileInfoTool,
+    libsqlChunker,
+    libsqlQueryTool,
+    libsqlgraphQueryTool,
+    fetchTool,
 }
 
 export const documentProcessingAgent = new Agent({
@@ -61,9 +55,13 @@ export const documentProcessingAgent = new Agent({
 User: ${userId} | In: ${inputDirectory} | Out: ${outputDirectory}
 
 ## Tools
-1. **pdfToMarkdownTool**: Convert PDFs to clean markdown with table detection.
+1. Convert PDFs to clean markdown with table detection using the workspace and sandbox tools.
 2. **mastraChunker**: Chunk docs (recursive, markdown, semantic) with metadata extraction.
-3. **File Tools**: read, write, list, and info for data files.
+3. **libsqlChunker**: Chunk docs using LibSQL for efficient storage and retrieval.
+4. **libsqlQueryTool**: Query LibSQL for chunk management and retrieval.
+5. **libsqlgraphQueryTool**: Query LibSQLGraph for semantic relationships between chunks.
+6. **fetchTool**: Fetch additional data from web sources if needed during processing.
+7. **File Tools**: read, write, list, and info for data files.
 
 ## Guidelines
 - **Pre-process**: Validate PDF and check disk space.
@@ -76,7 +74,7 @@ User: ${userId} | In: ${inputDirectory} | Out: ${outputDirectory}
 `
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: documentProcessingTools,
     options: {
         tracingPolicy: {

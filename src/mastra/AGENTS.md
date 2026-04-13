@@ -35,6 +35,7 @@ This folder contains the middleware and high-level components that define Mastra
 
 - Use `npm run dev` at the repo root to start the Mastra development environment.
 - When adding new tools or providers, add env var placeholders to `.env` and document them in `src/mastra/config/AGENTS.md`.
+- `src/mastra/workspaces.ts` is the shared workspace catalog; keep local, AgentFS, and Daytona workspace variants exported side-by-side rather than replacing one provider with another.
 
 ## Tests & Debugging
 
@@ -49,4 +50,4 @@ This folder contains the middleware and high-level components that define Mastra
 
 ---
 
-Last updated: 2025-11-26
+Last updated: 2026-03-22

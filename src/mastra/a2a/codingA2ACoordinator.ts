@@ -5,7 +5,6 @@ import {
 } from '@mastra/evals/scorers/prebuilt'
 
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
@@ -16,7 +15,7 @@ import {
   testEngineerAgent,
 } from '../agents/codingAgents'
 import { automatedReportingWorkflow } from '../workflows/automated-reporting-workflow'
-import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
+//import { dataAnalysisWorkflow } from '../workflows/data-analysis-workflow'
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
@@ -24,6 +23,7 @@ import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workf
 import { safeRefactoringWorkflow } from '../workflows/safe-refactoring-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
 import { testGenerationWorkflow } from '../workflows/test-generation-workflow'
+import { LibsqlMemory } from '../config/libsql'
 
 log.info('Initializing Coding A2A Coordinator...')
 
@@ -187,7 +187,7 @@ When a user's request requires prolonged, structured work across multiple subtas
     }
   },
   model: 'google/gemini-3.1-flash-preview',
-  memory: pgMemory,
+  memory: LibsqlMemory,
 
   agents: {
     codeArchitectAgent,
@@ -203,7 +203,7 @@ When a user's request requires prolonged, structured work across multiple subtas
     learningExtractionWorkflow,
     safeRefactoringWorkflow,
     testGenerationWorkflow,
-    dataAnalysisWorkflow,
+    // dataAnalysisWorkflow,
     automatedReportingWorkflow,
   },
   tools: {

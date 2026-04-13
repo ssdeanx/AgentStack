@@ -7,16 +7,12 @@ import type { RequestContext } from '@mastra/core/request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
-
-import {
-    scrapingSchedulerTool,
-} from '../tools/web-scraper-tool'
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { fetchTool } from '../tools'
+import { LibsqlMemory } from '../config/libsql';
 
 export type WebResearchRuntimeContext = AgentRequestContext<{
     researchPhase?: string
@@ -34,7 +30,7 @@ export const webResearchAgent = new Agent({
     }: {
         requestContext: RequestContext<WebResearchRuntimeContext>
     }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const role = requestContext.get('role') ?? 'user'
         const language = requestContext.get('language') ?? 'en'
         const researchPhase = requestContext.get('researchPhase') ?? 'initial'
 
@@ -42,7 +38,7 @@ export const webResearchAgent = new Agent({
             role: 'system',
             content: `
 # Web Research Specialist
-Tier: ${userTier} | Lang: ${language} | Phase: ${researchPhase}
+Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 
 ## Expertise
 - Web scraping and data extraction
@@ -91,23 +87,20 @@ Provide structured results with:
         }
     },
     model: ({ requestContext }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
+        const role = requestContext.get('role') ?? 'user'
+        if (role === 'admin') {
             return google.chat('gemini-3.1-pro-preview')
-        } else if (userTier === 'pro') {
-            return 'google/gemini-3.1-flash-preview'
         }
-        return google.chat('gemini-3.1-flash-lite-previeww')
+        return google.chat('gemini-3.1-flash-lite-preview')
     },
     tools: {
         fetchTool,
-        scrapingSchedulerTool,
         extractLearningsTool,
         google_search: google.tools.googleSearch({}),
         url_context: google.tools.urlContext({}),
         code_execution: google.tools.codeExecution({}),
     },
-    memory: pgMemory,
+    memory: LibsqlMemory,
     maxRetries: 5,
     options: {
         tracingPolicy: {
@@ -115,7 +108,7 @@ Provide structured results with:
         },
     },
     outputProcessors: [
-        new TokenLimiterProcessor(128000),
+
     //    new BatchPartsProcessor({
     //        batchSize: 10,
     //        maxWaitTime: 75,

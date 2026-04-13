@@ -20,7 +20,7 @@ import {
   useMemo,
   useState,
 } from "react";
-
+import type * as React from 'react'
 interface FileTreeContextType {
   expandedPaths: Set<string>;
   togglePath: (path: string) => void;
@@ -177,6 +177,7 @@ export const FileTreeFolder = ({
           >
             <CollapsibleTrigger asChild>
               <button
+                title="collapse"
                 className="flex shrink-0 cursor-pointer items-center border-none bg-transparent p-0"
                 type="button"
               >

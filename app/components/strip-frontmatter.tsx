@@ -30,10 +30,8 @@ export default function StripFrontmatter() {
                     break
                 }
             }
-        } catch (e) {
+        } catch {
             // intentionally no-op: if DOM shape is unexpected, don't break rendering
-            // eslint-disable-next-line no-console
-            console.debug('strip-frontmatter: no-op', e)
         }
     }, [])
 

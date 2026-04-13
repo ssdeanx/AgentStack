@@ -19,6 +19,7 @@ import {
     logToolExecution,
 } from '../config/logger'
 import { pgVector } from '../config/pg-storage'
+import { libsqlvector } from '../config/libsql'
 
 import type { RequestContext } from '@mastra/core/request-context'
 import type { ExtractParams } from '@mastra/rag'
@@ -197,58 +198,45 @@ Use this tool when you need advanced document processing with metadata extractio
   `,
     inputSchema: MastraDocumentChunkingInputSchema,
     outputSchema: MastraDocumentChunkingOutputSchema,
-    onInputStart: ({
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Mastra chunker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
-            aborted: abortSignal.aborted,
+            aborted: abortSignal?.aborted,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({
-        inputTextDelta,
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
         log.info('Mastra chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
             messageCount: messages.length,
-            aborted: abortSignal.aborted,
+            aborted: abortSignal?.aborted,
             chunkingStrategy: 'recursive',
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({
-        input,
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Mastra chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
             chunkingStrategy: input.chunkingStrategy,
             messageCount: messages.length,
-            aborted: abortSignal.aborted,
+            aborted: abortSignal?.aborted,
             hook: 'onInputAvailable',
         })
     },
     execute: async (inputData, context) => {
         const writer = context.writer
         const abortSignal = context.abortSignal
-        const tracingContext: TracingContext | undefined = context.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context.tracingContext
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
 
         // Check if operation was already cancelled
-        if (abortSignal.aborted) {
+        if (abortSignal?.aborted) {
             throw new Error('Mastra chunker cancelled')
         }
 
@@ -515,11 +503,7 @@ content indexing, or semantic search capabilities.
   `,
     inputSchema: CustomDocumentChunkingInputSchema,
     outputSchema: CustomDocumentChunkingOutputSchema,
-    onInputStart: ({
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('MDocument chunker tool input streaming started', {
             toolCallId,
             messageCount: messages.length,
@@ -527,12 +511,7 @@ content indexing, or semantic search capabilities.
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({
-        inputTextDelta,
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
         log.info('MDocument chunker tool received input chunk', {
             toolCallId,
             inputTextDelta,
@@ -542,12 +521,7 @@ content indexing, or semantic search capabilities.
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({
-        input,
-        toolCallId,
-        messages,
-        abortSignal,
-    }) => {
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('MDocument chunker received complete input', {
             toolCallId,
             documentLength: input.documentContent.length,
@@ -561,7 +535,8 @@ content indexing, or semantic search capabilities.
     execute: async (inputData, context) => {
         const writer = context.writer
         const abortSignal = context.abortSignal
-        const tracingContext: TracingContext | undefined = context.tracingContext
+        const tracingContext: TracingContext | undefined =
+            context.tracingContext
         const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
         const chunkSize = inputData.chunkSize ?? 512
         const chunkOverlap = inputData.chunkOverlap ?? 50
@@ -743,7 +718,10 @@ content indexing, or semantic search capabilities.
             let embeddings: number[][] = []
 
             // Generate embeddings if requested
-            if ((inputData.generateEmbeddings ?? false) && chunksForProcessing.length > 0) {
+            if (
+                (inputData.generateEmbeddings ?? false) &&
+                chunksForProcessing.length > 0
+            ) {
                 await writer?.custom({
                     type: 'data-tool-progress',
                     data: {
@@ -950,6 +928,469 @@ content indexing, or semantic search capabilities.
 })
 
 /**
+ * LibSQL (Turso) Document Chunking Tool
+ *
+ * This tool processes document content by:
+ * 1. Creating chunks using configurable strategies (recursive, character, token, markdown, etc.)
+ * 2. Generating embeddings for each chunk using Gemini embedding model
+ * 3. Storing chunks and embeddings in LibSQL (Turso) for efficient similarity search
+ *
+ * Features:
+ * - Multiple chunking strategies with customizable parameters
+ * - Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
+ * - LibSQL/Turso storage with metadata support
+ * - Comprehensive error handling and logging
+ * - Performance monitoring and metrics
+ *
+ * Use this tool when you need to process documents for RAG applications,
+ * content indexing, or semantic search capabilities using LibSQL/Turso.
+ */
+export const libsqlChunker = createTool({
+    id: 'libsql:chunker',
+    description: `
+Custom Document Chunking Tool with LibSQL (Turso) Integration
+
+This tool processes document content by:
+1. Creating chunks using configurable strategies (recursive, character, token, markdown, etc.)
+2. Generating embeddings for each chunk using Gemini embedding model
+3. Storing chunks and embeddings in LibSQL (Turso) for efficient similarity search
+
+Features:
+- Multiple chunking strategies with customizable parameters
+- Automatic embedding generation (3072 dimensions for gemini-embedding-2-preview)
+- LibSQL/Turso storage with metadata support
+- Comprehensive error handling and logging
+- Performance monitoring and metrics
+
+Use this tool when you need to process documents for RAG applications,
+content indexing, or semantic search capabilities using LibSQL/Turso.
+  `,
+    inputSchema: CustomDocumentChunkingInputSchema,
+    outputSchema: CustomDocumentChunkingOutputSchema,
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('LibSQL chunker tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            aborted: abortSignal?.aborted ?? false,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('LibSQL chunker tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            aborted: abortSignal?.aborted ?? false,
+            chunkingStrategy: 'recursive',
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('LibSQL chunker received complete input', {
+            toolCallId,
+            documentLength: input.documentContent.length,
+            chunkingStrategy: input.chunkingStrategy,
+            generateEmbeddings: input.generateEmbeddings,
+            messageCount: messages.length,
+            aborted: abortSignal?.aborted ?? false,
+            hook: 'onInputAvailable',
+        })
+    },
+    execute: async (inputData, context) => {
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const tracingContext: TracingContext | undefined =
+            context.tracingContext
+        const chunkingStrategy = inputData.chunkingStrategy ?? 'recursive'
+        const chunkSize = inputData.chunkSize ?? 512
+        const chunkOverlap = inputData.chunkOverlap ?? 50
+        const indexName = inputData.indexName ?? 'memory_messages_3072'
+        const embeddingModel =
+            inputData.embeddingModel ?? 'google/gemini-embedding-2-preview'
+        const embeddingBatchSize = inputData.embeddingBatchSize ?? 50
+
+        // Check if operation was already cancelled
+        if (abortSignal?.aborted ?? false) {
+            throw new Error('LibSQL chunker cancelled')
+        }
+
+        await writer?.custom({
+            type: 'data-tool-progress',
+            data: {
+                status: 'in-progress',
+                message: '📄 Starting LibSQL chunker',
+                stage: 'libsql:chunker',
+            },
+            id: 'libsql:chunker',
+        })
+        const startTime = Date.now()
+        logToolExecution('libsql-chunker', { input: inputData })
+
+        const span = getOrCreateSpan({
+            type: SpanType.TOOL_CALL,
+            name: 'libsql-chunker',
+            input: {
+                documentLength: inputData.documentContent.length,
+                chunkingStrategy: inputData.chunkingStrategy,
+                chunkSize,
+                generateEmbeddings: inputData.generateEmbeddings,
+            },
+            requestContext: context.requestContext,
+            tracingContext,
+            metadata: {
+                'tool.id': 'libsql-chunker',
+                operation: 'libsql-chunker',
+            },
+        })
+
+        try {
+            // Create MDocument from input
+            const document = new MDocument({
+                docs: [
+                    {
+                        text: inputData.documentContent,
+                        metadata: {
+                            ...inputData.documentMetadata,
+                            chunkingStrategy: inputData.chunkingStrategy,
+                            chunkSize,
+                            chunkOverlap,
+                            processedAt: new Date().toISOString(),
+                            source: 'libsql-chunker',
+                        },
+                    },
+                ],
+                type: 'document',
+            })
+
+            // Build chunking parameters based on strategy
+            const buildChunkParams = (
+                strategy: string,
+                maxSize: number,
+                overlap: number
+            ) => {
+                const baseParams = {
+                    maxSize,
+                    overlap,
+                }
+
+                switch (strategy) {
+                    case 'recursive':
+                        return {
+                            strategy: 'recursive' as const,
+                            ...baseParams,
+                            separators: ['\n\n', '\n', ' '],
+                        }
+                    case 'character':
+                        return {
+                            strategy: 'character' as const,
+                            ...baseParams,
+                            separators: ['\n'],
+                            isSeparatorRegex: false,
+                        }
+                    case 'markdown':
+                        return {
+                            strategy: 'markdown' as const,
+                            ...baseParams,
+                            headers: [
+                                ['#', 'title'],
+                                ['##', 'section'],
+                            ] as Array<[string, string]>,
+                        }
+                    case 'html':
+                        return {
+                            strategy: 'html' as const,
+                            ...baseParams,
+                            headers: [
+                                ['h1', 'title'],
+                                ['h2', 'section'],
+                            ] as Array<[string, string]>,
+                        }
+                    case 'json':
+                        return {
+                            strategy: 'json' as const,
+                            ...baseParams,
+                        }
+                    case 'latex':
+                        return {
+                            strategy: 'latex' as const,
+                            ...baseParams,
+                        }
+                    case 'sentence':
+                        return {
+                            strategy: 'sentence' as const,
+                            ...baseParams,
+                            minSize: 50,
+                            sentenceEnders: ['.'],
+                        }
+                    case 'token':
+                        return {
+                            strategy: 'token' as const,
+                            ...baseParams,
+                        }
+                    case 'semantic-markdown':
+                        return {
+                            strategy: 'semantic-markdown' as const,
+                            ...baseParams,
+                            joinThreshold: 500,
+                        }
+                    default:
+                        return {
+                            strategy: 'recursive' as const,
+                            ...baseParams,
+                            separators: ['\n\n', '\n', ' '],
+                            isSeparatorRegex: false,
+                        }
+                }
+            }
+
+            // Execute chunking using MDocument.chunk() method
+            const chunkingStartTime = Date.now()
+            const chunkParams = buildChunkParams(
+                chunkingStrategy,
+                chunkSize,
+                chunkOverlap
+            )
+            const chunks = await document.chunk(chunkParams)
+            const chunkingTime = Date.now() - chunkingStartTime
+
+            logStepStart('custom-chunking-completed', {
+                chunkCount: chunks.length,
+                chunkingTimeMs: chunkingTime,
+                strategy: chunkingStrategy,
+            })
+
+            // Prepare chunks for embedding and storage
+            const chunksForProcessing = chunks.map((chunk, index) => ({
+                text: chunk.text,
+                metadata: {
+                    ...chunk.metadata,
+                    chunkIndex: index,
+                    totalChunks: chunks.length,
+                    documentId: `doc_${String(Date.now())}_${String(index)}`,
+                    chunkingStrategy,
+                    chunkSize,
+                    chunkOverlap,
+                },
+                id:
+                    typeof chunk.metadata.id === 'string'
+                        ? chunk.metadata.id
+                        : `chunk_${String(Date.now())}_${randomUUID()}`,
+            }))
+
+            let embeddingGenerated = false
+            let embeddings: number[][] = []
+
+            // Generate embeddings if requested
+            if (
+                (inputData.generateEmbeddings ?? false) &&
+                chunksForProcessing.length > 0
+            ) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: '🧠 Generating embeddings',
+                        stage: 'libsql:chunker',
+                    },
+                    id: 'libsql:chunker',
+                })
+                const embeddingStartTime = Date.now()
+                // Prepare texts and keep mapping so we can upsert only non-empty embeddings
+                const texts = chunksForProcessing.map((chunk) =>
+                    typeof chunk.text === 'string' ? chunk.text.trim() : ''
+                )
+                const nonEmptyIndexes = texts
+                    .map((t, i) => (t.length > 0 ? i : -1))
+                    .filter((i) => i !== -1)
+                const nonEmptyValues = nonEmptyIndexes.map((i) => texts[i])
+
+                try {
+                    const allEmbeddings: number[][] = []
+                    for (
+                        let i = 0;
+                        i < nonEmptyValues.length;
+                        i += embeddingBatchSize
+                    ) {
+                        const batch = nonEmptyValues.slice(
+                            i,
+                            i + embeddingBatchSize
+                        )
+                        const result = await embedMany({
+                            values: batch,
+                            model: new ModelRouterEmbeddingModel(
+                                embeddingModel
+                            ),
+                            maxRetries: 3,
+                            abortSignal: new AbortController().signal,
+                        })
+                        allEmbeddings.push(...result.embeddings)
+                    }
+                    embeddings = allEmbeddings
+                    embeddingGenerated = embeddings.length > 0
+
+                    const embeddingTime = Date.now() - embeddingStartTime
+                    logStepStart('embeddings-generated', {
+                        embeddingCount: embeddings.length,
+                        embeddingTimeMs: embeddingTime,
+                        dimension: embeddings[0].length,
+                    })
+                } catch (embedError) {
+                    const safeError =
+                        embedError instanceof Error
+                            ? embedError
+                            : new Error('Unknown error occurred')
+                    logError('libsql-chunker-embeddings', safeError, {
+                        embeddingBatchSize,
+                    })
+                    // fall back to no embeddings so chunks are still returned
+                    embeddings = []
+                    embeddingGenerated = false
+                }
+            }
+
+            // Store chunks in LibSQL if embeddings were generated
+            if (embeddingGenerated && embeddings.length > 0) {
+                await writer?.custom({
+                    type: 'data-tool-progress',
+                    data: {
+                        status: 'in-progress',
+                        message: '💾 Storing vectors in LibSQL database',
+                        stage: 'libsql:chunker',
+                    },
+                    id: 'libsql:chunker',
+                })
+                const storageStartTime = Date.now()
+
+                // Ensure index exists with the same dimension as embeddings
+                try {
+                    await libsqlvector.createIndex({
+                        indexName,
+                        dimension: embeddings[0].length,
+                    })
+                } catch (idxErr) {
+                    log.info('createIndex skipped or failed', {
+                        error:
+                            idxErr instanceof Error
+                                ? idxErr.message
+                                : String(idxErr),
+                    })
+                }
+
+                // Ensure chunk ids are stable and unique
+                // Ensure ids are present and sanitize metadata
+                const allIds = chunksForProcessing.map((chunk) => chunk.id)
+                const sanitizedMetadata = chunksForProcessing.map((chunk) => ({
+                    ...sanitizeMetadata(chunk.metadata),
+                    text: chunk.text,
+                }))
+
+                // Map embeddings back to the full set: only non-empty values produced embeddings
+                const finalVectors: number[][] = []
+                const finalMetadata: Array<Record<string, unknown>> = []
+                const finalIds: string[] = []
+
+                if (embeddings.length > 0) {
+                    // Rebuild arrays using nonEmptyIndexes mapping
+                    const texts = chunksForProcessing.map((c) =>
+                        typeof c.text === 'string' ? c.text.trim() : ''
+                    )
+                    const nonEmptyIndexes = texts
+                        .map((t, i) => (t.length > 0 ? i : -1))
+                        .filter((i) => i !== -1)
+                    for (let i = 0; i < nonEmptyIndexes.length; i++) {
+                        const idx = nonEmptyIndexes[i]
+                        finalVectors.push(embeddings[i])
+                        finalMetadata.push(sanitizedMetadata[idx])
+                        finalIds.push(allIds[idx])
+                    }
+                }
+
+                // Store vectors with metadata
+                if (finalVectors.length > 0) {
+                    await libsqlvector.upsert({
+                        indexName,
+                        vectors: finalVectors,
+                        metadata: finalMetadata,
+                        ids: finalIds,
+                    })
+                } else {
+                    log.info(
+                        'No embeddings to upsert after processing (empty or embedding generation failed)'
+                    )
+                }
+
+                const storageTime = Date.now() - storageStartTime
+                logStepStart('vectors-stored', {
+                    indexName,
+                    vectorCount: embeddings.length,
+                    storageTimeMs: storageTime,
+                })
+            }
+
+            const totalProcessingTime = Date.now() - startTime
+
+            // Prepare output
+            const output = {
+                success: true,
+                chunkCount: chunks.length,
+                totalTextLength: inputData.documentContent.length,
+                chunks: chunksForProcessing.map((chunk) => ({
+                    id: chunk.id,
+                    text: chunk.text,
+                    metadata: chunk.metadata,
+                    embeddingGenerated,
+                })),
+                processingTimeMs: totalProcessingTime,
+            }
+
+            logStepEnd('libsql-chunker', output, totalProcessingTime)
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `✅ Processed ${String(chunks.length)} chunks successfully`,
+                    stage: 'libsql:chunker',
+                },
+                id: 'libsql:chunker',
+            })
+            return output
+        } catch (error) {
+            const processingTime = Date.now() - startTime
+            const safeError =
+                error instanceof Error
+                    ? error
+                    : new Error('Unknown error occurred')
+
+            logError('libsql-chunker', safeError, {
+                inputData,
+                processingTimeMs: processingTime,
+            })
+
+            // Record error in tracing span
+            span?.error({
+                error: safeError,
+                endSpan: true,
+            })
+
+            throw safeError
+        } finally {
+            span?.end()
+        }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('LibSQL chunker completed', {
+            toolCallId,
+            toolName,
+            chunkCount: output.chunkCount,
+            processingTimeMs: output.processingTimeMs,
+            aborted: abortSignal?.aborted ?? false,
+            hook: 'onOutput',
+        })
+    },
+})
+
+/**
  * Document Reranking Tool with Semantic Relevance Scoring
  *
  * This tool retrieves documents from PgVector and re-ranks them using
@@ -1057,7 +1498,8 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
         const semanticWeight = inputData.semanticWeight ?? 0.5
         const vectorWeight = inputData.vectorWeight ?? 0.3
         const positionWeight = inputData.positionWeight ?? 0.2
-        const rerankModel = inputData.rerankModel ?? 'google/gemini-3.1-flash-lite'
+        const rerankModel =
+            inputData.rerankModel ?? 'google/gemini-3.1-flash-lite'
 
         // Use the existing tracing context if available to create a child span.
         const span = tracingContext?.currentSpan?.createChildSpan({
@@ -1108,8 +1550,7 @@ Use this tool to improve retrieval quality by re-ranking initial search results.
                 positionWeight
             )
             // Log if user-supplied weights did not sum to 1
-            const origSum =
-                semanticWeight + vectorWeight + positionWeight
+            const origSum = semanticWeight + vectorWeight + positionWeight
             if (Math.abs(origSum - 1) > 1e-6) {
                 log.info('Normalized reranker weights', {
                     originalSum: origSum,

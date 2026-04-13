@@ -1,28 +1,224 @@
 import { Agent } from '@mastra/core/agent'
+import { createScorer } from '@mastra/core/evals'
+import {
+  extractAgentResponseMessages,
+  extractInputMessages,
+  extractToolCalls,
+  getAssistantMessageFromRunOutput,
+  getCombinedSystemPrompt,
+  getReasoningFromRunOutput,
+  getSystemMessagesFromRunInput,
+  getUserMessageFromRunInput,
+} from '@mastra/evals/scorers/utils'
 import type {
   Processor,
   ProcessorMessageResult,
   ProcessOutputStepArgs,
 } from '@mastra/core/processors'
-import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
+
 import {
   codeArchitectAgent,
   codeReviewerAgent,
   refactoringAgent,
   testEngineerAgent,
 } from '../agents/codingAgents'
-import { google3 } from '../config/google'
+
 import { log } from '../config/logger'
-import { upstashMemory } from '../config/upstash'
+
 import { financialReportWorkflow } from '../workflows/financial-report-workflow'
 import { learningExtractionWorkflow } from '../workflows/learning-extraction-workflow'
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
+import { LibsqlMemory } from '../config/libsql'
 
 log.info('Initializing Coding Team Network...')
+
+/**
+ * Checks that the coding network returns a concrete engineering deliverable,
+ * review, or plan instead of only stating that specialists are available.
+ */
+const codingTeamNetworkTaskCompleteScorer = createScorer({
+  id: 'coding-team-network-task-complete',
+  name: 'Coding Team Network Task Completeness',
+  description:
+    'Checks whether the coding network returned actionable engineering guidance or output.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasEngineeringLanguage:
+        /architecture|review|test|refactor|implementation|risk|trade-off|code|plan/i.test(
+          responseText
+        ),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 80) score += 0.2
+    if (analysis.responseLength >= 160) score += 0.1
+    if (analysis.hasEngineeringLanguage) score += 0.4
+    if (analysis.hasStructure) score += 0.15
+    if (analysis.hasReasoning) score += 0.05
+    if (analysis.toolCount > 0) score += 0.05
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable engineering response was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasEngineeringLanguage) parts.push('it includes engineering-specific guidance')
+    if (analysis.hasStructure) parts.push('it is structured and actionable')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This coding response is strong because ${parts.join(', ')}.` : 'The response is present but still needs engineering depth.'}`
+  })
+
+/**
+ * Checks that the coding-team answer is execution-ready with priorities,
+ * engineering rationale, and concrete next actions.
+ */
+const codingTeamNetworkExecutionScorer = createScorer({
+  id: 'coding-team-network-execution-readiness',
+  name: 'Coding Team Network Execution Readiness',
+  description:
+    'Checks whether the coding-team response includes implementation order, validation guidance, or risk-aware next steps.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasPriority: /priority|sequence|phase|first|then/i.test(responseText),
+      hasRisk:
+        /trade-off|risk|assumption|constraint/i.test(responseText),
+      hasValidation:
+        /test|validate|review|next step|implement/i.test(responseText),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 160) score += 0.2
+    if (analysis.responseLength >= 280) score += 0.1
+    if (analysis.hasPriority) score += 0.25
+    if (analysis.hasRisk) score += 0.2
+    if (analysis.hasValidation) score += 0.2
+    if (analysis.hasStructure) score += 0.05
+    if (analysis.hasReasoning) score += 0.03
+    if (analysis.toolCount > 0) score += 0.02
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable execution-ready coding plan was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasPriority) parts.push('it clarifies ordering or phases')
+    if (analysis.hasRisk) parts.push('it names risks or constraints')
+    if (analysis.hasValidation) parts.push('it includes validation or next-step guidance')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks execution detail.'}`
+  })
 export class QualityChecker implements Processor {
   id = 'quality-checker'
 
@@ -164,9 +360,14 @@ Invoke these for structured, multi-phase processes:
 - Accurate identification of the primary task intent.
 - Minimal handoffs required to reach the solution.
 - Preservation of all technical context across the agent chain.
+
+## Final Answer Contract
+- Lead with the engineering recommendation, review outcome, or plan.
+- Present implementation order, key trade-offs, and validation steps clearly.
+- End with concrete next actions, blockers, or risks that still need ownership.
 `,
-  model: google3,
-  memory: upstashMemory,
+  model: "kilo/x-ai/grok-code-fast-1:optimized:free",
+  memory: LibsqlMemory,
   options: {},
   agents: {
     codeArchitectAgent,
@@ -184,13 +385,94 @@ Invoke these for structured, multi-phase processes:
   },
   scorers: {},
   outputProcessors: [
-    new TokenLimiterProcessor(256000),
+//    new TokenLimiterProcessor(256000),
     //     new BatchPartsProcessor({
     //        batchSize: 50,
     //        maxWaitTime: 100,
     //          emitOnNonText: true,
     //     }),
   ],
+  defaultOptions: {
+    maxSteps: 20,
+    delegation: {
+      onDelegationStart: async context => {
+        log.info('Coding team network delegating', {
+          primitiveId: context.primitiveId,
+          iteration: context.iteration,
+        })
+
+        await Promise.resolve()
+
+        if (context.primitiveId === 'codeArchitectAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nReturn a practical implementation plan with architecture decisions, trade-offs, risks, and a suggested execution order.`,
+          }
+        }
+
+        if (context.primitiveId === 'codeReviewerAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nReview for correctness, security, maintainability, and regression risk. Prioritize findings by severity and include concrete fixes.`,
+          }
+        }
+
+        if (context.primitiveId === 'testEngineerAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nDesign focused, high-value tests with edge cases, setup notes, and the specific behaviors each test validates.`,
+          }
+        }
+
+        if (context.primitiveId === 'refactoringAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nRefactor for readability, cohesion, and safety without changing behavior. Call out any risky changes or follow-up cleanup.`,
+          }
+        }
+
+        return { proceed: true }
+      },
+      onDelegationComplete: async context => {
+        log.info('Coding team delegation complete', {
+          primitiveId: context.primitiveId,
+          success: context.success,
+          duration: context.duration,
+        })
+
+        if (context.error) {
+          context.bail()
+          await Promise.resolve()
+          return {
+            feedback: `Delegation to ${context.primitiveId} failed: ${String(context.error)}. Fall back to a narrower engineering task or split the work into smaller steps.`,
+          }
+        }
+
+        await Promise.resolve()
+      },
+      messageFilter: ({ messages }) => {
+        return messages
+          .filter(
+            message =>
+              !message.content.parts.some(part => part.type === 'tool-invocation')
+          )
+          .slice(-6)
+      },
+    },
+    isTaskComplete: {
+      scorers: [codingTeamNetworkTaskCompleteScorer, codingTeamNetworkExecutionScorer],
+      strategy: 'any',
+      parallel: true,
+      onComplete: async result => {
+        log.info('Coding team completion check', {
+          complete: result.complete,
+          score: result.scorers[0]?.score,
+        })
+        await Promise.resolve()
+      },
+      suppressFeedback: false,
+    },
+  },
 })
 
 log.info('Coding Team Network initialized')

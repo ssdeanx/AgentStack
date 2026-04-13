@@ -3,7 +3,6 @@
  */
 export * from './logger'
 export * from './pg-storage'
-export * from './role-hierarchy'
 
 // Provider instances
 export * from './google'

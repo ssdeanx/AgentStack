@@ -88,7 +88,9 @@ export const Reasoning = memo(
     useEffect(() => {
       if (isStreaming) {
         hasEverStreamedRef.current = true;
-        startTimeRef.current ??= Date.now();
+        if (startTimeRef.current === null) {
+          startTimeRef.current = Date.now();
+        }
       } else if (startTimeRef.current !== null) {
         setDuration(Math.ceil((Date.now() - startTimeRef.current) / MS_IN_S));
         startTimeRef.current = null;

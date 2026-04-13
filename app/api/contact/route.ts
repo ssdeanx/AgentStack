@@ -1,4 +1,4 @@
-import type { NextRequest} from 'next/server';
+import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 interface ContactFormData {
@@ -11,17 +11,51 @@ interface ContactFormData {
     message: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+}
+
+function getString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined
+}
+
+function parseContactFormData(value: unknown): ContactFormData | null {
+    if (!isRecord(value)) {
+        return null
+    }
+
+    const firstName = getString(value.firstName)
+    const lastName = getString(value.lastName)
+    const email = getString(value.email)
+    const subject = getString(value.subject)
+    const message = getString(value.message)
+
+    if (
+        !firstName ||
+        !lastName ||
+        !email ||
+        !subject ||
+        !message
+    ) {
+        return null
+    }
+
+    return {
+        firstName,
+        lastName,
+        email,
+        company: getString(value.company),
+        inquiryType: getString(value.inquiryType),
+        subject,
+        message,
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
-        const data: ContactFormData = await request.json()
+        const data = parseContactFormData(await request.json())
 
-        if (
-            !data.firstName ||
-            !data.lastName ||
-            !data.email ||
-            !data.subject ||
-            !data.message
-        ) {
+        if (!data) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
@@ -41,8 +75,8 @@ export async function POST(request: NextRequest) {
         console.log('Contact form submission:', {
             name: `${data.firstName} ${data.lastName}`,
             email: data.email,
-            company: data.company || 'N/A',
-            inquiryType: data.inquiryType || 'general',
+            company: data.company?.trim().length ? data.company : 'N/A',
+            inquiryType: data.inquiryType?.trim().length ? data.inquiryType : 'general',
             subject: data.subject,
             message: data.message,
             timestamp: new Date().toISOString(),
@@ -68,7 +102,7 @@ export async function POST(request: NextRequest) {
             { success: true, message: 'Message received successfully' },
             { status: 200 }
         )
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Contact form error:', error)
         return NextResponse.json(
             { error: 'Failed to process submission' },

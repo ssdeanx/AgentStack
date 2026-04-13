@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
     serverExternalPackages: [
         '@e2b/code-interpreter',
         'ai-sdk-provider-gemini-cli',
-        'crawlee',
-        'isolated-vm',
         'pino',
         'pino-pretty',
         'pdf-parse',
@@ -19,9 +17,29 @@ const nextConfig: NextConfig = {
         'shiki',
         'ts-morph',
         'unpdf',
+        'simple-git',
+        'axios',
+        '@octokit/rest',
+        'axios-retry',
+        'node-cron',
+        'node-fetch',
+        'axios-retry',
+        'formdata-node',
+        'adm-zip',
+        'csv-parse',
+        'csv-stringify',
+        'papaparse',
+        'remark-gfm',
+        'rehype-highlight',
+        'simple-statistics',
+        'tesseract.js',
+        'downsample-lttb',
+        'sharp',
+        'excalidraw-to-svg',
+        'svgjson',
     ],
     allowedDevOrigins: ['http://localhost:4111', 'http://127.0.0.1:4111'],
-    typedRoutes: false,
+    typedRoutes: true,
     reactStrictMode: true,
     distDir: '.next',
     typescript: {
@@ -71,20 +89,16 @@ const nextConfig: NextConfig = {
         //    turbopackImportTypeBytes: true,
         //    turbopackMemoryLimit: 8192,
         //    turbopackRemoveUnusedExports: true,
-        turbopackFileSystemCacheForDev: true,
-        //  turbopackFileSystemCacheForBuild: true,
-        useCache: true,
-        //    useLightningcss: true,
-  //      useWasmBinary: true,
-        //    swcTraceProfiling: true,
-        //    forceSwcTransforms: true,
-        ppr: false,
+          turbopackFileSystemCacheForDev: true,
+          //  turbopackFileSystemCacheForBuild: true,
+          //    useLightningcss: true,
+      //      useWasmBinary: true,
+          //    swcTraceProfiling: true,
+          //    forceSwcTransforms: true,
     },
 }
 //const withBundleAnalyzer = require('@next/bundle-analyzer')({
 //  enabled: process.env.ANALYZE === 'true',
-//})
-//module.exports = withBundleAnalyzer({})
 
 const withMDX = createMDX({
     extension: /\.mdx?$/,
@@ -100,8 +114,8 @@ const withMDX = createMDX({
         // for most docs formatting. Frontmatter parsing can be handled separately
         // if needed (e.g. server-side gray-matter extraction), which avoids
         // depending on unified plugin resolution in the dev bundler.
-        remarkPlugins: ['remark-gfm'],
-        rehypePlugins: ['rehype-highlight'],
+        remarkPlugins: ['remark-gfm', 'remark-frontmatter', 'remark-breaks', 'remark-parse', 'remark-rehype', 'remark-highlight'],
+        rehypePlugins: ['rehype-highlight', 'rehypee-class-names'],
     },
 })
 

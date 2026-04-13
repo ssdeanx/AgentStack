@@ -1,5 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { z } from 'zod'
+import type { ChunkType } from '@mastra/core/stream'
+import type { MastraModelOutput } from '@mastra/core/stream'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { contentStrategistAgent } from '../agents/contentStrategistAgent'
 import { editorAgent } from '../agents/editorAgent'
@@ -86,6 +88,8 @@ const reviewOutputSchema = z.object({
     finalScript: z.string(),
 })
 
+type WorkflowChunk<Output> = ChunkType<Output>
+
 const refineInputSchema = z.object({
     finalScript: z.string(),
     feedback: z.string(),
@@ -131,23 +135,28 @@ const researchStep = createStep({
 Focus on finding unique angles, trending discussions, and key facts.
 Return JSON with summary, data, and sources.`
 
-            const stream = await researchAgent.stream(prompt, {
-                output: researchAgentOutputSchema,
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<
+                z.infer<typeof researchAgentOutputSchema>
+            > = await researchAgent.stream(prompt, {
+                structuredOutput: {
+                    schema: researchAgentOutputSchema,
+                },
+            })
 
-            // Ensure we always return a valid object matching the schema
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<z.infer<typeof researchAgentOutputSchema>>>) {
+                    await writer.write(chunk)
+                }
+            }
+
             let researchData: z.infer<typeof researchAgentOutputSchema> = {
                 summary: '',
                 data: '',
             }
             try {
-                const parsed = JSON.parse(finalText)
-                // Validate parsed data against the schema (runtime safety)
-                researchData = researchAgentOutputSchema.parse(parsed)
+                researchData = await stream.object
             } catch {
-                // If parsing or validation fails, keep the default empty object
+                // If object resolution fails, keep the default empty object.
             }
 
             const output = { topic: inputData.topic, researchData }
@@ -210,24 +219,29 @@ const evaluationStep = createStep({
 Research Summary: ${inputData.researchData.summary}
 Return JSON with isRelevant and reason.`
 
-            const stream = await evaluationAgent.stream(prompt, {
-                output: evaluationAgentOutputSchema,
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<
+                z.infer<typeof evaluationAgentOutputSchema>
+            > = await evaluationAgent.stream(prompt, {
+                structuredOutput: {
+                    schema: evaluationAgentOutputSchema,
+                },
+            })
 
-            // Default evaluation in case parsing/validation fails
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<z.infer<typeof evaluationAgentOutputSchema>>>) {
+                    await writer.write(chunk)
+                }
+            }
+
             let evaluation: z.infer<typeof evaluationAgentOutputSchema> = {
                 isRelevant: false,
                 reason: '',
             }
 
             try {
-                const parsed = JSON.parse(finalText)
-                // Validate against the schema for runtime safety
-                evaluation = evaluationAgentOutputSchema.parse(parsed)
+                evaluation = await stream.object
             } catch {
-                // Keep the default evaluation object
+                // Keep the default evaluation object.
             }
 
             const output = { ...inputData, evaluation }
@@ -289,22 +303,28 @@ const learningStep = createStep({
 ${inputData.researchData.data}
 Return JSON with learning and followUpQuestion.`
 
-            const stream = await learningExtractionAgent.stream(prompt, {
-                output: learningAgentOutputSchema,
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<
+                z.infer<typeof learningAgentOutputSchema>
+            > = await learningExtractionAgent.stream(prompt, {
+                structuredOutput: {
+                    schema: learningAgentOutputSchema,
+                },
+            })
 
-            // Default learning object to satisfy schema if parsing fails
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<z.infer<typeof learningAgentOutputSchema>>>) {
+                    await writer.write(chunk)
+                }
+            }
+
             let learning: z.infer<typeof learningAgentOutputSchema> = {
                 learning: '',
                 followUpQuestion: '',
             }
             try {
-                const parsed = JSON.parse(finalText)
-                learning = learningAgentOutputSchema.parse(parsed)
+                learning = await stream.object
             } catch {
-                // Keep default learning object on error
+                // Keep default learning object on error.
             }
 
             const output = { ...inputData, learning }
@@ -377,13 +397,19 @@ ${researchContext}
 
 Return JSON with title, targetAudience, angle, and keyPoints.`
 
-            const stream = await contentStrategistAgent.stream(prompt, {
-                output: strategyOutputSchema.shape.plan,
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<
+                z.infer<typeof strategyOutputSchema>['plan']
+            > = await contentStrategistAgent.stream(prompt, {
+                structuredOutput: {
+                    schema: strategyOutputSchema.shape.plan,
+                },
+            })
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<z.infer<typeof strategyOutputSchema>['plan']>>) {
+                    await writer.write(chunk)
+                }
+            }
 
-            // Default plan to satisfy the schema if parsing/validation fails
             const defaultPlan: z.infer<typeof strategyOutputSchema>['plan'] = {
                 title: '',
                 targetAudience: '',
@@ -393,10 +419,9 @@ Return JSON with title, targetAudience, angle, and keyPoints.`
 
             let plan: z.infer<typeof strategyOutputSchema>['plan'] = defaultPlan
             try {
-                const parsed = JSON.parse(finalText)
-                plan = strategyOutputSchema.shape.plan.parse(parsed)
+                plan = await stream.object
             } catch {
-                // Keep defaultPlan on error
+                // Keep defaultPlan on error.
             }
 
             const output = { plan }
@@ -460,20 +485,24 @@ const hookStep = createStep({
             )}.
   Return JSON with an array of strings named 'hooks'.`
 
-            const stream = await scriptWriterAgent.stream(prompt, {
-                output: z.object({ hooks: z.array(z.string()) }),
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<{ hooks: string[] }> =
+                await scriptWriterAgent.stream(prompt, {
+                    structuredOutput: {
+                        schema: z.object({ hooks: z.array(z.string()) }),
+                    },
+                })
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<{ hooks: string[] }>>) {
+                    await writer.write(chunk)
+                }
+            }
 
-            // Default to an empty hooks array if parsing or validation fails
             let hooks: string[] = []
             try {
-                const parsed = JSON.parse(finalText)
-                const validated = hookOutputSchema.shape.hooks.parse(parsed)
-                hooks = validated
+                const parsed = await stream.object
+                hooks = parsed.hooks
             } catch {
-                // Keep hooks as empty array on error
+                // Keep hooks as empty array on error.
             }
 
             const output = { hooks, plan: inputData.plan }
@@ -534,16 +563,26 @@ const bodyStep = createStep({
 
             const prompt = `Write the main body script for this plan: ${JSON.stringify(inputData.plan)}.
     Do not include hooks. Return JSON with 'bodyScript'.`
-            const stream = await scriptWriterAgent.stream(prompt, {
-                output: z.object({ bodyScript: z.string() }),
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<{ bodyScript: string }> =
+                await scriptWriterAgent.stream(prompt, {
+                    structuredOutput: {
+                        schema: z.object({ bodyScript: z.string() }),
+                    },
+                })
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<{ bodyScript: string }>>) {
+                    await writer.write(chunk)
+                }
+            }
+
             let bodyResult: z.infer<typeof bodyOutputSchema> | null = null
             try {
-                bodyResult = JSON.parse(finalText) as z.infer<
-                    typeof bodyOutputSchema
-                >
+                const parsed = await stream.object
+                bodyResult = {
+                    bodyScript: parsed.bodyScript,
+                    plan: inputData.plan,
+                    hooks: inputData.hooks,
+                }
             } catch {
                 bodyResult = null
             }
@@ -615,13 +654,21 @@ const reviewStep = createStep({
 Rate 0-100. If < 80, give feedback.
 Return JSON with score, feedback, approved, and finalScript (which is just the input script for now).`
 
-            const stream = await editorAgent.stream(prompt, {
-                output: reviewOutputSchema,
-            } as any)
-            await stream.textStream.pipeTo(writer)
-            const finalText = await stream.text
+            const stream: MastraModelOutput<{ score: number; feedback: string }> =
+                await editorAgent.stream(prompt, {
+                    structuredOutput: {
+                        schema: z.object({
+                            score: z.number(),
+                            feedback: z.string(),
+                        }),
+                    },
+                })
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<WorkflowChunk<{ score: number; feedback: string }>>) {
+                    await writer.write(chunk)
+                }
+            }
 
-            // Default values that satisfy the schema
             const defaultReview: z.infer<typeof reviewOutputSchema> = {
                 score: 0,
                 feedback: '',
@@ -631,11 +678,15 @@ Return JSON with score, feedback, approved, and finalScript (which is just the i
 
             let review: z.infer<typeof reviewOutputSchema> = defaultReview
             try {
-                const parsed = JSON.parse(finalText)
-                // Validate parsed data against the schema; will throw if invalid
-                review = reviewOutputSchema.parse(parsed)
+                const parsed = await stream.object
+                review = reviewOutputSchema.parse({
+                    score: parsed.score,
+                    feedback: parsed.feedback,
+                    approved: parsed.score >= 80,
+                    finalScript: fullScript,
+                })
             } catch {
-                // Keep defaultReview on error
+                // Keep the default review on error.
             }
 
             // Ensure the finalScript always contains the full script
@@ -699,7 +750,11 @@ const refineStep = createStep({
             const refinePrompt = `Refine this script based on feedback: "${inputData.feedback}".
 Script: ${inputData.finalScript}`
             const refineStream = await scriptWriterAgent.stream(refinePrompt)
-            await refineStream.textStream.pipeTo(writer)
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of refineStream.fullStream as AsyncIterable<WorkflowChunk<undefined>>) {
+                    await writer.write(chunk)
+                }
+            }
             const refinedScript = await refineStream.text
 
             if (!refinedScript) {
@@ -711,11 +766,21 @@ Script: ${inputData.finalScript}`
             // 2. Re‑evaluate the refined script
             const evalPrompt = `Evaluate this refined script. Rate 0-100.
 Script: ${refinedScript}`
-            const evalStream = await editorAgent.stream(evalPrompt, {
-                output: reviewOutputSchema,
-            } as any)
-            await evalStream.textStream.pipeTo(writer)
-            const evalFinalText = await evalStream.text
+            const evalStream: MastraModelOutput<{
+                score: number
+                feedback: string
+                approved: boolean
+                finalScript: string
+            }> = await editorAgent.stream(evalPrompt, {
+                structuredOutput: {
+                    schema: reviewOutputSchema,
+                },
+            })
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of evalStream.fullStream as AsyncIterable<WorkflowChunk<z.infer<typeof reviewOutputSchema>>>) {
+                    await writer.write(chunk)
+                }
+            }
 
             // Default review values that satisfy the schema
             const defaultReview: z.infer<typeof reviewOutputSchema> = {
@@ -725,10 +790,9 @@ Script: ${refinedScript}`
                 finalScript: refinedScript,
             }
 
-            let review: z.infer<typeof reviewOutputSchema>
+            let review: z.infer<typeof reviewOutputSchema> = defaultReview
             try {
-                const parsed = JSON.parse(evalFinalText)
-                review = reviewOutputSchema.parse(parsed)
+                review = await evalStream.object
             } catch {
                 review = defaultReview
             }
