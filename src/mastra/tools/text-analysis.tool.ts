@@ -74,6 +74,10 @@ export const textAnalysisTool = createTool({
         const includeAdvancedMetrics =
             requestCtx?.includeAdvancedMetrics ?? false
 
+        if (abortSignal?.aborted ?? false) {
+            throw new Error('Text analysis cancelled', { cause: abortSignal })
+        }
+
         // Create root span using getOrCreateSpan (creates root OR attaches to parent)
         const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
@@ -86,7 +90,7 @@ export const textAnalysisTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            tracingContext,
         })
 
         // Create child span for text analysis
@@ -313,6 +317,10 @@ export const textProcessingTool = createTool({
             | TextAnalysisToolContext
             | undefined
 
+        if (abortSignal?.aborted ?? false) {
+            throw new Error('Text processing cancelled', { cause: abortSignal })
+        }
+
         // Create root span using getOrCreateSpan (creates root OR attaches to parent)
         const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
@@ -325,7 +333,7 @@ export const textProcessingTool = createTool({
                 'user.id': requestCtx?.userId,
             },
             requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            tracingContext,
         })
 
         // Create child span for text processing
@@ -500,7 +508,7 @@ function countParagraphs(text: string): number {
     return paragraphs.filter((para) => para.trim().length > 0).length
 }
 
-function calculateReadability(text: string, language: string) {
+function calculateReadability(text: string, _language: string) {
     const words = countWords(text)
     const sentences = countSentences(text)
 
@@ -550,7 +558,7 @@ function calculateReadability(text: string, language: string) {
     }
 }
 
-function analyzeSentiment(text: string, language: string) {
+function analyzeSentiment(text: string, _language: string) {
     // Simplified sentiment analysis (positive/negative word counting)
     const positiveWords = [
         'good',

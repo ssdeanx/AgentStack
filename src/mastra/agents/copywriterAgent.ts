@@ -1,10 +1,7 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
-
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import {
   USER_ID_CONTEXT_KEY,
 //  USER_TIER_CONTEXT_KEY,
@@ -18,7 +15,7 @@ import {
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import { fetchTool } from '../tools'
 import { google } from '../config'
-
+import { LibsqlMemory } from '../config/libsql'
 // Define runtime context for this agent
 export type CopywriterAgentContext = AgentRequestContext<{
   contentType?: string
@@ -72,7 +69,7 @@ Create compelling content (blog, marketing, social, technical, business, creativ
     }
   },
   model: 'google/gemini-3.1-flash-lite-preview',
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: copywriterTools,
   scorers: {
    // toneConsistency: { scorer: createToneScorer() },
@@ -81,12 +78,11 @@ Create compelling content (blog, marketing, social, technical, business, creativ
   },
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   workflows: {},
   maxRetries: 5,
-  outputProcessors: [new TokenLimiterProcessor(128576)],
   //  defaultOptions: {
   //     autoResumeSuspendedTools: true,
   // },

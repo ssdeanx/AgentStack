@@ -1,6 +1,7 @@
 import type { TracingContext } from '@mastra/core/observability'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
 import { createTool, type InferUITool } from '@mastra/core/tools'
 import { MDocument } from '@mastra/rag'
 import type { Browser } from 'playwright-core'
@@ -8,13 +9,11 @@ import { chromium } from 'playwright-core'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
-type UserTier = 'free' | 'pro' | 'enterprise'
-
-export interface BrowserRequestContext extends RequestContext {
-    userId?: string
-    sessionId?: string
-    'user-tier': UserTier
-}
+/**
+ * Browser Tools
+ *
+ * Provides capabilities for web scraping, screenshots, PDF generation, and interaction.
+ */
 
 // Browser instance cache for reuse
 let browserInstance: Browser | null = null
@@ -204,9 +203,9 @@ export const browserTool = createTool({
         const abortSignal = context?.abortSignal
         const tracingContext: TracingContext | undefined =
             context?.tracingContext
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted === true) {
@@ -220,7 +219,8 @@ export const browserTool = createTool({
             metadata: {
                 'tool.id': 'browser-scrape',
                 'tool.input.url': inputData.url,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
         })
@@ -235,9 +235,9 @@ export const browserTool = createTool({
             id: 'browserTool',
         })
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing browser scrape for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
 
@@ -401,9 +401,9 @@ export const screenshotTool = createTool({
     outputSchema: screenshotToolOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-screenshot',
@@ -412,7 +412,8 @@ export const screenshotTool = createTool({
                 'tool.id': 'browser-screenshot',
                 'tool.input.url': inputData.url,
                 'tool.input.fullPage': inputData.fullPage,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
         })
@@ -423,9 +424,9 @@ export const screenshotTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing browser screenshot for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -538,9 +539,9 @@ export const pdfGeneratorTool = createTool({
     outputSchema: pdfToolOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-pdf',
@@ -549,7 +550,8 @@ export const pdfGeneratorTool = createTool({
                 'tool.id': 'browser-pdf',
                 'tool.input.url': inputData.url,
                 'tool.input.format': inputData.format,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             tracingContext: context?.tracingContext,
             requestContext: context?.requestContext,
@@ -561,9 +563,9 @@ export const pdfGeneratorTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing PDF generation for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -582,7 +584,7 @@ export const pdfGeneratorTool = createTool({
             })
 
             const pdf = await page.pdf({
-                format: inputData.format ?? 'A4',
+                format: inputData.format,
                 landscape: inputData.landscape ?? false,
                 printBackground: inputData.printBackground ?? true,
             })
@@ -694,9 +696,9 @@ export const clickAndExtractTool = createTool({
     outputSchema: clickAndExtractOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
@@ -705,7 +707,8 @@ export const clickAndExtractTool = createTool({
             metadata: {
                 'tool.id': 'browser-content-extract',
                 'tool.input.url': inputData.url,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             tracingContext: context?.tracingContext,
             requestContext: context?.requestContext,
@@ -717,9 +720,9 @@ export const clickAndExtractTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing click and extract for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -754,7 +757,7 @@ export const clickAndExtractTool = createTool({
                 inputData.waitForSelector !== undefined &&
                 inputData.waitForSelector !== null
             ) {
-                await context?.writer?.custom({
+                await context.writer?.custom({
                     type: 'data-tool-progress',
                     data: {
                         message: `⏳ Waiting for ${inputData.waitForSelector}`,
@@ -773,7 +776,7 @@ export const clickAndExtractTool = createTool({
 
             await page.close()
 
-            await context?.writer?.custom({
+            await context.writer?.custom({
                 type: 'data-tool-progress',
                 data: { message: '✅ Content extracted' },
             })
@@ -874,10 +877,10 @@ export const fillFormTool = createTool({
     }),
     outputSchema: fillFormOutputSchema,
     execute: async (inputData, context) => {
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-fill-form',
@@ -886,20 +889,21 @@ export const fillFormTool = createTool({
                 'tool.id': 'browser-fill-form',
                 'tool.input.url': inputData.url,
                 'tool.input.fieldCount': inputData.fields.length,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
         })
 
-        await context?.writer?.custom({
+        await context.writer?.custom({
             type: 'data-tool-progress',
             data: { message: `📝 Filling form on ${inputData.url}` },
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing fill form for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -922,7 +926,7 @@ export const fillFormTool = createTool({
                 inputData.submitSelector !== undefined &&
                 inputData.submitSelector !== null
             ) {
-                await context?.writer?.custom({
+                await context.writer?.custom({
                     type: 'data-tool-progress',
                     data: { message: '📤 Submitting form...' },
                 })
@@ -941,7 +945,7 @@ export const fillFormTool = createTool({
             const finalUrl = page.url()
             await page.close()
 
-            await context?.writer?.custom({
+            await context.writer?.custom({
                 type: 'data-tool-progress',
                 data: { message: '✅ Form submitted' },
             })
@@ -1022,10 +1026,10 @@ export const googleSearch = createTool({
     }),
     outputSchema: googleSearchOutputSchema,
     execute: async (inputData, context) => {
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'google-search',
@@ -1033,13 +1037,13 @@ export const googleSearch = createTool({
             metadata: {
                 'tool.id': 'google-search',
                 'tool.input.query': inputData.query,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            requestContext: context.requestContext,
         })
 
-        await context?.writer?.custom({
+        await context.writer?.custom({
             type: 'data-tool-progress',
             data: {
                 message:
@@ -1048,9 +1052,9 @@ export const googleSearch = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing Google search for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -1216,9 +1220,9 @@ export const extractTablesTool = createTool({
     }),
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-extract-tables',
@@ -1227,7 +1231,8 @@ export const extractTablesTool = createTool({
                 'tool.id': 'browser-extract-tables',
                 'tool.input.url': inputData.url,
                 'tool.input.tableIndex': inputData.tableIndex,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
             tracingContext: context?.tracingContext,
@@ -1239,9 +1244,9 @@ export const extractTablesTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing table extraction for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -1374,17 +1379,18 @@ export const monitorPageTool = createTool({
     outputSchema: monitorPageOutputSchema,
     execute: async (inputData, context) => {
         const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | BrowserRequestContext
-            | undefined
+        const requestContext = context?.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'browser-extract-tables',
             input: inputData,
             metadata: {
-                'tool.id': 'browser-extract-tables',
+                'tool.id': 'browser-monitor',
                 'tool.input.url': inputData.url,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
             requestContext: context?.requestContext,
             tracingContext: context?.tracingContext,
@@ -1396,9 +1402,9 @@ export const monitorPageTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing page monitor for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {

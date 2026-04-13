@@ -7,9 +7,24 @@ import { Button } from '@/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/card'
 import { Input } from '@/ui/input'
 import { Badge } from '@/ui/badge'
-import { ArrowLeftIcon, Loader2Icon, SearchIcon, GitBranchIcon } from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/ui/tooltip'
+import { Panel } from '@/src/components/ai-elements/panel'
+import {
+    ArrowLeftIcon,
+    CircleHelpIcon,
+    Loader2Icon,
+    SearchIcon,
+    GitBranchIcon,
+    PanelRightCloseIcon,
+} from 'lucide-react'
 
 interface WorkflowRecord {
+    id?: string
     name: string
     description?: string
     steps?: unknown[] | Record<string, unknown>
@@ -29,6 +44,7 @@ export default function ChatWorkflowsPage() {
     const router = useRouter()
     const { data, isLoading, error } = useWorkflows()
     const [query, setQuery] = useState('')
+    const [showHelpPanel, setShowHelpPanel] = useState(true)
 
     const workflows = useMemo(() => {
         if (!Array.isArray(data)) {
@@ -51,7 +67,8 @@ export default function ChatWorkflowsPage() {
     }, [query, workflows])
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
+        <TooltipProvider delayDuration={150}>
+            <div className="flex min-h-screen flex-col bg-background">
             <header className="border-b bg-card/60 backdrop-blur">
                 <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
                     <Button
@@ -75,12 +92,62 @@ export default function ChatWorkflowsPage() {
                         </div>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
-                        <Badge variant="secondary">{workflows.length} workflows</Badge>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Badge variant="secondary" className="cursor-help">{workflows.length} workflows</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Live workflow templates returned from the Mastra client.</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowHelpPanel((current) => !current)}
+                                    aria-label={showHelpPanel ? 'Hide workflows help panel' : 'Show workflows help panel'}
+                                >
+                                    {showHelpPanel ? <PanelRightCloseIcon className="size-4" /> : <CircleHelpIcon className="size-4" />}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {showHelpPanel ? 'Hide the workflow help panel.' : 'Show the workflow help panel.'}
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 </div>
             </header>
 
             <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+                {showHelpPanel ? (
+                    <Panel position="top-right" className="pointer-events-auto z-20 w-88">
+                        <div className="rounded-3xl border border-border/60 bg-card/95 p-4 shadow-xl backdrop-blur">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-sm font-semibold text-foreground">Workflow help</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Drill into a workflow to inspect details, schema, and runs.
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowHelpPanel(false)}
+                                    aria-label="Close workflows help panel"
+                                >
+                                    <PanelRightCloseIcon className="size-4" />
+                                </Button>
+                            </div>
+
+                            <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                                <p>Use the search box to filter by name or description.</p>
+                                <p>Each card can link into the new workflow detail route for a richer inspection experience.</p>
+                            </div>
+                        </div>
+                    </Panel>
+                ) : null}
+
                 <div className="relative max-w-xl">
                     <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -118,7 +185,7 @@ export default function ChatWorkflowsPage() {
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {filteredWorkflows.map((workflow) => (
-                            <Card key={workflow.name} className="h-full">
+                            <Card key={workflow.id ?? workflow.name} className="h-full">
                                 <CardHeader className="space-y-2">
                                     <div className="flex items-center justify-between gap-3">
                                         <CardTitle className="text-base">{workflow.name}</CardTitle>
@@ -131,12 +198,23 @@ export default function ChatWorkflowsPage() {
                                         <div className="mb-1 font-medium text-foreground">Structure</div>
                                         <div>Steps: {getStepCount(workflow)}</div>
                                     </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => {
+                                                router.push(`/chat/workflows/${encodeURIComponent(workflow.id ?? workflow.name)}`)
+                                        }}
+                                    >
+                                        Open workflow details
+                                    </Button>
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
                 )}
             </main>
-        </div>
+            </div>
+        </TooltipProvider>
     )
 }

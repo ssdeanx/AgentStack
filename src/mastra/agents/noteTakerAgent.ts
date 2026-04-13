@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import { GoogleVoice } from '@mastra/voice-google'
-import { pgMemory } from '../config'
+import { LibsqlMemory } from '../config/libsql'
 import { InternalSpans } from '@mastra/core/observability'
 
 const instructions1 = `
@@ -11,7 +11,7 @@ export const noteTakerAgent = new Agent({
     id: 'noteTakerAgent',
     name: 'Note Taker Agent',
     instructions: instructions1,
-    memory: pgMemory,
+    memory: LibsqlMemory,
     //  tools: [],
     model: 'google/gemini-3.1-flash-lite-preview',
     options: {

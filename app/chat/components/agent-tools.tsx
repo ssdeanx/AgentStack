@@ -11,7 +11,7 @@ import type { ToolInvocationState } from '../providers/chat-context-types'
 import type { DynamicToolUIPart } from 'ai'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
-import type { AgentToolsProps } from './chat.types'
+import type { AgentToolsProps } from '../providers/chat-context-types'
 import {
     BrowserToolCard,
     ScreenshotCard,
@@ -21,14 +21,6 @@ import {
     GoogleSearchCard,
     MonitorPageCard,
 } from '@/src/components/ai-elements/tools/browser-tool'
-
-// Import custom tool components
-import {
-    WebScraperTool,
-} from '@/src/components/ai-elements/tools/web-scraper-tool'
-import { BatchWebScraperTool } from '@/src/components/ai-elements/tools/batch-web-scraper-tool'
-import { SiteMapExtractorTool } from '@/src/components/ai-elements/tools/site-map-extractor-tool'
-import { LinkExtractorTool } from '@/src/components/ai-elements/tools/link-extractor-tool'
 import {
     FinancialQuoteCard,
     FinancialChart,
@@ -43,10 +35,6 @@ import {
 import { WeatherCard, ForecastView } from '@/src/components/ai-elements/tools/weather-tool'
 import { ArxivPaperCard } from '@/src/components/ai-elements/tools/research-tools'
 import type {
-    WebScraperUITool,
-    BatchWebScraperUITool,
-    SiteMapExtractorUITool,
-    LinkExtractorUITool,
     FinnhubQuotesUITool,
     PolygonStockQuotesUITool,
     ChartSupervisorUITool,
@@ -161,65 +149,6 @@ export function AgentTools({ tools, className }: AgentToolsProps) {
                         (m): m is string =>
                             typeof m === 'string' && m.length > 0
                     )
-
-                // Check if this is a web scraper tool and render custom component
-                if (toolName === 'web:scraper' && hasOutput) {
-                    return (
-                        <WebScraperTool
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={latest.input as WebScraperUITool['input']}
-                            output={latest.output as WebScraperUITool['output']}
-                            errorText={errorText}
-                        />
-                    )
-                }
-
-                if (toolName === 'batch-web-scraper' && hasOutput) {
-                    return (
-                        <BatchWebScraperTool
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={
-                                latest.input as BatchWebScraperUITool['input']
-                            }
-                            output={
-                                latest.output as BatchWebScraperUITool['output']
-                            }
-                            errorText={errorText}
-                        />
-                    )
-                }
-
-                if (toolName === 'site-map-extractor' && hasOutput) {
-                    return (
-                        <SiteMapExtractorTool
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={
-                                latest.input as SiteMapExtractorUITool['input']
-                            }
-                            output={
-                                latest.output as SiteMapExtractorUITool['output']
-                            }
-                            errorText={errorText}
-                        />
-                    )
-                }
-
-                if (toolName === 'link-extractor' && hasOutput) {
-                    return (
-                        <LinkExtractorTool
-                            key={`${id}-${toolName}-${toolState}-${groupIdx}`}
-                            toolCallId={id}
-                            input={latest.input as LinkExtractorUITool['input']}
-                            output={
-                                latest.output as LinkExtractorUITool['output']
-                            }
-                            errorText={errorText}
-                        />
-                    )
-                }
 
                 if (
                     (toolName === 'browserTool' || toolName === 'browser') &&

@@ -1,22 +1,10 @@
 import { Agent } from '@mastra/core/agent'
 
 import type { GoogleGenerativeAIProviderOptions, GoogleLanguageModelOptions } from '@ai-sdk/google'
-import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
-import {
-  createAnswerRelevancyScorer,
-  createToxicityScorer,
-} from '@mastra/evals/scorers/prebuilt'
+
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { pgMemory } from '../config/pg-storage'
-import { codeAnalysisTool } from '../tools/code-analysis.tool'
-import { codeSearchTool } from '../tools/code-search.tool'
-import { diffReviewTool } from '../tools/diff-review.tool'
-import { findReferencesTool } from '../tools/find-references.tool'
-import { findSymbolTool } from '../tools/find-symbol.tool'
 import {
   getFileContent,
   getRepositoryInfo,
@@ -25,14 +13,13 @@ import {
   listRepositories,
   searchCode,
 } from '../tools/github'
-import { multiStringEditTool } from '../tools/multi-string-edit.tool'
-import { testGeneratorTool } from '../tools/test-generator.tool'
 import {
   getLanguageFromContext,
-  resolveTieredModelFromContext,
-  getUserTierFromContext,
+  resolveModelFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type CodingRuntimeContext = AgentRequestContext<{
   projectRoot: string
@@ -43,10 +30,6 @@ log.info('Initializing Coding Team Agents...')
 const CODE_PROJECT_ROOT_CONTEXT_KEY = 'projectRoot' as const
 
 const codeArchitectTools = {
-  codeAnalysisTool,
-  codeSearchTool,
-  findSymbolTool,
-  findReferencesTool,
   getRepositoryInfo,
   getFileContent,
   searchCode,
@@ -56,32 +39,24 @@ const codeArchitectTools = {
 }
 
 const codeReviewerTools = {
-  codeAnalysisTool,
-  diffReviewTool,
-  findReferencesTool,
-  findSymbolTool,
   getRepositoryInfo,
   getFileContent,
   searchCode,
 }
 
 const testEngineerTools = {
-  codeAnalysisTool,
-  testGeneratorTool,
 
 }
 
 const refactoringTools = {
-  codeAnalysisTool,
-  diffReviewTool,
-  multiStringEditTool,
   searchCode,
   getFileContent,
   getRepositoryInfo,
 }
 
 /**
- * Code Architect Agent
+ * Code Architect Agent.
+ *
  * Specializes in code architecture, design patterns, and implementation planning.
  */
 export const codeArchitectAgent = new Agent({
@@ -90,7 +65,7 @@ export const codeArchitectAgent = new Agent({
   description:
     'Expert in software architecture, design patterns, and implementation planning. Analyzes codebases and proposes architectural solutions.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     // const projectRoot = requestContext.get('projectRoot') ?? process.cwd()
 
@@ -99,7 +74,7 @@ export const codeArchitectAgent = new Agent({
       content: `You are a Senior Software Architect. Your role is to analyze codebases, propose architectural solutions, and guide implementation.
 
 **Context:**
-- User Tier: ${userTier}
+- Role: ${role}
 - Language: ${language}
 
 **Core Capabilities:**
@@ -108,10 +83,10 @@ export const codeArchitectAgent = new Agent({
 3. **Implementation Planning**: Break down features into tasks with clear dependencies
 4. **Pattern Recognition**: Identify applicable design patterns (SOLID, DRY, etc.)
 5. **Code Search**: Find existing implementations and patterns in the codebase
-6. **Semantic Analysis**: Find symbol definitions and references to understand code relationships
+6. **Workspace Search/Edit**: Use workspace read/search/edit tools and LSP diagnostics to trace relationships safely
 
 **Process:**
-1. Analyze the request and existing codebase using codeAnalysisTool, codeSearchTool, and semantic tools
+1. Analyze the request and existing codebase using workspace search/read tools and sandbox checks
 2. Identify architectural concerns and constraints
 3. Propose solutions with clear rationale
 4. Provide implementation roadmap with file paths and dependencies
@@ -143,26 +118,22 @@ Always consider maintainability, scalability, and testability in your recommenda
     }
   },
   model: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
-    return userTier === 'enterprise' ? 'google/gemini-3.1-flash-preview' : 'google/gemini-3.1-flash-lite-preview'
+    const role = getRoleFromContext(requestContext)
+    return role === 'admin' ? 'google/gemini-3.1-flash-preview' : 'google/gemini-3.1-flash-lite-preview'
   },
   tools: codeArchitectTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
   },
   maxRetries: 3,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   inputProcessors: [],
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+//    new TokenLimiterProcessor(128000),
     //     new BatchPartsProcessor({
     //         batchSize: 20,
     //         maxWaitTime: 100,
@@ -174,7 +145,8 @@ Always consider maintainability, scalability, and testability in your recommenda
 //log.info('Cached tokens:', providerMetadata.google?.usageMetadata);
 
 /**
- * Code Reviewer Agent
+ * Code Reviewer Agent.
+ *
  * Specializes in code quality, security analysis, and best practices review.
  */
 export const codeReviewerAgent = new Agent({
@@ -183,7 +155,7 @@ export const codeReviewerAgent = new Agent({
   description:
     'Expert code reviewer focusing on quality, security, performance, and best practices.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
 
     return {
@@ -191,7 +163,7 @@ export const codeReviewerAgent = new Agent({
       content: `You are a Senior Code Reviewer. Your role is to analyze code for quality, security, and adherence to best practices.
 
 **Context:**
-- User Tier: ${userTier}
+- Role: ${role}
 - Language: ${language}
 
 **Review Categories:**
@@ -221,9 +193,9 @@ export const codeReviewerAgent = new Agent({
    - Logging and observability
 
 **Review Process:**
-1. Use codeAnalysisTool to get metrics and detect issues
-2. Use diffReviewTool to analyze changes if comparing versions
-3. Use findReferencesTool to check for impact of changes
+1. Use workspace search/read tools to inspect impacted files
+2. Use workspace search/read tools to inspect impacted files
+3. Use workspace edit tools with LSP diagnostics enabled for safe refactors
 4. Categorize findings by severity (critical, warning, info)
 5. Provide actionable recommendations with code examples
 
@@ -250,32 +222,24 @@ Be constructive and educational in feedback.`,
     }
   },
   model: ({ requestContext }) => {
-    return resolveTieredModelFromContext(requestContext, {
-      free: 'google/gemini-3.1-flash-lite-preview',
-      enterprise: 'google/gemini-3.1-flash-preview',
+    return resolveModelFromContext(requestContext, {
+      user: 'google/gemini-3.1-flash-lite-preview',
+      admin: 'google/gemini-3.1-flash-preview',
     })
   },
   tools: codeReviewerTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
-    safety: {
-      scorer: createToxicityScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
-      sampling: { type: 'ratio', rate: 0.3 },
-    },
   },
   maxRetries: 3,
   inputProcessors: [],
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+ //   new TokenLimiterProcessor(128000),
     //  new BatchPartsProcessor({
     //      batchSize: 20,
     //      maxWaitTime: 100,
@@ -285,7 +249,8 @@ Be constructive and educational in feedback.`,
 })
 
 /**
- * Test Engineer Agent
+ * Test Engineer Agent.
+ *
  * Specializes in test generation, coverage analysis, and testing strategies.
  */
 export const testEngineerAgent = new Agent({
@@ -294,7 +259,7 @@ export const testEngineerAgent = new Agent({
   description:
     'Expert in test generation, coverage analysis, and testing strategies using Vitest.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
 
     return {
@@ -302,7 +267,7 @@ export const testEngineerAgent = new Agent({
       content: `You are a Senior Test Engineer. Your role is to create comprehensive tests and improve test coverage.
 
 **Context:**
-- User Tier: ${userTier}
+- Role: ${role}
 - Language: ${language}
 - Framework: Vitest (always use Vitest, not Jest)
 
@@ -336,19 +301,16 @@ export const testEngineerAgent = new Agent({
    - Verify fixes
 
 **Process:**
-1. Analyze source code using codeAnalysisTool
+1. Analyze source code using workspace search/read tools
 2. Create isolated E2B sandbox for testing if needed
-3. Generate test scaffolds using testGeneratorTool
+3. Generate test scaffolds using workspace edit tools and existing test patterns
 4. Identify edge cases and error conditions
 5. Create comprehensive test suites
 6. Run tests to verify correctness
 
-**Sandbox Workflow (Safe Testing):**
-1. \`createSandbox\`: Start a new isolation environment
-2. \`writeFiles\`: Push code and tests to sandbox
-3. \`runCommand\`: Execute \`npm test\` or \`vitest\` in sandbox
-4. \`readFile\`: Retrieve test results or logs
-5. \`deleteFile\`: Cleanup (or let sandbox timeout)
+**Sandbox Workflow:**
+- Use your inter workspace/sandbox tools to use your sandbox environment for test execution and verification. This allows you to safely run tests and verify fixes without affecting the main codebase.
+
 
 **Output Format:**
 Provide:
@@ -373,27 +335,23 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
     }
   },
   model: ({ requestContext }) => {
-    return resolveTieredModelFromContext(requestContext, {
-      free: 'google/gemini-3.1-flash-lite-preview',
-      enterprise: 'google/gemini-3.1-flash-preview',
+    return resolveModelFromContext(requestContext, {
+      user: 'google/gemini-3.1-flash-lite-preview',
+      admin: 'google/gemini-3.1-flash-preview',
     })
   },
   tools: testEngineerTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
   },
   maxRetries: 3,
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+    //new TokenLimiterProcessor(128000),
     //  new BatchPartsProcessor({
     //      batchSize: 20,
     //      maxWaitTime: 100,
@@ -406,7 +364,8 @@ Always use Vitest syntax: describe, it, expect, vi.mock, vi.fn.`,
 })
 
 /**
- * Refactoring Agent
+ * Refactoring Agent.
+ *
  * Specializes in code refactoring, optimization, and quality improvement.
  */
 export const refactoringAgent = new Agent({
@@ -415,7 +374,7 @@ export const refactoringAgent = new Agent({
   description:
     'Expert in safe code refactoring, optimization, and quality improvement with before/after comparisons.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const rawProjectRoot = requestContext.get(CODE_PROJECT_ROOT_CONTEXT_KEY)
     const projectRoot =
@@ -425,69 +384,36 @@ export const refactoringAgent = new Agent({
       role: 'system',
       content: `You are a Senior Refactoring Specialist. Your role is to improve code quality through safe, incremental refactoring.
 
-**Context:**
-- User Tier: ${userTier}
-- Language: ${language}
-- Project Root: ${projectRoot}
+  **Context:**
+  - Role: ${role}
+  - Language: ${language}
+  - Project Root: ${projectRoot}
 
-**Refactoring Techniques:**
+  **Refactoring Techniques:**
+  1. **Extract Method/Function** - identify reusable code blocks and reduce duplication.
+  2. **Simplify Conditionals** - use guard clauses and early returns.
+  3. **Rename and Reorganize** - prefer meaningful names and logical file structure.
+  4. **Design Pattern Application** - use patterns only when they improve clarity.
+  5. **Performance Optimization** - consider algorithmic improvements and caching.
 
-1. **Extract Method/Function**
-   - Identify reusable code blocks
-   - Create well-named functions
-   - Reduce duplication
+  **Safety Principles:**
+  - Make one change at a time.
+  - Verify behavior before and after the edit.
+  - Use the workspace edit tools and review LSP diagnostics after every change.
 
-2. **Simplify Conditionals**
-   - Guard clauses
-   - Early returns
-   - Decompose complex conditions
+  **Process:**
+  1. Analyze code with workspace search/read tools to identify issues.
+  2. Use workspace search/read tools to inspect the target region.
+  3. Use a sandbox to verify changes before applying them locally.
+  4. Apply changes with the workspace edit tool and review diagnostics.
+  5. Re-run tests or checks in the sandbox if needed.
 
-3. **Rename and Reorganize**
-   - Meaningful variable names
-   - Consistent naming conventions
-   - Logical file structure
+  **Output Format:**
+  For each refactoring, provide the problem, the proposed solution, a before/after diff, risk, and verification steps.
 
-4. **Design Pattern Application**
-   - Factory, Strategy, Observer patterns
-   - Dependency injection
-   - Interface extraction
-
-5. **Performance Optimization**
-   - Algorithm improvements
-   - Caching strategies
-   - Lazy evaluation
-
-**Safety Principles:**
-- Make one change at a time
-- Ensure tests pass before and after
-- Use dry-run mode first
-- Create backups before modifications
-
-**Process:**
-1. Analyze code with codeAnalysisTool to identify issues
-2. Generate diff preview with diffReviewTool
-3. Use E2B sandboxes to verify changes before local application
-4. Apply changes with multiStringEditTool (dry-run first)
-5. Verify changes don't break functionality (run tests in sandbox)
-
-**Sandbox Workflow (Safe Refactoring):**
-1. \`createSandbox\`: Start a new isolation environment
-2. \`writeFiles\`: Push original code to sandbox
-3. \`runCode\`: Run snippets or tests to establish baseline
-4. \`writeFiles\`: Push refactored code
-5. \`runCode\` or \`runCommand\`: Verify behavior remains correct
-6. If verified, proceed to local \`multiStringEditTool\`
-
-**Output Format:**
-For each refactoring:
-- Problem identified
-- Proposed solution
-- Before/after diff
-- Risk assessment
-- Verification steps
-
-**Rules:**
-- **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.`,
+  **Rules:**
+   - **Tool Efficiency:** Do NOT use the same tool repetitively or back-to-back for the same query.
+    - Prefer workspace tooling over custom file-manipulation helpers.`,
       providerOptions: {
         google: {
           thinkingConfig: {
@@ -500,27 +426,23 @@ For each refactoring:
     }
   },
   model: ({ requestContext }) => {
-    return resolveTieredModelFromContext(requestContext, {
-      free: 'google/gemini-3.1-flash-lite-preview',
-      enterprise: 'google/gemini-3.1-flash-preview',
+    return resolveModelFromContext(requestContext, {
+      user: 'google/gemini-3.1-flash-lite-preview',
+      admin: 'google/gemini-3.1-flash-preview',
     })
   },
   tools: refactoringTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: 'google/gemini-3.1-flash-lite-preview' }),
-      sampling: { type: 'ratio', rate: 0.5 },
-    },
   },
   maxRetries: 3,
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+  //  new TokenLimiterProcessor(128000),
     //   new BatchPartsProcessor({
     //       batchSize: 20,
     //       maxWaitTime: 100,

@@ -57,7 +57,7 @@ export const pgVector = new PgVector({
     connectionString:
         process.env.SUPABASE ??
         'postgresql://user:password@localhost:5432/mydb',
-    schemaName: process.env.DB_SCHEMA ?? 'mastra',
+    schemaName: process.env.DB_SCHEMA ?? 'mastra-pro',
     // Additional index options can be configured here if needed
 })
 
@@ -67,11 +67,19 @@ export const pgMemory = new Memory({
     vector: pgVector, // Using PgVector with flat for 3072 dimension embeddings (gemini-embedding-2-preview)
     embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     embedderOptions: {
+        telemetry: {
+            request: {
+                log: true,
+                logInputs: true,
+                logOutputs: true,
+            },
+        },
+        maxParallelCalls: 5, // Limit parallel embedding calls to avoid rate limits
         providerOptions: {
-             google: {
-                outputDimensions: 3072,
-                taskType: 'RETRIEVAL_DOCUMENT',
-            }
+            google: {
+                    outputDimensions: 3072,
+                    taskType: 'RETRIEVAL_DOCUMENT',
+            },
         },
     },
     options: {
@@ -110,7 +118,7 @@ export const pgMemory = new Memory({
             indexConfig: {
                 type: 'ivfflat', // flat index type (supports dimensions > 4000, unlike HNSW limit of 2000)
                 metric: 'cosine', // Distance metric for normalized embeddings
-                ivf: { lists: 2000 }, // IVFFlat configuration
+                ivf: { lists: 1800 }, // IVFFlat configuration
             },
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: 'memory_messages_3072', // Index name for semantic recall

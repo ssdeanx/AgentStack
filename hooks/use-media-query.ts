@@ -1,40 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 /**
  * Hook to track media query matches.
  * Robust implementation with SSR support and fallback for older browsers.
  */
 export function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(false)
+    return useSyncExternalStore(
+        (onStoreChange) => {
+            if (typeof window === 'undefined') {
+                return () => undefined
+            }
 
-    useEffect(() => {
-        if (typeof window === 'undefined') {return}
+            const media = window.matchMedia(query)
+            const listener = () => onStoreChange()
 
-        const media = window.matchMedia(query)
-
-        // Set initial value
-        setMatches(media.matches)
-
-        const listener = (event: MediaQueryListEvent) => {
-            setMatches(event.matches)
-        }
-
-        // Standard addEventListener for modern browsers
-        if (media.addEventListener) {
             media.addEventListener('change', listener)
-            return () => media.removeEventListener('change', listener)
-        }
 
-        // Fallback for older Safari (< 14) and other older browsers
-        // @ts-ignore - addListener is deprecated but required for old browsers
-        media.addListener(listener)
-        // @ts-ignore
-        return () => media.removeListener(listener)
-    }, [query])
-
-    return matches
+            return () => {
+                media.removeEventListener('change', listener)
+            }
+        },
+        () => (typeof window === 'undefined' ? false : window.matchMedia(query).matches),
+        () => false
+    )
 }
 
 export function useIsMobile(): boolean {

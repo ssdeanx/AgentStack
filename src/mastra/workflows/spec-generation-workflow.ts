@@ -1,11 +1,12 @@
 import type { RequestContext } from '@mastra/core/request-context'
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import type { ChunkType } from '@mastra/core/stream'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 
-export type UserTier = 'free' | 'pro' | 'enterprise'
+export type SubscriptionTier = 'free' | 'pro' | 'enterprise'
 export interface SpecRuntimeContext {
-    'user-tier': UserTier
+    'subscription-tier': SubscriptionTier
 }
 
 // --- Schemas ---
@@ -89,16 +90,16 @@ const planStep = createStep({
             id: 'create-plan',
         })
 
-        const userTierSchema = z
+        const subscriptionTierSchema = z
             .enum(['free', 'pro', 'enterprise'])
             .default('free')
-        const userTier = userTierSchema.parse(
+        const subscriptionTier = subscriptionTierSchema.parse(
             (requestContext as RequestContext<SpecRuntimeContext>)?.get(
-                'user-tier'
+                'subscription-tier'
             )
         )
         const detailLevel =
-            userTier === 'enterprise'
+            subscriptionTier === 'enterprise'
                 ? 'extremely detailed and comprehensive'
                 : 'standard'
 
@@ -107,7 +108,7 @@ const planStep = createStep({
       You are an expert Software Development Orchestrator. Your goal is to analyze a user request and plan the documentation generation process.
 
       [CONTEXT]
-      User Tier: ${userTier} (Please provide a ${detailLevel} plan)
+    Subscription Tier: ${subscriptionTier} (Please provide a ${detailLevel} plan)
       User Request: ${request}
       Additional Context: ${context ?? 'None'}
       ${hasGithubRepo ? `GitHub Repository: ${githubRepo}` : ''}
@@ -124,108 +125,39 @@ const planStep = createStep({
     `
 
         try {
-            const stream = await agent.stream(prompt)
-            const finalText = await stream.text
-            const result = { text: finalText }
+            const stream = await agent.stream(prompt, {
+                structuredOutput: {
+                    schema: planOutputSchema,
+                },
+            })
 
-            // Parse the result assuming the agent returns JSON or we need to extract it
-            // For now, we'll assume the agent is configured to return structured output or we parse the text
-            // Since codeArchitectAgent uses structuredOutput: true in its config, we might get an object directly if we used the output schema in generate options.
-            // However, here we are just getting text. Let's try to parse it if it's a string, or use it if it's an object.
-
-            // Note: In a real scenario, we should pass the schema to agent.generate for structured output.
-            // But to keep it simple and compatible with the existing pattern:
-            try {
-                const { text } = result
-                // Simple heuristic to find JSON in markdown code blocks if present
-                const jsonMatch =
-                    /```json\n([\s\S]*?)\n```/.exec(text) ??
-                    /\{[\s\S]*\}/.exec(text)
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0])
-
-                    await writer?.custom({
-                        type: 'data-tool-progress',
-                        data: {
-                            status: 'done',
-                            message: `Plan created (documents: ${(parsed.documentsNeeded ?? ['PRD', 'Architecture', 'Tasks']).join(', ')})`,
-                            stage: 'create-plan',
-                        },
-                        id: 'create-plan',
-                    })
-
-                    const res = {
-                        plan: parsed.plan ?? text,
-                        documentsNeeded: parsed.documentsNeeded ?? [
-                            'PRD',
-                            'Architecture',
-                            'Tasks',
-                        ],
-                    }
-
-                    span?.update({
-                        output: res,
-                        metadata: {
-                            responseTimeMs: Date.now() - startTime,
-                        },
-                    })
-                    span?.end()
-
-                    return res
+            if (writer !== undefined && writer !== null) {
+                for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<z.infer<typeof planOutputSchema>>>) {
+                    await writer.write(chunk)
                 }
-
-                await writer?.custom({
-                    type: 'data-tool-progress',
-                    data: {
-                        status: 'done',
-                        message:
-                            'Plan created (unstructured output parsed as text)',
-                        stage: 'create-plan',
-                    },
-                    id: 'create-plan',
-                })
-
-                const resText = {
-                    plan: text,
-                    documentsNeeded: ['PRD', 'Architecture', 'Tasks'],
-                }
-
-                span?.update({
-                    output: resText,
-                    metadata: {
-                        responseTimeMs: Date.now() - startTime,
-                    },
-                })
-                span?.end()
-
-                return resText
-            } catch (e) {
-                await writer?.custom({
-                    type: 'data-tool-progress',
-                    data: {
-                        status: 'done',
-                        message: `Plan parsing failed; returning text output. Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-                        stage: 'create-plan',
-                    },
-                    id: 'create-plan',
-                })
-
-                const resFail = {
-                    plan: result.text,
-                    documentsNeeded: ['PRD', 'Architecture', 'Tasks'],
-                }
-
-                span?.update({
-                    output: resFail,
-                    metadata: {
-                        responseTimeMs: Date.now() - startTime,
-                        error: e instanceof Error ? e.message : 'Unknown error',
-                    },
-                })
-                span?.end()
-
-                return resFail
             }
+
+            const result = await stream.object
+
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `Plan created (documents: ${result.documentsNeeded.join(', ')})`,
+                    stage: 'create-plan',
+                },
+                id: 'create-plan',
+            })
+
+            span?.update({
+                output: result,
+                metadata: {
+                    responseTimeMs: Date.now() - startTime,
+                },
+            })
+            span?.end()
+
+            return result
         } catch (e) {
             await writer?.custom({
                 type: 'data-tool-progress',

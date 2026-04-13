@@ -16,7 +16,7 @@ import {
     InlineCitationSource,
     InlineCitationQuote,
 } from '@/src/components/ai-elements/inline-citation'
-import type { Citation } from './chat.types'
+import type { Citation } from '../providers/chat-context-types'
 
 interface AgentInlineCitationProps {
     citations: Citation[]

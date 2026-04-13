@@ -1,5 +1,6 @@
 "use client";
 
+import type * as React from 'react'
 import { Button } from "@/ui/button";
 import {
   HoverCard,

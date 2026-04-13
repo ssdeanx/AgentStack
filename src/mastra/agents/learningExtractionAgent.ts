@@ -1,15 +1,15 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import {
-    getUserTierFromContext,
+    getRoleFromContext,
     USER_ID_CONTEXT_KEY,
     type AgentRequestContext,
 } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type LearningExtractionAgentContext = AgentRequestContext<{
     researchPhase?: string
@@ -19,6 +19,11 @@ const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
 
 log.info('Initializing Learning Extraction Agent...')
 
+/**
+ * Learning Extraction Agent.
+ *
+ * Extracts the most important learning from research results and generates a follow-up question.
+ */
 export const learningExtractionAgent = new Agent({
     id: 'learningExtractionAgent',
     name: 'Learning Extraction Agent',
@@ -29,7 +34,7 @@ export const learningExtractionAgent = new Agent({
         const rawResearchPhase = requestContext.get(RESEARCH_PHASE_CONTEXT_KEY)
 
         const userId = typeof rawUserId === 'string' ? rawUserId : undefined
-        const userTier = getUserTierFromContext(requestContext)
+        const role = getRoleFromContext(requestContext)
         const researchPhase =
             typeof rawResearchPhase === 'string' ? rawResearchPhase : 'initial'
 
@@ -37,7 +42,7 @@ export const learningExtractionAgent = new Agent({
             role: 'system',
             content: `
 # Learning Extraction Agent
-User: ${userId ?? 'anonymous'} | Tier: ${userTier} | Phase: ${researchPhase}
+User: ${userId ?? 'anonymous'} | Role: ${role} | Phase: ${researchPhase}
 
 ## Task
 Extract the single most important learning and create one relevant follow-up question from the provided content.
@@ -58,12 +63,12 @@ Extract the single most important learning and create one relevant follow-up que
         }
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {},
     scorers: {},
     options: {
         tracingPolicy: {
-            internal: InternalSpans.ALL,
+            internal: InternalSpans.AGENT,
         },
     },
     workflows: {},

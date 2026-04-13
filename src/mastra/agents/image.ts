@@ -1,10 +1,11 @@
 import { Agent } from '@mastra/core/agent'
 import type { RequestContext } from '@mastra/core/request-context'
-import { googleAINanoBanana, pgMemory } from '../config'
+import { googleAINanoBanana } from '../config'
 import { log } from '../config/logger'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ImageRuntimeContext = AgentRequestContext<{
     aspectratio: '16:9' | '4:3' | '1:1'
@@ -33,14 +34,14 @@ export const imageAgent = new Agent({
         requestContext: RequestContext<ImageRuntimeContext>
     }) => {
         // runtimeContext is read at invocation time
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const role = requestContext.get('role') ?? 'user'
         const language = requestContext.get('language') ?? 'en'
         const aspectratioX = requestContext.get('aspectratio') ?? '16:9'
         const resolutionY = requestContext.get('resolution') ?? '2K'
         return {
             role: 'system',
             content: `You are an expert in generating images based on user requirements.
-      tier: ${userTier}
+      role: ${role}
       language: ${language}
       aspect ratio: ${aspectratioX}
       resolution: ${resolutionY}
@@ -56,7 +57,7 @@ export const imageAgent = new Agent({
         }
     },
     model: googleAINanoBanana,
-    memory: pgMemory,
+    memory: LibsqlMemory,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

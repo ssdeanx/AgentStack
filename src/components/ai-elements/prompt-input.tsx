@@ -63,6 +63,7 @@ import type {
   ReactNode,
   RefObject,
 } from "react";
+import type * as React from 'react'
 import {
   Children,
   createContext,

@@ -111,7 +111,7 @@ const researchTopicStep = createStep({
                 id: 'research-topic',
             })
 
-            const agent = mastra?.getAgent?.('researchAgent')
+            const agent = mastra.getAgent('researchAgent')
             const research = {
                 summary: `Research summary for ${inputData.topic}`,
                 keyPoints: [
@@ -208,7 +208,7 @@ const researchTopicStep = createStep({
             )
             return result
         } catch (error) {
-            logError('research-topic', error, { topic: inputData.topic })
+            logError('research-topic', error instanceof Error ? error : new Error(String(error)), { topic: inputData.topic })
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -352,7 +352,7 @@ const draftContentStep = createStep({
             logStepEnd('draft-content', { wordCount }, Date.now() - startTime)
             return result
         } catch (error) {
-            logError('draft-content', error, { topic: inputData.topic })
+            logError('draft-content', error instanceof Error ? error : new Error(String(error)), { topic: inputData.topic })
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -523,7 +523,7 @@ const initialReviewStep = createStep({
             )
             return result
         } catch (error) {
-            logError('initial-review', error, { topic: inputData.topic })
+            logError('initial-review', error instanceof Error ? error : new Error(String(error)), { topic: inputData.topic })
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -573,7 +573,7 @@ const refineContentStep = createStep({
             const error = new Error(
                 `Maximum iterations (${MAX_ITERATIONS}) exceeded. Final score: ${inputData.score}`
             )
-            logError('refine-content', error, {
+            logError('refine-content', error instanceof Error ? error : new Error(String(error)), {
                 iteration: nextIteration,
                 score: inputData.score,
             })
@@ -741,7 +741,7 @@ Rewrite with improvements.`
             )
             return result
         } catch (error) {
-            logError('refine-content', error, { iteration: nextIteration })
+            logError('refine-content', error instanceof Error ? error : new Error(String(error)), { iteration: nextIteration })
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -836,7 +836,7 @@ const finalizeContentStep = createStep({
 
             return result
         } catch (error) {
-            logError('finalize-content', error)
+            logError('finalize-content', error instanceof Error ? error : new Error(String(error)))
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -868,3 +868,4 @@ export const contentReviewWorkflow = createWorkflow({
     .then(finalizeContentStep)
 
 contentReviewWorkflow.commit()
+

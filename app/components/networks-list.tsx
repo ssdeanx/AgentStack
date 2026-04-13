@@ -8,7 +8,7 @@ import { Input } from '@/ui/input'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
 import { AnimatedRadarScan } from '@/app/components/gsap/svg-suite'
 import { useAgents } from '@/lib/hooks/use-mastra-query'
-import type { Agent } from '@/lib/types/mastra-api'
+import type { Agent } from '@/lib/types/mastra-api-old'
 import {
     SearchIcon,
     NetworkIcon,

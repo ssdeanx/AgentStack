@@ -1,4 +1,4 @@
-import type { MastraModelOutput } from '@mastra/core/stream'
+import type { ChunkType, MastraModelOutput } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
@@ -13,6 +13,12 @@ export interface FinancialChartContext extends RequestContext {
 }
 
 log.info('Initializing Financial Chart Tools...')
+
+const chartStreamOutputSchema = z.object({
+    text: z.string().optional(),
+})
+
+type ChartStreamOutput = z.infer<typeof chartStreamOutputSchema>
 
 /**
  * Chart Supervisor Tool
@@ -109,9 +115,6 @@ export const chartSupervisorTool = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as
-            | FinancialChartContext
-            | undefined
         const {
             symbols,
             chartType = 'auto',
@@ -132,7 +135,6 @@ export const chartSupervisorTool = createTool({
             id: 'chart-supervisor',
         })
 
-        const tracingContext = context?.tracingContext
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'chart-supervisor-tool',
@@ -211,9 +213,20 @@ Please:
             const writer = context?.writer
 
             if (typeof agent.stream === 'function') {
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                let streamedText = ''
+                const stream = (await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: chartStreamOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<ChartStreamOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
@@ -224,7 +237,7 @@ Please:
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
-                resultText = text ?? ''
+                resultText = text ?? streamedText
             } else {
                 const result = await agent.generate(prompt)
                 resultText = result.text
@@ -301,13 +314,13 @@ Please:
                 : new Error(`Failed to generate chart: ${errorMsg}`)
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('chartSupervisorTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartSupervisorTool received input', {
             toolCallId,
             inputData: {
@@ -322,7 +335,7 @@ Please:
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartSupervisorTool completed', {
             toolCallId,
             toolName,
@@ -407,9 +420,6 @@ export const chartGeneratorTool = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as
-            | FinancialChartContext
-            | undefined
         const {
             chartType,
             data,
@@ -499,9 +509,20 @@ Return JSON with: componentName, code, usage, props, dependencies`
             const writer = context?.writer
 
             if (typeof agent.stream === 'function') {
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                let streamedText = ''
+                const stream = (await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: chartStreamOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<ChartStreamOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
@@ -512,7 +533,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
-                resultText = text ?? ''
+                resultText = text ?? streamedText
             } else {
                 const result = await agent.generate(prompt)
                 resultText = result.text
@@ -578,16 +599,18 @@ Return JSON with: componentName, code, usage, props, dependencies`
                 error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
-            throw new Error(`Failed to generate chart component: ${errorMsg}`)
+            throw new Error(`Failed to generate chart component: ${errorMsg}`, {
+                cause: error,
+            })
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('chartGeneratorTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartGeneratorTool received input', {
             toolCallId,
             inputData: {
@@ -603,7 +626,7 @@ Return JSON with: componentName, code, usage, props, dependencies`
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartGeneratorTool completed', {
             toolCallId,
             toolName,
@@ -685,9 +708,6 @@ export const chartDataProcessorTool = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as
-            | FinancialChartContext
-            | undefined
         const {
             symbols,
             timeRange = '1M',
@@ -776,9 +796,20 @@ Return JSON with:
             const writer = context?.writer
 
             if (typeof agent.stream === 'function') {
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                let streamedText = ''
+                const stream = (await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: chartStreamOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<ChartStreamOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
@@ -789,7 +820,7 @@ Return JSON with:
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
-                resultText = text ?? ''
+                resultText = text ?? streamedText
             } else {
                 const result = await agent.generate(prompt)
                 resultText = result.text
@@ -869,13 +900,13 @@ Return JSON with:
                 : new Error(`Failed to process data: ${errorMsg}`)
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('chartDataProcessorTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartDataProcessorTool received input', {
             toolCallId,
             inputData: {
@@ -888,7 +919,7 @@ Return JSON with:
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartDataProcessorTool completed', {
             toolCallId,
             toolName,
@@ -968,9 +999,6 @@ export const chartTypeAdvisorTool = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestContext = context?.requestContext as
-            | FinancialChartContext
-            | undefined
         const {
             dataDescription,
             visualizationGoal,
@@ -1040,9 +1068,20 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
             const writer = context?.writer
 
             if (typeof agent.stream === 'function') {
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                let streamedText = ''
+                const stream = (await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: chartStreamOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<ChartStreamOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })) as MastraModelOutput<ChartStreamOutput> | undefined
                 if (stream?.fullStream) {
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
@@ -1053,7 +1092,7 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
                     )
                 }
                 const text = stream?.text ? await stream.text : undefined
-                resultText = text ?? ''
+                resultText = text ?? streamedText
             } else {
                 const result = await agent.generate(prompt)
                 resultText = result.text
@@ -1142,16 +1181,18 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
                 error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
-            throw new Error(`Failed to recommend chart type: ${errorMsg}`)
+            throw new Error(`Failed to recommend chart type: ${errorMsg}`, {
+                cause: error,
+            })
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    onInputStart: ({ toolCallId }) => {
         log.info('chartTypeAdvisorTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('chartTypeAdvisorTool received input', {
             toolCallId,
             inputData: {
@@ -1163,7 +1204,7 @@ Return JSON with: primaryRecommendation, alternatives, configuration`
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+    onOutput: ({ output, toolCallId, toolName }) => {
         log.info('chartTypeAdvisorTool completed', {
             toolCallId,
             toolName,

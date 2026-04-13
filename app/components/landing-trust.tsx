@@ -7,7 +7,6 @@ import {
     ServerIcon,
     GlobeIcon,
     ClockIcon,
-    AwardIcon,
     HeartHandshakeIcon,
 } from 'lucide-react'
 import { Badge } from '@/ui/badge'

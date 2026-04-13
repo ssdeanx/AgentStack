@@ -1,7 +1,15 @@
 import { Agent } from '@mastra/core/agent'
+import { createScorer } from '@mastra/core/evals'
 import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
+  extractAgentResponseMessages,
+  extractInputMessages,
+  extractToolCalls,
+  getAssistantMessageFromRunOutput,
+  getCombinedSystemPrompt,
+  getReasoningFromRunOutput,
+  getSystemMessagesFromRunInput,
+  getUserMessageFromRunInput,
+} from '@mastra/evals/scorers/utils'
 import {
   codeArchitectAgent,
   codeReviewerAgent,
@@ -11,11 +19,201 @@ import {
 import { evaluationAgent } from '../agents/evaluationAgent'
 import { danePackagePublisher } from '../agents/package-publisher'
 import { projectManagementAgent } from '../agents/projectManagementAgent'
-import { googleAI3 } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 import { confirmationTool } from '../tools/confirmation.tool'
+import { LibsqlMemory } from '../config/libsql'
 log.info('Initializing DevOps Network...')
+
+/**
+ * Checks that the DevOps network returns a deployable, testable, or operable
+ * recommendation set instead of generic platform advice.
+ */
+const devopsNetworkTaskCompleteScorer = createScorer({
+  id: 'devops-network-task-complete',
+  name: 'DevOps Network Task Completeness',
+  description:
+    'Checks whether the DevOps network returned a concrete delivery, deployment, or operations result.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasDevopsLanguage:
+        /deploy|pipeline|release|monitor|infrastructure|ci\/cd|incident|rollback|test|package/i.test(
+          responseText
+        ),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+      hasOps:
+        /monitor|rollback|incident|deploy|release|rollback|health|validation/i.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 80) score += 0.2
+    if (analysis.responseLength >= 160) score += 0.1
+    if (analysis.hasDevopsLanguage) score += 0.35
+    if (analysis.hasStructure) score += 0.15
+    if (analysis.hasOps) score += 0.1
+    if (analysis.hasReasoning) score += 0.05
+    if (analysis.toolCount > 0) score += 0.05
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable DevOps response was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasDevopsLanguage) parts.push('it includes DevOps-specific guidance')
+    if (analysis.hasStructure) parts.push('it is structured for execution')
+    if (analysis.hasOps) parts.push('it includes operational or rollout detail')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This DevOps response is strong because ${parts.join(', ')}.` : 'The response is present but still needs delivery detail.'}`
+  })
+
+/**
+ * Checks that the DevOps answer is operationally actionable with rollout,
+ * validation, and risk-management guidance.
+ */
+const devopsNetworkExecutionScorer = createScorer({
+  id: 'devops-network-execution-readiness',
+  name: 'DevOps Network Execution Readiness',
+  description:
+    'Checks whether the DevOps response includes rollout steps, validation gates, and operational risk guidance.',
+  type: 'agent',
+})
+  .preprocess(({ run }) => {
+    const userMessage = getUserMessageFromRunInput(run.input)
+    const inputMessages = extractInputMessages(run.input)
+    const systemMessages = getSystemMessagesFromRunInput(run.input)
+    const systemPrompt = getCombinedSystemPrompt(run.input)
+    const response = getAssistantMessageFromRunOutput(run.output)
+    const responseMessages = extractAgentResponseMessages(run.output)
+    const reasoning = getReasoningFromRunOutput(run.output)
+    const { tools, toolCallInfos } = extractToolCalls(run.output)
+
+    return {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    }
+  })
+  .analyze(({ results }) => {
+    const {
+      userMessage,
+      inputMessages,
+      systemMessages,
+      systemPrompt,
+      response,
+      responseMessages,
+      reasoning,
+      tools,
+      toolCallInfos,
+    } = results.preprocessStepResult
+
+    const responseText = (response ?? responseMessages.join('\n')).trim()
+
+    return {
+      hasUserMessage: Boolean(userMessage),
+      inputMessageCount: inputMessages.length,
+      systemMessageCount: systemMessages.length,
+      systemPromptLength: systemPrompt.length,
+      responseLength: responseText.length,
+      hasResponse: responseText.length > 0,
+      hasReasoning: Boolean(reasoning),
+      toolCount: tools.length,
+      toolCallCount: toolCallInfos.length,
+      hasDeploy:
+        /deploy|release|rollout|pipeline|gate/i.test(responseText),
+      hasValidation:
+        /monitor|verify|smoke test|rollback|incident/i.test(responseText),
+      hasRisk:
+        /next step|owner|milestone|risk/i.test(responseText),
+      hasStructure:
+        /^[-*]\s|^\d+\.\s|^#{1,6}\s/m.test(responseText),
+    }
+  })
+  .generateScore(({ results }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 0
+
+    let score = 0
+    if (analysis.responseLength >= 160) score += 0.2
+    if (analysis.responseLength >= 280) score += 0.1
+    if (analysis.hasDeploy) score += 0.25
+    if (analysis.hasValidation) score += 0.2
+    if (analysis.hasRisk) score += 0.2
+    if (analysis.hasStructure) score += 0.05
+    if (analysis.hasReasoning) score += 0.03
+    if (analysis.toolCount > 0) score += 0.02
+
+    return Math.max(0, Math.min(1, score))
+  })
+  .generateReason(({ results, score }) => {
+    const analysis = results.analyzeStepResult
+    if (!analysis?.hasResponse) return 'No usable DevOps execution response was produced.'
+
+    const parts: string[] = []
+    if (analysis.hasDeploy) parts.push('it includes deployment or rollout guidance')
+    if (analysis.hasValidation) parts.push('it includes validation gates or checks')
+    if (analysis.hasRisk) parts.push('it names owners, milestones, or risks')
+
+    return `Score: ${score.toFixed(2)}. ${parts.length > 0 ? `This execution plan is strong because ${parts.join(', ')}.` : 'The response is present but still lacks operational detail.'}`
+  })
 
 export const devopsNetwork = new Agent({
   id: 'devops-network',
@@ -156,9 +354,15 @@ export const devopsNetwork = new Agent({
 - Provide cost-benefit analysis for DevOps investments and automation
 - Include migration strategies for organizations moving to DevOps practices
 - Recommend training and organizational change management approaches
+
+## Final Answer Contract
+
+- Open with the delivery or operations recommendation.
+- Present rollout steps, quality gates, and operational safeguards clearly.
+- End with monitoring expectations, rollback posture, and the next execution milestone.
 `,
-  model: googleAI3,
-  memory: pgMemory,
+  model: "google/gemini-3.1-flash-lite-preview",
+  memory: LibsqlMemory,
   agents: {
     codeArchitectAgent,
     codeReviewerAgent,
@@ -171,13 +375,115 @@ export const devopsNetwork = new Agent({
   options: {},
   tools: { confirmationTool },
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
+//    new TokenLimiterProcessor(128000),
     //  new BatchPartsProcessor({
     //      batchSize: 20,
     //      maxWaitTime: 100,
     //     emitOnNonText: true,
     //  }),
   ],
+  defaultOptions: {
+    maxSteps: 20,
+    delegation: {
+      onDelegationStart: async context => {
+        log.info('DevOps network delegating', {
+          primitiveId: context.primitiveId,
+          iteration: context.iteration,
+        })
+
+        await Promise.resolve()
+
+        if (context.primitiveId === 'codeArchitectAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nFocus on delivery architecture, environment boundaries, deployment topology, and operational trade-offs.`,
+          }
+        }
+
+        if (context.primitiveId === 'codeReviewerAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nPrioritize release blockers, security issues, CI/CD risks, and maintainability concerns that impact shipping safely.`,
+          }
+        }
+
+        if (context.primitiveId === 'testEngineerAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nReturn an execution-ready test plan covering CI gates, smoke tests, regression risks, and deployment verification steps.`,
+          }
+        }
+
+        if (context.primitiveId === 'refactoringAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nRefactor toward operational simplicity, automation, and lower release risk without changing intended behavior.`,
+          }
+        }
+
+        if (context.primitiveId === 'danePackagePublisher') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nReturn packaging and release guidance with versioning, publication risks, and the exact release prerequisites.`,
+          }
+        }
+
+        if (context.primitiveId === 'projectManagementAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nTranslate the DevOps work into milestones, owners, dependencies, rollout sequencing, and incident-ready contingency steps.`,
+          }
+        }
+
+        if (context.primitiveId === 'evaluationAgent') {
+          return {
+            proceed: true,
+            modifiedPrompt: `${context.prompt}\n\nEvaluate the plan with delivery risk, quality-gate readiness, and measurable success criteria.`,
+          }
+        }
+
+        return { proceed: true }
+      },
+      onDelegationComplete: async context => {
+        log.info('DevOps delegation complete', {
+          primitiveId: context.primitiveId,
+          success: context.success,
+          duration: context.duration,
+        })
+
+        if (context.error) {
+          context.bail()
+          await Promise.resolve()
+          return {
+            feedback: `Delegation to ${context.primitiveId} failed: ${String(context.error)}. Continue with a smaller deployment slice or the next safest operational step.`,
+          }
+        }
+
+        await Promise.resolve()
+      },
+      messageFilter: ({ messages }) => {
+        return messages
+          .filter(
+            message =>
+              !message.content.parts.some(part => part.type === 'tool-invocation')
+          )
+          .slice(-6)
+      },
+    },
+    isTaskComplete: {
+      scorers: [devopsNetworkTaskCompleteScorer, devopsNetworkExecutionScorer],
+      strategy: 'any',
+      parallel: true,
+      onComplete: async result => {
+        log.info('DevOps completion check', {
+          complete: result.complete,
+          score: result.scorers[0]?.score,
+        })
+        await Promise.resolve()
+      },
+      suppressFeedback: false,
+    },
+  },
 })
 
 log.info('DevOps Network initialized')

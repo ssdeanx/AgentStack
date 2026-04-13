@@ -5,11 +5,12 @@ import { createTool } from '@mastra/core/tools'
 import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils.js'
 import { copywriterAgent } from '../agents/copywriterAgent'
 import { log } from '../config/logger'
 
-export interface CopywriterRequestContext extends RequestContext {
-    userId?: string
+export interface CopywriterRequestContext {
+    mocked?: boolean // placeholder for additional options
 }
 
 log.info('Initializing Enhanced Copywriter Agent Tool...')
@@ -73,20 +74,30 @@ export const copywriterTool = createTool({
             .optional()
             .describe('Approximate word count of the content'),
     }),
+    toModelOutput: (output) => ({
+        type: 'text',
+        value: [
+            output.title ? `# ${output.title}` : undefined,
+            output.summary ? `Summary: ${output.summary}` : undefined,
+            output.content,
+        ]
+            .filter(
+                (part): part is string =>
+                    typeof part === 'string' && part.trim().length > 0
+            )
+            .join('\n\n'),
+    }),
     execute: async (input, context) => {
-        const writer = context?.writer
-        const mastra = context?.mastra
+        const writer = context.writer
+        const mastra = context.mastra
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
-        const requestCtx = context?.requestContext as
-            | CopywriterRequestContext
-            | undefined
-
+            context.tracingContext
         const userId =
-            typeof requestCtx?.userId === 'string' &&
-            requestCtx.userId.trim().length > 0
-                ? requestCtx.userId
-                : 'anonymous'
+            (context.requestContext as RequestContext<BaseToolRequestContext> | undefined)
+                ?.all.userId
+        const workspaceId =
+            (context.requestContext as RequestContext<BaseToolRequestContext> | undefined)
+                ?.all.workspaceId
         const {
             topic,
             contentType = 'blog',
@@ -116,11 +127,12 @@ export const copywriterTool = createTool({
                 tone,
                 length,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
             metadata: {
                 'tool.id': 'copywriter-agent',
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
         })
 
@@ -387,7 +399,9 @@ export const copywriterTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
-            throw new Error(`Failed to generate content: ${errorMsg}`)
+            throw new Error(`Failed to generate content: ${errorMsg}`, {
+                cause: error,
+            })
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {

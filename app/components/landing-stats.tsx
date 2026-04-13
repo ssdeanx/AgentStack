@@ -24,6 +24,7 @@ import {
 } from '@/app/components/primitives'
 import { Badge } from '@/ui/badge'
 import { AnimatedPacketBurst } from '@/app/components/gsap/svg-suite'
+import React from 'react'
 
 interface StatItem {
     label: string
@@ -220,8 +221,7 @@ export function LandingStats() {
                 {/* Animated drawing line separator */}
                 <div
                     ref={lineRef}
-                    className="mb-12 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent"
-                    style={{ transform: 'scaleX(0)' }}
+                    className="mb-12 h-px origin-left scale-x-0 bg-linear-to-r from-transparent via-primary/40 to-transparent"
                 />
 
                 {/* Primary stats */}

@@ -1,13 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import type { Route } from 'next'
 import { useState, useEffect, useRef, startTransition } from 'react'
 import { usePathname } from 'next/navigation'
 import { useGSAP } from '@gsap/react'
 import { gsap } from 'gsap'
 import { Button } from '@/ui/button'
 import { ThemeToggle } from '@/ui/theme-toggle'
+import { NavbarAccountMenu } from './navbar-account-menu'
 import { cn } from '@/lib/utils'
 import { ensureGsapRegistered } from '@/app/components/gsap/registry'
 import { AnimatedOrbitalLogo } from '@/app/components/gsap/animated-orbital-logo'
@@ -175,14 +175,14 @@ export function Navbar() {
                                 <NavigationMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
-                                        className={`relative group overflow-hidden h-9 px-4 transition-all duration-200 ${pathname === '/chat' || pathname === '/networks' || pathname === '/workflows' || pathname === '/docs' || pathname === '/pricing' ? 'bg-primary/10 shadow-sm' : ''}`}
+                                        className={`relative group overflow-hidden h-9 px-4 transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/docs' || pathname === '/pricing' ? 'bg-primary/10 shadow-sm' : ''}`}
                                     >
                                         <span className="font-medium">
                                             Products
                                         </span>
                                         <ChevronDownIcon className="ml-2 size-3" />
                                         <span
-                                            className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === '/chat' || pathname === '/networks' || pathname === '/workflows' || pathname === '/docs' || pathname === '/pricing' ? 'scale-x-100' : 'scale-x-0'} group-hover:scale-x-100`}
+                                            className={`absolute inset-x-0 bottom-0 h-0.5 bg-primary transition-all duration-200 ${pathname === '/chat' || pathname === '/chat/user' || pathname === '/chat/admin' || pathname === '/docs' || pathname === '/pricing' ? 'scale-x-100' : 'scale-x-0'} group-hover:scale-x-100`}
                                         />
                                     </Button>
                                 </NavigationMenuTrigger>
@@ -207,35 +207,23 @@ export function Navbar() {
                                                     strokeLinejoin="round"
                                                 >
                                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                                    <circle
-                                                        cx="9"
-                                                        cy="10"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="12"
-                                                        cy="10"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="15"
-                                                        cy="10"
-                                                        r="1"
-                                                    />
+                                                    <circle cx="9" cy="10" r="1" />
+                                                    <circle cx="12" cy="10" r="1" />
+                                                    <circle cx="15" cy="10" r="1" />
                                                 </svg>
                                                 <div>
                                                     <div className="font-medium">
-                                                        Chat
+                                                        Chat Dashboard
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        Chat Agents
+                                                        Main chat landing page
                                                     </div>
                                                 </div>
                                             </Link>
 
                                             <Link
-                                                href="/networks"
-                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/networks' ? 'bg-blue-500/10 shadow-sm' : 'hover:bg-blue-500/5'}`}
+                                                href="/chat/user"
+                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/user' ? 'bg-blue-500/10 shadow-sm' : 'hover:bg-blue-500/5'}`}
                                             >
                                                 <svg
                                                     className="size-5 text-blue-500"
@@ -246,51 +234,15 @@ export function Navbar() {
                                                     strokeLinecap="round"
                                                     strokeLinejoin="round"
                                                 >
-                                                    <circle
-                                                        cx="12"
-                                                        cy="2"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="5"
-                                                        cy="7"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="19"
-                                                        cy="7"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="3"
-                                                        cy="12"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="21"
-                                                        cy="12"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="5"
-                                                        cy="17"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="19"
-                                                        cy="17"
-                                                        r="1"
-                                                    />
-                                                    <circle
-                                                        cx="12"
-                                                        cy="22"
-                                                        r="1"
-                                                    />
+                                                    <circle cx="12" cy="2" r="1" />
+                                                    <circle cx="5" cy="7" r="1" />
+                                                    <circle cx="19" cy="7" r="1" />
+                                                    <circle cx="3" cy="12" r="1" />
+                                                    <circle cx="12" cy="12" r="1" />
+                                                    <circle cx="21" cy="12" r="1" />
+                                                    <circle cx="5" cy="17" r="1" />
+                                                    <circle cx="19" cy="17" r="1" />
+                                                    <circle cx="12" cy="22" r="1" />
                                                     <path d="M7 7h10" />
                                                     <path d="M5 12h14" />
                                                     <path d="M7 17h10" />
@@ -300,27 +252,47 @@ export function Navbar() {
                                                     <path d="M19 7v5" />
                                                     <path d="M5 17v-5" />
                                                     <path d="M19 17v-5" />
-                                                    <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="2"
-                                                        fill="currentColor"
-                                                        opacity="0.2"
-                                                    />
+                                                    <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.2" />
                                                 </svg>
                                                 <div>
                                                     <div className="font-medium">
-                                                        Networks
+                                                        User Settings
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        Agent Networks
+                                                        Account and preferences
                                                     </div>
                                                 </div>
                                             </Link>
 
                                             <Link
-                                                href="/workflows"
-                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/workflows' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
+                                                href="/chat/admin"
+                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/admin' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
+                                            >
+                                                <svg
+                                                    className="size-5 text-red-500"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M12 2 3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6Z" />
+                                                    <path d="M9 12l2 2 4-4" />
+                                                </svg>
+                                                <div>
+                                                    <div className="font-medium">
+                                                        Admin Settings
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Admin tools and controls
+                                                    </div>
+                                                </div>
+                                            </Link>
+
+                                            <Link
+                                                href="/chat/admin"
+                                                className={`flex items-center gap-3 rounded-sm p-2 text-sm ${pathname === '/chat/admin' ? 'bg-red-500/10 shadow-sm' : 'hover:bg-red-500/5'}`}
                                             >
                                                 <svg
                                                     className="size-5 text-red-500"
@@ -477,9 +449,7 @@ export function Navbar() {
                     <ThemeToggle />
                     <div className="h-6 w-px bg-border/50 mx-2" />
 
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href={'/login' as Route}>Sign In</Link>
-                    </Button>
+                    <NavbarAccountMenu />
                     <Button
                         size="sm"
                         className="rounded-full px-6 bg-foreground text-background shadow-lg hover:bg-foreground/90 hover:shadow-xl transition-all hover:-translate-y-0.5"
@@ -557,17 +527,17 @@ export function Navbar() {
                                 </svg>
                             </div>
                             <div className="font-semibold text-lg">
-                                Chat Agents
+                                Chat Dashboard
                             </div>
                         </Link>
 
                         <Link
-                            href="/networks"
-                            className={`flex items-center gap-4 p-3 rounded-xl hover:bg-blue-500/5 transition-colors group ${pathname === '/networks' ? 'bg-muted' : ''}`}
+                            href="/chat/user"
+                            className={`flex items-center gap-4 p-3 rounded-xl hover:bg-blue-500/5 transition-colors group ${pathname === '/chat/user' ? 'bg-muted' : ''}`}
                             onClick={() => setMobileOpen(false)}
                         >
                             <div
-                                className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === '/networks' ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500'} group-hover:bg-blue-500 group-hover:text-white`}
+                                className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === '/chat/user' ? 'bg-blue-500 text-white' : 'bg-blue-500/10 text-blue-500'} group-hover:bg-blue-500 group-hover:text-white`}
                             >
                                 <svg
                                     className="size-5"
@@ -606,17 +576,17 @@ export function Navbar() {
                                 </svg>
                             </div>
                             <div className="font-semibold text-lg">
-                                Agent Networks
+                                User Settings
                             </div>
                         </Link>
 
                         <Link
-                            href="/workflows"
-                            className={`flex items-center gap-4 p-3 rounded-xl hover:bg-red-500/5 transition-colors group ${pathname === '/workflows' ? 'bg-muted' : ''}`}
+                            href="/chat/admin"
+                            className={`flex items-center gap-4 p-3 rounded-xl hover:bg-red-500/5 transition-colors group ${pathname === '/chat/admin' ? 'bg-muted' : ''}`}
                             onClick={() => setMobileOpen(false)}
                         >
                             <div
-                                className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === '/workflows' ? 'bg-purple-500 text-white' : 'bg-purple-500/10 text-purple-500'} group-hover:bg-purple-500 group-hover:text-white`}
+                                className={`flex size-10 items-center justify-center rounded-lg transition-colors ${pathname === '/chat/admin' ? 'bg-purple-500 text-white' : 'bg-purple-500/10 text-purple-500'} group-hover:bg-purple-500 group-hover:text-white`}
                             >
                                 <svg
                                     className="size-5"
@@ -649,7 +619,7 @@ export function Navbar() {
                                 </svg>
                             </div>
                             <div className="font-semibold text-lg">
-                                Workflow Studio
+                                Admin Settings
                             </div>
                         </Link>
 
@@ -707,13 +677,7 @@ export function Navbar() {
                             >
                                 <Link href="/chat">Get Started Now</Link>
                             </Button>
-                            <Button
-                                variant="outline"
-                                className="w-full h-12 text-base rounded-xl"
-                                asChild
-                            >
-                                <Link href="/login">Sign In</Link>
-                            </Button>
+                            <NavbarAccountMenu fullWidth />
                         </div>
                     </motion.div>
                 )}

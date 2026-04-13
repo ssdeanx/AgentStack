@@ -2,19 +2,20 @@
 import { LibSQLStore, LibSQLVector } from '@mastra/libsql'
 import { Memory } from '@mastra/memory'
 import { log } from './logger'
-import { ModelRouterEmbeddingModel, ModelRouterLanguageModel } from '@mastra/core/llm'
+import {
+    ModelRouterEmbeddingModel,
+    ModelRouterLanguageModel,
+} from '@mastra/core/llm'
 import { createGraphRAGTool, createVectorQueryTool } from '@mastra/rag'
 
-const libsqlstorage = new LibSQLStore({
+export const libsqlstorage = new LibSQLStore({
     id: 'libsql-storage',
-    url:
-        process.env.TURSO_DATABASE_URL ??
-        'libsql://your-db-name.aws-ap-northeast-1.turso.io',
+    url: process.env.TURSO_DATABASE_URL ?? 'file:./database.db',
     authToken: process.env.TURSO_AUTH_TOKEN,
 })
 
 // Create a new vector store instance
-const libsqlvector = new LibSQLVector({
+export const libsqlvector = new LibSQLVector({
     id: 'libsql-vector',
     url: process.env.TURSO_DATABASE_URL ?? 'file:./vectors.db',
     // Optional: for Turso cloud databases
@@ -35,7 +36,9 @@ await libsqlvector.createIndex({
 export const LibsqlMemory = new Memory({
     storage: libsqlstorage,
     vector: libsqlvector,
-    embedder: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
+    embedder: new ModelRouterEmbeddingModel(
+        'google/gemini-embedding-2-preview'
+    ),
     embedderOptions: {
         telemetry: {
             request: {
@@ -49,13 +52,39 @@ export const LibsqlMemory = new Memory({
             google: {
                 outputDimensions: 3072,
                 taskType: 'RETRIEVAL_DOCUMENT',
-            }
+            },
         },
     },
     options: {
         // Message management
         readOnly: false,
-        observationalMemory: true,
+        observationalMemory: {
+            enabled: true,
+            scope: 'resource', // 'resource' | 'thread'
+            model: 'google/gemini-3.1-flash-lite-preview',
+            shareTokenBudget: false, // Don't share token budget between observation and reflection to preserve context
+            observation: {
+                instruction: 'You are an assistant that observes and remembers important information from the conversation. Pay attention to details, context, and any information that might be useful for future reference.',
+                messageTokens: 75_000,
+                modelSettings: {
+                    temperature: 0.3,
+                    maxOutputTokens: 64_000,
+                    topK: 40,
+                    topP: 0.95,
+                },
+            },
+            reflection: {
+                model: 'google/gemini-3.1-flash-lite-preview',
+                instruction: 'Based on the observations, generate concise and informative reflections that capture important details, context, and insights from the conversation. These reflections should be useful for future reference and help provide context for the assistant.',
+                modelSettings: {
+                    temperature: 0.3,
+                    maxOutputTokens: 64_000,
+                    topK: 40,
+                    topP: 0.95,
+                },
+                observationTokens: 50_000,
+            },
+        },
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         generateTitle: true,
         // Advanced semantic recall with HNSW index configuration
@@ -66,7 +95,6 @@ export const LibsqlMemory = new Memory({
                 after: parseInt(process.env.SEMANTIC_RANGE_AFTER ?? '2'),
             },
             scope: 'resource', // 'resource' | 'thread'
-            // HNSW index configuration to support high-dimensional embeddings (>2000 dimensions)
             threshold: 0.75, // Similarity threshold for semantic recall
             indexName: 'memory_messages_3072', // Index name for semantic recall
         },
@@ -75,28 +103,30 @@ export const LibsqlMemory = new Memory({
             enabled: true,
             scope: 'resource', // 'resource' | 'thread'
             version: 'vnext',
-            template: `# User Context
-    ## Profile
+            template: `
+# User Context
+
+## Profile
     - Name/Role:
     - Org/Loc:
     - Style/Level:
-    ## Active
+## Active
     - Goals/Projects:
     - Recent/Deadlines:
-    ## Insights
+## Insights
     - Patterns/Habits:
     - Session Focus:
     - Action Items:
-    `,
+`,
         },
     },
 })
 
 log.info('LibSQLStore and Memory initialized with LibSQLVector support', {
-   // schema: process.env.DB_SCHEMA ?? 'mastra',
-   // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
-
+    // schema: process.env.DB_SCHEMA ?? 'mastra',
+    // maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '20'),
     memoryOptions: {
+        observationMemory: true,
         lastMessages: parseInt(process.env.MEMORY_LAST_MESSAGES ?? '500'),
         semanticRecall: {
             topK: parseInt(process.env.SEMANTIC_TOP_K ?? '5'),
@@ -128,10 +158,10 @@ export const libsqlgraphQueryTool = createGraphRAGTool({
     indexName: 'memory_messages_3072',
     model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     providerOptions: {
-             google: {
-                outputDimensions: 3072,
-                taskType: 'RETRIEVAL_DOCUMENT',
-            }
+        google: {
+            outputDimensions: 3072,
+            taskType: 'RETRIEVAL_DOCUMENT',
+        },
     },
     // Supported graph options (updated for 3072 dimensions)
     graphOptions: {
@@ -157,24 +187,26 @@ export const libsqlQueryTool = createVectorQueryTool({
     indexName: 'memory_messages_3072',
     model: new ModelRouterEmbeddingModel('google/gemini-embedding-2-preview'),
     providerOptions: {
-             google: {
-                outputDimensions: 3072,
-                taskType: 'RETRIEVAL_DOCUMENT',
-            }
+        google: {
+            outputDimensions: 3072,
+            taskType: 'RETRIEVAL_DOCUMENT',
+        },
     },
     includeVectors: true,
     // Advanced filtering
     enableFilter: true,
     includeSources: true,
-     reranker: {
-      model: new ModelRouterLanguageModel('google/gemini-3.1-flash-lite-preview'),
-      options: {
-        weights: {
-          semantic: 0.5, // Semantic relevance weight
-      vector: 0.3, // Vector similarity weight
-          position: 0.2, // Original position weight
+    reranker: {
+        model: new ModelRouterLanguageModel(
+            'google/gemini-3.1-flash-lite-preview'
+        ),
+        options: {
+            weights: {
+                semantic: 0.5, // Semantic relevance weight
+                vector: 0.3, // Vector similarity weight
+                position: 0.2, // Original position weight
+            },
+            topK: 5,
         },
-        topK: 5,
-      },
-     },
+    },
 })

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ArrowRightIcon, MinusIcon, PackageIcon, PlusIcon } from "lucide-react";
 import type { HTMLAttributes } from "react";
 import { createContext, useContext, useMemo } from "react";
+import type * as React from 'react'
 
 type ChangeType = "major" | "minor" | "patch" | "added" | "removed";
 

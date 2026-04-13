@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode, HTMLAttributes } from 'react'
+import type * as React from 'react'
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 import { SectionBackground } from './section-background'
@@ -31,14 +31,14 @@ export type BackgroundVariant =
     | 'radial'
     | 'muted'
 
-interface SectionLayoutProps extends HTMLAttributes<HTMLElement> {
+interface SectionLayoutProps extends React.HTMLAttributes<HTMLElement> {
     as?: 'section' | 'div' | 'article' | 'aside'
     spacing?: SpacingVariant
     container?: ContainerWidth
     background?: BackgroundVariant
     borderTop?: boolean
     borderBottom?: boolean
-    children: ReactNode
+    children: React.ReactNode
 }
 
 /**
@@ -64,7 +64,7 @@ export const SectionLayout = forwardRef<HTMLElement, SectionLayoutProps>(
         return (
             <Tag
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ref={ref as React.Ref<any>}
+                ref={ref as React.Ref<HTMLDivElement>}
                 className={cn(
                     'relative overflow-hidden',
                     SPACING_VARIANTS[spacing],

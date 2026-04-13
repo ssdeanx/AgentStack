@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
@@ -23,9 +22,10 @@ import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import {
     getLanguageFromContext,
-    getUserTierFromContext,
+    getRoleFromContext,
     type AgentRequestContext,
 } from './request-context'
+import { LibsqlMemory } from '../config/libsql';
 
 export type StockRuntimeContext = AgentRequestContext
 
@@ -50,7 +50,7 @@ export const stockAnalysisAgent = new Agent({
         'Expert stock market analyst providing technical analysis, fundamental analysis, price targets, and investment recommendations',
     instructions: ({ requestContext }) => {
         // runtimeContext is read at invocation time
-        const userTier = getUserTierFromContext(requestContext)
+        const userTier = getRoleFromContext(requestContext)
         const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
@@ -104,19 +104,16 @@ export const stockAnalysisAgent = new Agent({
         }
     },
     model: ({ requestContext }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
+        const role = requestContext.get('role') ?? 'user'
+        if (role === 'admin') {
+            // higher quality (chat style) for admin
             return "google/gemini-3.1-pro-preview"
-        } else if (userTier === 'pro') {
-            // Chat bison for pro as well
-            return "google/gemini-3.1-flash-preview"
         }
-        // cheaper/faster model for free tier
+        // cheaper/faster model for user tier
         return "google/gemini-3.1-flash-lite-preview"
     },
     tools: stockAnalysisTools,
-    memory: pgMemory,
+    memory: LibsqlMemory,
     options: {
         tracingPolicy: {
             internal: InternalSpans.ALL,

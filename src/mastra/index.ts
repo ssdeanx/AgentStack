@@ -1,5 +1,6 @@
 import { chatRoute, networkRoute, workflowRoute } from '@mastra/ai-sdk'
 import { Mastra } from '@mastra/core'
+import { getAuthenticatedUser } from '@mastra/server/auth'
 import {
     Observability,
     SamplingStrategyType,
@@ -8,7 +9,7 @@ import {
 
 // Config
 import { log } from './config/logger'
-import { pgStore, pgVector } from './config/pg-storage'
+import { libsqlstorage, libsqlvector } from './config/libsql'
 
 // Scorers
 // Scorers are attached to agents where appropriate (see src/mastra/evals/AGENTS.md for mapping)
@@ -49,7 +50,6 @@ import { bgColorAgent } from './agents/bgColorAgent'
 import { calendarAgent } from './agents/calendarAgent'
 import { noteTakerAgent } from './agents/noteTakerAgent'
 import { danePackagePublisher } from './agents/package-publisher'
-import { daneNewContributor } from './workflows/new-contributor'
 
 // Financial Chart Agents
 import {
@@ -114,21 +114,56 @@ import {
     legalResearchAgent,
 } from './agents/businessLegalAgents'
 import {
+    buildSharedRequestContextPayload,
+    LANGUAGE_CONTEXT_KEY,
+    RESEARCH_PHASE_CONTEXT_KEY,
+    TEMPERATURE_UNIT_CONTEXT_KEY,
+    USER_ID_CONTEXT_KEY,
+    ROLE_CONTEXT_KEY,
+    type ResearchPhase,
+    type SupportedLanguage,
+    type TemperatureUnit,
+} from './agents/request-context'
+import {
     dane,
     daneChangeLog,
     daneCommitMessage,
     daneIssueLabeler,
     daneLinkChecker,
 } from './agents/dane'
-import { marketingCampaignWorkflow } from './workflows'
+import {
+    codingBriefWorkflow,
+    codingChangePlanWorkflow,
+    codingCommitPrepWorkflow,
+    codingReferenceSearchWorkflow,
+    codingRepoSnapshotWorkflow,
+    githubCodeContextWorkflow,
+    githubIssueTriageWorkflow,
+    githubPullRequestDigestWorkflow,
+    githubReleasePrepWorkflow,
+    githubRepoOverviewWorkflow,
+    genIdentifierPackWorkflow,
+    genIdeaBatchWorkflow,
+    genOutlineWorkflow,
+    genTimeboxWorkflow,
+    genVariantWorkflow,
+    marketingCampaignWorkflow,
+    researchArxivDownloadWorkflow,
+    researchArxivSearchWorkflow,
+    researchNoteWorkflow,
+    researchSourceSummaryWorkflow,
+    researchUrlCheckWorkflow,
+    utilityCalculatorWorkflow,
+    utilityDateTimeWorkflow,
+    utilityNoteWorkflow,
+    utilityRandomWorkflow,
+    utilityUrlWorkflow,
+} from './workflows'
 import { automatedReportingWorkflow } from './workflows/automated-reporting-workflow'
-import { changelogWorkflow } from './workflows/changelog'
 import { contentReviewWorkflow } from './workflows/content-review-workflow'
 import { contentStudioWorkflow } from './workflows/content-studio-workflow'
-import { dataAnalysisWorkflow } from './workflows/data-analysis-workflow'
 import { documentProcessingWorkflow } from './workflows/document-processing-workflow'
 import { financialReportWorkflow } from './workflows/financial-report-workflow'
-import { governedRagIndex } from './workflows/governed-rag-index.workflow'
 import { learningExtractionWorkflow } from './workflows/learning-extraction-workflow'
 import { repoIngestionWorkflow } from './workflows/repo-ingestion-workflow'
 import { researchSynthesisWorkflow } from './workflows/research-synthesis-workflow'
@@ -148,12 +183,14 @@ import {
 // Harness
 import { mainHarness } from './harness'
 import { supervisorAgent } from './agents/supervisor-agent'
+import { mastraAuth } from './auth'
+import { agentFsWorkspace } from './workspaces'
+
 export const mastra = new Mastra({
-   // workspace: mainWorkspace,
+    workspace: agentFsWorkspace,
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,
-        changelogWorkflow,
         contentReviewWorkflow,
         documentProcessingWorkflow,
         financialReportWorkflow,
@@ -163,14 +200,38 @@ export const mastra = new Mastra({
         telephoneGameWorkflow,
         repoIngestionWorkflow,
         specGenerationWorkflow,
-        governedRagIndex,
         marketingCampaignWorkflow,
-        dataAnalysisWorkflow,
+       // dataAnalysisWorkflow,
         automatedReportingWorkflow,
+        codingBriefWorkflow,
+        codingChangePlanWorkflow,
+        codingCommitPrepWorkflow,
+        codingReferenceSearchWorkflow,
+        codingRepoSnapshotWorkflow,
+        githubCodeContextWorkflow,
+        githubIssueTriageWorkflow,
+        githubPullRequestDigestWorkflow,
+        githubReleasePrepWorkflow,
+        githubRepoOverviewWorkflow,
+        genIdeaBatchWorkflow,
+        genIdentifierPackWorkflow,
+        genOutlineWorkflow,
+        genTimeboxWorkflow,
+        genVariantWorkflow,
+        researchArxivDownloadWorkflow,
+        researchArxivSearchWorkflow,
+        researchNoteWorkflow,
+        researchSourceSummaryWorkflow,
+        researchUrlCheckWorkflow,
+        utilityCalculatorWorkflow,
+        utilityDateTimeWorkflow,
+        utilityNoteWorkflow,
+        utilityRandomWorkflow,
+        utilityUrlWorkflow,
     },
     agents: {
         // Core Agents
-        weatherAgent,
+        researchAgent,
         supervisorAgent,
         csvToExcalidrawAgent,
         imageToCsvAgent,
@@ -180,11 +241,10 @@ export const mastra = new Mastra({
         reportAgent,
         learningExtractionAgent,
         evaluationAgent,
-        researchAgent,
         contentStrategistAgent,
         scriptWriterAgent,
         stockAnalysisAgent,
-        daneNewContributor,
+        weatherAgent,
         // CSV/Data Pipeline Agents
         dataExportAgent,
         dataIngestionAgent,
@@ -272,8 +332,8 @@ export const mastra = new Mastra({
         codingA2A: codingA2AMcpServer,
     },
 
-    storage: pgStore,
-    vectors: { pgVector },
+    storage: libsqlstorage,
+    vectors: { libsqlvector },
     logger: log,
     observability: new Observability({
         configs: {
@@ -286,6 +346,10 @@ export const mastra = new Mastra({
                 }, // 50% sampling
                 requestContextKeys: [
                     'userId',
+                    'role',
+                    'language',
+                    'temperature-unit',
+                    'researchPhase',
                     'environment',
                     'tenantId',
                     'tool.id',
@@ -293,6 +357,8 @@ export const mastra = new Mastra({
                     'workflow.id',
                     'memory.thread.id',
                     'user.id',
+                    'workspace.id',
+                    'sandbox.id',
                 ],
                 spanOutputProcessors: [
                     new SensitiveDataFilter({
@@ -331,15 +397,23 @@ export const mastra = new Mastra({
                 ],
                 includeInternalSpans: true,
                 serializationOptions: {
-                    maxStringLength: 1024, // Truncate long strings to prevent oversized spans
+                    maxStringLength: 1080, // Truncate long strings to prevent oversized spans
                     maxArrayLength: 100, // Limit array lengths in span attributes
                     maxDepth: 6, // Limit depth of nested objects in span attributes
-                    maxObjectKeys: 50, // Limit number of keys in objects included in span attributes
+                    maxObjectKeys: 100, // Limit number of keys in objects included in span attributes
                 }
             }
         }
     }),
     server: {
+        auth: mastraAuth, // Attach the Mastra auth bridge to the server for route protection and context population
+        cors: {
+            origin: process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? 'http://localhost:3000', // your frontend origin
+            credentials: true,
+            allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+           // allowHeaders: ['*', 'Authorization', 'Content-Type', 'x-user-id', 'x-role', 'accept-language', 'x-research-phase', 'api-key'],
+           // exposeHeaders: ['Authorization', 'Content-Type', 'x-user-id', 'x-role', 'accept-language', 'x-research-phase', 'api-key'],
+        },
         build: {
           swaggerUI: true,
           apiReqLogs: true,
@@ -355,6 +429,7 @@ export const mastra = new Mastra({
             }),
             chatRoute({
                 path: '/chat/:agentId',
+                version: 'v6',
                 //defaultOptions: {
                 // memory: {
                 //     thread: {
@@ -390,11 +465,11 @@ export const mastra = new Mastra({
                 defaultOptions: {
                     memory: {
                         thread: {
-                            id: 'researchAgentChat',
-                            resourceId: 'chat',
+                            id: 'researchAgent',
+                            resourceId: 'researchAgent',
                             metadata: { agent: 'researchAgent' },
                         },
-                        resource: 'chat',
+                        resource: 'researchAgent',
                         options: {
                             lastMessages: 500,
                             semanticRecall: true,
@@ -417,7 +492,6 @@ export const mastra = new Mastra({
                 const country = c.req.header('CF-IPCountry') ?? ''
                 const authHeader = c.req.header('Authorization') ?? ''
                 const headerUserId = c.req.header('x-user-id')
-                const headerUserTier = c.req.header('x-user-tier')
                 const acceptLanguage = c.req.header('accept-language') ?? ''
                 const researchPhaseHeader = c.req.header('x-research-phase')
 
@@ -425,62 +499,74 @@ export const mastra = new Mastra({
                     | RequestContext
                     | undefined
                 if (requestContext?.set) {
-                    //          // Temperature unit (from Cloudflare geo header)
-                    const unit = country === 'US' ? 'fahrenheit' : 'celsius'
-                    requestContext.set('temperature-unit', unit)
+                    const bearerToken = authHeader.startsWith('Bearer ')
+                        ? authHeader.slice('Bearer '.length)
+                        : ''
+                    const authenticatedUser =
+                        bearerToken.length > 0
+                            ? await getAuthenticatedUser<{
+                                  user: { id: string; role?: string }
+                              }>({
+                                  mastra,
+                                  token: bearerToken,
+                                  request: c.req.raw,
+                              })
+                            : null
 
                     // userId: prefer explicit header, otherwise try to parse from a bearer token (format: "Bearer user:<id>")
-                    let userId = headerUserId
-                    if (
-                        (userId === null || userId === '') &&
-                        authHeader !== null &&
-                        authHeader !== '' &&
-                        authHeader.startsWith('Bearer ')
-                    ) {
-                        const token = authHeader.slice('Bearer '.length)
-                        const exec = /user:([^;\s]+)/.exec(token)
-                        if (exec) {
-                            userId = exec[1]
-                        }
-                    }
-                    if (userId !== null && userId !== '') {
+                    const userId =
+                        authenticatedUser?.user.id?.trim() ||
+                        headerUserId?.trim() ||
+                        ''
+                    if (userId !== '') {
                         requestContext.set('userId', userId)
                     }
 
-                    // user-tier: prefer explicit header, otherwise derive from token hints
-                    let userTier = headerUserTier
-                    if (
-                        (userTier === null || userTier === '') &&
-                        authHeader !== null &&
-                        authHeader !== '' &&
-                        authHeader.startsWith('Bearer ')
-                    ) {
-                        const token = authHeader.slice('Bearer '.length)
-                        if (token.includes('enterprise')) {
-                            userTier = 'enterprise'
-                        } else if (token.includes('pro')) {
-                            userTier = 'pro'
-                        } else {
-                            userTier = 'free'
-                        }
-                    }
-                    if (userTier !== null && userTier !== '') {
-                        requestContext.set('user-tier', userTier)
-                    }
+                    const role =
+                        authenticatedUser?.user.role === 'admin'
+                            ? 'admin'
+                            : 'user'
+                    requestContext.set(ROLE_CONTEXT_KEY, role)
+                    requestContext.set('userRole', role)
 
-                    // language: prefer Accept-Language header (primary language subtag), fallback to 'en'
-                    const language =
+                    const temperatureUnit: TemperatureUnit =
+                        country === 'US' ? 'fahrenheit' : 'celsius'
+                    const acceptedLanguage =
                         acceptLanguage.split(',')[0]?.split('-')[0] ?? 'en'
-                    const supported = ['en', 'es', 'ja', 'fr']
-                    requestContext.set(
-                        'language',
-                        supported.includes(language) ? language : 'en'
+                    const supportedLanguages = [
+                        'en',
+                        'es',
+                        'ja',
+                        'fr',
+                    ] as const satisfies ReadonlyArray<SupportedLanguage>
+                    const language: SupportedLanguage = supportedLanguages.includes(
+                        acceptedLanguage as SupportedLanguage
                     )
+                        ? (acceptedLanguage as SupportedLanguage)
+                        : 'en'
+
+                    const researchPhase: ResearchPhase =
+                        researchPhaseHeader === 'followup' ||
+                        researchPhaseHeader === 'validation'
+                            ? researchPhaseHeader
+                            : 'initial'
+
+                    const requestContextPayload = buildSharedRequestContextPayload({
+                        [USER_ID_CONTEXT_KEY]: userId ?? undefined,
+                        [ROLE_CONTEXT_KEY]: role,
+                        [LANGUAGE_CONTEXT_KEY]: language,
+                        [TEMPERATURE_UNIT_CONTEXT_KEY]: temperatureUnit,
+                        [RESEARCH_PHASE_CONTEXT_KEY]: researchPhase,
+                    })
+
+                    for (const [key, value] of Object.entries(requestContextPayload)) {
+                        requestContext.set(key, value)
+                    }
 
                     // research phase
                     requestContext.set(
-                        'researchPhase',
-                        researchPhaseHeader ?? 'initial'
+                        RESEARCH_PHASE_CONTEXT_KEY,
+                        researchPhase
                     )
 
                     // runtime API key (for tools that may accept runtimeContext.apiKey)

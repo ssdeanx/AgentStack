@@ -5,7 +5,6 @@ import type { AgentRequestContext } from './request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import {
     //    serpapiSearchTool,
@@ -18,6 +17,7 @@ import {
 
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { InternalSpans } from '@mastra/core/observability'
+import { LibsqlMemory } from '../config/libsql'
 
 export type AcademicResearchRuntimeContext = AgentRequestContext<{
     researchType?: 'quick' | 'deep' | 'systematic'
@@ -35,7 +35,7 @@ export const academicResearchAgent = new Agent({
     }: {
         requestContext: RequestContext<AcademicResearchRuntimeContext>
     }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const role = requestContext.get('role') ?? 'user'
         const language = requestContext.get('language') ?? 'en'
         const researchType = requestContext.get('researchType') ?? 'quick'
 
@@ -43,7 +43,7 @@ export const academicResearchAgent = new Agent({
             role: 'system',
             content: `
 # Academic Research Specialist
-Tier: ${userTier} | Lang: ${language} | Type: ${researchType}
+Role: ${role} | Lang: ${language} | Type: ${researchType}
 
 ## Expertise
 - Academic paper discovery and retrieval
@@ -111,11 +111,9 @@ ${
         }
     },
     model: ({ requestContext }) => {
-        const userTier = requestContext.get('user-tier') ?? 'free'
-        if (userTier === 'enterprise') {
+        const role = requestContext.get('role') ?? 'user'
+        if (role === 'admin') {
             return google.chat('gemini-3-pro-preview')
-        } else if (userTier === 'pro') {
-            return google.chat('gemini-3.1-flash-preview')
         }
         return google.chat('gemini-3.1-flash-lite-preview')
     },
@@ -128,10 +126,10 @@ ${
         //   dataValidatorTool,
         extractLearningsTool,
     },
-    memory: pgMemory,
+    memory: LibsqlMemory,
     options: {
         tracingPolicy: {
-            internal: InternalSpans.ALL,
+            internal: InternalSpans.AGENT,
         },
     },
     maxRetries: 3,

@@ -25,6 +25,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type * as React from 'react'
 
 // Regex patterns for parsing stack traces
 const STACK_FRAME_WITH_PARENS_REGEX = /^at\s+(.+?)\s+\((.+):(\d+):(\d+)\)$/;

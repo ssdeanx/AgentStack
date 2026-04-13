@@ -1,4 +1,3 @@
-import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
@@ -6,12 +5,15 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 import type { TracingContext } from '@mastra/core/observability'
 
-export interface WeatherToolContext extends RequestContext {
+import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
+
+export interface WeatherToolContextExtra extends BaseToolRequestContext {
     temperatureUnit?: 'celsius' | 'fahrenheit'
-    userId?: string
-    workspaceId?: string
     maxRows?: number
 }
+
+export type WeatherToolContext = RequestContext<WeatherToolContextExtra>
 
 export type WeatherToolContextType = WeatherToolContext
 
@@ -80,14 +82,14 @@ export const weatherTool = createTool({
     },
 
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
+        const {writer} = context
+        const {abortSignal} = context
         const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+            context.tracingContext
 
         // Check if operation was already cancelled
         if (abortSignal?.aborted ?? false) {
-            throw new Error('Weather lookup cancelled')
+            throw new Error('Weather lookup cancelled', { cause: abortSignal })
         }
 
         await writer?.custom({
@@ -100,12 +102,10 @@ export const weatherTool = createTool({
             id: 'get-weather',
         })
 
-        const requestCtx = context?.requestContext as
-            | WeatherToolContext
-            | undefined
-        const temperatureUnit = requestCtx?.temperatureUnit ?? 'celsius'
-        const userId = requestCtx?.userId
-        const workspaceId = requestCtx?.workspaceId
+        const requestCtx = context.requestContext as WeatherToolContext
+        const temperatureUnit = requestCtx.get('temperatureUnit') ?? 'celsius'
+        const userId = requestCtx.all.userId
+        const workspaceId = requestCtx.all.workspaceId
 
         log.info(
             `Fetching weather for location: ${inputData.location} in ${temperatureUnit}`,
@@ -124,8 +124,8 @@ export const weatherTool = createTool({
                 'user.id': userId,
                 'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            requestContext: context.requestContext,
+            tracingContext,
         })
 
         // Create child span for weather lookup operation
@@ -156,7 +156,9 @@ export const weatherTool = createTool({
                     error: new Error('Operation cancelled during geocoding'),
                     endSpan: true,
                 })
-                throw new Error('Weather lookup cancelled during geocoding')
+                throw new Error('Weather lookup cancelled during geocoding', {
+                    cause: abortSignal,
+                })
             }
 
             const result = await getWeather(
@@ -205,7 +207,7 @@ export const weatherTool = createTool({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `Input: location="${inputData.location}" - ✅ Weather ready: ${finalResult.temperature}${finalResult.unit} in ${finalResult.location}`,
+                    message: `Input: location="${inputData.location}" - ✅ Weather ready: ${String(finalResult.temperature)}${finalResult.unit} in ${finalResult.location}`,
                     stage: 'get-weather',
                 },
                 id: 'get-weather',
@@ -239,7 +241,7 @@ export const weatherTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, { cause: error })
             }
 
             // Record error in both spans
@@ -295,12 +297,14 @@ const getWeather = async (
     const geocodingData = (await geocodingResponse.json()) as GeocodingResponse
 
     if (!geocodingData.results?.[0]) {
-        throw new Error(`Location '${location}' not found`)
+        throw new Error(`Location '${location}' not found`, {
+            cause: geocodingData,
+        })
     }
 
     const { latitude, longitude, name } = geocodingData.results[0]
 
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code&temperature_unit=${unit}`
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${String(latitude)}&longitude=${String(longitude)}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code&temperature_unit=${unit}`
 
     const response = await fetch(weatherUrl, { signal: abortSignal })
     const data = (await response.json()) as WeatherResponse

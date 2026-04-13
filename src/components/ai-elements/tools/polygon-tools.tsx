@@ -3,7 +3,7 @@
 import type {
   PolygonCryptoAggregatesUITool,
   PolygonCryptoQuotesUITool,
-  PolygonCryptoSnapshotsUITool,
+
   PolygonStockAggregatesUITool,
   PolygonStockFundamentalsUITool,
   PolygonStockQuotesUITool,
@@ -25,7 +25,7 @@ import {
   Loader2,
   Search,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, ReactNode, useRef, useState, type ChangeEvent } from 'react'
 import { CodeBlock, CodeBlockCopyButton } from '../code-block'
 
 /* Utility helpers */

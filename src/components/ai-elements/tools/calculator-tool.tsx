@@ -300,12 +300,12 @@ export function MatrixCalculatorCard({ input, output, errorText }: MatrixCalcula
         {hasResult ? (
           <div className="space-y-3">
             {!showJson ? (
-              <ScrollArea className="h-[260px] pr-4">
+              <ScrollArea className="h-65 pr-4">
                 <div className="space-y-2">
                   {(result).map((row: any[], rIdx: number) => (
                     <div key={rIdx} className="flex gap-2">
                       {row.map((val, cIdx) => (
-                        <div key={cIdx} className="p-2 border rounded text-sm min-w-[48px] text-center">
+                        <div key={cIdx} className="p-2 border rounded text-sm min-w-12 text-center">
                           {String(val)}
                         </div>
                       ))}

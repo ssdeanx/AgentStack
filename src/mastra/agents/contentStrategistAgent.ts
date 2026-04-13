@@ -1,24 +1,16 @@
 import { Agent } from '@mastra/core/agent'
-import { pgMemory } from '../config/pg-storage'
-import {
-  scrapingSchedulerTool,
-} from '../tools/web-scraper-tool'
 
-import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
+import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { InternalSpans } from '@mastra/core/observability'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+
 import {
-  getUserTierFromContext,
+  getRoleFromContext,
   USER_ID_CONTEXT_KEY,
   type AgentRequestContext,
 } from './request-context'
-import {
-  createCompletenessScorer,
-  createTextualDifferenceScorer,
-  createToneScorer,
-} from '../evals/scorers/prebuilt'
 import { chartSupervisorTool } from '../tools/financial-chart-tools'
 import { fetchTool } from '../tools/fetch.tool'
+import { LibsqlMemory } from '../config/libsql'
 
 const STAGGERED_OUTPUT_CONTEXT_KEY = 'staggeredOutput' as const
 const SECTION_COUNT_CONTEXT_KEY = 'sectionCount' as const
@@ -81,11 +73,13 @@ function getBackupDataToolsFromContext(requestContext: {
 const contentStrategistTools = {
   fetchTool,
   chartSupervisorTool,
-  scrapingSchedulerTool,
-  google_search: google.tools.googleSearch({}),
-  url_context: google.tools.urlContext({}),
 }
 
+/**
+ * Content Strategist Agent.
+ *
+ * Plans high-impact, data-driven content strategies and editorial structures.
+ */
 export const contentStrategistAgent = new Agent({
   id: 'contentStrategistAgent',
   name: 'Content Strategist',
@@ -94,7 +88,7 @@ export const contentStrategistAgent = new Agent({
   instructions: ({ requestContext }) => {
     const rawUserId = requestContext.get(USER_ID_CONTEXT_KEY)
     const userId = typeof rawUserId === 'string' ? rawUserId : 'anonymous'
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const staggeredOutput = getBooleanFromContext(
       requestContext,
       STAGGERED_OUTPUT_CONTEXT_KEY,
@@ -111,7 +105,7 @@ export const contentStrategistAgent = new Agent({
       role: 'system',
       content: `
 # Content Strategist
-User: ${userId} | Tier: ${userTier} | Style: ${strategy}
+User: ${userId} | Role: ${role} | Style: ${strategy}
 
 ## Approach
 1. **Research**: Use 'webScraperTool' for trends, audience, and competitors.
@@ -142,19 +136,16 @@ User: ${userId} | Tier: ${userTier} | Style: ${strategy}
     }
   },
   model: 'google/gemini-3.1-flash-preview',
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: contentStrategistTools,
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {
-    toneConsistency: { scorer: createToneScorer() },
-    textualDifference: { scorer: createTextualDifferenceScorer() },
-    completeness: { scorer: createCompletenessScorer() },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
+//  outputProcessors: [new TokenLimiterProcessor(1048576)],
   //defaultOptions: {
   //    autoResumeSuspendedTools: true,
   // },

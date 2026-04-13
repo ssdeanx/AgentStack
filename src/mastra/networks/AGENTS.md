@@ -195,6 +195,10 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 - Chain agents for complex multi-step workflows
 - Preserve context when passing between agents
 - Log routing decisions for debugging
+- When a network delegates to child agents, prefer inline `defaultOptions.delegation` hooks in that network file to refine prompts, handle delegation failure feedback, and trim parent message context before handoff.
+- Keep network completion checks local to the network file with a network-scoped `createScorer(...)` rather than relying on shared coordinator abstractions.
+- Prefer multiple local scorers when a network can validly finish through different answer shapes (for example, a broad completeness scorer plus a shorter decision-readiness or execution-readiness scorer).
+- Add an explicit final-answer contract in long coordinator instructions so the network knows what a user-ready synthesis should look like after delegation.
 - Do **not** rely on `nestedAgents` adapters or broad parent-side casts when wiring child agents.
 - Preferred approach: fix child agents at the source so their public request-context generic is `unknown`, and keep any narrower runtime-context parsing internal to the agent.
 
@@ -204,6 +208,8 @@ Networks are routing agents that coordinate multiple specialized agents to handl
 
 | Version | Date (UTC) | Changes                                                       |
 | ------- | ---------- | ------------------------------------------------------------- |
+| 2.0.4   | 2026-03-28 | Added the current standard for dual local completion scorers and explicit final-answer contracts in coordinator networks. |
+| 2.0.3   | 2026-03-27 | Added the current standard for inline network delegation hooks and network-local completion scorers. |
 | 2.0.2   | 2026-03-17 | Replaced adapter guidance with the current source-level child-agent typing standard (`unknown` public request context, internal runtime parsing). |
 | 2.0.1   | 2026-03-16 | Added standard guidance for `nestedAgents` when wiring child agents into networks. |
 | 2.0.0   | 2025-11-26 | Major update: 4 networks with workflows, architecture diagram |

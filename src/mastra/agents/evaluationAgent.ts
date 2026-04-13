@@ -1,29 +1,33 @@
 import { Agent } from '@mastra/core/agent'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
-import { getUserTierFromContext, type AgentRequestContext } from './request-context'
+import { getRoleFromContext, type AgentRequestContext } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type EvaluationContext = AgentRequestContext
 
 log.info('Initializing Evaluation Agent...')
 
+/**
+ * Evaluation Agent.
+ *
+ * Scores search results for relevance against a research query.
+ */
 export const evaluationAgent = new Agent({
     id: 'evaluationAgent',
     name: 'Evaluation Agent',
     description:
         'An expert evaluation agent. Your task is to evaluate whether search results are relevant to a research query.',
     instructions: ({ requestContext }) => {
-        const userTier = getUserTierFromContext(requestContext)
+        const role = getRoleFromContext(requestContext)
 
         return {
             role: 'system',
             content: `
 # Evaluation Agent
-User: ${userTier}
+User: ${role}
 
 ## Task
 Evaluate search result relevance to a research query.
@@ -46,7 +50,7 @@ Evaluate search result relevance to a research query.
                 google: {
                     thinkingConfig: {
                         includeThoughts: true,
-                        thinkingBudget: -1,
+                        thinkingLevel: 'low',
                     },
                     responseModalities: ['TEXT'],
                     mediaResolution: 'MEDIA_RESOLUTION_LOW',
@@ -55,15 +59,15 @@ Evaluate search result relevance to a research query.
         }
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {},
     scorers: {},
     options: {
         tracingPolicy: {
-            internal: InternalSpans.ALL,
+            internal: InternalSpans.AGENT,
         },
     },
     workflows: {},
     maxRetries: 5,
-    outputProcessors: [new TokenLimiterProcessor(1048576)],
+//    outputProcessors: [new TokenLimiterProcessor(1048576)],
 })

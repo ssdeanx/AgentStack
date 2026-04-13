@@ -6,13 +6,24 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
+import { promises as fs } from 'node:fs'
+import * as path from 'node:path'
 import { z } from 'zod'
+import { mainFilesystem } from '../workspaces'
 import { log } from '../config/logger'
-import * as fs from 'node:fs/promises'
-import path from 'node:path'
 import sharp from 'sharp'
 import type { PSM } from 'tesseract.js'
 import { createWorker } from 'tesseract.js'
+
+function resolveWorkspacePath(filePath: string): string {
+    const resolvedPath = path.resolve(mainFilesystem.basePath, filePath)
+    if (!resolvedPath.startsWith(path.resolve(mainFilesystem.basePath))) {
+        throw new Error(
+            'Path traversal detected: Cannot access files outside the workspace'
+        )
+    }
+    return resolvedPath
+}
 
 export interface ImageToolContext extends RequestContext {
     maxImageSize?: number
@@ -53,6 +64,31 @@ export const ocrTool = createTool({
             )
             .describe('Text blocks with bounding boxes'),
     }),
+    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('OCR tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
+        log.info('OCR tool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('OCR tool received complete input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: { imagePath: input.imagePath, language: input.language },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
@@ -65,7 +101,7 @@ export const ocrTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `📄 Starting OCR for ${path.basename(input.imagePath)}`,
+                message: `📄 Starting OCR for ${input.imagePath}`,
                 stage: 'ocr',
             },
             id: 'ocr',
@@ -86,7 +122,7 @@ export const ocrTool = createTool({
 
         try {
             // Verify file exists
-            await fs.access(input.imagePath)
+            await mainFilesystem.stat(input.imagePath)
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -97,6 +133,8 @@ export const ocrTool = createTool({
                 },
                 id: 'ocr',
             })
+
+            const dataBuffer = await mainFilesystem.readFile(input.imagePath)
 
             const worker = await createWorker(input.language, undefined, {
                 logger: (m) => {
@@ -127,7 +165,7 @@ export const ocrTool = createTool({
                 throw new Error('OCR operation cancelled during processing')
             }
 
-            const { data } = await worker.recognize(input.imagePath)
+            const { data } = await worker.recognize(Buffer.from(dataBuffer))
 
             await worker.terminate()
 
@@ -187,31 +225,6 @@ export const ocrTool = createTool({
             })
             throw error instanceof Error ? error : new Error(errorMessage)
         }
-    },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('OCR tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, abortSignal }) => {
-        log.info('OCR tool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('OCR tool received complete input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: { imagePath: input.imagePath, language: input.language },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
         log.info('OCR tool completed', {
@@ -302,7 +315,7 @@ export const imageProcessorTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `🖼️ Processing image: ${path.basename(input.inputPath)}`,
+                message: `🖼️ Processing image: ${input.inputPath}`,
                 stage: 'image-processor',
             },
             id: 'image-processor',
@@ -321,9 +334,10 @@ export const imageProcessorTool = createTool({
         })
 
         try {
-            await fs.access(input.inputPath)
+            await mainFilesystem.stat(input.inputPath)
 
-            let pipeline = sharp(input.inputPath)
+            const inputBuffer = await mainFilesystem.readFile(input.inputPath)
+            let pipeline = sharp(inputBuffer)
             const ops = input.operations ?? {
                 grayscale: false,
                 sharpen: false,
@@ -380,10 +394,12 @@ export const imageProcessorTool = createTool({
                     .webp({ quality: ops.quality })
             }
 
-            await pipeline.toFile(input.outputPath)
+            const workspaceOutputPath = resolveWorkspacePath(input.outputPath)
 
-            const outputMetadata = await sharp(input.outputPath).metadata()
-            const fileStat = await fs.stat(input.outputPath)
+            await pipeline.toFile(workspaceOutputPath)
+
+            const outputMetadata = await sharp(workspaceOutputPath).metadata()
+            const fileStat = await fs.stat(workspaceOutputPath)
             const sizeBytes = fileStat.size
 
             processSpan?.update({
@@ -555,9 +571,11 @@ export const imageToMarkdownTool = createTool({
                 throw new Error('OCR tool is not executable')
             }
 
+            const workspaceImagePath = resolveWorkspacePath(input.imagePath)
+
             const ocrResult = await executeOcr(
                 {
-                    imagePath: input.imagePath,
+                    imagePath: input.imagePath, // Keep original input for ocrTool which resolves it again
                     language: 'eng',
                     preserveLayout: true,
                     psm: 1,
@@ -580,7 +598,7 @@ export const imageToMarkdownTool = createTool({
             })
 
             // Get image metadata
-            const metadata = await sharp(input.imagePath).metadata()
+            const metadata = await sharp(workspaceImagePath).metadata()
 
             // Simple markdown generation (could be enhanced with ML for layout analysis)
             let markdown = ''

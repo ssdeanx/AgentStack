@@ -265,15 +265,19 @@ export const amazonSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             amazonSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Amazon search failed', {
                 query: inputData.query,
                 error: errorMessage,
             })
-            throw new Error(`Amazon search failed: ${errorMessage}`)
+            throw new Error(`Amazon search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
 })
@@ -452,15 +456,19 @@ export const walmartSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             walmartSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Walmart search failed', {
                 query: inputData.query,
                 error: errorMessage,
             })
-            throw new Error(`Walmart search failed: ${errorMessage}`)
+            throw new Error(`Walmart search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
 })
@@ -656,15 +664,19 @@ export const ebaySearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             ebaySpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('eBay search failed', {
                 query: inputData.query,
                 error: errorMessage,
             })
-            throw new Error(`eBay search failed: ${errorMessage}`)
+            throw new Error(`eBay search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
 })
@@ -839,15 +851,19 @@ export const homeDepotSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             homeDepotSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Home Depot search failed', {
                 query: inputData.query,
                 error: errorMessage,
             })
-            throw new Error(`Home Depot search failed: ${errorMessage}`)
+            throw new Error(`Home Depot search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
     },
 })

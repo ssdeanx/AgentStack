@@ -163,7 +163,7 @@ const fetchStockDataStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('fetch-stock-data', error, { symbol: inputData.symbol })
+            logError('fetch-stock-data', error instanceof Error ? error : new Error(String(error)), { symbol: inputData.symbol })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -312,7 +312,7 @@ const getCompanyNewsStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('get-company-news', error, { symbol: inputData.symbol })
+            logError('get-company-news', error instanceof Error ? error : new Error(String(error)), { symbol: inputData.symbol })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -480,7 +480,7 @@ const runAnalysisStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('run-analysis', error, {
+            logError('run-analysis', error instanceof Error ? error : new Error(String(error)), {
                 symbol: inputData.stockData.symbol,
             })
 
@@ -654,7 +654,7 @@ const generateReportStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('generate-report', error, { symbol: inputData.symbol })
+            logError('generate-report', error instanceof Error ? error : new Error(String(error)), { symbol: inputData.symbol })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -692,3 +692,4 @@ export const stockAnalysisWorkflow = createWorkflow({
     .then(generateReportStep)
 
 stockAnalysisWorkflow.commit()
+

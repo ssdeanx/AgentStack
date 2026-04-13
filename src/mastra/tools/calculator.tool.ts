@@ -1,21 +1,19 @@
 import type { TracingContext } from '@mastra/core/observability'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { evaluate } from 'mathjs'
 import { log } from '../config/logger'
-
-type UserTier = 'free' | 'pro' | 'enterprise'
+import type { RequestContext } from '@mastra/core/request-context'
+import type { BaseToolRequestContext } from './request-context.utils'
 
 // RequestContext interface for Calculator tool
-export interface CalculatorToolContext extends RequestContext {
-    'user-tier': UserTier
-    userId?: string
+export interface CalculatorToolContextExtra extends BaseToolRequestContext {
     precision?: number
     allowComplexExpressions?: boolean
     maxExpressionLength?: number
+    [key: string]: any
 }
 
 // Enhanced mathematical functions and constants
@@ -144,14 +142,15 @@ function evaluateExpression(
     const context = { ...createSafeContext(), ...variables }
 
     try {
-        const result = evaluate(expression, context)
+        const result = evaluate(expression, context) as unknown
         if (typeof result !== 'number' || !isFinite(result)) {
             throw new Error('Expression did not evaluate to a valid number')
         }
         return result
     } catch (error) {
         throw new Error(
-            `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            { cause: error }
         )
     }
 }
@@ -340,18 +339,13 @@ export const calculatorTool = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | CalculatorToolContext
-            | undefined
-        const precision = requestCtx?.precision ?? 6
-        const allowComplexExpressions =
-            requestCtx?.allowComplexExpressions ?? true
-        const maxExpressionLength = requestCtx?.maxExpressionLength ?? 1000
-
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<CalculatorToolContextExtra> | undefined
+        const precision = requestContext?.get('precision') ?? 6
+        const maxExpressionLength = requestContext?.get('maxExpressionLength') ?? 1000
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
+        const tracingContext: TracingContext | undefined = context.tracingContext
 
         // Create root span and child span for calculator operation
         const rootSpan = getOrCreateSpan({
@@ -361,9 +355,10 @@ export const calculatorTool = createTool({
             metadata: {
                 'tool.id': 'calculator',
                 'tool.input.expression': inputData.expression,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -376,7 +371,6 @@ export const calculatorTool = createTool({
                 'tool.input.precision': precision,
             },
         })
-
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
@@ -391,13 +385,13 @@ export const calculatorTool = createTool({
             // Validate expression length
             if (inputData.expression.length > maxExpressionLength) {
                 throw new Error(
-                    `Expression too long (max ${maxExpressionLength} characters)`
+                    `Expression too long (max ${String(maxExpressionLength)} characters)`
                 )
             }
 
             const vars = inputData.variables ?? {}
             const result = evaluateExpression(inputData.expression, vars)
-            const actualPrecision = inputData.precision || precision
+            const actualPrecision = inputData.precision ?? precision
             const formattedResult = result.toFixed(actualPrecision)
 
             await writer?.custom({
@@ -504,7 +498,7 @@ export const calculatorTool = createTool({
             toolName,
             outputData: {
                 success: output.success,
-                hasResult: output.result !== undefined,
+                hasResult: true,
             },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
@@ -541,14 +535,13 @@ export const unitConverterTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | CalculatorToolContext
-            | undefined
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
 
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const tracingContext: TracingContext | undefined = context.tracingContext
 
         // Create child span for unit conversion
         const unitConverterSpan = getOrCreateSpan({
@@ -560,9 +553,10 @@ export const unitConverterTool = createTool({
                 'tool.input.value': inputData.value,
                 'tool.input.fromUnit': inputData.fromUnit,
                 'tool.input.toUnit': inputData.toUnit,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -570,16 +564,16 @@ export const unitConverterTool = createTool({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
-                message: `🔄 Converting ${inputData.value} ${inputData.fromUnit} to ${inputData.toUnit}`,
+                message: `🔄 Converting ${String(inputData.value)} ${inputData.fromUnit} to ${inputData.toUnit}`,
                 stage: 'unit-converter',
             },
             id: 'unit-converter',
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing unit conversion for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -741,14 +735,12 @@ export const matrixCalculatorTool = createTool({
         message: z.string().optional(),
     }),
     execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const requestCtx = context?.requestContext as
-            | CalculatorToolContext
-            | undefined
-
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
+        const writer = context.writer
+        const abortSignal = context.abortSignal
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
+        const tracingContext: TracingContext | undefined = context.tracingContext
 
         // Create root span and child span for matrix calculation
         const matrixRootSpan = getOrCreateSpan({
@@ -759,9 +751,10 @@ export const matrixCalculatorTool = createTool({
                 'tool.id': 'matrix-calculator',
                 'tool.input.operation': inputData.operation,
                 'tool.input.matrixASize': inputData.matrixA.length,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
             tracingContext,
         })
 
@@ -786,9 +779,9 @@ export const matrixCalculatorTool = createTool({
         })
 
         try {
-            if (typeof requestCtx?.userId === 'string') {
+            if (userId) {
                 log.debug('Executing matrix calculation for user', {
-                    userId: requestCtx.userId,
+                    userId,
                 })
             }
             if (abortSignal?.aborted === true) {
@@ -834,9 +827,7 @@ export const matrixCalculatorTool = createTool({
                     result = MATRIX_OPERATIONS.inverse(inputData.matrixA)
                     break
                 default:
-                    throw new Error(
-                        `Unknown matrix operation: ${inputData.operation}`
-                    )
+                    throw new Error('Unknown matrix operation')
             }
 
             const dimensions = {
@@ -957,7 +948,7 @@ export const matrixCalculatorTool = createTool({
                 operation: input.operation,
                 matrixADims: [
                     input.matrixA.length,
-                    input.matrixA[0]?.length || 0,
+                    input.matrixA[0]?.length ?? 0,
                 ],
             },
             abortSignal: abortSignal?.aborted,

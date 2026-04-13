@@ -7,15 +7,15 @@ import { google } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
  //   LANGUAGE_CONTEXT_KEY,
-    USER_TIER_CONTEXT_KEY,
+    ROLE_CONTEXT_KEY,
     getLanguageFromContext,
-    getUserTierFromContext,
+    getRoleFromContext,
     type AgentRequestContext,
 } from './request-context'
 import { googleAI } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 import { InternalSpans } from '@mastra/core/observability'
+import { LibsqlMemory } from '../config/libsql'
 
 export type EditorRuntimeContext = AgentRequestContext
 log.info('Initializing Editor Agent...')
@@ -27,13 +27,13 @@ export const editorAgent = new Agent({
         'A versatile content editor that improves clarity, coherence, and quality across various content types including technical writing, documentation, emails, reports, and creative content.',
     instructions: ({ requestContext }) => {
         // runtimeContext is read at invocation time
-        const userTier = getUserTierFromContext(requestContext)
+        const role = getRoleFromContext(requestContext)
         const language = getLanguageFromContext(requestContext)
         return {
             role: 'system',
             content: `
 # Content Editor
-User: ${userTier} | Lang: ${language}
+Role: ${role} | Lang: ${language}
 
 ## Primary Function
 Refine clarity, coherence, grammar, and style across Technical, Business, Creative, and Academic content.
@@ -65,21 +65,18 @@ Refine clarity, coherence, grammar, and style across Technical, Business, Creati
         }
     },
     model: ({ requestContext }) => {
-        const userTier =
-            typeof requestContext.get(USER_TIER_CONTEXT_KEY) === 'string'
-                ? requestContext.get(USER_TIER_CONTEXT_KEY)
-                : 'free'
-        if (userTier === 'enterprise') {
-            // higher quality (chat style) for enterprise
+        const role =
+            typeof requestContext.get(ROLE_CONTEXT_KEY) === 'string'
+                ? requestContext.get(ROLE_CONTEXT_KEY)
+                : 'user'
+        if (role === 'admin') {
+            // higher quality (chat style) for admin
             return google.chat('gemini-3.1-pro-preview')
-        } else if (userTier === 'pro') {
-            // Chat bison for pro as well
-            return "google/gemini-3.1-flash-preview"
         }
-        // cheaper/faster model for free tier
+        // cheaper/faster model for user tier
         return google.chat('gemini-3.1-flash-lite-preview')
     },
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {},
     scorers: {},
     options: {

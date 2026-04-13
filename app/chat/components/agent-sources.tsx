@@ -9,7 +9,7 @@ import {
 import type { Source as SourceType } from '@/app/chat/providers/chat-context-types'
 import { ExternalLinkIcon } from 'lucide-react'
 import { useMemo } from 'react'
-import type { AgentSourcesProps } from './chat.types'
+import type { AgentSourcesProps } from '../providers/chat-context-types'
 
 function getDomain(url: string): string {
     try {

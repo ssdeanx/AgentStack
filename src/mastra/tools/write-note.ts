@@ -2,18 +2,14 @@ import type { RequestContext } from '@mastra/core/request-context'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
-import * as fs from 'node:fs/promises'
-import * as path from 'node:path'
 import { z } from 'zod'
 import { log } from '../config/logger'
+import { localWorkspacePath, mainFilesystem, mainSandbox } from '../workspaces'
 
 export interface WriteNoteContext extends RequestContext {
     userId?: string
     workspaceId?: string
 }
-
-const NOTES_DIR = path.join(process.cwd(), 'notes')
 
 export const writeNoteTool = createTool({
     id: 'write',
@@ -29,22 +25,53 @@ export const writeNoteTool = createTool({
             .describe('The markdown content of the note.'),
     }),
     outputSchema: z.string().nonempty(),
-    execute: async (inputData, context) => {
-        const writer = context?.writer
-        const abortSignal = context?.abortSignal
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
-        const requestCtx = context?.requestContext as
-            | WriteNoteContext
-            | undefined
+     onInputStart: ({ toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool tool input streaming started', {
+            toolCallId,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputStart',
+        })
+    },
+    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool received input chunk', {
+            toolCallId,
+            inputTextDelta,
+            messageCount: messages.length,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputDelta',
+        })
+    },
+    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+        log.info('writeNoteTool received input', {
+            toolCallId,
+            messageCount: messages.length,
+            inputData: {
+                title: input.title,
+                content: input.content,
+            },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onInputAvailable',
+        })
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('writeNoteTool completed', {
+            toolCallId,
+            toolName,
+            outputData: output,
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
+    },
+    execute: async (inputData, { writer, abortSignal, tracingContext, requestContext }) => {
+        const requestCtx = requestContext as WriteNoteContext
 
         // Check if operation was already cancelled
-        if (abortSignal?.aborted ?? false) {
+        if (abortSignal?.aborted === true) {
             throw new Error('Write note operation cancelled')
         }
 
-        const userId = requestCtx?.userId
-        const workspaceId = requestCtx?.workspaceId
+        const { userId, workspaceId } = requestCtx
 
         await writer?.custom({
             type: 'data-tool-progress',
@@ -68,28 +95,34 @@ export const writeNoteTool = createTool({
                 'tool.id': 'write',
                 'tool.input.title': inputData.title,
                 'tool.input.contentLength': inputData.content.length,
-                'notes.dir': NOTES_DIR,
                 'user.id': userId,
                 'workspace.id': workspaceId,
+                'workspace.path': localWorkspacePath,
+                'sandbox.id': mainSandbox.id,
             },
+            tracingContext,
         })
 
         const startTime = Date.now()
 
         try {
             const { title, content } = inputData
-            const filePath = path.join(NOTES_DIR, `${title}.md`)
-            await fs.mkdir(NOTES_DIR, { recursive: true })
-            await fs.writeFile(filePath, content, 'utf-8')
+            
+            // Basic sanitization to prevent path traversal
+            const safeTitle = title.replace(/\.\./g, '').replace(/[\\/]/g, '_')
+            const relativePath = `notes/${safeTitle}.md`
+
+            // LocalFilesystem handles recursive directory creation and resolves relative to basePath
+            await mainFilesystem.writeFile(relativePath, content)
 
             const result = `Successfully wrote to note "${title}".`
 
             // Update span with successful result
             noteSpan?.update({
-                output: { success: true, filePath },
+                output: { success: true, relativePath },
                 metadata: {
                     'tool.output.success': true,
-                    'tool.output.filePath': filePath,
+                    'tool.output.relativePath': relativePath,
                     'tool.output.processingTimeMs': Date.now() - startTime,
                 },
             })
@@ -132,44 +165,7 @@ export const writeNoteTool = createTool({
             throw error
         }
     },
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool tool input streaming started', {
-            toolCallId,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputStart',
-        })
-    },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool received input chunk', {
-            toolCallId,
-            inputTextDelta,
-            messageCount: messages.length,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputDelta',
-        })
-    },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
-        log.info('writeNoteTool received input', {
-            toolCallId,
-            messageCount: messages.length,
-            inputData: {
-                title: input.title,
-                content: input.content,
-            },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('writeNoteTool completed', {
-            toolCallId,
-            toolName,
-            outputData: output,
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
+   
 })
 
 export type WriteNoteUITool = InferUITool<typeof writeNoteTool>

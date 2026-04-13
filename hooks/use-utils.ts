@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 
 export function useCopyToClipboard(): [
     string | null,
@@ -10,7 +11,6 @@ export function useCopyToClipboard(): [
 
     const copy = useCallback(async (text: string): Promise<boolean> => {
         if (!navigator?.clipboard) {
-            console.warn('Clipboard not supported')
             return false
         }
 
@@ -19,7 +19,7 @@ export function useCopyToClipboard(): [
             setCopiedText(text)
             return true
         } catch (error) {
-            console.warn('Copy failed', error)
+            void error
             setCopiedText(null)
             return false
         }
@@ -30,8 +30,8 @@ export function useCopyToClipboard(): [
 
 export function useClickOutside<T extends HTMLElement>(
     handler: () => void
-): React.RefObject<T | null> {
-    const ref = useRef<T>(null)
+): RefObject<T | null> {
+    const ref = useRef<T | null>(null)
 
     useEffect(() => {
         const listener = (event: MouseEvent | TouchEvent) => {

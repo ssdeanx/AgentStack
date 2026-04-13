@@ -1,12 +1,12 @@
-<!-- AGENTS-META {"title":"AgentStack README","version":"1.3.1","applies_to":"/","last_updated":"2026-03-17","status":"stable"} -->
+<!-- AGENTS-META {"title":"AgentStack README","version":"1.3.3","applies_to":"/","last_updated":"2026-03-29","status":"stable"} -->
 
 <div align="center">
 
 # 🚀 AgentStack
 
-<img src="assets/logo.png" width="128" height="128" alt="AgentStack Logo" />
+## Configuration
 
-![Home](assets/image-1767685860512.png)
+## Development
 ![Networks Custom Tool v1.0.0](networksCustomToolv1.png)
 
 <!-- Core Project Badges -->
@@ -19,10 +19,10 @@
 
 <!-- Stats Badges -->
 
-[![Agents](https://img.shields.io/badge/Agents-41-blue?logo=robot&logoColor=white)](src/mastra/agents)
+[![Agents](https://img.shields.io/badge/Agents-25+-blue?logo=robot&logoColor=white)](src/mastra/agents)
 [![Tools](https://img.shields.io/badge/Tools-57-orange?logo=hammer&logoColor=white)](src/mastra/tools)
-[![Workflows](https://img.shields.io/badge/Workflows-21-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
-[![Networks](https://img.shields.io/badge/Networks-11-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
+[![Workflows](https://img.shields.io/badge/Workflows-10+-purple?logo=workflow&logoColor=white)](src/mastra/workflows)
+[![Networks](https://img.shields.io/badge/Networks-12+-teal?logo=network-wired&logoColor=white)](src/mastra/networks)
 [![UI Components](https://img.shields.io/badge/UI%20Components-105-pink?logo=react&logoColor=white)](ui/)
 
 <!-- Quality Badges -->
@@ -37,12 +37,12 @@
 [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/ssdeanx/AgentStack)](https://gitmcp.io/ssdeanx/AgentStack)
 [![wakatime](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461.svg)](https://wakatime.com/badge/user/7a2fb9a0-188b-4568-887f-7645f9249e62/project/e52d02a1-f64a-4f8d-bc13-caaa2dc37461)
 
-**AgentStack** is a **production-grade multi-agent framework** built on Mastra, delivering **57 enterprise tools**, **41 specialized agents**, **21 workflows**, **11 agent networks**, **105 UI components** (50+ AI Elements + 55+ base), and **A2A/MCP orchestration** for scalable AI systems. Focuses on **financial intelligence**, **RAG pipelines**, **observability**, **secure governance**, and **AI chat interfaces**.
+**AgentStack** is a **production-grade AI agent platform** built on Mastra, delivering **57 enterprise tools**, **25+ specialized agents**, **10+ workflows**, **12+ supervisor networks**, **105 UI components** (50+ AI Elements + 55+ base), and **A2A/MCP orchestration** for scalable AI systems. Features **supervisor networks with delegation hooks**, **workspace management** (AgentFS/Daytona/Local), **TanStack Query integration**, and **LibSQL-backed persistence** for agents, workspaces, supervisor networks, and auth. Focuses on **financial intelligence**, **RAG pipelines**, **enterprise observability**, **secure governance**, and **AI chat interfaces**.
 
 <!-- Mastra Ecosystem -->
 
 [![@mastra/core](https://img.shields.io/npm/v/@mastra/core?label=@mastra/core&logo=npm)](https://www.npmjs.com/package/@mastra/core)
-[![@mastra/pg](https://img.shields.io/npm/v/@mastra/pg?label=@mastra/pg&logo=postgresql&logoColor=white)](https://www.npmjs.com/package/@mastra/pg)
+[![libSQL](https://img.shields.io/badge/Storage-libSQL-FFAB00?logo=sqlite&logoColor=white)](https://libsql.org/)
 [![@mastra/rag](https://img.shields.io/npm/v/@mastra/rag?label=@mastra/rag&logo=npm)](https://www.npmjs.com/package/@mastra/rag)
 [![@mastra/memory](https://img.shields.io/npm/v/@mastra/memory?label=@mastra/memory&logo=npm)](https://www.npmjs.com/package/@mastra/memory)
 [![@mastra/ai-sdk](https://img.shields.io/npm/v/@mastra/ai-sdk?label=@mastra/ai-sdk&logo=npm)](https://www.npmjs.com/package/@mastra/ai-sdk)
@@ -52,7 +52,7 @@
 [![@ai-sdk/google](https://img.shields.io/npm/v/@ai-sdk/google?label=AI%20SDK%20Google&logo=google&logoColor=white)](https://www.npmjs.com/package/@ai-sdk/google)
 [![@ai-sdk/react](https://img.shields.io/npm/v/@ai-sdk/react?label=AI%20SDK%20React&logo=react)](https://www.npmjs.com/package/@ai-sdk/react)
 [![Langfuse](https://img.shields.io/badge/Observability-Langfuse-FF6B6B?logo=opentelemetry&logoColor=white)](https://langfuse.com/)
-[![PgVector](https://img.shields.io/badge/Vector-PgVector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![libSQL Vector Search](https://img.shields.io/badge/Vector-libSQL%20Search-FFAB00?logo=sqlite&logoColor=white)](https://libsql.org/)
 
 <!-- LLM Providers -->
 
@@ -64,38 +64,274 @@
 
 ## 🎯 **Why AgentStack?**
 
-AgentStack bridges the gap between experimental AI frameworks and production-ready systems. While other frameworks focus on prototyping, AgentStack delivers the observability, security, and scalability required for enterprise deployment.
+AgentStack bridges the gap between basic AI chatbots and enterprise-grade multi-agent orchestration. While other AI agent platforms offer simple automation, AgentStack delivers the observability, security, and scalability required for production deployment.
 
-| Feature                       | AgentStack                                                      | LangChain     | CrewAI        | AutoGen    |
-| ----------------------------- | --------------------------------------------------------------- | ------------- | ------------- | ---------- |
-| **Production Observability**  | ✅ **Full Langfuse tracing + 10+ custom scorers**               | ⚠️ Partial    | ❌ Basic      | ❌ Limited |
-| **Financial Intelligence**    | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**             | ❌ None       | ❌ None       | ❌ None    |
-| **RAG Pipeline**              | ✅ **PgVector HNSW + rerank + graphRAG**                        | ⚠️ External   | ❌ Basic      | ❌ None    |
-| **Multi-Agent Orchestration** | ✅ **A2A MCP + parallel execution (41 agents)**                 | ⚠️ Sequential | ✅ Sequential | ✅ Custom  |
-| **Enterprise Security**       | ✅ **JWT/RBAC + path traversal protection + HTML sanitization** | ❌ Custom     | ❌ None       | ❌ None    |
-| **Type Safety**               | ✅ **Zod schemas everywhere (57 tools)**                        | ⚠️ JS/TS mix  | ⚠️ JS focus   | ❌ Python  |
-| **UI Components**             | ✅ **105 components (AI Elements + shadcn/ui)**                 | ❌ None       | ❌ None       | ❌ None    |
-| **Testing**                   | ✅ **Vitest + 97% coverage + comprehensive mocks**              | ⚠️ Partial    | ❌ Sparse     | ⚠️ Partial |
+| Feature                       | AgentStack                                                      | Fleece AI   | Botpress   | Vellum AI   |
+| ----------------------------- | --------------------------------------------------------------- | ----------- | ---------- | ----------- |
+| **Production Observability**  | ✅ **Real-time traces via TanStack + Langfuse ready**           | ⚠️ Basic    | ⚠️ Basic   | ✅ Partial  |
+| **Dataset Management**        | ✅ **Full dataset/eval/experiment API with versioning**         | ❌ None     | ❌ None    | ⚠️ Basic    |
+| **Supervisor Networks**       | ✅ **12+ coordinator agents with delegation hooks**             | ❌ None     | ❌ None    | ❌ None     |
+| **Financial Intelligence**    | ✅ **Polygon/Finnhub/AlphaVantage (30+ endpoints)**             | ❌ None     | ❌ None    | ❌ None     |
+| **RAG Pipeline**              | ✅ **LibSQL HNSW + rerank + graphRAG**                          | ⚠️ Basic    | ⚠️ Basic   | ✅ External |
+| **Multi-Agent Orchestration** | ✅ **A2A MCP + supervisor networks (25+ agents)**               | ✅ Advanced | ✅ Basic   | ✅ Partial  |
+| **Enterprise Security**       | ✅ **Better Auth + RBAC + path traversal protection + HTML sanitization** | ⚠️ Partial  | ⚠️ Partial | ✅ Partial  |
+| **Type Safety**               | ✅ **Zod schemas everywhere (57 tools)**                        | ⚠️ Limited  | ⚠️ Limited | ✅ Partial  |
+| **UI Components**             | ✅ **105 components (AI Elements + shadcn/ui)**                 | ✅ 30+      | ✅ 50+     | ✅ 30+      |
+| **Testing**                   | ✅ **Vitest + 97% coverage + comprehensive mocks**              | ⚠️ Partial  | ⚠️ Partial | ✅ Partial  |
 
 ### 🚀 **Production-Ready from Day One**
 
-- **Zero-config RAG**: PgVector with 3072D embeddings works out of the box
-- **Enterprise APIs**: First-class support for financial data providers
+While other AI agent platforms offer basic chatbot functionality, AgentStack provides enterprise-grade multi-agent orchestration:
+
+- **Zero-config RAG**: LibSQL with 3072D embeddings works out of the box
+- **Supervisor Networks**: 12+ coordinator agents with delegation hooks and scoring
+- **Workspace Management**: AgentFS, Daytona, and local sandboxes with LSP support and LibSQL-backed persistence
+- **Financial Intelligence**: Polygon, Finnhub, AlphaVantage with 30+ endpoints
 - **Full Observability**: Every agent call, tool execution, and workflow step is traced
-- **Type Safety**: Strict TypeScript with Zod validation on all boundaries
+- **Enterprise Security**: Better Auth, RBAC, path validation, HTML sanitization, LibSQL session storage
 
 ## ✨ **Core Capabilities**
 
 - **💰 Financial Intelligence**: 30+ tools (Polygon quotes/aggs/fundamentals, Finnhub analysis, AlphaVantage indicators)
-- **🔍 Semantic RAG**: PgVector (3072D embeddings) + MDocument chunking + rerank + graph traversal
-- **🤖 41 Agents**: Research → Learn → Report → Edit → Analyze (stock/crypto/copywriter/evaluator/data pipeline/business-legal/charting/image/coding/dane/social media/SEO/translation/customer support/project management)
-- **📋 21 Workflows**: Weather, content, financial reports, document processing, research synthesis, learning extraction, governed RAG (index + answer), spec generation, repo ingestion, stock analysis, marketing campaign
-- **🌐 11 Agent Networks**: Primary routing, data pipeline, report generation, research pipeline, content creation, financial intelligence, learning, marketing automation, DevOps, business intelligence, security
+- **🔍 Semantic RAG**: LibSQL (3072D embeddings) + MDocument chunking + rerank + graph traversal
+- **📊 Dataset Management**: Full dataset API with versioning, experiments, and evaluation
+- **🤖 25+ Agents**: Individual specialized agents (research, stock analysis, copywriting, etc.)
+- **📋 10+ Workflows**: Multi-step orchestrated processes (weather analysis, content creation, financial reports)
+- **🌐 12+ Supervisor Networks**: Coordinator agents that route tasks to specialized agents using delegation hooks (primary router, coding team, financial intelligence, content creation, etc.)
 - **🔌 A2A/MCP**: MCP server coordinates parallel agents (research+stock→report), A2A coordinator for cross-agent communication
 - **🎨 105 UI Components**: AI Elements (50 chat/reasoning/canvas components) + shadcn/ui (55 base primitives)
-- **📊 Full Observability**: Langfuse traces + 10+ custom scorers (diversity/quality/completeness) + TanStack Query for state management
-- **🛡️ Enterprise Security**: JWT auth, RBAC, path validation, HTML sanitization, secrets masking
+- **📊 Enterprise Observability**: Default tracing + Langfuse integration + 10+ custom scorers + middleware logging
+- **🛡️ Enterprise Security**: JWT auth, RBAC, path validation, HTML sanitization, secrets masking, middleware protection
 - **⚡ Extensible**: Model registry (Gemini/OpenAI/Anthropic/OpenRouter), Zod schemas everywhere, MastraClient SDK integration
+
+## ⚛️ **TanStack Query Integration**
+
+Production-grade data fetching with comprehensive React hooks:
+
+```typescript
+// lib/hooks/use-mastra-query.ts - 1590+ lines of typed hooks
+import { useAgentsQuery } from '@/lib/hooks/use-mastra-query'
+
+export function AgentsDashboard() {
+    const { data: agents, isLoading, error } = useAgentsQuery()
+
+    // 15+ specialized hooks for agents, workflows, tools, memory, vectors
+    // Automatic caching, background refetching, optimistic updates
+    // Type-safe with Zod schemas throughout
+}
+```
+
+**Key Features:**
+
+- **1590+ Lines**: Comprehensive hook coverage for all Mastra APIs
+- **Type Safety**: Full TypeScript with Zod schema validation
+- **Caching**: Intelligent cache management with React Query
+- **Real-time**: Automatic background updates and invalidation
+- **DevTools**: Integrated with @tanstack/react-query-devtools
+
+## 📊 **Dataset Management & Evaluation**
+
+Complete dataset and evaluation pipeline with versioning and experiments:
+
+```typescript
+// lib/hooks/use-mastra-query.ts - Full dataset API
+const { data: datasets } = useDatasets()
+const { data: experiments } = useDatasetExperiments(datasetId)
+
+// Dataset operations
+const createDataset = useCreateDatasetMutation()
+const addItems = useAddDatasetItemsMutation()
+const runExperiment = useTriggerDatasetExperimentMutation()
+```
+
+**Features:**
+
+- **Dataset Versioning**: Full history tracking and rollback capabilities
+- **Experiment Management**: Compare model performance across datasets
+- **Evaluation Scorers**: Custom scoring functions for quality assessment
+- **Batch Operations**: Efficient bulk data operations
+- **Type Safety**: Full TypeScript support with Zod validation
+
+## 🔍 **Observability & Monitoring**
+
+Enterprise-grade observability with easy Langfuse integration:
+
+```typescript
+// src/mastra/index.ts - Default observability setup
+observability: new Observability({
+  configs: {
+    default: {
+      sampling: { type: SamplingStrategyType.RATIO, probability: 0.75 },
+      spanOutputProcessors: [new SensitiveDataFilter({...})],
+      exporters: [new DefaultExporter({...})],
+      // Easy Langfuse integration: uncomment and configure
+      // exporters: [new LangfuseExporter({...})],
+    }
+  }
+})
+```
+
+**Features:**
+
+- **Default Tracing**: Built-in observability with no setup required
+- **Real-time Trace Viewing**: View traces in real-time via TanStack Query hooks
+- **Langfuse Ready**: Drop-in integration for advanced analytics and persistence
+- **Custom Scorers**: 10+ evaluation metrics for agent performance
+- **Sensitive Data Protection**: Automatic redaction of credentials
+- **Performance Monitoring**: Latency, token usage, error tracking
+
+**Real-time Trace Monitoring:**
+
+```typescript
+// View traces in real-time with TanStack hooks
+const { data: traces } = useTraces({ limit: 10 })
+const { data: trace } = useTrace(traceId)
+
+// Monitor agent performance metrics
+const { data: scores } = useScoresByRun({ runId })
+```
+
+## 🌐 **Middleware & Request Context**
+
+AgentStack uses server-side Mastra middleware to populate request context for agents, tools, workflows, and supervisor routes. The frontend does not import these helpers directly.
+
+```typescript
+// src/mastra/index.ts - Middleware configuration
+middleware: [
+  async (c, next) => {
+    const authHeader = c.req.header('Authorization') ?? ''
+    const requestContext = c.get('requestContext')
+
+    const authenticatedUser = await getAuthenticatedUser({
+      mastra,
+      token: authHeader.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length)
+        : '',
+      request: c.req.raw,
+    })
+
+    if (requestContext?.set) {
+      requestContext.set('userId', authenticatedUser?.user.id)
+      requestContext.set(
+        'role',
+        authenticatedUser?.user.role === 'admin' ? 'admin' : 'user'
+      )
+      requestContext.set('language', 'en')
+      requestContext.set('provider-id', 'google')
+      requestContext.set(
+        'model-id',
+        'gemini-3.1-flash-lite-preview'
+      )
+    }
+
+    await next()
+  },
+]
+```
+
+**How it works:**
+
+- **Server-only request context**: defined in `src/mastra/agents/request-context.ts`
+- **Auth integration**: `src/mastra/auth.ts` stores Better Auth data in LibSQL
+- **Role-based access**: `role` is either `admin` or `user`
+- **Model overrides**: `provider-id` and `model-id` can be passed through request context
+- **Workspace identity**: `workspaceId`, `threadId`, and `resourceId` are reserved for server-side routing and persistence
+- **Localization**: language and region can still be inferred server-side
+- **LibSQL fallback**: Turso URLs are optional; if missing, the app falls back to local `file:./database.db`
+
+## 🔧 **Harness - Multi-Mode Agent Orchestration** (Alpha)
+
+Advanced multi-mode agent orchestration with state persistence and workspace management:
+
+```typescript
+// src/mastra/harness.ts - 8 specialized agent modes
+export const mainHarness = new Harness({
+    id: 'agentstack-harness',
+    resourceId: 'agentstack',
+    storage: pgStore,
+    workspace: mainWorkspace,
+
+    modes: [
+        { id: 'plan', name: 'Planner', agent: codeArchitectAgent },
+        { id: 'code', name: 'Builder', agent: codeArchitectAgent },
+        { id: 'review', name: 'Reviewer', agent: codeReviewerAgent },
+        { id: 'test', name: 'Tester', agent: testEngineerAgent },
+        { id: 'refactor', name: 'Refactorer', agent: refactoringAgent },
+        { id: 'research', name: 'Researcher', agent: researchAgent },
+        { id: 'edit', name: 'Editor', agent: editorAgent },
+        { id: 'report', name: 'Reporter', agent: reportAgent },
+    ],
+})
+```
+
+**Available Modes:**
+
+- **🏗️ Plan**: Architecture and planning (codeArchitectAgent)
+- **💻 Code**: Implementation and coding (codeArchitectAgent)
+- **🔍 Review**: Code review and quality assessment (codeReviewerAgent)
+- **🧪 Test**: Test generation and validation (testEngineerAgent)
+- **🔄 Refactor**: Code refactoring and optimization (refactoringAgent)
+- **🔬 Research**: Research and information gathering (researchAgent)
+- **✏️ Edit**: Content editing and refinement (editorAgent)
+- **📊 Report**: Report generation and synthesis (reportAgent)
+
+**Key Features:**
+
+- **State Persistence**: Thread management with LibSQL storage
+- **Workspace Integration**: Full filesystem and sandbox access
+- **Mode Switching**: Dynamic agent mode transitions
+- **Tool Approvals**: Security controls for sensitive operations
+- **Event Streaming**: Real-time progress and result streaming
+
+**Usage (Alpha):**
+
+```typescript
+// Switch to planning mode
+await harness.switchMode('plan')
+await harness.execute('Design a new authentication system')
+
+// Switch to implementation mode
+await harness.switchMode('code')
+await harness.execute('Implement the auth system using JWT')
+
+// Switch to testing mode
+await harness.switchMode('test')
+await harness.execute('Generate comprehensive tests for auth')
+```
+
+**⚠️ Alpha Status**: The harness is currently in active development. APIs may change without notice.
+
+## 🏗️ **Workspace Management**
+
+Multi-provider workspace system with LSP support:
+
+```typescript
+// src/mastra/workspaces.ts - 14 workspace variants
+export const workspaceVariants = {
+    mainWorkspace, // Local filesystem + sandbox
+    agentFsWorkspace, // AgentFS integration
+    daytonaWorkspace, // Daytona cloud sandboxes
+    localReadOnlyWorkspace, // Read-only operations
+    localApprovalWorkspace, // Manual approval required
+    localLspWorkspace, // TypeScript/ESLint LSP
+    // ... 8 more variants
+}
+```
+
+**Providers:**
+
+- **Local**: Filesystem and sandbox with process management
+- **AgentFS**: Distributed filesystem with persistence
+- **Daytona**: Cloud-based development environments
+- **LSP**: TypeScript and ESLint language server integration
+- **Approval**: Security-controlled operations
+
+**Features:**
+
+- **Process Management**: Spawn, kill, and monitor workspace processes
+- **LSP Integration**: Real-time TypeScript/ESLint diagnostics
+- **Security Controls**: Path validation and approval workflows
+- **Multi-tenant**: Isolated workspaces with proper boundaries
 
 ## 🌟 **Feature Highlights**
 
@@ -123,7 +359,7 @@ const analysis = await stockAnalysisAgent.execute({
 
 ### 🔍 **Production RAG Pipeline**
 
-Zero-config semantic search with PgVector:
+Zero-config semantic search with libSQL:
 
 ```typescript
 // 1. Index documents
@@ -149,25 +385,33 @@ const answer = await governedRagAnswerWorkflow.execute({
 - **Hybrid Search**: Vector similarity + BM25 reranking
 - **Graph Traversal**: Relationship-aware context expansion
 
-### 🤖 **Agent Networks**
+### 🤖 **Agent Networks (Supervisor Agents)**
 
-Parallel multi-agent orchestration:
+Supervisor agents that coordinate multiple specialized agents using delegation hooks:
 
 ```typescript
-// Research + Analysis + Report in parallel
-const result = await researchPipelineNetwork.execute({
+// Networks are supervisor agents that route tasks to specialized subagents
+const result = await agentNetwork.execute({
     query: 'Analyze renewable energy market trends',
-    agents: ['research', 'learning', 'knowledge', 'synthesis'],
-    parallel: true,
+    // Uses delegation hooks to route to researchAgent, learningAgent, etc.
 })
-// → 4 agents work simultaneously, results merged by coordinator
+// → Supervisor agent analyzes request and delegates to appropriate subagents
+// → Results synthesized into unified response
 ```
+
+**Network Architecture:**
+
+- **Supervisor Pattern**: Networks are supervisor agents, not parallel execution
+- **Delegation Hooks**: Use `onDelegationStart`/`onDelegationComplete` for coordination
+- **Scoring System**: Custom scorers ensure task completion and synthesis quality
+- **Context Preservation**: Maintain conversation context across delegations
 
 **Pre-configured Networks:**
 
-- **Coding Team**: Architect → Reviewer → Tester → Refactorer
-- **Financial Intelligence**: Researcher → Analyst → Chart Generator → Reporter
-- **Content Creation**: Writer → Editor → Strategist → SEO Optimizer
+- **Primary Network**: Routes to research, stock, weather, content, support agents
+- **Coding Team Network**: Architecture → Code Review → Testing → Refactoring
+- **Financial Intelligence Network**: Research → Analysis → Charts → Reports
+- **Content Creation Network**: Writing → Editing → Strategy → SEO
 
 ### 📊 **Full Observability**
 
@@ -227,14 +471,14 @@ Real-world applications powered by AgentStack:
 ### 📈 **Financial Analysis Platform**
 
 ```typescript
-// Multi-agent stock research with visual reports
+// Supervisor network coordinates specialized agents
 const report = await financialIntelligenceNetwork.execute({
     symbol: 'TSLA',
     includeTechnicalAnalysis: true,
     includeNewsSentiment: true,
     generateCharts: true,
 })
-// → Combines 7 specialized agents
+// → Supervisor network delegates to: researchAgent → stockAnalysisAgent → chartGeneratorAgent → reportAgent
 // → Generates PDF report with charts and citations
 ```
 
@@ -277,7 +521,7 @@ const answer = await knowledgeBaseAgent.execute({
 ### 🤖 **AI Coding Assistant**
 
 ```typescript
-// Code review and refactoring pipeline
+// Supervisor network coordinates coding team
 const result = await codingTeamNetwork.execute({
     task: 'Refactor authentication module',
     code: './src/auth/*',
@@ -287,10 +531,8 @@ const result = await codingTeamNetwork.execute({
         'Better error handling',
     ],
 })
-// → Architect designs solution
-// → Reviewer validates approach
-// → Tester generates test cases
-// → Refactorer implements changes
+// → Supervisor network delegates: codeArchitectAgent → codeReviewerAgent → testEngineerAgent → refactoringAgent
+// → Each agent handles specific aspect using delegation hooks
 ```
 
 **Features:**
@@ -304,17 +546,15 @@ const result = await codingTeamNetwork.execute({
 ### 📊 **Content Creation Studio**
 
 ```typescript
-// End-to-end content production
+// Supervisor network orchestrates content pipeline
 const content = await contentCreationNetwork.execute({
     topic: 'Sustainable investing trends',
     formats: ['blog', 'social', 'newsletter'],
     tone: 'professional',
     seoOptimize: true,
 })
-// → Writer creates draft
-// → Editor refines content
-// → Strategist optimizes for engagement
-// → SEO agent adds keywords and meta
+// → Supervisor network delegates: copywriterAgent → editorAgent → contentStrategistAgent → seoAgent
+// → Each agent specializes in different aspect of content creation
 ```
 
 **Features:**
@@ -328,17 +568,15 @@ const content = await contentCreationNetwork.execute({
 ### 🔍 **Research Synthesis Engine**
 
 ```typescript
-// Automated literature review
+// Supervisor network coordinates research pipeline
 const research = await researchPipelineNetwork.execute({
     query: 'Latest advances in LLM safety',
     sources: ['arxiv', 'serpapi', 'web'],
     synthesizeFindings: true,
     generateReport: true,
 })
-// → Searches across academic and web sources
-// → Extracts key findings
-// → Identifies consensus and gaps
-// → Generates comprehensive report
+// → Supervisor network delegates: researchAgent → documentProcessingAgent → knowledgeIndexingAgent → reportAgent
+// → Research → Process → Index → Synthesize results
 ```
 
 **Features:**
@@ -359,21 +597,23 @@ graph TB
         UI[AI Elements Library<br/>• 50 Chat/Reasoning/Canvas Components<br/>• Real-time Streaming]
         Base[shadcn/ui Foundation<br/>• 55 Base Primitives<br/>• Accessible & Themable]
         App[Next.js 16 App Router<br/>• React 19 + Server Components<br/>• Tailwind CSS 4 + oklch]
+        Query[TanStack Query<br/>• 1590+ Lines of Hooks<br/>• Type-Safe Data Fetching]
     end
 
     subgraph "🌐 External Interfaces"
         direction LR
         Client[MCP Clients<br/>Cursor / Claude / Windsurf]
         API[REST API<br/>OpenAPI + Typed SDK]
-        SDK[MastraClient SDK<br/>TanStack Query Integration]
+        SDK[MastraClient SDK<br/>Supervisor Agent Integration]
     end
 
     subgraph "⚡ AgentStack Runtime"
         direction TB
         Coord[A2A Coordinator<br/>Parallel Agent Orchestration]
+        Supervisor[Supervisor Agents<br/>• Scoring & Delegation<br/>• Context-Aware Prompts]
 
         subgraph "Intelligent Agents"
-            Agents[48+ Specialized Agents]
+            Agents[25+ Specialized Agents]
             Research[Research Suite]
             Financial[Financial Intelligence]
             Coding[Coding Team]
@@ -381,30 +621,36 @@ graph TB
         end
 
         subgraph "Tool Ecosystem"
-            Tools[60+ Enterprise Tools]
+            Tools[57 Enterprise Tools]
             APIs[Financial APIs<br/>Polygon / Finnhub / AlphaVantage]
             Search[Search & Research<br/>SerpAPI / ArXiv / Web Scraping]
-            RAG[RAG Pipeline<br/>PgVector + Embeddings]
+            RAG[RAG Pipeline<br/>LibSQL + Embeddings]
         end
 
         subgraph "Workflow Engine"
-            Workflows[21 Multi-Step Workflows]
+            Workflows[10+ Multi-Step Workflows]
             Sequential[Sequential Execution]
             Parallel[Parallel Branches]
             Suspense[Suspend/Resume]
         end
 
-        subgraph "Network Topology"
-            Networks[12 Agent Networks]
-            Routing[Smart Routing]
-            Coordination[Cross-Agent Communication]
+        subgraph "Workspace Management"
+            Workspaces[14 Workspace Variants<br/>• AgentFS • Daytona • Local]
+            LSP[LSP Integration<br/>TypeScript • ESLint]
+            Security[Security Controls<br/>Approval • Path Validation]
+        end
+
+        subgraph "Supervisor Networks"
+            Networks[12+ Supervisor Networks]
+            Routing[Delegation Hooks]
+            Coordination[Subagent Orchestration]
         end
     end
 
     subgraph "🗄️ Data & Persistence Layer"
         direction TB
-        VectorStore[(PgVector<br/>3072D Embeddings<br/>HNSW/Flat Indexes)]
-        Relational[(PostgreSQL<br/>Memory Threads<br/>Workflow State)]
+        VectorStore[(LibSQL<br/>3072D Embeddings<br/>HNSW/Flat Indexes)]
+        Relational[(LibSQL<br/>Memory Threads<br/>Workflow State)]
         Cache[(Redis-ready<br/>Session Management)]
     end
 
@@ -418,25 +664,32 @@ graph TB
     %% Connections
     UI --> App
     Base --> UI
+    Query --> App
     App --> SDK
     SDK --> Coord
 
     Client --> Coord
     API --> Coord
 
-    Coord --> Agents
+    Coord --> Supervisor
+    Supervisor --> Agents
     Coord --> Workflows
     Coord --> Networks
 
     Agents --> Tools
     Agents --> VectorStore
     Agents --> Relational
+    Agents --> Workspaces
 
     Workflows --> Agents
+    %% Networks (supervisors) delegate to subagents
     Networks --> Agents
 
     Tools --> VectorStore
     Tools --> Relational
+
+    Workspaces --> LSP
+    Workspaces --> Security
 
     Agents --> Tracing
     Workflows --> Tracing
@@ -453,8 +706,8 @@ graph TB
     classDef observe fill:#2a2a4a,stroke:#d2a8ff,stroke-width:3px,color:#fff
     classDef external fill:#3d3d3d,stroke:#8b949e,stroke-width:2px,color:#fff
 
-    class UI,Base,App frontend
-    class Coord,Agents,Tools,Workflows,Networks,Research,Financial,Coding,Content,APIs,Search,RAG,Sequential,Parallel,Suspense,Routing,Coordination runtime
+    class UI,Base,App,Query frontend
+    class Coord,Agents,Tools,Workflows,Networks,Research,Financial,Coding,Content,APIs,Search,RAG,Sequential,Parallel,Suspense,Routing,Coordination,Supervisor,Workspaces,LSP,Security runtime
     class VectorStore,Relational,Cache storage
     class Tracing,Metrics,Analytics observe
     class Client,API,SDK external
@@ -687,7 +940,7 @@ flowchart TB
         A[Documents<br/>PDF/Web/MDX] --> B{MDocument<br/>Chunker}
         B -->|10 Strategies| C[Chunks +<br/>Metadata]
         C --> D[text-embedding-004<br/>3072D Vectors]
-        D --> E[(PgVector<br/>HNSW Index)]
+        D --> E[(LibSQL<br/>HNSW Index)]
     end
 
     subgraph Querying ["🔍 Retrieval Pipeline"]
@@ -701,7 +954,7 @@ flowchart TB
     end
 
     subgraph Generation ["💬 Answer Pipeline"]
-        L --> M[Answer Agent<br/>Gemini 2.5 Pro]
+        L --> M[Supervisor Agent<br/>Scoring & Synthesis]
         M --> N[Generated<br/>Response]
         N --> O[Citations<br/>Verification]
         O --> P[Sources +<br/>Confidence Score]
@@ -772,14 +1025,14 @@ sequenceDiagram
 classDiagram
   class MastraQueryHooks {
     <<interface>>
-    % Core access
+    %% Core access
     +useAgents()
     +useAgent(agentId, requestContext)
     +useAgentModelProviders()
     +useAgentSpeakers(agentId, requestContext)
     +useAgentListener(agentId, requestContext)
 
-    % Tools and processors
+    %% Tools and processors
     +useTools(requestContext)
     +useTool(toolId, requestContext)
     +useToolProviders()
@@ -793,7 +1046,7 @@ classDiagram
     +useProcessorProvider(providerId)
     +useProcessorExecuteMutation(processorId)
 
-    % Workflows and runs
+    %% Workflows and runs
     +useWorkflows(requestContext, partial)
     +useWorkflow(workflowId, requestContext)
     +useWorkflowRun(workflowId, runId, options)
@@ -810,7 +1063,7 @@ classDiagram
     +useWorkflowTimeTravelMutation(workflowId)
     +useWorkflowTimeTravelAsyncMutation(workflowId)
 
-    % Memory and threads
+    %% Memory and threads
     +useThreads(params)
     +useThread(threadId, agentId, requestContext)
     +useThreadMessages(threadId, opts)
@@ -829,7 +1082,7 @@ classDiagram
     +useDeleteThreadMessagesMutation(threadId, agentId)
     +useCloneThreadMutation(threadId, agentId)
 
-    % Stored agents and versions
+    %% Stored agents and versions
     +useStoredAgents(params)
     +useStoredAgent(id, requestContext, options)
     +useStoredAgentVersions(storedAgentId, params, requestContext)
@@ -843,7 +1096,7 @@ classDiagram
     +useRestoreStoredAgentVersionMutation(storedAgentId)
     +useDeleteStoredAgentVersionMutation(storedAgentId)
 
-    % Stored prompt blocks
+    %% Stored prompt blocks
     +useStoredPromptBlocks(params)
     +useStoredPromptBlock(id, requestContext, options)
     +useStoredPromptBlockVersions(storedPromptBlockId, params, requestContext)
@@ -857,7 +1110,7 @@ classDiagram
     +useRestoreStoredPromptBlockVersionMutation(storedPromptBlockId)
     +useDeleteStoredPromptBlockVersionMutation(storedPromptBlockId)
 
-    % Stored scorers
+    %% Stored scorers
     +useStoredScorers(params)
     +useStoredScorer(id, requestContext, options)
     +useStoredScorerVersions(storedScorerId, params, requestContext)
@@ -871,7 +1124,7 @@ classDiagram
     +useRestoreStoredScorerVersionMutation(storedScorerId)
     +useDeleteStoredScorerVersionMutation(storedScorerId)
 
-    % Stored MCP clients and skills
+    %% Stored MCP clients and skills
     +useStoredMcpClients(params)
     +useStoredMcpClient(id, requestContext)
     +useCreateStoredMcpClientMutation()
@@ -883,7 +1136,7 @@ classDiagram
     +useUpdateStoredSkillMutation(storedSkillId)
     +useDeleteStoredSkillMutation(storedSkillId)
 
-    % Vectors and embedders
+    %% Vectors and embedders
     +useVectorIndexes()
     +useVectorDetails(indexName)
     +useVectors()
@@ -891,7 +1144,7 @@ classDiagram
     +useVectorQueryMutation(vectorName, indexName)
     +useVectorUpsertMutation(vectorName, indexName)
 
-    % Workspaces and skills
+    %% Workspaces and skills
     +useWorkspaces()
     +useWorkspace(id)
     +useWorkspaceInfo(id)
@@ -908,7 +1161,7 @@ classDiagram
     +useWorkspaceMkdirMutation(workspaceId)
     +useWorkspaceRenameMutation(workspaceId)
 
-    % A2A and Agent Builder
+    %% A2A and Agent Builder
     +useA2ASendMessageMutation(agentId)
     +useA2ASendStreamingMessageMutation(agentId)
     +useA2AGetTask(agentId, params)
@@ -1017,16 +1270,16 @@ classDiagram
 
 Before you begin, ensure you have:
 
-| Requirement    | Version | Purpose             | Install                                                                                               |
-| -------------- | ------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Node.js**    | ≥20.9.0 | Runtime             | [Download](https://nodejs.org/)                                                                       |
-| **PostgreSQL** | 14+     | Database + PgVector | [Docker](https://hub.docker.com/r/ankane/pgvector) or [Install](https://www.postgresql.org/download/) |
-| **API Keys**   | -       | LLM & Tools         | See [Configuration](#🔧-configuration) below                                                          |
+| Requirement    | Version | Purpose              | Install                                                                                               |
+| -------------- | ------- | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Node.js**    | ≥20.9.0 | Runtime              | [Download](https://nodejs.org/)                                                                       |
+| **libSQL**     | -       | Primary persistence for auth, agents, workspaces, and supervisors | [Turso](https://turso.tech/) or local file fallback (`file:./database.db`) |
+| **API Keys**   | -       | LLM & Tools          | See [Configuration](#configuration) below                                                          |
 
-**One-liner for PostgreSQL with PgVector:**
+**One-liner for local libSQL:**
 
 ```bash
-docker run -d --name pgvector -e POSTGRES_PASSWORD=postgres -p 5432:5432 ankane/pgvector
+echo "TURSO_DATABASE_URL=file:./data/mastra.db" >> .env
 ```
 
 ### 2️⃣ Clone & Install
@@ -1052,7 +1305,7 @@ cp .env.example .env
 # Edit .env and add your API keys
 # Minimum required for basic functionality:
 # - GOOGLE_GENERATIVE_AI_API_KEY (for Gemini)
-# - SUPABASE or DATABASE_URL (for PostgreSQL)
+# - TURSO_DATABASE_URL (for libSQL)
 ```
 
 **Quick .env setup:**
@@ -1061,8 +1314,8 @@ cp .env.example .env
 # Required - Get free API keys from Google AI Studio
 echo "GOOGLE_GENERATIVE_AI_API_KEY=your-key-here" >> .env
 
-# Required - PostgreSQL connection
-echo "SUPABASE=postgresql://postgres:postgres@localhost:5432/mastra" >> .env
+# Database - libSQL
+echo "TURSO_DATABASE_URL=file:./data/mastra.db" >> .env
 
 # Optional - For enhanced tools
 echo "SERPAPI_API_KEY=your-key" >> .env      # Search tools
@@ -1114,7 +1367,7 @@ npm test
 
 ---
 
-**🎉 You're ready!** Check out [Development](#🛠️-development) to start building custom tools and agents.
+**🎉 You're ready!** Check out [Development](#development) to start building custom tools and agents.
 
 ### Next.js + Mastra Client SDK
 
@@ -1124,72 +1377,12 @@ The frontend uses `@mastra/client-js` with TanStack Query for robust state manag
 // lib/mastra-client.ts - Base client configuration
 import { MastraClient } from '@mastra/client-js'
 
-export const mastraClient = new MastraClient({
-    baseUrl: process.env.NEXT_PUBLIC_MASTRA_API_URL || 'http://localhost:4111',
-})
-
-// lib/hooks/use-dashboard-queries.ts - TanStack Query hooks
+// lib/hooks/use-mastra-query.ts - 1590+ lines of TanStack Query hooks
 import { useQuery } from '@tanstack/react-query'
 import { mastraClient } from '@/lib/mastra-client'
 
-// Query keys for cache management
-export const queryKeys = {
-    agents: ['agents'] as const,
-    agent: (id: string) => ['agents', id] as const,
-    workflows: ['workflows'] as const,
-    tools: ['tools'] as const,
-    traces: (filters?: Record<string, unknown>) => ['traces', filters] as const,
-    threads: (resourceId: string, agentId: string) =>
-        ['threads', resourceId, agentId] as const,
-    vectors: (vectorName: string) => ['vectors', vectorName] as const,
-}
-
-// Type-safe query hooks
-export function useAgentsQuery() {
-    return useQuery({
-        queryKey: queryKeys.agents,
-        queryFn: async (): Promise<Agent[]> => {
-            const agents = await mastraClient.listAgents()
-            return Object.entries(agents).map(([id, agent]) => ({
-                id,
-                name: agent.name,
-                description: agent.description,
-                model: agent.model,
-            }))
-        },
-    })
-}
-
-// lib/types/mastra-api.ts - Zod schemas for type safety
+// lib/types/ - Zod schemas and TypeScript types
 import { z } from 'zod'
-
-export const AgentSchema = z.object({
-    id: z.string(),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    model: z
-        .union([
-            z.string(),
-            z.object({ provider: z.string(), name: z.string() }),
-        ])
-        .optional(),
-    tools: z
-        .union([z.array(z.string()), z.record(z.string(), z.unknown())])
-        .optional(),
-})
-export type Agent = z.infer<typeof AgentSchema>
-
-// Available hooks:
-// - useAgentsQuery(), useAgentQuery(id)
-// - useWorkflowsQuery(), useWorkflowQuery(id)
-// - useToolsQuery(), useToolQuery(id)
-// - useTracesQuery(params), useTraceQuery(id)
-// - useMemoryThreadsQuery(resourceId, agentId)
-// - useMemoryMessagesQuery(threadId, agentId)
-// - useVectorIndexesQuery(vectorName)
-// - useExecuteToolMutation()
-// - useCreateThreadMutation()
-// - useVectorQueryMutation()
 ```
 
 **Key Features:**
@@ -1204,10 +1397,10 @@ export type Agent = z.infer<typeof AgentSchema>
 
 ```typescript
 "use client";
-import { useAgentsQuery } from "@/lib/hooks/use-dashboard-queries";
+import { useAgents } from "@/lib/hooks/use-mastra-query";
 
 export function AgentsList() {
-  const { data: agents, isLoading, error } = useAgentsQuery();
+  const { data: agents, isLoading, error } = useAgents();
 
   if (isLoading) return <div>Loading agents...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -1231,14 +1424,16 @@ export function AgentsList() {
 **Shared Libraries:**
 
 - `lib/mastra-client.ts` - MastraClient configuration for frontend
-- `lib/hooks/` - TanStack Query hooks for data fetching (15+ hooks)
-    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-    - `use-mastra.ts` - Generic fetch hook with loading/error states
-- `lib/types/` - Zod schemas and TypeScript types
-    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+- `lib/hooks/` - TanStack Query hooks for data fetching (1590+ lines)
+  - `use-mastra-query.ts` - Comprehensive hooks for agents, workflows, datasets, evaluation, and observability
+- `lib/types/` - Zod schemas and TypeScript types (auto-generated)
 - `lib/utils.ts` - Shared utilities (cn, formatDate, etc.)
 - `lib/a2a.ts` - Agent-to-agent coordination utilities
 - `lib/auth.ts` - Authentication utilities
+- `src/mastra/auth.ts` - Better Auth + LibSQL server auth configuration
+- `src/mastra/workspaces.ts` - Workspace, sandbox, AgentFS, and LibSQL-backed workspace storage
+- `src/mastra/agents/request-context.ts` - Server-side request context schema and helpers
+- `src/mastra/tools/request-context.utils.ts` - Tool-side request context helpers
 
 ### MCP Server (A2A)
 
@@ -1259,35 +1454,41 @@ AgentStack is engineered for high-performance production workloads with comprehe
 
 ### **System Benchmarks**
 
-| Metric                   | Value        | Details                             |
-| ------------------------ | ------------ | ----------------------------------- |
-| **Cold Start**           | < 2s         | Agent initialization with 60+ tools |
-| **Memory Usage**         | ~180MB       | Base runtime with loaded agents     |
-| **Concurrent Agents**    | 50+          | Parallel execution via A2A networks |
-| **Vector Search**        | < 50ms       | PgVector HNSW top-k retrieval       |
-| **Embedding Generation** | ~120ms       | text-embedding-004 (3072D)          |
-| **RAG End-to-End**       | < 300ms      | Chunk → Embed → Search → Answer     |
-| **Test Suite**           | 97% coverage | 100+ tests, ~45s runtime            |
+| Metric                    | Value        | Details                                    |
+| ------------------------- | ------------ | ------------------------------------------ |
+| **Cold Start**            | < 2s         | Agent initialization with 57 tools         |
+| **Memory Usage**          | ~180MB       | Base runtime with 25+ agents loaded        |
+| **Concurrent Agents**     | 25+          | Parallel execution via A2A networks        |
+| **Supervisor Scoring**    | < 100ms      | Task completion & synthesis evaluation     |
+| **Dataset Operations**    | < 50ms       | Batch insert/update operations             |
+| **Vector Search**         | < 50ms       | LibSQL HNSW top-k retrieval                |
+| **Embedding Generation**  | ~120ms       | text-embedding-004 (3072D)                 |
+| **RAG End-to-End**        | < 300ms      | Chunk → Embed → Search → Supervisor Answer |
+| **Workspace Operations**  | < 50ms       | AgentFS/Daytona filesystem operations      |
+| **Middleware Processing** | < 10ms       | Request context population and validation  |
+| **Test Suite**            | 97% coverage | 100+ tests, ~45s runtime                   |
 
 ### **Throughput Metrics**
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff' }}}%%
-bar
-    title Requests Per Second (RPS) by Endpoint
-    y-axis Requests per second
-    x-axis Endpoint
-    bar [150, 85, 200, 120, 90]
-    x-axis ["/chat", "/workflow", "/rag/query", "/tools/execute", "/dashboard/api"]
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#58a6ff', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#30363d', 'lineColor': '#58a6ff', 'sectionBkgColor': '#161b22', 'altSectionBkgColor': '#0d1117', 'sectionTextColor': '#c9d1d9', 'gridColor': '#30363d', 'tertiaryColor': '#161b22' }}}%%
+xychart-beta
+  title "Requests Per Second (RPS) by Endpoint"
+  x-axis ["/chat", "/workflow", "/rag/query", "/dataset", "/tools/execute", "/observability", "/network", "/workspace"]
+  y-axis "Requests per second" 0 --> 220
+  bar [150, 85, 200, 180, 120, 95, 75, 110]
 ```
 
-| Endpoint             | RPS | Avg Latency | Use Case                 |
-| -------------------- | --- | ----------- | ------------------------ |
-| `/api/chat`          | 150 | 180ms       | AI chat streaming        |
-| `/api/workflow`      | 85  | 420ms       | Multi-step workflows     |
-| `/api/rag/query`     | 200 | 95ms        | Vector similarity search |
-| `/api/tools/execute` | 120 | 250ms       | Tool execution           |
-| `/api/dashboard/*`   | 90  | 150ms       | Admin metrics            |
+| Endpoint             | RPS | Avg Latency | Use Case                           |
+| -------------------- | --- | ----------- | ---------------------------------- |
+| `/api/chat`          | 150 | 180ms       | AI chat with supervisor agents     |
+| `/api/workflow`      | 85  | 420ms       | Multi-step workflows               |
+| `/api/rag/query`     | 200 | 95ms        | Vector similarity search           |
+| `/api/dataset`       | 180 | 120ms       | Dataset operations and experiments |
+| `/api/tools/execute` | 120 | 250ms       | Tool execution                     |
+| `/api/observability` | 95  | 140ms       | Tracing and metrics retrieval      |
+| `/api/network`       | 75  | 350ms       | Agent network orchestration        |
+| `/api/workspace`     | 110 | 120ms       | Workspace file operations          |
 
 ### **Observability Performance**
 
@@ -1309,8 +1510,8 @@ bar
 ### **Optimization Tips**
 
 ```typescript
-// Enable connection pooling
-export const pgStorage = new PgVectorStorage({
+// Enable connection pooling for libSQL-backed storage
+export const libsqlStorage = new LibsqlStorage({
     poolSize: 20, // Default: 10
     maxOverflow: 5,
     connectionTimeout: 5000,
@@ -1324,7 +1525,7 @@ const batchEmbed = async (texts: string[]) => {
 }
 
 // Use HNSW for high-recall RAG
-const hnswIndex = await pgVector.createIndex({
+const hnswIndex = await libsqlStorage.createIndex({
     tableName: 'embeddings',
     indexName: 'hnsw_cosine_idx',
     metric: 'cosine',
@@ -1340,270 +1541,77 @@ const hnswIndex = await pgVector.createIndex({
 
 ```bash
 ╭─────────────────────────────── AgentStack ───────────────────────────────╮
-│ Files: 727 | Size: 8.5MB                                                 │
-│ Top Extensions: .tsx (314), .ts (299), .json (59), .md (27), .mdx (16)   │
+│ Files: 727+ | Size: 8.5MB+                                               │
+│ Top Extensions: .tsx (314+), .ts (299+), .json (59), .md (27), .mdx (16) │
 ╰──────────────────────────────────────────────────────────────────────────╯
 AgentStack
 
-├──   app/ (298 files, 1.2MB)
+├──   app/ (24 directories, 298+ files, 1.2MB+)
 │   ├──   about/ (410.0B)
 │   │   └── page.tsx
 │   ├──   api/ (6 files, 6.6KB)
-│   │   ├──   chat/
-│   │   │   └── route.ts
-│   │   ├──   chat-extra/ (581.0B)
-│   │   │   └── route.ts
-│   │   ├──   completion/ (449.0B)
-│   │   │   └── route.ts
-│   │   ├──   contact/ (2.2KB)
-│   │   │   └── route.ts
-│   │   └──   v0/ (445.0B)
-│   │       └── route.ts
+│   │   ├──   chat/ route.ts
+│   │   ├──   chat-extra/ route.ts
+│   │   ├──   completion/ route.ts
+│   │   ├──   contact/ route.ts
+│   │   └──   v0/ route.ts
 │   ├──   api-reference/ (5 files, 38.0KB)
-│   │   ├──   agents/ (8.2KB)
-│   │   │   └── page.mdx
-│   │   ├──   openapi-schema/ (13.6KB)
-│   │   │   └── page.mdx
-│   │   ├──   tools/ (7.1KB)
-│   │   │   └── page.mdx
-│   │   ├──   workflows/ (8.8KB)
-│   │   │   └── page.mdx
+│   │   ├──   agents/ page.mdx
+│   │   ├──   openapi-schema/ page.mdx
+│   │   ├──   tools/ page.mdx
+│   │   ├──   workflows/ page.mdx
 │   │   └── page.tsx
-│   ├──   blog/ (4 files, 13.4KB, all .tsx)
-│   │   ├──   hello-world-agentstack/ (9.1KB)
-│   │   │   └── page.mdx
-│   │   ├──   session-summary/ (2.1KB)
-│   │   │   └── page.tsx
-│   │   └── layout page
-│   ├──   careers/ (418.0B)
-│   │   └── page.tsx
-│   ├──   changelog/ (417.0B)
-│   │   └── page.tsx
-│   ├──   chat/ (27 files, 175.7KB)
-│   │   ├──   components/ (16 files, 93.5KB, all .tsx)
-│   │   │   └── agent-artifact         agent-inline-citation  agent-sources          agent-web-preview
-│   │   │       agent-chain-of-thought agent-plan             agent-suggestions      chat-header
-│   │   │       agent-checkpoint       agent-queue            agent-task             chat-input
-│   │   │       agent-confirmation     agent-reasoning        agent-tools            chat-messages
-│   │   ├──   config/ (7 files, 50.4KB, all .ts)
-│   │   │   └── agents            google-models     ollama-models     openrouter-models
-│   │   │       anthropic-models  models            openai-models
-│   │   ├──   helpers/ (6.6KB)
-│   │   │   └── tool-part-transform.ts
-│   │   ├──   providers/ (16.8KB)
-│   │   │   └── chat-context.tsx
-│   │   └── AGENTS.md page.tsx
-│   ├──   components/ (30 files, 218.5KB, all .tsx)
-│   │   └── about-content         contact-form          landing-hero          privacy-content
-│   │       api-components        docs-layout           landing-stats         sidebar
-│   │       api-reference-content docs-nav              landing-testimonials  strip-frontmatter
-│   │       blog-data             examples-list         landing-trust         terms-content
-│   │       blog-layout           footer                navbar                tools-list
-│   │       blog-list             landing-agents        networks-list         workflows-list
-│   │       careers-content       landing-cta           page-header
-│   │       changelog-list        landing-features      pricing-tiers
-│   ├──   contact/ (409.0B)
-│   │   └── page.tsx
-│   ├──   dashboard/ (44 files, 162.4KB)
-│   │   ├──   _components/ (8 files, 26.9KB)
-│   │   │   └── data-table.tsx       empty-state.tsx      index.ts             sidebar.tsx
-│   │   │       detail-panel.tsx     error-fallback.tsx   loading-skeleton.tsx stat-card.tsx
-│   │   ├──   agents/ (9 files, 15.2KB, all .tsx)
-│   │   │   ├──   _components/ (6 files, 11.9KB)
-│   │   │   │   └── agent-details.tsx   agent-list-item.tsx agent-tools-tab.tsx
-│   │   │   │       agent-evals-tab.tsx agent-list.tsx      index.ts
-│   │   │   └── error   loading page
-│   │   ├──   logs/ (3 files, 11.2KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   memory/ (3 files, 17.2KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   observability/ (3 files, 18.1KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   telemetry/ (3 files, 11.1KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   tools/ (3 files, 11.1KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   vectors/ (3 files, 15.0KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   ├──   workflows/ (3 files, 14.1KB, all .tsx)
-│   │   │   └── error   loading page
-│   │   └── AGENTS.md     error.tsx     layout.tsx    loading.tsx   page.tsx      providers.tsx
-│   ├──   docs/ (13 files, 90.5KB, all .tsx)
-│   │   ├──   ai-sdk/ (13.5KB)
-│   │   │   └── page.mdx
-│   │   ├──   components/ (8.1KB)
-│   │   │   └── page.mdx
-│   │   ├──   configuration/ (8.6KB)
-│   │   │   └── page.mdx
-│   │   ├──   core-concepts/ (7.6KB)
-│   │   │   └── page.mdx
-│   │   ├──   getting-started/ (2 files, 7.5KB)
-│   │   │   └── 1.tsx    page.mdx
-│   │   ├──   prompts/kiro-lite/ (9.8KB)
-│   │   │   └── page.mdx
-│   │   ├──   rag/ (8.3KB)
-│   │   │   └── page.mdx
-│   │   ├──   runtime-context/ (9.9KB)
-│   │   │   └── page.mdx
-│   │   ├──   security/ (9.1KB)
-│   │   │   └── page.mdx
-│   │   ├──   ui/ (6.8KB)
-│   │   │   └── page.mdx
-│   │   └── layout page
-│   ├──   examples/ (413.0B)
-│   │   └── page.tsx
-│   ├──   login/ (6.4KB)
-│   │   └── page.tsx
-│   ├──   networks/ (11 files, 82.1KB)
-│   │   ├──   components/ (7 files, 63.8KB, all .tsx)
-│   │   │   └── network-agents        network-header        network-input         network-routing-panel
-│   │   │       network-chat          network-info-panel    network-messages
-│   │   ├──   config/ (4.4KB)
-│   │   │   └── networks.ts
-│   │   ├──   providers/ (9.2KB)
-│   │   │   └── network-context.tsx
-│   │   └── AGENTS.md page.tsx
-│   ├──   pricing/ (412.0B)
-│   │   └── page.tsx
-│   ├──   privacy/ (418.0B)
-│   │   └── page.tsx
-│   ├──   terms/ (410.0B)
-│   │   └── page.tsx
-│   ├──   test/ (7 files, 4.1KB)
-│   │   └── AGENTS.md      chat-extra.tsx completion.tsx page.tsx
-│   │       action.ts      chat.tsx       form.tsx
-│   ├──   tools/ (401.0B)
-│   │   └── page.tsx
-│   ├──   workflows/ (12 files, 60.7KB)
-│   │   ├──   components/ (8 files, 28.8KB, all .tsx)
-│   │   │   └── workflow-actions     workflow-header      workflow-input-panel workflow-node
-│   │   │       workflow-canvas      workflow-info-panel  workflow-legend      workflow-output
-│   │   ├──   config/ (13.0KB)
-│   │   │   └── workflows.ts
-│   │   ├──   providers/ (10.8KB)
-│   │   │   └── workflow-context.tsx
-│   │   └── AGENTS.md page.tsx
-│   └── AGENTS.md   globals.css layout.tsx  page.tsx
-├──   docs/ (12 files, 339.7KB)
-│   ├──   adr/ (1.6KB)
-│   │   └── 0001-why-pgvector-and-gemini-embeddings.md
-│   ├──   components/ (5 files, 36.5KB, all .md)
-│   │   └── app-chat-documentation      app-networks-documentation  lib-documentation
-│   │       app-dashboard-documentation app-workflows-documentation
-│   └── ai-elements_aisk-urls.md                   kiro-lite.prompt.md
-│       api-small.md                               runtimeContext.md
-│       ⭐️ api.md
-├──   hooks/ (7 files, 6.2KB, all .ts)
-│   └── index             use-debounce      use-local-storage use-media-query   use-mounted       use-utils
-├──   lib/ (13 files, 45.6KB, all .ts)
-│   ├──   hooks/ (2 files, 24.2KB, all .ts)
-│   │   └── use-dashboard-queries use-mastra
-│   ├──   types/ (5.4KB)
-│   │   └── mastra-api.ts
-│   └── auth                    client-stream-to-ai-sdk mastra-client           utils
-├──   src/ (346 files, 3.2MB)
-│   ├──   components/ai-elements/ (51 files, 210.5KB, all .tsx)
-│   │   └── artifact         confirmation     edge             model-selector   prompt-input     suggestion
-│   │       canvas           connection       image            node             queue            task
-│   │       chain-of-thought context          inline-citation  open-in-chat     reasoning        tool
-│   │       checkpoint       controls         loader           panel            shimmer          toolbar
-│   │       code-block       conversation     message          plan             sources          web-preview
-│   └──   mastra/ (176 files, 2.5MB)
-│       ├──   a2a/ (3 files, 13.4KB)
-│       │   └── AGENTS.md               a2aCoordinatorAgent.ts  codingA2ACoordinator.ts
-│       ├──   agents/ (39 files, 242.5KB)
-│       │   └── AGENTS.md                          excalidraw_validator.ts
-│       │       acpAgent.ts                        for await (const part of result.md
-│       │       businessLegalAgents.ts             image.ts
-│       │       calendarAgent.ts                   image_to_csv.ts
-│       │       codingAgents.ts                    knowledgeIndexingAgent.ts
-│       │       contentStrategistAgent.ts          learningExtractionAgent.ts
-│       │       copywriterAgent.ts                 package-publisher.ts
-│       │       csv_to_excalidraw.ts               recharts.ts
-│       │       dane.ts                            reportAgent.ts
-│       │       dataExportAgent.ts                 researchAgent.ts
-│       │       dataIngestionAgent.ts              researchPaperAgent.ts
-│       │       dataTransformationAgent.ts         scriptWriterAgent.ts
-│       │       documentProcessingAgent.ts         sql.ts
-│       │       editorAgent.ts                     stockAnalysisAgent.ts
-│       │       evaluationAgent.ts                 weather-agent.ts
-│       ├──   config/ (29 files, 252.4KB)
-│       │   ├──   vector/ (11 files, 108.0KB)
-│       │   │   └── AGENTS.md     chroma.ts     couchbase.ts  opensearch.ts qdrant.ts     s3vectors.ts
-│       │   │       astra.ts      cloudflare.ts lance.ts      pinecone.ts   registry.ts
-│       │   └── AGENTS.md         gemini-cli.ts     mongodb.ts        processors.ts     upstashMemory.ts
-│       │       README.md         google.ts         openai.ts         role-hierarchy.ts vertex.ts
-│       │       anthropic.ts      index.ts          openrouter.ts     tracing.ts
-│       │       copilot.ts        logger.ts         pg-storage.ts     upstash.ts
-│       ├──   data/ (10 files, 1020.7KB)
-│       │   └── AGENTS.md                      diamond.excalidraw             sample_dataset.csv
-│       │       circle.excalidraw              example-text-arrows.excalidraw ⭐️ test.excalidraw
-│       │       diagram (5).json               pencil.excalidraw
-│       │       diagram.excalidraw             relationship.excalidraw
-│       ├──   experiments/ (8.6KB)
-│       │   └── agent-experiments.ts
-│       ├──   mcp/ (6 files, 34.6KB)
-│       │   └── AGENTS.md     index.ts      mcp-client.ts prompts.ts    resources.ts  server.ts
-│       ├──   networks/ (12 files, 32.6KB)
-│       │   └── AGENTS.md                  dataPipelineNetwork.ts     reportGenerationNetwork.ts
-│       │       codingTeamNetwork.ts       index.ts                   researchPipelineNetwork.ts
-│       ├──   policy/ (2 files, 7.0KB)
-│       │   └── AGENTS.md acl.yaml
-│       ├──   scorers/ (11 files, 52.3KB)
-│       │   └── AGENTS.md                  financial-scorers.ts       structure.scorer.ts
-│       │       csv-validity.scorer.ts     index.ts                   tone-consistency.scorer.ts
-│       │       custom-scorers.ts          script-scorers.ts          weather-scorer.ts
-│       │       factuality.scorer.ts       sql-validity.scorer.ts
-│       ├──   tools/ (58 files, 753.7KB)
-│       │   ├──   tests/ (15 files, 145.8KB, all .ts)
-│       │   │   └── copywriter-agent-tool.test       json-to-csv.tool.test
-│       │   │       csv-to-json.tool.test            serpapi-academic-local.tool.test
-│       │   │       data-file-manager.test           serpapi-news-trends.tool.test
-│       │   │       data-validator.tool.test         serpapi-search.tool.test
-│       │   │       document-chunking.tool.test      serpapi-shopping.tool.test
-│       │   │       editor-agent-tool.test           weather-tool.test
-│       │   │       evaluateResultTool.test          web-scraper-tool.test
-│       │   │       extractLearningsTool.test
-│       │   └── AGENTS.md                      document-chunking.tool.ts      pdf-data-conversion.tool.ts
-│       │       AGENTS.md.bak                  editor-agent-tool.ts           pdf.ts
-│       │       alpha-vantage.tool.ts          evaluateResultTool.ts          pg-sql-tool.ts
-│       │       arxiv.tool.ts                  execa-tool.ts                  pnpm-tool.ts
-│       │       browser-tool.ts                extractLearningsTool.ts        polygon-tools.ts
-│       │       calendar-tool.ts               financial-chart-tools.ts       semantic-utils.ts
-│       │       code-analysis.tool.ts          find-references.tool.ts        serpapi-academic-local.tool.ts
-│       │       code-chunking.ts               find-symbol.tool.ts            serpapi-config.ts
-│       │       code-search.tool.ts            finnhub-tools.ts               serpapi-news-trends.tool.ts
-│       │       copywriter-agent-tool.ts       fs.ts                          serpapi-search.tool.ts
-│       │       csv-to-json.tool.ts            github.ts                      serpapi-shopping.tool.ts
-│       │       data-file-manager.ts           index.ts                       test-generator.tool.ts
-│       │       data-processing-tools.ts       json-to-csv.tool.ts            weather-tool.ts
-│       │       data-validator.tool.ts         jwt-auth.tool.ts               ⭐️ web-scraper-tool.ts
-│       │       diff-review.tool.ts            multi-string-edit.tool.ts      write-note.ts
-│       ├──   types/ (2 files, 1.2KB, all .ts)
-│       │   └── excalidraw-to-svg.d svgjson.d
-│       ├──   workflows/ (21 files, 210.8KB)
-│       │   └── AGENTS.md                       financial-report-workflow.ts    spec-generation-workflow.ts
-│       │       changelog.ts                    learning-extraction-workflow.ts stock-analysis-workflow.ts
-│       │       content-review-workflow.ts      new-contributor.ts              telephone-game.ts
-│       │       content-studio-workflow.ts      repo-ingestion-workflow.ts      weather-workflow.ts
-│       │       document-processing-workflow.ts research-synthesis-workflow.ts
-│       └── AGENTS.md index.ts
-├──   tests/ (3 files, 2.5KB, all .ts)
-│   ├──   test-results/ (1.0KB)
-│   │   └── test-results.json
-│   └── api-chat-r.test       docs-hello-world.test
-├──   ui/ (63 files, 120.4KB, all .tsx)
-│   └── accordion     button        command       input-group   popover       separator     textarea
-│       alert         card          dialog        input         progress      sheet         theme-toggle
-│       avatar        carousel      dropdown-menu label         radio-group   skeleton      tooltip
-│       badge         checkbox      helpers       layout        scroll-area   switch        typography
-│       button-group  collapsible   hover-card    link          select        tabs
-└── .blackboxrules           components.json          networksCustomToolv1.png prettier.config.js
-    .env.example             eslint.config.cjs        networksv1.png           read_pdf_parse.js
-    .gitignore               globalSetup.ts           next.config.ts           testSetup.ts
-    .markdownlint.json       instrumentation.ts       ⭐️ package-lock.json     tsconfig.json
-    AGENTS.md                llms.txt                 package.json             vitest.config.ts
-    README.md                mdx-components.tsx       postcss.config.mjs
+│   ├──   blog/ (4 files, 13.4KB)
+│   │   ├──   hello-world-agentstack/ page.mdx
+│   │   ├──   session-summary/ page.tsx
+│   │   └── layout.tsx
+│   ├──   careers/ page.tsx
+│   ├──   changelog/ page.tsx
+│   ├──   chat/ (16 directories, 27+ files, 175.7KB+)
+│   │   ├──   components/ (16 files, 93.5KB)
+│   │   │   └── AI Elements: agent-artifact, agent-chain-of-thought, agent-sources, etc.
+│   │   ├──   config/ (7 files, 50.4KB)
+│   │   │   └── Model configs: google-models, anthropic-models, openai-models, etc.
+│   │   ├──   helpers/ tool-part-transform.ts
+│   │   ├──   dataset/ dataset management
+│   │   ├──   harness/ evaluation tools
+│   │   ├──   logs/ logging interfaces
+│   │   ├──   mcp-a2a/ MCP coordination
+│   │   ├──   observability/ tracing & metrics
+│   │   ├──   providers/ chat providers
+│   │   ├──   tools/ tool interfaces
+│   │   ├──   workflows/ workflow execution
+│   │   └── workspaces/ workspace management
+│   ├──   [other app routes...]
+│   └──   page.tsx
+
+├──   lib/ (React utilities & hooks)
+│   ├──   hooks/ (1590+ lines of TanStack Query hooks)
+│   │   └──   use-mastra-query.ts (comprehensive data fetching)
+│   ├──   types/ (Zod schemas & TypeScript types, auto-generated)
+│   ├──   mastra-client.ts (SDK configuration)
+│   └──   [utilities & helpers]
+
+├──   src/mastra/ (22 directories, backend orchestration)
+│   ├──   index.ts (25+ agents, 10+ workflows, 12+ networks, middleware)
+│   ├──   agents/ (31 agent definitions)
+│   │   ├──   supervisor-agent.ts (scoring & delegation)
+│   │   └──   [specialized agents: research, copywriter, stock analysis, etc.]
+│   ├──   workflows/ (10+ multi-step workflows)
+│   ├──   networks/ (12+ supervisor networks - primary coordination)
+│   │   ├──   agentNetwork (primary router to all specialized agents)
+│   │   ├──   codingTeamNetwork (architecture → review → test → refactor)
+│   │   ├──   financialIntelligenceNetwork (research → analysis → charts)
+│   │   └──   [other domain-specific supervisor networks]
+│   ├──   tools/ (57 enterprise tools)
+│   ├──   config/ (model & storage configuration)
+│   ├──   workspaces.ts (14 workspace variants: AgentFS, Daytona, Local)
+│   ├──   harness.ts (multi-mode agent orchestration - ⚠️ alpha)
+│   ├──   a2a/ (agent-to-agent coordination)
+│   ├──   mcp/ (MCP servers)
+│   └──   [processors, evals, middleware, etc.]
+
+├──   [other directories: docs, scripts, tests, etc.]
 ```
 
 ## 🛠️ **Development**
@@ -1733,7 +1741,7 @@ describe('myCustomTool', () => {
 
 | Env Var                        | Purpose                               | Required      |
 | ------------------------------ | ------------------------------------- | ------------- |
-| `SUPABASE`                     | Postgres + PgVector RAG               | ✅            |
+| `TURSO_DATABASE_URL`           | LibSQL persistence for auth/RAG       | ✅            |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini LLM/Embeddings                 | ✅            |
 | `SERPAPI_API_KEY`              | Search/News/Shopping (10+ tools)      | ✅            |
 | `POLYGON_API_KEY`              | Stock/Crypto quotes/aggs/fundamentals | ✅            |
@@ -1988,17 +1996,13 @@ The admin dashboard provides comprehensive observability and management:
 
 **Data Fetching:**
 
-All dashboard pages use TanStack Query hooks from `lib/hooks/use-dashboard-queries.ts`:
+All dashboard pages use TanStack Query hooks from `lib/hooks/use-mastra-query.ts`:
 
 ```typescript
-import {
-    useAgentsQuery,
-    useToolsQuery,
-    useTracesQuery,
-} from '@/lib/hooks/use-dashboard-queries'
+import { useAgents, useTools, useTraces } from '@/lib/hooks/use-mastra-query'
 
 function AgentsPage() {
-    const { data: agents, isLoading } = useAgentsQuery()
+    const { data: agents, isLoading } = useAgents()
     const { data: tools } = useToolsQuery()
 
     // Automatic caching, refetching, and error handling
@@ -2011,7 +2015,7 @@ function AgentsPage() {
 | -------------------- | ------------------------------------------------------ | ----------------------------------------- | --------------------------------------- |
 | **🔍 Search**        | SerpAPI (News/Trends/Shopping/Scholar/Local/Yelp)      | ResearchAgent                             | Chat interface with citations           |
 | **💰 Financial**     | Polygon (10+), Finnhub (6+), AlphaVantage (indicators) | StockAnalysis, CryptoAnalysis             | Dashboard with charts and metrics       |
-| **📄 RAG**           | PgVector chunk/rerank/query/graph                      | Retrieve/Rerank/Answerer                  | Vector search interface                 |
+| **📄 RAG**           | libSQL chunk/rerank/query/graph                        | Retrieve/Rerank/Answerer                  | Vector search interface                 |
 | **📝 Content**       | PDF→MD, Web Scraper, Copywriter/Editor                 | CopywriterAgent, EditorAgent, ReportAgent | Chat with artifact preview              |
 | **🎨 Visual**        | CSV↔Excalidraw, SVG/XML process                        | csvToExcalidrawAgent, imageToCsvAgent     | Workflow canvas visualization           |
 | **🌐 Orchestration** | A2A MCP Server                                         | a2aCoordinatorAgent, codingA2ACoordinator | Network routing panel                   |
@@ -2225,7 +2229,7 @@ Before submitting your PR, ensure:
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
@@ -2318,12 +2322,14 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 
 **Shared Libraries:**
 
-- **[lib/hooks](lib/hooks/)**: TanStack Query hooks for data fetching (15+ hooks)
-    - `use-dashboard-queries.ts` - Agents, workflows, tools, traces, threads, messages, vectors
-    - `use-mastra.ts` - Generic fetch hook with loading/error states
-- **[lib/types](lib/types/)**: Zod schemas and TypeScript types
-    - `mastra-api.ts` - Agent, Workflow, Tool, Trace, Message, Vector types
+- **[lib/hooks](lib/hooks/)**: TanStack Query hooks for data fetching (1590+ lines)
+  - `use-mastra-query.ts` - Comprehensive hooks for all Mastra APIs
+- **[lib/types](lib/types/)**: Zod schemas and TypeScript types (auto-generated)
 - **[lib/](lib/)**: Client SDK, utilities, auth, A2A coordination
+- **[src/mastra/auth.ts](src/mastra/auth.ts)**: Better Auth + LibSQL server auth configuration
+- **[src/mastra/workspaces.ts](src/mastra/workspaces.ts)**: Workspace, sandbox, AgentFS, and LibSQL-backed workspace storage
+- **[src/mastra/agents/request-context.ts](src/mastra/agents/request-context.ts)**: Server-side request context schema and helpers
+- **[src/mastra/tools/request-context.utils.ts](src/mastra/tools/request-context.utils.ts)**: Tool-side request context helpers
 
 **Core Components:**
 
@@ -2340,7 +2346,7 @@ We are committed to providing a welcoming and inclusive experience for everyone:
 ## 🏆 **Roadmap**
 
 - [x] **Financial Suite**: Polygon/Finnhub/AlphaVantage (✅ Live - 30+ endpoints)
-- [x] **RAG Pipeline**: PgVector + rerank/graph (✅ Live)
+- [x] **RAG Pipeline**: libSQL + rerank/graph (✅ Live)
 - [x] **A2A MCP**: Parallel orchestration (✅ Live)
 - [x] **15 Workflows**: Sequential, parallel, branch, loop, foreach, suspend/resume (✅ Live)
 - [x] **12 Agent Networks**: Routing and coordination (✅ Live)

@@ -1,6 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
+import type { ChunkType } from '@mastra/core/stream'
 import { logError, logStepEnd, logStepStart } from '../config/logger'
 
 const researchInputSchema = z.object({
@@ -185,54 +186,34 @@ const researchTopicStep = createStep({
             if (agent !== undefined) {
                 const prompt = `Research the topic "${inputData.topic}" thoroughly.
 
-        Provide:
-        1. A comprehensive summary
-        2. Key findings (5-10 bullet points)
-        3. Up to ${inputData.maxSources} relevant sources
-        4. Related topics for further exploration
-        5. A confidence score (0-100) for the research quality
+Provide:
+1. A comprehensive summary
+2. Key findings (5-10 bullet points)
+3. Up to ${inputData.maxSources} relevant sources
+4. Related topics for further exploration
+5. A confidence score (0-100) for the research quality
 
-        Focus on accuracy and citing credible sources.`
+Focus on accuracy and citing credible sources.`
 
-                const stream = await agent.stream(prompt)
-                await stream.textStream?.pipeTo?.(writer)
-                const finalText = await stream.text
-                const parsed = (() => {
-                    try {
-                        return JSON.parse(finalText || '')
-                    } catch {
-                        return null
+                const stream = await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: topicResearchSchema,
+                    },
+                })
+
+                if (writer !== undefined && writer !== null) {
+                    for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<z.infer<typeof topicResearchSchema>>>) {
+                        await writer.write(chunk)
                     }
-                })()
-
-                result = {
-                    topic: inputData.topic,
-                    summary:
-                        typeof parsed?.summary === 'string'
-                            ? parsed.summary
-                            : (finalText ?? ''),
-                    keyFindings: Array.isArray(parsed?.keyFindings)
-                        ? parsed.keyFindings
-                        : [],
-                    sources: Array.isArray(parsed?.sources)
-                        ? parsed.sources.slice(0, inputData.maxSources)
-                        : [],
-                    relatedTopics: Array.isArray(parsed?.relatedTopics)
-                        ? parsed.relatedTopics
-                        : [],
-                    confidence:
-                        typeof parsed?.confidence === 'number'
-                            ? parsed.confidence
-                            : 0,
                 }
+
+                result = await stream.object
             } else {
                 result = {
                     topic: inputData.topic,
-                    summary: `Research summary for "${inputData.topic}". This topic covers important aspects that require detailed analysis.`,
+                    summary: `Research summary for ${inputData.topic}`,
                     keyFindings: [
-                        `Key finding 1 about ${inputData.topic}`,
-                        `Key finding 2 about ${inputData.topic}`,
-                        `Key finding 3 about ${inputData.topic}`,
+                        `Key finding about ${inputData.topic}`,
                     ],
                     sources: [
                         {
@@ -278,7 +259,7 @@ const researchTopicStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('research-topic-item', error, { topic: inputData.topic })
+            logError('research-topic-item', error instanceof Error ? error : new Error(String(error)), { topic: inputData.topic })
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -377,62 +358,19 @@ Provide:
 4. Actionable recommendations
 5. Any gaps in the research`
 
-                const stream = await agent.stream(prompt)
-                await stream.textStream?.pipeTo?.(writer)
-                const finalText = await stream.text
-                const parsed = (() => {
-                    try {
-                        return JSON.parse(finalText || '')
-                    } catch {
-                        return null
-                    }
-                })()
+                const stream = await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: synthesizedResearchSchema.shape.synthesis,
+                    },
+                })
 
-                const hasParsed =
-                    parsed !== null &&
-                    typeof parsed === 'object' &&
-                    'overallSummary' in parsed
-                synthesis = hasParsed
-                    ? {
-                          overallSummary: String(
-                              (parsed as Record<string, unknown>).overallSummary
-                          ),
-                          commonThemes: Array.isArray(
-                              (parsed as Record<string, unknown>).commonThemes
-                          )
-                              ? (parsed as { commonThemes: string[] })
-                                    .commonThemes
-                              : [],
-                          keyInsights: Array.isArray(
-                              (parsed as Record<string, unknown>).keyInsights
-                          )
-                              ? ((parsed as { keyInsights: unknown[] })
-                                    .keyInsights as unknown as Array<{
-                                    insight: string
-                                    relatedTopics: string[]
-                                    importance: 'high' | 'medium' | 'low'
-                                }>)
-                              : [],
-                          recommendations: Array.isArray(
-                              (parsed as Record<string, unknown>)
-                                  .recommendations
-                          )
-                              ? (parsed as { recommendations: string[] })
-                                    .recommendations
-                              : [],
-                          gaps: Array.isArray(
-                              (parsed as Record<string, unknown>).gaps
-                          )
-                              ? (parsed as { gaps: string[] }).gaps
-                              : undefined,
-                      }
-                    : {
-                          overallSummary: finalText ?? '',
-                          commonThemes: [],
-                          keyInsights: [],
-                          recommendations: [],
-                          gaps: [],
-                      }
+                if (writer !== undefined && writer !== null) {
+                    for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<z.infer<typeof synthesizedResearchSchema>['synthesis']>>) {
+                        await writer.write(chunk)
+                    }
+                }
+
+                synthesis = await stream.object
             } else {
                 const allFindings = inputData.topics.flatMap(
                     (t) => t.keyFindings
@@ -510,7 +448,7 @@ Provide:
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('synthesize-research', error)
+            logError('synthesize-research', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -678,7 +616,7 @@ ${inputData.synthesis.gaps?.map((g) => `- ${g}`).join('\n') ?? 'No significant g
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('generate-research-report', error)
+            logError('generate-research-report', error instanceof Error ? error : new Error(String(error)))
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -725,3 +663,4 @@ export const researchSynthesisWorkflow = createWorkflow({
     .then(generateResearchReportStep)
 
 researchSynthesisWorkflow.commit()
+

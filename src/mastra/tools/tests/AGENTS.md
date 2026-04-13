@@ -11,7 +11,6 @@ Track test coverage for all tools in `src/mastra/tools/`. Goal: 97% test coverag
 | File                            | Tests  | Status          | Notes                                         |
 | ------------------------------- | ------ | --------------- | --------------------------------------------- |
 | json-to-csv.tool.test.ts        | 7      | ✅ Complete     | Input: `{data}`, Output: `{csv}`              |
-| data-validator.tool.test.ts     | 7      | ✅ Complete     | Import: `dataValidatorToolJSON`               |
 | csv-to-json.tool.test.ts        | 8      | ✅ Complete     | Input: `{csvData, options}`, Tracing verified |
 | weather-tool.test.ts            | 5      | ✅ Complete     | Weather API tests                             |
 | jwt-auth.tool.test.ts           | 5      | ✅ Complete     | JWT validation with RequestContext mocks      |
@@ -23,8 +22,6 @@ Track test coverage for all tools in `src/mastra/tools/`. Goal: 97% test coverag
 | text-analysis.tool.test.ts      | 5      | ✅ Added        | Readability, sentiment, language, summary     |
 | technical-analysis.tool.test.ts | 3      | ✅ Added        | Stats, SMA/EMA, empty-data check              |
 | random-generator.tool.test.ts   | 4      | ✅ Added        | Random types generation                       |
-| code-search.tool.test.ts        | 2      | ✅ Added        | Regex/string searches & truncation            |
-| code-analysis.tool.test.ts      | 1      | ✅ Added        | LOC, patterns, long-line detection            |
 | multi-string-edit.tool.test.ts  | 2      | ✅ Added        | Dry-run and apply flows                       |
 | find-symbol.tool.test.ts        | 1      | ✅ Added        | Mocks ProjectCache/PythonParser               |
 | find-references.tool.test.ts    | 1      | ✅ Added        | Mocks ProjectCache/PythonParser & fast-glob   |
@@ -38,7 +35,6 @@ Track test coverage for all tools in `src/mastra/tools/`. Goal: 97% test coverag
 | ---------------------- | --------- | --------------------------- | ------------ |
 | csv-to-json.tool.ts    | ✅        | csv-to-json.tool.test.ts    | Complete     |
 | json-to-csv.tool.ts    | ✅        | json-to-csv.tool.test.ts    | Complete     |
-| data-validator.tool.ts | ✅        | data-validator.tool.test.ts | Complete     |
 | downsample.tool.ts     | ✅        | downsample.tool.test.ts     | Pre-existing |
 
 ### Web Scraping (4 tools)
@@ -55,7 +51,6 @@ Track test coverage for all tools in `src/mastra/tools/`. Goal: 97% test coverag
 | Tool                     | Has Tests | Test File               | Status     |
 | ------------------------ | --------- | ----------------------- | ---------- |
 | fs.ts                    | ⏳        | -                       | **NEEDED** |
-| data-processing-tools.ts | ⏳        | -                       | **NEEDED** |
 | write-note.ts            | ✅        | write-note.tool.test.ts | ✅ Added   |
 | pdf.ts                   | ⏳        | -                       | **NEEDED** |
 
@@ -72,7 +67,6 @@ Track test coverage for all tools in `src/mastra/tools/`. Goal: 97% test coverag
 | Tool                | Has Tests | Test File | Status                       |
 | ------------------- | --------- | --------- | ---------------------------- |
 | github.ts           | ⏳        | -         | **NEEDED** (complex mocking) |
-| code-search.tool.ts | ⏳        | -         | **NEEDED**                   |
 | find-symbol.tool.ts | ⏳        | -         | **NEEDED**                   |
 | execa-tool.ts       | ⏳        | -         | **NEEDED**                   |
 

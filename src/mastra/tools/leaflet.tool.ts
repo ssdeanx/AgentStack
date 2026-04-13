@@ -61,7 +61,6 @@ export const leafletTool = createTool({
     execute: async (input, context) => {
         const writer = context?.writer
         const abortSignal = context?.abortSignal
-        const tracingContext = context?.tracingContext
         const requestCtx = context?.requestContext as
             | LeafletToolContext
             | undefined

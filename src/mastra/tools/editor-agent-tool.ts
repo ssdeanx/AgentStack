@@ -1,7 +1,6 @@
-import type { MastraModelOutput } from '@mastra/core/stream'
+import type { ChunkType } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
-import type { TracingContext } from '@mastra/core/observability'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { editorAgent } from '../agents/editorAgent'
@@ -11,6 +10,18 @@ import type { RequestContext } from '@mastra/core/request-context'
 export interface EditorAgentContext extends RequestContext {
     userId?: string
 }
+
+const editorToolOutputSchema = z.object({
+    editedContent: z.string().describe('The edited and improved content'),
+    contentType: z.string().describe('The identified content type'),
+    changes: z.array(z.string()).describe('List of key changes made'),
+    suggestions: z
+        .array(z.string())
+        .optional()
+        .describe('Additional suggestions for improvement'),
+})
+
+type EditorAgentOutput = z.infer<typeof editorToolOutputSchema>
 
 export const editorTool = createTool({
     id: 'editor-agent',
@@ -33,29 +44,21 @@ export const editorTool = createTool({
             .optional()
             .describe('Desired tone for the edited content'),
     }),
-    outputSchema: z.object({
-        editedContent: z.string().describe('The edited and improved content'),
-        contentType: z.string().describe('The identified content type'),
-        changes: z.array(z.string()).describe('List of key changes made'),
-        suggestions: z
-            .array(z.string())
-            .optional()
-            .describe('Additional suggestions for improvement'),
-    }),
-    onInputStart: ({ toolCallId, messages, abortSignal }) => {
+    outputSchema: editorToolOutputSchema,
+    onInputStart: ({ toolCallId }) => {
         log.info('editorTool tool input streaming started', {
             toolCallId,
             hook: 'onInputStart',
         })
     },
-    onInputDelta: ({ inputTextDelta, toolCallId, messages, abortSignal }) => {
+    onInputDelta: ({ inputTextDelta, toolCallId }) => {
         log.info('editorTool received input chunk', {
             toolCallId,
             inputTextDelta,
             hook: 'onInputDelta',
         })
     },
-    onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
+    onInputAvailable: ({ input, toolCallId }) => {
         log.info('editorTool received input', {
             toolCallId,
             inputData: {
@@ -67,19 +70,24 @@ export const editorTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('editorTool completed', {
-            toolCallId,
-            toolName,
-            outputData: {
-                editedContent: output.editedContent,
-                contentType: output.contentType,
-                changes: output.changes,
-                suggestions: output.suggestions,
-            },
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output: EditorAgentOutput) => ({
+        type: 'text',
+        value: [
+            `Content type: ${output.contentType}`,
+            output.changes.length > 0
+                ? `Changes: ${output.changes.join('; ')}`
+                : undefined,
+            output.suggestions?.length
+                ? `Suggestions: ${output.suggestions.join('; ')}`
+                : undefined,
+            output.editedContent,
+        ]
+            .filter(
+                (part): part is string =>
+                    typeof part === 'string' && part.trim().length > 0
+            )
+            .join('\n\n'),
+    }),
     // Streaming: Pipe a nested agent's textStream into the tool writer so the UI
     // receives nested agent chunks while the tool is running. See:
     // https://mastra.ai/docs/streaming/tool-streaming#tool-using-an-agent
@@ -102,11 +110,6 @@ export const editorTool = createTool({
             tone,
         } = inputData
         const writer = context?.writer
-        const requestContext = context?.requestContext as
-            | EditorAgentContext
-            | undefined
-        const tracingContext = context?.tracingContext
-
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'editor-agent',
@@ -153,11 +156,22 @@ export const editorTool = createTool({
             // attributed to the running Mastra runtime; fall back to the imported agent.
             let resultText = ''
             try {
+                let streamedText = ''
                 const agent =
                     context?.mastra?.getAgent?.('editorAgent') ?? editorAgent
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                const stream = await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: editorToolOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<EditorAgentOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })
 
                 // Stream the agent's text stream into the tool writer so the UI receives
                 // nested and merged chunks while the tool is running. This also allows
@@ -175,7 +189,7 @@ export const editorTool = createTool({
                     await stream.textStream.pipeTo(
                         writer as unknown as WritableStream
                     )
-                    resultText = (await stream.text) ?? ''
+                    resultText = (await stream.text) ?? streamedText
                 } else if (stream?.fullStream && writer) {
                     // Some runtimes expose a fullStream; pipe it so nested events and
                     // structured payloads are forwarded to the tool writer.
@@ -192,10 +206,10 @@ export const editorTool = createTool({
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
                     )
-                    resultText = (await stream.text) ?? ''
+                    resultText = (await stream.text) ?? streamedText
                 } else if (stream) {
                     // No UI writer available, but stream exists
-                    resultText = (await stream.text) ?? ''
+                    resultText = (await stream.text) ?? streamedText
                 } else {
                     // Fallback to synchronous generate using the agent instance
                     const result = await agent.generate(prompt)
@@ -212,9 +226,9 @@ export const editorTool = createTool({
             }
 
             // Parse the structured response from the editor agent
-            let parsedResult
+            let parsedResult: EditorAgentOutput
             try {
-                parsedResult = JSON.parse(resultText)
+                parsedResult = JSON.parse(resultText) as EditorAgentOutput
             } catch {
                 // Fallback for non-JSON responses
                 parsedResult = {
@@ -244,10 +258,7 @@ export const editorTool = createTool({
             })
 
             return {
-                editedContent:
-                    parsedResult.editedContent ??
-                    parsedResult.copy ??
-                    resultText,
+                editedContent: parsedResult.editedContent ?? resultText,
                 contentType: parsedResult.contentType ?? contentType,
                 changes: parsedResult.changes ?? [
                     'Content edited and improved',
@@ -261,8 +272,23 @@ export const editorTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMsg),
                 endSpan: true,
             })
-            throw new Error(`Failed to edit content: ${errorMsg}`)
+            throw new Error(`Failed to edit content: ${errorMsg}`, {
+                cause: error,
+            })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName }) => {
+        log.info('editorTool completed', {
+            toolCallId,
+            toolName,
+            outputData: {
+                editedContent: output.editedContent,
+                contentType: output.contentType,
+                changes: output.changes,
+                suggestions: output.suggestions,
+            },
+            hook: 'onOutput',
+        })
     },
 })
 

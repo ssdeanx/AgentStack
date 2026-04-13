@@ -120,7 +120,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const mockTracingContext = createMockTracingContext()
@@ -221,7 +221,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'free',
+                'subscription-tier': 'free',
             })
 
             const result = await alphaVantageCryptoTool.execute(
@@ -264,7 +264,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'enterprise',
+                'subscription-tier': 'enterprise',
             })
 
             // Act
@@ -299,7 +299,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const res = await alphaVantageCryptoTool.execute(
@@ -337,7 +337,7 @@ describe('alphaVantageCryptoTool', () => {
     describe('error handling', () => {
         it('should throw error when API key is missing', async () => {
             const mockRequestContext = createMockRequestContext({
-                'user-tier': 'free',
+                'subscription-tier': 'free',
             })
 
             const mockWriter = createMockWriter()
@@ -370,7 +370,7 @@ describe('alphaVantageCryptoTool', () => {
         it('should throw error when API key is empty', async () => {
             const mockRequestContext = createMockRequestContext({
                 apiKey: '',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             await expect(
@@ -393,7 +393,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const mockTracingContext = {
@@ -449,7 +449,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'enterprise',
+                'subscription-tier': 'enterprise',
             })
 
             try {
@@ -482,7 +482,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'invalid-key',
-                'user-tier': 'free',
+                'subscription-tier': 'free',
             })
 
             try {
@@ -515,7 +515,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'free',
+                'subscription-tier': 'free',
             })
 
             // The tool may either reject (throw) or return an error object depending on implementation.
@@ -550,7 +550,7 @@ describe('alphaVantageCryptoTool', () => {
         it('should validate required fields', async () => {
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             // The tool may either throw a Zod validation error or return an object describing the validation failure.
@@ -574,7 +574,7 @@ describe('alphaVantageCryptoTool', () => {
         it('should validate function enum values', async () => {
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             try {
@@ -605,7 +605,7 @@ describe('alphaVantageCryptoTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const mockWriter = createMockWriter()
@@ -696,7 +696,7 @@ describe('alphaVantageStockTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const result = await alphaVantageStockTool.execute(
@@ -747,7 +747,7 @@ describe('alphaVantageStockTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'enterprise',
+                'subscription-tier': 'enterprise',
             })
 
             const result = await alphaVantageStockTool.execute(
@@ -794,7 +794,7 @@ describe('alphaVantageStockTool', () => {
 
             const mockRequestContext = createMockRequestContext({
                 apiKey: 'test-api-key',
-                'user-tier': 'pro',
+                'subscription-tier': 'pro',
             })
 
             const mockTracingContext = createMockTracingContext()
@@ -866,7 +866,7 @@ describe('alphaVantageTool (legacy)', () => {
 
         const mockRequestContext = createMockRequestContext({
             apiKey: 'test-api-key',
-            'user-tier': 'free',
+            'subscription-tier': 'free',
         })
 
         const result = await alphaVantageTool.execute(
@@ -916,7 +916,7 @@ describe('alphaVantageTool (legacy)', () => {
 
         const mockRequestContext = createMockRequestContext({
             apiKey: 'test-api-key',
-            'user-tier': 'pro',
+            'subscription-tier': 'pro',
         })
 
         const result = await alphaVantageTool.execute(
@@ -960,7 +960,7 @@ describe('lifecycle hooks', () => {
 
         const mockRequestContext = createMockRequestContext({
             apiKey: 'test-api-key',
-            'user-tier': 'pro',
+            'subscription-tier': 'pro',
         })
 
         const logSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
@@ -1000,7 +1000,7 @@ describe('lifecycle hooks', () => {
 
         const mockRequestContext = createMockRequestContext({
             apiKey: 'test-api-key',
-            'user-tier': 'pro',
+            'subscription-tier': 'pro',
         })
 
         const logSpy = vi.spyOn(console, 'info').mockImplementation(() => {})

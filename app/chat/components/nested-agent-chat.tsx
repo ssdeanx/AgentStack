@@ -1,6 +1,6 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import type { AgentDataPart } from '@mastra/ai-sdk'
 
 export function NestedAgentChat() {
@@ -11,7 +11,7 @@ export function NestedAgentChat() {
         }),
     })
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
         // Use a self-invoking async function to avoid returning a Promise from the event handler
         void (async () => {

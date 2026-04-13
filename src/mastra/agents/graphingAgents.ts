@@ -1,17 +1,15 @@
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
 import {
-  BatchPartsProcessor,
   TokenLimiterProcessor,
   UnicodeNormalizer,
 } from '@mastra/core/processors'
 import type { RequestContext } from '@mastra/core/request-context'
 import type { AgentRequestContext } from './request-context'
-import { pgMemory } from '../config'
 import { log } from '../config/logger'
 
 import { InternalSpans } from '@mastra/core/observability'
-import { fetchTool, scrapingSchedulerTool } from '../tools'
+import { fetchTool } from '../tools'
 import { chartJsTool } from '../tools/chartjs.tool'
 import { cytoscapeTool } from '../tools/cytoscape.tool'
 import { downsampleTool } from '../tools/downsample.tool'
@@ -50,6 +48,7 @@ import {
   volatilityAnalysisTool,
   volumeAnalysisTool,
 } from '../tools/technical-analysis.tool'
+import { LibsqlMemory } from '../config/libsql'
 
 export type GraphingRuntimeContext = AgentRequestContext
 
@@ -70,11 +69,11 @@ export const graphSupervisorAgent = new Agent({
     requestContext: RequestContext<GraphingRuntimeContext>
   }) => {
     const lang = requestContext.get('language') ?? 'en'
-    const tier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     return {
       role: 'system',
       content: `
-You are Graph Supervisor. Language: ${lang}; User Tier: ${tier}.
+You are Graph Supervisor. Language: ${lang}; User Role: ${role}.
 You orchestrate multi-step pipelines using available tools. Follow a prompt-chaining approach and prefer tool-calling (structured calls with JSON arguments) for deterministic results.
 
 Default process (use prompt chaining and validate at each step):
@@ -114,7 +113,7 @@ Rules and best practices:
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     chartSupervisorTool,
     chartGeneratorTool,
@@ -127,7 +126,6 @@ Rules and best practices:
     cytoscapeTool,
     // Repo & system helpers
     fetchTool,
-    scrapingSchedulerTool,
     // Market data
     finnhubQuotesTool,
     finnhubCompanyTool,
@@ -150,12 +148,7 @@ Rules and best practices:
     }),
   ],
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
-    new BatchPartsProcessor({
-      batchSize: 5,
-      maxWaitTime: 75,
-      emitOnNonText: true,
-    }),
+
   ],
 })
 
@@ -189,7 +182,7 @@ export const technicalAnalysisAgent = new Agent({
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     technicalAnalysisTool,
     trendAnalysisTool,
@@ -208,7 +201,6 @@ export const technicalAnalysisAgent = new Agent({
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
 /**
@@ -226,12 +218,11 @@ export const chartJsAgent = new Agent({
       'Generate Chart.js config JSON and any helper metadata. Downsample large series before visualization to keep UI performant.',
   }),
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     chartJsTool,
     downsampleTool,
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
 /**
@@ -249,7 +240,7 @@ export const mappingAgent = new Agent({
       'Return GeoJSON, center and markers for Leaflet; or Cytoscape elements for graph visualizations. Validate coordinates and keep payload sizes reasonable.',
   }),
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     leafletTool,
     cytoscapeTool,
@@ -259,7 +250,6 @@ export const mappingAgent = new Agent({
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
 /**
@@ -277,7 +267,7 @@ export const fetchAgent = new Agent({
       'Use the resilient-fetch tool for all external HTTP fetching. Respect API rate limits and provide concise error messages when failures occur.',
   }),
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: { fetchTool },
   options: {
     tracingPolicy: {
@@ -302,7 +292,7 @@ export const finnhubAgent = new Agent({
       'Use Finnhub tools to fetch the requested data and normalize result to a consistent schema. If FINNHUB_API_KEY is missing, return an explanatory error.',
   }),
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     finnhubQuotesTool,
     finnhubCompanyTool,
@@ -316,7 +306,6 @@ export const finnhubAgent = new Agent({
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
 /**
@@ -368,11 +357,10 @@ Rules:
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     cytoscapeTool,
     fetchTool,
-    scrapingSchedulerTool,
     // GitHub tools
     listRepositories,
     getRepoFileTree,
@@ -385,7 +373,6 @@ Rules:
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
 })
 
 /**
@@ -430,7 +417,7 @@ Rules:
     }
   },
   model: "google/gemini-3.1-flash-lite-preview",
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {
     fetchTool,
     // GitHub tools
@@ -444,7 +431,6 @@ Rules:
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(65536)],
   //  defaultOptions: {
   //     autoResumeSuspendedTools: true,
   //  },

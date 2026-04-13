@@ -5,8 +5,8 @@ import {
 } from '@mastra/core/request-context'
 import { z } from 'zod'
 
-export const USER_TIERS = ['free', 'pro', 'enterprise'] as const
-export type UserTier = (typeof USER_TIERS)[number]
+export const USER_ROLES = ['admin', 'user'] as const
+export type UserRole = (typeof USER_ROLES)[number]
 
 export const SUPPORTED_LANGUAGES = ['en', 'es', 'ja', 'fr'] as const
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
@@ -22,16 +22,25 @@ export const MODEL_OVERRIDE_PROVIDERS = [
 ] as const
 export type ModelOverrideProvider = (typeof MODEL_OVERRIDE_PROVIDERS)[number]
 
-export const USER_TIER_CONTEXT_KEY = 'user-tier' as const
+export const ROLE_CONTEXT_KEY = 'role' as const
 export const LANGUAGE_CONTEXT_KEY = 'language' as const
+export const TEMPERATURE_UNIT_CONTEXT_KEY = 'temperature-unit' as const
+export const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
 export const USER_ID_CONTEXT_KEY = 'userId' as const
 export const PROVIDER_ID_CONTEXT_KEY = 'provider-id' as const
 export const MODEL_ID_CONTEXT_KEY = 'model-id' as const
+export const WORKSPACE_ID_CONTEXT_KEY = 'workspaceId' as const
+
+export type TemperatureUnit = 'celsius' | 'fahrenheit'
+export type ResearchPhase = 'initial' | 'followup' | 'validation'
 
 export interface BaseAgentRequestContext {
-  [USER_TIER_CONTEXT_KEY]?: UserTier
+  [ROLE_CONTEXT_KEY]?: UserRole
   [LANGUAGE_CONTEXT_KEY]?: SupportedLanguage
+  [TEMPERATURE_UNIT_CONTEXT_KEY]?: TemperatureUnit
+  [RESEARCH_PHASE_CONTEXT_KEY]?: ResearchPhase
   [USER_ID_CONTEXT_KEY]?: string
+  [WORKSPACE_ID_CONTEXT_KEY]?: string
 }
 
 export interface ModelOverrideRequestContext {
@@ -39,12 +48,15 @@ export interface ModelOverrideRequestContext {
   [MODEL_ID_CONTEXT_KEY]?: string
 }
 
-export type AgentRequestContext<TExtra extends Record<string, unknown> = Record<string, never>> =
-  BaseAgentRequestContext & TExtra
+export type AgentRequestContext<TExtra extends object = {}> = BaseAgentRequestContext & TExtra
 
 export const baseAgentRequestContextSchema = z.object({
-  [USER_TIER_CONTEXT_KEY]: z.enum(USER_TIERS).optional(),
+  [ROLE_CONTEXT_KEY]: z.enum(USER_ROLES).optional(),
   [LANGUAGE_CONTEXT_KEY]: z.enum(SUPPORTED_LANGUAGES).optional(),
+  [TEMPERATURE_UNIT_CONTEXT_KEY]: z.enum(['celsius', 'fahrenheit']).optional(),
+  [RESEARCH_PHASE_CONTEXT_KEY]: z
+    .enum(['initial', 'followup', 'validation'])
+    .optional(),
   [USER_ID_CONTEXT_KEY]: z.string().optional(),
   [PROVIDER_ID_CONTEXT_KEY]: z.enum(MODEL_OVERRIDE_PROVIDERS).optional(),
   [MODEL_ID_CONTEXT_KEY]: z.string().min(1).optional(),
@@ -54,8 +66,8 @@ export interface RequestContextReader {
   get(key: string): unknown
 }
 
-function isUserTier(value: unknown): value is UserTier {
-  return value === 'free' || value === 'pro' || value === 'enterprise'
+function isUserRole(value: unknown): value is UserRole {
+  return value === 'admin' || value === 'user'
 }
 
 function isSupportedLanguage(value: unknown): value is SupportedLanguage {
@@ -114,12 +126,20 @@ export function buildSharedRequestContextPayload(
     contextPayload[USER_ID_CONTEXT_KEY] = payload[USER_ID_CONTEXT_KEY]
   }
 
-  if (payload[USER_TIER_CONTEXT_KEY] !== undefined) {
-    contextPayload[USER_TIER_CONTEXT_KEY] = payload[USER_TIER_CONTEXT_KEY]
+  if (payload[ROLE_CONTEXT_KEY] !== undefined) {
+    contextPayload[ROLE_CONTEXT_KEY] = payload[ROLE_CONTEXT_KEY]
   }
 
   if (payload[LANGUAGE_CONTEXT_KEY] !== undefined) {
     contextPayload[LANGUAGE_CONTEXT_KEY] = payload[LANGUAGE_CONTEXT_KEY]
+  }
+
+  if (payload[TEMPERATURE_UNIT_CONTEXT_KEY] !== undefined) {
+    contextPayload[TEMPERATURE_UNIT_CONTEXT_KEY] = payload[TEMPERATURE_UNIT_CONTEXT_KEY]
+  }
+
+  if (payload[RESEARCH_PHASE_CONTEXT_KEY] !== undefined) {
+    contextPayload[RESEARCH_PHASE_CONTEXT_KEY] = payload[RESEARCH_PHASE_CONTEXT_KEY]
   }
 
   if (payload[PROVIDER_ID_CONTEXT_KEY] !== undefined) {
@@ -170,12 +190,12 @@ export function createAgentRequestContext<
   return requestContext
 }
 
-export function getUserTierFromContext(
+export function getRoleFromContext(
   requestContext: RequestContextReader | undefined,
-  fallback: UserTier = 'free'
-): UserTier {
-  const userTier = requestContext?.get(USER_TIER_CONTEXT_KEY)
-  return isUserTier(userTier) ? userTier : fallback
+  fallback: UserRole = 'user'
+): UserRole {
+  const role = requestContext?.get(ROLE_CONTEXT_KEY)
+  return isUserRole(role) ? role : fallback
 }
 
 export function getLanguageFromContext(
@@ -184,6 +204,18 @@ export function getLanguageFromContext(
 ): SupportedLanguage {
   const language = requestContext?.get(LANGUAGE_CONTEXT_KEY)
   return isSupportedLanguage(language) ? language : fallback
+}
+
+export function getUserIdFromContext(
+  requestContext: RequestContextReader | undefined
+): string | undefined {
+  return requestContext?.get(USER_ID_CONTEXT_KEY) as string | undefined
+}
+
+export function getWorkspaceIdFromContext(
+  requestContext: RequestContextReader | undefined
+): string | undefined {
+  return requestContext?.get(WORKSPACE_ID_CONTEXT_KEY) as string | undefined
 }
 
 export function getModelOverrideFromContext(
@@ -207,12 +239,11 @@ export function getModelOverrideFromContext(
   return undefined
 }
 
-export function resolveTieredModelFromContext(
+export function resolveModelFromContext(
   requestContext: RequestContextReader | undefined,
   models: {
-    free: string
-    pro?: string
-    enterprise?: string
+    user: string
+    admin?: string
   }
 ): string {
   const overrideModel = getModelOverrideFromContext(requestContext)
@@ -220,12 +251,9 @@ export function resolveTieredModelFromContext(
     return overrideModel
   }
 
-  const userTier = getUserTierFromContext(requestContext)
-  if (userTier === 'enterprise') {
-    return models.enterprise ?? models.pro ?? models.free
+  const role = getRoleFromContext(requestContext)
+  if (role === 'admin') {
+    return models.admin ?? models.user
   }
-  if (userTier === 'pro') {
-    return models.pro ?? models.free
-  }
-  return models.free
+  return models.user
 }

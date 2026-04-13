@@ -191,15 +191,6 @@ export const googleScholarTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google Scholar search completed', {
-            toolCallId,
-            toolName,
-            outputData: { paperCount: output.papers.length },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
@@ -304,21 +295,38 @@ export const googleScholarTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw error
             }
 
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             scholarSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Google Scholar search failed', {
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google Scholar search failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Google Scholar search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Scholar search completed', {
+            toolCallId,
+            toolName,
+            outputData: { paperCount: output.papers.length },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -392,15 +400,6 @@ export const googleFinanceTool = createTool({
             },
             abortSignal: abortSignal?.aborted,
             hook: 'onInputAvailable',
-        })
-    },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Google Finance search completed', {
-            toolCallId,
-            toolName,
-            outputData: { symbol: output.symbol },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
         })
     },
     execute: async (input, context) => {
@@ -482,16 +481,33 @@ export const googleFinanceTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             financeSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Google Finance search failed', {
                 query: input.query,
                 error: errorMessage,
             })
-            throw new Error(`Google Finance search failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Google Finance search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Finance search completed', {
+            toolCallId,
+            toolName,
+            outputData: { symbol: output.symbol },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 
@@ -584,15 +600,6 @@ export const yelpSearchTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
-        log.info('Yelp Search completed', {
-            toolCallId,
-            toolName,
-            outputData: { businessCount: output.businesses.length },
-            abortSignal: abortSignal?.aborted,
-            hook: 'onOutput',
-        })
-    },
     execute: async (input, context) => {
         validateSerpApiKey()
         const writer = context?.writer
@@ -682,8 +689,10 @@ export const yelpSearchTool = createTool({
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : String(error)
+            const normalizedError =
+                error instanceof Error ? error : new Error(errorMessage)
             yelpSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
             log.error('Yelp search failed', {
@@ -691,8 +700,23 @@ export const yelpSearchTool = createTool({
                 location: input.location,
                 error: errorMessage,
             })
-            throw new Error(`Yelp search failed: ${errorMessage}`)
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error(`Yelp search failed: ${errorMessage}`, {
+                cause: error,
+            })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Yelp Search completed', {
+            toolCallId,
+            toolName,
+            outputData: { businessCount: output.businesses.length },
+            abortSignal: abortSignal?.aborted,
+            hook: 'onOutput',
+        })
     },
 })
 

@@ -2,8 +2,8 @@ import { createStep, createWorkflow } from '@mastra/core/workflows'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 import { refactoringAgent } from '../agents/codingAgents'
-import { createSandbox, runCommand, writeFile } from '../tools/e2b'
 import { logStepEnd, logStepStart, logError } from '../config/logger'
+import { mainWorkspace } from '../workspaces'
 
 const refactorInputSchema = z.object({
     sourceCode: z.string().describe('The source code to refactor'),
@@ -119,7 +119,7 @@ const generateRefactorStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('generate-refactor', error)
+            logError('generate-refactor', error instanceof Error ? error : new Error(String(error)))
             throw error
         }
     },
@@ -165,71 +165,49 @@ const verifyRefactorStep = createStep({
         })
 
         try {
-            // 1. Create Sandbox
-            const sandbox = await createSandbox.execute(
-                {
-                    timeoutMS: 300_000, // 5 minutes
-                },
-                { mastra, requestContext }
-            )
-
-            if (sandbox instanceof z.ZodError) {
-                throw new Error(sandbox.message)
+            const filesystem = mainWorkspace.filesystem
+            if (!filesystem?.writeFile) {
+                throw new Error('Workspace filesystem is not available.')
             }
 
-            const { sandboxId } = sandbox as { sandboxId: string }
+            const sandbox = mainWorkspace.sandbox
+            if (!sandbox?.executeCommand) {
+                throw new Error('Workspace sandbox executeCommand is not available.')
+            }
 
-            // 2. Write the file
-            await writeFile.execute(
-                {
-                    sandboxId,
-                    path: inputData.filePath,
-                    content: inputData.refactoredCode,
-                },
-                { mastra, requestContext }
-            )
+            await filesystem.writeFile(inputData.filePath, inputData.refactoredCode)
 
-            // 3. Try to compile/run (basic syntax check)
+            // Try to compile/run (basic syntax check)
             let checkCommand = ''
+            let checkArgs: string[] = []
             if (inputData.language === 'ts') {
-                // Assuming environment has typescript installed or we install it
-                // For speed, just checking if we can run it with ts-node or similar if available,
-                // or just compile with tsc.
-                // Let's assume a basic check: verify it parses.
-                // We'll install typescript first if not present?
-                // Actually, let's try to run it or just check syntax.
-                // Simple syntax check: tsc --noEmit
-                // We need to write a package.json or assume global tsc
-                checkCommand = `npx -y typescript tsc ${inputData.filePath} --noEmit --target esnext --module commonjs`
+                checkCommand = 'npx'
+                checkArgs = [
+                    '-y',
+                    'typescript',
+                    'tsc',
+                    inputData.filePath,
+                    '--noEmit',
+                    '--target',
+                    'esnext',
+                    '--module',
+                    'commonjs',
+                ]
             } else if (inputData.language === 'js') {
-                checkCommand = `node --check ${inputData.filePath}`
+                checkCommand = 'node'
+                checkArgs = ['--check', inputData.filePath]
             } else if (inputData.language === 'python') {
-                checkCommand = `python3 -m py_compile ${inputData.filePath}`
+                checkCommand = 'python3'
+                checkArgs = ['-m', 'py_compile', inputData.filePath]
             }
 
-            const execution = await runCommand.execute(
+            const execResult = await sandbox.executeCommand(
+                checkCommand,
+                checkArgs,
                 {
-                    sandboxId,
-                    command: checkCommand,
-                    timeoutMs: 60000,
-                    captureOutput: true,
-                },
-                { mastra, requestContext }
+                    timeout: 60_000,
+                }
             )
-
-            if (execution instanceof z.ZodError) {
-                throw new Error(execution.message)
-            }
-
-            const execResult = execution as {
-                success: boolean
-                exitCode: number
-                stdout: string
-                stderr: string
-                command: string
-                executionTime: number
-                error?: undefined
-            }
 
             await writer?.custom({
                 type: 'data-tool-progress',
@@ -273,7 +251,7 @@ const verifyRefactorStep = createStep({
                     error instanceof Error ? error : new Error(String(error)),
                 endSpan: true,
             })
-            logError('verify-refactor', error)
+            logError('verify-refactor', error instanceof Error ? error : new Error(String(error)))
             // Fail gracefully returning the unverified code
             return {
                 refactoredCode: inputData.refactoredCode,
@@ -299,3 +277,4 @@ export const safeRefactoringWorkflow = createWorkflow({
     .then(verifyRefactorStep)
 
 safeRefactoringWorkflow.commit()
+

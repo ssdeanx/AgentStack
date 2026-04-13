@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Input } from '@/ui/input'
 import { Badge } from '@/ui/badge'
 import { Button } from '@/ui/button'
-import { SearchIcon, GithubIcon, ExternalLinkIcon } from 'lucide-react'
+import { SearchIcon, GiftIcon, ExternalLinkIcon } from 'lucide-react'
 import { SectionLayout } from '@/app/components/primitives/section-layout'
 import { useSectionReveal } from '@/app/components/primitives/use-section-reveal'
 import { PublicPageHero } from '@/app/components/primitives/public-page-hero'
@@ -133,7 +133,7 @@ export function ExamplesList() {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            <GithubIcon className="mr-2 size-4" />{' '}
+                                            <GiftIcon className="mr-2 size-4" />{' '}
                                             View Code
                                         </a>
                                     </Button>

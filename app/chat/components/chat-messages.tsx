@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 'use client'
 
 import {
@@ -59,10 +58,7 @@ import {
     TranscriptionSegment,
 } from '@/src/components/ai-elements/transcription'
 import { AgentWebPreview, AgentCodeSandbox } from './agent-web-preview'
-import { AgentSandbox } from './agent-sandbox'
-import type { WebPreviewData } from './chat.types'
 import { useChatContext } from '@/app/chat/providers/chat-context-hooks'
-import type { ToolInvocationState } from '@/app/chat/providers/chat-context-types'
 import { AgentReasoning } from './agent-reasoning'
 import { AgentChainOfThought } from './agent-chain-of-thought'
 import { AgentTools } from './agent-tools'
@@ -71,7 +67,6 @@ import { AgentArtifact } from './agent-artifact'
 import { AgentPlan } from './agent-plan'
 import { AgentCheckpoint } from './agent-checkpoint'
 import { AgentTask } from './agent-task'
-import type { AgentTaskData, ArtifactData, TaskStep } from './chat.types'
 import { AgentQueue } from './agent-queue'
 import { AgentConfirmation } from './agent-confirmation'
 import { AgentWorkflow, type WorkflowNode, type WorkflowEdge } from './agent-workflow'
@@ -99,9 +94,11 @@ import {
     memo,
     useEffect,
 } from 'react'
+import type { ComponentProps } from 'react'
 import type {
     UIMessage,
     UIDataTypes,
+    LanguageModelUsage,
 //    UIMessageStreamOnStepFinishCallback,
 //    UIMessageStreamOnFinishCallback,
 //    UIMessageStreamWriter,
@@ -122,7 +119,6 @@ import type {
     UIMessageChunk,
     DataContent,
     FinishReason,
-    FileUIPart,
     DynamicToolUIPart,
     SourceDocumentUIPart,
     SourceUrlUIPart,
@@ -173,8 +169,14 @@ import {
     Reasoning,
     ReasoningTrigger,
     ReasoningContent,
-} from '../../../src/components/ai-elements/reasoning'
+} from '@/src/components/ai-elements/reasoning'
 import { AgentInlineCitation } from './agent-inline-citation'
+
+type WebPreviewData = ComponentProps<typeof AgentWebPreview>['preview']
+type ToolInvocationState = ComponentProps<typeof AgentTools>['tools'][number]
+type AgentTaskData = ComponentProps<typeof AgentTask>['task']
+type ArtifactData = ComponentProps<typeof AgentArtifact>['artifact']
+type TaskStep = AgentTaskData['steps'][number]
 
 type MastraDataPart =
     | AgentDataPart
@@ -206,7 +208,7 @@ function dataUrlToDataContent(url: string): DataContent | null {
         return null
     }
 
-    return match[3] ?? '';
+    return match[3]
 }
 
 interface ChatMessagesProps {
@@ -260,6 +262,29 @@ const getSourcesFromParts = (parts: UIMessage['parts']): SourceDocument[] => {
     return sources
 }
 
+function formatUsageSummary(
+    usage: LanguageModelUsage | null | undefined
+): string {
+    if (!usage) {
+        return ''
+    }
+
+    const inputTokens = usage.inputTokens ?? 0
+    const outputTokens = usage.outputTokens ?? 0
+    const totalTokens =
+        usage.totalTokens ?? inputTokens + outputTokens
+
+    if (totalTokens <= 0 && inputTokens <= 0 && outputTokens <= 0) {
+        return ''
+    }
+
+    return [
+        `total ${totalTokens.toLocaleString()}`,
+        `in ${inputTokens.toLocaleString()}`,
+        `out ${outputTokens.toLocaleString()}`,
+    ].join(' · ')
+}
+
 function isAgentDataPart(part: MessagePart): part is AgentDataPart {
     if (!isDataUIPart(part)) {
         return false
@@ -289,18 +314,6 @@ function isNetworkDataPart(
         return false
     }
     if (part.type !== 'data-network' && part.type !== 'data-tool-network') {
-        return false
-    }
-    return isPlainObject(part.data)
-}
-
-function isSandboxDataPart(
-    part: MessagePart
-): part is { type: 'data-sandbox'; data: Record<string, unknown> } {
-    if (!isDataUIPart(part)) {
-        return false
-    }
-    if (part.type !== 'data-sandbox') {
         return false
     }
     return isPlainObject(part.data)
@@ -385,9 +398,7 @@ function isUIMessageChunk(value: unknown): value is UIMessageChunk {
  */
 function AgentDataSection({ part }: { part: AgentDataPart }) {
     const agentData = part.data
-    const hasText = Boolean(
-        typeof agentData.text === 'string' && agentData.text.trim().length > 0
-    )
+    const hasText = (typeof agentData.text === 'string' && agentData.text.trim().length > 0) satisfies boolean
 
     return (
         <Collapsible defaultOpen={false} className="border rounded-lg">
@@ -461,12 +472,13 @@ function AgentDataSection({ part }: { part: AgentDataPart }) {
 
 function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
     const workflowData = part.data
-    const stepEntries = Object.entries(workflowData.steps ?? {})
+    const steps = workflowData.steps
+    const stepEntries = Object.entries(steps)
 
     // Create nodes and edges for workflow visualization
-    const stepNames = Object.keys(workflowData.steps ?? {})
+    const stepNames = Object.keys(steps)
     const nodes: WorkflowNode[] = stepNames.map((stepName, index) => {
-        const stepData = workflowData.steps[stepName]
+        const stepData = steps[stepName]
         return {
             id: stepName,
             type: 'custom',
@@ -474,19 +486,24 @@ function WorkflowDataSection({ part }: { part: WorkflowDataPart }) {
             data: {
                 label: stepName,
                 description: `Status: ${stepData.status}`,
-                status: stepData.status === 'success' ? 'completed' :
-                        stepData.status === 'failed' ? 'error' :
-                        stepData.status === 'running' ? 'running' : 'pending',
-                type: 'step'
+                status:
+                    stepData.status === 'success'
+                        ? 'completed'
+                        : stepData.status === 'failed'
+                          ? 'error'
+                          : stepData.status === 'running'
+                            ? 'running'
+                            : 'pending',
+                type: 'step',
             }
         }
     })
 
     const edges: WorkflowEdge[] = stepNames.slice(1).map((stepName, index) => ({
-        id: `edge-${stepNames[index]}-${stepName}`,
+        id: `edge-${toKeyPart(stepNames[index])}-${toKeyPart(stepName)}`,
         source: stepNames[index],
         target: stepName,
-        type: 'animated'
+        type: 'animated',
     }))
 
     return (
@@ -609,7 +626,7 @@ function NetworkDataSection({ part }: { part: NetworkDataPart }) {
                             </div>
                             {networkData.steps.map((step, idx) => (
                                 <div
-                                    key={`${step.name}-${idx}`}
+                                    key={`${step.name}-${toKeyPart(idx)}`}
                                     className="bg-muted/30 rounded-md p-3 border"
                                 >
                                     <div className="flex items-center justify-between mb-2">
@@ -728,11 +745,8 @@ function extractThoughtSummaryFromParts(
     for (const part of parts) {
         const pm = (part as { providerMetadata?: ProviderMetadata | undefined })
             .providerMetadata
-        if (pm === undefined || pm === null || typeof pm !== 'object') {
-            continue
-        }
 
-        const googleMeta = (pm as Record<string, unknown>)['google']
+        const googleMeta = (pm as Record<string, unknown>).google
         if (
             googleMeta === undefined ||
             googleMeta === null ||
@@ -742,9 +756,9 @@ function extractThoughtSummaryFromParts(
         }
 
         const candidates = [
-            (googleMeta as Record<string, unknown>)['thoughtSummary'],
-            (googleMeta as Record<string, unknown>)['thoughts'],
-            (googleMeta as Record<string, unknown>)['thinkingSummary'],
+            (googleMeta as Record<string, unknown>).thoughtSummary,
+            (googleMeta as Record<string, unknown>).thoughts,
+            (googleMeta as Record<string, unknown>).thinkingSummary,
         ]
 
         for (const c of candidates) {
@@ -817,7 +831,7 @@ function formatValidationError(error: unknown): string {
 }
 
 function resolveToolDisplayName(
-    tool: ToolUIPart<UITools> | DynamicToolUIPart
+    tool: ToolUIPart | DynamicToolUIPart
 ): string {
     if (tool.type === 'dynamic-tool') {
         return tool.toolName
@@ -833,11 +847,19 @@ function resolveToolDisplayName(
  * Falls back to the provided index if no string id is available.
  */
 function getToolCallId(
-    tool: ToolUIPart<UITools> | DynamicToolUIPart,
+    tool: ToolUIPart | DynamicToolUIPart,
     fallbackIndex: number
 ): string {
     const id = tool.toolCallId
-    return id.trim().length > 0 ? id : `idx-${fallbackIndex}`
+    return id.trim().length > 0 ? id : `idx-${toKeyPart(fallbackIndex)}`
+}
+
+function toKeyPart(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) {
+        return ''
+    }
+
+    return String(value)
 }
 
 // Extract extractTasksFromText to module level to fix scope issues
@@ -878,14 +900,14 @@ function extractTasksFromText(content: string): AgentTaskData[] {
                 .replace(/^[-•\d.]+\s*/, '')
 
             return {
-                id: `task-${sectionIndex}-${idx}`,
+                id: `task-${toKeyPart(sectionIndex)}-${toKeyPart(idx)}`,
                 text: sanitized,
                 status,
             }
         })
 
         taskSections.push({
-            title: `Task Group ${taskSections.length + 1}`,
+            title: `Task Group ${toKeyPart(taskSections.length + 1)}`,
             steps,
         })
 
@@ -903,11 +925,9 @@ function CopyButton({ text }: { text: string }) {
             .writeText(text)
             .then(() => {
                 setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
+                setTimeout(() => { setCopied(false); }, 2000)
             })
-            .catch((err) => {
-                console.error('Failed to copy:', err)
-            })
+            .catch(() => undefined)
     }, [text])
 
     return (
@@ -942,7 +962,7 @@ function extractArtifacts(text: string): {
         const code = match[2].trim()
 
         if (code.length > 100) {
-            const artifactId = `artifact-${Date.now()}-${artifactIndex++}`
+            const artifactId = `artifact-${toKeyPart(Date.now())}-${toKeyPart(artifactIndex++)}`
             artifacts.push({
                 id: artifactId,
                 title: `Code: ${language}`,
@@ -958,7 +978,7 @@ function extractArtifacts(text: string): {
             codeBlocks.push({ language, code })
             cleanContent = cleanContent.replace(
                 match[0],
-                `\n__CODE_BLOCK_${codeBlocks.length - 1}__\n`
+                `\n__CODE_BLOCK_${toKeyPart(codeBlocks.length - 1)}__\n`
             )
         }
     }
@@ -1003,11 +1023,11 @@ function MessageItem({
 }: MessageItemProps) {
     const isAssistant = message.role === 'assistant'
     const isUser = message.role === 'user'
-    const textPart: TextUIPart | undefined = message.parts?.find(isTextUIPart)
+    const textPart: TextUIPart | undefined = message.parts.find(isTextUIPart)
     const reasoningPart: ReasoningUIPart | undefined =
-        message.parts?.find(isReasoningUIPart)
+        message.parts.find(isReasoningUIPart)
     const dataPart: DataUIPart<UIDataTypes> | undefined =
-        message.parts?.find(isDataUIPart)
+        message.parts.find(isDataUIPart)
 
     const rawContent = textPart?.text ?? ''
     const [inlinePreview, setInlinePreview] = useState<WebPreviewData | null>(
@@ -1030,7 +1050,7 @@ function MessageItem({
     // This uses the imported UIMessagePart/UIMessageChunk types directly so the
     // imports are meaningful and chunked streaming parts are supported.
     const { chunkedText, chunkedReasoning } = useMemo(() => {
-        const uiParts = message.parts ?? []
+        const uiParts = message.parts
         let t = ''
         let r = ''
         let toolInputDeltaText = ''
@@ -1105,7 +1125,7 @@ function MessageItem({
     }, [message.parts])
 
     const messageReasoning: ReasoningUIPart | ReasoningOutput | undefined =
-        message.parts?.find(isReasoningUIPart)
+        message.parts.find(isReasoningUIPart)
 
     const resolvedReasoningText = useMemo(() => {
         const direct = messageReasoning?.text
@@ -1121,7 +1141,7 @@ function MessageItem({
         return extractThoughtSummaryFromParts(message.parts)
     }, [messageReasoning, chunkedReasoning, message.parts])
     const messageTools = useMemo(() => {
-        const parts = message.parts ?? []
+        const parts = message.parts
         const tools: ToolInvocationState[] = []
 
         for (const p of parts) {
@@ -1134,12 +1154,12 @@ function MessageItem({
     }, [message.parts])
 
     const dataParts = useMemo((): MastraDataPart[] => {
-        const parts = message.parts ?? []
+        const parts = message.parts
         return parts.filter(isDataLikePart)
     }, [message.parts])
 
     const toolProgressEvents = useMemo(() => {
-        const parts = message.parts ?? []
+        const parts = message.parts
         const progressEvents = parts
             .filter((p): p is Extract<UIMessage['parts'][number], { type: `data-${string}` }> =>
                 isDataUIPart(p) && p.type === 'data-tool-progress'
@@ -1190,19 +1210,13 @@ function MessageItem({
         [message.parts]
     )
 
-    const fileParts = message.parts?.filter(isFileUIPart) as
-        | FileUIPart[]
-        | undefined
+    const fileParts = message.parts.filter(isFileUIPart)
     const sourceDocumentParts = useMemo(() => {
-        const parts = message.parts ?? []
+        const parts = message.parts
         return parts.filter(isSourceDocumentUIPart)
     }, [message.parts])
-    const imageParts = fileParts?.filter((f) =>
-        f.mediaType?.startsWith('image/')
-    )
-    const audioParts = fileParts?.filter((f) =>
-        f.mediaType?.startsWith('audio/')
-    )
+    const imageParts = fileParts.filter((f) => f.mediaType.startsWith('image/'))
+    const audioParts = fileParts.filter((f) => f.mediaType.startsWith('audio/'))
 
     const reasoningSteps = useMemo(() => {
         if (resolvedReasoningText.length > 0) {
@@ -1262,11 +1276,11 @@ function MessageItem({
 
                 return (
                     <AgentInlineCitation
-                        key={`citation-${i}-${t.number}`}
+                        key={`citation-${toKeyPart(i)}-${toKeyPart(t.number)}`}
                         text={t.text}
                         citations={[
                             {
-                                id: `cite-${t.number}`,
+                                id: `cite-${toKeyPart(t.number)}`,
                                 number: t.number,
                                 title: t.title,
                                 url: t.url,
@@ -1282,7 +1296,7 @@ function MessageItem({
     // Split message.parts into step segments using `step-start` markers.
     // Each segment contains the parts for that step (tool calls, text, files, etc.).
     const stepSegments = useMemo(() => {
-        const parts = message.parts ?? []
+        const parts = message.parts
         const segments: Array<UIMessage['parts']> = []
         let current: UIMessage['parts'] = []
 
@@ -1312,7 +1326,7 @@ function MessageItem({
         const prepareResults: Array<PrepareStepResult<ToolSet>> = []
         const stepResultsArr: Array<StepResult<ToolSet>> = []
 
-        for (const p of message.parts ?? []) {
+        for (const p of message.parts) {
             if (isStepStartChunkPart(p)) {
                 starts.push(p)
                 continue
@@ -1382,7 +1396,7 @@ function MessageItem({
                         const block = codeBlocks[blockIndex]
                         return (
                             <CodeBlock
-                                key={`code-${blockIndex}`}
+                                key={`code-${toKeyPart(blockIndex)}`}
                                 code={block.code}
                                 language={block.language as BundledLanguage}
                                 className="my-2"
@@ -1412,14 +1426,14 @@ function MessageItem({
                     )}
                 >
                     <MessageContent>
-                        {(fileParts && fileParts.length > 0) ||
+                        {fileParts.length > 0 ||
                         sourceDocumentParts.length > 0 ? (
                             <div className="my-2">
                                 <Attachments variant={isUser ? 'inline' : 'list'}>
-                                    {(fileParts ?? []).map((file, idx) => {
+                                    {fileParts.map((file, idx) => {
                                         const attachmentData = {
                                             ...file,
-                                            id: `${message.id}-file-${idx}`,
+                                            id: `${message.id}-file-${toKeyPart(idx)}`,
                                         }
 
                                         const canOpenText =
@@ -1457,8 +1471,7 @@ function MessageItem({
                                                                     void dataContent
                                                                     const decodedText =
                                                                         getTextFromDataUrl(
-                                                                            file.url ??
-                                                                                ''
+                                                                            file.url
                                                                         )
                                                                     if (
                                                                         decodedText.trim()
@@ -1469,9 +1482,7 @@ function MessageItem({
                                                                             {
                                                                                 code: decodedText,
                                                                                 language:
-                                                                                    file.mediaType?.includes(
-                                                                                        'json'
-                                                                                    )
+                                                                                    file.mediaType.includes('json')
                                                                                         ? 'json'
                                                                                         : 'text',
                                                                                 title:
@@ -1481,10 +1492,7 @@ function MessageItem({
                                                                         )
                                                                     }
                                                                 } catch (e) {
-                                                                    console.warn(
-                                                                        'Failed to decode data URL attachment',
-                                                                        e
-                                                                    )
+                                                                    void e
                                                                 }
                                                             }}
                                                         >
@@ -1498,13 +1506,13 @@ function MessageItem({
                                                             size="sm"
                                                             className="h-6 px-2 text-xs"
                                                             onClick={() =>
-                                                                setInlinePreview({
+                                                                { setInlinePreview({
                                                                     id: attachmentData.id,
                                                                     url: file.url,
                                                                     title:
                                                                         file.filename ??
                                                                         'Preview',
-                                                                })
+                                                                }); }
                                                             }
                                                         >
                                                             Preview
@@ -1534,7 +1542,7 @@ function MessageItem({
                                     {sourceDocumentParts.map((doc, idx) => {
                                         const attachmentData = {
                                             ...doc,
-                                            id: `${message.id}-source-${idx}`,
+                                            id: `${message.id}-source-${toKeyPart(idx)}`,
                                         }
                                         return (
                                             <Attachment
@@ -1554,7 +1562,7 @@ function MessageItem({
                             <div className="my-3">
                                 <AgentWebPreview
                                     preview={inlinePreview}
-                                    onClose={() => setInlinePreview(null)}
+                                    onClose={() => { setInlinePreview(null); }}
                                     defaultTab="preview"
                                     height={360}
                                     editable={false}
@@ -1633,7 +1641,7 @@ function MessageItem({
                                         return null
                                     }
 
-                                    const key = `${message.id}-${partType}-${partId ?? index}`
+                                    const key = `${message.id}-${partType}-${toKeyPart(partId ?? index)}`
 
                                     if (isAgentDataPart(part)) {
                                         return (
@@ -1659,16 +1667,6 @@ function MessageItem({
                                                 key={key}
                                                 part={part}
                                             />
-                                        )
-                                    }
-
-                                    if (isSandboxDataPart(part)) {
-                                        return (
-                                            <div key={key} className="my-2">
-                                                <AgentSandbox
-                                                    data={part.data}
-                                                />
-                                            </div>
                                         )
                                     }
 
@@ -1734,7 +1732,7 @@ function MessageItem({
                                         .slice(-10)
                                         .map((e, idx) => (
                                             <li
-                                                key={`tool-progress-${idx}`}
+                                                key={`tool-progress-${toKeyPart(idx)}`}
                                                 className="flex gap-2"
                                             >
                                                 {e.status.trim().length > 0 && (
@@ -1742,14 +1740,12 @@ function MessageItem({
                                                         {e.status}
                                                     </span>
                                                 )}
-                                                {((e.stage ?? '').trim()
-                                                    .length > 0 ||
-                                                    (e.id ?? '').trim().length >
-                                                        0) && (
+                                                {(e.stage.trim().length > 0 ||
+                                                    e.id.trim().length > 0) && (
                                                     <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-                                                        {(
-                                                            e.stage ?? e.id
-                                                        ).trim()}
+                                                        {e.stage.trim().length > 0
+                                                            ? e.stage
+                                                            : e.id}
                                                     </span>
                                                 )}
                                                 <span className="min-w-0 flex-1 wrap-break-word">
@@ -1765,17 +1761,17 @@ function MessageItem({
                         {plan && <AgentPlan plan={plan} defaultOpen={false} />}
 
                         {/* Generated images */}
-                        {isAssistant && imageParts && imageParts.length > 0 && (
+                        {isAssistant && imageParts.length > 0 && (
                             <div className="my-2 flex flex-wrap gap-2">
                                 {imageParts.map((img, idx) => {
-                                    const base64Data = img.url?.startsWith(
+                                    const base64Data = img.url.startsWith(
                                         'data:'
                                     )
                                         ? img.url.split(',')[1] || ''
                                         : ''
                                     return (
                                         <AIImage
-                                            key={`img-${idx}`}
+                                            key={`img-${toKeyPart(idx)}`}
                                             base64={base64Data}
                                             uint8Array={new Uint8Array()}
                                             mediaType={
@@ -1784,7 +1780,7 @@ function MessageItem({
                                             className="max-w-md rounded-lg"
                                             alt={
                                                 img.filename ??
-                                                `Generated image ${idx + 1}`
+                                                `Generated image ${toKeyPart(idx + 1)}`
                                             }
                                         />
                                     )
@@ -1793,11 +1789,11 @@ function MessageItem({
                         )}
 
                         {/* Audio files with AudioPlayer */}
-                        {audioParts && audioParts.length > 0 && (
+                        {audioParts.length > 0 && (
                             <div className="my-3 space-y-3">
                                 {audioParts.map((audio, idx) => (
                                     <AudioPlayer
-                                        key={`audio-${idx}`}
+                                        key={`audio-${toKeyPart(idx)}`}
                                         className="w-full"
                                     >
                                         <AudioPlayerElement
@@ -1819,7 +1815,7 @@ function MessageItem({
                                 <Transcription segments={[]}>
                                     {(segment, index) => (
                                         <TranscriptionSegment
-                                            key={`${index}-${segment.startSecond}`}
+                                            key={`${toKeyPart(index)}-${toKeyPart(segment.startSecond)}`}
                                             segment={segment}
                                             index={index}
                                         />
@@ -1845,7 +1841,7 @@ function MessageItem({
 
                                     return (
                                         <div
-                                            key={`step-seg-${si}`}
+                                            key={`step-seg-${toKeyPart(si)}`}
                                             className="rounded-lg border bg-muted/10 p-3"
                                         >
                                             <div className="mb-2 flex items-center gap-2">
@@ -1884,7 +1880,7 @@ function MessageItem({
                                     size="sm"
                                     className="mt-2 gap-1 text-sm"
                                     onClick={() =>
-                                        setSandboxPreview({
+                                        { setSandboxPreview({
                                             code: codeBlocks[0].code,
                                             language: codeBlocks[0].language,
                                             title:
@@ -1892,7 +1888,7 @@ function MessageItem({
                                                     .length > 0
                                                     ? 'Reasoning Snippet'
                                                     : 'Code Snippet',
-                                        })
+                                        }); }
                                     }
                                 >
                                     Open first snippet in sandbox
@@ -1910,11 +1906,11 @@ function MessageItem({
                                     code={sandboxPreview.code}
                                     language={sandboxPreview.language}
                                     title={sandboxPreview.title}
-                                    onClose={() => setSandboxPreview(null)}
+                                    onClose={() => { setSandboxPreview(null); }}
                                     onCodeChange={(code) =>
-                                        setSandboxPreview((prev) =>
+                                        { setSandboxPreview((prev) =>
                                             prev ? { ...prev, code } : prev
-                                        )
+                                        ); }
                                     }
                                 />
                             </div>
@@ -1939,7 +1935,7 @@ function MessageItem({
                             <div className="mt-4 space-y-3">
                                 {extractedTasks.map((task, idx: number) => (
                                     <AgentTask
-                                        key={`task-${idx}`}
+                                        key={`task-${toKeyPart(idx)}`}
                                         task={task}
                                         defaultOpen={false}
                                     />
@@ -1968,7 +1964,7 @@ function MessageItem({
                                             )
                                             return (
                                                 <AgentConfirmation
-                                                    key={`${callId}-${idx}`}
+                                                    key={`${callId}-${toKeyPart(idx)}`}
                                                     toolName={resolvedName}
                                                     description={`Execute ${resolvedName} with provided parameters`}
                                                     approval={{
@@ -2023,7 +2019,7 @@ function MessageItem({
                                     <MessageAction
                                         tooltip="Create checkpoint"
                                         onClick={() =>
-                                            onCreateCheckpoint(messageIndex)
+                                            { onCreateCheckpoint(messageIndex); }
                                         }
                                     >
                                         <BookmarkPlusIcon className="size-4" />
@@ -2032,12 +2028,12 @@ function MessageItem({
                             </MessageActions>
 
                             {/* keep a hidden reference to step-related artifacts so type-only imports are considered used */}
-                            {(stepMarkers?.prepareResults.length ||
-                                stepMarkers?.stepResults.length ||
-                                stepMarkers?.starts.length) > 0 && (
+                            {(stepMarkers.prepareResults.length ||
+                                stepMarkers.stepResults.length ||
+                                stepMarkers.starts.length) > 0 && (
                                 <span
                                     className="sr-only"
-                                    data-step-info={`${stepMarkers.starts.length}:${stepMarkers.prepareResults.length}:${stepMarkers.stepResults.length}`}
+                                    data-step-info={`${toKeyPart(stepMarkers.starts.length)}:${toKeyPart(stepMarkers.prepareResults.length)}:${toKeyPart(stepMarkers.stepResults.length)}`}
                                 />
                             )}
                         </MessageToolbar>
@@ -2048,7 +2044,7 @@ function MessageItem({
             {isCheckpoint && checkpointId !== null && onRestoreCheckpoint && (
                 <AgentCheckpoint
                     messageIndex={messageIndex}
-                    onRestore={() => onRestoreCheckpoint(checkpointId)}
+                    onRestore={() => { onRestoreCheckpoint(checkpointId); }}
                 />
             )}
         </Fragment>
@@ -2137,6 +2133,7 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
         agentConfig,
         threadId,
         resourceId,
+        usage,
         queuedTasks,
         checkpoints,
         webPreview,
@@ -2198,6 +2195,10 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
     const showArtifacts = agentConfig?.features.artifacts ?? false
     const showConfirmation = agentConfig?.features.confirmation ?? false
     const showQueue = agentConfig?.features.queue ?? false
+    const usageSummary = useMemo(
+        () => formatUsageSummary(usage as LanguageModelUsage | null | undefined),
+        [usage]
+    )
 
     const handleCreateCheckpoint = useCallback(
         (index: number) => {
@@ -2214,7 +2215,7 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
     )
 
     const streamingReasoningSteps = useMemo(() => {
-        if ((streamingReasoning ?? '').length > 0) {
+        if (streamingReasoning.length > 0) {
             return parseReasoningToSteps(streamingReasoning)
         }
         return []
@@ -2225,7 +2226,7 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
     const shouldShowStreamingReasoningFallback =
         showReasoning &&
         (!showChainOfThought || !hasStreamingChainOfThought) &&
-        (streamingReasoning ?? '').length > 0
+        streamingReasoning.length > 0
 
     const shouldRenderLoadingMessage = useMemo(() => {
         if (!isLoading) {
@@ -2282,6 +2283,14 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
                             <AgentInstructions>
                                 {agentConfig?.description ?? ''}
                             </AgentInstructions>
+
+                            {usageSummary.length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="font-normal">
+                                        {usageSummary}
+                                    </Badge>
+                                </div>
+                            ) : null}
                         </AgentContent>
                     </Agent>
                 </div>
@@ -2315,8 +2324,6 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
                         {showQueue && queuedTasks.length > 0 && (
                             <AgentQueue
                                 tasks={queuedTasks}
-                                onView={(id) => console.log('View task:', id)}
-                                onRetry={(id) => console.log('Retry task:', id)}
                                 onDelete={removeTask}
                             />
                         )}
@@ -2326,7 +2333,7 @@ export function ChatMessages(_props?: Partial<ChatMessagesProps>) {
 
                         {messages.map((message, index) => (
                             <MemoMessageItem
-                                key={`${message.id}-${index}`}
+                                key={`${message.id}-${toKeyPart(index)}`}
                                 message={message}
                                 messageIndex={index}
                                 showReasoning={showReasoning}

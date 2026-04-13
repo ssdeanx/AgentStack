@@ -5,7 +5,6 @@ import type { AgentRequestContext } from './request-context'
 
 import { google } from '../config/google'
 import { log } from '../config/logger'
-import { pgMemory } from '../config/pg-storage'
 
 import { InternalSpans } from '@mastra/core/observability'
 import {
@@ -15,6 +14,7 @@ import {
   //    financialChartTool,
   technicalAnalysisTool,
 } from '../tools'
+import { LibsqlMemory } from '../config/libsql'
 
 export type FinancialAnalysisRuntimeContext = AgentRequestContext<{
   analysisDepth?: 'basic' | 'detailed' | 'comprehensive'
@@ -32,7 +32,7 @@ export const financialAnalysisAgent = new Agent({
   }: {
     requestContext: RequestContext<FinancialAnalysisRuntimeContext>
   }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
+    const role = requestContext.get('role') ?? 'user'
     const language = requestContext.get('language') ?? 'en'
     const analysisDepth = requestContext.get('analysisDepth') ?? 'basic'
 
@@ -40,7 +40,7 @@ export const financialAnalysisAgent = new Agent({
       role: 'system',
       content: `
 # Financial Data Specialist
-Tier: ${userTier} | Lang: ${language} | Depth: ${analysisDepth}
+Role: ${role} | Lang: ${language} | Depth: ${analysisDepth}
 
 ## Expertise
 - Real-time stock market data (prices, quotes, aggregates)
@@ -77,7 +77,7 @@ Provide structured analysis with:
 - Risk factors and considerations
 - Clear buy/hold/sell recommendation with confidence level
 
-${userTier === 'enterprise'
+${role === 'admin'
           ? `
 ## Enterprise Features
 - Access to all API endpoints without rate limits
@@ -85,14 +85,7 @@ ${userTier === 'enterprise'
 - Comprehensive sector and peer comparison
 - Real-time streaming data support
 `
-          : userTier === 'pro'
-            ? `
-## Pro Features
-- Increased rate limits for frequent queries
-- Multiple technical indicators
-- Historical data beyond 1 year
-`
-            : `
+    : `
 ## Free Tier
 - Limited number of queries per day
 - Basic technical analysis
@@ -112,11 +105,9 @@ ${userTier === 'enterprise'
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
       return google.chat('gemini-3.1-pro-preview')
-    } else if (userTier === 'pro') {
-      return 'google/gemini-3.1-flash-preview'
     }
     return google.chat('gemini-3.1-flash-lite-preview')
   },
@@ -129,10 +120,10 @@ ${userTier === 'enterprise'
   },
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   maxRetries: 3,
   //  defaultOptions: {
   //     autoResumeSuspendedTools: true,

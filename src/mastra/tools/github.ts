@@ -323,7 +323,7 @@ export const listRepositories = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw new Error(cancelMessage, { cause: e })
             }
 
             log.error(`GitHub list repos failed: ${errorMsg}`)

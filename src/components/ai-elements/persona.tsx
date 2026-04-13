@@ -11,7 +11,7 @@ import {
 } from "@rive-app/react-webgl2";
 import type { FC, ReactNode } from "react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-
+import type * as React from 'react'
 // Delays Rive initialization by one frame so that React Strict Mode's
 // immediate unmount cycle never creates a WebGL2 context. Only the
 // second (real) mount will initialise, avoiding context exhaustion.

@@ -58,7 +58,7 @@ export function AboutContent() {
                             technologies and empower developers to create
                             intelligent systems that solve real-world problems.
                             We believe that the future of software is agentic,
-                            and we're building the infrastructure to make that
+                            {"and we're building the infrastructure to make that"}
                             future a reality.
                         </p>
                     </div>
@@ -69,7 +69,7 @@ export function AboutContent() {
                         <p className={SECTION_BODY.subtitle}>
                             We are a team of passionate engineers, researchers,
                             and designers dedicated to pushing the boundaries of
-                            what's possible with AI. With backgrounds in
+                            {"what's possible with AI. With backgrounds in"}
                             distributed systems, machine learning, and developer
                             tools, we understand the challenges of building
                             production AI apps.

@@ -1,7 +1,6 @@
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
-import type { TracingContext } from '@mastra/core/observability'
 import { z } from 'zod'
 import { log } from '../config/logger'
 
@@ -119,8 +118,6 @@ export const dateTimeTool = createTool({
         const requestCtx = context?.requestContext as
             | DateTimeToolContext
             | undefined
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
         const defaultTimezone = requestCtx?.defaultTimezone ?? 'UTC'
         const defaultLocale = requestCtx?.defaultLocale ?? 'en-US'
         const allowFutureDates = requestCtx?.allowFutureDates ?? true
@@ -440,9 +437,6 @@ export const timeZoneTool = createTool({
     },
     execute: async (inputData, context) => {
         const writer = context?.writer
-        const tracingContext: TracingContext | undefined =
-            context?.tracingContext
-
         // Create root span using getOrCreateSpan (creates root OR attaches to parent)
         const rootSpan = getOrCreateSpan({
             type: SpanType.TOOL_CALL,

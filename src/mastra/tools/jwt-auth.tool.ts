@@ -146,7 +146,7 @@ export const jwtAuthTool = createTool({
                 })
 
                 log.warn(cancelMessage)
-                throw new Error(cancelMessage)
+                throw error
             }
 
             const errorMessage =
@@ -156,7 +156,13 @@ export const jwtAuthTool = createTool({
                 error: error instanceof Error ? error : new Error(errorMessage),
                 endSpan: true,
             })
-            throw new Error('JWT verification failed: Unknown error')
+            if (error instanceof Error) {
+                throw error
+            }
+
+            throw new Error('JWT verification failed: Unknown error', {
+                cause: error,
+            })
         }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {

@@ -1,4 +1,5 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
+import type { ChunkType } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
@@ -10,6 +11,8 @@ const evaluateResultOutputSchema = z.object({
     isRelevant: z.boolean(),
     reason: z.string(),
 })
+
+type EvaluateResultOutput = z.infer<typeof evaluateResultOutputSchema>
 
 export const evaluateResultTool = createTool({
     id: 'evaluate-result',
@@ -52,13 +55,10 @@ export const evaluateResultTool = createTool({
             hook: 'onInputAvailable',
         })
     },
-    onOutput: ({ toolCallId, toolName }) => {
-        log.info('Evaluate result completed', {
-            toolCallId,
-            toolName,
-            hook: 'onOutput',
-        })
-    },
+    toModelOutput: (output: EvaluateResultOutput) => ({
+        type: 'text',
+        value: `${output.isRelevant ? 'Relevant' : 'Not relevant'}: ${output.reason}`,
+    }),
     execute: async (inputData, context) => {
         await context?.writer?.custom({
             type: 'data-tool-progress',
@@ -132,10 +132,24 @@ export const evaluateResultTool = createTool({
                         },
                         id: 'evaluate-result',
                     })
-                    // Use MastraModelOutput for accurate typing and pipe the appropriate stream into the writer
+
+                    let streamedText = ''
                     const stream = (await agent.stream(
-                        `Evaluate whether this search result is relevant and will help answer the query: "${query}".\n\nSearch result:\nTitle: ${result.title}\nURL: ${result.url}\nContent snippet: ${result.content.substring(0, 500)}...\n\nRespond with a JSON object containing:\n- isRelevant: boolean indicating if the result is relevant\n- reason: brief explanation of your decision`
-                    )) as MastraModelOutput | undefined
+                        `Evaluate whether this search result is relevant and will help answer the query: "${query}".\n\nSearch result:\nTitle: ${result.title}\nURL: ${result.url}\nContent snippet: ${result.content.substring(0, 500)}...\n\nRespond with a JSON object containing:\n- isRelevant: boolean indicating if the result is relevant\n- reason: brief explanation of your decision`,
+                        {
+                            structuredOutput: {
+                                schema: evaluateResultOutputSchema,
+                            },
+                            onChunk: (chunk: ChunkType<EvaluateResultOutput>) => {
+                                if (
+                                    chunk.type === 'text-delta' &&
+                                    typeof chunk.payload?.text === 'string'
+                                ) {
+                                    streamedText += chunk.payload.text
+                                }
+                            },
+                        }
+                    )) as MastraModelOutput<EvaluateResultOutput> | undefined
 
                     if (stream?.textStream && context?.writer) {
                         await context?.writer?.custom({
@@ -167,11 +181,15 @@ export const evaluateResultTool = createTool({
                         )
                     }
 
-                    const text = (await stream?.text) ?? ''
                     try {
-                        responseObject = JSON.parse(text)
+                        responseObject = await stream?.object
                     } catch {
-                        responseObject = {}
+                        const text = (await stream?.text) ?? streamedText
+                        try {
+                            responseObject = text ? JSON.parse(text) : {}
+                        } catch {
+                            responseObject = {}
+                        }
                     }
                 } catch (err) {
                     const errorMessage =
@@ -286,6 +304,13 @@ export const evaluateResultTool = createTool({
                 reason: 'Error in evaluation',
             }
         }
+    },
+    onOutput: ({ toolCallId, toolName }) => {
+        log.info('Evaluate result completed', {
+            toolCallId,
+            toolName,
+            hook: 'onOutput',
+        })
     },
 })
 

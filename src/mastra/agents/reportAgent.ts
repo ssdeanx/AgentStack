@@ -9,9 +9,10 @@ import {
 } from '@mastra/core/processors'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ReportRuntimeContext = AgentRequestContext
 log.info('Initializing Report Agent...')
@@ -23,13 +24,13 @@ export const reportAgent = new Agent({
     'An expert researcher agent that generates comprehensive reports based on research data.',
   instructions: ({ requestContext }) => {
     // runtimeContext is read at invocation time
-    const userTier = getUserTierFromContext(requestContext)
+    const role = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     return {
       role: 'system',
       content: `
         <role>
-        User: ${userTier} | Lang: ${language}
+        Role: ${role} | Lang: ${language}
         You are an expert report generator. Synthesize research findings into a clear, comprehensive Markdown report.
         </role>
 
@@ -60,22 +61,19 @@ export const reportAgent = new Agent({
     }
   },
   model: ({ requestContext }) => {
-    const userTier = requestContext.get('user-tier') ?? 'free'
-    if (userTier === 'enterprise') {
+    const role = requestContext.get('role') ?? 'user'
+    if (role === 'admin') {
       // higher quality (chat style) for enterprise
-      return "google/gemini-3.1-flash-lite-preview"
-    } else if (userTier === 'pro') {
-      // Chat bison for pro as well
       return "google/gemini-3.1-flash-lite-preview"
     }
     // cheaper/faster model for free tier
     return "google/gemini-3.1-flash-lite-preview"
   },
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {},
   options: {
     tracingPolicy: {
-      internal: InternalSpans.ALL,
+      internal: InternalSpans.AGENT,
     },
   },
   scorers: {},

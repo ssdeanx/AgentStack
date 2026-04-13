@@ -25,7 +25,7 @@ import { useState, useCallback } from 'react'
 import type { BundledLanguage } from 'shiki'
 import { AgentCodeSandbox } from './agent-web-preview'
 
-import type { ArtifactData } from './chat.types'
+import type { ArtifactData } from '../providers/chat-context-types'
 
 interface AgentArtifactProps {
     artifact: ArtifactData

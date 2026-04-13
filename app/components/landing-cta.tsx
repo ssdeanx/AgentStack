@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/ui/button'
 import {
     ArrowRightIcon,
-    GithubIcon,
+    GiftIcon,
     SparklesIcon,
     RocketIcon,
     ZapIcon,
@@ -120,7 +120,7 @@ export function LandingCTA() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                <GithubIcon className="mr-2 size-5" />
+                                <GiftIcon className="mr-2 size-5" />
                                 Star on GitHub
                             </Link>
                         </Button>

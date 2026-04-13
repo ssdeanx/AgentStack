@@ -15,7 +15,7 @@ import {
     AlertCircleIcon,
     FileIcon,
 } from 'lucide-react'
-import type { AgentTaskData, TaskStepStatus } from './chat.types'
+import type { AgentTaskData, TaskStepStatus } from '../providers/chat-context-types'
 
 interface AgentTaskProps {
     task: AgentTaskData

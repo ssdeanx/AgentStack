@@ -1,5 +1,4 @@
 import { createOpenAI } from '@ai-sdk/openai'
-import { logError } from './logger'
 import * as dotenv from 'dotenv'
 
 // Load environment variables
@@ -21,7 +20,10 @@ export const openAIProvider = createOpenAI({
     headers: {
         'X-Request-Timeout': '600000', // 600 seconds (10 minutes) per call
     },
-    fetch: (url: string | URL | RequestInfo, options?: RequestInit) => {
+    fetch: (
+        url: Parameters<typeof fetch>[0],
+        options?: Parameters<typeof fetch>[1]
+    ) => {
         // Add custom fetch with extended timeout for reasoning models
         const controller: AbortController = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 600000) // 600 seconds (10 minutes)

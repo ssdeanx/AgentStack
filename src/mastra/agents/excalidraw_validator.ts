@@ -1,10 +1,10 @@
 import { Agent } from '@mastra/core/agent'
-import { googleAI, pgMemory } from '../config'
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
 import { TokenLimiterProcessor } from '@mastra/core/processors'
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
+import { LibsqlMemory } from '../config/libsql'
 
 export type ExcalidrawValidatorRuntimeContext = AgentRequestContext
 
@@ -18,14 +18,14 @@ export const excalidrawValidatorAgent = new Agent({
         requestContext: RequestContext<ExcalidrawValidatorRuntimeContext>
     }) => {
         const userId = requestContext.get('userId') ?? 'default'
-        const userTier = requestContext.get('user-tier') ?? 'free'
+        const role = requestContext.get('role') ?? 'user'
         const language = requestContext.get('language') ?? 'en'
 
         return {
             role: 'system',
             content: `You are an expert at validating and fixing Excalidraw JSON for Excalidraw diagrams.
 user: ${userId}
-tier: ${userTier}
+role: ${role}
 language: ${language}
 Your response MUST be valid JSON in the excalidraw JSON format.
 
@@ -107,7 +107,7 @@ You can update the JSON to be valid and ensure it matches the expected excalidra
         }
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {},
     scorers: {},
     workflows: {},

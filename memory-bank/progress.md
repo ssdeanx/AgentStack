@@ -1,3 +1,315 @@
+# Progress Update (2026-04-13 - research synthesis workflow repair)
+
+- Fixed the malformed merge in `src/mastra/workflows/research-synthesis-workflow.ts` that caused the Mastra CLI transform failure.
+- Restored the topic research and synthesis steps to valid structured-streaming Mastra code.
+- Validated the edited workflow file with targeted ESLint; no errors or warnings remain for that file.
+
+# Progress Update (2026-04-03 - Mastra client-js hook parity cleanup)
+
+- Added hooks for the newer `@mastra/client-js` observability surface in `lib/hooks/use-mastra-query.ts`: `useTraceTrajectory()` and `useObservabilityLogs()`.
+- Removed the temporary legacy trace wrapper and kept the hook names focused on the current observability API.
+- Renamed the new logs cache key to match the clearer hook name.
+- Added concise TSDoc to the new hooks and verified there are no stale references to the removed names in the workspace.
+
+# Progress Update (2026-04-03 - Copilot agent graph cleanup)
+
+- Replaced wildcard subagent lists in the new SWE Copilot agents with explicit allowlists of the specialist agent names they can talk to.
+- Updated the handoff prompts to name the next specialist agent directly.
+- Rewrote `voidbeast-gpt41enhanced.agent.md` into a clean Copilot-native orchestration profile with no model field and a much smaller, clearer body prompt.
+- Validated the new SWE/VoidBeast files: no wildcard `agents: ["*"]`, no tab-indented frontmatter, and no `model:` fields remain in that set.
+
+# Progress Update (2026-04-03 - Copilot agent frontmatter correction)
+
+- Normalized the new SWE Copilot agents to include the requested frontmatter fields: `disable-model-invocation: false`, `user-invocable: true`, `agents: ["*"]`, full tools, and handoffs.
+- Removed the model field from `swe-beast-mode.agent.md`.
+- Fixed the lone YAML indentation issue in `swe-implementer.agent.md`.
+
+# Progress Update (2026-04-03 - GitHub Copilot SWE agent suite)
+
+- Added a GitHub Copilot-native SWE agent suite under `.github/agents`: `swe-subagent`, `swe-planner`, `swe-researcher`, `swe-reviewer`, `swe-implementer`, `swe-devops`, `swe-documentation-writer`, `swe-browser-tester`, `swe-orchestrator`, and `swe-beast-mode`.
+- Reworked the general SWE subagent to remove the older Claude-style pattern and align it with GitHub Copilot custom-agent conventions.
+- Confirmed `.github/agents` contents are visible when ignored files are included, and noted that `.github/agents/*.md` is intentionally gitignored in this repository.
+
+# Progress Update (2026-04-02 - agent launchpad workspace badge retry)
+
+- Extended the shared agent launchpad cards to show provider, model, workspace, and tool count badges with tooltip guidance.
+- Revalidated `app/chat/components/agent-launchpad.tsx` with ESLint; clean.
+
+# Progress Update (2026-04-01 - dataset and evaluation tooltip/panel/artifact pass)
+
+- Enhanced `app/chat/dataset/page.tsx` with a help panel, tooltip-guided actions, and an artifact-backed code preview for selected items.
+- Enhanced `app/chat/evaluation/page.tsx` with a help panel, tooltip-guided controls, and an artifact-backed code preview for dataset metadata.
+- Validated both pages with targeted ESLint; the pass is clean.
+
+# Progress Update (2026-04-01 - workspace sandbox terminal + artifact preview)
+
+- Reworked `app/chat/workspaces/page.tsx` to use sandbox hooks for file CRUD plus a workspace dropdown, floating help panel, artifact-backed code preview, and an interactive sandbox terminal with clear support.
+- Cleaned `app/chat/tools/page.tsx` to use `@/` alias imports and added header tooltips for better UI guidance.
+- Validated `app/chat/workspaces/page.tsx` and `app/chat/tools/page.tsx` with targeted ESLint; both are clean.
+
+# 2026-04-01 live agent launchpad + interactive memory editor
+
+- Replaced the deprecated static agent-config lookup in `app/chat/components/agent-launchpad.tsx` with live `useAgents()` data.
+- Added a real create-thread action on agent cards via `useCreateThreadMutation()` and routed new sessions into the selected agent workspace.
+- Updated `app/chat/agents/[agentId]/page.tsx` to accept `threadId` / `resourceId` query params and forward them to `ChatProvider`.
+- Converted `app/chat/memory/page.tsx` into a live memory control surface with config/status/search, working-memory editing, note saving, and thread create/delete actions.
+- Validation: targeted `get_errors` is clean for all touched chat surfaces.
+
+# 2026-04-01 code agent IDE inspector
+
+- Moved selected-file reading out of `app/chat/components/code-agent-chat.tsx` and into `app/chat/components/code-layout.tsx`.
+- Added a richer IDE-style inspector to the code-agent pane using `Artifact`, `PackageInfo`, `Snippet`, `Sandbox`, `CodeBlock`, `JSXPreview`, and `StackTrace`.
+- Tightened chat header usage math to use separately narrowed AI SDK usage fields.
+- Validation:
+  - ✅ targeted `get_errors` is clean for `app/chat/components/code-agent-chat.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/code-layout.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-header.tsx`
+
+# 2026-04-01 chat provider contract cleanup
+
+- Moved the chat provider contract types into `app/chat/providers/chat-context.tsx` and removed the direct `chat-context-types.ts` import from the provider.
+- Updated `app/chat/providers/chat-context-hooks.ts` to import `ChatContextValue` type-only from the provider file.
+- Validation:
+  - ✅ targeted `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/providers/chat-context-hooks.ts`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-messages.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-input.tsx`
+
+# 2026-04-01 chat renderer prop-type cleanup
+
+- Replaced the direct `chat-context-types.ts` imports in `app/chat/components/chat-messages.tsx` with exact prop-derived types from the rendered ai-elements wrapper components.
+- The renderer still type-checks cleanly after the replacement.
+- Validation:
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-messages.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-input.tsx`
+
+# 2026-04-01 chat usage-type cleanup
+
+- Updated `app/chat/providers/chat-context.tsx` so the provider derives `LanguageModelUsage` from the streamed finish data and keeps the existing chat context boundary intact.
+- Updated `app/chat/components/chat-input.tsx` to use `LanguageModelUsage.totalTokens` for the footer token counter.
+- Updated `app/chat/components/chat-messages.tsx` to show a compact usage summary badge from `LanguageModelUsage`.
+- Validation:
+  - ✅ targeted `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-input.tsx`
+  - ✅ targeted `get_errors` is clean for `app/chat/components/chat-messages.tsx`
+
+# 2026-03-30 chat type consolidation
+
+- Consolidated chat module types into `app/chat/providers/chat-context-types.ts` as the canonical source of truth.
+- Turned `app/chat/components/chat.types.ts` into a compatibility re-export barrel.
+- Added the missing shared `AgentToolsProps` type to the canonical file.
+- Cleaned remaining console/inline-style diagnostics in `app/chat/components/chat-messages.tsx` and `app/chat/components/agent-plan.tsx`.
+- Validation:
+  - ✅ `get_errors` is clean for `app/chat/providers/chat-context-types.ts`
+  - ✅ `get_errors` is clean for `app/chat/components/chat.types.ts`
+  - ✅ `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+  - ✅ `get_errors` is clean for `app/chat/components/chat-messages.tsx`
+  - ✅ `get_errors` is clean for `app/chat/components/agent-plan.tsx`
+
+# 2026-03-30 empty output-schema scan + chat cleanup
+
+- Scanned `src/mastra/tools/**/*.ts` for empty `z.object({})` schemas.
+- Result: no empty `outputSchema` exists; the only empty-object matches are intentional `inputSchema` declarations in `calendar-tool.ts` and `jwt-auth.tool.ts`.
+- Finished the chat provider cleanup in `app/chat/providers/chat-context.tsx` using the SDK's exported tool helpers (`isToolUIPart`, `getToolName`, `lastAssistantMessageIsCompleteWithToolCalls`).
+- Validation:
+  - ✅ `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+
+# 2026-03-30 stream typing + workflow log cleanup
+
+- Added `ChunkType`-based chunk capture to `src/mastra/tools/editor-agent-tool.ts` and `src/mastra/tools/financial-chart-tools.ts`.
+- Restored `extractLearningsTool`'s output schema and kept its structured streaming path valid.
+- Broadened `src/mastra/config/logger.ts` so `logError` accepts unknown values, then normalized workflow catch sites to pass `Error` instances.
+- Validation:
+  - ✅ `get_errors` is clean for `src/mastra/tools/editor-agent-tool.ts`
+  - ✅ `get_errors` is clean for `src/mastra/tools/financial-chart-tools.ts`
+  - ✅ `get_errors` is clean for `src/mastra/config/logger.ts`
+  - ✅ `get_errors` is clean for `src/mastra/tools/extractLearningsTool.ts`
+  - ✅ `get_errors` is clean for `app/chat/providers/chat-context.tsx`
+  - ⚠️ Remaining workflow diagnostics are unrelated pre-existing issues in `document-processing-workflow.ts` and `governed-rag-answer.workflow.ts`
+
+# 2026-03-30 structured tool output + chat provider typing
+
+- Upgraded `extractLearningsTool.ts` and `evaluateResultTool.ts` to use structured output schemas with chunk-aware fallback parsing.
+- Added `toModelOutput` to the wrapper tools so model-facing output is readable and stable.
+- Expanded `app/chat/providers/chat-context.tsx` to use the SDK's exported AI types/helpers for message parts, source derivation, error normalization, and preview-state comparison.
+- Validation:
+  - ✅ targeted ESLint on `src/mastra/tools/extractLearningsTool.ts`, `src/mastra/tools/evaluateResultTool.ts`, `src/mastra/tools/copywriter-agent-tool.ts`, and `app/chat/providers/chat-context.tsx` exits cleanly
+
+# 2026-03-28 use-mastra-query-only backend + typed request context
+
+- Confirmed all chat backend imports already use `lib/hooks/use-mastra-query.ts`; no chat component needs `lib/hooks/use-mastra.ts`.
+- Tightened the Mastra query hook request-context alias to the repo's shared `SharedRequestContextPayload` type from `src/mastra/agents/request-context.ts`.
+- Verified the installed `@mastra/client-js` SDK does not expose the core sandbox execute/process/mount APIs, so the current sandbox hooks remain file/info/search oriented.
+- Kept the legacy `lib/hooks/use-mastra.ts` file out of scope after the user explicitly asked not to use or modify it.
+
+# 2026-03-28 request-context-aware supervisor agents + full supported hook usage
+
+- Verified the supported agent execution hooks in the installed Mastra types under `node_modules/@mastra/core/dist/agent/agent.types.d.ts`.
+- Confirmed the active supervisor pattern is using the relevant supported hooks:
+  - delegation start
+  - delegation complete
+  - message filter
+  - iteration complete
+  - task completion scoring
+- Upgraded the six active supervisor-style agents to use request-context-aware instructions and `requestContextSchema` validation.
+- Expanded delegation behavior to use `modifiedInstructions` and `modifiedMaxSteps` where it improves child-agent outputs.
+- Added per-agent iteration feedback so weak intermediate answers are corrected before final completion.
+- Validation:
+  - ✅ targeted `get_errors` clean for all six touched agent files
+
+# 2026-03-28 dual completion scorers + prompt contract upgrade
+
+- Added a second local completion scorer to the active supervisor-style agents so they can complete by either a full-content heuristic or a shorter execution/readiness heuristic.
+- Added a second local completion scorer to the active coordinator networks for the same reason, keeping the logic inline per file.
+- Tightened instructions with explicit "Final Answer Contract" sections so the LLM has a clearer target format for completion.
+- Restored `src/mastra/agents/calendarAgent.ts` to its original typed shape and removed nested `calendarAgent` registration from `projectManagementAgent` instead of changing the child agent public generic.
+- Validation:
+  - ✅ targeted `get_errors` clean for all touched files in this pass
+
+# 2026-03-27 network delegation hooks + local completion scorers
+
+- Added inline `defaultOptions.delegation` hook behavior to the active coordinator networks in `src/mastra/networks`.
+- Added local `createScorer(...)` completion heuristics to each touched network file instead of introducing a shared helper.
+- Refined delegation prompts per child agent inside each network so routed work is more specific and less generic.
+- Added delegation failure feedback plus filtered parent-message handoff in the same files.
+- Validation:
+  - ✅ targeted `get_errors` clean for all touched network files except `src/mastra/networks/index.ts`
+  - ✅ targeted ESLint on the 12 touched network files completed without file-level errors
+  - ℹ️ repo-wide `lint:ci` still fails because of many unrelated pre-existing errors outside this task
+
+# 2026-03-27 per-agent supervisor hooks + local completion scorers
+
+- Reworked the six supervisor-style agents to own their delegation hooks and task-completion scorers inline instead of adding a shared helper abstraction.
+- Added agent-specific `defaultOptions.delegation` behavior and local `createScorer(...)` heuristics in:
+  - `src/mastra/agents/supervisor-agent.ts`
+  - `src/mastra/agents/customerSupportAgent.ts`
+  - `src/mastra/agents/projectManagementAgent.ts`
+  - `src/mastra/agents/seoAgent.ts`
+  - `src/mastra/agents/socialMediaAgent.ts`
+  - `src/mastra/agents/translationAgent.ts`
+- Delegation prompts are now specialized per subagent role and delegation failures now feed explicit feedback back to the parent agent.
+- Validation:
+  - ✅ targeted `get_errors` clean for all six edited agent files
+
+# 2026-03-24 ESLint parser fix
+
+- Wired the installed `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin` into `eslint.config.js` for all TS/TSX files.
+- Restored proper workspace path handling in `src/mastra/tools/image-tool.ts` with explicit Node `fs`/`path` imports.
+- Validation:
+  - ✅ `eslint.config.js` linted cleanly
+  - ✅ `src/mastra/tools/image-tool.ts` linted cleanly
+  - ℹ️ ESLint still prints a TS 6.0.2 support warning from `@typescript-eslint/typescript-estree`, but exits 0
+
+# 2026-03-22 workspace variants restore
+
+- Repaired `src/mastra/workspaces.ts` and restored the broken local / AgentFS / Daytona exports.
+- Preserved and used the existing workspace imports instead of removing them by wiring them into real typed config exports.
+- Added a `workspaceVariants` export with 10 selectable workspace configurations.
+- Validation:
+  - ✅ `src/mastra/workspaces.ts` targeted ESLint pass succeeded with exit code `0`
+
+## Completed
+- Added `app/api/chat/harness/route.ts` as the shared server-side harness dashboard/action endpoint.
+- Added TanStack Query harness hooks in `lib/hooks/use-harness-query.ts`.
+- Built the working harness dashboard page in `app/chat/harness/page.tsx` with thread, mode, message, and approval controls.
+- Validated the new harness files with targeted ESLint and confirmed the edited files are clean.
+
+## In progress
+- None currently.
+
+## Notes
+- The harness UI now talks to the Mastra singleton through a thin JSON API instead of importing server harness code directly into the client.
+- The dashboard query currently polls while the page is open so live harness state stays fresh.
+
+## Completed
+- Replaced the mock harness examples deck with a live workspace panel driven by real harness and repository data.
+- Extended the harness route and TanStack hook to provide live workspace files, git snapshot, package metadata, env vars, terminal output, and preview URL data.
+- Validated `app/api/chat/harness/route.ts`, `lib/hooks/use-harness-query.ts`, and `app/chat/harness/page.tsx` with targeted ESLint.
+
+## In progress
+- None currently.
+
+## Notes
+- The harness page now shows real workspace state rather than mock examples, while still using ai-elements for the interactive chat and diagnostics surface.
+
+## Completed
+- Added a tabbed ai-elements mock examples deck to `app/chat/harness/page.tsx`.
+- Included working showcase sections for code, operations, preview, and config widgets from the docs examples.
+- Revalidated the harness route, hook, and page with targeted ESLint after the refactor.
+
+## In progress
+- None currently.
+
+## Notes
+- The harness page now doubles as an IDE-style ai-elements playground, matching the mock example direction from the docs.
+
+# Progress Update (2026-04-01 - workspace sandbox terminal + artifact preview)
+
+- Reworked `app/chat/workspaces/page.tsx` to use sandbox hooks for file CRUD plus a workspace dropdown, floating help panel, artifact-backed code preview, and an interactive sandbox terminal with clear support.
+- Cleaned `app/chat/tools/page.tsx` to use `@/` alias imports and added header tooltips for better UI guidance.
+- Validated `app/chat/workspaces/page.tsx` and `app/chat/tools/page.tsx` with targeted ESLint; both are clean.
+
+# Progress
+
+## Completed
+- Replaced the deprecated `FormEvent`-style submit typing in the auth screens with native submit-event typing.
+- Redesigned `app/login/page.tsx` and `app/login/signup/page.tsx` into higher-polish split-layout auth experiences with better hierarchy, spacing, and feedback.
+- Added a local remembered-identifier option on login without storing passwords in the app.
+- Re-ran targeted `get_errors` on `app/login/page.tsx` and `app/login/signup/page.tsx`; both are clean.
+
+## In progress
+- None currently.
+
+## Completed
+- Updated `app/login/page.tsx` to remove deprecated `FormEvent` usage, add a remembered identifier toggle, and improve the sign-in UI with more premium styling and clearer guidance.
+- Updated `app/login/signup/page.tsx` to remove deprecated `FormEvent` usage, add password confirmation, tighten validation copy, and upgrade the onboarding UI styling.
+- Re-ran targeted `get_errors` on `app/login/page.tsx` and `app/login/signup/page.tsx`; both are clean.
+
+## In progress
+- None currently.
+
+## Completed
+- Reworked the chat workspace routing so `/chat` is the dashboard home, `/chat/agents` is the agent directory, and `/chat/agents/[agentId]` is the chat workspace entrypoint.
+- Reworked the code flow so `/chat/Code` is the code launchpad and `/chat/Code/[agentId]` remains the IDE entrypoint.
+- Added the new chat memory dashboard at `/chat/memory` and updated the sidebar so it links to all major chat surfaces without listing agents inline.
+- Converted `ChatPageShell` into a reusable shell that accepts the sidebar node from the page, keeping the layout professional without the brittle shell-level sidebar import.
+- Validation: targeted `get_errors` is clean for the modified chat pages, shell, sidebar, launchpad, and memory page.
+
+## Completed
+- Refactored `github-repo-overview.workflow.ts`, `github-code-context.workflow.ts`, and `github-issue-triage.workflow.ts` into multi-step parallel workflows.
+- Switched `src/mastra/tools/git-local.tool.ts` to use the exported `simple-git` type surface and aligned its branch/config/stash helpers with native simple-git response fields.
+- Replaced the `execa`-based git-local runner with a `simple-git`-backed compatibility shim and added `simple-git` to `package.json`.
+- Added five new GitHub workflows under `src/mastra/workflows/github` with barrel exports and registry wiring:
+  - `github-repo-overview.workflow.ts`
+  - `github-pull-request-digest.workflow.ts`
+  - `github-issue-triage.workflow.ts`
+  - `github-code-context.workflow.ts`
+  - `github-release-prep.workflow.ts`
+- Added four modular workflow folders with streaming, tool-only workflows and barrel exports:
+  - `src/mastra/workflows/coding`
+  - `src/mastra/workflows/gen`
+  - `src/mastra/workflows/research`
+  - `src/mastra/workflows/utilities`
+- Re-exported the new workflow folders from `src/mastra/workflows/index.ts` and registered them in `src/mastra/index.ts`.
+- Fixed the parse error in `src/mastra/lib/http-client.ts`.
+- Cleaned the targeted ESLint diagnostics in `src/mastra/tools/calculator.tool.ts`, `src/mastra/tools/calendar-tool.ts`, `src/mastra/tools/chartjs.tool.ts`, `src/mastra/tools/code-analysis.tool.ts`, and `src/components/ai-elements/tools/browser-tool.tsx`.
+- Verified the targeted ESLint pass is clean for the touched files.
+
+## In progress
+- Investigating the repo-wide TypeScript blocker from `node_modules/@mdx-js/loader/index.d.cts`.
+
+## Notes
+- `npx tsc --noEmit` currently fails because of an upstream declaration syntax error in the MDX loader package, not from the edited source files.
+
+# 2026-03-21 cron-backed fetch tool + http-client cleanup
+
+- Added a cron-backed scheduled fetch helper in `src/mastra/tools/fetch.tool.ts` using `node-cron`.
+- Kept the scheduling logic inside the same tool file so it can be reused by other tools later without creating new files.
+- Cleaned `src/mastra/lib/http-client.ts` to remove the `any`-driven retry typing and keep the response wrapper Promise-safe.
+- Validation:
+  - ✅ targeted `get_errors` on `src/mastra/lib/http-client.ts` and `src/mastra/tools/fetch.tool.ts` returned clean
+
 # 2026-03-20 chat sidebar trace drawer + hook cleanup
 
 - Upgraded `app/chat/components/chat-sidebar.tsx` so traces are now clickable, more polished cards that open a drawer for full trace inspection.

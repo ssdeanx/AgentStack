@@ -1,4 +1,5 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows'
+import type { ChunkType } from '@mastra/core/stream'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
 import { z } from 'zod'
 
@@ -59,6 +60,11 @@ const markdownContentSchema = z.object({
         chunkSize: z.number(),
         chunkOverlap: z.number(),
     }),
+})
+
+const branchedMarkdownContentSchema = z.object({
+    'convert-pdf-to-markdown': markdownContentSchema.optional(),
+    'pass-text-through': markdownContentSchema.optional(),
 })
 
 const chunkSchema = z.object({
@@ -267,7 +273,7 @@ const loadDocumentStep = createStep({
 
             return result
         } catch (error) {
-            logError('load-document', error, { source: inputData.source })
+            logError('load-document', error instanceof Error ? error : new Error(String(error)), { source: inputData.source })
             span?.error({
                 error:
                     error instanceof Error ? error : new Error(String(error)),
@@ -325,45 +331,30 @@ const convertPdfToMarkdownStep = createStep({
             let markdownContent = inputData.content
             let pageCount: number | undefined
 
-            const agent = mastra?.getAgent?.('documentProcessingAgent')
+            const agent = mastra.getAgent('documentProcessingAgent')
             if (inputData.contentType === 'pdf') {
                 if (agent !== undefined && agent !== null) {
                     const stream = await agent.stream(
                         `Convert the PDF at "${inputData.content}" to markdown format. Extract all text content while preserving structure.`,
                         {
-                            output: z.object({
-                                markdown: z.string(),
-                                pageCount: z.number().optional(),
-                            }),
-                        } as any
-                    )
-                    // Pipe partial text deltas to the workflow writer (if present)
-                    if (writer !== undefined && writer !== null) {
-                        await stream.textStream?.pipeTo?.(
-                            writer as unknown as WritableStream
-                        )
-                    }
-                    // Wait for final aggregated text and attempt to parse JSON
-                    const finalText = await stream.text
-                    let parsed: {
-                        markdown: string
-                        pageCount?: number
-                    } | null = null
-                    try {
-                        parsed = JSON.parse(finalText) as {
-                            markdown: string
-                            pageCount?: number
+                            structuredOutput: {
+                                schema: z.object({
+                                    markdown: z.string(),
+                                    pageCount: z.number().optional(),
+                                }),
+                            },
                         }
-                    } catch {
-                        parsed = null
+                    )
+
+                    if (writer !== undefined && writer !== null) {
+                        for await (const chunk of stream.fullStream as AsyncIterable<ChunkType<{ markdown: string; pageCount?: number }>>) {
+                            await writer.write(chunk)
+                        }
                     }
-                    if (parsed !== null) {
-                        markdownContent = parsed.markdown
-                        pageCount = parsed.pageCount
-                    } else {
-                        // Preserve fallback behavior if parsing fails
-                        markdownContent = `# Document\n\nPDF content from: ${inputData.content}\n\n(PDF parsing requires documentProcessingAgent)`
-                    }
+
+                    const parsed = await stream.object
+                    markdownContent = parsed.markdown
+                    pageCount = parsed.pageCount
                 } else {
                     markdownContent = `# Document\n\nPDF content from: ${inputData.content}\n\n(PDF parsing requires documentProcessingAgent)`
                 }
@@ -431,7 +422,7 @@ const convertPdfToMarkdownStep = createStep({
 
             return result
         } catch (error) {
-            logError('convert-pdf-to-markdown', error, {
+            logError('convert-pdf-to-markdown', error instanceof Error ? error : new Error(String(error)), {
                 contentType: inputData.contentType,
             })
             span?.error({
@@ -510,6 +501,23 @@ const passTextThroughStep = createStep({
         span?.end()
 
         return result
+    },
+})
+
+const normalizeDocumentStep = createStep({
+    id: 'normalize-document',
+    description: 'Normalizes branch output into a single markdown document payload',
+    inputSchema: branchedMarkdownContentSchema,
+    outputSchema: markdownContentSchema,
+    execute: async ({ inputData }) => {
+        const branchResult =
+            inputData['convert-pdf-to-markdown'] ?? inputData['pass-text-through']
+
+        if (branchResult === undefined) {
+            throw new Error('Document branch did not produce markdown content')
+        }
+
+        return branchResult
     },
 })
 
@@ -739,7 +747,7 @@ const chunkDocumentStep = createStep({
 
             return result
         } catch (error) {
-            logError('chunk-document', error, {
+            logError('chunk-document', error instanceof Error ? error : new Error(String(error)), {
                 strategy: inputData.settings.chunkStrategy,
             })
             span?.error({
@@ -885,7 +893,7 @@ const indexChunksStep = createStep({
 
             return result
         } catch (error) {
-            logError('index-chunks', error, {
+            logError('index-chunks', error instanceof Error ? error : new Error(String(error)), {
                 totalChunks: inputData.totalChunks,
             })
             span?.error({
@@ -939,7 +947,9 @@ export const documentProcessingWorkflow = createWorkflow({
             passTextThroughStep,
         ],
     ])
+    .then(normalizeDocumentStep)
     .then(chunkDocumentStep)
     .then(indexChunksStep)
 
 documentProcessingWorkflow.commit()
+

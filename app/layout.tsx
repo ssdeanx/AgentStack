@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+
 import { Inter } from 'next/font/google'
 import { Suspense } from 'react'
+import type { ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 import { Navbar } from '@/app/components/navbar'
@@ -11,52 +12,10 @@ import { QueryProvider } from '@/app/components/query-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-    title: 'AgentStack | Multi-Agent Framework',
-    description:
-        'Production-grade multi-agent framework for AI applications with 22+ agents, 30+ tools, 10 workflows, and 4 networks.',
-    applicationName: 'AgentStack',
-    authors: [{ name: 'AgentStack Team', url: 'https://deanmachines.com' }],
-    keywords: [
-        'AI',
-        'Agents',
-        'Multi-Agent Systems',
-        'RAG',
-        'Observability',
-        'Governance',
-        'AgentStack',
-    ],
-    referrer: 'origin-when-cross-origin',
-    openGraph: {
-        title: 'AgentStack | Multi-Agent Framework',
-        description:
-            'Production-grade multi-agent framework for AI applications with 22+ agents, 30+ tools, 10 workflows, and 4 networks.',
-        url: 'https://deanmachines.com',
-        siteName: 'AgentStack',
-        images: [
-            {
-                url: 'https://deanmachines.com/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: 'AgentStack',
-            },
-        ],
-        type: 'website',
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: 'AgentStack | Multi-Agent Framework',
-        description:
-            'Production-grade multi-agent framework for AI applications.',
-        images: ['https://deanmachines.com/og-image.png'],
-    },
-    metadataBase: new URL('https://deanmachines.com'),
-}
-
 export default function RootLayout({
     children,
 }: {
-    children: React.ReactNode
+    children: ReactNode
 }) {
     return (
         <html lang="en" suppressHydrationWarning>

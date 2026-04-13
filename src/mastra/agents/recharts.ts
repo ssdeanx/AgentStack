@@ -5,8 +5,7 @@ import {
   TokenLimiterProcessor,
   UnicodeNormalizer
 } from '@mastra/core/processors'
-import { PGVECTOR_PROMPT } from '@mastra/pg'
-import { googleAI, googleAIFlashLite, pgMemory, pgQueryTool } from '../config'
+import { googleAI, googleAIFlashLite } from '../config'
 import { log } from '../config/logger'
 import { alphaVantageStockTool } from '../tools/alpha-vantage.tool'
 import {
@@ -27,12 +26,13 @@ import {
   polygonStockQuotesTool,
 } from '../tools/polygon-tools'
 import { googleFinanceTool } from '../tools/serpapi-academic-local.tool'
-import { scrapingSchedulerTool } from '../tools/web-scraper-tool'
 import {
   getLanguageFromContext,
-  getUserTierFromContext,
+  getRoleFromContext,
   type AgentRequestContext,
 } from './request-context'
+import { fetchTool } from '../tools/fetch.tool'
+import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 
 export type ChartRuntimeContext = AgentRequestContext<{
   chartStyle: 'detailed' | 'concise'
@@ -78,8 +78,9 @@ const chartSupervisorTools = {
   chartGeneratorTool,
   chartDataProcessorTool,
   chartTypeAdvisorTool,
-  pgQueryTool,
-  scrapingSchedulerTool,
+  libsqlQueryTool,
+  libsqlgraphQueryTool,
+  fetchTool,
 }
 
 log.info('Initializing Financial Chart Agents...')
@@ -94,7 +95,7 @@ export const chartTypeAdvisorAgent = new Agent({
   description:
     'Expert in recommending optimal Recharts chart types for financial data visualization based on data characteristics and user requirements.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const userTier = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const chartStyle = getChartStyleFromContext(requestContext)
     const colorScheme = getColorSchemeFromContext(requestContext)
@@ -140,7 +141,7 @@ You are a Financial Data Visualization Specialist focused on recommending optima
     }
   },
   model: googleAIFlashLite,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {},
   maxRetries: 3,
   options: {
@@ -161,7 +162,7 @@ export const chartDataProcessorAgent = new Agent({
   description:
     'Transforms raw financial API data into optimized Recharts-compatible data structures with proper formatting and calculations.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const userTier = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const chartStyle = getChartStyleFromContext(requestContext)
     const colorScheme = getColorSchemeFromContext(requestContext)
@@ -200,7 +201,7 @@ You are a Financial Data Processing Specialist that transforms raw API data into
   },
   model: googleAIFlashLite,
   tools: chartDataProcessorTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
@@ -220,7 +221,7 @@ export const chartGeneratorAgent = new Agent({
   description:
     'Generates production-ready Recharts React component code for financial data visualization with TypeScript support.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const userTier = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const chartStyle = getChartStyleFromContext(requestContext)
     const colorScheme = getColorSchemeFromContext(requestContext)
@@ -259,7 +260,7 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
     }
   },
   model: googleAI,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   tools: {},
   maxRetries: 3,
   options: {
@@ -267,7 +268,6 @@ You are a Senior React Developer specializing in Recharts financial visualizatio
       internal: InternalSpans.ALL,
     },
   },
-  outputProcessors: [new TokenLimiterProcessor(1048576)],
 })
 
 /**
@@ -280,7 +280,7 @@ export const chartSupervisorAgent = new Agent({
   description:
     'Orchestrates the complete financial chart creation pipeline, coordinating data fetching, processing, chart type selection, and component generation.',
   instructions: ({ requestContext }) => {
-    const userTier = getUserTierFromContext(requestContext)
+    const userTier = getRoleFromContext(requestContext)
     const language = getLanguageFromContext(requestContext)
     const chartStyle = getChartStyleFromContext(requestContext)
     const colorScheme = getColorSchemeFromContext(requestContext)
@@ -312,7 +312,6 @@ You are the Financial Chart Supervisor, orchestrating the complete chart creatio
 <rules>
 - **Tool Efficiency**: Do NOT use the same tool repetitively or back-to-back for the same query.
 - **Output**: Return comprehensive chart package as JSON with request, data, component, configuration, and sources.
-${PGVECTOR_PROMPT}
 </rules>
 `,
       providerOptions: {
@@ -327,7 +326,7 @@ ${PGVECTOR_PROMPT}
   },
   model: googleAI,
   tools: chartSupervisorTools,
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {
     tracingPolicy: {
       internal: InternalSpans.ALL,
@@ -344,7 +343,6 @@ ${PGVECTOR_PROMPT}
   ],
   maxRetries: 5,
   outputProcessors: [
-    new TokenLimiterProcessor(128000),
     //    new BatchPartsProcessor({
     //         batchSize: 25,
     //         maxWaitTime: 100,

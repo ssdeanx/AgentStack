@@ -16,10 +16,10 @@ import { editorAgent } from '../agents/editorAgent'
 import { knowledgeIndexingAgent } from '../agents/knowledgeIndexingAgent'
 import { projectManagementAgent } from '../agents/projectManagementAgent'
 import { researchAgent } from '../agents/researchAgent'
-import { pgMemory } from '../config/pg-storage'
 import { repoIngestionWorkflow } from '../workflows/repo-ingestion-workflow'
 import { researchSynthesisWorkflow } from '../workflows/research-synthesis-workflow'
 import { specGenerationWorkflow } from '../workflows/spec-generation-workflow'
+import { LibsqlMemory } from '../config/libsql'
 // Import all agents
 
 // Import all workflows
@@ -103,7 +103,7 @@ Use knowledgeIndexingAgent to provide semantic context for complex queries.
     }
   },
   model: 'google/gemini-3.1-flash-preview',
-  memory: pgMemory,
+  memory: LibsqlMemory,
   options: {},
   agents: {
     researchAgent,

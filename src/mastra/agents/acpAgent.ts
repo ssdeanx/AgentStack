@@ -1,12 +1,8 @@
 import { Agent } from '@mastra/core/agent'
-import { pgMemory, pgQueryTool } from '../config'
+
 import { arxivTool } from '../tools/arxiv.tool'
 import { csvToJsonTool } from '../tools/csv-to-json.tool'
-import {
-    csvToExcalidrawTool,
-    readCSVDataTool,
-} from '../tools/data-processing-tools'
-import { mdocumentChunker } from '../tools/document-chunking.tool'
+import { libsqlChunker} from '../tools/document-chunking.tool'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import {
@@ -16,14 +12,13 @@ import {
     searchCode,
 } from '../tools/github'
 import { jsonToCsvTool } from '../tools/json-to-csv.tool'
-import { pdfToMarkdownTool } from '../tools/pdf-data-conversion.tool'
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google'
 import type { RequestContext } from '@mastra/core/request-context'
-import { PGVECTOR_PROMPT } from '@mastra/pg'
-import { TokenLimiterProcessor } from '@mastra/core/processors'
+
 import { InternalSpans } from '@mastra/core/observability'
 import type { AgentRequestContext } from './request-context'
 import { fetchTool } from '../tools'
+import { libsqlgraphQueryTool, LibsqlMemory, libsqlQueryTool } from '../config/libsql'
 
 export type ACPContext = AgentRequestContext<{
     userRole?: string
@@ -50,7 +45,7 @@ User: ${userId} | Role: ${roleConstraint}
 ## Core Responsibilities
 - **Manage Tasks**: Create, update, and track ACP-related tasks.
 - **Data Ops**: Ingest (CSV, PDF, Web, Repo), transform (Excalidraw, JSON), and export data.
-- **Persistence**: Use 'pgQueryTool' for Mongo-like operations with ${PGVECTOR_PROMPT}.
+- **Persistence**: 
 
 ## Process
 1. **Plan**: Outline 1-3 steps with tool rationale.
@@ -74,19 +69,17 @@ User: ${userId} | Role: ${roleConstraint}
         }
     },
     model: "google/gemini-3.1-flash-lite-preview",
-    memory: pgMemory,
+    memory: LibsqlMemory,
     tools: {
-        pgQueryTool,
+        libsqlQueryTool,
+        libsqlChunker,
+        libsqlgraphQueryTool,
         fetchTool,
-        mdocumentChunker,
         evaluateResultTool,
         extractLearningsTool,
         arxivTool,
-        pdfToMarkdownTool,
         jsonToCsvTool,
         csvToJsonTool,
-        csvToExcalidrawTool,
-        readCSVDataTool,
         //  convertDataFormatTool,
         searchCode,
         getFileContent,
@@ -96,12 +89,12 @@ User: ${userId} | Role: ${roleConstraint}
         //		containerTags: ['acp-agent']
         //	}),
     },
-    outputProcessors: [new TokenLimiterProcessor(128576)],
+   // outputProcessors: [new TokenLimiterProcessor(128576)],
     workflows: {},
     scorers: {},
     options: {
         tracingPolicy: {
-            internal: InternalSpans.ALL,
+            internal: InternalSpans.AGENT,
         },
     },
  //   defaultOptions: {

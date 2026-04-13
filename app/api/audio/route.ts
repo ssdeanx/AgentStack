@@ -4,7 +4,15 @@ import { Readable } from 'node:stream'
 export async function POST(req: Request) {
     // Get the audio file from the request
     const formData = await req.formData()
-    const audioFile = formData.get('audio') as File
+    const audioFile = formData.get('audio')
+
+    if (!(audioFile instanceof File)) {
+        return new Response(JSON.stringify({ error: 'Missing audio file' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        })
+    }
+
     const arrayBuffer = await audioFile.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const readable = Readable.from(buffer)
@@ -13,7 +21,7 @@ export async function POST(req: Request) {
     const noteTakerAgent = mastra.getAgent('noteTakerAgent')
 
     // Transcribe the audio file
-    const text = await noteTakerAgent.voice?.listen(readable)
+    const text = await noteTakerAgent.voice.listen(readable)
 
     return new Response(JSON.stringify({ text }), {
         headers: { 'Content-Type': 'application/json' },

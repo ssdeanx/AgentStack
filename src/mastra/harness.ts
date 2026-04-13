@@ -20,7 +20,7 @@ import { researchAgent } from './agents/researchAgent'
 import { editorAgent } from './agents/editorAgent'
 import { reportAgent } from './agents/reportAgent'
 import { mainWorkspace } from './workspaces'
-import { pgStore } from './config'
+import { LibsqlMemory, libsqlstorage } from './config/libsql'
 
 /**
  * Harness state schema - defines the shape of persisted state
@@ -52,7 +52,7 @@ const asHarnessAgent = (agent: unknown): MastraAgent => agent as MastraAgent
 export const mainHarness = new Harness({
     id: 'agentstack-harness',
     resourceId: 'agentstack',
-    storage: pgStore,
+    storage: libsqlstorage,
     // State management
     stateSchema: harnessStateSchema,
     // Agent modes - each represents a different capability/personality

@@ -194,7 +194,7 @@ export function LandingTestimonials() {
 
                                 {/* Quote */}
                                 <blockquote className="mb-8 text-xl font-medium leading-relaxed text-foreground md:text-2xl">
-                                    "{TESTIMONIALS[activeIndex].quote}"
+                                    {TESTIMONIALS[activeIndex].quote}
                                 </blockquote>
 
                                 {/* Highlight badge */}
@@ -315,7 +315,7 @@ export function LandingTestimonials() {
 
                             {/* Quote */}
                             <blockquote className="mb-6 text-muted-foreground line-clamp-4 leading-relaxed">
-                                "{testimonial.quote}"
+                                {testimonial.quote}
                             </blockquote>
 
                             {/* Author */}

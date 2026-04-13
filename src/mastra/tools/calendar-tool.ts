@@ -5,10 +5,7 @@ import { z } from 'zod'
 import { log } from '../config/logger'
 
 import type { RequestContext } from '@mastra/core/request-context'
-
-export interface CalendarRequestContext extends RequestContext {
-    userId?: string
-}
+import type { BaseToolRequestContext } from './request-context.utils'
 
 interface CalendarEvent {
     title: string
@@ -19,7 +16,7 @@ interface CalendarEvent {
 }
 
 class LocalCalendarReader {
-    async getEvents(): Promise<CalendarEvent[]> {
+    getEvents(): CalendarEvent[] {
         const script = `
           tell application "Calendar"
             set eventList to {}
@@ -59,10 +56,14 @@ class LocalCalendarReader {
         } catch (error) {
             if (error instanceof Error) {
                 log.info(`Raw AppleScript error: ${error.message}`)
-                throw new Error(`Failed to read Mac calendar: ${error.message}`)
+                throw new Error(`Failed to read Mac calendar: ${error.message}`, {
+                    cause: error,
+                })
             } else {
                 log.info('An unknown error occurred')
-                throw new Error('Failed to read Mac calendar')
+                throw new Error('Failed to read Mac calendar', {
+                    cause: error,
+                })
             }
         }
     }
@@ -78,24 +79,24 @@ class LocalCalendarReader {
                     line.split('|')
 
                 const startStandardized = startDateStr
-                    ?.split(',')?.[1] // Remove day name
-                    ?.replace(' at ', ' ') // Remove 'at'
-                    ?.trim() // 'January 3, 2025 9:00:00 AM'
+                    .split(',')[1] // Remove day name
+                    .replace(' at ', ' ') // Remove 'at'
+                    .trim() // 'January 3, 2025 9:00:00 AM'
 
                 const startDate = new Date(startStandardized || '')
 
                 const endStandardized = endDateStr
-                    ?.split(',')?.[1] // Remove day name
-                    ?.replace(' at ', ' ') // Remove 'at'
-                    ?.trim() // 'January 3, 2025 9:00:00 AM'
+                    .split(',')[1] // Remove day name
+                    .replace(' at ', ' ') // Remove 'at'
+                    .trim() // 'January 3, 2025 9:00:00 AM'
                 const endDate = new Date(endStandardized || '')
 
                 const event: CalendarEvent = {
-                    title: title?.trim(),
+                    title: title.trim(),
                     startDate,
                     endDate,
-                    location: location?.trim() || '',
-                    description: description?.trim() || '',
+                    location: location.trim() || '',
+                    description: description.trim() || '',
                 }
 
                 events.push(event)
@@ -164,9 +165,10 @@ export const listEvents = createTool({
         })
     },
     execute: async (inputData, context) => {
-        const requestCtx = context?.requestContext as
-            | CalendarRequestContext
-            | undefined
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-list-events',
@@ -174,17 +176,18 @@ export const listEvents = createTool({
             metadata: {
                 'tool.id': 'calendar-list-events',
                 'tool.input.startDate': inputData.startDate,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
-            tracingContext: context?.tracingContext,
+            requestContext: context.requestContext,
+            tracingContext: context.tracingContext,
         })
 
         log.debug('Executing calendar list events for user', {
-            userId: requestCtx?.userId,
+            userId,
         })
 
-        await context?.writer?.custom({
+        await writer?.custom({
             type: 'data-tool-progress',
             data: {
                 status: 'in-progress',
@@ -194,7 +197,7 @@ export const listEvents = createTool({
             id: 'listEvents',
         })
         try {
-            const events = await reader.getEvents()
+            const events = reader.getEvents()
 
             const formattedEvents = events.map((event) => ({
                 title: event.title || '',
@@ -204,13 +207,13 @@ export const listEvents = createTool({
                 description: event.description,
             }))
 
-            log.info(`Found ${events.length} calendar events`)
+            log.info(`Found ${String(events.length)} calendar events`)
 
-            await context?.writer?.custom({
+            await writer?.custom({
                 type: 'data-tool-progress',
                 data: {
                     status: 'done',
-                    message: `Input: startDate="${inputData.startDate}" - ✅ Found ${events.length} events`,
+                    message: `Input: startDate="${inputData.startDate}" - ✅ Found ${String(events.length)} events`,
                     stage: 'listEvents',
                 },
                 id: 'listEvents',
@@ -267,31 +270,33 @@ export const getTodayEvents = createTool({
         count: z.number(),
     }),
     execute: async (inputData, context) => {
-        const requestCtx = context?.requestContext as
-            | CalendarRequestContext
-            | undefined
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-today-events',
             input: inputData,
             metadata: {
                 'tool.id': 'calendar-today-events',
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
         })
 
         log.debug('Executing get today events for user', {
-            userId: requestCtx?.userId,
+            userId,
         })
 
-        await context?.writer?.write({
+        await writer?.write({
             type: 'progress',
             data: { message: "📅 Getting today's events..." },
         })
 
         try {
-            const allEvents = await reader.getEvents()
+            const allEvents = reader.getEvents()
             const today = new Date()
             today.setHours(0, 0, 0, 0)
             const tomorrow = new Date(today)
@@ -310,10 +315,10 @@ export const getTodayEvents = createTool({
                 description: event.description,
             }))
 
-            await context?.writer?.write({
+            await writer?.write({
                 type: 'progress',
                 data: {
-                    message: `✅ Found ${todayEvents.length} events for today`,
+                    message: `✅ Found ${String(todayEvents.length)} events for today`,
                 },
             })
             span?.update({
@@ -399,9 +404,10 @@ export const getUpcomingEvents = createTool({
     }),
 
     execute: async (inputData, context) => {
-        const requestCtx = context?.requestContext as
-            | CalendarRequestContext
-            | undefined
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-upcoming-events',
@@ -410,24 +416,25 @@ export const getUpcomingEvents = createTool({
                 'tool.id': 'calendar-upcoming-events',
                 'tool.input.days': inputData.days,
                 'tool.input.limit': inputData.limit,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
         })
 
         log.debug('Executing get upcoming events for user', {
-            userId: requestCtx?.userId,
+            userId,
         })
 
-        await context?.writer?.write({
+        await writer?.write({
             type: 'progress',
             data: {
-                message: `📅 Getting events for next ${inputData.days} days...`,
+                message: `📅 Getting events for next ${String(inputData.days)} days...`,
             },
         })
 
         try {
-            const allEvents = await reader.getEvents()
+            const allEvents = reader.getEvents()
             const now = new Date()
             const futureDate = new Date()
             futureDate.setDate(futureDate.getDate() + (inputData.days ?? 7))
@@ -454,10 +461,10 @@ export const getUpcomingEvents = createTool({
                 }
             })
 
-            await context?.writer?.write({
+            await writer?.write({
                 type: 'progress',
                 data: {
-                    message: `✅ Found ${upcomingEvents.length} upcoming events`,
+                    message: `✅ Found ${String(upcomingEvents.length)} upcoming events`,
                 },
             })
             span?.update({
@@ -529,9 +536,10 @@ export const findFreeSlots = createTool({
         ),
     }),
     execute: async (inputData, context) => {
-        const requestCtx = context?.requestContext as
-            | CalendarRequestContext
-            | undefined
+        const writer = context.writer
+        const requestContext = context.requestContext as RequestContext<BaseToolRequestContext> | undefined
+        const userId = requestContext?.all.userId
+        const workspaceId = requestContext?.all.workspaceId
         const span = getOrCreateSpan({
             type: SpanType.TOOL_CALL,
             name: 'calendar-free-slots',
@@ -539,22 +547,23 @@ export const findFreeSlots = createTool({
             metadata: {
                 'tool.id': 'calendar-free-slots',
                 'tool.input.date': inputData.date,
-                'user.id': requestCtx?.userId,
+                'user.id': userId,
+                'workspace.id': workspaceId,
             },
-            requestContext: context?.requestContext,
+            requestContext: context.requestContext,
         })
 
         log.debug('Executing find free slots for user', {
-            userId: requestCtx?.userId,
+            userId,
         })
 
-        await context?.writer?.write({
+        await writer?.write({
             type: 'progress',
             data: { message: '📅 Finding free time slots...' },
         })
 
         try {
-            const allEvents = await reader.getEvents()
+            const allEvents = reader.getEvents()
             const targetDate = new Date(inputData.date)
             targetDate.setHours(0, 0, 0, 0)
 
@@ -627,9 +636,9 @@ export const findFreeSlots = createTool({
                 }
             }
 
-            await context?.writer?.write({
+            await writer?.write({
                 type: 'progress',
-                data: { message: `✅ Found ${freeSlots.length} free slots` },
+                data: { message: `✅ Found ${String(freeSlots.length)} free slots` },
             })
             span?.update({
                 output: { freeSlotCount: freeSlots.length },

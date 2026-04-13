@@ -1,4 +1,5 @@
 import type { MastraModelOutput } from '@mastra/core/stream'
+import type { ChunkType } from '@mastra/core/stream'
 import type { InferUITool } from '@mastra/core/tools'
 import { createTool } from '@mastra/core/tools'
 import { SpanType, getOrCreateSpan } from '@mastra/core/observability'
@@ -9,6 +10,13 @@ import type { RequestContext } from '@mastra/core/request-context'
 export interface ExtractLearningsContext extends RequestContext {
     userId?: string
 }
+
+const extractLearningsOutputSchema = z.object({
+    learning: z.string(),
+    followUpQuestions: z.array(z.string()).max(1),
+})
+
+type ExtractLearningsOutput = z.infer<typeof extractLearningsOutputSchema>
 
 export const extractLearningsTool = createTool({
     id: 'extract-learnings',
@@ -23,6 +31,14 @@ export const extractLearningsTool = createTool({
                 content: z.string(),
             })
             .describe('The search result to process'),
+    }),
+    outputSchema: extractLearningsOutputSchema,
+    toModelOutput: (output: ExtractLearningsOutput) => ({
+        type: 'text',
+        value:
+            output.followUpQuestions.length > 0
+                ? `Learning: ${output.learning}\n\nFollow-up question: ${output.followUpQuestions[0]}`
+                : `Learning: ${output.learning}`,
     }),
 
     execute: async (inputData, context) => {
@@ -152,9 +168,21 @@ export const extractLearningsTool = createTool({
                     },
                     id: 'extract-learnings',
                 })
-                const stream = (await agent.stream(prompt)) as
-                    | MastraModelOutput
-                    | undefined
+                let streamedText = ''
+                const stream = (await agent.stream(prompt, {
+                    structuredOutput: {
+                        schema: extractLearningsOutputSchema,
+                    },
+                    onChunk: (chunk: ChunkType<ExtractLearningsOutput>) => {
+                        if (
+                            chunk.type === 'text-delta' &&
+                            typeof chunk.payload?.text === 'string'
+                        ) {
+                            streamedText += chunk.payload.text
+                        }
+                    },
+                })) as MastraModelOutput<ExtractLearningsOutput> | undefined
+
                 if (stream?.fullStream !== undefined && writer) {
                     await stream.fullStream.pipeTo(
                         writer as unknown as WritableStream
@@ -162,12 +190,16 @@ export const extractLearningsTool = createTool({
                 }
 
                 if (stream) {
-                    const text = (await stream.text) ?? ''
                     try {
-                        responseObject =
-                            stream.object ?? (text ? JSON.parse(text) : {})
+                        const structured = await stream.object
+                        responseObject = structured ?? {}
                     } catch {
-                        responseObject = {}
+                        const text = (await stream.text) ?? streamedText
+                        try {
+                            responseObject = text ? JSON.parse(text) : {}
+                        } catch {
+                            responseObject = {}
+                        }
                     }
                 } else {
                     responseObject = {}
@@ -183,16 +215,11 @@ export const extractLearningsTool = createTool({
                 }
             }
 
-            const outputSchema = z.object({
-                learning: z.string(),
-                followUpQuestions: z.array(z.string()).max(1),
-            })
-
             log.info('Learning extraction response', {
                 result: responseObject,
             })
 
-            const parsed = outputSchema.safeParse(responseObject)
+            const parsed = extractLearningsOutputSchema.safeParse(responseObject)
 
             if (!parsed.success) {
                 log.warn(

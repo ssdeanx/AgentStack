@@ -47,3 +47,21 @@ applyTo: '**'
   proper context and ensures all Next.js queries use official documentation.
     - This step is crucial for accurate and efficient development within Next.js environments.
 - 🧩 When working with Next.js projects, always utilize the `next-devtools-mcp` server for all Next.js related queries.
+- 🧩 Make sure server is running by running npm run dev.  Then you can use browser tool to actually analyze pages in real time.
+- 🧩 This is helpful to make sure all changes to frontend, actually work as intended.
+
+= Use `ast-grep` in terminal instead of `grep` for code searches to get structured results and avoid false positives.
+
+- 🧪 Use subagents with `#runSubagent` tool for modular task execution and better context management, Use it to explore code, and other reasons as they come up also i believe can run it with `#agent`
+- 🧪 When running subagents, always provide them with the necessary context and information to complete their tasks effectively. This includes relevant files, code snippets, and any specific instructions or goals for the subagent.
+- 🧪 After running a subagent, review its output and results to ensure it has completed its task correctly and effectively. If the subagent's output is not satisfactory, consider re-running it with additional context or instructions.
+- 🧪 Use the `#runSubagent` tool to delegate specific tasks to specialized subagents, allowing for more efficient and focused problem-solving.
+
+- Make sure you use TSDoc comments for any thing you write in TypeScript. This will help ensure that your code is well-documented and easier for others (or yourself in the future) to understand. TSDoc comments provide a standardized way to describe the purpose, parameters, return values, and other important information about your code. Always include TSDoc comments for functions, classes, and complex logic to improve code readability and maintainability.
+- When writing TSDoc comments, be clear and concise. Describe what the function or class does, its parameters, and its return value. If there are any side effects or important details, include those as well. This practice will greatly enhance the quality of your code and make it easier for others to use and maintain it in the future.
+
+- 🧑‍💻 When working on code files, always ensure that you are following the project's coding standards and best practices. This includes adhering to naming conventions, code formatting, and design patterns commonly used in the project. Consistency in coding style helps maintain readability and makes it easier for other developers to understand and contribute to the codebase.
+- 🧑‍💻 Before making any changes to the code, take the time to review the existing codebase and understand the context and dependencies of the code you are modifying. This will help you make informed decisions and avoid introducing bugs or breaking existing functionality.
+- 🧑‍💻 Always fully use proper types.  Do not guess, check package api in node_modules to get all options and features.  Make sure you import and use types instead of making local ones, or local functions.  This will keep the code clean.  Also try to not use any or unknown unless you absolutely have to.
+
+- If Vscode linting gets stale, then rerun npm run lint:ci to refresh it.  This can happen if you have a lot of file changes and the lint server gets overwhelmed or desynced.  Running the lint command will reset it and ensure you get accurate linting feedback in VS Code.

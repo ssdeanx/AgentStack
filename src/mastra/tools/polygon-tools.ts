@@ -350,22 +350,20 @@ export const polygonStockQuotesTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-stock-quotes', error, {
+            logError('polygon-stock-quotes', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
@@ -722,22 +720,20 @@ export const polygonStockAggregatesTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-stock-aggregates', error, {
+            logError('polygon-stock-aggregates', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
 })
@@ -1093,22 +1089,20 @@ export const polygonStockFundamentalsTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-stock-fundamentals', error, {
+            logError('polygon-stock-fundamentals', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
 })
@@ -1397,22 +1391,20 @@ export const polygonCryptoQuotesTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-crypto-quotes', error, {
+            logError('polygon-crypto-quotes', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
 })
@@ -1725,22 +1717,20 @@ export const polygonCryptoAggregatesTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-crypto-aggregates', error, {
+            logError('polygon-crypto-aggregates', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
 })
@@ -1984,22 +1974,20 @@ export const polygonCryptoSnapshotsTool = createTool({
             return result
         } catch (error) {
             const totalDuration = Date.now() - startTime
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error occurred'
+            const normalizedError =
+                error instanceof Error ? error : new Error(String(error))
 
-            logError('polygon-crypto-snapshots', error, {
+            logError('polygon-crypto-snapshots', normalizedError, {
                 input: inputData,
                 processingTimeMs: totalDuration,
             })
 
             rootSpan?.error({
-                error: error instanceof Error ? error : new Error(errorMessage),
+                error: normalizedError,
                 endSpan: true,
             })
 
-            throw error instanceof Error ? error : new Error(errorMessage)
+            throw normalizedError
         }
     },
 })
