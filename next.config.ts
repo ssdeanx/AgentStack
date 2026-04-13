@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
         'sharp',
         'excalidraw-to-svg',
         'svgjson',
+        'streamjson',
+        'xlsx',
+        'paraparse'
     ],
     allowedDevOrigins: ['http://localhost:4111', 'http://127.0.0.1:4111'],
     typedRoutes: true,
@@ -115,7 +118,7 @@ const withMDX = createMDX({
         // if needed (e.g. server-side gray-matter extraction), which avoids
         // depending on unified plugin resolution in the dev bundler.
         remarkPlugins: ['remark-gfm', 'remark-frontmatter', 'remark-breaks', 'remark-parse', 'remark-rehype', 'remark-highlight'],
-        rehypePlugins: ['rehype-highlight', 'rehypee-class-names'],
+        rehypePlugins: ['rehype-highlight', 'rehype-class-names'],
     },
 })
 
