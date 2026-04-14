@@ -1,13 +1,13 @@
-import { mdocumentChunker } from './../tools/document-chunking.tool';
+import { libsqlQueryTool, libsqlgraphQueryTool } from './../config/libsql';
+import { libsqlChunker, mdocumentChunker } from './../tools/document-chunking.tool';
 import type { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'
 import { Agent } from '@mastra/core/agent'
-import {
-  TokenLimiterProcessor
-} from '@mastra/core/processors'
 import { log } from '../config/logger'
 import { evaluateResultTool } from '../tools/evaluateResultTool'
 import { extractLearningsTool } from '../tools/extractLearningsTool'
 import { fetchTool } from '../tools/fetch.tool'
+import { binanceSpotMarketDataTool } from '../tools/binance-crypto-market.tool'
+import { coinbaseExchangeMarketDataTool } from '../tools/coinbase-exchange-crypto.tool'
 import { finnhubQuotesTool } from '../tools/finnhub-tools'
 import { polygonStockQuotesTool } from '../tools/polygon-tools'
 import {
@@ -18,6 +18,8 @@ import {
   googleNewsLiteTool,
   googleTrendsTool,
 } from '../tools/serpapi-news-trends.tool'
+import { stooqStockQuotesTool } from '../tools/stooq-stock-market-data.tool'
+import { yahooFinanceStockQuotesTool } from '../tools/yahoo-finance-stock.tool'
 
 // Scorers
 import { InternalSpans } from '@mastra/core/observability'
@@ -30,6 +32,8 @@ import {
 import { researchArxivDownloadWorkflow } from '../workflows/research/research-arxiv-download.workflow'
 import { researchArxivSearchWorkflow } from '../workflows/research/research-arxiv-search.workflow'
 import { LibsqlMemory } from '../config/libsql'
+import { listRepositories } from '../tools/github';
+import { stagehand } from '../browsers';
 
 type ResearchPhase = 'initial' | 'followup' | 'validation'
 const RESEARCH_PHASE_CONTEXT_KEY = 'researchPhase' as const
@@ -56,11 +60,19 @@ const researchAgentTools = {
   googleNewsLiteTool,
   googleTrendsTool,
   mdocumentChunker,
-//  extractLearningsTool,
-//  evaluateResultTool,
+  libsqlChunker,
+  libsqlQueryTool,
+  libsqlgraphQueryTool,
+  listRepositories,
+  extractLearningsTool,
+  evaluateResultTool,
   polygonStockQuotesTool,
   finnhubQuotesTool,
   googleFinanceTool,
+  binanceSpotMarketDataTool,
+  coinbaseExchangeMarketDataTool,
+  stooqStockQuotesTool,
+  yahooFinanceStockQuotesTool,
 }
 
 /**
@@ -97,7 +109,8 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
 - **News/Trends**: 'googleNewsTool', 'googleTrendsTool', 'googleFinanceTool'.
 - **Academic**: 'googleScholarTool'.
 - **Financial**: Use 'polygon*' for stocks/crypto.
-- **Internal**: 'mdocumentChunker' for embedding any information
+- **Financial**: Use 'polygon*' for stocks/crypto when you need paid/commercial feeds; use 'binanceSpotMarketDataTool', 'coinbaseExchangeMarketDataTool', 'stooqStockQuotesTool', and 'yahooFinanceStockQuotesTool' for free public market data.
+- **Internal**: 'libsqlChunker' for embedding any information, 'libsqlQueryTool' for querying embedded knowledge. 'libsqlgraphQueryTool' for complex relational queries.
 - **Processing**: use workspace document tools for PDFs, Markdown, and any other filetype in the workspace;
 
 ## Rules
@@ -146,6 +159,7 @@ Role: ${role} | Lang: ${language} | Phase: ${researchPhase}
     //     }),
   ],
   workspace: mainWorkspace,
+  browser: stagehand,
   //  defaultOptions: {
   //      autoResumeSuspendedTools: true,
   //  },

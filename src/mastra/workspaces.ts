@@ -32,6 +32,7 @@ import {
 import { libsqlvector } from './config/libsql'
 import { embed } from 'ai'
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
+import { VersionedSkillSource } from '@mastra/core/workspace'
 
 export const localWorkspacePath = process.env.WORKSPACE_PATH ?? './workspace'
 export const daytonaWorkspacePath =
@@ -41,7 +42,7 @@ export const agentFsAgentId =
     process.env.AGENTFS_AGENT_ID ?? 'agentFs-db'
 export const sandboxPathEnv = process.env.PATH ?? ''
 export const sandboxNodeEnv = process.env.NODE_ENV
-export const agentFsDbPath = process.env.AGENTFS_DB_PATH
+export const agentFsDbPath = process.env.AGENTFS_DB_PATH ?? './agentfs-db'
 
 export const workspaceLifecycleState: Lifecycle = {
     status: 'pending',
@@ -216,7 +217,7 @@ export const agentFsFilesystem = new AgentFSFilesystem(
     typeof agentFsDbPath === 'string' && agentFsDbPath.length > 0
         ? {
               id: 'agentfs-filesystem',
-              path: './agentfs-db',
+              path: agentFsDbPath,
           }
         : {
               id: 'agentfs-filesystem',
@@ -337,11 +338,12 @@ export const mainWorkspace = new Workspace({
             },
         },
     },
-    skills: workspaceSkillPaths,
+    skills: ['/skills'],
     bm25: {
     k1: 1.5,
     b: 0.75,
     },
+    //skillSource: new VersionedSkillSource(versionTree, blobStore, versionCreatedAt),
 })
 
 export const localFilesystemOnlyWorkspace = new Workspace({
@@ -450,7 +452,7 @@ export const agentFsWorkspace = new Workspace({
         },
         }),
     skills: workspaceSkillPaths,
-     vectorStore: libsqlvector,
+    vectorStore: libsqlvector,
     embedder: async (text: string) => {
     const { embedding } = await embed({
       model: new ModelRouterEmbeddingModel(

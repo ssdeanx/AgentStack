@@ -51,6 +51,42 @@ interface SerpApiSuggestResponse {
     suggestions?: Array<{ value: string }>
 }
 
+type GoogleTrendsTimeRange =
+    | 'now-1-H'
+    | 'now-4-H'
+    | 'now-1-d'
+    | 'now-7-d'
+    | 'today-1-m'
+    | 'today-3-m'
+    | 'today-12-m'
+    | 'today-5-y'
+
+const GOOGLE_TRENDS_DATE_RANGE_MAP: Record<GoogleTrendsTimeRange, string> = {
+    'now-1-H': 'now 1-H',
+    'now-4-H': 'now 4-H',
+    'now-1-d': 'now 1-d',
+    'now-7-d': 'now 7-d',
+    'today-1-m': 'today 1-m',
+    'today-3-m': 'today 3-m',
+    'today-12-m': 'today 12-m',
+    'today-5-y': 'today 5-y',
+}
+
+/**
+ * Converts the tool's hyphenated time range enum into the SerpAPI date format.
+ *
+ * SerpAPI expects values like `today 12-m` and `now 7-d`, not the hyphenated
+ * internal enum values used by this tool's input schema.
+ *
+ * @param timeRange - Internal tool time range
+ * @returns The SerpAPI-compatible date string
+ */
+export function mapGoogleTrendsDateRange(
+    timeRange: GoogleTrendsTimeRange
+): string {
+    return GOOGLE_TRENDS_DATE_RANGE_MAP[timeRange]
+}
+
 /**
  * Input schema for Google News
  */
@@ -564,7 +600,7 @@ export const googleTrendsTool = createTool({
                 params.geo = input.location
             }
             if (typeof input.timeRange === 'string' && input.timeRange.length > 0) {
-                params.date = input.timeRange
+                params.date = mapGoogleTrendsDateRange(input.timeRange)
             }
 
             if (typeof input.category === 'number') {
@@ -660,6 +696,17 @@ export const googleTrendsTool = createTool({
             })
             throw new Error(`Google Trends search failed: ${errorMessage}`, { cause: error })
         }
+    },
+    onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        log.info('Google Trends analysis completed', {
+            toolCallId,
+            toolName,
+            dataPoints: output?.interestOverTime?.length ?? 0,
+            relatedQueries: output?.relatedQueries?.length ?? 0,
+            relatedTopics: output?.relatedTopics?.length ?? 0,
+            aborted: abortSignal?.aborted === true,
+            hook: 'onOutput',
+        })
     },
 })
 

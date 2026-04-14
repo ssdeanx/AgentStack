@@ -1,3 +1,109 @@
+# Active Context Update (2026-04-14 - strict typing and inferred tool cleanup)
+
+- `BinanceAvgPrice` is now used in the Binance spot tool via the `BinanceSpotAvgPriceData` type.
+- Added `InferUITool` exports for all four market-data tools:
+  - `BinanceSpotMarketDataUITool`
+  - `CoinbaseExchangeMarketDataUITool`
+  - `StooqStockQuotesUITool`
+  - `YahooFinanceStockQuotesUITool`
+- The market-data helper layer and all four tools remain free of broad `any`/`unknown` usage in their own code.
+- Validation remains green after the cleanup.
+
+# Active Context Update (2026-04-14 - strict typing pass)
+
+- Tightened the market-data tool layer to remove broad `any`/`unknown` usage from the shared helper and all four source-specific tools.
+- Final tools now use explicit typed payload models for:
+  - Binance spot crypto
+  - Coinbase Exchange crypto
+  - Stooq stock quotes
+  - Yahoo Finance stock quotes
+- Runtime validation and tests remain green after the typing pass.
+
+# Active Context Update (2026-04-14 - hook order corrected)
+
+- Corrected the market-data tools to follow the repo’s hook ordering pattern from `fetch.tool.ts`.
+- `onOutput` now appears at the end of each tool definition for:
+  - `binanceSpotMarketDataTool`
+  - `coinbaseExchangeMarketDataTool`
+  - `stooqStockQuotesTool`
+  - `yahooFinanceStockQuotesTool`
+- Also tightened `onOutput` counts to use the returned payload shape rather than assuming array roots.
+- Validation completed successfully on the four updated tool files.
+
+# Active Context Update (2026-04-14 - final optimization pass)
+
+- Wired the new production-grade market-data tools into `researchAgent` so the agent can use them directly:
+  - `binanceSpotMarketDataTool`
+  - `coinbaseExchangeMarketDataTool`
+  - `stooqStockQuotesTool`
+  - `yahooFinanceStockQuotesTool`
+- Cleaned the Coinbase Exchange tool by removing an unnecessary `limit` parameter from the public trades request.
+- `researchAgent` tool guidance now points to the free/public market-data tools for crypto and stock research when paid feeds are not needed.
+- Validation completed successfully on the updated `researchAgent` and Coinbase tool files.
+
+# Active Context Update (2026-04-14 - production-grade market-data tool pass)
+
+- The market-data implementation is now source-specific and production-oriented.
+- Final exported tools:
+  - `binanceSpotMarketDataTool`
+  - `coinbaseExchangeMarketDataTool`
+  - `stooqStockQuotesTool`
+  - `yahooFinanceStockQuotesTool`
+- Shared helpers live in `src/mastra/tools/market-data.helpers.ts` and handle symbol normalization plus Binance/Coinbase/Stooq/Yahoo candle conversion.
+- Binance now exposes additional public market-data options (`quote`, `stats24hr`, `candles`, `uiKlines`, `orderbook`, `trades`, `aggTrades`, `avgPrice`, `exchangeInfo`) with optional time filters.
+- Coinbase Exchange now exposes public ticker/stats/candles/orderbook/trades/products options with candle time filters.
+- Yahoo Finance now exposes quote/history plus `includePrePost` and `events` controls.
+- Every tool includes `onOutput` hooks and the standard input/progress/span/error pattern.
+- Validation completed successfully on the renamed tools, the shared helpers, and the helper tests.
+
+# Active Context Update (2026-04-14 - modular market-data refactor)
+
+- Replaced the bloated `free-market-data.tool.ts` with four source-specific tools and a shared helper module:
+  - `binance-crypto-market.tool.ts`
+  - `coinbase-exchange-crypto.tool.ts`
+  - `stooq-stock-market-data.tool.ts`
+  - `yahoo-finance-stock.tool.ts`
+  - shared helpers in `market-data.helpers.ts`
+- All four tool files now include `onOutput` hooks plus the existing input/progress patterns used elsewhere in the repo.
+- Crypto sources are now truly free/no-key for the main path and fallback path:
+  - Binance public market-data API
+  - Coinbase Exchange public market-data API
+- Stock sources are also no-key:
+  - Stooq
+  - Yahoo Finance
+- Validation completed successfully:
+  - targeted VS Code error checks on all new modular market-data files, shared helpers, tests, and `src/mastra/tools/index.ts`
+  - `vitest run src/mastra/tools/tests/market-data.helpers.test.ts`
+
+# Active Context Update (2026-04-14 - free market-data tools added)
+
+- Added `src/mastra/tools/free-market-data.tool.ts` with two new tools:
+  - `freeCryptoMarketDataTool`: Binance public market data as the primary crypto source, plus CoinCap as a second crypto source that requires a free API key.
+  - `freeStockMarketDataTool`: Stooq and Yahoo Finance as free stock sources that do not require an API key.
+- Added helper exports for symbol normalization and CSV/chart normalization so the tool behavior is testable.
+- Exported the new tool module from `src/mastra/tools/index.ts`.
+- Validation completed successfully:
+  - targeted VS Code error check on `src/mastra/tools/free-market-data.tool.ts`
+  - targeted VS Code error check on `src/mastra/tools/index.ts`
+  - targeted VS Code error check on `src/mastra/tools/tests/free-market-data.test.ts`
+  - `vitest run src/mastra/tools/tests/free-market-data.test.ts`
+
+# Active Context Update (2026-04-14 - crypto API research shortlist)
+
+- Binance offers market-data-only public endpoints with no authentication required; useful endpoints include `/api/v3/ticker/price`, `/api/v3/ticker/24hr`, `/api/v3/klines`, `/api/v3/depth`, and `/api/v3/exchangeInfo`.
+- CoinGecko’s current docs support a free/demo path with a free API key and strong coverage for prices, markets, historical charts, and trending coins.
+- CoinCap API 3.0 is another viable crypto data source for real-time pricing/market cap/exchange data across 1,000+ assets.
+- CryptoCompare remains a useful fallback for a free tier with historical market data and news, but it does require an API key.
+- Existing repo coverage already includes `alphaVantageCryptoTool` and Polygon crypto tools, so the next addition should focus on free/public providers rather than duplicating paid-market feeds.
+
+# Active Context Update (2026-04-14 - SerpAPI Scholar/trends repair)
+
+- Fixed the Google Scholar tool in `src/mastra/tools/serpapi-academic-local.tool.ts` so its `onOutput`/input hooks no longer assume `messages` or `output.papers` are always defined.
+- Normalized the Scholar progress events to match the rest of the SerpAPI tools with explicit `status`, `stage`, `id`, and a completion event on success.
+- Fixed Google Trends in `src/mastra/tools/serpapi-news-trends.tool.ts` by translating the internal hyphenated time-range enum into the SerpAPI date format (`today 12-m`, `now 7-d`, etc.).
+- Added focused regression tests in `src/mastra/tools/tests/serpapi-tools.test.ts` for the trends date mapper and Scholar paper-count helper.
+- Validation: targeted ESLint passed for the two edited tool files plus the new test file, and the new Vitest suite passed.
+
 # Active Context Update (2026-04-13 - research synthesis workflow repair)
 
 - Repaired `src/mastra/workflows/research-synthesis-workflow.ts` after a broken merge introduced duplicate `stream` declarations and malformed structured-output syntax in the topic research and synthesis steps.
