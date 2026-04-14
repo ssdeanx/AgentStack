@@ -74,7 +74,6 @@ export const LibsqlMemory = new Memory({
                 },
             },
             reflection: {
-                model: 'google/gemini-3.1-flash-lite-preview',
                 instruction: 'Based on the observations, generate concise and informative reflections that capture important details, context, and insights from the conversation. These reflections should be useful for future reference and help provide context for the assistant.',
                 modelSettings: {
                     temperature: 0.3,

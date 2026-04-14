@@ -185,9 +185,24 @@ import { mainHarness } from './harness'
 import { supervisorAgent } from './agents/supervisor-agent'
 import { mastraAuth } from './auth'
 import { agentFsWorkspace } from './workspaces'
+import { MastraEditor } from '@mastra/editor'
+import { MastraCompositeStore } from '@mastra/core/storage'
 
 export const mastra = new Mastra({
     workspace: agentFsWorkspace,
+    editor: new MastraEditor(
+        {
+            logger: log,
+            sandboxes: {
+                // Optional: restrict certain modules or APIs for security
+            },
+            filesystems: {
+
+                // Optional: configure storage limits, allowed file types, etc.
+            },
+             // Optional: add a custom toolbar with specific tools or actions
+        }
+    ),
     workflows: {
         weatherWorkflow,
         contentStudioWorkflow,

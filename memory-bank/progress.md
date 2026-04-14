@@ -1,3 +1,93 @@
+# Progress Update (2026-04-14 - strict typing and inferred tool cleanup)
+
+- Used `BinanceAvgPrice` in the Binance tool instead of leaving it as an unused helper import.
+- Added `InferUITool` exports for each market-data tool to match other Mastra tools in the repo.
+- Validation:
+  - ✅ targeted VS Code error checks on all market-data files
+  - ✅ `vitest run src/mastra/tools/tests/market-data.helpers.test.ts`
+
+# Progress Update (2026-04-14 - strict typing pass)
+
+- Removed the remaining broad `any`/`unknown` usage from the market-data helpers and the four source-specific market-data tools.
+- Kept the tools production-grade with explicit payload models and typed output schemas.
+- Validation:
+  - ✅ targeted VS Code error checks on all market-data helper/tool files
+  - ✅ `vitest run src/mastra/tools/tests/market-data.helpers.test.ts`
+
+# Progress Update (2026-04-14 - hook order corrected)
+
+- Moved each market-data tool’s `onOutput` hook to the end of the tool config to match the `fetch.tool.ts` pattern.
+- Improved the completion logs to count payload data more safely.
+- Validation:
+  - ✅ targeted VS Code error checks on the four updated market-data tool files
+
+# Progress Update (2026-04-14 - final optimization pass)
+
+- Added the new free/public market-data tools to `researchAgent` so they are actually available to the primary research workflow.
+- Removed the unnecessary Coinbase trades query parameter to keep the public request surface lean.
+- Validation:
+  - ✅ targeted VS Code error check on `src/mastra/agents/researchAgent.ts`
+  - ✅ targeted VS Code error check on `src/mastra/tools/coinbase-exchange-crypto.tool.ts`
+
+# Progress Update (2026-04-14 - production-grade market-data tool pass)
+
+- Renamed the modular market-data exports to clearer production-facing names.
+- Expanded source-specific options so the tools are more feature-complete:
+  - Binance spot market data
+  - Coinbase Exchange market data
+  - Stooq stock quotes/history
+  - Yahoo Finance quotes/history
+- Fixed the final Yahoo Finance compile issue from the rename pass.
+- Validation:
+  - ✅ targeted VS Code error checks on all market-data tool files and shared helpers
+  - ✅ targeted VS Code error check on `src/mastra/tools/yahoo-finance-stock.tool.ts` after the final fix
+
+# Progress Update (2026-04-14 - modular market-data refactor)
+
+- Refactored market-data into dedicated tools per source instead of one bloated generic tool.
+- Added `onOutput` hooks to every new market-data tool to match the logging pattern used by the rest of the repo.
+- Final tool set now uses only free/public sources for the no-key paths:
+  - Binance crypto
+  - Coinbase Exchange crypto
+  - Stooq stock
+  - Yahoo Finance stock
+- Validation:
+  - ✅ VS Code error checks on all modular tool files, helper file, tests, and `src/mastra/tools/index.ts`
+  - ✅ `vitest run src/mastra/tools/tests/market-data.helpers.test.ts`
+
+# Progress Update (2026-04-14 - free market-data tools added)
+
+- Implemented `freeCryptoMarketDataTool` in `src/mastra/tools/free-market-data.tool.ts`.
+  - Primary source: Binance public market-data-only endpoints.
+  - Secondary source: CoinCap (requires `COINCAP_API_KEY`).
+- Implemented `freeStockMarketDataTool` in the same file.
+  - Sources: Stooq and Yahoo Finance, both without API key requirements.
+- Added tests in `src/mastra/tools/tests/free-market-data.test.ts` covering symbol normalization and CSV/chart parsing.
+- Validation:
+  - ✅ VS Code error check on `src/mastra/tools/free-market-data.tool.ts`
+  - ✅ VS Code error check on `src/mastra/tools/index.ts`
+  - ✅ VS Code error check on `src/mastra/tools/tests/free-market-data.test.ts`
+  - ✅ `vitest run src/mastra/tools/tests/free-market-data.test.ts`
+
+# Progress Update (2026-04-14 - crypto API research shortlist)
+
+- Researched free crypto data providers for the requested crypto-tool set.
+- Best-fit shortlist for implementation:
+  - Binance public market-data-only endpoints (no auth)
+  - CoinGecko free/demo API (free key)
+  - CoinCap API 3.0 (real-time public market data)
+  - CryptoCompare free tier (API key required)
+- Existing repo crypto coverage already includes Alpha Vantage and Polygon tools, so the next feature should emphasize free/public feeds and normalization helpers.
+
+# Progress Update (2026-04-14 - SerpAPI Scholar/trends repair)
+
+- Patched `src/mastra/tools/serpapi-academic-local.tool.ts` to guard against undefined `messages`/`output` in the Scholar callbacks and to emit consistent start/done progress events.
+- Patched `src/mastra/tools/serpapi-news-trends.tool.ts` so Google Trends sends SerpAPI-compatible date values instead of the internal hyphenated enum strings.
+- Added `src/mastra/tools/tests/serpapi-tools.test.ts` covering the trends date mapper and Scholar paper-count helper.
+- Validation:
+  - ✅ targeted ESLint on the edited tool files and new test file
+  - ✅ `vitest run src/mastra/tools/tests/serpapi-tools.test.ts`
+
 # Progress Update (2026-04-13 - research synthesis workflow repair)
 
 - Fixed the malformed merge in `src/mastra/workflows/research-synthesis-workflow.ts` that caused the Mastra CLI transform failure.

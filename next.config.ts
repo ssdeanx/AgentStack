@@ -37,9 +37,9 @@ const nextConfig: NextConfig = {
         'sharp',
         'excalidraw-to-svg',
         'svgjson',
-        'streamjson',
+        'stream-json',
         'xlsx',
-        'paraparse'
+        'papaparse'
     ],
     allowedDevOrigins: ['http://localhost:4111', 'http://127.0.0.1:4111'],
     typedRoutes: true,

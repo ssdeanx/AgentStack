@@ -101,6 +101,20 @@ interface YelpApiResponse {
     organic_results?: YelpBusiness[]
 }
 
+type GoogleScholarOutput = z.infer<typeof googleScholarOutputSchema>
+
+/**
+ * Safely counts Google Scholar papers in a tool output payload.
+ *
+ * @param output - Optional tool output payload
+ * @returns The number of papers present in the payload
+ */
+export function getGoogleScholarPaperCount(
+    output?: Partial<GoogleScholarOutput>
+): number {
+    return output?.papers?.length ?? 0
+}
+
 // Google Scholar Tool
 const googleScholarInputSchema = z.object({
     query: z.string().min(1).describe('Academic search query'),
@@ -162,7 +176,7 @@ export const googleScholarTool = createTool({
     onInputStart: ({ toolCallId, messages, abortSignal }) => {
         log.info('Google Scholar tool input streaming started', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputStart',
         })
@@ -171,7 +185,7 @@ export const googleScholarTool = createTool({
         log.info('Google Scholar tool received input chunk', {
             toolCallId,
             inputTextDelta,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             abortSignal: abortSignal?.aborted,
             hook: 'onInputDelta',
         })
@@ -179,7 +193,7 @@ export const googleScholarTool = createTool({
     onInputAvailable: ({ input, toolCallId, messages, abortSignal }) => {
         log.info('Google Scholar received input', {
             toolCallId,
-            messageCount: messages.length,
+            messageCount: messages?.length ?? 0,
             inputData: {
                 query: input.query,
                 yearStart: input.yearStart,
@@ -220,8 +234,11 @@ export const googleScholarTool = createTool({
         await writer?.custom({
             type: 'data-tool-progress',
             data: {
+                status: 'in-progress',
                 message: `Searching Google Scholar for: ${input.query}`,
+                stage: 'googlescholar',
             },
+            id: 'googlescholar',
         })
         try {
             const params: Record<string, string | number> = {
@@ -271,6 +288,15 @@ export const googleScholarTool = createTool({
                 },
             })
             scholarSpan?.end()
+            await writer?.custom({
+                type: 'data-tool-progress',
+                data: {
+                    status: 'done',
+                    message: `✅ Google Scholar search complete: ${papers.length} papers`,
+                    stage: 'googlescholar',
+                },
+                id: 'googlescholar',
+            })
             log.info('Google Scholar search completed', {
                 query: input.query,
                 paperCount: papers.length,
@@ -289,9 +315,9 @@ export const googleScholarTool = createTool({
                     data: {
                         status: 'done',
                         message: `🛑 ${cancelMessage}`,
-                        stage: 'serpapi-academic-local',
+                        stage: 'googlescholar',
                     },
-                    id: 'serpapi-academic-local',
+                    id: 'googlescholar',
                 })
 
                 log.warn(cancelMessage)
@@ -320,10 +346,12 @@ export const googleScholarTool = createTool({
         }
     },
     onOutput: ({ output, toolCallId, toolName, abortSignal }) => {
+        const paperCount = getGoogleScholarPaperCount(output)
+
         log.info('Google Scholar search completed', {
             toolCallId,
             toolName,
-            outputData: { paperCount: output.papers.length },
+            outputData: { paperCount },
             abortSignal: abortSignal?.aborted,
             hook: 'onOutput',
         })
