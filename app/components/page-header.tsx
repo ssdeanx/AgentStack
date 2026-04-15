@@ -57,13 +57,13 @@ export function PageHeader({
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 0.15, scale: 1 }}
                         transition={{ duration: 1.5, ease: 'easeOut' }}
-                        className="absolute left-1/2 top-0 -z-10 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/30 blur-[100px]"
+                        className="absolute left-1/2 top-0 -z-10 h-100 w-100 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/30 blur-[100px]"
                     />
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 0.1 }}
                         transition={{ duration: 2, delay: 0.3 }}
-                        className="absolute bottom-0 right-0 -z-10 h-[300px] w-[300px] translate-x-1/4 translate-y-1/4 rounded-full bg-blue-500/30 blur-[80px]"
+                        className="absolute bottom-0 right-0 -z-10 h-75 w-75 translate-x-1/4 translate-y-1/4 rounded-full bg-blue-500/30 blur-[80px]"
                     />
                 </>
             )}
