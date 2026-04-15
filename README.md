@@ -7,7 +7,7 @@
 ## Configuration
 
 ## Development
-![Networks Custom Tool v1.0.0](networksCustomToolv1.png)
+
 ![Home Page v1.0.0](page-2026-04-15T07-04-23-082Z.png)
 
 <!-- Core Project Badges -->
